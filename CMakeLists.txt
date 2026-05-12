@@ -1,0 +1,92 @@
+cmake_minimum_required(VERSION 3.16)
+project(stroemling VERSION 0.1 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Sql LinguistTools PrintSupport)
+qt_standard_project_setup(REQUIRES 6.5)
+
+qt_add_executable(stroemling_app
+    src/main.cpp
+    src/database/Database.cpp
+    src/database/Database.h
+    src/models/ProjektModel.cpp
+    src/models/ProjektModel.h
+    src/models/SeitenModel.cpp
+    src/models/SeitenModel.h
+    src/models/BauteilModel.cpp
+    src/models/BauteilModel.h
+    src/models/KlemmeModel.cpp
+    src/models/KlemmeModel.h
+    src/models/KlemmenreihenModel.cpp
+    src/models/KlemmenreihenModel.h
+    src/models/KabelModel.cpp
+    src/models/KabelModel.h
+    src/models/SymbolDefinitionModel.cpp
+    src/models/SymbolDefinitionModel.h
+    src/models/KabelRechnerModel.cpp
+    src/models/KabelRechnerModel.h
+    src/utils/KabelTabellen.h
+)
+
+qt_add_qml_module(stroemling_app
+    URI stroemling
+    VERSION 1.0
+    QML_FILES
+        qml/Main.qml
+        qml/ProjectTree.qml
+        qml/SeitenBaum.qml
+        qml/BauteilAnsicht.qml
+        qml/SchaltplanCanvas.qml
+        qml/EigenschaftenPanel.qml
+        qml/SymbolPalette.qml
+        qml/ListenAnsicht.qml
+
+        qml/components/SidebarButton.qml
+        qml/components/DebugLabel.qml
+        qml/components/NavTextField.qml
+        qml/KlemmenVorschau.qml
+        qml/KlemmenEditor.qml
+        qml/KlemmePlatzierDialog.qml
+        qml/KlemmenreihenAnsicht.qml
+        qml/SymbolEditorAnsicht.qml
+        qml/KabelEditor.qml
+        qml/KabelRechner.qml
+        qml/KabellinieDialog.qml
+        qml/BauteilKabelPickerDialog.qml
+        qml/AderzuordnungDialog.qml
+        qml/MakrobenennDialog.qml
+        qml/IbnAnsicht.qml
+        qml/IbnFeldEditorDialog.qml
+        qml/CanvasPanel.qml
+        qml/KommandoPalette.qml
+)
+
+qt_add_resources(stroemling_app "database_seeds"
+    PREFIX "/database"
+    BASE "src/database"
+    FILES
+        src/database/symbole.sql
+)
+
+target_link_libraries(stroemling_app PRIVATE
+    Qt6::Core
+    Qt6::Quick
+    Qt6::Sql
+    Qt6::PrintSupport
+)
+
+qt_add_translations(stroemling_app
+    TS_FILES
+        i18n/stroemling_en.ts
+    SOURCES
+        qml/Main.qml
+        qml/ProjectTree.qml
+        qml/SeitenBaum.qml
+        qml/BauteilAnsicht.qml
+        qml/SchaltplanCanvas.qml
+        qml/EigenschaftenPanel.qml
+        qml/SymbolPalette.qml
+        qml/ListenAnsicht.qml
+        qml/components/SidebarButton.qml
+)

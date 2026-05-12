@@ -1,0 +1,74 @@
+#pragma once
+
+#include <QObject>
+#include <QVariantList>
+#include <QVariantMap>
+#include <QString>
+
+// Bietet QML-Zugriff auf das Primitiv-Symbolsystem (Lesen + Schreiben).
+// Lesen:  primitiveFuerSymbol, hatPrimitive, pinsForSymbol, rolleForSymbol, symbolInfo, alleSymbole
+// Schreiben: symbolAnlegen, symbolAktualisieren, symbolLoeschen,
+//            primitivHinzufuegen, primitivAlleLoeschen,
+//            pinHinzufuegen, pinAlleLoeschen
+
+class SymbolDefinitionModel : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit SymbolDefinitionModel(QObject *parent = nullptr);
+
+    // ── Lesemethoden ────────────────────────────────────────────────
+
+    // Gibt alle Primitive eines Symbols geordnet zurück.
+    // Jeder Eintrag ist eine QVariantMap mit id + allen Feldern aus symbol_primitiv.
+    Q_INVOKABLE QVariantList primitiveFuerSymbol(const QString &symbolId) const;
+
+    // True wenn das Symbol als Primitiv-Definition in der DB vorliegt.
+    Q_INVOKABLE bool hatPrimitive(const QString &symbolId) const;
+
+    // Gibt alle Pins eines Symbols zurück.
+    // Jeder Eintrag: {id, name, x, y, offen:{x,y}, signaltyp, kontext}
+    Q_INVOKABLE QVariantList pinsForSymbol(const QString &symbolId) const;
+
+    // Gibt die Rolle des Symbols zurück (z.B. "durchleiter", "verbraucher").
+    Q_INVOKABLE QString rolleForSymbol(const QString &symbolId) const;
+
+    // Gibt Basisdaten eines Symbols zurück: {name, kategorie, groesse_raster, rolle, ist_builtin}
+    Q_INVOKABLE QVariantMap symbolInfo(const QString &symbolId) const;
+
+    // Gibt alle Symbole zurück: [{id, name, kategorie, groesse_raster, rolle, ist_builtin}, …]
+    Q_INVOKABLE QVariantList alleSymbole() const;
+
+    // ── Schreibmethoden ─────────────────────────────────────────────
+
+    // Neues Symbol anlegen (ist_builtin = 0). Gibt false zurück wenn id schon belegt.
+    Q_INVOKABLE bool symbolAnlegen(const QString &id, const QString &name,
+                                    const QString &kategorie, int groesse,
+                                    const QString &rolle);
+
+    // Metadaten eines nicht-eingebauten Symbols aktualisieren.
+    Q_INVOKABLE bool symbolAktualisieren(const QString &id, const QString &name,
+                                          const QString &kategorie, int groesse,
+                                          const QString &rolle);
+
+    // Symbol löschen (nur ist_builtin = 0). Primitive und Pins werden per FK gelöscht.
+    Q_INVOKABLE bool symbolLoeschen(const QString &symbolId);
+
+    // Einzelnes Primitiv hinzufügen; gibt neue Zeilen-ID zurück (-1 bei Fehler).
+    // daten: {typ, reihenfolge, x1, y1, x2, y2, x3, y3, radius,
+    //         winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+    //         text_inhalt, schrift_relativ, schrift_fett,
+    //         text_align, text_baseline, linienart}
+    Q_INVOKABLE int primitivHinzufuegen(const QString &symbolId, const QVariantMap &daten);
+
+    // Alle Primitive eines Symbols löschen (z.B. vor Neu-Speichern).
+    Q_INVOKABLE bool primitivAlleLoeschen(const QString &symbolId);
+
+    // Einzelnen Pin hinzufügen; gibt neue Zeilen-ID zurück (-1 bei Fehler).
+    // daten: {name, x, y, offenX, offenY, signaltyp, kontext}
+    Q_INVOKABLE int pinHinzufuegen(const QString &symbolId, const QVariantMap &daten);
+
+    // Alle Pins eines Symbols löschen.
+    Q_INVOKABLE bool pinAlleLoeschen(const QString &symbolId);
+};

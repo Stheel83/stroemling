@@ -1,0 +1,110 @@
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QTranslator>
+#include <QLocale>
+#include <QSettings>
+#include <QProcess>
+#include <QObject>
+
+#include "database/Database.h"
+#include "models/ProjektModel.h"
+#include "models/SeitenModel.h"
+#include "models/BauteilModel.h"
+#include "models/KlemmeModel.h"
+#include "models/KlemmenreihenModel.h"
+#include "models/KabelModel.h"
+#include "models/SymbolDefinitionModel.h"
+#include "models/KabelRechnerModel.h"
+
+class AppHelper : public QObject {
+    Q_OBJECT
+public:
+    explicit AppHelper(QObject *parent = nullptr) : QObject(parent) {}
+
+    Q_INVOKABLE void restart() {
+        QProcess::startDetached(QCoreApplication::applicationFilePath(),
+                                QCoreApplication::arguments());
+        QCoreApplication::quit();
+    }
+};
+
+#include "main.moc"
+
+int main(int argc, char *argv[])
+{
+    QGuiApplication app(argc, argv);
+    app.setOrganizationName("stroemling");
+    app.setApplicationName("Strömling Design");
+
+    // Gespeicherte Sprache laden (gesetzt vom QML-Sprachpicker)
+    QSettings settings;
+    QString savedLanguage = settings.value("i18n/language", "system").toString();
+
+    QTranslator translator;
+    if (savedLanguage != "system" && savedLanguage != "de") {
+        translator.load(":/i18n/stroemling_" + savedLanguage);
+        app.installTranslator(&translator);
+    } else if (savedLanguage == "system") {
+        for (const QString &locale : QLocale::system().uiLanguages()) {
+            if (translator.load(":/i18n/stroemling_" + QLocale(locale).name())) {
+                app.installTranslator(&translator);
+                break;
+            }
+        }
+    }
+    // savedLanguage == "de": kein Translator nötig, Quellsprache ist Deutsch
+
+    // Entwicklungsphase: Datenbankdatei liegt neben dem Binary im Build-Ordner.
+    // Vor dem stabilen Release auf AppDataLocation umstellen.
+    QString dbPath = QCoreApplication::applicationDirPath() + "/stroemling.db";
+
+    // Datenbankverbindung aufbauen
+    Database db;
+    if (!db.open(dbPath)) {
+        qCritical() << "Datenbank konnte nicht geöffnet werden:" << db.lastError();
+        return 1;
+    }
+
+    // Models anlegen
+    ProjektModel           projektModel;
+    SeitenModel            seitenModel;
+    BauteilKategorieModel  kategorieModel;
+    BauteilListModel       bauteilModel;
+    FarbDefinitionModel     farbModel;
+    KlemmeModel             klemmeModel;
+    KlemmenleistenModel     klemmenleistenModel;
+    KlemmenreiheModel           klemmenreiheModel;
+    KabelModel                  kabelModel;
+    SymbolDefinitionModel       symbolDefinitionModel;
+    KabelRechnerModel           kabelRechnerModel;
+    AppHelper                   appHelper;
+
+    // QML Engine starten
+    QQmlApplicationEngine engine;
+
+    // Models als Kontext-Properties registrieren
+    engine.rootContext()->setContextProperty("projektModel",   &projektModel);
+    engine.rootContext()->setContextProperty("seitenModel",    &seitenModel);
+    engine.rootContext()->setContextProperty("kategorieModel", &kategorieModel);
+    engine.rootContext()->setContextProperty("bauteilModel",   &bauteilModel);
+    engine.rootContext()->setContextProperty("farbModel",      &farbModel);
+    engine.rootContext()->setContextProperty("klemmeModel",           &klemmeModel);
+    engine.rootContext()->setContextProperty("klemmenleistenModel",   &klemmenleistenModel);
+    engine.rootContext()->setContextProperty("klemmenreiheModel",     &klemmenreiheModel);
+    engine.rootContext()->setContextProperty("kabelModel",            &kabelModel);
+    engine.rootContext()->setContextProperty("db",                    &db);
+    engine.rootContext()->setContextProperty("symbolDefinitionModel", &symbolDefinitionModel);
+    engine.rootContext()->setContextProperty("kabelRechnerModel",    &kabelRechnerModel);
+    engine.rootContext()->setContextProperty("appHelper",            &appHelper);
+
+    // Hauptfenster laden
+    engine.loadFromModule("stroemling", "Main");
+
+    if (engine.rootObjects().isEmpty()) {
+        qCritical() << "QML konnte nicht geladen werden.";
+        return 1;
+    }
+
+    return app.exec();
+}

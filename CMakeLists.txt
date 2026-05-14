@@ -45,6 +45,19 @@ qt_add_qml_module(stroemling_app
         qml/components/SidebarButton.qml
         qml/components/DebugLabel.qml
         qml/components/NavTextField.qml
+        qml/components/InputField.qml
+        qml/components/ColorPalette.qml
+        qml/components/MiniButton.qml
+
+        qml/ep/EpGeraetekastenSection.qml
+        qml/ep/EpStrukturkastenSection.qml
+        qml/ep/EpMakrokastenSection.qml
+        qml/ep/EpKlemmenAnschlussSection.qml
+        qml/ep/EpKabelDefinitionSection.qml
+        qml/ep/EpBetriebsmittelSection.qml
+        qml/ep/EpQuerverweisSection.qml
+        qml/ep/EpGeraeteanschlussSection.qml
+
         qml/KlemmenVorschau.qml
         qml/KlemmenEditor.qml
         qml/KlemmePlatzierDialog.qml

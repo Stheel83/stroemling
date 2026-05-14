@@ -48,6 +48,8 @@ qt_add_qml_module(stroemling_app
         qml/components/InputField.qml
         qml/components/ColorPalette.qml
         qml/components/MiniButton.qml
+        qml/components/StilSlider.qml
+        qml/components/MassField.qml
 
         qml/ep/EpGeraetekastenSection.qml
         qml/ep/EpStrukturkastenSection.qml
@@ -57,6 +59,20 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpBetriebsmittelSection.qml
         qml/ep/EpQuerverweisSection.qml
         qml/ep/EpGeraeteanschlussSection.qml
+        qml/ep/EpVerbindungSection.qml
+        qml/ep/EpStilSection.qml
+        qml/ep/EpFuellungSection.qml
+        qml/ep/EpFormSection.qml
+        qml/ep/EpMehrfachauswahlSection.qml
+        qml/ep/EpSymbolSection.qml
+        qml/ep/EpAderdefinitionSection.qml
+        qml/ep/EpPotenzialSection.qml
+        qml/ep/EpTreffpunktSection.qml
+        qml/ep/EpBildSection.qml
+        qml/ep/EpTextInhaltSection.qml
+        qml/ep/EpNotizSection.qml
+        qml/ep/EpSteckverbinderSection.qml
+        qml/ep/EpMasseSection.qml
 
         qml/KlemmenVorschau.qml
         qml/KlemmenEditor.qml

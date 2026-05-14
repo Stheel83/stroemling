@@ -41,6 +41,10 @@ Item {
     signal teilenRechts()
     signal teilenUnten()
     signal panelLeer()
+    signal splitSchliessen()
+
+    // Wenn true → Split-Schließen-Button erscheint in der Tab-Leiste
+    property bool splitSchliessbar: false
 
     // ── Öffentliche Funktionen ─────────────────────────────────────────────
 
@@ -176,6 +180,7 @@ Item {
                                         onTapped: {
                                             root.aktivTabIdx = index
                                             root.panelAngeklickt()
+                                            innerCanvas.forceActiveFocus()
                                         }
                                     }
                                 }
@@ -223,6 +228,22 @@ Item {
                         ToolTip.visible: hovered; ToolTip.delay: 600
                         ToolTip.text: qsTr("Unten teilen")
                         onClicked: root.teilenUnten()
+                    }
+
+                    // Split-Ansicht schließen
+                    Button {
+                        flat: true; width: 24; height: 24
+                        visible: root.splitSchliessbar
+                        contentItem: Text {
+                            text: "✕"; font.pixelSize: 11
+                            color: parent.hovered ? theme.textPrimary : theme.textMuted
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment:   Text.AlignVCenter
+                        }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 3 }
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Geteilte Ansicht schließen")
+                        onClicked: root.splitSchliessen()
                     }
                 }
             }

@@ -275,6 +275,11 @@ public:
     //        vonOrt, nachOrt, grafik_element_id}] zurück.
     Q_INVOKABLE QVariantList kabelListe(int projektId);
 
+    // Alle Kabel eines Projekts mit Ader-Unterzeilen für die zweistufige Kabelliste.
+    // Gibt [{id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, laengeM, vonOrt, nachOrt,
+    //        linienAnzahl, adern:[{nr, farbe, bezeichnung, blattnummer, seitenBezeichnung, netz}]}] zurück.
+    Q_INVOKABLE QVariantList kabelListeAufgeschluesselt(int projektId);
+
     // Kabel-Metadaten aktualisieren (nach Änderung im EigenschaftenPanel).
     Q_INVOKABLE bool kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
                                             const QString &kabeltyp, int aderzahl,

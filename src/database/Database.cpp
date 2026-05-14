@@ -2979,24 +2979,42 @@ bool Database::kabellisteCsvSpeichern(int projektId, const QString &pfad)
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
     out << "\xEF\xBB\xBF";
-    out << "Bezeichnung;Kabeltyp;Aderzahl;Querschnitt mm2;Laenge m;Von-Ort;Nach-Ort\n";
+    out << "Kabel-BMK;Kabeltyp;Von-Ort;Nach-Ort;Ader-Nr;Farbe;Bezeichnung;Seite;Netz\n";
     auto csvQ = [](const QString &s) -> QString {
         if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
             return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
         return s;
     };
-    for (const QVariant &v : kabelListe(projektId)) {
-        const QVariantMap row = v.toMap();
-        out << csvQ(row[QStringLiteral("bezeichnung")].toString())                           << u';'
-            << csvQ(row[QStringLiteral("kabeltyp")].toString())                              << u';'
-            << csvQ(row[QStringLiteral("aderzahl")].toInt() > 0
-                    ? QString::number(row[QStringLiteral("aderzahl")].toInt()) : QString())  << u';'
-            << csvQ(row[QStringLiteral("querschnittMm2")].toDouble() > 0
-                    ? QString::number(row[QStringLiteral("querschnittMm2")].toDouble()) : QString()) << u';'
-            << csvQ(row[QStringLiteral("laengeM")].toDouble() > 0
-                    ? QString::number(row[QStringLiteral("laengeM")].toDouble()) : QString()) << u';'
-            << csvQ(row[QStringLiteral("vonOrt")].toString())   << u';'
-            << csvQ(row[QStringLiteral("nachOrt")].toString())  << u'\n';
+    for (const QVariant &kv : kabelListeAufgeschluesselt(projektId)) {
+        const QVariantMap k = kv.toMap();
+        const QString bmk     = k[QStringLiteral("bezeichnung")].toString();
+        const QString typ     = k[QStringLiteral("kabeltyp")].toString();
+        const QString vonOrt  = k[QStringLiteral("vonOrt")].toString();
+        const QString nachOrt = k[QStringLiteral("nachOrt")].toString();
+        const QVariantList adern = k[QStringLiteral("adern")].toList();
+        if (adern.isEmpty()) {
+            // Kabel ohne Adern: eine Zeile nur mit Kabel-Metadaten
+            out << csvQ(bmk) << u';' << csvQ(typ) << u';'
+                << csvQ(vonOrt) << u';' << csvQ(nachOrt)
+                << u";;;;;" << u'\n';
+        } else {
+            for (const QVariant &av : adern) {
+                const QVariantMap a = av.toMap();
+                const QString seite = a[QStringLiteral("blattnummer")].toString();
+                const QString seiteBez = a[QStringLiteral("seitenBez")].toString();
+                const QString seiteSpalte = seite.isEmpty() ? QString()
+                    : (seiteBez.isEmpty() ? seite : seite + u' ' + seiteBez);
+                out << csvQ(bmk)     << u';'
+                    << csvQ(typ)     << u';'
+                    << csvQ(vonOrt)  << u';'
+                    << csvQ(nachOrt) << u';'
+                    << csvQ(QString::number(a[QStringLiteral("nr")].toInt())) << u';'
+                    << csvQ(a[QStringLiteral("farbe")].toString())       << u';'
+                    << csvQ(a[QStringLiteral("bezeichnung")].toString()) << u';'
+                    << csvQ(seiteSpalte)                                  << u';'
+                    << csvQ(a[QStringLiteral("netz")].toString())        << u'\n';
+            }
+        }
     }
     return true;
 }
@@ -3454,6 +3472,88 @@ QVariantList Database::kabelListe(int projektId)
         result.append(k);
     }
     return result;
+}
+
+// ============================================================
+// kabelListeAufgeschluesselt
+// Alle Kabel eines Projekts mit ihren Ader-Unterzeilen.
+// Zwei Queries: (1) Kabel + Linienanzahl, (2) alle Adern mit Seite + Netz.
+// ============================================================
+QVariantList Database::kabelListeAufgeschluesselt(int projektId)
+{
+    // ─── Pass 1: Kabel laden ────────────────────────────────
+    QVariantList kabel;
+    QHash<int, int> kabelIdx;  // kabelId → Index in kabel
+
+    QSqlQuery q1;
+    q1.prepare(R"(
+        SELECT k.id, k.bezeichnung, k.kabeltyp, k.aderzahl, k.querschnitt_mm2,
+               k.laenge_m, k.von_ort, k.nach_ort,
+               COUNT(DISTINCT ka.kabellinie_grafik_element_id) AS linien_anzahl
+        FROM kabel k
+        LEFT JOIN kabel_ader ka ON ka.kabel_id = k.id
+                                AND ka.kabellinie_grafik_element_id IS NOT NULL
+        WHERE k.projekt_id = :pid
+        GROUP BY k.id
+        ORDER BY k.bezeichnung
+    )");
+    q1.bindValue(":pid", projektId);
+    if (!q1.exec()) {
+        qWarning() << "kabelListeAufgeschluesselt (kabel):" << q1.lastError().text();
+        return kabel;
+    }
+    while (q1.next()) {
+        QVariantMap k;
+        k[QStringLiteral("id")]             = q1.value(0).toInt();
+        k[QStringLiteral("bezeichnung")]    = q1.value(1).toString();
+        k[QStringLiteral("kabeltyp")]       = q1.value(2).toString();
+        k[QStringLiteral("aderzahl")]       = q1.value(3).toInt();
+        k[QStringLiteral("querschnittMm2")] = q1.value(4).toDouble();
+        k[QStringLiteral("laengeM")]        = q1.value(5).toDouble();
+        k[QStringLiteral("vonOrt")]         = q1.value(6).toString();
+        k[QStringLiteral("nachOrt")]        = q1.value(7).toString();
+        k[QStringLiteral("linienAnzahl")]   = q1.value(8).toInt();
+        k[QStringLiteral("adern")]          = QVariantList();
+        kabelIdx[q1.value(0).toInt()]       = kabel.size();
+        kabel.append(k);
+    }
+
+    // ─── Pass 2: Adern laden (alle Kabel des Projekts, ein Query) ──
+    QSqlQuery q2;
+    q2.prepare(R"(
+        SELECT ka.kabel_id, ka.ader_nr, COALESCE(ka.farbe, ''), COALESCE(ka.bezeichnung, ''),
+               COALESCE(s.blattnummer, ''), COALESCE(s.bezeichnung, ''),
+               COALESCE(v.bezeichnung, '')
+        FROM kabel_ader ka
+        JOIN kabel k ON k.id = ka.kabel_id AND k.projekt_id = :pid
+        LEFT JOIN grafik_element ge ON ge.id = ka.kabellinie_grafik_element_id
+        LEFT JOIN seite s ON s.id = ge.seite_id
+        LEFT JOIN verbindung v ON v.id = ka.verbindung_id
+        ORDER BY ka.kabel_id, ka.ader_nr
+    )");
+    q2.bindValue(":pid", projektId);
+    if (!q2.exec()) {
+        qWarning() << "kabelListeAufgeschluesselt (adern):" << q2.lastError().text();
+        return kabel;
+    }
+    while (q2.next()) {
+        int kId = q2.value(0).toInt();
+        if (!kabelIdx.contains(kId)) continue;
+        QVariantMap a;
+        a[QStringLiteral("nr")]               = q2.value(1).toInt();
+        a[QStringLiteral("farbe")]            = q2.value(2).toString();
+        a[QStringLiteral("bezeichnung")]      = q2.value(3).toString();
+        a[QStringLiteral("blattnummer")]      = q2.value(4).toString();
+        a[QStringLiteral("seitenBez")]        = q2.value(5).toString();
+        a[QStringLiteral("netz")]             = q2.value(6).toString();
+        int idx = kabelIdx[kId];
+        QVariantMap kMap = kabel[idx].toMap();
+        QVariantList adern = kMap[QStringLiteral("adern")].toList();
+        adern.append(a);
+        kMap[QStringLiteral("adern")] = adern;
+        kabel[idx] = kMap;
+    }
+    return kabel;
 }
 
 // ============================================================

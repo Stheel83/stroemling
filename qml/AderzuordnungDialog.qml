@@ -54,7 +54,13 @@ Dialog {
     // ─── Hilfsfunktionen ─────────────────────────────────────
 
     function _effektiveAdern() {
-        if (root.adern.length > 0) return root.adern
+        if (root.adern.length > 0) {
+            var eigeneGeid = root.kabellinieGrafikElementId
+            return root.adern.filter(function(ad) {
+                var geid = ad.kabellinieGrafikElementId || 0
+                return geid === 0 || geid === eigeneGeid
+            })
+        }
         // Fallback: aderzahl, sonst mindestens so viele wie Kreuzungspunkte vorhanden
         var count = root.aderzahl > 0 ? root.aderzahl : root.schnittNetze.length
         var result = []
@@ -474,10 +480,16 @@ Dialog {
                         }
                     }
                     for (var j = 0; j < ef.length; j++) {
-                        var ad  = ef[j]
-                        var vId = (j in aderVerbMap) ? aderVerbMap[j] : 0
-                        db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.bezeichnung,
-                                             vId, root.kabellinieGrafikElementId)
+                        var ad = ef[j]
+                        if (j in aderVerbMap) {
+                            db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.bezeichnung,
+                                                 aderVerbMap[j], root.kabellinieGrafikElementId)
+                        } else if ((ad.kabellinieGrafikElementId || 0) === root.kabellinieGrafikElementId
+                                   && root.kabellinieGrafikElementId > 0) {
+                            // War auf dieser Linie, jetzt abgewählt → freigeben
+                            db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.bezeichnung, 0, 0)
+                        }
+                        // Freie Adern die nicht ausgewählt wurden: unberührt lassen
                     }
                     root.zuordnungGespeichert(netKeyMap)
                     root.accept()

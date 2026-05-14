@@ -106,15 +106,45 @@ Dialog {
         }
 
         // Bezeichnung / BMK
-        Text { text: qsTr("Bezeichnung (BMK)"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+        RowLayout {
+            Layout.fillWidth: true; spacing: 0
+            Text { text: qsTr("Bezeichnung (BMK)"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11; Layout.fillWidth: true }
+            Text {
+                visible: root._kabelAuswahl > 0
+                text: qsTr("✓ Bestehendes Kabel erkannt")
+                color: theme ? theme.accent : "#e07000"; font.pixelSize: 10
+            }
+        }
         TextField {
             id: tfBezeichnung
             Layout.fillWidth: true
             placeholderText: qsTr("z. B. -W1")
             color: theme ? theme.textPrimary : "#c0d8f0"
             font.pixelSize: 13
-            background: Rectangle { color: theme ? theme.inputBg : "#0f1c2e"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
+            background: Rectangle {
+                color:        theme ? theme.inputBg : "#0f1c2e"; radius: 4
+                border.color: root._kabelAuswahl > 0 ? (theme ? theme.accent : "#e07000")
+                                                     : (theme ? theme.border : "#2a4060")
+                border.width: root._kabelAuswahl > 0 ? 2 : 1
+            }
             Keys.onReturnPressed: tfKabeltyp.forceActiveFocus()
+            onTextChanged: {
+                var bmk = text.trim()
+                if (bmk === "") { root._kabelAuswahl = 0; return }
+                for (var i = 0; i < root.vorhandeneKabel.length; i++) {
+                    if ((root.vorhandeneKabel[i].bezeichnung || "") === bmk) {
+                        if (root._kabelAuswahl !== i + 1) {
+                            root._kabelAuswahl = i + 1
+                            var k = root.vorhandeneKabel[i]
+                            tfKabeltyp.text    = k.kabeltyp        || ""
+                            tfAderzahl.text    = (k.aderzahl     || 0) > 0 ? k.aderzahl.toString()        : ""
+                            tfQuerschnitt.text = (k.querschnittMm2 || 0) > 0 ? k.querschnittMm2.toString() : ""
+                        }
+                        return
+                    }
+                }
+                root._kabelAuswahl = 0
+            }
         }
 
         // Aus Bauteilbibliothek wählen

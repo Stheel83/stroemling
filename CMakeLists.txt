@@ -74,6 +74,35 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpSteckverbinderSection.qml
         qml/ep/EpMasseSection.qml
 
+        qml/ibn/IbnBmSplit.qml
+        qml/ibn/IbnKabelSplit.qml
+
+        qml/ba/BaFormContent.qml
+        qml/ba/BaKategorieSidebar.qml
+        qml/ba/BaBauteilListe.qml
+        qml/ba/BaMakroAnsicht.qml
+
+        qml/la/LaCsvLeiste.qml
+        qml/la/LaTabStueckliste.qml
+        qml/la/LaTabQuerverweise.qml
+        qml/la/LaTabAderliste.qml
+        qml/la/LaTabKlemmenplan.qml
+        qml/la/LaTabKabelliste.qml
+
+        qml/klemmenreihen/KrVorschauPanel.qml
+        qml/klemmenreihen/KrEigenschaftenPanel.qml
+
+        qml/canvas/WerkzeugButton.qml
+        qml/canvas/CanvasHeaderBar.qml
+        qml/canvas/CanvasFooterBar.qml
+        qml/canvas/CanvasWerkzeugLeiste.qml
+
+        qml/symboleditor/SeSymbolListe.qml
+        qml/symboleditor/SeEditorHeader.qml
+        qml/symboleditor/SeWerkzeugToolbar.qml
+        qml/symboleditor/SeEigenschaftenPanel.qml
+        qml/symboleditor/SePinListe.qml
+
         qml/KlemmenVorschau.qml
         qml/KlemmenEditor.qml
         qml/KlemmePlatzierDialog.qml

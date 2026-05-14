@@ -3,9 +3,29 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import "components"
+import "canvas"
 
 Item {
     id: root
+    focus: true          // Tastatureingaben landen hier wenn forceActiveFocus() gerufen wurde
+    activeFocusOnTab: false  // Canvas nicht in Tab-Fokus-Reihenfolge
+
+    // Tab-Rotation VOR Platzierung: Keys statt Shortcut, weil Qt Tab
+    // vor Shortcuts an das Fokus-System weitergibt.
+    Keys.onTabPressed: {
+        if (root.aktivesWerkzeug === "symbol" && root.paletteSymbolId !== "") {
+            root.paletteSymbolRotation = (root.paletteSymbolRotation + 90) % 360
+            root.vorschau = root.symbolVorschauErstellen(root.letzteMausWeltX, root.letzteMausWeltY)
+            drawCanvas.requestPaint()
+        }
+        event.accepted = true
+    }
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
+            root.loeschen()
+            event.accepted = true
+        }
+    }
 
     // --------------------------------------------------------
     // Öffentliche Properties
@@ -102,6 +122,8 @@ Item {
     property bool _grafikLaden:        false  // Ladevorgang läuft → onElementeChanged nicht speichern
     // Querverweis-Navigation: Index (elementIdx) → Blattnummer der Gegenseite
     property var  _querverweisPartnerMap: ({})
+    // Kabellinien: kabelId → Gesamtzahl aller Linien dieses Kabels (seitenübergreifend)
+    property var  _kabelLinienCache: ({})
     // HF-Referenz: betriebsmittelId → {hauptElementId, blattnummer, seiteId}
     property var  _hfReferenzMap: ({})
     // Pending-Zielposition nach seitenübergreifender QV-Navigation
@@ -659,6 +681,12 @@ Item {
                     }
                     if (klLen > 0)
                         klZeilen.push({ text: "→ " + (klLen + "").replace(".", ",") + " m", bold: false })
+                    var klKabelId    = klEx.kabelId || 0
+                    var klGesamtLinien = (klKabelId > 0 && root._kabelLinienCache[klKabelId]) || 0
+                    if (klGesamtLinien > 1) {
+                        var klWeitere = klGesamtLinien - 1
+                        klZeilen.push({ text: "→ +" + klWeitere + " " + (klWeitere === 1 ? qsTr("Linie") : qsTr("Linien")), bold: false })
+                    }
                     if (klZeilen.length > 0) {
                         // Senkrechte zur Linie, auf der "oben"-Seite (negativstes y in Viewport)
                         var klDxL = vx2 - vx1, klDyL = vy2 - vy1
@@ -831,23 +859,30 @@ Item {
                     ctx.setLineDash([])
                     ctx.strokeRect(nRx, nRy, nRw, nRh)
                     // Text
-                    var nText  = el.textInhalt || ""
+                    var nText = el.textInhalt || ""
                     if (nText !== "") {
-                        var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
+                        var nFsPx  = (el.schriftGroesse || 3.5) * root.mmToPx * root.zoom
                         var nLines = nText.split("\n")
                         var nLineH = nFsPx * 1.3
                         var nPad   = Math.max(4, nFsPx * 0.35)
-                        ctx.fillStyle    = el.strichFarbe || "#cccc22"
+
+                        ctx.save()
+                        ctx.beginPath()
+                        ctx.rect(nRx + 1, nRy + 1, nRw - 2, nRh - 2)
+                        ctx.clip()
+
+                        ctx.fillStyle    = el.textFarbe || el.strichFarbe || "#cccc22"
                         ctx.font         = nFsPx + "px sans-serif"
                         ctx.textBaseline = "top"
                         ctx.textAlign    = "left"
+
                         for (var nLi = 0; nLi < nLines.length; nLi++) {
-                            if (nRy + nPad + (nLi + 1) * nLineH > nRy + nRh) break
-                            ctx.fillText(nLines[nLi], nRx + nPad, nRy + nPad + nLi * nLineH)
+                            if (nRy + nPad + nLi * nLineH > nRy + nRh - nPad) break
+                                ctx.fillText(nLines[nLi], nRx + nPad, nRy + nPad + nLi * nLineH)
+                            }
                         }
+                        ctx.restore()
                     }
-                    ctx.restore()
-                }
             } else if (el.typ === "symbol") {
                 var sw = vx2 - vx1, sh = vy2 - vy1
                 if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {
@@ -2159,119 +2194,11 @@ Item {
     // --------------------------------------------------------
     // Kopfzeile
     // --------------------------------------------------------
-    Rectangle {
+    CanvasHeaderBar {
         id: headerBar
+        canvas: root; theme: theme
         visible: root.seiteId >= 0
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        height: 40; color: theme ? theme.surfaceDeep : "#09121e"
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: theme ? theme.border : "#1e3a5f" }
-
-        RowLayout {
-            anchors { fill: parent; leftMargin: 16; rightMargin: 12 }
-            spacing: 4
-
-            Text { text: root.seiteName; font.pixelSize: 13; font.weight: Font.Medium; color: theme ? theme.textSecondary : "#c0d8f0"
-                   Layout.fillWidth: true; elide: Text.ElideRight }
-
-            Button {
-                flat: true; implicitWidth: 26; implicitHeight: 26; enabled: root.undoStack.length > 0
-                contentItem: Text { text: qsTr("\u21A9"); color: parent.enabled ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.border : "#1e3a5f")
-                    font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered && parent.enabled ? (theme ? theme.activeItem : "#1a3050") : "transparent"; radius: 4 }
-                onClicked: root.undo()
-                ToolTip.visible: hovered; ToolTip.text: qsTr("Rückgängig (Ctrl+Z)"); ToolTip.delay: 500
-            }
-            Button {
-                flat: true; implicitWidth: 26; implicitHeight: 26; enabled: root.redoStack.length > 0
-                contentItem: Text { text: qsTr("\u21AA"); color: parent.enabled ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.border : "#1e3a5f")
-                    font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered && parent.enabled ? (theme ? theme.activeItem : "#1a3050") : "transparent"; radius: 4 }
-                onClicked: root.redo()
-                ToolTip.visible: hovered; ToolTip.text: qsTr("Wiederholen (Ctrl+Y)"); ToolTip.delay: 500
-            }
-
-            Rectangle { width: 1; height: 20; color: theme ? theme.border : "#1e3a5f" }
-
-            Button {
-                text: qsTr("\u2212"); flat: true; implicitWidth: 26; implicitHeight: 26
-                contentItem: Text { text: parent.text; color: theme ? theme.accent : "#4a9eff"; font.pixelSize: 18
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? (theme ? theme.activeItem : "#1a3050") : "transparent"; radius: 4 }
-                onClicked: root.zoomAnpassen(1/1.25)
-            }
-            Text {
-                text: Math.round(root.zoom*100) + "%"; color: theme ? theme.accent : "#4a9eff"
-                font.pixelSize: 12; font.weight: Font.Medium; leftPadding: 2; rightPadding: 2
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                            onClicked: root.ansichtZuruecksetzen() }
-            }
-            Button {
-                text: "+"; flat: true; implicitWidth: 26; implicitHeight: 26
-                contentItem: Text { text: parent.text; color: theme ? theme.accent : "#4a9eff"; font.pixelSize: 16
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? (theme ? theme.activeItem : "#1a3050") : "transparent"; radius: 4 }
-                onClicked: root.zoomAnpassen(1.25)
-            }
-            Button {
-                flat: true; implicitWidth: 26; implicitHeight: 26; enabled: root.seiteId >= 0
-                contentItem: Text { text: "\u22A1"; color: parent.enabled ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.border : "#1e3a5f")
-                    font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered && parent.enabled ? (theme ? theme.activeItem : "#1a3050") : "transparent"; radius: 4 }
-                onClicked: root.zoomAllesEinpassen()
-                ToolTip.visible: hovered; ToolTip.text: qsTr("Alle Elemente einpassen (Ctrl+Shift+H)"); ToolTip.delay: 500
-            }
-
-            Rectangle { width: 1; height: 20; color: theme ? theme.border : "#1e3a5f" }
-
-            // Normblatt-Toggle
-            Rectangle {
-                id: normblattToggle
-                property bool aktiv: root.normblattDaten ? !!root.normblattDaten.normblattAnzeigen : false
-                width: 26; height: 26; radius: 4
-                enabled: root.seiteId >= 0
-                color: aktiv ? (theme ? theme.activeItemAlt : "#1a3a6a")
-                             : (nbMa.containsMouse && enabled ? (theme ? theme.hover : "#0f2540") : "transparent")
-                border.color: aktiv ? (theme ? theme.accent : "#4a9eff") : "transparent"
-                Text {
-                    anchors.centerIn: parent
-                    text: "\u2610"
-                    font.pixelSize: 14
-                    color: normblattToggle.aktiv ? (theme ? theme.accent : "#4a9eff")
-                                                 : (theme ? theme.panelMid : "#5577aa")
-                }
-                MouseArea {
-                    id: nbMa; anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (root.seiteId < 0 || !root.normblattDaten) return
-                        var neu = !root.normblattDaten.normblattAnzeigen
-                        db.normblattAnzeigenSetzen(root.seiteId, neu)
-                        root.normblattDaten = db.normblattDatenLaden(root.seiteId)
-                        drawCanvas.requestPaint()
-                    }
-                }
-                ToolTip.visible: nbMa.containsMouse; ToolTip.delay: 500
-                ToolTip.text: qsTr("Normblattrahmen ein-/ausblenden")
-            }
-
-            // Zoom auf Normblatt-Seite einpassen
-            Button {
-                flat: true; implicitWidth: 26; implicitHeight: 26
-                enabled: root.seiteId >= 0 && root.normblattDaten !== null
-                contentItem: Text {
-                    text: "\u25AD"
-                    color: parent.enabled ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.border : "#1e3a5f")
-                    font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: parent.hovered && parent.enabled ? (theme ? theme.activeItem : "#1a3050") : "transparent"; radius: 4
-                }
-                onClicked: root.zoomNormblattEinpassen()
-                ToolTip.visible: hovered; ToolTip.delay: 500
-                ToolTip.text: qsTr("Normblatt einpassen (Ctrl+Shift+N)")
-            }
-        }
     }
 
     Shortcut {
@@ -2288,143 +2215,22 @@ Item {
     // --------------------------------------------------------
     // Fußzeile
     // --------------------------------------------------------
-    Rectangle {
+    CanvasFooterBar {
         id: footerBar
+        canvas: root; theme: theme
         visible: root.seiteId >= 0
         anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-        height: 34; color: theme ? theme.surfaceDeep : "#09121e"
-        Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: theme ? theme.border : "#1e3a5f" }
-
-        RowLayout {
-            anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-            spacing: 8
-            Text { text: qsTr("Raster:"); color: theme ? theme.borderLight : "#4a6080"; font.pixelSize: 11 }
-
-            ComboBox {
-                id: cmbRaster
-                implicitWidth: 84; implicitHeight: 24
-                model: ["2 mm","4 mm","6 mm","8 mm","10 mm"]; currentIndex: 1
-                readonly property var mmWerte: [2,4,6,8,10]
-                property bool _laden: false
-                onCurrentIndexChanged: {
-                    root.gridMm = mmWerte[currentIndex]; root.repaintAll()
-                    if (!_laden && root.seiteId >= 0)
-                        seitenModel.seiteRasterSpeichern(root.seiteId, root.gridMm, root.rastend)
-                }
-                background: Rectangle { color: theme ? theme.inputBg : "#0a1628"; border.color: theme ? theme.border : "#1e3a5f"; radius: 4 }
-                contentItem: Text { leftPadding: 8; text: cmbRaster.displayText
-                    color: theme ? theme.textSecondary : "#c0d8f0"; font.pixelSize: 11; verticalAlignment: Text.AlignVCenter }
-            }
-
-            Rectangle {
-                implicitWidth: 96; implicitHeight: 24; radius: 4
-                color: root.rastend ? (theme ? theme.activeItemAlt : "#0f2a50") : (theme ? theme.inputBg : "#0a1628")
-                border.color: root.rastend ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.border : "#1e3a5f")
-                RowLayout {
-                    anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-                    spacing: 5
-                    Text { text: root.rastend ? "\u2713" : "\u00B7\u00B7"; color: root.rastend ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.borderLight : "#4a6080")
-                           font.pixelSize: 12; font.weight: Font.Medium }
-                    Text { text: root.rastend ? "Rastend" : "Frei"; color: root.rastend ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.panelMid : "#5577aa")
-                           font.pixelSize: 11; Layout.fillWidth: true }
-                }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.rastend = !root.rastend; root.repaintAll()
-                        if (root.seiteId >= 0)
-                            seitenModel.seiteRasterSpeichern(root.seiteId, root.gridMm, root.rastend)
-                    }
-                }
-            }
-
-            Text { text: root.gridMm+" mm \u00B7 "+root.gridPx+" px"; color: theme ? theme.borderDark : "#2a4060"; font.pixelSize: 10 }
-
-            Rectangle { width: 1; height: 18; color: theme ? theme.border : "#1e3a5f" }
-
-            Text { text: qsTr("Canvas:"); color: theme ? theme.borderLight : "#4a6080"; font.pixelSize: 11 }
-
-            // Hintergrundfarbe: 3 Presets (Dunkel / Hell / Papier)
-            Repeater {
-                model: [
-                    { farbe: "#080f1c", tooltip: qsTr("Dunkel") },
-                    { farbe: "#e8edf2", tooltip: qsTr("Hell")   },
-                    { farbe: "#fdf8e8", tooltip: qsTr("Papier") }
-                ]
-                Rectangle {
-                    required property var modelData
-                    width: 20; height: 20; radius: 3
-                    color: modelData.farbe
-                    border.color: root.hintergrundFarbe === modelData.farbe ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.borderLight : "#3a5a7a")
-                    border.width: root.hintergrundFarbe === modelData.farbe ? 2 : 1
-                    ToolTip.visible: hoverHandler.hovered; ToolTip.text: modelData.tooltip; ToolTip.delay: 400
-                    HoverHandler { id: hoverHandler }
-                    TapHandler {
-                        onTapped: {
-                            root.hintergrundFarbe = parent.modelData.farbe
-                            root.hintergrundGeaendert(parent.modelData.farbe)
-                        }
-                    }
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-            Text { id: koordinatenAnzeige; text: ""; color: theme ? theme.borderLight : "#3a5a7a"; font.pixelSize: 10; font.family: "monospace" }
-        }
     }
 
     // --------------------------------------------------------
     // Werkzeugleiste (links)
     // --------------------------------------------------------
-    Rectangle {
+    CanvasWerkzeugLeiste {
         id: werkzeugLeiste
+        canvas: root; theme: theme
         visible: root.seiteId >= 0
         anchors { top: headerBar.bottom; bottom: footerBar.top; left: parent.left }
-        width: 48; color: theme ? theme.surfaceDeep : "#09121e"
-        Rectangle { anchors.right: parent.right; height: parent.height; width: 1; color: theme ? theme.border : "#1e3a5f" }
-
-        Column {
-            anchors { top: parent.top; horizontalCenter: parent.horizontalCenter; topMargin: 8 }
-            spacing: 4
-            WerkzeugButton { werkzeug: "zeiger";   symbol: "\u2196"; tooltip: qsTr("Zeiger \u2013 Auswählen & Verschieben  [V]") }
-            Rectangle { width: 32; height: 1; color: theme ? theme.border : "#1e3a5f"; anchors.horizontalCenter: parent.horizontalCenter }
-            Rectangle { width: 32; height: 1; color: theme ? theme.border : "#1e3a5f"; anchors.horizontalCenter: parent.horizontalCenter }
-            WerkzeugButton { werkzeug: "linie";         symbol: "\u2572"; tooltip: qsTr("Linie zeichnen  [L]") }
-            WerkzeugButton { werkzeug: "polygonlinie"; symbol: "\u223F"; tooltip: qsTr("Polygonlinie  [P]  (Doppelklick zum Abschließen)") }
-            WerkzeugButton { werkzeug: "kabellinie";   symbol: "\u2504"; tooltip: qsTr("Kabeldefinitionslinie  [C]") }
-            WerkzeugButton { werkzeug: "rechteck";      symbol: "\u25A1"; tooltip: qsTr("Rechteck zeichnen  [R]") }
-            WerkzeugButton { werkzeug: "kreis";         symbol: "\u25CB"; tooltip: qsTr("Kreis zeichnen  [K]") }
-            WerkzeugButton { werkzeug: "geraetekasten"; symbol: "\u25A2"; tooltip: qsTr("Gerätekasten  [G]") }
-            WerkzeugButton { werkzeug: "strukturkasten";symbol: "\u2610"; tooltip: qsTr("Strukturkasten  [U]") }
-            WerkzeugButton { werkzeug: "makrokasten";   symbol: "\u2b1c"; tooltip: qsTr("Makrokasten  [M]") }
-            Rectangle { width: 32; height: 1; color: theme ? theme.border : "#1e3a5f"; anchors.horizontalCenter: parent.horizontalCenter }
-            WerkzeugButton { werkzeug: "text";  symbol: "T";  tooltip: qsTr("Text platzieren  [T]") }
-            WerkzeugButton { werkzeug: "notiz"; symbol: "✎"; tooltip: qsTr("Notiz / Annotation  [N]") }
-            // Bild-Werkzeug: öffnet Dateidialog direkt beim Klick
-            Rectangle {
-                id: bildWerkzeugBtn
-                width: 36; height: 36; radius: 6
-                color: root.aktivesWerkzeug === "bild" ? (theme ? theme.activeItemAlt : "#1a3a6a")
-                     : bildWbMaus.containsMouse        ? (theme ? theme.hover : "#0f2540") : "transparent"
-                border.color: root.aktivesWerkzeug === "bild" ? (theme ? theme.accent : "#4a9eff") : "transparent"
-                Text {
-                    anchors.centerIn: parent; text: qsTr("\uD83D\uDDBC"); font.pixelSize: 17
-                    color: root.aktivesWerkzeug === "bild" ? (theme ? theme.accent : "#4a9eff")
-                         : bildWbMaus.containsMouse        ? (theme ? theme.accentLight : "#7aaddd") : (theme ? theme.panelMid : "#5577aa")
-                }
-                MouseArea {
-                    id: bildWbMaus; anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.abbruch()
-                        root.paletteImageData = ""
-                        bildDialog.open()
-                    }
-                }
-                ToolTip.visible: bildWbMaus.containsMouse
-                ToolTip.text:    qsTr("Bild einfügen")
-                ToolTip.delay:   500
-            }
-        }
+        onBildWerkzeugAngefordert: bildDialog.open()
     }
 
     // --------------------------------------------------------
@@ -2606,7 +2412,7 @@ Item {
 
             // Zeichenwerkzeug: Koordinatenanzeige + Vorschau
             var w = toWelt(mouse.x, mouse.y)
-            koordinatenAnzeige.text =
+            footerBar.koordinatenText =
                 "X " + Math.round(w.x / root.mmToPx) + " mm\u2002"
                 + "Y " + Math.round(w.y / root.mmToPx) + " mm"
 
@@ -2658,7 +2464,7 @@ Item {
 
         onExited: {
             root.mausUeberElement = false
-            if (root.aktivesWerkzeug !== "zeiger") koordinatenAnzeige.text = ""
+            if (root.aktivesWerkzeug !== "zeiger") footerBar.koordinatenText = ""
             if (root.aktivesWerkzeug === "symbol" || root.aktivesWerkzeug === "bild")
                 { root.vorschau = null; drawCanvas.requestPaint() }
         }
@@ -3146,14 +2952,8 @@ Item {
         }
     }
     // TAB: Symbol-Vorschau um 90° rotieren (nur wenn Symbol-Werkzeug aktiv)
-    Shortcut { sequence: "Tab"
-        onActivated: {
-            if (root.aktivesWerkzeug !== "symbol" || root.paletteSymbolId === "") return
-            root.paletteSymbolRotation = (root.paletteSymbolRotation + 90) % 360
-            root.vorschau = root.symbolVorschauErstellen(root.letzteMausWeltX, root.letzteMausWeltY)
-            drawCanvas.requestPaint()
-        }
-    }
+    Shortcut { sequence: "Delete";       onActivated: root.loeschen() }
+    Shortcut { sequence: "Backspace";    onActivated: root.loeschen() }
     Shortcut { sequence: "Ctrl+Z";       onActivated: root.undo() }
     Shortcut { sequence: "Ctrl+Y";       onActivated: root.redo() }
     Shortcut { sequence: "Ctrl+Shift+Z"; onActivated: root.redo() }
@@ -3170,8 +2970,6 @@ Item {
     Shortcut { sequence: "Ctrl+2";         onActivated: root.einfuegen(2); enabled: root.seiteId >= 0 }
     Shortcut { sequence: "Ctrl+3";         onActivated: root.einfuegen(3); enabled: root.seiteId >= 0 }
     Shortcut { sequence: "Ctrl+4";         onActivated: root.einfuegen(4); enabled: root.seiteId >= 0 }
-    Shortcut { sequence: "Delete";       onActivated: root.loeschen() }
-    Shortcut { sequence: "Backspace";    onActivated: root.loeschen() }
 
     // --------------------------------------------------------
     // Eigenschaften-Panel (rechts, NACH interaktionArea deklariert
@@ -3323,6 +3121,19 @@ Item {
             }
         }
         root._querverweisPartnerMap = map
+    }
+
+    function kabelLinienCacheAktualisieren() {
+        var map = {}
+        for (var i = 0; i < root.elemente.length; i++) {
+            var el = root.elemente[i]
+            if (el.typ !== "kabellinie") continue
+            var kId = (el.extraDaten && el.extraDaten.kabelId) || 0
+            if (kId <= 0 || kId in map) continue
+            var linien = db.kabelAlleLinienLaden(kId)
+            map[kId] = linien.length
+        }
+        root._kabelLinienCache = map
     }
 
     // Zentriert die Canvas-Ansicht auf eine Weltkoordinate.
@@ -3638,6 +3449,7 @@ Item {
         root.undoStack = root.undoStack.concat([root.elemente.slice()])
         root.redoStack = []; root.elemente = neu; root.auswahl = []
         root.grafikSpeichernJetzt()
+        root.kabelLinienCacheAktualisieren()
         drawCanvas.requestPaint()
     }
 
@@ -4114,12 +3926,8 @@ Item {
             root.auswahl = []; root.vorschau  = null; root.amZeichnen = false
             root.amVerschieben   = false; root.mausUeberElement = false
             root.aktiverGriff    = -1; root.mausUeberGriff = false; root.verschiebenErlaubt = false
-            cmbRaster._laden     = true
             var mm = seitenModel.seiteRasterMm(seiteId), rs = seitenModel.seiteRastend(seiteId)
-            var idx = cmbRaster.mmWerte.indexOf(mm)
-            cmbRaster.currentIndex = idx >= 0 ? idx : 1
-            root.rastend = rs; root.gridMm = mm > 0 ? mm : 4.0
-            cmbRaster._laden = false
+            footerBar.rasterLaden(mm, rs)
             // Gespeicherte Elemente laden
             root.elemente    = db.grafikLaden(seiteId)
             root._grafikLaden = false
@@ -4135,6 +3943,8 @@ Item {
             root.normblattLogoUrl = root.normblattDaten ? (root.normblattDaten.logoDataUrl || "") : ""
             // Querverweis-Partner-Cache aufbauen
             root.querverweisPartnerCacheAktualisieren()
+            // Kabellinien-Anzahl-Cache aufbauen
+            root.kabelLinienCacheAktualisieren()
             // HF-Referenz-Map aufbauen
             root.hfReferenzMapAktualisieren()
             // Ansicht zurücksetzen; bei QV-Navigation danach auf Partner zoomen
@@ -4154,29 +3964,6 @@ Item {
     }
     onWidthChanged:  root.repaintAll()
     onHeightChanged: root.repaintAll()
-
-    // --------------------------------------------------------
-    // Inline-Komponente: WerkzeugButton
-    // --------------------------------------------------------
-    component WerkzeugButton: Rectangle {
-        id: wbRoot
-        property string werkzeug: ""; property string symbol: ""
-        property string tooltip: "";  property bool deaktiviert: false
-        width: 36; height: 36; radius: 6
-        color: deaktiviert ? "transparent" : root.aktivesWerkzeug===werkzeug ? (root.theme ? root.theme.activeItemAlt : "#1a3a6a") : wbMaus.containsMouse ? (root.theme ? root.theme.hover : "#0f2540") : "transparent"
-        border.color: (!deaktiviert && root.aktivesWerkzeug===werkzeug) ? (root.theme ? root.theme.accent : "#4a9eff") : "transparent"
-        Text {
-            anchors.centerIn: parent; text: wbRoot.symbol; font.pixelSize: 17
-            color: deaktiviert ? (root.theme ? root.theme.btnDisabled : "#253545") : root.aktivesWerkzeug===wbRoot.werkzeug ? (root.theme ? root.theme.accent : "#4a9eff") : wbMaus.containsMouse ? (root.theme ? root.theme.accentLight : "#7aaddd") : (root.theme ? root.theme.panelMid : "#5577aa")
-        }
-        MouseArea {
-            id: wbMaus; anchors.fill: parent; hoverEnabled: true
-            enabled: !wbRoot.deaktiviert
-            cursorShape: wbRoot.deaktiviert ? Qt.ForbiddenCursor : Qt.PointingHandCursor
-            onClicked: root.aktivesWerkzeug = wbRoot.werkzeug
-        }
-        ToolTip.visible: wbMaus.containsMouse; ToolTip.text: wbRoot.tooltip; ToolTip.delay: 500
-    }
 
     // --------------------------------------------------------
     // Dateidialog: Bild auswählen
@@ -4385,21 +4172,38 @@ Item {
                         root.elemente = updated2
                         root._grafikLaden = false
                         root.grafikSpeichernJetzt()  // speichert kabelId → grafikSpeichern verlinkt kabel.grafik_element_id
+                        root.kabelLinienCacheAktualisieren()
+
+                        // Elemente neu laden – zweites grafikSpeichern hat DELETE+INSERT durchgeführt,
+                        // daher hat das Element eine neue DB-ID; frische ID per kabelId suchen
+                        var freshReloaded = db.grafikLaden(root.seiteId)
+                        root._grafikLaden = true
+                        root.elemente = freshReloaded
+                        root._grafikLaden = false
+
+                        var freshKlEl = null
+                        for (var fi = 0; fi < freshReloaded.length; fi++) {
+                            var fe = freshReloaded[fi]
+                            if (fe.typ === "kabellinie" && fe.extraDaten && fe.extraDaten.kabelId === newKabelId) {
+                                freshKlEl = fe; break
+                            }
+                        }
 
                         // Aderzuordnungsdialog öffnen wenn Schnittpunkte vorhanden (Phase 6)
-                        var klEl    = root.elemente[ri]
-                        var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(
-                                           klEl, drawCanvas.autoNetzeBerechnen())
-                        if (schnitte.length > 0) {
-                            aderzuordnungDialog.kabelId                   = newKabelId
-                            aderzuordnungDialog.kabelBezeichnung          = kabellinieDialog.bezeichnung
-                            aderzuordnungDialog.kabeltyp                  = kabellinieDialog.kabeltyp
-                            aderzuordnungDialog.aderzahl                  = kabellinieDialog.aderzahl
-                            aderzuordnungDialog.adern                     = bkAdern
-                            aderzuordnungDialog.schnittNetze              = schnitte
-                            aderzuordnungDialog.aderZuordnung             = {}
-                            aderzuordnungDialog.kabellinieGrafikElementId = klEl.id || 0
-                            aderzuordnungDialog.open()
+                        if (freshKlEl) {
+                            var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(
+                                               freshKlEl, drawCanvas.autoNetzeBerechnen())
+                            if (schnitte.length > 0) {
+                                aderzuordnungDialog.kabelId                   = newKabelId
+                                aderzuordnungDialog.kabelBezeichnung          = kabellinieDialog.bezeichnung
+                                aderzuordnungDialog.kabeltyp                  = kabellinieDialog.kabeltyp
+                                aderzuordnungDialog.aderzahl                  = kabellinieDialog.aderzahl
+                                aderzuordnungDialog.adern                     = bkAdern
+                                aderzuordnungDialog.schnittNetze              = schnitte
+                                aderzuordnungDialog.aderZuordnung             = {}
+                                aderzuordnungDialog.kabellinieGrafikElementId = freshKlEl.id || 0
+                                aderzuordnungDialog.open()
+                            }
                         }
                     }
                     break
@@ -4447,6 +4251,12 @@ Item {
             root.elemente = updated
             root._grafikLaden = false
             root.grafikSpeichernJetzt()
+            root.kabelLinienCacheAktualisieren()
+            // Elemente neu laden damit die EP-Bindings die aktuelle grafik_element_id erhalten
+            var reloadedZ = db.grafikLaden(root.seiteId)
+            root._grafikLaden = true
+            root.elemente = reloadedZ
+            root._grafikLaden = false
         }
     }
 

@@ -593,7 +593,13 @@ ApplicationWindow {
                             aktiveNorm:       root.aktivProjektNorm
                             hintergrundFarbe: root.aktivProjektHintergrund
                             fokussiert:       root.fokussiertesPanel === 1 && root.splitAktiv
+                            splitSchliessbar: root.splitAktiv
 
+                            onSplitSchliessen: {
+                                root.splitAktiv        = false
+                                root.fokussiertesPanel = 1
+                                panel1.canvas.forceActiveFocus()
+                            }
                             onPanelAngeklickt:        root.fokussiertesPanel = 1
                             onAktivSeiteIdChanged: {
                                 if (root.fokussiertesPanel === 1) {
@@ -634,7 +640,13 @@ ApplicationWindow {
                             aktiveNorm:       root.aktivProjektNorm
                             hintergrundFarbe: root.aktivProjektHintergrund
                             fokussiert:       root.fokussiertesPanel === 2
+                            splitSchliessbar: root.splitAktiv
 
+                            onSplitSchliessen: {
+                                root.splitAktiv        = false
+                                root.fokussiertesPanel = 1
+                                panel1.canvas.forceActiveFocus()
+                            }
                             onPanelAngeklickt:        root.fokussiertesPanel = 2
                             onAktivSeiteIdChanged: {
                                 if (root.fokussiertesPanel === 2) {

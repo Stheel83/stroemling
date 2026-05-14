@@ -58,6 +58,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll; DB-Schema (`inbetriebnahme`, `ibn_feldvorlage`, `ibn_feldwert`) |
 | `konzept/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema v31 (`makro`, `makro_element`), UX-Ablauf, C++-API |
 | `konzept/16_eigenschaftenpanel.md` | EigenschaftenPanel: alle Abschnitte, Auslöserbedingungen, interne Hilfskomponenten, Konventionen für neue Abschnitte |
+| `konzept/17_qml_struktur.md` | QML-Dateistruktur & Refaktorierungsplan: Zielstruktur (components/ep/canvas/), Phasenplan, Komponentenschnittstellen |
 
 ---
 
@@ -97,7 +98,7 @@ UI-Konsistenz-Korrekturen – nicht nur für neue Features.
 - Migrationshistorie und Versionierung kommen erst vor dem ersten stabilen Release
 
 ### QML-Dateien: Pflichtregistrierung in CMakeLists.txt
-Jede neue `.qml`-Datei – egal ob in `qml/` oder `qml/components/` – **muss sofort**
+Jede neue `.qml`-Datei – egal ob in `qml/`, `qml/components/` oder `qml/ep/` – **muss sofort**
 in `CMakeLists.txt` unter `QML_FILES` eingetragen werden. Fehlt der Eintrag, kann
 die App zwar kompilieren, startet aber nicht (der QML-Loader findet die Komponente
 zur Laufzeit nicht). Nach jedem neuen Eintrag `cmake ..` im Build-Ordner ausführen.
@@ -141,6 +142,12 @@ ComboBox ein `currentIndex`-Binding hat (reagiert auf externe Property) UND glei
 Index → Handler schreibt `model[0]` zurück → Binding re-evaluiert → … Fix: `onActivated`
 statt `onCurrentIndexChanged` verwenden. `onActivated` feuert **nur** bei echter
 Nutzer-Interaktion, nicht bei programmatischen Index-Änderungen.
+
+**`import stroemling` in ep/-Dateien:** Dateien in `qml/ep/` sehen mit `import "../components"`
+nur die `qml/components/`-Typen. Typen aus dem `qml/`-Root (z.B. `KlemmenVorschau`,
+`BauteilKabelPickerDialog`) sind unsichtbar, obwohl sie zum selben Modul gehören.
+Fix: zusätzlich `import stroemling` eintragen (Modul-URI aus `CMakeLists.txt`). Fehlt
+dieses Import, erscheint der Laufzeitfehler „XYZ is not a type".
 
 ### Konzeptpflege
 - Wenn eine Konzeptentscheidung sich im Gespräch ändert: **Konzeptdatei sofort

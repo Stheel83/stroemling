@@ -59,6 +59,8 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema v31 (`makro`, `makro_element`), UX-Ablauf, C++-API |
 | `konzept/16_eigenschaftenpanel.md` | EigenschaftenPanel: alle Abschnitte, Auslöserbedingungen, interne Hilfskomponenten, Konventionen für neue Abschnitte |
 | `konzept/17_qml_struktur.md` | QML-Dateistruktur & Refaktorierungsplan: Zielstruktur (components/ep/canvas/), Phasenplan, Komponentenschnittstellen |
+| `konzept/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
+| `konzept/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund, offene Lücken (KlemmenVorschau, NavTextField, IbnFeldEditorDialog) |
 
 ---
 

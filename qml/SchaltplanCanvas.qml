@@ -35,7 +35,7 @@ Item {
     property string seiteName:        ""
     property string hintergrundFarbe: "#080f1c"
 
-    property var  theme
+    required property var theme
     property bool debug: false
 
     signal hintergrundGeaendert(string farbe)
@@ -2184,10 +2184,10 @@ Item {
         anchors.fill: parent; visible: root.seiteId < 0
         Column { anchors.centerIn: parent; spacing: 12
             Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Schaltplan")
-                   font.pixelSize: 22; font.weight: Font.Light; color: theme ? theme.borderDark : "#2a4060" }
+                   font.pixelSize: 22; font.weight: Font.Light; color: theme.borderDark }
             Text { anchors.horizontalCenter: parent.horizontalCenter
                    text: qsTr("Seite im Baum anklicken um zu \u00f6ffnen.")
-                   font.pixelSize: 14; color: theme ? theme.border : "#1e3050" }
+                   font.pixelSize: 14; color: theme.border }
         }
     }
 
@@ -2196,7 +2196,7 @@ Item {
     // --------------------------------------------------------
     CanvasHeaderBar {
         id: headerBar
-        canvas: root; theme: theme
+        canvas: root
         visible: root.seiteId >= 0
         anchors { top: parent.top; left: parent.left; right: parent.right }
     }
@@ -2217,7 +2217,7 @@ Item {
     // --------------------------------------------------------
     CanvasFooterBar {
         id: footerBar
-        canvas: root; theme: theme
+        canvas: root
         visible: root.seiteId >= 0
         anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
     }
@@ -2227,7 +2227,7 @@ Item {
     // --------------------------------------------------------
     CanvasWerkzeugLeiste {
         id: werkzeugLeiste
-        canvas: root; theme: theme
+        canvas: root
         visible: root.seiteId >= 0
         anchors { top: headerBar.bottom; bottom: footerBar.top; left: parent.left }
         onBildWerkzeugAngefordert: bildDialog.open()
@@ -2979,7 +2979,7 @@ Item {
         id: eigenschaftenPanel
         visible:  (root.auswahl.length > 0 || root.ausgewaehltVerbindung !== null) && root.seiteId >= 0
         anchors { top: headerBar.bottom; bottom: footerBar.top; right: parent.right }
-        width: 220; color: theme ? theme.surfaceDeep : "#09121e"; border.color: theme ? theme.border : "#1e3a5f"; border.width: 1
+        width: 220; color: theme.surfaceDeep; border.color: theme.border; border.width: 1
 
         EigenschaftenPanel { anchors.fill: parent; canvas: root; theme: root.theme; debug: root.debug }
     }
@@ -2993,8 +2993,8 @@ Item {
         x:        root.textEditVpX - 4
         y:        root.textEditVpY - 4
         z:        200
-        color:    theme ? theme.sidebar : "#0d1b2a"
-        border.color: theme ? theme.accent : "#4a9eff"; border.width: 1
+        color:    theme.sidebar
+        border.color: theme.accent; border.width: 1
         radius:   2
 
         // Breite und Höhe passen sich dem Inhalt an (Mindestbreite 120px)
@@ -3004,10 +3004,10 @@ Item {
         TextEdit {
             id: textEditor
             anchors { fill: parent; margins: 5 }
-            color:        theme ? theme.textSecondary : "#c0d8f0"
+            color:        theme.textSecondary
             font.pixelSize: Math.max(10, (root.stilVorlage.strichBreite || 3.5) * root.mmToPx * root.zoom)
             font.bold:    true
-            selectionColor:    theme ? theme.activeItemAlt : "#1a3a6a"
+            selectionColor:    theme.activeItemAlt
             selectedTextColor: "#ffffff"
             wrapMode:     TextEdit.NoWrap
             focus:        root.textEditAktiv

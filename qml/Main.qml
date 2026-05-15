@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtCore
 import "components"
+import stroemling
 
 ApplicationWindow {
     id:         root
@@ -37,8 +38,6 @@ ApplicationWindow {
     property string symbolEditorVorher:     "projekte"
 
     // ── Theme-System ─────────────────────────────────────────────
-    property string aktivTheme: appSettings.activeName
-
     readonly property var themes: ({
         "dunkel": {
             name:          "Dunkel",
@@ -75,30 +74,30 @@ ApplicationWindow {
             surface:       "#f0f4f8",
             sidebar:       "#e2eaf4",
             surfaceDeep:   "#d8e4f0",
-            inputBg:       "#ffffff",
-            border:        "#c0d0e0",
-            borderLight:   "#a0b4c8",
-            borderDark:    "#607080",
-            divider:       "#dce8f0",
+            inputBg:       "#f4f8fc",
+            border:        "#7a9ab8",
+            borderLight:   "#6080a0",
+            borderDark:    "#405060",
+            divider:       "#c8d8e8",
             textPrimary:   "#1a2a3a",
             textSecondary: "#2a4060",
-            textMuted:     "#607890",
+            textMuted:     "#3a5878",
             textBright:    "#3a5070",
-            textSubtle:    "#607080",
+            textSubtle:    "#506070",
             accent:        "#1a6fd8",
             accentLight:   "#4a90c8",
-            panelMid:      "#5070a0",
-            hover:         "#d8e8f8",
-            hoverSidebar:  "#ccd8ec",
-            hoverBtn:      "#dce8f4",
-            activeItem:    "#c0d8f0",
-            activeItemAlt: "#b0ccec",
+            panelMid:      "#3a6090",
+            hover:         "#c8dced",
+            hoverSidebar:  "#bccfe0",
+            hoverBtn:      "#d4e5f2",
+            activeItem:    "#b8d0e8",
+            activeItemAlt: "#9bbcd8",
             btnPrimary:    "#1a6fd8",
             btnDisabled:   "#a0b8d0",
-            badge:         "#d0e4f4",
-            tableEven:     "#f8fafc",
-            tableOdd:      "#eef4f8",
-            tableHeader:   "#e0eaf4"
+            badge:         "#c8dcea",
+            tableEven:     "#f0f5f9",
+            tableOdd:      "#e6eef4",
+            tableHeader:   "#d8e4ee"
         },
         "blueprint": {
             name:          "Blueprint",
@@ -132,12 +131,7 @@ ApplicationWindow {
         }
     })
 
-    property var appTheme: themes[aktivTheme] || themes["dunkel"]
-
-    Settings {
-        id: appSettings
-        property string activeName: "dunkel"
-    }
+    property var appTheme: themes[AppTheme.activeName] || themes["dunkel"]
 
     Settings {
         id: langSettings
@@ -336,23 +330,20 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             height:       22
                             radius:       3
-                            color:        root.aktivTheme === modelData ? appTheme.activeItemAlt : "transparent"
-                            border.color: root.aktivTheme === modelData ? appTheme.accent : appTheme.border
+                            color:        AppTheme.activeName === modelData ? appTheme.activeItemAlt : "transparent"
+                            border.color: AppTheme.activeName === modelData ? appTheme.accent : appTheme.border
                             border.width: 1
 
                             Text {
                                 anchors.centerIn: parent
                                 text:           root.themes[modelData].name
                                 font.pixelSize: 9
-                                color:          root.aktivTheme === modelData ? appTheme.accent : appTheme.textMuted
+                                color:          AppTheme.activeName === modelData ? appTheme.accent : appTheme.textMuted
                             }
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.aktivTheme        = modelData
-                                    appSettings.activeName = modelData
-                                }
+                                onClicked: AppTheme.setTheme(modelData)
                             }
                         }
                     }

@@ -200,7 +200,9 @@ Item {
                             width: parent.width; height: 32; spacing: 8
                             Text { text: qsTr("Typ / I_n"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
                             ComboBox { id: schutzOrganTypBox; Layout.preferredWidth: 64; font.pixelSize: 12; model: ["B", "C", "D"]; currentIndex: 1 }
-                            NavTextField { id: schutzOrganStromFeld; Layout.fillWidth: true; text: "16"; font.pixelSize: 12; horizontalAlignment: TextInput.AlignRight }
+                            NavTextField { id: schutzOrganStromFeld; Layout.fillWidth: true; text: "16"; font.pixelSize: 12; horizontalAlignment: TextInput.AlignRight
+                                color: theme.textPrimary
+                                background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border } }
                             Text { text: "A"; font.pixelSize: 12; color: theme.textMuted; Layout.preferredWidth: 28 }
                         }
 

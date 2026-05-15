@@ -4,7 +4,7 @@ import QtQuick.Controls
 Rectangle {
     id: mbRoot
 
-    required property var theme
+    property var theme
 
     property string label:   ""
     property string tooltip: ""

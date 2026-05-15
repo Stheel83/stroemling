@@ -33,6 +33,7 @@ qt_add_qml_module(stroemling_app
     URI stroemling
     VERSION 1.0
     QML_FILES
+        qml/AppTheme.qml
         qml/Main.qml
         qml/ProjectTree.qml
         qml/SeitenBaum.qml

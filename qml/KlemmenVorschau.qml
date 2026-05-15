@@ -4,6 +4,8 @@ import "components"
 Canvas {
     id: root
 
+    required property var theme
+
     property var    klemme:               ({})
     property var    anschluesse:          []
     property var    bruecken:             []
@@ -14,10 +16,11 @@ Canvas {
     // Bezeichnungen neben den Kreisen einblenden (für EigenschaftenPanel)
     property bool   zeigeBezeichnungen:   false
     // Akzentfarbe für markierten Anschluss
-    property string akzentFarbe:          "#4a9eff"
+    property string akzentFarbe:          theme.accent
 
     onMarkierteBezeichnungChanged: requestPaint()
     onZeigeBezeichnungenChanged:   requestPaint()
+    onThemeChanged:                requestPaint()
 
     // Layout-Konstanten (spiegeln sich in implicitHeight)
     readonly property int _kreisR:   7
@@ -166,7 +169,7 @@ Canvas {
             if (hatSteg) {
                 ctx.beginPath()
                 ctx.arc(cx, busY, 3.5, 0, 2 * Math.PI)
-                ctx.fillStyle = "#4a9eff"
+                ctx.fillStyle = akzentFarbe
                 ctx.fill()
             }
 

@@ -13,7 +13,7 @@ Dialog {
     height: 520
     padding: 0
 
-    property var theme
+    required property var theme
     property bool _debugLokal: false
 
     signal felderGeaendert()
@@ -74,8 +74,8 @@ Dialog {
 
     // ── Hintergrund ───────────────────────────────────────────
     background: Rectangle {
-        color:  root.theme ? root.theme.sidebar : "#1a2332"
-        border.color: root.theme ? root.theme.border : "#2a4060"
+        color:  root.theme.sidebar
+        border.color: root.theme.border
         border.width: 1; radius: 6
     }
 
@@ -85,24 +85,24 @@ Dialog {
         // Titelzeile
         Rectangle {
             Layout.fillWidth: true; height: 44
-            color: root.theme ? root.theme.surfaceDeep : "#141e2e"
+            color: root.theme.surfaceDeep
             radius: 6
             Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                        height: 1; color: root.theme ? root.theme.border : "#2a4060" }
+                        height: 1; color: root.theme.border }
             RowLayout {
                 anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
                 Text {
                     text: qsTr("IBN-Felder bearbeiten")
-                    color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                    color: root.theme.textPrimary
                     font.pixelSize: 13; font.weight: Font.Medium
                 }
                 Item { Layout.fillWidth: true }
                 Button {
                     flat: true; implicitWidth: 28; implicitHeight: 28
-                    contentItem: Text { text: "✕"; color: root.theme ? root.theme.textMuted : "#7090b0"
+                    contentItem: Text { text: "✕"; color: root.theme.textMuted
                         font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? (root.theme ? root.theme.hover : "#0f2540") : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"; radius: 4 }
                     onClicked: root.reject()
                 }
             }
@@ -120,7 +120,7 @@ Dialog {
                 Layout.fillHeight: true
                 color: "transparent"
                 Rectangle { anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
-                            width: 1; color: root.theme ? root.theme.border : "#2a4060" }
+                            width: 1; color: root.theme.border }
 
                 ListView {
                     id: listeView
@@ -133,19 +133,19 @@ Dialog {
                     section.criteria:   ViewSection.FullString
                     section.delegate: Rectangle {
                         width: listeView.width; height: 26
-                        color: root.theme ? root.theme.surfaceDeep : "#141e2e"
+                        color: root.theme.surfaceDeep
                         Text {
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                             text: section
                             font.pixelSize: 10; font.weight: Font.Medium
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.capitalization: Font.AllUppercase
                         }
                     }
 
                     delegate: Rectangle {
                         width: listeView.width; height: 36
-                        color: listeHover.containsMouse ? (root.theme ? root.theme.hover : "#0f2540") : "transparent"
+                        color: listeHover.containsMouse ? root.theme.hover : "transparent"
                         HoverHandler { id: listeHover }
 
                         RowLayout {
@@ -155,8 +155,8 @@ Dialog {
                             Rectangle {
                                 width: 6; height: 6; radius: 3
                                 color: modelData.erstelltVon === "user"
-                                       ? (root.theme ? root.theme.accent : "#4a9eff")
-                                       : (root.theme ? root.theme.textMuted : "#506070")
+                                       ? root.theme.accent
+                                       : root.theme.textMuted
                                 Layout.alignment: Qt.AlignVCenter
                             }
 
@@ -165,7 +165,7 @@ Dialog {
                                 Text {
                                     text: modelData.label
                                     font.pixelSize: 11
-                                    color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                                    color: root.theme.textPrimary
                                     elide: Text.ElideRight; Layout.fillWidth: true
                                 }
                                 Text {
@@ -173,7 +173,7 @@ Dialog {
                                           + (modelData.einheit ? "  [" + modelData.einheit + "]" : "")
                                           + (modelData.pflichtfeld ? "  *" : "")
                                     font.pixelSize: 9
-                                    color: root.theme ? root.theme.textMuted : "#7090b0"
+                                    color: root.theme.textMuted
                                 }
                             }
 
@@ -192,7 +192,7 @@ Dialog {
                         anchors.centerIn: parent
                         visible: listeView.count === 0
                         text: qsTr("Keine Felder vorhanden.")
-                        color: root.theme ? root.theme.textMuted : "#7090b0"
+                        color: root.theme.textMuted
                         font.pixelSize: 11; font.italic: true
                     }
                 }
@@ -214,13 +214,13 @@ Dialog {
 
                     Text {
                         text: qsTr("Neues Feld anlegen")
-                        color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                        color: root.theme.textPrimary
                         font.pixelSize: 12; font.weight: Font.Medium
                         Layout.leftMargin: 16
                     }
 
                     Rectangle { Layout.fillWidth: true; height: 1
-                        color: root.theme ? root.theme.border : "#2a4060"
+                        color: root.theme.border
                         Layout.leftMargin: 16; Layout.rightMargin: 16 }
 
                     // Symbolkategorie
@@ -230,19 +230,19 @@ Dialog {
                         spacing: 4
 
                         Text { text: qsTr("Symbolkategorie *")
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.pixelSize: 11 }
                         ComboBox {
                             id: cmbKat
                             Layout.fillWidth: true; implicitHeight: 30
                             editable: true
                             model: root._kategorien
-                            background: Rectangle { color: root.theme ? root.theme.inputBg : "#0f1c2e"
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                             contentItem: TextField {
                                 leftPadding: 8
                                 text: cmbKat.editText
-                                color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 12
                                 background: null
                                 onTextEdited: cmbKat.editText = text
@@ -257,16 +257,16 @@ Dialog {
                         spacing: 4
 
                         Text { text: qsTr("Feldname * (intern, keine Leerzeichen)")
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.pixelSize: 11 }
                         TextField {
                             id: tfFeldname
                             Layout.fillWidth: true; implicitHeight: 30
                             placeholderText: qsTr("z. B. messwert_r")
-                            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                            color: root.theme.textPrimary
                             font.pixelSize: 12
-                            background: Rectangle { color: root.theme ? root.theme.inputBg : "#0f1c2e"
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                         }
                     }
 
@@ -277,16 +277,16 @@ Dialog {
                         spacing: 4
 
                         Text { text: qsTr("Anzeigename (Label) *")
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.pixelSize: 11 }
                         TextField {
                             id: tfLabel
                             Layout.fillWidth: true; implicitHeight: 30
                             placeholderText: qsTr("z. B. Messwert R-Phase")
-                            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                            color: root.theme.textPrimary
                             font.pixelSize: 12
-                            background: Rectangle { color: root.theme ? root.theme.inputBg : "#0f1c2e"
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                         }
                     }
 
@@ -297,7 +297,7 @@ Dialog {
                         spacing: 4
 
                         Text { text: qsTr("Feldtyp *")
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.pixelSize: 11 }
                         ComboBox {
                             id: cmbTyp
@@ -308,11 +308,11 @@ Dialog {
                                 qsTr("Ja/Nein (Boolean)"),
                                 qsTr("Auswahl")
                             ]
-                            background: Rectangle { color: root.theme ? root.theme.inputBg : "#0f1c2e"
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                             contentItem: Text {
                                 leftPadding: 8; text: cmbTyp.displayText
-                                color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
                             }
                         }
@@ -326,16 +326,16 @@ Dialog {
                         visible: cmbTyp.currentIndex === 3
 
                         Text { text: qsTr("Optionen * (kommagetrennt)")
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.pixelSize: 11 }
                         TextField {
                             id: tfOptionen
                             Layout.fillWidth: true; implicitHeight: 30
                             placeholderText: qsTr("z. B. Gut,Mängel,Fehler")
-                            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                            color: root.theme.textPrimary
                             font.pixelSize: 12
-                            background: Rectangle { color: root.theme ? root.theme.inputBg : "#0f1c2e"
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                         }
                     }
 
@@ -346,16 +346,16 @@ Dialog {
                         spacing: 4
 
                         Text { text: qsTr("Einheit (optional)")
-                            color: root.theme ? root.theme.textMuted : "#7090b0"
+                            color: root.theme.textMuted
                             font.pixelSize: 11 }
                         TextField {
                             id: tfEinheit
                             Layout.fillWidth: true; implicitHeight: 30
                             placeholderText: qsTr("z. B. A, V, Ω")
-                            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                            color: root.theme.textPrimary
                             font.pixelSize: 12
-                            background: Rectangle { color: root.theme ? root.theme.inputBg : "#0f1c2e"
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                         }
                     }
 
@@ -369,15 +369,15 @@ Dialog {
                             id: cbPflicht
                             indicator: Rectangle {
                                 implicitWidth: 16; implicitHeight: 16; radius: 3
-                                color: parent.checked ? (root.theme ? root.theme.accent : "#4a9eff") : (root.theme ? root.theme.inputBg : "#0f1c2e")
-                                border.color: root.theme ? root.theme.border : "#2a4060"
+                                color: parent.checked ? root.theme.accent : root.theme.inputBg
+                                border.color: root.theme.border
                                 Text { anchors.centerIn: parent; text: "✓"; color: "white"
                                     font.pixelSize: 11; visible: parent.parent.checked }
                             }
                             contentItem: Text {
                                 leftPadding: parent.indicator.width + 6
                                 text: qsTr("Pflichtfeld")
-                                color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
                             }
                         }
@@ -402,11 +402,11 @@ Dialog {
                         Button {
                             text: qsTr("Zurücksetzen"); Layout.fillWidth: true; implicitHeight: 30
                             contentItem: Text { text: parent.text
-                                color: root.theme ? root.theme.textSecondary : "#7090b0"
+                                color: root.theme.textSecondary
                                 font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter }
-                            background: Rectangle { color: parent.hovered ? (root.theme ? root.theme.hover : "#0f2540") : (root.theme ? root.theme.inputBg : "#0f1c2e")
-                                radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                            background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                                radius: 4; border.color: root.theme.border }
                             onClicked: root._formReset()
                         }
 
@@ -416,18 +416,18 @@ Dialog {
                                      && tfFeldname.text.trim().length > 0
                                      && tfLabel.text.trim().length > 0
                             contentItem: Text { text: parent.text
-                                color: parent.enabled ? (root.theme ? root.theme.textPrimary : "#c0d8f0")
-                                                      : (root.theme ? root.theme.textMuted   : "#506070")
+                                color: parent.enabled ? root.theme.textPrimary
+                                                      : root.theme.textMuted
                                 font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter }
                             background: Rectangle {
                                 color: parent.enabled
-                                       ? (parent.hovered ? (root.theme ? root.theme.accent : "#2a7acc")
-                                                         : (root.theme ? root.theme.inputBg : "#0f1c2e"))
-                                       : (root.theme ? root.theme.inputBg : "#0f1c2e")
+                                       ? (parent.hovered ? root.theme.accent
+                                                         : root.theme.inputBg)
+                                       : root.theme.inputBg
                                 radius: 4
-                                border.color: parent.enabled ? (root.theme ? root.theme.accent : "#4a9eff")
-                                                             : (root.theme ? root.theme.border : "#2a4060")
+                                border.color: parent.enabled ? root.theme.accent
+                                                             : root.theme.border
                             }
                             onClicked: root._speichern()
                         }
@@ -448,9 +448,9 @@ Dialog {
         // Fußzeile
         Rectangle {
             Layout.fillWidth: true; height: 36
-            color: root.theme ? root.theme.surfaceDeep : "#141e2e"
+            color: root.theme.surfaceDeep
             Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top }
-                        height: 1; color: root.theme ? root.theme.border : "#2a4060" }
+                        height: 1; color: root.theme.border }
             RowLayout {
                 anchors { fill: parent; leftMargin: 16; rightMargin: 16 }
                 Text {
@@ -459,17 +459,17 @@ Dialog {
                         var user = root._vorlagen.filter(function(v){ return v.erstelltVon === "user"   }).length
                         return qsTr("%1 Systemfelder  ·  %2 eigene Felder").arg(sys).arg(user)
                     }
-                    font.pixelSize: 10; color: root.theme ? root.theme.textMuted : "#7090b0"
+                    font.pixelSize: 10; color: root.theme.textMuted
                 }
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Schließen"); implicitHeight: 26; implicitWidth: 90
                     contentItem: Text { text: parent.text
-                        color: root.theme ? root.theme.textSecondary : "#7090b0"
+                        color: root.theme.textSecondary
                         font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? (root.theme ? root.theme.hover : "#0f2540") : "transparent"
-                        radius: 4; border.color: root.theme ? root.theme.border : "#2a4060" }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"
+                        radius: 4; border.color: root.theme.border }
                     onClicked: root.reject()
                 }
             }

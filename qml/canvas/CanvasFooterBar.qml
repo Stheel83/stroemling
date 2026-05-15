@@ -1,17 +1,17 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import stroemling
 
 Rectangle {
     id: root
     required property var canvas
-    required property var theme
 
     property string koordinatenText: ""
 
     height: 34
-    color: theme ? theme.surfaceDeep : "#09121e"
-    Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: theme ? theme.border : "#1e3a5f" }
+    color: AppTheme.surfaceDeep
+    Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: AppTheme.border }
 
     function rasterLaden(mm, rs) {
         cmbRaster._laden = true
@@ -26,7 +26,7 @@ Rectangle {
         anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
         spacing: 8
 
-        Text { text: qsTr("Raster:"); color: theme ? theme.borderLight : "#4a6080"; font.pixelSize: 11 }
+        Text { text: qsTr("Raster:"); color: AppTheme.borderLight; font.pixelSize: 11 }
 
         ComboBox {
             id: cmbRaster
@@ -39,23 +39,23 @@ Rectangle {
                 if (!_laden && canvas.seiteId >= 0)
                     seitenModel.seiteRasterSpeichern(canvas.seiteId, canvas.gridMm, canvas.rastend)
             }
-            background: Rectangle { color: theme ? theme.inputBg : "#0a1628"; border.color: theme ? theme.border : "#1e3a5f"; radius: 4 }
+            background: Rectangle { color: AppTheme.inputBg; border.color: AppTheme.border; radius: 4 }
             contentItem: Text { leftPadding: 8; text: cmbRaster.displayText
-                color: theme ? theme.textSecondary : "#c0d8f0"; font.pixelSize: 11; verticalAlignment: Text.AlignVCenter }
+                color: AppTheme.textSecondary; font.pixelSize: 11; verticalAlignment: Text.AlignVCenter }
         }
 
         Rectangle {
             implicitWidth: 96; implicitHeight: 24; radius: 4
-            color: canvas.rastend ? (theme ? theme.activeItemAlt : "#0f2a50") : (theme ? theme.inputBg : "#0a1628")
-            border.color: canvas.rastend ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.border : "#1e3a5f")
+            color: canvas.rastend ? AppTheme.activeItemAlt : AppTheme.inputBg
+            border.color: canvas.rastend ? AppTheme.accent : AppTheme.border
             RowLayout {
                 anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
                 spacing: 5
                 Text { text: canvas.rastend ? "✓" : "··"
-                       color: canvas.rastend ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.borderLight : "#4a6080")
+                       color: canvas.rastend ? AppTheme.accent : AppTheme.borderLight
                        font.pixelSize: 12; font.weight: Font.Medium }
-                Text { text: canvas.rastend ? "Rastend" : "Frei"
-                       color: canvas.rastend ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.panelMid : "#5577aa")
+                Text { text: canvas.rastend ? qsTr("Rastend") : qsTr("Frei")
+                       color: canvas.rastend ? AppTheme.accent : AppTheme.panelMid
                        font.pixelSize: 11; Layout.fillWidth: true }
             }
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -67,11 +67,11 @@ Rectangle {
             }
         }
 
-        Text { text: canvas.gridMm+" mm · "+canvas.gridPx+" px"; color: theme ? theme.borderDark : "#2a4060"; font.pixelSize: 10 }
+        Text { text: canvas.gridMm+" mm · "+canvas.gridPx+" px"; color: AppTheme.borderDark; font.pixelSize: 10 }
 
-        Rectangle { width: 1; height: 18; color: theme ? theme.border : "#1e3a5f" }
+        Rectangle { width: 1; height: 18; color: AppTheme.border }
 
-        Text { text: qsTr("Canvas:"); color: theme ? theme.borderLight : "#4a6080"; font.pixelSize: 11 }
+        Text { text: qsTr("Canvas:"); color: AppTheme.borderLight; font.pixelSize: 11 }
 
         Repeater {
             model: [
@@ -83,7 +83,7 @@ Rectangle {
                 required property var modelData
                 width: 20; height: 20; radius: 3
                 color: modelData.farbe
-                border.color: canvas.hintergrundFarbe === modelData.farbe ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.borderLight : "#3a5a7a")
+                border.color: canvas.hintergrundFarbe === modelData.farbe ? AppTheme.accent : AppTheme.borderLight
                 border.width: canvas.hintergrundFarbe === modelData.farbe ? 2 : 1
                 ToolTip.visible: hoverHandler.hovered; ToolTip.text: modelData.tooltip; ToolTip.delay: 400
                 HoverHandler { id: hoverHandler }
@@ -97,6 +97,6 @@ Rectangle {
         }
 
         Item { Layout.fillWidth: true }
-        Text { text: root.koordinatenText; color: theme ? theme.borderLight : "#3a5a7a"; font.pixelSize: 10; font.family: "monospace" }
+        Text { text: root.koordinatenText; color: AppTheme.borderLight; font.pixelSize: 10; font.family: "monospace" }
     }
 }

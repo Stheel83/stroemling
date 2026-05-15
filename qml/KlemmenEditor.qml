@@ -496,6 +496,7 @@ Item {
                 id: vorschau
                 Layout.fillWidth:    true
                 Layout.preferredHeight: implicitHeight
+                theme:       theme
                 klemme:      klemmeModel.klemme
                 anschluesse: klemmeModel.anschluesse
                 bruecken:    klemmeModel.bruecken

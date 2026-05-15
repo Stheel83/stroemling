@@ -10,7 +10,7 @@ Item {
     property int     projektId:        -1
     property string  aktiveNorm:       "IEC"
     property string  hintergrundFarbe: "#080f1c"
-    property var     theme
+    required property var theme
     property bool    debug:            false
     property bool    fokussiert:       false
 

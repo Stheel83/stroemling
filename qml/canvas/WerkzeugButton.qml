@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import stroemling
 
 Rectangle {
     id: root
@@ -8,20 +9,19 @@ Rectangle {
     property string tooltip: ""
     property bool deaktiviert: false
     required property var canvas
-    required property var theme
 
     width: 36; height: 36; radius: 6
     color: deaktiviert ? "transparent"
-         : canvas.aktivesWerkzeug === werkzeug ? (theme ? theme.activeItemAlt : "#1a3a6a")
-         : wbMaus.containsMouse ? (theme ? theme.hover : "#0f2540") : "transparent"
-    border.color: (!deaktiviert && canvas.aktivesWerkzeug === werkzeug) ? (theme ? theme.accent : "#4a9eff") : "transparent"
+         : canvas.aktivesWerkzeug === werkzeug ? AppTheme.activeItemAlt
+         : wbMaus.containsMouse ? AppTheme.hover : "transparent"
+    border.color: (!deaktiviert && canvas.aktivesWerkzeug === werkzeug) ? AppTheme.accent : "transparent"
 
     Text {
         anchors.centerIn: parent; text: root.symbol; font.pixelSize: 17
-        color: root.deaktiviert ? (theme ? theme.btnDisabled : "#253545")
-             : canvas.aktivesWerkzeug === root.werkzeug ? (theme ? theme.accent : "#4a9eff")
-             : wbMaus.containsMouse ? (theme ? theme.accentLight : "#7aaddd")
-             : (theme ? theme.panelMid : "#5577aa")
+        color: root.deaktiviert ? AppTheme.btnDisabled
+             : canvas.aktivesWerkzeug === root.werkzeug ? AppTheme.accent
+             : wbMaus.containsMouse ? AppTheme.accentLight
+             : AppTheme.panelMid
     }
     MouseArea {
         id: wbMaus; anchors.fill: parent; hoverEnabled: true

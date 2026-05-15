@@ -26,6 +26,9 @@ Rectangle {
     property var  theme
     property bool debug: false
 
+    // Refresh-Zähler für EpKabelDefinitionSection – hochzählen erzwingt Binding-Neuauswertung
+    property int _refresh: 0
+
     // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins)
     readonly property var el: {
         var idx = canvas.ausgewaehlt

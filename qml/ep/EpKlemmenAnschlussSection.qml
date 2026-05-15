@@ -224,6 +224,7 @@ Item {
                 KlemmenVorschau {
                     width: parent.width - 24
                     anchors.horizontalCenter: parent.horizontalCenter
+                    theme: theme
 
                     klemme: panel.kaDetails ? {
                         "ebenenAnzahl":      panel.kaDetails.ebenenAnzahl    || 1,

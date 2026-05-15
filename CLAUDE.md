@@ -166,6 +166,15 @@ nur die `qml/components/`-Typen. Typen aus dem `qml/`-Root (z.B. `KlemmenVorscha
 Fix: zusätzlich `import stroemling` eintragen (Modul-URI aus `CMakeLists.txt`). Fehlt
 dieses Import, erscheint der Laufzeitfehler „XYZ is not a type".
 
+**`Q_PROPERTY` schlägt `Q_INVOKABLE` in QML – niemals mit `()` aufrufen:**
+Wenn eine C++-Methode sowohl als `Q_PROPERTY` als auch als `Q_INVOKABLE` deklariert ist,
+liefert QML bei `model.prop` den Property-Wert (z.B. `int`). `model.prop()` versucht diesen
+Wert als Funktion aufzurufen → `TypeError: Property 'prop' of object X is not a function`.
+Tritt die Methode in `onPositionChanged` auf (`hoverEnabled: true`), entsteht ein
+Exception-Flood bei jeder Mausbewegung → UI faktisch eingefroren.
+**Regel:** QML-Zugriff auf `Q_PROPERTY`-Werte immer ohne `()` – `elementeModel.anzahl`
+statt `elementeModel.anzahl()`.
+
 ### Konzeptpflege
 - Wenn eine Konzeptentscheidung sich im Gespräch ändert: **Konzeptdatei sofort
   aktualisieren**, bevor Code geändert wird

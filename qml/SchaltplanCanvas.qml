@@ -1056,7 +1056,8 @@ Item {
                     if (!vorschau && el.symbolId === "querverweis") {
                         var qed     = el.extraDaten || {}
                         var qSn     = qed.signalname || ""
-                        var qPartner = root._querverweisPartnerMap[idx] || ""
+                        var _qpInfo  = root._querverweisPartnerMap[idx]
+                        var qPartner = _qpInfo ? (_qpInfo.label || "") : ""
                         if (qSn !== "" || qPartner !== "") {
                             var qFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
                             var qFsS  = Math.max(6, Math.round(1.6 * root.mmToPx * root.zoom))
@@ -1111,8 +1112,9 @@ Item {
                             // Umschließenden Gerätekasten suchen (kleinster)
                             var gaCxF = (el.x1 + el.x2) / 2, gaCyF = (el.y1 + el.y2) / 2
                             var bestGk = null, bestGkA = Infinity
-                            for (var gi = 0; gi < elemente.length; gi++) {
-                                var gke = elemente[gi]
+                            var _gaEls = elementeModel.snapshot()
+                            for (var gi = 0; gi < _gaEls.length; gi++) {
+                                var gke = _gaEls[gi]
                                 if (gke.typ !== "geraetekasten") continue
                                 var gkx1 = Math.min(gke.x1,gke.x2), gkx2 = Math.max(gke.x1,gke.x2)
                                 var gky1 = Math.min(gke.y1,gke.y2), gky2 = Math.max(gke.y1,gke.y2)
@@ -1713,6 +1715,7 @@ Item {
         function autoNetzeBerechnen() {
             var vbs = autoVerbindungenBerechnen()
             if (vbs.length === 0) return []
+            var elemente = elementeModel.snapshot()
 
             // Union-Find auf Elementindizes
             var parent = {}
@@ -1891,7 +1894,7 @@ Item {
                     for (var ci = 0; ci < cands.length; ci++) {
                         var idx = cands[ci]
                         if (idx === sB.elIdxA || idx === sB.elIdxB) {
-                            if (idx >= 0 && idx < elementeModel.anzahl()) {
+                            if (idx >= 0 && idx < elementeModel.anzahl) {
                                 var shEl = elementeModel.element(idx)
                                 // Winkel und Querverweis sind transparent für ADP-Propagation
                                 if (shEl && (shEl.symbolId === "winkel"
@@ -2562,7 +2565,7 @@ Item {
                 }
                 root.aktionAusfuehren(elementeModel.snapshot().concat([elSym]))
                 root.aktivesWerkzeug = "zeiger"
-                var newIdxSym = elementeModel.anzahl() - 1
+                var newIdxSym = elementeModel.anzahl - 1
                 root.auswahl         = [newIdxSym]
                 var vprSym = toViewport(mouse.x, mouse.y)
                 var newElSym = elementeModel.element(newIdxSym)
@@ -2603,7 +2606,7 @@ Item {
                 }
                 root.aktionAusfuehren(elementeModel.snapshot().concat([elBild]))
                 root.aktivesWerkzeug = "zeiger"
-                var newIdxBild = elementeModel.anzahl() - 1
+                var newIdxBild = elementeModel.anzahl - 1
                 root.auswahl         = [newIdxBild]
                 var vprBild = toViewport(mouse.x, mouse.y)
                 var newElBild = elementeModel.element(newIdxBild)
@@ -2691,7 +2694,7 @@ Item {
                 if (root.aktiverGriff >= 0) {
                     elementeModel.undoCheckpointFromSnapshot(root.schnapshotVorMove)
                     root.aktiverGriff = -1
-                    if (root.ausgewaehlt >= 0 && root.ausgewaehlt < elementeModel.anzahl()) {
+                    if (root.ausgewaehlt >= 0 && root.ausgewaehlt < elementeModel.anzahl) {
                         var rEl = elementeModel.element(root.ausgewaehlt)
                         var vpR = toViewport(mouse.x, mouse.y)
                         root.verschiebenMausVpX  = vpR.x
@@ -2760,7 +2763,7 @@ Item {
             root.aktionAusfuehren(elementeModel.snapshot().concat([el]))
             // Nach dem Zeichnen → Zeiger-Werkzeug, neues Element auswählen
             root.aktivesWerkzeug = "zeiger"
-            var newIdx = elementeModel.anzahl() - 1
+            var newIdx = elementeModel.anzahl - 1
             root.auswahl = [newIdx]
             var vpr = toViewport(mouse.x, mouse.y)
             var newEl = elementeModel.element(newIdx)
@@ -2816,7 +2819,7 @@ Item {
                         root.stilVorlage
                     )
                     root.aktionAusfuehren(elementeModel.snapshot().concat([elPoly]))
-                    root.auswahl = [elementeModel.anzahl() - 1]
+                    root.auswahl = [elementeModel.anzahl - 1]
                 }
                 root.amPolyZeichnen  = false
                 root.polyPunkte      = []
@@ -3163,10 +3166,11 @@ Item {
             sid === "klemme_anschluss" || sid === "isoliert_gelegte_ader")
             return _formatEndpunkt(el, net)
 
-        // Querverweis: Traversal hält, Zielseite wird angezeigt
+        // Querverweis: Cross-page traversal (Partnerseite laden und dort weitersuchen)
         if (sid === "querverweis") {
             var partnerInfo = root._querverweisPartnerMap[startElIdx]
-            return partnerInfo ? ("→ S." + partnerInfo) : "→ Querverweis"
+            if (!partnerInfo) return "→ Querverweis"
+            return _traversiereEndpunktCrossPage(el, partnerInfo, net, tiefe)
         }
 
         // Treffpunkt: Routing-Regeln anwenden
@@ -3278,6 +3282,158 @@ Item {
         return sid
     }
 
+    // Baut pin-basierten Adj-Graph aus einem db.grafikLaden()-Ergebnis.
+    function _adjFuerElemente(elemente) {
+        var posMap = {}
+        for (var i = 0; i < elemente.length; i++) {
+            var el = elemente[i]
+            if (!el || el.typ !== "symbol" || !(el.symbolId || "")) continue
+            var pins = symbolDefinitionModel.pinsForSymbol(el.symbolId)
+            for (var pi = 0; pi < pins.length; pi++) {
+                var wp  = root.pinWeltPos(el, pins[pi].x, pins[pi].y)
+                var key = Math.round(wp.x * 2) + "_" + Math.round(wp.y * 2)
+                if (!posMap[key]) posMap[key] = []
+                posMap[key].push({elIdx: i, connPos: wp})
+            }
+        }
+        var adj = {}
+        for (var pkey in posMap) {
+            var entries = posMap[pkey]
+            if (entries.length < 2) continue
+            for (var a = 0; a < entries.length; a++) {
+                for (var b = a + 1; b < entries.length; b++) {
+                    var ai = entries[a].elIdx, bi = entries[b].elIdx
+                    if (!adj[ai]) adj[ai] = []
+                    if (!adj[bi]) adj[bi] = []
+                    adj[ai].push({neighbor: bi, connPosOnSelf: entries[a].connPos})
+                    adj[bi].push({neighbor: ai, connPosOnSelf: entries[b].connPos})
+                }
+            }
+        }
+        return adj
+    }
+
+    // Formatiert Endpunkt-Symbol auf einer Fremdseite (sucht Gerätekasten in elemente[]).
+    function _formatEndpunktInElemente(el, net, elemente) {
+        var sid = el.symbolId || ""
+        var ed  = el.extraDaten || {}
+        if (sid === "geraeteanschluss") {
+            var ank = ed.anschlusskennzeichnung || ""
+            var cx  = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
+            var bestGk = null, bestGkA = Infinity
+            for (var gi = 0; gi < elemente.length; gi++) {
+                var gke = elemente[gi]
+                if (gke.typ !== "geraetekasten") continue
+                var gkx1 = Math.min(gke.x1, gke.x2), gkx2 = Math.max(gke.x1, gke.x2)
+                var gky1 = Math.min(gke.y1, gke.y2), gky2 = Math.max(gke.y1, gke.y2)
+                if (cx >= gkx1 && cx <= gkx2 && cy >= gky1 && cy <= gky2) {
+                    var gkA = (gkx2 - gkx1) * (gky2 - gky1)
+                    if (gkA < bestGkA) { bestGkA = gkA; bestGk = gke }
+                }
+            }
+            var bmk = bestGk ? ((bestGk.extraDaten || {}).bmk || "") : ""
+            return bmk ? (bmk + ":" + ank) : (ank || "GA")
+        }
+        if (sid === "potenzial")       return net.bezeichnung || ed.signalname || "Potenzial"
+        if (sid === "klemme_anschluss") {
+            var kaAnz = ed.anschlussBezeichnung || ""
+            var kaBmk = ed.bmk || ""
+            return kaBmk ? (kaBmk + ":" + kaAnz) : (kaAnz || "KA")
+        }
+        if (sid === "isoliert_gelegte_ader") return "isoliert"
+        return sid
+    }
+
+    // DFS-Traversal auf Fremdseite; kein weiterer Cross-page-Hop (Rekursionsschutz).
+    function _traversiereEndpunktInElemente(startElIdx, vonElIdx, adj, elemente, net, partnerSeiteId, tiefe) {
+        if (tiefe <= 0) return "⚠ Zyklus"
+        var el = elemente[startElIdx]
+        if (!el || !el.typ) return "⚠ Kein Endpunkt"
+        var sid = el.symbolId || ""
+
+        if (sid === "geraeteanschluss" || sid === "potenzial" ||
+            sid === "klemme_anschluss" || sid === "isoliert_gelegte_ader")
+            return _formatEndpunktInElemente(el, net, elemente)
+
+        // Querverweis auf Fremdseite: Label ermitteln, kein weiterer Hop
+        if (sid === "querverweis") {
+            var ed = el.extraDaten || {}
+            var sn = ed.signalname || ""
+            if (!sn) return "→ Querverweis"
+            var alle = db.querverweiseLadenProjekt(root.projektId)
+            for (var k = 0; k < alle.length; k++) {
+                var qv = alle[k]
+                if (qv.signalname !== sn) continue
+                if (qv.seiteId === partnerSeiteId &&
+                    Math.abs(qv.x1 - el.x1) < 0.5 && Math.abs(qv.y1 - el.y1) < 0.5) continue
+                return "→ S." + qv.blattnummer + (qv.seitenBezeichnung ? " " + qv.seitenBezeichnung : "")
+            }
+            return "→ Querverweis"
+        }
+
+        // Treffpunkt: Routing-Regeln (identisch zur Haupttraversal)
+        if (sid === "treffpunkt" || sid === "treffpunkt_l") {
+            var adjSelf = adj[startElIdx] || []
+            var connPos = null
+            for (var ai = 0; ai < adjSelf.length; ai++) {
+                if (adjSelf[ai].neighbor === vonElIdx) { connPos = adjSelf[ai].connPosOnSelf; break }
+            }
+            var vonArm = connPos ? _treffpunktArmBestimmen(el, connPos) : null
+            if (vonArm === "s1" || vonArm === "s2") {
+                var zielNb = _treffpunktNachbarFuerArm(el, startElIdx, adj, "ziel")
+                if (zielNb !== null)
+                    return _traversiereEndpunktInElemente(zielNb, startElIdx, adj, elemente, net, partnerSeiteId, tiefe - 1)
+                return "⚠ Kein Ziel"
+            } else if (vonArm === "ziel") {
+                for (var sArm of ["s1", "s2"]) {
+                    var sNb = _treffpunktNachbarFuerArm(el, startElIdx, adj, sArm)
+                    if (sNb !== null && sNb !== vonElIdx) {
+                        var res = _traversiereEndpunktInElemente(sNb, startElIdx, adj, elemente, net, partnerSeiteId, tiefe - 1)
+                        if (res.indexOf("⚠") < 0) return res
+                    }
+                }
+                return "⚠ Treffpunkt (ziel)"
+            }
+            return "⚠ Treffpunkt"
+        }
+
+        // Transparente Elemente (winkel, aderdefinition, …)
+        var nbList = adj[startElIdx] || []
+        for (var ni = 0; ni < nbList.length; ni++) {
+            if (nbList[ni].neighbor !== vonElIdx)
+                return _traversiereEndpunktInElemente(nbList[ni].neighbor, startElIdx, adj, elemente, net, partnerSeiteId, tiefe - 1)
+        }
+        return "⚠ Kein Endpunkt"
+    }
+
+    // Lädt Partnerseite und führt Traversal dort weiter.
+    function _traversiereEndpunktCrossPage(qvEl, partnerInfo, net, tiefe) {
+        var label = "→ S." + partnerInfo.label
+        if (tiefe <= 1) return label
+
+        var elemente = db.grafikLaden(partnerInfo.seiteId)
+        if (!elemente || elemente.length === 0) return label
+
+        // Partner-Querverweis auf Zielseite: gleicher Signalname, selbe DB-Position
+        var sn = (qvEl.extraDaten && qvEl.extraDaten.signalname) || ""
+        var partnerIdx = -1
+        for (var i = 0; i < elemente.length; i++) {
+            var e = elemente[i]
+            if (!e || e.typ !== "symbol" || e.symbolId !== "querverweis") continue
+            var esn = (e.extraDaten && e.extraDaten.signalname) || ""
+            if (esn !== sn) continue
+            var dx = e.x1 - partnerInfo.x1, dy = e.y1 - partnerInfo.y1
+            if (dx*dx + dy*dy < 1.0) { partnerIdx = i; break }
+        }
+        if (partnerIdx < 0) return label
+
+        var adj    = _adjFuerElemente(elemente)
+        var nbList = adj[partnerIdx] || []
+        if (nbList.length === 0) return label
+
+        return _traversiereEndpunktInElemente(nbList[0].neighbor, partnerIdx, adj, elemente, net, partnerInfo.seiteId, tiefe - 1)
+    }
+
     function verbindungAnnotationenNeuLaden() {
         var annListe = db.verbindungAnnotationenLaden(root.seiteId)
         var cache = {}
@@ -3353,7 +3509,12 @@ Item {
                 var qv = alle[k]
                 if (qv.signalname !== sn) continue
                 if (qv.seiteId === root.seiteId && Math.abs(qv.x1 - el.x1) < 0.5 && Math.abs(qv.y1 - el.y1) < 0.5) continue
-                map[i] = qv.blattnummer + (qv.seitenBezeichnung ? " " + qv.seitenBezeichnung : "")
+                map[i] = {
+                    label:   qv.blattnummer + (qv.seitenBezeichnung ? " " + qv.seitenBezeichnung : ""),
+                    seiteId: qv.seiteId,
+                    x1:      qv.x1,
+                    y1:      qv.y1
+                }
                 break
             }
         }
@@ -3534,7 +3695,7 @@ Item {
 
         // Zuerst Pin-Kandidaten aus allen selektierten Symbolen sammeln
         var pinKandidaten = false
-        var _mreAnz = elementeModel.anzahl()
+        var _mreAnz = elementeModel.anzahl
         for (var ii = 0; ii < root.auswahl.length; ii++) {
             var idxA = root.auswahl[ii]
             if (idxA < 0 || idxA >= _mreAnz) continue
@@ -3629,7 +3790,7 @@ Item {
 
     function zReihenfolgeAendern(richtung) {
         if (root.ausgewaehlt < 0) return
-        var idx=root.ausgewaehlt, n=elementeModel.anzahl()
+        var idx=root.ausgewaehlt, n=elementeModel.anzahl
         var neu=elementeModel.snapshot(), el=neu[idx], newIdx=idx
         if      (richtung==="vorne1"    && idx<n-1) { neu.splice(idx,1); neu.splice(idx+1,0,el); newIdx=idx+1 }
         else if (richtung==="hinten1"   && idx>0)   { neu.splice(idx,1); neu.splice(idx-1,0,el); newIdx=idx-1 }
@@ -3685,8 +3846,8 @@ Item {
     }
 
     function alleAuswaehlen() {
-        if (elementeModel.anzahl() === 0 || root.seiteId < 0) return
-        var sel = []; for (var i = 0; i < elementeModel.anzahl(); i++) sel.push(i)
+        if (elementeModel.anzahl === 0 || root.seiteId < 0) return
+        var sel = []; for (var i = 0; i < elementeModel.anzahl; i++) sel.push(i)
         root.auswahl = sel
         drawCanvas.requestPaint()
     }
@@ -3716,7 +3877,7 @@ Item {
         })
         var anzahl = neueEl.length
         root.aktionAusfuehren(elementeModel.snapshot().concat(neueEl))
-        var start = elementeModel.anzahl() - anzahl
+        var start = elementeModel.anzahl - anzahl
         var sel = []; for (var j = 0; j < anzahl; j++) sel.push(start + j)
         root.auswahl = sel
         drawCanvas.requestPaint()
@@ -3875,7 +4036,7 @@ Item {
             // Snapshot als Undo-Basis (statt aktionAusfuehren, das den aktuellen Stand nimmt)
             elementeModel.undoCheckpointFromSnapshot(root.textEditSnapshot)
             elementeModel.fromVariantList(elementeModel.snapshot().concat([textEl]))
-            root.auswahl   = [elementeModel.anzahl() - 1]
+            root.auswahl   = [elementeModel.anzahl - 1]
             root.aktivesWerkzeug = "zeiger"
             root.grafikSpeichernJetzt()
         }
@@ -3914,7 +4075,7 @@ Item {
     // Prüft ob Maus über einem Handle des selektierten Elements liegt.
     // Gibt Handle-Index zurück oder -1.
     function griffBeiPosition(vpX, vpY) {
-        if (root.ausgewaehlt < 0 || root.ausgewaehlt >= elementeModel.anzahl()) return -1
+        if (root.ausgewaehlt < 0 || root.ausgewaehlt >= elementeModel.anzahl) return -1
         var el  = elementeModel.element(root.ausgewaehlt)
         var pts = drawCanvas.griffPunkte(el)
         for (var i = 0; i < pts.length; i++) {
@@ -4251,7 +4412,7 @@ Item {
                     ausschnittLinks: 0, ausschnittRechts: 0, ausschnittOben: 0, ausschnittUnten: 0
                 }
                 root.aktionAusfuehren(elementeModel.snapshot().concat([elBild]))
-                root.auswahl = [elementeModel.anzahl() - 1]
+                root.auswahl = [elementeModel.anzahl - 1]
                 break  // nur das erste Bild verarbeiten
             }
             drop.accepted = true
@@ -4269,7 +4430,7 @@ Item {
 
         onAccepted: {
             var idx = elementIndex
-            if (idx < 0 || idx >= elementeModel.anzahl()) return
+            if (idx < 0 || idx >= elementeModel.anzahl) return
             // extraDaten des Elements im Canvas aktualisieren
             var el = Object.assign({}, elementeModel.element(idx))
             var savedX1 = el.x1, savedY1 = el.y1
@@ -4376,7 +4537,7 @@ Item {
         onRejected: {
             // Linie wieder aus den Elementen entfernen
             var idx = elementIndex
-            if (idx >= 0 && idx < elementeModel.anzahl()) {
+            if (idx >= 0 && idx < elementeModel.anzahl) {
                 var cleaned = elementeModel.snapshot()
                 cleaned.splice(idx, 1)
                 root.aktionAusfuehren(cleaned)
@@ -4394,7 +4555,7 @@ Item {
             console.log("onZuordnungGespeichert: ausgewaehlt=", root.ausgewaehlt,
                         "netKeyMap=", JSON.stringify(netKeyMap))
             var idx = root.ausgewaehlt
-            if (idx < 0 || idx >= elementeModel.anzahl()) {
+            if (idx < 0 || idx >= elementeModel.anzahl) {
                 console.log("  → abgebrochen: idx ungültig")
                 return
             }
@@ -4426,7 +4587,7 @@ Item {
 
         onAccepted: {
             var idx = elementIndex
-            if (idx < 0 || idx >= elementeModel.anzahl()) return
+            if (idx < 0 || idx >= elementeModel.anzahl) return
             var snap = elementeModel.snapshot()
             var el = Object.assign({}, snap[idx])
             el.extraDaten = {
@@ -4456,7 +4617,7 @@ Item {
         onRejected: {
             // Kasten wieder entfernen
             var idx = elementIndex
-            if (idx >= 0 && idx < elementeModel.anzahl()) {
+            if (idx >= 0 && idx < elementeModel.anzahl) {
                 var updated = elementeModel.snapshot()
                 updated.splice(idx, 1)
                 root.aktionAusfuehren(updated)

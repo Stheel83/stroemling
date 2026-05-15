@@ -32,7 +32,7 @@ Rectangle {
     // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins)
     readonly property var el: {
         var idx = canvas.ausgewaehlt
-        return (idx >= 0 && idx < canvas.elemente.length) ? canvas.elemente[idx] : null
+        return (idx >= 0 && idx < elementeModel.anzahl) ? elementeModel.element(idx) : null
     }
 
     // Ausgewählte Auto-Verbindung (null wenn keine)
@@ -67,8 +67,9 @@ Rectangle {
     function strukturkastenFuer(el) {
         var cx = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
         var best = null, bestArea = Infinity
-        for (var i = 0; i < canvas.elemente.length; i++) {
-            var sk = canvas.elemente[i]
+        var _skSnap = elementeModel.snapshot()
+        for (var i = 0; i < _skSnap.length; i++) {
+            var sk = _skSnap[i]
             if (sk.typ !== "strukturkasten") continue
             var sx1 = Math.min(sk.x1, sk.x2), sx2 = Math.max(sk.x1, sk.x2)
             var sy1 = Math.min(sk.y1, sk.y2), sy2 = Math.max(sk.y1, sk.y2)
@@ -85,8 +86,9 @@ Rectangle {
     function geraetekastenFuer(el) {
         var cx = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
         var best = null, bestArea = Infinity
-        for (var i = 0; i < canvas.elemente.length; i++) {
-            var gk = canvas.elemente[i]
+        var _gkSnap = elementeModel.snapshot()
+        for (var i = 0; i < _gkSnap.length; i++) {
+            var gk = _gkSnap[i]
             if (gk.typ !== "geraetekasten") continue
             var gx1 = Math.min(gk.x1, gk.x2), gx2 = Math.max(gk.x1, gk.x2)
             var gy1 = Math.min(gk.y1, gk.y2), gy2 = Math.max(gk.y1, gk.y2)

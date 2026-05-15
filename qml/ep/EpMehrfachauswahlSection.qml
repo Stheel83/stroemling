@@ -11,8 +11,8 @@ Item {
     readonly property bool hatSymbole: {
         for (var i = 0; i < canvas.auswahl.length; i++) {
             var idx = canvas.auswahl[i]
-            if (idx >= 0 && idx < canvas.elemente.length
-                    && canvas.elemente[idx].typ === "symbol") return true
+            if (idx >= 0 && idx < elementeModel.anzahl
+                    && elementeModel.element(idx).typ === "symbol") return true
         }
         return false
     }

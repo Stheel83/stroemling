@@ -6,6 +6,13 @@
 #include <QSettings>
 #include <QProcess>
 #include <QObject>
+#include <QFile>
+#include <QTextStream>
+#include <QDateTime>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QtGlobal>
+#include <cstdio>
 
 #include "database/Database.h"
 #include "models/ProjektModel.h"
@@ -16,6 +23,40 @@
 #include "models/KabelModel.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/KabelRechnerModel.h"
+
+// ── Log-Handler ───────────────────────────────────────────────
+static QFile    s_logFile;
+static QMutex   s_logMutex;
+
+static void logMessageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
+{
+    const char *label;
+    switch (type) {
+        case QtDebugMsg:    label = "DBG"; break;
+        case QtInfoMsg:     label = "INF"; break;
+        case QtWarningMsg:  label = "WRN"; break;
+        case QtCriticalMsg: label = "CRT"; break;
+        case QtFatalMsg:    label = "FAT"; break;
+        default:            label = "???"; break;
+    }
+
+    QString line = QDateTime::currentDateTime().toString("hh:mm:ss.zzz")
+                   + " [" + label + "] " + msg + '\n';
+
+    {
+        QMutexLocker lock(&s_logMutex);
+        if (s_logFile.isOpen()) {
+            s_logFile.write(line.toUtf8());
+            s_logFile.flush();
+        }
+    }
+    // Stderr erhalten damit journalctl weiterhin funktioniert
+    fputs(qPrintable(line), stderr);
+
+    if (type == QtFatalMsg)
+        abort();
+    (void)ctx;
+}
 
 class AppHelper : public QObject {
     Q_OBJECT
@@ -33,6 +74,17 @@ public:
 
 int main(int argc, char *argv[])
 {
+    // Log-Datei öffnen bevor QGuiApplication läuft (Qt-eigene Frühwarnungen landen sonst nicht rein)
+    // Pfad: neben dem Binary (im Build-Ordner, gleiche Stelle wie die DB).
+    QString logPath = QString::fromLocal8Bit(argv[0]);
+    logPath = logPath.left(logPath.lastIndexOf('/') + 1) + "stroemling.log";
+    s_logFile.setFileName(logPath);
+    if (!s_logFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        fputs("stroemling: Log-Datei konnte nicht geöffnet werden\n", stderr);
+    qInstallMessageHandler(logMessageHandler);
+
+    qInfo() << "=== Strömling gestartet" << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "===";
+
     QGuiApplication app(argc, argv);
     app.setOrganizationName("stroemling");
     app.setApplicationName("Strömling Design");

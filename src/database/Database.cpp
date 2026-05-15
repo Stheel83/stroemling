@@ -781,7 +781,9 @@ bool Database::createSchema()
             farbe                           TEXT,
             bezeichnung                     TEXT,
             verbindung_id                   INTEGER REFERENCES verbindung(id),
-            kabellinie_grafik_element_id    INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL
+            kabellinie_grafik_element_id    INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL,
+            von_gerat_pin                   TEXT,
+            nach_gerat_pin                  TEXT
         )
     )")) {
         qWarning() << "Fehler kabel_ader:" << q.lastError().text();
@@ -3523,7 +3525,8 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
     q2.prepare(R"(
         SELECT ka.kabel_id, ka.ader_nr, COALESCE(ka.farbe, ''), COALESCE(ka.bezeichnung, ''),
                COALESCE(s.blattnummer, ''), COALESCE(s.bezeichnung, ''),
-               COALESCE(v.bezeichnung, '')
+               COALESCE(v.bezeichnung, ''),
+               COALESCE(ka.von_gerat_pin, ''), COALESCE(ka.nach_gerat_pin, '')
         FROM kabel_ader ka
         JOIN kabel k ON k.id = ka.kabel_id AND k.projekt_id = :pid
         LEFT JOIN grafik_element ge ON ge.id = ka.kabellinie_grafik_element_id
@@ -3546,6 +3549,8 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
         a[QStringLiteral("blattnummer")]      = q2.value(4).toString();
         a[QStringLiteral("seitenBez")]        = q2.value(5).toString();
         a[QStringLiteral("netz")]             = q2.value(6).toString();
+        a[QStringLiteral("vonGeratPin")]      = q2.value(7).toString();
+        a[QStringLiteral("nachGeratPin")]     = q2.value(8).toString();
         int idx = kabelIdx[kId];
         QVariantMap kMap = kabel[idx].toMap();
         QVariantList adern = kMap[QStringLiteral("adern")].toList();
@@ -3581,6 +3586,81 @@ bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
     q.bindValue(":id",   kabelId);
     if (!q.exec()) {
         qWarning() << "kabelMetaAktualisieren:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
+// kabelAderListeMitVerbindung
+// Gibt alle kabel_adern eines Projekts mit ihrer verbindung_id zurück –
+// benötigt für den Verdrahtungsweg-Algorithmus (M11) in QML.
+// ============================================================
+QVariantList Database::kabelAderListeMitVerbindung(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q;
+    q.prepare(R"(
+        SELECT ka.kabel_id, ka.ader_nr, ka.verbindung_id,
+               COALESCE(ka.kabellinie_grafik_element_id, 0)
+        FROM kabel_ader ka
+        JOIN kabel k ON k.id = ka.kabel_id AND k.projekt_id = :pid
+        WHERE ka.verbindung_id IS NOT NULL AND ka.verbindung_id > 0
+        ORDER BY ka.kabel_id, ka.ader_nr
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "kabelAderListeMitVerbindung:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap a;
+        a[QStringLiteral("kabelId")]                   = q.value(0).toInt();
+        a[QStringLiteral("aderNr")]                    = q.value(1).toInt();
+        a[QStringLiteral("verbindungId")]              = q.value(2).toInt();
+        a[QStringLiteral("kabellinieGrafikElementId")] = q.value(3).toInt();
+        result.append(a);
+    }
+    return result;
+}
+
+// ============================================================
+// kabelAderEndpunkteBulkSetzen
+// Speichert Von/Nach-Gerät:Pin für eine Liste von kabel_adern.
+// adern: [{kabelId, aderNr, von, nach}]
+// ============================================================
+bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &adern)
+{
+    if (adern.isEmpty()) return true;
+    if (!m_db.transaction()) {
+        qWarning() << "kabelAderEndpunkteBulkSetzen: Transaktion:" << m_db.lastError().text();
+        return false;
+    }
+    QSqlQuery q;
+    q.prepare(R"(
+        UPDATE kabel_ader SET von_gerat_pin = :von, nach_gerat_pin = :nach
+        WHERE kabel_id = :kid AND ader_nr = :nr
+          AND EXISTS (SELECT 1 FROM kabel WHERE id = :kid2 AND projekt_id = :pid)
+    )");
+    for (const QVariant &av : adern) {
+        const QVariantMap a = av.toMap();
+        const QString von  = a.value(QStringLiteral("von")).toString();
+        const QString nach = a.value(QStringLiteral("nach")).toString();
+        q.bindValue(":von",  von.isEmpty()  ? QVariant(QMetaType::fromType<QString>()) : von);
+        q.bindValue(":nach", nach.isEmpty() ? QVariant(QMetaType::fromType<QString>()) : nach);
+        q.bindValue(":kid",  a.value(QStringLiteral("kabelId")).toInt());
+        q.bindValue(":kid2", a.value(QStringLiteral("kabelId")).toInt());
+        q.bindValue(":nr",   a.value(QStringLiteral("aderNr")).toInt());
+        q.bindValue(":pid",  projektId);
+        if (!q.exec()) {
+            qWarning() << "kabelAderEndpunkteBulkSetzen:" << q.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+    }
+    if (!m_db.commit()) {
+        qWarning() << "kabelAderEndpunkteBulkSetzen commit:" << m_db.lastError().text();
+        m_db.rollback();
         return false;
     }
     return true;

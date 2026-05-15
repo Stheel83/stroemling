@@ -90,7 +90,8 @@ Rectangle {
             { id: undefined, code: "potenzial",        name: "Potenzialpunkt",     kategoriePfad: "verbindungen", favorit: false, tooltip: "Hier beginnt es" },
             { id: undefined, code: "unterbrechung",    name: "Unterbrechung (U)",  kategoriePfad: "verbindungen", favorit: false, tooltip: "Sie unterbricht alles, Grafik, Potenzial und deinen Workflow" },
             { id: undefined, code: "querverweis",      name: "Querverweis \u2192", kategoriePfad: "verbindungen", favorit: false, tooltip: "Schafft Verbindung, über Grenzen hinweg" },
-            { id: undefined, code: "aderdefinition",   name: "Aderdefinition",     kategoriePfad: "verbindungen", favorit: false, tooltip: "sagt dir was für ne Ader da ist" }
+            { id: undefined, code: "aderdefinition",        name: "Aderdefinition",        kategoriePfad: "verbindungen", favorit: false, tooltip: "sagt dir was für ne Ader da ist" },
+            { id: undefined, code: "isoliert_gelegte_ader", name: "Isol. gelegte Ader",    kategoriePfad: "verbindungen", favorit: false, tooltip: "Ader ist an einem Ende isoliert abgeschlossen – kein Anschluss auf dieser Seite" }
         ]
         var r = []
         for (var i = 0; i < alleSymbole.length; i++)

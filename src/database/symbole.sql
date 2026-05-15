@@ -41,7 +41,8 @@ INSERT INTO symbol_definition (id, name, kategorie, groesse_raster, rolle, ist_b
 ('taster_no',       'Taster (NO)',              'Kontakte',     1, 'durchleiter', 1),
 ('taster_nc',       'Taster NC',               'Kontakte',     1, 'durchleiter', 1),
 ('not_halt',        'Not-Halt (NC)',            'Kontakte',     1, 'durchleiter', 1),
-('bimetall_nc',     'Bimetall-Kontakt (NC)',    'Schutz',       1, 'durchleiter', 1);
+('bimetall_nc',          'Bimetall-Kontakt (NC)',    'Schutz',       1, 'durchleiter', 1),
+('isoliert_gelegte_ader','Isoliert gelegte Ader',   'Verbindungen', 1, 'durchleiter', 1);
 
 -- ── symbol_pin ───────────────────────────────────────────────
 -- (symbol_id, name, x, y, offen_x, offen_y, signaltyp)
@@ -129,8 +130,10 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('not_halt',        '1',   0,    0.5,  -1,  0, 'neutral'),
 ('not_halt',        '2',   1,    0.5,   1,  0, 'neutral'),
 -- bimetall_nc
-('bimetall_nc',     '1',   0,    0.5,  -1,  0, 'neutral'),
-('bimetall_nc',     '2',   1,    0.5,   1,  0, 'neutral');
+('bimetall_nc',           '1',  0,   0.5,  -1,  0, 'neutral'),
+('bimetall_nc',           '2',  1,   0.5,   1,  0, 'neutral'),
+-- isoliert_gelegte_ader – 1 Pin links; rechte Seite ist isoliertes Leitungsende
+('isoliert_gelegte_ader', '1',  0,   0.5,  -1,  0, 'neutral');
 -- unterbrechung und aderdefinition haben keine Pins
 
 -- ── symbol_primitiv ──────────────────────────────────────────
@@ -359,4 +362,9 @@ VALUES
 ('bimetall_nc', 4, 'linie',  0.38, 0.12, 0.62, 0.12, 0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('bimetall_nc', 5, 'linie',  0.62, 0.12, 0.38, 0.24, 0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('bimetall_nc', 6, 'linie',  0.38, 0.24, 0.62, 0.24, 0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('bimetall_nc', 7, 'linie',  0.5,  0.24, 0.5,  0.38, 0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+('bimetall_nc', 7, 'linie',  0.5,  0.24, 0.5,  0.38, 0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+
+-- ── Isoliert gelegte Ader: Linie + Halbkreis-Kappe rechts ──
+-- Bei 0°: ──( Pin links, offenes Leitungsende rechts
+('isoliert_gelegte_ader', 0, 'linie', 0,    0.5, 0.65, 0.5, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('isoliert_gelegte_ader', 1, 'bogen', 0.65, 0.5, 0,    0,   0, 0, 0.15, 270, 90,  0, NULL, 0.5, 0, 'center', 'middle', 'solid');

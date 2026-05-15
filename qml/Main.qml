@@ -722,6 +722,7 @@ ApplicationWindow {
                 debug:        root.debugModeAktiv
                 projektId:    root.aktivProjektId
                 projektName:  root.aktivProjektName
+                canvas:       root.aktiverCanvas
             }
 
             // Klemmen-Editor Vollbild

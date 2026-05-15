@@ -18,7 +18,7 @@ class Database : public QObject
 public:
     // Aktuelle Schema-Version. Erhöhen wenn sich Tabellenstruktur ändert.
     // Beim Start: stimmt DB-Version nicht überein → alle Tabellen drop + recreate.
-    static const int SCHEMA_VERSION = 36;
+    static const int SCHEMA_VERSION = 37;
 
     explicit Database(QObject *parent = nullptr);
 
@@ -286,6 +286,14 @@ public:
                                             double querschnittMm2,
                                             const QString &vonOrt = QString(),
                                             const QString &nachOrt = QString());
+
+    // Alle kabel_adern eines Projekts mit verbindung_id für Verdrahtungsweg-Berechnung.
+    // Gibt [{kabelId, aderNr, verbindungId, kabellinieGrafikElementId}] zurück.
+    Q_INVOKABLE QVariantList kabelAderListeMitVerbindung(int projektId);
+
+    // Von/Nach-Gerät:Pin-Endpunkte für eine Liste kabel_adern speichern (Bulk-Update).
+    // adern: [{kabelId, aderNr, von, nach}]
+    Q_INVOKABLE bool kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &adern);
 
     // Kabel samt Adern und grafik_element löschen (wird beim Löschen der Kabellinie gerufen).
     Q_INVOKABLE bool kabelLoeschen(int kabelId);

@@ -11,6 +11,7 @@ Item {
     property string projektName: ""
     property var    theme
     property bool   debug:       false
+    property var    canvas:      null
 
     onProjektIdChanged: laden()
     onVisibleChanged:   if (visible && projektId >= 0) laden()
@@ -117,7 +118,10 @@ Item {
                     MouseArea {
                         id: refreshMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.laden()
+                        onClicked: {
+                            if (panel.canvas) panel.canvas.verdrahtungswegeAktualisieren()
+                            panel.laden()
+                        }
                     }
                     ToolTip.visible: refreshMa.containsMouse; ToolTip.text: qsTr("Neu laden"); ToolTip.delay: 400
                 }

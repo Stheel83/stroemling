@@ -3042,6 +3042,249 @@ Item {
         }
     }
 
+    // ── M11: Verdrahtungsweg-Algorithmus (Stufe 2) ──────────────
+    // Berechnet Von/Nach-Gerät:Pin für alle kabel_adern dieses Projekts,
+    // deren Kabellinie auf der aktuellen Seite liegt.
+    // Stufe 2: per-Ader-Traversal mit Treffpunkt-Routing.
+    function verdrahtungswegeAktualisieren() {
+        if (root.projektId < 0 || root.seiteId < 0) return
+        var adern = db.kabelAderListeMitVerbindung(root.projektId)
+        if (!adern || adern.length === 0) return
+
+        var netze = drawCanvas.autoNetzeBerechnen()
+        // verbindungId → net
+        var verbNetMap = {}
+        for (var ni = 0; ni < netze.length; ni++) {
+            var n = netze[ni]
+            if ((n.verbindungId || 0) > 0) verbNetMap[n.verbindungId] = n
+        }
+
+        // grafik_element.id → Elementindex in root.elemente
+        var idxByGeid = {}
+        for (var ei = 0; ei < root.elemente.length; ei++)
+            if (root.elemente[ei].id > 0) idxByGeid[root.elemente[ei].id] = ei
+
+        var ergebnisse = []
+        for (var ai = 0; ai < adern.length; ai++) {
+            var ad = adern[ai]
+            var vId  = ad.verbindungId || 0
+            var geid = ad.kabellinieGrafikElementId || 0
+
+            // Nur Adern, deren Kabellinie auf dieser Seite liegt
+            if (geid <= 0 || idxByGeid[geid] === undefined) continue
+
+            var net = verbNetMap[vId]
+            var res = net ? _endpunkteFuerAder(net, idxByGeid[geid])
+                          : {von: "", nach: ""}
+            ergebnisse.push({kabelId: ad.kabelId, aderNr: ad.aderNr,
+                             von: res.von, nach: res.nach})
+        }
+
+        if (ergebnisse.length > 0)
+            db.kabelAderEndpunkteBulkSetzen(root.projektId, ergebnisse)
+    }
+
+    // Per-Ader-Traversal: Startet am Kreuzungspunkt der Kabellinie mit dem Net
+    // und traversiert in beide Richtungen zum Endpunkt.
+    function _endpunkteFuerAder(net, kabellinieElIdx) {
+        // Adjazenz mit Pin-Positionen aufbauen:
+        // adj[elIdx] = [{neighbor, connPosOnSelf}]
+        // connPosOnSelf = Weltpos. des eigenen Pins, der zu diesem Nachbar führt
+        var adj = {}
+        for (var si = 0; si < net.segmente.length; si++) {
+            var seg = net.segmente[si]
+            if (seg.logisch) continue
+            var a = seg.elIdxA, b = seg.elIdxB
+            if (!adj[a]) adj[a] = []
+            if (!adj[b]) adj[b] = []
+            adj[a].push({neighbor: b, connPosOnSelf: {x: seg.x1, y: seg.y1}})
+            adj[b].push({neighbor: a, connPosOnSelf: {x: seg.x2, y: seg.y2}})
+        }
+
+        // Gekreuztes Segment bestimmen
+        var crossed = _netSegmentKreuzungBerechnen(root.elemente[kabellinieElIdx], net)
+        if (!crossed) {
+            // Kein geometrischer Schnittpunkt – Fallback: einfache Endpunktsuche
+            return _endpunkteFuerNetFallback(net, adj)
+        }
+
+        var von  = _traversiereEndpunkt(crossed.elIdxA, crossed.elIdxB, adj, net, 60)
+        var nach = _traversiereEndpunkt(crossed.elIdxB, crossed.elIdxA, adj, net, 60)
+        return {von: von, nach: nach}
+    }
+
+    // Findet das erste Segment des Nets, das die Kabellinie kreuzt.
+    // Rückgabe: {elIdxA, elIdxB, x1, y1, x2, y2} oder null.
+    function _netSegmentKreuzungBerechnen(kabelEl, net) {
+        if (!kabelEl) return null
+        var kx1 = kabelEl.x1, ky1 = kabelEl.y1
+        var kdx = kabelEl.x2 - kx1, kdy = kabelEl.y2 - ky1
+        if (kdx * kdx + kdy * kdy < 0.25) return null
+
+        for (var si = 0; si < net.segmente.length; si++) {
+            var seg = net.segmente[si]
+            if (seg.logisch) continue
+            var dax = seg.x2 - seg.x1, day = seg.y2 - seg.y1
+            var D = kdx * day - kdy * dax
+            if (Math.abs(D) < 0.001) continue
+            var t = ((seg.x1 - kx1) * day - (seg.y1 - ky1) * dax) / D
+            var s = ((seg.x1 - kx1) * kdy - (seg.y1 - ky1) * kdx) / D
+            if (t >= -0.01 && t <= 1.01 && s >= -0.01 && s <= 1.01)
+                return seg
+        }
+        return null
+    }
+
+    // Fallback: einfache Endpunktsuche wenn kein Schnittpunkt gefunden.
+    function _endpunkteFuerNetFallback(net, adj) {
+        var endpoints = []
+        for (var idxStr in adj) {
+            var el = root.elemente[parseInt(idxStr)]
+            if (!el) continue
+            var sid = el.symbolId || ""
+            if (sid === "geraeteanschluss" || sid === "potenzial" ||
+                sid === "klemme_anschluss" || sid === "isoliert_gelegte_ader")
+                endpoints.push(el)
+        }
+        var hatQv = net.segmente.some(function(s) { return s.logisch })
+        var von  = endpoints.length >= 1 ? _formatEndpunkt(endpoints[0], net) : "⚠ Kein Endpunkt"
+        var nach = endpoints.length >= 2 ? _formatEndpunkt(endpoints[1], net)
+                 : (hatQv ? "→ Querverweis" : "⚠ Kein Endpunkt")
+        return {von: von, nach: nach}
+    }
+
+    // Gerichtete DFS-Traversal: startet bei startElIdx (aus Richtung vonElIdx).
+    // Liefert den formatierten Endpunkt-String.
+    function _traversiereEndpunkt(startElIdx, vonElIdx, adj, net, tiefe) {
+        if (tiefe <= 0) return "⚠ Zyklus"
+        var el = root.elemente[startElIdx]
+        if (!el) return "⚠ Kein Endpunkt"
+        var sid = el.symbolId || ""
+
+        // Endpunkt-Symbole: Traversal hält hier
+        if (sid === "geraeteanschluss" || sid === "potenzial" ||
+            sid === "klemme_anschluss" || sid === "isoliert_gelegte_ader")
+            return _formatEndpunkt(el, net)
+
+        // Querverweis: Traversal hält, Zielseite wird angezeigt
+        if (sid === "querverweis") {
+            for (var qi = 0; qi < root.elemente.length; qi++) {
+                if (root.elemente[qi] === el) {
+                    var partnerInfo = root._querverweisPartnerMap[qi]
+                    return partnerInfo ? ("→ S." + partnerInfo) : "→ Querverweis"
+                }
+            }
+            return "→ Querverweis"
+        }
+
+        // Treffpunkt: Routing-Regeln anwenden
+        if (sid === "treffpunkt" || sid === "treffpunkt_l") {
+            // Welchen Arm hat vonElIdx? → connPosOnSelf in adj[startElIdx] für neighbor=vonElIdx
+            var adjSelf = adj[startElIdx] || []
+            var connPos = null
+            for (var ai = 0; ai < adjSelf.length; ai++) {
+                if (adjSelf[ai].neighbor === vonElIdx) { connPos = adjSelf[ai].connPosOnSelf; break }
+            }
+            var vonArm = connPos ? _treffpunktArmBestimmen(el, connPos) : null
+
+            if (vonArm === "s1" || vonArm === "s2") {
+                // Ankunft von s-Arm → weiter zum ziel-Arm
+                var zielNb = _treffpunktNachbarFuerArm(el, startElIdx, adj, "ziel")
+                if (zielNb !== null)
+                    return _traversiereEndpunkt(zielNb, startElIdx, adj, net, tiefe - 1)
+                return "⚠ Kein Ziel"
+            } else if (vonArm === "ziel") {
+                // Ankunft vom ziel-Arm → alle s-Arme versuchen, ersten Treffer nehmen
+                for (var sArm of ["s1", "s2"]) {
+                    var sNb = _treffpunktNachbarFuerArm(el, startElIdx, adj, sArm)
+                    if (sNb !== null && sNb !== vonElIdx) {
+                        var res = _traversiereEndpunkt(sNb, startElIdx, adj, net, tiefe - 1)
+                        if (res.indexOf("⚠") < 0) return res
+                    }
+                }
+                return "⚠ Treffpunkt (ziel)"
+            }
+            return "⚠ Treffpunkt"
+        }
+
+        // Transparente Elemente (winkel, aderdefinition, …): nächsten Nachbar folgen
+        var nbList = adj[startElIdx] || []
+        for (var ni = 0; ni < nbList.length; ni++) {
+            if (nbList[ni].neighbor !== vonElIdx)
+                return _traversiereEndpunkt(nbList[ni].neighbor, startElIdx, adj, net, tiefe - 1)
+        }
+        return "⚠ Kein Endpunkt"
+    }
+
+    // Bestimmt welcher Arm (s1/s2/ziel) an connPos ankommt.
+    // connPos = Weltpos. des Treffpunkt-Pins der mit dem eingehenden Segment verbunden ist.
+    function _treffpunktArmBestimmen(el, connPos) {
+        var pins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+        var bestArm = null, bestDist = Infinity
+        for (var pi = 0; pi < pins.length; pi++) {
+            var wp = root.pinWeltPos(el, pins[pi].x, pins[pi].y)
+            var dx = wp.x - connPos.x, dy = wp.y - connPos.y
+            var d2 = dx * dx + dy * dy
+            if (d2 < bestDist) { bestDist = d2; bestArm = pins[pi].name }
+        }
+        return bestArm
+    }
+
+    // Gibt den Nachbar-Elementindex zurück, der am Arm armName des Treffpunkts hängt.
+    function _treffpunktNachbarFuerArm(el, trElIdx, adj, armName) {
+        var pins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+        var armPos = null
+        for (var pi = 0; pi < pins.length; pi++) {
+            if (pins[pi].name === armName) { armPos = root.pinWeltPos(el, pins[pi].x, pins[pi].y); break }
+        }
+        if (!armPos) return null
+        var entries = adj[trElIdx] || []
+        for (var ai = 0; ai < entries.length; ai++) {
+            var cp = entries[ai].connPosOnSelf
+            var dx = cp.x - armPos.x, dy = cp.y - armPos.y
+            if (dx * dx + dy * dy < 0.5) return entries[ai].neighbor
+        }
+        return null
+    }
+
+    // Formatiert den Bezeichner eines Endpunkt-Symbols.
+    function _formatEndpunkt(el, net) {
+        var sid = el.symbolId || ""
+        var ed  = el.extraDaten || {}
+
+        if (sid === "geraeteanschluss") {
+            var ank = ed.anschlusskennzeichnung || ""
+            var cx  = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
+            var bestGk = null, bestGkA = Infinity
+            for (var gi = 0; gi < root.elemente.length; gi++) {
+                var gke = root.elemente[gi]
+                if (gke.typ !== "geraetekasten") continue
+                var gkx1 = Math.min(gke.x1, gke.x2), gkx2 = Math.max(gke.x1, gke.x2)
+                var gky1 = Math.min(gke.y1, gke.y2), gky2 = Math.max(gke.y1, gke.y2)
+                if (cx >= gkx1 && cx <= gkx2 && cy >= gky1 && cy <= gky2) {
+                    var gkA = (gkx2 - gkx1) * (gky2 - gky1)
+                    if (gkA < bestGkA) { bestGkA = gkA; bestGk = gke }
+                }
+            }
+            var bmk = bestGk ? ((bestGk.extraDaten || {}).bmk || "") : ""
+            return bmk ? (bmk + ":" + ank) : (ank || "GA")
+        }
+
+        if (sid === "potenzial")
+            return net.bezeichnung || ed.signalname || "Potenzial"
+
+        if (sid === "klemme_anschluss") {
+            var kaAnz = ed.anschlussBezeichnung || ""
+            var kaBmk = ed.bmk || ""
+            return kaBmk ? (kaBmk + ":" + kaAnz) : (kaAnz || "KA")
+        }
+
+        if (sid === "isoliert_gelegte_ader")
+            return "isoliert"
+
+        return sid
+    }
+
     function verbindungAnnotationenNeuLaden() {
         var annListe = db.verbindungAnnotationenLaden(root.seiteId)
         var cache = {}
@@ -4257,6 +4500,7 @@ Item {
             root._grafikLaden = true
             root.elemente = reloadedZ
             root._grafikLaden = false
+            root.verdrahtungswegeAktualisieren()
         }
     }
 

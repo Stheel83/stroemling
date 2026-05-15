@@ -142,8 +142,8 @@ ColumnLayout {
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
                                     Text { width: panel.klAderCols[4].w; text: modelData.netz || "–"; font.pixelSize: 11; color: theme.textSecondary; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { width: panel.klAderCols[5].w; text: "–"; font.pixelSize: 11; color: theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
-                                    Text { width: panel.klAderCols[6].w; text: "–"; font.pixelSize: 11; color: theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { width: panel.klAderCols[5].w; text: modelData.vonGeratPin || "–"; font.pixelSize: 11; color: modelData.vonGeratPin ? theme.textSecondary : theme.textMuted; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
+                                    Text { width: panel.klAderCols[6].w; text: modelData.nachGeratPin || "–"; font.pixelSize: 11; color: modelData.nachGeratPin ? theme.textSecondary : theme.textMuted; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
                                 }
                             }
                         }

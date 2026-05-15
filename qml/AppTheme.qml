@@ -2,7 +2,7 @@ pragma Singleton
 import QtQuick
 import QtCore
 
-QtObject {
+Item {
     id: root
 
     Settings {
@@ -10,7 +10,7 @@ QtObject {
         property string activeName: "dunkel"
     }
 
-    property string activeName: settings.activeName
+    property string activeName: settings.activeName || "dunkel"
 
     function setTheme(name) {
         settings.activeName = name

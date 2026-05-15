@@ -29,6 +29,11 @@ qt_add_executable(stroemling_app
     src/utils/KabelTabellen.h
 )
 
+# Qt 6: pragma Singleton allein reicht nicht – qmldir bekommt "singleton"-Schlüsselwort
+# nur wenn diese Property VOR qt_add_qml_module gesetzt ist.
+set_source_files_properties(qml/AppTheme.qml
+    PROPERTIES QT_QML_SINGLETON_TYPE true)
+
 qt_add_qml_module(stroemling_app
     URI stroemling
     VERSION 1.0

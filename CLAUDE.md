@@ -61,6 +61,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/17_qml_struktur.md` | QML-Dateistruktur & Refaktorierungsplan: Zielstruktur (components/ep/canvas/), Phasenplan, Komponentenschnittstellen |
 | `konzept/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
 | `konzept/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund, offene Lücken (KlemmenVorschau, NavTextField, IbnFeldEditorDialog) |
+| `konzept/20_qml_initialisierung.md` | QML-Initialisierungsreihenfolge: C++-Phase, Singleton, Objektbaum-Aufbau, Component.onCompleted, reaktive Initialisierung durch Nutzer |
 
 ---
 
@@ -144,6 +145,19 @@ ComboBox ein `currentIndex`-Binding hat (reagiert auf externe Property) UND glei
 Index → Handler schreibt `model[0]` zurück → Binding re-evaluiert → … Fix: `onActivated`
 statt `onCurrentIndexChanged` verwenden. `onActivated` feuert **nur** bei echter
 Nutzer-Interaktion, nicht bei programmatischen Index-Änderungen.
+
+**`pragma Singleton` braucht zusätzlich CMakeLists.txt-Eigenschaft:** `pragma Singleton` im
+QML-File allein reicht in Qt 6 nicht. Ohne `set_source_files_properties(Datei.qml PROPERTIES
+QT_QML_SINGLETON_TYPE true)` VOR `qt_add_qml_module` fehlt das `singleton`-Schlüsselwort in der
+generierten `qmldir`-Datei → jeder Importer bekommt eine eigene Instanz → Singleton-Semantik
+komplett kaputt. Symptom: Theme-Wechsel wirkt nur partiell, Farben falsch in manchen Komponenten.
+
+**`QtObject` als Singleton-Basis akzeptiert keine Kind-Objekte:** `QtObject` hat keine
+Default-Property – `Settings { }` oder andere Kind-Deklarationen darin erzeugen beim Start
+„Cannot assign to non-existent default property". Ohne `QT_QML_SINGLETON_TYPE true` wird das
+still ignoriert, mit strenger Singleton-Registrierung bricht es. Fix: `Item` statt `QtObject`
+als Basis verwenden – `Item` hat die nötige Default-Property, der visuelle Overhead ist bei
+einem Singleton vernachlässigbar.
 
 **`import stroemling` in ep/-Dateien:** Dateien in `qml/ep/` sehen mit `import "../components"`
 nur die `qml/components/`-Typen. Typen aus dem `qml/`-Root (z.B. `KlemmenVorschau`,

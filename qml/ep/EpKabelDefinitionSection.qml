@@ -318,12 +318,12 @@ Item {
             enabled: (panel.el && panel.el.extraDaten && (panel.el.extraDaten.kabelId || 0) > 0)
             contentItem: Text {
                 text: parent.text
-                color: parent.enabled ? (theme ? theme.textPrimary : "#c0d8f0") : (theme ? theme.textMuted : "#7090b0")
+                color: parent.enabled ? theme.textPrimary : theme.textMuted
                 font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             }
             background: Rectangle {
-                color: parent.hovered && parent.enabled ? (theme ? theme.hover : "#0f2540") : (theme ? theme.inputBg : "#0f1c2e")
-                radius: 3; border.color: theme ? theme.border : "#2a4060"
+                color: parent.hovered && parent.enabled ? theme.hover : theme.inputBg
+                radius: 3; border.color: theme.border
             }
             onClicked: canvas.aderzuordnungDialogOeffnen(panel.el)
         }
@@ -334,7 +334,7 @@ Item {
             width: parent.width; height: 26
             Rectangle {
                 anchors.fill: parent
-                color: klLinienHover.containsMouse ? (theme ? theme.hover : "#0f2540") : "transparent"
+                color: klLinienHover.containsMouse ? theme.hover : "transparent"
             }
             RowLayout {
                 anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
@@ -342,12 +342,12 @@ Item {
                 Text {
                     text: qsTr("KABEL-LINIEN")
                     font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.5
-                    color: theme ? theme.borderLight : "#6080a0"
+                    color: theme.borderLight
                     Layout.fillWidth: true
                 }
                 Text {
                     text: root._linienExpanded ? "▾" : "▸"
-                    font.pixelSize: 11; color: theme ? theme.borderLight : "#6080a0"
+                    font.pixelSize: 11; color: theme.borderLight
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -379,23 +379,23 @@ Item {
                         anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
                         height: 32; radius: 3
                         color: (root.freshGeid > 0 && modelData.grafikElementId === root.freshGeid)
-                               ? (theme ? theme.activeItemAlt : "#0f2540")
-                               : (theme ? theme.inputBg       : "#0f1c2e")
-                        border.color: theme ? theme.border : "#2a4060"
+                               ? theme.activeItemAlt
+                               : theme.inputBg
+                        border.color: theme.border
                         RowLayout {
                             anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
                             spacing: 6
                             Text {
                                 text: modelData.seiteBezeichnung || ("Seite " + modelData.seiteId)
-                                color: theme ? theme.textSecondary : "#88aacc"
+                                color: theme.textSecondary
                                 font.pixelSize: 10; elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
                             Text {
                                 text: modelData.aderAnzahl + " " + qsTr("Adr.")
                                 color: modelData.aderAnzahl > 0
-                                       ? (theme ? theme.accent   : "#e07000")
-                                       : (theme ? theme.textMuted : "#7090b0")
+                                       ? theme.accent
+                                       : theme.textMuted
                                 font.pixelSize: 10
                             }
                         }
@@ -424,7 +424,7 @@ Item {
                         Text {
                             width: parent.width
                             text: qsTr("Freie Adern (nicht zugeordnet):")
-                            color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10; font.italic: true
+                            color: theme.textMuted; font.pixelSize: 10; font.italic: true
                         }
                         Repeater {
                             model: {
@@ -442,7 +442,7 @@ Item {
                                     if (modelData.bezeichnung) t += "  " + modelData.bezeichnung
                                     return t
                                 }
-                                color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10
+                                color: theme.textMuted; font.pixelSize: 10
                                 elide: Text.ElideRight
                             }
                         }
@@ -457,7 +457,7 @@ Item {
             width: parent.width; height: 26
             Rectangle {
                 anchors.fill: parent
-                color: klAdernHover.containsMouse ? (theme ? theme.hover : "#0f2540") : "transparent"
+                color: klAdernHover.containsMouse ? theme.hover : "transparent"
             }
             RowLayout {
                 anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
@@ -465,12 +465,12 @@ Item {
                 Text {
                     text: qsTr("KABEL-ADERN")
                     font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.5
-                    color: theme ? theme.borderLight : "#6080a0"
+                    color: theme.borderLight
                     Layout.fillWidth: true
                 }
                 Text {
                     text: root._adernExpanded ? "▾" : "▸"
-                    font.pixelSize: 11; color: theme ? theme.borderLight : "#6080a0"
+                    font.pixelSize: 11; color: theme.borderLight
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -494,7 +494,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     topPadding: 4
                     text: qsTr("Dieser Linie zugeordnet:")
-                    color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10; font.italic: true
+                    color: theme.textMuted; font.pixelSize: 10; font.italic: true
                 }
                 Repeater {
                     model: {
@@ -507,8 +507,8 @@ Item {
                         width: parent ? parent.width - 16 : 0
                         anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
                         height: 24; radius: 3
-                        color: theme ? theme.inputBg : "#0f1c2e"
-                        border.color: theme ? theme.border : "#2a4060"
+                        color: theme.inputBg
+                        border.color: theme.border
                         RowLayout {
                             anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
                             spacing: 6
@@ -526,7 +526,7 @@ Item {
                                     if (modelData.bezeichnung) t += "  " + modelData.bezeichnung
                                     return t
                                 }
-                                color: theme ? theme.textSecondary : "#88aacc"
+                                color: theme.textSecondary
                                 font.pixelSize: 10; elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -545,7 +545,7 @@ Item {
                         return db.kabelAderFuerLinieLaden(geid + (panel._refresh * 0)).length === 0
                     }
                     text: qsTr("Keine Adern zugeordnet.")
-                    color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10; font.italic: true
+                    color: theme.textMuted; font.pixelSize: 10; font.italic: true
                 }
                 Item { height: 8 }
             }

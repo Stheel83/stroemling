@@ -27,6 +27,8 @@ qt_add_executable(stroemling_app
     src/models/KabelRechnerModel.cpp
     src/models/KabelRechnerModel.h
     src/utils/KabelTabellen.h
+    src/canvas/ElementeModel.cpp
+    src/canvas/ElementeModel.h
 )
 
 # Qt 6: pragma Singleton allein reicht nicht – qmldir bekommt "singleton"-Schlüsselwort

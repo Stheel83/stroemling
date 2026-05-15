@@ -753,8 +753,8 @@ Item {
         property int gewaehltId: 0
 
         background: Rectangle {
-            color:  theme ? theme.sidebar : "#1a2332"
-            border.color: theme ? theme.border : "#2a4060"
+            color:  theme.sidebar
+            border.color: theme.border
             border.width: 1; radius: 6
         }
 
@@ -763,7 +763,7 @@ Item {
             Text {
                 anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
                 text: qsTr("Geräteverknüpfung")
-                color: theme ? theme.accent : "#e07000"
+                color: theme.accent
                 font.pixelSize: 13; font.weight: Font.Medium
             }
         }
@@ -804,7 +804,7 @@ Item {
 
             Text {
                 text: qsTr("Vorhandenes Betriebsmittel wählen:")
-                color: theme ? theme.textBright : "#c0d8f0"; font.pixelSize: 11
+                color: theme.textBright; font.pixelSize: 11
             }
 
             ListView {
@@ -819,16 +819,16 @@ Item {
                 delegate: Rectangle {
                     width: bmListe.width; height: 28; radius: 3
                     color: dlgVerknuepfen.gewaehltId === modelData.id
-                           ? (theme ? theme.activeItemAlt : "#1e3a5a")
-                           : (bmDelegMa.containsMouse ? (theme ? theme.hover : "#1a2a3a") : "transparent")
+                           ? theme.activeItemAlt
+                           : (bmDelegMa.containsMouse ? theme.hover : "transparent")
                     border.color: dlgVerknuepfen.gewaehltId === modelData.id
-                                  ? (theme ? theme.accent : "#4a9eff") : "transparent"
+                                  ? theme.accent : "transparent"
                     Row {
                         anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                         spacing: 8
-                        Text { text: modelData.kz; font.pixelSize: 12; color: theme ? theme.accent : "#4a9eff"; width: 80; elide: Text.ElideRight }
-                        Text { text: modelData.bezeichnung || ""; font.pixelSize: 11; color: theme ? theme.textMuted : "#7090b0" }
-                        Text { text: modelData.anzahl > 0 ? "(" + modelData.anzahl + ")" : ""; font.pixelSize: 10; color: theme ? theme.borderLight : "#506070" }
+                        Text { text: modelData.kz; font.pixelSize: 12; color: theme.accent; width: 80; elide: Text.ElideRight }
+                        Text { text: modelData.bezeichnung || ""; font.pixelSize: 11; color: theme.textMuted }
+                        Text { text: modelData.anzahl > 0 ? "(" + modelData.anzahl + ")" : ""; font.pixelSize: 10; color: theme.borderLight }
                     }
                     MouseArea {
                         id: bmDelegMa; anchors.fill: parent; hoverEnabled: true
@@ -838,11 +838,11 @@ Item {
                 }
             }
 
-            Rectangle { height: 1; Layout.fillWidth: true; color: theme ? theme.border : "#2a4060" }
+            Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
             Text {
                 text: qsTr("… oder neues Betriebsmittel anlegen:")
-                color: theme ? theme.textBright : "#c0d8f0"; font.pixelSize: 11
+                color: theme.textBright; font.pixelSize: 11
             }
 
             RowLayout {
@@ -851,23 +851,23 @@ Item {
                     id: neuKzField
                     placeholderText: qsTr("BMK z.B. -K1")
                     Layout.preferredWidth: 100
-                    background: Rectangle { color: theme ? theme.inputBg : "#0d1a28"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
-                    color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 11
+                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
+                    color: theme.textPrimary; font.pixelSize: 11
                     onTextChanged: if (text.trim() !== "") dlgVerknuepfen.gewaehltId = 0
                 }
                 TextField {
                     id: neuBezField
                     placeholderText: qsTr("Bezeichnung (optional)")
                     Layout.fillWidth: true
-                    background: Rectangle { color: theme ? theme.inputBg : "#0d1a28"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
-                    color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 11
+                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
+                    color: theme.textPrimary; font.pixelSize: 11
                 }
             }
 
             Text {
                 visible: dlgVerknuepfen.gewaehltId > 0
                 text: qsTr("Das BMK wird vom gewählten Betriebsmittel übernommen.")
-                color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10; font.italic: true
+                color: theme.textMuted; font.pixelSize: 10; font.italic: true
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }

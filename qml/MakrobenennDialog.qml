@@ -17,7 +17,7 @@ Dialog {
     width: 360
     padding: 20
 
-    property var    theme
+    required property var theme
     property bool   _debugLokal: false
 
     // Ausgabe – gelesen von Canvas nach accepted
@@ -28,9 +28,9 @@ Dialog {
     title: qsTr("Makro benennen")
 
     onOpened: {
-        tfName.text        = ""
+        tfName.text         = ""
         tfBeschreibung.text = ""
-        tfKategorie.text   = ""
+        tfKategorie.text    = ""
         tfName.forceActiveFocus()
     }
     onClosed: root._debugLokal = false
@@ -41,8 +41,8 @@ Dialog {
     }
 
     background: Rectangle {
-        color: root.theme ? root.theme.sidebar : "#1a2332"
-        border.color: root.theme ? root.theme.border : "#2a4060"
+        color: root.theme.sidebar
+        border.color: root.theme.border
         border.width: 1; radius: 6
     }
 
@@ -51,70 +51,70 @@ Dialog {
 
         Text {
             text: root.title
-            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+            color: root.theme.textPrimary
             font.pixelSize: 14; font.weight: Font.Medium
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme ? root.theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
         Text {
             text: qsTr("Name *")
-            color: root.theme ? root.theme.textMuted : "#7090b0"
+            color: root.theme.textMuted
             font.pixelSize: 11
         }
         TextField {
             id: tfName
             Layout.fillWidth: true
             placeholderText: qsTr("z. B. Motorantrieb")
-            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+            color: root.theme.textPrimary
             font.pixelSize: 13
             background: Rectangle {
-                color: root.theme ? root.theme.inputBg : "#0f1c2e"
+                color: root.theme.inputBg
                 radius: 4
-                border.color: root.theme ? root.theme.border : "#2a4060"
+                border.color: root.theme.border
             }
             Keys.onReturnPressed: tfBeschreibung.forceActiveFocus()
         }
 
         Text {
             text: qsTr("Beschreibung")
-            color: root.theme ? root.theme.textMuted : "#7090b0"
+            color: root.theme.textMuted
             font.pixelSize: 11
         }
         TextField {
             id: tfBeschreibung
             Layout.fillWidth: true
             placeholderText: qsTr("optional")
-            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+            color: root.theme.textPrimary
             font.pixelSize: 13
             background: Rectangle {
-                color: root.theme ? root.theme.inputBg : "#0f1c2e"
+                color: root.theme.inputBg
                 radius: 4
-                border.color: root.theme ? root.theme.border : "#2a4060"
+                border.color: root.theme.border
             }
             Keys.onReturnPressed: tfKategorie.forceActiveFocus()
         }
 
         Text {
             text: qsTr("Kategorie")
-            color: root.theme ? root.theme.textMuted : "#7090b0"
+            color: root.theme.textMuted
             font.pixelSize: 11
         }
         TextField {
             id: tfKategorie
             Layout.fillWidth: true
             placeholderText: qsTr("z. B. Antriebe")
-            color: root.theme ? root.theme.textPrimary : "#c0d8f0"
+            color: root.theme.textPrimary
             font.pixelSize: 13
             background: Rectangle {
-                color: root.theme ? root.theme.inputBg : "#0f1c2e"
+                color: root.theme.inputBg
                 radius: 4
-                border.color: root.theme ? root.theme.border : "#2a4060"
+                border.color: root.theme.border
             }
             Keys.onReturnPressed: btnSpeichern.clicked()
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme ? root.theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
         RowLayout {
             Layout.fillWidth: true
@@ -126,16 +126,15 @@ Dialog {
                 implicitHeight: 32
                 contentItem: Text {
                     text: parent.text
-                    color: root.theme ? root.theme.textSecondary : "#7090b0"
+                    color: root.theme.textSecondary
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment:   Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.hovered ? (root.theme ? root.theme.hover : "#0f2540")
-                                          : (root.theme ? root.theme.inputBg : "#0f1c2e")
+                    color: parent.hovered ? root.theme.hover : root.theme.inputBg
                     radius: 4
-                    border.color: root.theme ? root.theme.border : "#2a4060"
+                    border.color: root.theme.border
                 }
                 onClicked: root.reject()
             }
@@ -148,22 +147,17 @@ Dialog {
                 enabled: tfName.text.trim().length > 0
                 contentItem: Text {
                     text: parent.text
-                    color: parent.enabled
-                           ? (root.theme ? root.theme.textPrimary : "#c0d8f0")
-                           : (root.theme ? root.theme.textMuted   : "#506070")
+                    color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment:   Text.AlignVCenter
                 }
                 background: Rectangle {
                     color: parent.enabled
-                           ? (parent.hovered ? (root.theme ? root.theme.accent : "#2a7acc")
-                                             : (root.theme ? root.theme.inputBg : "#0f1c2e"))
-                           : (root.theme ? root.theme.inputBg : "#0f1c2e")
+                           ? (parent.hovered ? root.theme.accent : root.theme.inputBg)
+                           : root.theme.inputBg
                     radius: 4
-                    border.color: parent.enabled
-                                  ? (root.theme ? root.theme.accent : "#4a9eff")
-                                  : (root.theme ? root.theme.border : "#2a4060")
+                    border.color: parent.enabled ? root.theme.accent : root.theme.border
                 }
                 onClicked: {
                     root.name         = tfName.text.trim()

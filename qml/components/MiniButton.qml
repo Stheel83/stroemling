@@ -15,15 +15,15 @@ Rectangle {
     signal klick()
 
     width: breite; height: hoehe; radius: 4
-    color:        theme ? (aktiv ? theme.activeItemAlt : (mbMaus.containsMouse ? theme.hover : theme.inputBg)) : "transparent"
-    border.color: theme ? (aktiv ? theme.accent : theme.border) : "transparent"
+    color:        aktiv ? theme.activeItemAlt : (mbMaus.containsMouse ? theme.hover : theme.inputBg)
+    border.color: aktiv ? theme.accent : theme.border
 
     Text {
         anchors.centerIn: parent
         text:           mbRoot.label
         font.pixelSize: 10
         font.family:    mbRoot.mono ? "monospace" : ""
-        color:          theme ? (mbRoot.aktiv ? theme.accent : theme.textMuted) : "transparent"
+        color:          mbRoot.aktiv ? theme.accent : theme.textMuted
     }
     MouseArea {
         id: mbMaus; anchors.fill: parent; hoverEnabled: true

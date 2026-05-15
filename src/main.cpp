@@ -23,6 +23,7 @@
 #include "models/KabelModel.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/KabelRechnerModel.h"
+#include "canvas/ElementeModel.h"
 
 // ── Log-Handler ───────────────────────────────────────────────
 static QFile    s_logFile;
@@ -131,6 +132,7 @@ int main(int argc, char *argv[])
     SymbolDefinitionModel       symbolDefinitionModel;
     KabelRechnerModel           kabelRechnerModel;
     AppHelper                   appHelper;
+    ElementeModel               elementeModel;
 
     // QML Engine starten
     QQmlApplicationEngine engine;
@@ -149,6 +151,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("symbolDefinitionModel", &symbolDefinitionModel);
     engine.rootContext()->setContextProperty("kabelRechnerModel",    &kabelRechnerModel);
     engine.rootContext()->setContextProperty("appHelper",            &appHelper);
+    engine.rootContext()->setContextProperty("elementeModel",        &elementeModel);
 
     // Hauptfenster laden
     engine.loadFromModule("stroemling", "Main");

@@ -17,7 +17,7 @@ Dialog {
     width: 380
     padding: 20
 
-    property var    theme
+    required property var theme
     property bool   debug:      false
     property bool   _debugLokal: false
     property int    projektId:  -1
@@ -45,8 +45,8 @@ Dialog {
     title: qsTr("Kabeldefinitionslinie – Kabeldaten")
 
     background: Rectangle {
-        color: theme ? theme.sidebar : "#1a2332"
-        border.color: theme ? theme.border : "#2a4060"
+        color:        theme.sidebar
+        border.color: theme.border
         border.width: 1; radius: 6
     }
 
@@ -55,11 +55,11 @@ Dialog {
 
         Text {
             text: root.title
-            color: theme ? theme.textPrimary : "#c0d8f0"
+            color: theme.textPrimary
             font.pixelSize: 14; font.weight: Font.Medium
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme ? theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // Bestehende Kabel – nur anzeigen wenn mindestens ein Kabel existiert
         Item {
@@ -69,7 +69,7 @@ Dialog {
             ColumnLayout {
                 id: vorhandeneKabelCol
                 width: parent.width; spacing: 4
-                Text { text: qsTr("Bestehendes Kabel zuordnen"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+                Text { text: qsTr("Bestehendes Kabel zuordnen"); color: theme.textMuted; font.pixelSize: 11 }
                 ComboBox {
                     id: kabelAuswahlCombo
                     Layout.fillWidth: true
@@ -94,12 +94,12 @@ Dialog {
                     }
                     contentItem: Text {
                         text: kabelAuswahlCombo.displayText
-                        color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 12
+                        color: theme.textPrimary; font.pixelSize: 12
                         verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight
                     }
                     background: Rectangle {
-                        color: theme ? theme.inputBg : "#0f1c2e"; radius: 4
-                        border.color: theme ? theme.border : "#2a4060"
+                        color: theme.inputBg; radius: 4
+                        border.color: theme.border
                     }
                 }
             }
@@ -108,23 +108,22 @@ Dialog {
         // Bezeichnung / BMK
         RowLayout {
             Layout.fillWidth: true; spacing: 0
-            Text { text: qsTr("Bezeichnung (BMK)"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11; Layout.fillWidth: true }
+            Text { text: qsTr("Bezeichnung (BMK)"); color: theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
             Text {
                 visible: root._kabelAuswahl > 0
                 text: qsTr("✓ Bestehendes Kabel erkannt")
-                color: theme ? theme.accent : "#e07000"; font.pixelSize: 10
+                color: theme.accent; font.pixelSize: 10
             }
         }
         TextField {
             id: tfBezeichnung
             Layout.fillWidth: true
             placeholderText: qsTr("z. B. -W1")
-            color: theme ? theme.textPrimary : "#c0d8f0"
+            color: theme.textPrimary
             font.pixelSize: 13
             background: Rectangle {
-                color:        theme ? theme.inputBg : "#0f1c2e"; radius: 4
-                border.color: root._kabelAuswahl > 0 ? (theme ? theme.accent : "#e07000")
-                                                     : (theme ? theme.border : "#2a4060")
+                color:        theme.inputBg; radius: 4
+                border.color: root._kabelAuswahl > 0 ? theme.accent : theme.border
                 border.width: root._kabelAuswahl > 0 ? 2 : 1
             }
             Keys.onReturnPressed: tfKabeltyp.forceActiveFocus()
@@ -154,27 +153,27 @@ Dialog {
                 id: lblBauteilKabel
                 Layout.fillWidth: true
                 text: root.bauteilKabelId > 0 ? qsTr("Bauteil-Kabel verknüpft") : qsTr("Kein Bauteil-Kabel")
-                color: root.bauteilKabelId > 0 ? (theme ? theme.accent : "#4a9eff") : (theme ? theme.textMuted : "#7090b0")
+                color: root.bauteilKabelId > 0 ? theme.accent : theme.textMuted
                 font.pixelSize: 11; font.italic: root.bauteilKabelId <= 0
             }
             Button {
                 text: qsTr("Aus Bibliothek …"); flat: true; implicitHeight: 26
-                contentItem: Text { text: parent.text; color: theme ? theme.textPrimary : "#c0d8f0";
+                contentItem: Text { text: parent.text; color: theme.textPrimary
                                     font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? (theme ? theme.hover : "#0f2540") : (theme ? theme.inputBg : "#0f1c2e"); radius: 4; border.color: theme ? theme.border : "#2a4060" }
+                background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                 onClicked: { kabelPicker.kabelListe = db.bauteilKabelListe(); kabelPicker.open() }
             }
         }
 
         // Kabeltyp
-        Text { text: qsTr("Kabeltyp"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+        Text { text: qsTr("Kabeltyp"); color: theme.textMuted; font.pixelSize: 11 }
         TextField {
             id: tfKabeltyp
             Layout.fillWidth: true
             placeholderText: qsTr("z. B. NYM-J 3x1,5")
-            color: theme ? theme.textPrimary : "#c0d8f0"
+            color: theme.textPrimary
             font.pixelSize: 13
-            background: Rectangle { color: theme ? theme.inputBg : "#0f1c2e"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
+            background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
             Keys.onReturnPressed: tfAderzahl.forceActiveFocus()
         }
 
@@ -183,32 +182,32 @@ Dialog {
 
             ColumnLayout {
                 spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Aderzahl"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+                Text { text: qsTr("Aderzahl"); color: theme.textMuted; font.pixelSize: 11 }
                 TextField {
                     id: tfAderzahl
                     Layout.fillWidth: true
                     placeholderText: "0"
                     inputMethodHints: Qt.ImhDigitsOnly
                     validator: IntValidator { bottom: 0; top: 999 }
-                    color: theme ? theme.textPrimary : "#c0d8f0"
+                    color: theme.textPrimary
                     font.pixelSize: 13
-                    background: Rectangle { color: theme ? theme.inputBg : "#0f1c2e"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
+                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
                     Keys.onReturnPressed: tfQuerschnitt.forceActiveFocus()
                 }
             }
 
             ColumnLayout {
                 spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Querschnitt (mm²)"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+                Text { text: qsTr("Querschnitt (mm²)"); color: theme.textMuted; font.pixelSize: 11 }
                 TextField {
                     id: tfQuerschnitt
                     Layout.fillWidth: true
                     placeholderText: "0.0"
                     inputMethodHints: Qt.ImhFormattedNumbersOnly
                     validator: DoubleValidator { bottom: 0.0; decimals: 2 }
-                    color: theme ? theme.textPrimary : "#c0d8f0"
+                    color: theme.textPrimary
                     font.pixelSize: 13
-                    background: Rectangle { color: theme ? theme.inputBg : "#0f1c2e"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
+                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
                 }
             }
         }
@@ -218,47 +217,47 @@ Dialog {
             Layout.fillWidth: true; spacing: 12
             ColumnLayout {
                 spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Von (Ort / Gerät)"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+                Text { text: qsTr("Von (Ort / Gerät)"); color: theme.textMuted; font.pixelSize: 11 }
                 TextField {
                     id: tfVonOrt
                     Layout.fillWidth: true
                     placeholderText: qsTr("z. B. Schrank A")
-                    color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 13
-                    background: Rectangle { color: theme ? theme.inputBg : "#0f1c2e"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
+                    color: theme.textPrimary; font.pixelSize: 13
+                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
                 }
             }
             ColumnLayout {
                 spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Nach (Ort / Gerät)"); color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11 }
+                Text { text: qsTr("Nach (Ort / Gerät)"); color: theme.textMuted; font.pixelSize: 11 }
                 TextField {
                     id: tfNachOrt
                     Layout.fillWidth: true
                     placeholderText: qsTr("z. B. Motor M1")
-                    color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 13
-                    background: Rectangle { color: theme ? theme.inputBg : "#0f1c2e"; radius: 4; border.color: theme ? theme.border : "#2a4060" }
+                    color: theme.textPrimary; font.pixelSize: 13
+                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
                 }
             }
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme ? theme.border : "#2a4060"; Layout.topMargin: 4 }
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
 
         RowLayout {
             Layout.fillWidth: true; spacing: 8
             Item { Layout.fillWidth: true }
             Button {
                 text: qsTr("Abbrechen"); flat: true; implicitHeight: 32
-                contentItem: Text { text: parent.text; color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 13;
+                contentItem: Text { text: parent.text; color: theme.textMuted; font.pixelSize: 13
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? (theme ? theme.hover : "#0f2540") : "transparent"; radius: 4 }
+                background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
                 onClicked: root.reject()
             }
             Button {
                 text: qsTr("Übernehmen"); implicitWidth: 110; implicitHeight: 32
                 enabled: tfBezeichnung.text.trim() !== ""
-                contentItem: Text { text: parent.text; color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 13;
+                contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 background: Rectangle {
-                    color: parent.enabled ? (theme ? theme.activeItem : "#1a3a6a") : (theme ? theme.btnDisabled : "#1a2030")
+                    color: parent.enabled ? theme.activeItem : theme.btnDisabled
                     radius: 4
                 }
                 onClicked: {
@@ -299,8 +298,8 @@ Dialog {
                 var liste = kabelPicker.kabelListe
                 for (var i = 0; i < liste.length; i++) {
                     if (liste[i].id === kabelPicker.ausgewaehltId) {
-                        if (liste[i].kabeltyp)       tfKabeltyp.text    = liste[i].kabeltyp
-                        if (liste[i].aderzahl > 0)   tfAderzahl.text    = liste[i].aderzahl.toString()
+                        if (liste[i].kabeltyp)           tfKabeltyp.text    = liste[i].kabeltyp
+                        if (liste[i].aderzahl > 0)       tfAderzahl.text    = liste[i].aderzahl.toString()
                         if (liste[i].querschnittMm2 > 0) tfQuerschnitt.text = liste[i].querschnittMm2.toString()
                         break
                     }

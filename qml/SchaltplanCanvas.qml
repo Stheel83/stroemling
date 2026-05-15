@@ -97,9 +97,7 @@ Item {
     // { typ, x1, y1, x2, y2, strichFarbe, strichBreite, strichArt,
     //   fuell, fuellFarbe, fuellOpazitaet, opazitaet, eckenRadius }
     property var elemente: []
-
-    property var undoStack: []
-    property var redoStack: []
+    onElementeChanged: if (!root._grafikLaden) elementeModel.fromVariantList(root.elemente)
 
     // Auswahl & Verschieben (Zeiger-Werkzeug)
     property var  auswahl:             []     // Indizes aller selektierten Elemente
@@ -259,6 +257,11 @@ Item {
 
         // Wenn ein Bild asynchron fertig geladen ist → neu zeichnen
         onImageLoaded: drawCanvas.requestPaint()
+
+        Connections {
+            target: elementeModel
+            function onGeaendert() { drawCanvas.requestPaint() }
+        }
 
         // Normgerechte Textrotation: Text darf nie kopfstehen (max. 90°).
         // Gibt den Canvas-Winkel in Radiant zurück:
@@ -2109,8 +2112,9 @@ Item {
             var ctx = getContext("2d")
             ctx.clearRect(0,0,width,height)
             drawCanvas.drawNormblatt(ctx)
-            for (var i=0; i<root.elemente.length; i++)
-                drawCanvas.maleElement(ctx, root.elemente[i], i)
+            var elemente = elementeModel.snapshot()
+            for (var i=0; i<elemente.length; i++)
+                drawCanvas.maleElement(ctx, elemente[i], i)
             if (root.vorschau !== null)
                 drawCanvas.maleElement(ctx, root.vorschau, -1)
             // Polygonlinie Live-Vorschau (bereits gezeichnete Segmente + offenes Segment zum Cursor)
@@ -2147,9 +2151,9 @@ Item {
             drawCanvas.maleAutoVerbindungen(ctx)
             // Schnittpunkte aller Kabellinien mit Auto-Verbindungen (Phase 5)
             var kabelNetze = drawCanvas.autoNetzeBerechnen()
-            for (var kli = 0; kli < root.elemente.length; kli++) {
-                if (root.elemente[kli].typ === "kabellinie")
-                    drawCanvas.maleKabelSchnitte(ctx, root.elemente[kli], kabelNetze)
+            for (var kli = 0; kli < elemente.length; kli++) {
+                if (elemente[kli].typ === "kabellinie")
+                    drawCanvas.maleKabelSchnitte(ctx, elemente[kli], kabelNetze)
             }
             // Rubber-Band Auswahlrahmen
             if (root.amRubberband && root.rubberbandRect) {
@@ -2621,7 +2625,8 @@ Item {
                 var wMk = toWelt(mouse.x, mouse.y)
                 var newElIds = db.makroElementeEinfuegen(root.makroEinfuegenId, root.seiteId, wMk.x, wMk.y)
                 if (newElIds.length > 0) {
-                    var reloaded = db.grafikLaden(root.seiteId)
+                    elementeModel.laden(root.seiteId)
+                    var reloaded = elementeModel.snapshot()
                     root._grafikLaden = true
                     root.elemente = reloaded
                     root._grafikLaden = false
@@ -2691,8 +2696,7 @@ Item {
 
                 // Griff losgelassen → Undo-Schritt speichern
                 if (root.aktiverGriff >= 0) {
-                    root.undoStack    = root.undoStack.concat([root.schnapshotVorMove])
-                    root.redoStack    = []
+                    elementeModel.undoCheckpointFromSnapshot(root.schnapshotVorMove)
                     root.aktiverGriff = -1
                     if (root.ausgewaehlt >= 0 && root.ausgewaehlt < root.elemente.length) {
                         var rEl = root.elemente[root.ausgewaehlt]
@@ -2709,8 +2713,7 @@ Item {
                     return
                 }
                 if (root.amVerschieben) {
-                    root.undoStack     = root.undoStack.concat([root.schnapshotVorMove])
-                    root.redoStack     = []
+                    elementeModel.undoCheckpointFromSnapshot(root.schnapshotVorMove)
                     root.amVerschieben = false
                     root.grafikSpeichernJetzt()
                 }
@@ -3427,7 +3430,8 @@ Item {
 
         // Elemente neu laden damit el.id aktuelle grafik_element_id enthält
         var savedAuswahl = root.auswahl.slice()
-        var reloaded = db.grafikLaden(root.seiteId)
+        elementeModel.laden(root.seiteId)
+        var reloaded = elementeModel.snapshot()
         root._grafikLaden = true
         root.elemente = reloaded
         root.auswahl  = savedAuswahl
@@ -3458,8 +3462,7 @@ Item {
     }
 
     function aktionAusfuehren(neueElemente) {
-        root.undoStack = root.undoStack.concat([root.elemente.slice()])
-        root.redoStack = []
+        elementeModel.undoCheckpoint()
         root.elemente  = neueElemente
         root.auswahl   = []
         root.grafikSpeichernJetzt()
@@ -3467,34 +3470,38 @@ Item {
 
     function eigenschaftAktualisieren(key, value) {
         if (root.auswahl.length === 0) return
-        var selSet = {}
-        root.auswahl.forEach(function(i) { selSet[i] = true })
-        var neu = root.elemente.map(function(el, i) {
-            if (!selSet[i]) return el
-            var upd = {}; for (var k in el) upd[k] = el[k]
-            upd[key] = value
-            // Winkel: bei Rotationsänderung Bbox verschieben damit die grafische Ecke
-            // (lokale Position 0,h → Offset -w/2,+h/2 vom Zentrum) ortsfest bleibt
+        var selSnapshot = root.auswahl.slice()
+        elementeModel.undoCheckpoint()
+
+        root.auswahl.forEach(function(i) {
+            var el = root.elemente[i]
+            // Winkel: bei Rotationsänderung Bbox verschieben damit die grafische Ecke ortsfest bleibt
             if (key === "rotation" && el.symbolId === "winkel") {
-                var g   = root.gridPx
-                var cxEl = (el.x1 + el.x2) / 2
-                var cyEl = (el.y1 + el.y2) / 2
-                var cox = -g / 2, coy = g / 2
-                var oldRad = (el.rotation || 0) * Math.PI / 180
+                var g    = root.gridPx
+                var cxEl = (el.x1 + el.x2) / 2, cyEl = (el.y1 + el.y2) / 2
+                var cox  = -g / 2, coy = g / 2
+                var oldRad   = (el.rotation || 0) * Math.PI / 180
                 var cornerWx = cxEl + cox * Math.cos(oldRad) - coy * Math.sin(oldRad)
                 var cornerWy = cyEl + cox * Math.sin(oldRad) + coy * Math.cos(oldRad)
                 var newRad   = value * Math.PI / 180
-                var newCx = cornerWx - (cox * Math.cos(newRad) - coy * Math.sin(newRad))
-                var newCy = cornerWy - (cox * Math.sin(newRad) + coy * Math.cos(newRad))
-                upd.x1 = newCx - g / 2; upd.y1 = newCy - g / 2
-                upd.x2 = newCx + g / 2; upd.y2 = newCy + g / 2
+                var newCx    = cornerWx - (cox * Math.cos(newRad) - coy * Math.sin(newRad))
+                var newCy    = cornerWy - (cox * Math.sin(newRad) + coy * Math.cos(newRad))
+                elementeModel.elementAktualisieren(i, {
+                    rotation: value,
+                    x1: newCx - g / 2, y1: newCy - g / 2,
+                    x2: newCx + g / 2, y2: newCy + g / 2
+                })
+            } else {
+                elementeModel.eigenschaftSetzen(i, key, value)
             }
-            return upd
         })
-        var selSnapshot = root.auswahl.slice()
-        root.undoStack = root.undoStack.concat([root.elemente.slice()])
-        root.redoStack = []; root.elemente = neu; root.auswahl = selSnapshot
+
+        root._grafikLaden = true
+        root.elemente = elementeModel.snapshot()
+        root._grafikLaden = false
+        root.auswahl = selSnapshot
         root.grafikSpeichernJetzt()
+
         // Stilvorlagen nur bei Einzelauswahl übernehmen
         if (root.auswahl.length === 1) {
             var stilKeys = ["strichFarbe","strichBreite","strichArt","fuell",
@@ -3617,8 +3624,8 @@ Item {
         })
 
         var selSnapshot = root.auswahl.slice()
-        root.undoStack = root.undoStack.concat([root.elemente.slice()])
-        root.redoStack = []; root.elemente = neu; root.auswahl = selSnapshot
+        elementeModel.undoCheckpoint()
+        root.elemente = neu; root.auswahl = selSnapshot
         root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
     }
@@ -3626,13 +3633,12 @@ Item {
     function eigenschaftenSetzen(updates) {
         if (root.ausgewaehlt < 0) return
         var oldIdx = root.ausgewaehlt
-        var neu = root.elemente.map(function(el, i) {
-            if (i !== oldIdx) return el
-            var upd = {}; for (var k in el) upd[k] = el[k]
-            for (var uk in updates) upd[uk] = updates[uk]; return upd
-        })
-        root.undoStack = root.undoStack.concat([root.elemente.slice()])
-        root.redoStack = []; root.elemente = neu; root.auswahl = [oldIdx]
+        elementeModel.undoCheckpoint()
+        elementeModel.elementAktualisieren(oldIdx, updates)
+        root._grafikLaden = true
+        root.elemente = elementeModel.snapshot()
+        root._grafikLaden = false
+        root.auswahl = [oldIdx]
         root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
     }
@@ -3646,26 +3652,30 @@ Item {
         else if (richtung==="ganzVorne")             { neu.splice(idx,1); neu.push(el);           newIdx=n-1   }
         else if (richtung==="ganzHinten")            { neu.splice(idx,1); neu.unshift(el);        newIdx=0     }
         else return
-        root.undoStack=root.undoStack.concat([root.elemente.slice()])
-        root.redoStack=[]; root.elemente=neu; root.auswahl=[newIdx]
+        elementeModel.undoCheckpoint()
+        root.elemente=neu; root.auswahl=[newIdx]
         root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
     }
 
     function undo() {
-        if (!root.undoStack.length) return
-        var stack=root.undoStack.slice(), vorher=stack.pop()
-        root.redoStack=root.redoStack.concat([root.elemente.slice()])
-        root.undoStack=stack; root.elemente=vorher; root.auswahl=[]
+        if (!elementeModel.undoMoeglich) return
+        elementeModel.undo()
+        root._grafikLaden = true
+        root.elemente = elementeModel.snapshot()
+        root._grafikLaden = false
+        root.auswahl = []
         root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
     }
 
     function redo() {
-        if (!root.redoStack.length) return
-        var stack=root.redoStack.slice(), nachher=stack.pop()
-        root.undoStack=root.undoStack.concat([root.elemente.slice()])
-        root.redoStack=stack; root.elemente=nachher; root.auswahl=[]
+        if (!elementeModel.redoMoeglich) return
+        elementeModel.redo()
+        root._grafikLaden = true
+        root.elemente = elementeModel.snapshot()
+        root._grafikLaden = false
+        root.auswahl = []
         root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
     }
@@ -3689,8 +3699,8 @@ Item {
         var sorted = root.auswahl.slice().sort(function(a, b) { return b - a })
         var neu = root.elemente.slice()
         for (var i = 0; i < sorted.length; i++) neu.splice(sorted[i], 1)
-        root.undoStack = root.undoStack.concat([root.elemente.slice()])
-        root.redoStack = []; root.elemente = neu; root.auswahl = []
+        elementeModel.undoCheckpoint()
+        root.elemente = neu; root.auswahl = []
         root.grafikSpeichernJetzt()
         root.kabelLinienCacheAktualisieren()
         drawCanvas.requestPaint()
@@ -3861,8 +3871,7 @@ Item {
             var upd = {}; for (var k in el) upd[k] = el[k]
             upd.textInhalt = inhalt
             // Snapshot als Undo-Eintrag (nicht den live-modifizierten Zustand)
-            root.undoStack = root.undoStack.concat([root.textEditSnapshot])
-            root.redoStack = []
+            elementeModel.undoCheckpointFromSnapshot(root.textEditSnapshot)
             root.elemente  = root.elemente.map(function(e, i) { return i === idx ? upd : e })
             root.auswahl   = [idx]
             root.grafikSpeichernJetzt()
@@ -3889,8 +3898,7 @@ Item {
                 eckenRadius:     0
             }
             // Snapshot als Undo-Basis (statt aktionAusfuehren, das den aktuellen Stand nimmt)
-            root.undoStack = root.undoStack.concat([root.textEditSnapshot])
-            root.redoStack = []
+            elementeModel.undoCheckpointFromSnapshot(root.textEditSnapshot)
             root.elemente  = root.elemente.concat([textEl])
             root.auswahl   = [root.elemente.length - 1]
             root.aktivesWerkzeug = "zeiger"
@@ -3925,57 +3933,7 @@ Item {
     // Treffer-Test
     // --------------------------------------------------------
     function elementBeiPosition(vpX, vpY) {
-        var s=7
-        for (var i=root.elemente.length-1; i>=0; i--) {
-            var el=root.elemente[i]
-            var vx1=el.x1*root.zoom+root.worldX, vy1=el.y1*root.zoom+root.worldY
-            var vx2=el.x2*root.zoom+root.worldX, vy2=el.y2*root.zoom+root.worldY
-            if (el.typ==="linie" || el.typ==="kabellinie") {
-                if (punktZuStrecke(vpX,vpY,vx1,vy1,vx2,vy2) < s) return i
-            } else if (el.typ==="polygonlinie") {
-                var plHitPts = el.punkte || []
-                for (var plHi = 0; plHi + 1 < plHitPts.length; plHi++) {
-                    var phx1 = plHitPts[plHi].x   * root.zoom + root.worldX
-                    var phy1 = plHitPts[plHi].y   * root.zoom + root.worldY
-                    var phx2 = plHitPts[plHi+1].x * root.zoom + root.worldX
-                    var phy2 = plHitPts[plHi+1].y * root.zoom + root.worldY
-                    if (punktZuStrecke(vpX, vpY, phx1, phy1, phx2, phy2) < s) return i
-                }
-            } else if (el.typ==="rechteck" || el.typ==="geraetekasten"
-                       || el.typ==="strukturkasten" || el.typ==="makrokasten"
-                       || el.typ==="notiz") {
-                // Notiz: ganzer Innenbereich anklickbar (filled)
-                if (el.typ === "notiz") {
-                    var nx1=Math.min(vx1,vx2)-s, ny1=Math.min(vy1,vy2)-s
-                    var nx2=Math.max(vx1,vx2)+s, ny2=Math.max(vy1,vy2)+s
-                    if (vpX >= nx1 && vpX <= nx2 && vpY >= ny1 && vpY <= ny2) return i
-                } else {
-                    if (punktZuStrecke(vpX,vpY,vx1,vy1,vx2,vy1) < s) return i
-                    if (punktZuStrecke(vpX,vpY,vx2,vy1,vx2,vy2) < s) return i
-                    if (punktZuStrecke(vpX,vpY,vx2,vy2,vx1,vy2) < s) return i
-                    if (punktZuStrecke(vpX,vpY,vx1,vy2,vx1,vy1) < s) return i
-                }
-            } else if (el.typ==="kreis") {
-                var dx=el.x2-el.x1, dy=el.y2-el.y1
-                var r=Math.sqrt(dx*dx+dy*dy)*root.zoom
-                var dcx=vpX-vx1, dcy=vpY-vy1
-                if (Math.abs(Math.sqrt(dcx*dcx+dcy*dcy)-r) < s) return i
-            } else if (el.typ==="bild") {
-                var bx1=Math.min(vx1,vx2)-s, by1=Math.min(vy1,vy2)-s
-                var bx2=Math.max(vx1,vx2)+s, by2=Math.max(vy1,vy2)+s
-                if (vpX >= bx1 && vpX <= bx2 && vpY >= by1 && vpY <= by2) return i
-            } else if (el.typ==="symbol") {
-                var sx1=Math.min(vx1,vx2)-s, sy1=Math.min(vy1,vy2)-s
-                var sx2=Math.max(vx1,vx2)+s, sy2=Math.max(vy1,vy2)+s
-                if (vpX >= sx1 && vpX <= sx2 && vpY >= sy1 && vpY <= sy2) return i
-            } else if (el.typ==="text") {
-                // Bounding-Box-Test (x2/y2 = geschätzte Ausdehnung)
-                var tx1 = Math.min(vx1, vx2) - s, ty1 = Math.min(vy1, vy2) - s
-                var tx2 = Math.max(vx1, vx2) + s, ty2 = Math.max(vy1, vy2) + s
-                if (vpX >= tx1 && vpX <= tx2 && vpY >= ty1 && vpY <= ty2) return i
-            }
-        }
-        return -1
+        return elementeModel.elementBeiPosition(vpX, vpY, root.zoom, root.worldX, root.worldY)
     }
 
     // Prüft ob Maus über einem Handle des selektierten Elements liegt.
@@ -4143,7 +4101,8 @@ Item {
 
     function seiteNeuLaden() {
         if (seiteId >= 0) {
-            var reloaded = db.grafikLaden(seiteId)
+            elementeModel.laden(seiteId)
+            var reloaded = elementeModel.snapshot()
             root._grafikLaden = true
             root.elemente = reloaded
             root._grafikLaden = false
@@ -4165,14 +4124,14 @@ Item {
         if (seiteId >= 0) {
             root._grafikLaden    = true
             root.elemente        = []
-            root.undoStack       = []; root.redoStack = []
             root.auswahl = []; root.vorschau  = null; root.amZeichnen = false
             root.amVerschieben   = false; root.mausUeberElement = false
             root.aktiverGriff    = -1; root.mausUeberGriff = false; root.verschiebenErlaubt = false
             var mm = seitenModel.seiteRasterMm(seiteId), rs = seitenModel.seiteRastend(seiteId)
             footerBar.rasterLaden(mm, rs)
             // Gespeicherte Elemente laden
-            root.elemente    = db.grafikLaden(seiteId)
+            elementeModel.laden(seiteId)
+            root.elemente    = elementeModel.snapshot()
             root._grafikLaden = false
             root.ausgewaehltVerbindung = null
             root.verbindungAnnotationenCache = {}
@@ -4359,7 +4318,8 @@ Item {
             root.elemente = updated
             root.grafikSpeichernJetzt()
             // grafik_element-ID holen (nach Speichern in DB vorhanden)
-            var reloaded = db.grafikLaden(root.seiteId)
+            elementeModel.laden(root.seiteId)
+            var reloaded = elementeModel.snapshot()
             root._grafikLaden = true
             root.elemente = reloaded
             root._grafikLaden = false
@@ -4419,7 +4379,8 @@ Item {
 
                         // Elemente neu laden – zweites grafikSpeichern hat DELETE+INSERT durchgeführt,
                         // daher hat das Element eine neue DB-ID; frische ID per kabelId suchen
-                        var freshReloaded = db.grafikLaden(root.seiteId)
+                        elementeModel.laden(root.seiteId)
+                        var freshReloaded = elementeModel.snapshot()
                         root._grafikLaden = true
                         root.elemente = freshReloaded
                         root._grafikLaden = false
@@ -4496,7 +4457,8 @@ Item {
             root.grafikSpeichernJetzt()
             root.kabelLinienCacheAktualisieren()
             // Elemente neu laden damit die EP-Bindings die aktuelle grafik_element_id erhalten
-            var reloadedZ = db.grafikLaden(root.seiteId)
+            elementeModel.laden(root.seiteId)
+            var reloadedZ = elementeModel.snapshot()
             root._grafikLaden = true
             root.elemente = reloadedZ
             root._grafikLaden = false

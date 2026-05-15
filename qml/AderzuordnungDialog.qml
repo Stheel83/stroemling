@@ -21,7 +21,7 @@ Dialog {
     width: 520
     padding: 20
 
-    property var    theme
+    required property var theme
     property bool   debug:             false
     property bool   _debugLokal:       false
     property int    kabelId:           0
@@ -211,8 +211,8 @@ Dialog {
     // ─── Aussehen ────────────────────────────────────────────
 
     background: Rectangle {
-        color:        theme ? theme.sidebar   : "#1a2332"
-        border.color: theme ? theme.border    : "#2a4060"
+        color:        theme.sidebar
+        border.color: theme.border
         border.width: 1; radius: 6
     }
 
@@ -226,11 +226,11 @@ Dialog {
                 if (root.kabeltyp) t += "  " + root.kabeltyp
                 return t || qsTr("Aderzuordnung")
             }
-            color: theme ? theme.accent : "#e07000"
+            color: theme.accent
             font.pixelSize: 13; font.weight: Font.Medium
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme ? theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // Modus + Auto-Button
         RowLayout {
@@ -238,7 +238,7 @@ Dialog {
 
             Text {
                 text: qsTr("Modus:")
-                color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11
+                color: theme.textMuted; font.pixelSize: 11
             }
 
             Repeater {
@@ -248,7 +248,7 @@ Dialog {
                     onClicked: root.modus = index
                     contentItem: Text {
                         text: modelData
-                        color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 11
+                        color: theme.textPrimary; font.pixelSize: 11
                         leftPadding: parent.indicator ? (parent.indicator.width + 4) : 20
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -256,8 +256,8 @@ Dialog {
                         implicitWidth: 14; implicitHeight: 14
                         x: parent.leftPadding; y: (parent.height - height) / 2
                         radius: 7
-                        color:        parent.checked ? (theme ? theme.accent  : "#e07000")   : "transparent"
-                        border.color: parent.checked ? (theme ? theme.accent  : "#e07000")   : (theme ? theme.border : "#2a4060")
+                        color:        parent.checked ? theme.accent   : "transparent"
+                        border.color: parent.checked ? theme.accent   : theme.border
                     }
                 }
             }
@@ -269,12 +269,12 @@ Dialog {
                 text: qsTr("Automatisch ▶")
                 flat: true; implicitHeight: 26
                 contentItem: Text {
-                    text: parent.text; color: theme ? theme.textPrimary : "#c0d8f0"
+                    text: parent.text; color: theme.textPrimary
                     font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color:        parent.hovered ? (theme ? theme.hover    : "#0f2540") : (theme ? theme.inputBg : "#0f1c2e")
-                    radius: 4; border.color: theme ? theme.border : "#2a4060"
+                    color:        parent.hovered ? theme.hover : theme.inputBg
+                    radius: 4; border.color: theme.border
                 }
                 onClicked: root.automatischZuordnen()
             }
@@ -283,14 +283,14 @@ Dialog {
         // Tabellen-Kopfzeile
         Rectangle {
             Layout.fillWidth: true; height: 24
-            color: theme ? theme.hover : "#0f2540"; radius: 3
+            color: theme.hover; radius: 3
             RowLayout {
                 anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
                 spacing: 6
-                Text { text: qsTr("Pos.");             width: 32;  color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10 }
-                Text { text: qsTr("Verbindung (Netz)");width: 130; color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10 }
-                Text { text: qsTr("Aktuell");          width: 110; color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10 }
-                Text { text: qsTr("Neue Zuweisung");   Layout.fillWidth: true; color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 10 }
+                Text { text: qsTr("Pos.");             width: 32;  color: theme.textMuted; font.pixelSize: 10 }
+                Text { text: qsTr("Verbindung (Netz)");width: 130; color: theme.textMuted; font.pixelSize: 10 }
+                Text { text: qsTr("Aktuell");          width: 110; color: theme.textMuted; font.pixelSize: 10 }
+                Text { text: qsTr("Neue Zuweisung");   Layout.fillWidth: true; color: theme.textMuted; font.pixelSize: 10 }
             }
         }
 
@@ -312,7 +312,7 @@ Dialog {
                     Text {
                         text: model.position
                         width: 32
-                        color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 12
+                        color: theme.textMuted; font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter
                     }
 
@@ -325,7 +325,7 @@ Dialog {
                                 t += "  [" + model.signaltyp + "]"
                             return t
                         }
-                        color: theme ? theme.textSecondary : "#88aacc"
+                        color: theme.textSecondary
                         font.pixelSize: 11; elide: Text.ElideRight
                     }
 
@@ -334,8 +334,7 @@ Dialog {
                         width: 110
                         text: root._gespeichertLabel(schnittZeile.rowIdx)
                         color: root._gespeichert[schnittZeile.rowIdx] > 0
-                               ? (theme ? theme.accent : "#e07000")
-                               : (theme ? theme.textMuted : "#7090b0")
+                               ? theme.accent : theme.textMuted
                         font.pixelSize: 10; elide: Text.ElideRight
                         font.italic: root._gespeichert[schnittZeile.rowIdx] <= 0
                     }
@@ -371,17 +370,15 @@ Dialog {
                             }
                             Text {
                                 text: aderCombo.displayText
-                                color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 11
+                                color: theme.textPrimary; font.pixelSize: 11
                                 verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
                         }
 
                         background: Rectangle {
-                            color:        theme ? theme.inputBg : "#0f1c2e"; radius: 3
-                            border.color: parent.pressed
-                                          ? (theme ? theme.accent : "#4a9eff")
-                                          : (theme ? theme.border : "#2a4060")
+                            color:        theme.inputBg; radius: 3
+                            border.color: parent.pressed ? theme.accent : theme.border
                         }
 
                         popup: Popup {
@@ -396,8 +393,7 @@ Dialog {
                                 delegate: Rectangle {
                                     width: popupListe.width; height: 24
                                     color: aderCombo.currentIndex === index
-                                           ? (theme ? theme.activeItemAlt : "#0f2540")
-                                           : (theme ? theme.inputBg       : "#0f1c2e")
+                                           ? theme.activeItemAlt : theme.inputBg
                                     RowLayout {
                                         anchors { fill: parent; leftMargin: 8; rightMargin: 4 }
                                         spacing: 6
@@ -410,7 +406,7 @@ Dialog {
                                         }
                                         Text {
                                             text: modelData
-                                            color: theme ? theme.textSecondary : "#88aacc"; font.pixelSize: 11
+                                            color: theme.textSecondary; font.pixelSize: 11
                                             verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
                                             Layout.fillWidth: true
                                         }
@@ -422,8 +418,8 @@ Dialog {
                                 }
                             }
                             background: Rectangle {
-                                color:        theme ? theme.inputBg : "#0f1c2e"
-                                border.color: theme ? theme.border  : "#2a4060"; radius: 3
+                                color:        theme.inputBg
+                                border.color: theme.border; radius: 3
                             }
                         }
                     }
@@ -436,10 +432,10 @@ Dialog {
             visible: root.schnittNetze.length === 0
             text: qsTr("Keine Verbindungskreuzungen erkannt. Bitte Kabellinie über Auto-Verbindungen ziehen.")
             Layout.fillWidth: true; wrapMode: Text.WordWrap
-            color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 11; font.italic: true
+            color: theme.textMuted; font.pixelSize: 11; font.italic: true
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme ? theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // Buttons
         RowLayout {
@@ -448,21 +444,21 @@ Dialog {
             Button {
                 text: qsTr("Abbrechen"); flat: true; implicitHeight: 32
                 contentItem: Text {
-                    text: parent.text; color: theme ? theme.textMuted : "#7090b0"; font.pixelSize: 13
+                    text: parent.text; color: theme.textMuted; font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.hovered ? (theme ? theme.hover : "#0f2540") : "transparent"; radius: 4
+                    color: parent.hovered ? theme.hover : "transparent"; radius: 4
                 }
                 onClicked: root.reject()
             }
             Button {
                 text: qsTr("Übernehmen"); implicitWidth: 110; implicitHeight: 32
                 contentItem: Text {
-                    text: parent.text; color: theme ? theme.textPrimary : "#c0d8f0"; font.pixelSize: 13
+                    text: parent.text; color: theme.textPrimary; font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
-                background: Rectangle { color: theme ? theme.activeItem : "#1a3a6a"; radius: 4 }
+                background: Rectangle { color: theme.activeItem; radius: 4 }
                 onClicked: {
                     var ef          = root._effektiveAdern()
                     var aderVerbMap = {}

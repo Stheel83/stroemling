@@ -19,7 +19,7 @@ Dialog {
     height: 460
     padding: 16
 
-    property var theme
+    required property var theme
 
     // Ergebnis – wird gesetzt wenn der Nutzer „Übernehmen" klickt
     property int ausgewaehltId: 0       // 0 = kein Bauteil-Kabel
@@ -28,8 +28,8 @@ Dialog {
     title: qsTr("Kabel aus Bauteilbibliothek wählen")
 
     background: Rectangle {
-        color: theme ? theme.sidebar : "#1a2332"
-        border.color: theme ? theme.border : "#2a4060"
+        color: theme.sidebar
+        border.color: theme.border
         border.width: 1; radius: 6
     }
 
@@ -58,11 +58,11 @@ Dialog {
 
         Text {
             text: root.title
-            color: theme ? theme.textPrimary : "#c0d8f0"
+            color: theme.textPrimary
             font.pixelSize: 14; font.weight: Font.Medium
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme ? theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // ── Liste ──────────────────────────────────────────────
         ListView {
@@ -78,7 +78,7 @@ Dialog {
                 anchors.centerIn: parent
                 visible: liste.count === 0
                 text: qsTr("Keine Kabel in der Bibliothek.\nIn der Bauteilbibliothek ein Kabel anlegen.")
-                color: theme ? theme.textMuted : "#7090b0"
+                color: theme.textMuted
                 font.pixelSize: 11; font.italic: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -90,14 +90,14 @@ Dialog {
                 width: liste.width
                 height: 36
                 color: root.selIdx === -1
-                       ? (theme ? theme.activeItem : "#1a3a6a")
-                       : (keinHover.hovered ? (theme ? theme.hover : "#0f2540") : "transparent")
+                       ? theme.activeItem
+                       : (keinHover.hovered ? theme.hover : "transparent")
                 radius: 4
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left; anchors.leftMargin: 10
                     text: qsTr("– kein Bauteil-Kabel –")
-                    color: theme ? theme.textMuted : "#7090b0"
+                    color: theme.textMuted
                     font.pixelSize: 12; font.italic: true
                 }
                 HoverHandler { id: keinHover }
@@ -108,8 +108,8 @@ Dialog {
                 width: liste.width
                 height: 44
                 color: root.selIdx === index
-                       ? (theme ? theme.activeItem : "#1a3a6a")
-                       : (rowHover.hovered ? (theme ? theme.hover : "#0f2540") : "transparent")
+                       ? theme.activeItem
+                       : (rowHover.hovered ? theme.hover : "transparent")
                 radius: 4
 
                 RowLayout {
@@ -144,7 +144,7 @@ Dialog {
                                 if (modelData.kabeltyp) s += (s ? "  " : "") + modelData.kabeltyp
                                 return s
                             }
-                            color: theme ? theme.textPrimary : "#c0d8f0"
+                            color: theme.textPrimary
                             font.pixelSize: 12
                             elide: Text.ElideRight
                         }
@@ -157,7 +157,7 @@ Dialog {
                                     s += (modelData.querschnittMm2 + "").replace(".", ",") + " mm²"
                                 return s
                             }
-                            color: theme ? theme.textMuted : "#7090b0"
+                            color: theme.textMuted
                             font.pixelSize: 10
                         }
                     }
@@ -168,7 +168,7 @@ Dialog {
             }
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme ? theme.border : "#2a4060" }
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // ── Buttons ────────────────────────────────────────────
         RowLayout {
@@ -178,13 +178,13 @@ Dialog {
                 text: qsTr("Abbrechen"); flat: true; implicitHeight: 32
                 contentItem: Text {
                     text: parent.text
-                    color: theme ? theme.textMuted : "#7090b0"
+                    color: theme.textMuted
                     font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.hovered ? (theme ? theme.hover : "#0f2540") : "transparent"; radius: 4
+                    color: parent.hovered ? theme.hover : "transparent"; radius: 4
                 }
                 onClicked: root.reject()
             }
@@ -192,13 +192,13 @@ Dialog {
                 text: qsTr("Übernehmen"); implicitWidth: 110; implicitHeight: 32
                 contentItem: Text {
                     text: parent.text
-                    color: theme ? theme.textPrimary : "#c0d8f0"
+                    color: theme.textPrimary
                     font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: theme ? theme.activeItem : "#1a3a6a"; radius: 4
+                    color: theme.activeItem; radius: 4
                 }
                 onClicked: {
                     if (root.selIdx === -1) {

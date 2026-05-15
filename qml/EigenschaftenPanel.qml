@@ -54,7 +54,7 @@ Rectangle {
         "#ffffff", "#aaaaaa", "#555555", "#000000"
     ]
 
-    color:  theme ? theme.surfaceDeep : "#09121e"
+    color:  theme.surfaceDeep
     clip:   true
 
     // Sichere Eigenschaftsabfrage mit Fallback
@@ -215,14 +215,14 @@ Rectangle {
                 Rectangle {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     height: 20; radius: 3; width: vkLabel.implicitWidth + 14
-                    color: theme ? Qt.rgba(0.29, 0.60, 1.0, 0.12) : "#0d2040"
-                    border.color: theme ? theme.accent : "#4a9eff"; border.width: 1
+                    color: Qt.rgba(0.29, 0.60, 1.0, 0.12)
+                    border.color: theme.accent; border.width: 1
                     Text {
                         id: vkLabel
                         anchors { left: parent.left; leftMargin: 7; verticalCenter: parent.verticalCenter }
                         text: panel.vollkennzeichen
                         font.pixelSize: 11; font.family: "monospace"; font.weight: Font.Medium
-                        color: theme ? theme.accent : "#4a9eff"
+                        color: theme.accent
                     }
                 }
             }
@@ -297,10 +297,12 @@ Rectangle {
 
             // ABSCHNITT: REIHENFOLGE
             // ================================================
-            Trennlinie {}
-            AbschnittTitel { text: qsTr("REIHENFOLGE") }
+            Trennlinie     { visible: panel.el !== null && canvas.auswahl.length === 1 }
+            AbschnittTitel { text: qsTr("REIHENFOLGE")
+                             visible: panel.el !== null && canvas.auswahl.length === 1 }
 
             Grid {
+                visible: panel.el !== null && canvas.auswahl.length === 1
                 anchors.horizontalCenter: parent.horizontalCenter
                 columns: 2; spacing: 4; bottomPadding: 4
 

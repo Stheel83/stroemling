@@ -6,7 +6,7 @@ Popup {
     id: root
 
     property int    projektId:  -1
-    property var    theme
+    required property var theme
 
     // Werkzeug-Aktivierung
     signal werkzeugAktiviert(string werkzeug)
@@ -24,8 +24,8 @@ Popup {
     y:       Math.max(60, (parent.height - height) / 4)
 
     background: Rectangle {
-        color:        root.theme ? root.theme.sidebar      : "#0d1b2a"
-        border.color: root.theme ? root.theme.accent       : "#4a9eff"
+        color:        root.theme.sidebar
+        border.color: root.theme.accent
         border.width: 1
         radius: 6
     }
@@ -116,7 +116,7 @@ Popup {
 
                 Text {
                     text: "⌕"; font.pixelSize: 16
-                    color: root.theme ? root.theme.textMuted : "#8899aa"
+                    color: root.theme.textMuted
                 }
 
                 TextField {
@@ -124,9 +124,9 @@ Popup {
                     Layout.fillWidth: true
                     placeholderText: qsTr("Werkzeug oder Seite suchen …")
                     font.pixelSize: 14
-                    color:       root.theme ? root.theme.textPrimary    : "#e8f0fe"
-                    background:  Rectangle { color: "transparent" }
-                    placeholderTextColor: root.theme ? root.theme.textMuted : "#8899aa"
+                    color:               root.theme.textPrimary
+                    background:          Rectangle { color: "transparent" }
+                    placeholderTextColor: root.theme.textMuted
 
                     onTextChanged: root._auswahl = root._gefiltert.length > 0 ? 0 : -1
 
@@ -139,7 +139,7 @@ Popup {
                 Text {
                     text: root._gefiltert.length + " " + qsTr("Treffer")
                     font.pixelSize: 10
-                    color: root.theme ? root.theme.textMuted : "#8899aa"
+                    color: root.theme.textMuted
                     visible: suchfeld.text.length > 0
                 }
             }
@@ -149,7 +149,7 @@ Popup {
             id: trenn
             Layout.fillWidth: true
             height: 1
-            color: root.theme ? root.theme.border : "#1e3a5f"
+            color: root.theme.border
         }
 
         // Ergebnisliste
@@ -165,8 +165,7 @@ Popup {
             delegate: Rectangle {
                 width:  listView.width
                 height: 38
-                color:  (index === root._auswahl)
-                        ? (root.theme ? root.theme.activeItem : "#1e3a5f") : "transparent"
+                color:  (index === root._auswahl) ? root.theme.activeItem : "transparent"
 
                 RowLayout {
                     anchors { fill: parent; leftMargin: 14; rightMargin: 12 }
@@ -176,13 +175,13 @@ Popup {
                     Rectangle {
                         width: 48; height: 16; radius: 3
                         color: modelData.kategorie === "Werkzeug"
-                               ? (root.theme ? root.theme.badge : "#1a3050")
+                               ? root.theme.badge
                                : Qt.rgba(0.1, 0.5, 0.3, 0.3)
                         Text {
                             anchors.centerIn: parent
                             text:  modelData.kategorie
                             font.pixelSize: 9
-                            color: root.theme ? root.theme.textMuted : "#8899aa"
+                            color: root.theme.textMuted
                         }
                     }
 
@@ -190,14 +189,14 @@ Popup {
                         Layout.fillWidth: true
                         text:  modelData.label
                         font.pixelSize: 13
-                        color: root.theme ? root.theme.textPrimary : "#e8f0fe"
+                        color: root.theme.textPrimary
                         elide: Text.ElideRight
                     }
 
                     Text {
                         text:  modelData.info || ""
                         font.pixelSize: 11
-                        color: root.theme ? root.theme.textMuted : "#8899aa"
+                        color: root.theme.textMuted
                     }
                 }
 

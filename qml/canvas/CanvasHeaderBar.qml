@@ -19,7 +19,7 @@ Rectangle {
                color: AppTheme.textSecondary; Layout.fillWidth: true; elide: Text.ElideRight }
 
         Button {
-            flat: true; implicitWidth: 26; implicitHeight: 26; enabled: canvas.undoStack.length > 0
+            flat: true; implicitWidth: 26; implicitHeight: 26; enabled: elementeModel.undoMoeglich
             contentItem: Text { text: qsTr("↩"); color: parent.enabled ? AppTheme.accent : AppTheme.border
                 font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered && parent.enabled ? AppTheme.activeItem : "transparent"; radius: 4 }
@@ -27,7 +27,7 @@ Rectangle {
             ToolTip.visible: hovered; ToolTip.text: qsTr("Rückgängig (Ctrl+Z)"); ToolTip.delay: 500
         }
         Button {
-            flat: true; implicitWidth: 26; implicitHeight: 26; enabled: canvas.redoStack.length > 0
+            flat: true; implicitWidth: 26; implicitHeight: 26; enabled: elementeModel.redoMoeglich
             contentItem: Text { text: qsTr("↪"); color: parent.enabled ? AppTheme.accent : AppTheme.border
                 font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered && parent.enabled ? AppTheme.activeItem : "transparent"; radius: 4 }

@@ -205,6 +205,12 @@ QVariantList ElementeModel::snapshot() const
     return result;
 }
 
+QVariantMap ElementeModel::element(int idx) const
+{
+    if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) return {};
+    return m_elemente[idx].toVariantMap();
+}
+
 int ElementeModel::anzahl() const
 {
     return static_cast<int>(m_elemente.size());

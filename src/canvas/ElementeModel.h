@@ -45,6 +45,7 @@ public:
     Q_INVOKABLE void         fromVariantList(const QVariantList &liste);
     Q_INVOKABLE void         leeren();
     Q_INVOKABLE QVariantList snapshot() const;
+    Q_INVOKABLE QVariantMap  element(int idx) const;
     Q_INVOKABLE int          anzahl()   const;
     Q_INVOKABLE int          elementBeiPosition(double vpX, double vpY,
                                                 double zoom, double worldX, double worldY) const;

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import "../components"
 
 Item {
@@ -70,11 +71,60 @@ Item {
             }
         }
 
-        InputField {
-            label: qsTr("Bezeichnung")
-            value: panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
-            theme: theme
-            onCommit: function(t) { canvas.verbindungAnnotationAktualisieren("bezeichnung", t) }
+        // Bezeichnung + Vorschlag-Button (nächste freie Nummer)
+        Item {
+            width: root.width
+            height: 20 + 28   // Label + Eingabe
+
+            Text {
+                id: bezLabel
+                anchors { left: parent.left; leftMargin: 12; top: parent.top; topMargin: 5 }
+                text: qsTr("Bezeichnung"); font.pixelSize: 10; color: root.theme.panelMid
+            }
+            Rectangle {
+                id: bezBox
+                anchors { top: bezLabel.bottom; left: parent.left; leftMargin: 8 }
+                width: parent.width - 16 - 30 - 4; height: 28; radius: 3
+                color: root.theme.inputBg
+                border.color: bezTf.activeFocus ? root.theme.accent : root.theme.border
+                TextInput {
+                    id: bezTf
+                    anchors { fill: parent; margins: 5 }
+                    color: root.theme.textSecondary; font.pixelSize: 11
+                    verticalAlignment: TextInput.AlignVCenter
+                    text: panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
+                    Binding on text {
+                        when: !bezTf.activeFocus
+                        value: panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
+                    }
+                    onEditingFinished: canvas.verbindungAnnotationAktualisieren("bezeichnung", text)
+                    Keys.onEscapePressed: { text = panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""; focus = false }
+                }
+            }
+            Rectangle {
+                id: vorschlagBtn
+                anchors { left: bezBox.right; leftMargin: 4; top: bezBox.top }
+                width: 30; height: 28; radius: 3
+                color: vorschlagMa.containsMouse ? root.theme.activeItemAlt : root.theme.inputBg
+                border.color: root.theme.border
+                Text {
+                    anchors.centerIn: parent
+                    text: "→N"; font.pixelSize: 10; color: root.theme.accent
+                }
+                MouseArea {
+                    id: vorschlagMa; anchors.fill: parent
+                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (canvas.projektId < 0) return
+                        var vorschlag = db.naechsteFreiePotenzialNummer(canvas.projektId, "", 1, 1)
+                        bezTf.text = vorschlag
+                        canvas.verbindungAnnotationAktualisieren("bezeichnung", vorschlag)
+                    }
+                }
+                ToolTip.visible: vorschlagMa.containsMouse
+                ToolTip.text: qsTr("Nächste freie Nummer vorschlagen")
+                ToolTip.delay: 400
+            }
         }
 
         FeldLabel { text: qsTr("Aderdaten (vom Aderdefinitionspunkt)") }

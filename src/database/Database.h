@@ -93,6 +93,19 @@ public:
     // Gibt [{netKey, verbindungId, bezeichnung, farbe, querschnitt_mm2, signaltyp}] zurück.
     Q_INVOKABLE QVariantList verbindungAnnotationenLaden(int seiteId);
 
+    // Alle Verbindungen eines Projekts für Potenzial-Nummerierung.
+    // Gibt [{id, bezeichnung, signaltyp}] zurück.
+    Q_INVOKABLE QVariantList verbindungenProjektLaden(int projektId);
+
+    // Nächste freie Potenzialbezeichnung nach Schema (praefix + laufende Nummer).
+    Q_INVOKABLE QString naechsteFreiePotenzialNummer(int projektId, const QString &praefix,
+                                                     int start, int schrittweite);
+
+    // Mehrere Verbindungsbezeichnungen in einer Transaktion setzen.
+    // zuweisungen: [{id (int), bezeichnung (string)}]
+    Q_INVOKABLE bool verbindungenBulkBezeichnungSetzen(int projektId,
+                                                       const QVariantList &zuweisungen);
+
     // Bilddatei einlesen und als Base64-Data-URL zurückgeben.
     // Intern werden die Rohdaten verwendet; die Data-URL dient nur der QML-Anzeige.
     // Gibt "error:<Meldung>" zurück falls Datei nicht lesbar oder > maxBytes.

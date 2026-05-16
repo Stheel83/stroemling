@@ -55,6 +55,44 @@ Item {
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
 
+    function netzeNummerieren(praefix, start, schrittweite) {
+        if (projektId < 0) return 0
+        var sc   = Math.max(1, schrittweite)
+        var alle = db.verbindungenProjektLaden(projektId)
+
+        // Bereits vergebene Nummern sammeln (nur passend zum Schema)
+        var verwendet = {}
+        for (var i = 0; i < alle.length; i++) {
+            var bez = alle[i].bezeichnung || ""
+            if (!bez || !bez.startsWith(praefix)) continue
+            var rest = bez.substring(praefix.length)
+            var n = parseInt(rest, 10)
+            if (!isNaN(n) && n.toString() === rest) verwendet[n] = true
+        }
+
+        // Unbenannte Netze (nicht pe/n, keine bestehende Bezeichnung) nummerieren
+        var zuweisungen = []
+        var n = start
+        for (var j = 0; j < alle.length; j++) {
+            var v = alle[j]
+            if (v.bezeichnung) continue
+            var st = v.signaltyp || ""
+            if (st === "pe" || st === "n") continue
+            while (verwendet[n]) n += sc
+            zuweisungen.push({id: v.id, bezeichnung: praefix + n})
+            verwendet[n] = true
+            n += sc
+        }
+
+        if (zuweisungen.length > 0) {
+            db.verbindungenBulkBezeichnungSetzen(projektId, zuweisungen)
+            panel.laden()
+            // Canvas-Annotationscache der aktuellen Seite aktualisieren
+            if (panel.canvas) panel.canvas.verbindungAnnotationenNeuLaden()
+        }
+        return zuweisungen.length
+    }
+
     readonly property int klemmenplanZaehler: {
         var n = 0
         for (var i = 0; i < klemmenplanModel.count; i++)
@@ -111,6 +149,155 @@ Item {
                 Text { text: qsTr("Listen"); font.pixelSize: 16; font.weight: Font.Medium; color: theme.textSecondary }
                 Text { text: projektName ? "– " + projektName : ""; font.pixelSize: 13; color: theme.borderLight;
                        Layout.fillWidth: true; elide: Text.ElideRight }
+                // ── Netze nummerieren ───────────────────────────────────
+                Rectangle {
+                    id: numBtn
+                    width: 32; height: 32; radius: 6
+                    color: numMa.containsMouse ? theme.activeItemAlt : "transparent"
+                    Text { anchors.centerIn: parent; text: "N"; font.pixelSize: 14; font.weight: Font.Medium; color: theme.accent }
+                    MouseArea {
+                        id: numMa; anchors.fill: parent
+                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: numPopup.open()
+                    }
+                    ToolTip.visible: numMa.containsMouse; ToolTip.text: qsTr("Netze nummerieren"); ToolTip.delay: 400
+
+                    Popup {
+                        id: numPopup
+                        parent: Overlay.overlay
+                        x: numBtn.mapToItem(parent, 0, 0).x - width + numBtn.width
+                        y: numBtn.mapToItem(parent, 0, 0).y + numBtn.height + 4
+                        width: 240; padding: 12
+                        modal: false; closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                        background: Rectangle {
+                            color: theme.surface; radius: 6
+                            border.color: theme.border
+                            layer.enabled: true
+                        }
+
+                        property string _praefix:      ""
+                        property int    _start:        1
+                        property int    _schrittweite: 1
+                        property string _meldung:      ""
+
+                        Column {
+                            width: parent.width; spacing: 8
+
+                            Text {
+                                text: qsTr("Netze nummerieren")
+                                font.pixelSize: 12; font.weight: Font.Medium
+                                color: theme.textSecondary
+                            }
+
+                            // Präfix
+                            Column {
+                                width: parent.width; spacing: 3
+                                Text { text: qsTr("Präfix"); font.pixelSize: 10; color: theme.panelMid }
+                                Rectangle {
+                                    width: parent.width; height: 28; radius: 3
+                                    color: theme.inputBg; border.color: praefixTf.activeFocus ? theme.accent : theme.border
+                                    TextInput {
+                                        id: praefixTf
+                                        anchors { fill: parent; margins: 5 }
+                                        color: theme.textSecondary; font.pixelSize: 11
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        text: numPopup._praefix
+                                        onTextChanged: numPopup._praefix = text
+                                    }
+                                }
+                            }
+
+                            // Startnummer + Schrittweite nebeneinander
+                            Row {
+                                width: parent.width; spacing: 8
+                                Column {
+                                    width: (parent.width - 8) / 2; spacing: 3
+                                    Text { text: qsTr("Startnummer"); font.pixelSize: 10; color: theme.panelMid }
+                                    Rectangle {
+                                        width: parent.width; height: 28; radius: 3
+                                        color: theme.inputBg; border.color: startTf.activeFocus ? theme.accent : theme.border
+                                        TextInput {
+                                            id: startTf
+                                            anchors { fill: parent; margins: 5 }
+                                            color: theme.textSecondary; font.pixelSize: 11
+                                            verticalAlignment: TextInput.AlignVCenter
+                                            inputMethodHints: Qt.ImhDigitsOnly
+                                            text: numPopup._start
+                                            onTextChanged: { var n = parseInt(text, 10); if (!isNaN(n) && n >= 1) numPopup._start = n }
+                                        }
+                                    }
+                                }
+                                Column {
+                                    width: (parent.width - 8) / 2; spacing: 3
+                                    Text { text: qsTr("Schrittweite"); font.pixelSize: 10; color: theme.panelMid }
+                                    Rectangle {
+                                        width: parent.width; height: 28; radius: 3
+                                        color: theme.inputBg; border.color: schrittTf.activeFocus ? theme.accent : theme.border
+                                        TextInput {
+                                            id: schrittTf
+                                            anchors { fill: parent; margins: 5 }
+                                            color: theme.textSecondary; font.pixelSize: 11
+                                            verticalAlignment: TextInput.AlignVCenter
+                                            inputMethodHints: Qt.ImhDigitsOnly
+                                            text: numPopup._schrittweite
+                                            onTextChanged: { var n = parseInt(text, 10); if (!isNaN(n) && n >= 1) numPopup._schrittweite = n }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Meldung nach Ausführung
+                            Text {
+                                visible: numPopup._meldung !== ""
+                                text: numPopup._meldung
+                                font.pixelSize: 10; color: theme.accent
+                                wrapMode: Text.Wrap; width: parent.width
+                            }
+
+                            // Buttons
+                            Row {
+                                spacing: 8
+                                Rectangle {
+                                    width: 120; height: 30; radius: 5
+                                    color: ausfuehrenMa.containsMouse ? theme.accent : theme.activeItemAlt
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: qsTr("Nummerieren")
+                                        font.pixelSize: 11; color: theme.textSecondary
+                                    }
+                                    MouseArea {
+                                        id: ausfuehrenMa; anchors.fill: parent
+                                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var anz = panel.netzeNummerieren(numPopup._praefix,
+                                                                              numPopup._start,
+                                                                              numPopup._schrittweite)
+                                            numPopup._meldung = anz > 0
+                                                ? qsTr("%1 Netz(e) nummeriert").arg(anz)
+                                                : qsTr("Keine unbeschrifteten Netze")
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    width: 80; height: 30; radius: 5
+                                    color: schliesseMa.containsMouse ? theme.hover : "transparent"
+                                    border.color: theme.border
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: qsTr("Schließen")
+                                        font.pixelSize: 11; color: theme.borderLight
+                                    }
+                                    MouseArea {
+                                        id: schliesseMa; anchors.fill: parent
+                                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: { numPopup._meldung = ""; numPopup.close() }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Rectangle {
                     width: 32; height: 32; radius: 6
                     color: refreshMa.containsMouse ? theme.activeItemAlt : "transparent"

@@ -53,14 +53,12 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung, Schema v8 |
 | `konzept/10_ui_terminologie.md` | verbindlichen Bezeichnungen für alle Fenster, Panels und Bereiche der Anwendung |
 | `konzept/11_symboleditor.md` | Symbole visuell zu erstellen und bestehende Symbole zu bearbeiten |
-| `konzept/12_Kabelberechnung.md` | Entwurfsphase: Entwicklung eines Programm-Zusatzes zur Berechnung des optimalen Kabelquerschnitts |
-| `konzept/13_Normen.md` | Entwurfsphase: Elektrotechnische Normen sinnvoll in das Programm integrieren |
+| `konzept/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner (✅ implementiert): Formeln, UI-Layout, Berechnungslogik; Normen-Referenztabellen (IP/IK/VDE/IEC) |
 | `konzept/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll; DB-Schema (`inbetriebnahme`, `ibn_feldvorlage`, `ibn_feldwert`) |
 | `konzept/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema v31 (`makro`, `makro_element`), UX-Ablauf, C++-API |
-| `konzept/16_eigenschaftenpanel.md` | EigenschaftenPanel: alle Abschnitte, Auslöserbedingungen, interne Hilfskomponenten, Konventionen für neue Abschnitte |
-| `konzept/17_qml_struktur.md` | QML-Dateistruktur & Refaktorierungsplan: Zielstruktur (components/ep/canvas/), Phasenplan, Komponentenschnittstellen |
+| `konzept/17_qml_struktur.md` | QML-Dateistruktur aller Unterordner (ep/canvas/ba/la/…), Architektur-Konventionen, EP-Auslöserbedingungen, Sektion-Grundgerüst |
 | `konzept/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
-| `konzept/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund, offene Lücken (KlemmenVorschau, NavTextField, IbnFeldEditorDialog) |
+| `konzept/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund, Konventionen für neue Komponenten |
 | `konzept/20_qml_initialisierung.md` | QML-Initialisierungsreihenfolge: C++-Phase, Singleton, Objektbaum-Aufbau, Component.onCompleted, reaktive Initialisierung durch Nutzer |
 | `konzept/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht nach C++ auslagern; API-Design, Element-Struct, Migrations-Reihenfolge (7 Schritte) |
 
@@ -115,65 +113,7 @@ zur Laufzeit nicht). Nach jedem neuen Eintrag `cmake ..` im Build-Ordner ausfüh
 
 ### Bekannte QML-Fallstricke in diesem Projekt
 
-**Layout-Anker:** Innerhalb von `RowLayout`/`ColumnLayout` niemals `anchors.*` verwenden –
-das erzeugt Warnungen und falsche Positionen. Stattdessen `Layout.alignment`,
-`Layout.fillWidth`, `Layout.preferredWidth` etc. nutzen.
-
-**Shortcuts in modalen Dialogs:** `ApplicationShortcut` wird von Qt Quick Controls 2
-Modal-Popups blockiert und kommt nicht an. Lösung: lokaler `Shortcut {}` direkt im
-Dialog + separates `property bool _debugLokal: false`. Beim Schließen auf `false` zurücksetzen
-(`onClosed: root._debugLokal = false`).
-
-**DebugLabel in Dialog:** `anchors.top/left` des DebugLabel kollidiert mit dem
-`ColumnLayout`-ContentItem. Fix: `parent: root.background` statt Standard-Parent.
-
-**`_refresh`-Counter für EP-Bindings:** Wenn QML-Bindings einen DB-Wert neu auswerten
-sollen (ohne Property-Change-Signal), einen `property int _refresh: 0` anlegen und
-in der Binding-Expression referenzieren – Hochzählen erzwingt Neuauswertung.
-
-**`property var` Array In-place-Mutation:** `root.arr[i] = x` modifiziert das Array,
-aber QML erkennt die Änderung nicht (kein Property-Change-Signal). Stattdessen immer
-`var tmp = root.arr.slice(); tmp[i] = x; root.arr = tmp` verwenden.
-
-**ComboBox Custom-Popup mit `delegateModel`:** `model: aderCombo.delegateModel` in
-einem benutzerdefinierten Popup-ListView funktioniert nicht zuverlässig (interne Qt-API).
-Stattdessen das echte Modell direkt setzen: `model: root._aderOptionen()` und den
-Delegate inline im Popup definieren. Selektion per `onClicked: { aderCombo.currentIndex = index; aderCombo.popup.close() }`.
-
-**ComboBox `onCurrentIndexChanged` + `currentIndex`-Binding = Zyklus:** Wenn eine
-ComboBox ein `currentIndex`-Binding hat (reagiert auf externe Property) UND gleichzeitig
-`onCurrentIndexChanged` die Property zurückschreibt, entsteht ein Zyklus: Binding setzt
-Index → Handler schreibt `model[0]` zurück → Binding re-evaluiert → … Fix: `onActivated`
-statt `onCurrentIndexChanged` verwenden. `onActivated` feuert **nur** bei echter
-Nutzer-Interaktion, nicht bei programmatischen Index-Änderungen.
-
-**`pragma Singleton` braucht zusätzlich CMakeLists.txt-Eigenschaft:** `pragma Singleton` im
-QML-File allein reicht in Qt 6 nicht. Ohne `set_source_files_properties(Datei.qml PROPERTIES
-QT_QML_SINGLETON_TYPE true)` VOR `qt_add_qml_module` fehlt das `singleton`-Schlüsselwort in der
-generierten `qmldir`-Datei → jeder Importer bekommt eine eigene Instanz → Singleton-Semantik
-komplett kaputt. Symptom: Theme-Wechsel wirkt nur partiell, Farben falsch in manchen Komponenten.
-
-**`QtObject` als Singleton-Basis akzeptiert keine Kind-Objekte:** `QtObject` hat keine
-Default-Property – `Settings { }` oder andere Kind-Deklarationen darin erzeugen beim Start
-„Cannot assign to non-existent default property". Ohne `QT_QML_SINGLETON_TYPE true` wird das
-still ignoriert, mit strenger Singleton-Registrierung bricht es. Fix: `Item` statt `QtObject`
-als Basis verwenden – `Item` hat die nötige Default-Property, der visuelle Overhead ist bei
-einem Singleton vernachlässigbar.
-
-**`import stroemling` in ep/-Dateien:** Dateien in `qml/ep/` sehen mit `import "../components"`
-nur die `qml/components/`-Typen. Typen aus dem `qml/`-Root (z.B. `KlemmenVorschau`,
-`BauteilKabelPickerDialog`) sind unsichtbar, obwohl sie zum selben Modul gehören.
-Fix: zusätzlich `import stroemling` eintragen (Modul-URI aus `CMakeLists.txt`). Fehlt
-dieses Import, erscheint der Laufzeitfehler „XYZ is not a type".
-
-**`Q_PROPERTY` schlägt `Q_INVOKABLE` in QML – niemals mit `()` aufrufen:**
-Wenn eine C++-Methode sowohl als `Q_PROPERTY` als auch als `Q_INVOKABLE` deklariert ist,
-liefert QML bei `model.prop` den Property-Wert (z.B. `int`). `model.prop()` versucht diesen
-Wert als Funktion aufzurufen → `TypeError: Property 'prop' of object X is not a function`.
-Tritt die Methode in `onPositionChanged` auf (`hoverEnabled: true`), entsteht ein
-Exception-Flood bei jeder Mausbewegung → UI faktisch eingefroren.
-**Regel:** QML-Zugriff auf `Q_PROPERTY`-Werte immer ohne `()` – `elementeModel.anzahl`
-statt `elementeModel.anzahl()`.
+Vollständige Liste mit Ursachen und Fixes: → `konzept/18_debugging.md` §5
 
 ### Konzeptpflege
 - Wenn eine Konzeptentscheidung sich im Gespräch ändert: **Konzeptdatei sofort

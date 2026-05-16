@@ -2205,6 +2205,88 @@ QVariantList Database::verbindungAnnotationenLaden(int seiteId)
 }
 
 // ============================================================
+// verbindungenProjektLaden
+// Alle Verbindungen eines Projekts (für Potenzial-Nummerierung).
+// ============================================================
+QVariantList Database::verbindungenProjektLaden(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q;
+    q.prepare("SELECT id, bezeichnung, signaltyp FROM verbindung WHERE projekt_id = :pid ORDER BY id");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "verbindungenProjektLaden:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("id")]          = q.value(0).toInt();
+        m[QStringLiteral("bezeichnung")] = q.value(1).toString();
+        m[QStringLiteral("signaltyp")]   = q.value(2).toString();
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
+// naechsteFreiePotenzialNummer
+// Gibt die nächste freie Bezeichnung nach Schema (praefix + Nummer)
+// zurück, die noch nicht in verbindung.bezeichnung vergeben ist.
+// ============================================================
+QString Database::naechsteFreiePotenzialNummer(int projektId,
+                                                const QString &praefix,
+                                                int start, int schrittweite)
+{
+    QSqlQuery q;
+    q.prepare("SELECT bezeichnung FROM verbindung WHERE projekt_id = :pid AND bezeichnung IS NOT NULL");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) return praefix + QString::number(start);
+
+    QSet<int> verwendet;
+    while (q.next()) {
+        QString bez = q.value(0).toString();
+        if (!bez.startsWith(praefix)) continue;
+        QString rest = bez.mid(praefix.length());
+        bool ok = false;
+        int n = rest.toInt(&ok);
+        if (ok) verwendet.insert(n);
+    }
+    int n = start;
+    const int sc = schrittweite > 0 ? schrittweite : 1;
+    while (verwendet.contains(n)) n += sc;
+    return praefix + QString::number(n);
+}
+
+// ============================================================
+// verbindungenBulkBezeichnungSetzen
+// Setzt in einer Transaktion die Bezeichnung mehrerer Verbindungen.
+// zuweisungen: [{id (int), bezeichnung (string)}]
+// ============================================================
+bool Database::verbindungenBulkBezeichnungSetzen(int projektId, const QVariantList &zuweisungen)
+{
+    if (zuweisungen.isEmpty()) return true;
+    if (!m_db.transaction()) {
+        qWarning() << "verbindungenBulkBezeichnungSetzen: transaction:" << m_db.lastError().text();
+        return false;
+    }
+    QSqlQuery q;
+    q.prepare("UPDATE verbindung SET bezeichnung = :bez WHERE id = :id AND projekt_id = :pid");
+    for (const QVariant &var : zuweisungen) {
+        QVariantMap m = var.toMap();
+        QString bez = m.value(QStringLiteral("bezeichnung")).toString();
+        q.bindValue(":bez", bez.isEmpty() ? QVariant(QMetaType::fromType<QString>()) : bez);
+        q.bindValue(":id",  m.value(QStringLiteral("id")).toInt());
+        q.bindValue(":pid", projektId);
+        if (!q.exec()) {
+            qWarning() << "verbindungenBulkBezeichnungSetzen:" << q.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+    }
+    return m_db.commit();
+}
+
+// ============================================================
 // alleSeitenFlach
 // Gibt alle Seiten eines Projekts als flache Liste zurück.
 // Wird im EigenschaftenPanel für den Querverweis-Seitenpicker

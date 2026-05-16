@@ -139,6 +139,13 @@ ApplicationWindow {
         property string language: "system"
     }
 
+    Settings {
+        id: panelBreiten
+        category: "panels"
+        property int sidebarBreite:    200
+        property int seitenBaumBreite: 280
+    }
+
     property string aktivSprache: langSettings.language
 
     Shortcut {
@@ -220,10 +227,12 @@ ApplicationWindow {
         // Navigationsleiste (Linke Sidebar)
         // --------------------------------------------------------
         Rectangle {
-            id:                 sidebar
-            width:              200
-            Layout.fillHeight:  true
-            color:              appTheme.sidebar
+            id:                    sidebar
+            Layout.preferredWidth: panelBreiten.sidebarBreite
+            Layout.fillHeight:     true
+            color:                 appTheme.sidebar
+
+            onWidthChanged: if (width >= 150) panelBreiten.sidebarBreite = width
 
             DebugLabel { panelName: qsTr("Navigationsleiste"); visible: root.debugModeAktiv }
 
@@ -433,10 +442,34 @@ ApplicationWindow {
             }
         }
 
+        // Drag-Handle Sidebar ↔ Hauptbereich
         Rectangle {
-            width:             1
+            id:                sidebarGriff
+            width:             4
             Layout.fillHeight: true
-            color:             appTheme.border
+            color:             sidebarDrag.active || sidebarHover.hovered
+                               ? appTheme.accent : appTheme.border
+
+            property real _startW: 0
+
+            HoverHandler {
+                id:          sidebarHover
+                cursorShape: Qt.SizeHorCursor
+            }
+
+            DragHandler {
+                id:            sidebarDrag
+                target:        null
+                xAxis.enabled: true
+                yAxis.enabled: false
+                onActiveChanged: if (active) sidebarGriff._startW = sidebar.Layout.preferredWidth
+                onTranslationChanged: {
+                    if (!active) return
+                    var newW = Math.max(150, Math.min(350, sidebarGriff._startW + translation.x))
+                    sidebar.Layout.preferredWidth = newW
+                    panelBreiten.sidebarBreite    = newW
+                }
+            }
         }
 
         // --------------------------------------------------------
@@ -481,9 +514,10 @@ ApplicationWindow {
                     spacing:      0
 
                     SeitenBaum {
-                        Layout.preferredWidth: 280
+                        id:                    seitenBaum
+                        Layout.preferredWidth: panelBreiten.seitenBaumBreite
                         Layout.fillHeight:     true
-                        theme:                 appTheme
+                        theme:             appTheme
                         debug:                 root.debugModeAktiv
                         projektId:             root.aktivProjektId
                         projektName:           root.aktivProjektName
@@ -521,12 +555,38 @@ ApplicationWindow {
                             root.aktiverCanvas.paletteSymbolId = "klemme_anschluss"
                             root.aktiverCanvas.aktivesWerkzeug = "symbol"
                         }
+
+                        onWidthChanged: if (width >= 180) panelBreiten.seitenBaumBreite = width
                     }
 
+                    // Drag-Handle SeitenBaum ↔ SymbolPalette
                     Rectangle {
-                        width:             1
+                        id:                seitenBaumGriff
+                        width:             4
                         Layout.fillHeight: true
-                        color:             appTheme.border
+                        color:             seitenBaumDrag.active || seitenBaumHover.hovered
+                                           ? appTheme.accent : appTheme.border
+
+                        property real _startW: 0
+
+                        HoverHandler {
+                            id:          seitenBaumHover
+                            cursorShape: Qt.SizeHorCursor
+                        }
+
+                        DragHandler {
+                            id:            seitenBaumDrag
+                            target:        null
+                            xAxis.enabled: true
+                            yAxis.enabled: false
+                            onActiveChanged: if (active) seitenBaumGriff._startW = seitenBaum.Layout.preferredWidth
+                            onTranslationChanged: {
+                                if (!active) return
+                                var newW = Math.max(180, Math.min(500, seitenBaumGriff._startW + translation.x))
+                                seitenBaum.Layout.preferredWidth = newW
+                                panelBreiten.seitenBaumBreite    = newW
+                            }
+                        }
                     }
 
                     SymbolPalette {
@@ -559,18 +619,18 @@ ApplicationWindow {
                         }
                     }
 
+                    //\u2500\u2500 Arbeitsbereich: ein oder zwei CanvasPanels \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
                     Rectangle {
                         width:             1
                         Layout.fillHeight: true
                         color:             appTheme.border
                     }
 
-                    // \u2500\u2500 Arbeitsbereich: ein oder zwei CanvasPanels \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
                     SplitView {
-                        id: arbeitsSplitView
+                        id:                arbeitsSplitView
                         Layout.fillWidth:  true
                         Layout.fillHeight: true
-                        orientation: root.splitHorizontal ? Qt.Horizontal : Qt.Vertical
+                        orientation:       root.splitHorizontal ? Qt.Horizontal : Qt.Vertical
 
                         CanvasPanel {
                             id:                   panel1

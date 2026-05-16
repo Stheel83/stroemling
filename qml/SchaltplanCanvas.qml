@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import QtCore
 import "components"
 import "canvas"
 
@@ -1393,6 +1394,28 @@ Item {
                     var gx=pts[i].x*root.zoom+root.worldX, gy=pts[i].y*root.zoom+root.worldY
                     ctx.fillRect(gx-5,gy-5,10,10); ctx.strokeRect(gx-5,gy-5,10,10)
                 }
+            }
+
+            // Debug: Element-Beschriftung (Strg+Shift+D)
+            if (root.debug && !vorschau) {
+                ctx.save()
+                var dbgLabel = idx + ": " + el.typ
+                if (el.typ === "symbol") dbgLabel += "/" + (el.symbolId || "?")
+                if (el.id) dbgLabel += " #" + el.id
+                var dbgFs = Math.max(8, Math.round(7 * root.zoom))
+                var dbgCx = (vx1 + vx2) / 2
+                var dbgTy = Math.min(vy1, vy2) - 1
+                ctx.font         = dbgFs + "px monospace"
+                ctx.textAlign    = "center"
+                ctx.textBaseline = "bottom"
+                ctx.globalAlpha  = 0.9
+                ctx.fillStyle    = "#000000"
+                ctx.lineWidth    = 2
+                ctx.strokeStyle  = "#000000"
+                ctx.strokeText(dbgLabel, dbgCx, dbgTy)
+                ctx.fillStyle    = "#ff8800"
+                ctx.fillText(dbgLabel, dbgCx, dbgTy)
+                ctx.restore()
             }
         }
 
@@ -2974,11 +2997,53 @@ Item {
     // Eigenschaften-Panel (rechts, NACH interaktionArea deklariert
     // → höherer Z-Index → bekommt alle Klicks zuerst)
     // --------------------------------------------------------
+    Settings {
+        id: epBreitenSettings
+        category: "ep_panel"
+        property int breite: 220
+    }
+
+    MouseArea {
+        id: epResizeGriff
+        visible:      eigenschaftenPanel.visible
+        z:            eigenschaftenPanel.z + 1
+        width:        4
+        cursorShape:  Qt.SizeHorCursor
+        hoverEnabled: true
+        anchors {
+            top:    headerBar.bottom
+            bottom: footerBar.top
+            right:  eigenschaftenPanel.left
+        }
+
+        property real _startX: 0
+        property real _startW: 0
+
+        Rectangle {
+            anchors.fill: parent
+            color: parent.containsMouse || parent.pressed ? theme.accent : theme.border
+        }
+
+        onPressed: function(mouse) {
+            _startX = mapToItem(root, mouse.x, 0).x
+            _startW = eigenschaftenPanel.width
+        }
+        onPositionChanged: function(mouse) {
+            if (!pressed) return
+            var currX = mapToItem(root, mouse.x, 0).x
+            var delta = currX - _startX
+            var newW = Math.max(150, Math.min(450, _startW - delta))
+            eigenschaftenPanel.width = newW
+            epBreitenSettings.breite = newW
+        }
+    }
+
     Rectangle {
         id: eigenschaftenPanel
         visible:  (root.auswahl.length > 0 || root.ausgewaehltVerbindung !== null) && root.seiteId >= 0
         anchors { top: headerBar.bottom; bottom: footerBar.top; right: parent.right }
-        width: 220; color: theme.surfaceDeep; border.color: theme.border; border.width: 1
+        width: epBreitenSettings.breite
+        color: theme.surfaceDeep; border.color: theme.border; border.width: 1
 
         EigenschaftenPanel { anchors.fill: parent; canvas: root; theme: root.theme; debug: root.debug }
     }
@@ -3573,6 +3638,30 @@ Item {
         return drawCanvas.kabelSchnittNetzeBerechnen(el, drawCanvas.autoNetzeBerechnen())
     }
 
+    // Baut eine Map netKey → anschlusskennzeichnung des Geräte-Pins am Netzende.
+    // Wird für den Aderzuordnungsmodus „Pin-Nummer" (M10) benötigt.
+    function _pinNummernFuerNetze(netze) {
+        var els = elementeModel.snapshot()
+        var map = {}
+        for (var ni = 0; ni < netze.length; ni++) {
+            var net  = netze[ni]
+            var segs = net.segmente
+            for (var si = 0; si < segs.length; si++) {
+                var seg = segs[si]
+                for (var k = 0; k < 2; k++) {
+                    var idx = k === 0 ? seg.elIdxA : seg.elIdxB
+                    if (idx === undefined) continue
+                    var el  = els[idx]
+                    if (!el || el.typ !== "symbol" || el.symbolId !== "geraeteanschluss") continue
+                    var ank = (el.extraDaten && el.extraDaten.anschlusskennzeichnung) || ""
+                    if (ank && !map[net.netKey]) { map[net.netKey] = ank; break }
+                }
+                if (map[net.netKey]) break
+            }
+        }
+        return map
+    }
+
     // Öffnet den Aderzuordnungsdialog für das übergebene kabellinie-Element
     // (wird aus EigenschaftenPanel aufgerufen).
     function aderzuordnungDialogOeffnen(el) {
@@ -3598,8 +3687,9 @@ Item {
         var currentEl = freshEl || el
         var freshGeid = currentEl.id || 0
 
-        var details  = db.kabelLinieDetails(freshGeid)
-        var schnitte = root.kabelSchnittNetzeBerechnen(currentEl)
+        var details = db.kabelLinieDetails(freshGeid)
+        var netze   = drawCanvas.autoNetzeBerechnen()
+        var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(currentEl, netze)
         aderzuordnungDialog.kabelId                    = kabelId
         aderzuordnungDialog.kabelBezeichnung           = ed.bezeichnung || ""
         aderzuordnungDialog.kabeltyp                   = ed.kabeltyp    || ""
@@ -3608,6 +3698,7 @@ Item {
         aderzuordnungDialog.schnittNetze               = schnitte
         aderzuordnungDialog.aderZuordnung              = ed.aderZuordnung || {}
         aderzuordnungDialog.kabellinieGrafikElementId  = freshGeid
+        aderzuordnungDialog.pinNummernMap              = _pinNummernFuerNetze(netze)
         aderzuordnungDialog.open()
     }
 
@@ -4513,8 +4604,8 @@ Item {
 
                         // Aderzuordnungsdialog öffnen wenn Schnittpunkte vorhanden (Phase 6)
                         if (freshKlEl) {
-                            var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(
-                                               freshKlEl, drawCanvas.autoNetzeBerechnen())
+                            var neueNetze  = drawCanvas.autoNetzeBerechnen()
+                            var schnitte   = drawCanvas.kabelSchnittNetzeBerechnen(freshKlEl, neueNetze)
                             if (schnitte.length > 0) {
                                 aderzuordnungDialog.kabelId                   = newKabelId
                                 aderzuordnungDialog.kabelBezeichnung          = kabellinieDialog.bezeichnung
@@ -4524,6 +4615,7 @@ Item {
                                 aderzuordnungDialog.schnittNetze              = schnitte
                                 aderzuordnungDialog.aderZuordnung             = {}
                                 aderzuordnungDialog.kabellinieGrafikElementId = freshKlEl.id || 0
+                                aderzuordnungDialog.pinNummernMap             = _pinNummernFuerNetze(neueNetze)
                                 aderzuordnungDialog.open()
                             }
                         }

@@ -35,8 +35,12 @@ Dialog {
     property var    adern:        []   // [{aderNr, farbe, bezeichnung, verbindungId}]
     property var    schnittNetze: []   // [{netKey, verbindungId, bezeichnung, signaltyp}] sortiert nach t
 
-    // Modus: 0=Reihenfolge, 1=Signalname, 2=Manuell
+    // Modus: 0=Reihenfolge, 1=Signalname, 2=Manuell, 3=Pin-Nummer
     property int modus: 0
+
+    // netKey → anschlusskennzeichnung des Geräte-Pins am Ende des Netzes
+    // (wird aus SchaltplanCanvas befüllt, bevor der Dialog geöffnet wird)
+    property var pinNummernMap: ({})
 
     // _auswahl[i] = Ader-Index + 1 (1-basiert in _effektiveAdern(); 0 = keine)
     // für Kreuzungspunkt i (Index in schnittNetze)
@@ -198,6 +202,19 @@ Dialog {
                 }
                 a[i] = found
             }
+        } else if (root.modus === 2) {
+            // Pin-Nummer: Geräte-Pin am Netzende gibt die Adernummer vor
+            for (var i = 0; i < n; i++) {
+                var nk    = root.schnittNetze[i].netKey || ""
+                var pinNr = nk ? (root.pinNummernMap[nk] || "") : ""
+                var found = 0
+                if (pinNr) {
+                    for (var j = 0; j < ef.length; j++) {
+                        if ((ef[j].bezeichnung || "") === pinNr) { found = j + 1; break }
+                    }
+                }
+                a[i] = found
+            }
         }
 
         root._auswahl = a
@@ -242,7 +259,7 @@ Dialog {
             }
 
             Repeater {
-                model: [qsTr("Reihenfolge"), qsTr("Signalname"), qsTr("Manuell")]
+                model: [qsTr("Reihenfolge"), qsTr("Signalname"), qsTr("Pin-Nummer"), qsTr("Manuell")]
                 RadioButton {
                     checked: root.modus === index
                     onClicked: root.modus = index
@@ -265,7 +282,7 @@ Dialog {
             Item { Layout.fillWidth: true }
 
             Button {
-                visible: root.modus !== 2
+                visible: root.modus !== 3
                 text: qsTr("Automatisch ▶")
                 flat: true; implicitHeight: 26
                 contentItem: Text {

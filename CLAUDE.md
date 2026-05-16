@@ -61,6 +61,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund, Konventionen für neue Komponenten |
 | `konzept/20_qml_initialisierung.md` | QML-Initialisierungsreihenfolge: C++-Phase, Singleton, Objektbaum-Aufbau, Component.onCompleted, reaktive Initialisierung durch Nutzer |
 | `konzept/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht nach C++ auslagern; API-Design, Element-Struct, Migrations-Reihenfolge (7 Schritte) |
+| `konzept/23_technische_ablaeufe.md` | Systemabläufe zum Verstehen des Codes: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern, Kabel, Querverweise |
 
 ---
 

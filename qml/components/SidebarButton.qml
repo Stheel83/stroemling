@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 // Wiederverwendbarer Button für die linke Sidebar
 // Verwendung:
@@ -15,7 +16,7 @@ Item {
 
     signal clicked()
 
-    width:  parent.width
+    Layout.fillWidth: true
     height: 48
 
     Rectangle {

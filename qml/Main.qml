@@ -447,25 +447,26 @@ ApplicationWindow {
             id:                sidebarGriff
             width:             4
             Layout.fillHeight: true
-            color:             sidebarDrag.active || sidebarHover.hovered
+            color:             sidebarMa.pressed || sidebarMa.containsMouse
                                ? appTheme.accent : appTheme.border
 
-            property real _startW: 0
-
-            HoverHandler {
-                id:          sidebarHover
+            MouseArea {
+                id:          sidebarMa
+                anchors.fill: parent
                 cursorShape: Qt.SizeHorCursor
-            }
+                hoverEnabled: true
 
-            DragHandler {
-                id:            sidebarDrag
-                target:        null
-                xAxis.enabled: true
-                yAxis.enabled: false
-                onActiveChanged: if (active) sidebarGriff._startW = sidebar.Layout.preferredWidth
-                onTranslationChanged: {
-                    if (!active) return
-                    var newW = Math.max(150, Math.min(350, sidebarGriff._startW + translation.x))
+                property real _startSceneX: 0
+                property real _startW:      0
+
+                onPressed: (mouse) => {
+                    _startSceneX = mapToItem(null, mouse.x, mouse.y).x
+                    _startW      = sidebar.Layout.preferredWidth
+                }
+                onPositionChanged: (mouse) => {
+                    if (!pressed) return
+                    var sceneX = mapToItem(null, mouse.x, mouse.y).x
+                    var newW   = Math.max(150, Math.min(350, _startW + sceneX - _startSceneX))
                     sidebar.Layout.preferredWidth = newW
                     panelBreiten.sidebarBreite    = newW
                 }
@@ -564,25 +565,26 @@ ApplicationWindow {
                         id:                seitenBaumGriff
                         width:             4
                         Layout.fillHeight: true
-                        color:             seitenBaumDrag.active || seitenBaumHover.hovered
+                        color:             seitenBaumMa.pressed || seitenBaumMa.containsMouse
                                            ? appTheme.accent : appTheme.border
 
-                        property real _startW: 0
-
-                        HoverHandler {
-                            id:          seitenBaumHover
+                        MouseArea {
+                            id:          seitenBaumMa
+                            anchors.fill: parent
                             cursorShape: Qt.SizeHorCursor
-                        }
+                            hoverEnabled: true
 
-                        DragHandler {
-                            id:            seitenBaumDrag
-                            target:        null
-                            xAxis.enabled: true
-                            yAxis.enabled: false
-                            onActiveChanged: if (active) seitenBaumGriff._startW = seitenBaum.Layout.preferredWidth
-                            onTranslationChanged: {
-                                if (!active) return
-                                var newW = Math.max(180, Math.min(500, seitenBaumGriff._startW + translation.x))
+                            property real _startSceneX: 0
+                            property real _startW:      0
+
+                            onPressed: (mouse) => {
+                                _startSceneX = mapToItem(null, mouse.x, mouse.y).x
+                                _startW      = seitenBaum.Layout.preferredWidth
+                            }
+                            onPositionChanged: (mouse) => {
+                                if (!pressed) return
+                                var sceneX = mapToItem(null, mouse.x, mouse.y).x
+                                var newW   = Math.max(180, Math.min(500, _startW + sceneX - _startSceneX))
                                 seitenBaum.Layout.preferredWidth = newW
                                 panelBreiten.seitenBaumBreite    = newW
                             }

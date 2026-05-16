@@ -25,7 +25,7 @@ Item {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         ed[key] = val
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     component Trennlinie: Rectangle {
@@ -162,12 +162,12 @@ Item {
                     anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (canvas.projektId < 0) return
+                        if (panel.canvas.projektId < 0) return
                         var bmk = (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmk)
                                   ? panel.el.extraDaten.bmk : ""
                         var praefix = bmk.replace(/\d+$/, "")
                         if (!praefix) praefix = "-?"
-                        var vorschlag = db.naechsteBmkNummer(canvas.projektId, praefix)
+                        var vorschlag = db.naechsteBmkNummer(panel.canvas.projektId, praefix)
                         root.extraSetzen("bmk", vorschlag)
                     }
                 }
@@ -286,7 +286,7 @@ Item {
                             enabled: verknuepfungItem.bmId > 0
                             onClicked: {
                                 db.grafikElementEntknuepfen(panel.el.id)
-                                canvas.eigenschaftAktualisieren("betriebsmittelId", 0)
+                                panel.canvas.eigenschaftAktualisieren("betriebsmittelId", 0)
                             }
                         }
                     }
@@ -316,7 +316,7 @@ Item {
                                 db.betriebsmittelHauptfunktionSetzen(
                                     verknuepfungItem.bmId, panel.el.id)
                                 verknuepfungItem._refresh++
-                                canvas.hfKarteAktualisieren()
+                                panel.canvas.hfKarteAktualisieren()
                             }
                         }
                     }
@@ -338,7 +338,7 @@ Item {
                             hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 db.betriebsmittelBmkSynchronisieren(verknuepfungItem.bmId)
-                                canvas.seiteNeuLaden()
+                                panel.canvas.seiteNeuLaden()
                                 verknuepfungItem._refresh++
                             }
                         }
@@ -426,7 +426,7 @@ Item {
                 if (idx >= 0) arr.splice(idx, 1)
                 else          arr.push(key)
                 ed.erweiterungen = arr
-                canvas.eigenschaftAktualisieren("extraDaten", ed)
+                panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
             }
 
             Column {
@@ -524,13 +524,13 @@ Item {
                     var ed = panel.el && panel.el.extraDaten
                              ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                     ed[ftKey] = v
-                    canvas.eigenschaftAktualisieren("extraDaten", ed)
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
                 function toggleSichtbar() {
                     var ed = panel.el && panel.el.extraDaten
                              ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                     ed[ftKey + "Sichtbar"] = !ftSichtbar
-                    canvas.eigenschaftAktualisieren("extraDaten", ed)
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
                 function verschiebeUm(delta) {
                     var ed  = panel.el && panel.el.extraDaten
@@ -540,7 +540,7 @@ Item {
                     if (ziel < 0 || ziel >= arr.length) return
                     var tmp = arr[ziel]; arr[ziel] = arr[ftPos]; arr[ftPos] = tmp
                     ed.textReihenfolge = arr
-                    canvas.eigenschaftAktualisieren("extraDaten", ed)
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
 
                 Column {
@@ -680,14 +680,14 @@ Item {
                             property real weltWert: (panel.el && panel.el.extraDaten
                                 && panel.el.extraDaten.bmkOffsetX !== undefined)
                                 ? panel.el.extraDaten.bmkOffsetX : 0
-                            text: (weltWert / canvas.mmToPx).toFixed(1)
+                            text: (weltWert / panel.canvas.mmToPx).toFixed(1)
                             Binding on text {
                                 when: !bmkOxTf.activeFocus
-                                value: (bmkOxTf.weltWert / canvas.mmToPx).toFixed(1)
+                                value: (bmkOxTf.weltWert / panel.canvas.mmToPx).toFixed(1)
                             }
                             onEditingFinished: {
                                 var v = parseFloat(text)
-                                if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * canvas.mmToPx)
+                                if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * panel.canvas.mmToPx)
                             }
                             Keys.onEscapePressed: focus = false
                         }
@@ -722,14 +722,14 @@ Item {
                             property real weltWert: (panel.el && panel.el.extraDaten
                                 && panel.el.extraDaten.bmkOffsetY !== undefined)
                                 ? panel.el.extraDaten.bmkOffsetY : -14
-                            text: (weltWert / canvas.mmToPx).toFixed(1)
+                            text: (weltWert / panel.canvas.mmToPx).toFixed(1)
                             Binding on text {
                                 when: !bmkOyTf.activeFocus
-                                value: (bmkOyTf.weltWert / canvas.mmToPx).toFixed(1)
+                                value: (bmkOyTf.weltWert / panel.canvas.mmToPx).toFixed(1)
                             }
                             onEditingFinished: {
                                 var v = parseFloat(text)
-                                if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * canvas.mmToPx)
+                                if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * panel.canvas.mmToPx)
                             }
                             Keys.onEscapePressed: focus = false
                         }
@@ -782,18 +782,18 @@ Item {
             var zielKz = ""
             if (zielId <= 0 && neuKzField.text.trim() !== "") {
                 zielKz = neuKzField.text.trim()
-                zielId = db.betriebsmittelAnlegen(canvas.projektId, zielKz, neuBezField.text.trim())
+                zielId = db.betriebsmittelAnlegen(panel.canvas.projektId, zielKz, neuBezField.text.trim())
             } else if (zielId > 0) {
                 zielKz = db.betriebsmittelKz(zielId)
             }
             if (zielId > 0) {
                 db.grafikElementVerknuepfen(panel.el.id, zielId)
-                canvas.eigenschaftAktualisieren("betriebsmittelId", zielId)
+                panel.canvas.eigenschaftAktualisieren("betriebsmittelId", zielId)
                 if (zielKz !== "") {
                     var ed = panel.el.extraDaten
                              ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                     ed["bmk"] = zielKz
-                    canvas.eigenschaftAktualisieren("extraDaten", ed)
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
             }
         }
@@ -812,7 +812,7 @@ Item {
                 Layout.fillWidth: true
                 height: Math.min(contentHeight, 160)
                 clip: true
-                model: canvas.projektId >= 0 ? db.betriebsmittelListe(canvas.projektId) : []
+                model: panel.canvas.projektId >= 0 ? db.betriebsmittelListe(panel.canvas.projektId) : []
 
                 ScrollBar.vertical: ScrollBar {}
 

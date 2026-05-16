@@ -9,8 +9,8 @@ Item {
     required property var theme
 
     readonly property bool hatSymbole: {
-        for (var i = 0; i < canvas.auswahl.length; i++) {
-            var idx = canvas.auswahl[i]
+        for (var i = 0; i < panel.canvas.auswahl.length; i++) {
+            var idx = panel.canvas.auswahl[i]
             if (idx >= 0 && idx < elementeModel.anzahl
                     && elementeModel.element(idx).typ === "symbol") return true
         }
@@ -18,7 +18,7 @@ Item {
     }
 
     width:   parent ? parent.width : 0
-    height:  (canvas.auswahl.length > 1 && hatSymbole) ? multiCol.implicitHeight : 0
+    height:  (panel.canvas.auswahl.length > 1 && hatSymbole) ? multiCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 
@@ -67,7 +67,7 @@ Item {
                 MiniButton { theme: theme;
                     label:   modelData.anzeige
                     breite:  40
-                    onKlick: canvas.eigenschaftAktualisieren("rotation", modelData.wert)
+                    onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.wert)
                 }
             }
         }
@@ -77,9 +77,9 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme; label: qsTr("↺ 90°");  breite: 56; tooltip: qsTr("90° gegen Uhrzeigersinn um linken Pin"); onKlick: canvas.multiRotationUmPivot(270) }
-            MiniButton { theme: theme; label: qsTr("180°");   breite: 40; tooltip: qsTr("180° um linken Pin");                    onKlick: canvas.multiRotationUmPivot(180) }
-            MiniButton { theme: theme; label: qsTr("90° ↻");  breite: 56; tooltip: qsTr("90° im Uhrzeigersinn um linken Pin");    onKlick: canvas.multiRotationUmPivot(90)  }
+            MiniButton { theme: theme; label: qsTr("↺ 90°");  breite: 56; tooltip: qsTr("90° gegen Uhrzeigersinn um linken Pin"); onKlick: panel.canvas.multiRotationUmPivot(270) }
+            MiniButton { theme: theme; label: qsTr("180°");   breite: 40; tooltip: qsTr("180° um linken Pin");                    onKlick: panel.canvas.multiRotationUmPivot(180) }
+            MiniButton { theme: theme; label: qsTr("90° ↻");  breite: 56; tooltip: qsTr("90° im Uhrzeigersinn um linken Pin");    onKlick: panel.canvas.multiRotationUmPivot(90)  }
         }
         Item { height: 8 }
     }

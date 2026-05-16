@@ -24,7 +24,7 @@ Item {
                       ? (panel.el.extraDaten.kabelId || 0) : 0
         if (kabelId <= 0) return 0
         var linien = db.kabelAlleLinienLaden(kabelId + (panel._refresh * 0))
-        var mySeite = canvas.seiteId
+        var mySeite = panel.canvas.seiteId
         for (var li = 0; li < linien.length; li++) {
             if (linien[li].seiteId === mySeite)
                 return linien[li].grafikElementId || 0
@@ -36,14 +36,14 @@ Item {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         ed[key] = val
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     function extraSetzenMehrfach(felder) {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         for (var k in felder) ed[k] = felder[k]
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     component Trennlinie: Rectangle {
@@ -325,7 +325,7 @@ Item {
                 color: parent.hovered && parent.enabled ? theme.hover : theme.inputBg
                 radius: 3; border.color: theme.border
             }
-            onClicked: canvas.aderzuordnungDialogOeffnen(panel.el)
+            onClicked: panel.canvas.aderzuordnungDialogOeffnen(panel.el)
         }
         Item { height: 4 }
 
@@ -401,7 +401,7 @@ Item {
                         }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                            onClicked: { canvas.querverweisNavigieren(modelData.seiteId); panel._refresh++ }
+                            onClicked: { panel.canvas.querverweisNavigieren(modelData.seiteId); panel._refresh++ }
                         }
                     }
                 }
@@ -515,7 +515,7 @@ Item {
                             Rectangle {
                                 width: 10; height: 10; radius: 5
                                 visible: (modelData.farbe || "") !== ""
-                                color: canvas ? canvas.iecFarbe(modelData.farbe || "") : "#888888"
+                                color: canvas ? panel.canvas.iecFarbe(modelData.farbe || "") : "#888888"
                                 border.color: "#00000055"; border.width: 1
                                 Layout.alignment: Qt.AlignVCenter
                             }

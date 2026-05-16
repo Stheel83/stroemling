@@ -19,7 +19,7 @@ Item {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         ed[key] = val
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     component Trennlinie: Rectangle {
@@ -132,10 +132,10 @@ Item {
                 onClicked: {
                     var el = panel.el
                     if (!el || !(el.id > 0)) return
-                    var newId = db.makroSpeichern(el.id, canvas.seiteId)
+                    var newId = db.makroSpeichern(el.id, panel.canvas.seiteId)
                     if (newId > 0) {
                         root.extraSetzen("makroId", newId)
-                        canvas.makroListeGeaendert()
+                        panel.canvas.makroListeGeaendert()
                     }
                 }
             }
@@ -157,7 +157,7 @@ Item {
                     if (mkId > 0) {
                         db.makroLoeschen(mkId)
                         root.extraSetzen("makroId", 0)
-                        canvas.makroListeGeaendert()
+                        panel.canvas.makroListeGeaendert()
                     }
                 }
             }

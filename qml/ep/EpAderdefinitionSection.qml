@@ -17,7 +17,7 @@ Item {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         ed[key] = val
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     component Trennlinie: Rectangle {
@@ -56,9 +56,9 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
             MiniButton { theme: theme; label: "0°";  aktiv: panel.s("rotation", 0) === 0;  breite: 56
-                onKlick: canvas.eigenschaftAktualisieren("rotation", 0)  }
+                onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 0)  }
             MiniButton { theme: theme; label: "90°"; aktiv: panel.s("rotation", 0) === 90; breite: 56
-                onKlick: canvas.eigenschaftAktualisieren("rotation", 90) }
+                onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 90) }
         }
         Item { height: 8 }
 

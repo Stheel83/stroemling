@@ -67,7 +67,7 @@ Item {
                         event.accepted = false
                     } else {
                         var t = text.replace(/^\n+|\n+$/g, "").trim()
-                        if (t !== "") canvas.eigenschaftAktualisieren("textInhalt", t)
+                        if (t !== "") panel.canvas.eigenschaftAktualisieren("textInhalt", t)
                         focus = false
                         event.accepted = true
                     }
@@ -75,7 +75,7 @@ Item {
                 Keys.onEscapePressed: { text = panel.s("textInhalt", ""); focus = false }
                 onEditingFinished: {
                     var t = text.replace(/^\n+|\n+$/g, "").trim()
-                    if (t !== "") canvas.eigenschaftAktualisieren("textInhalt", t)
+                    if (t !== "") panel.canvas.eigenschaftAktualisieren("textInhalt", t)
                 }
             }
         }
@@ -95,7 +95,7 @@ Item {
                     label:   modelData.anzeige
                     aktiv:   panel.s("textAusrichtung", "links") === modelData.wert
                     breite:  52
-                    onKlick: canvas.eigenschaftAktualisieren("textAusrichtung", modelData.wert)
+                    onKlick: panel.canvas.eigenschaftAktualisieren("textAusrichtung", modelData.wert)
                 }
             }
         }
@@ -110,7 +110,7 @@ Item {
                 Text { anchors.centerIn: parent; text: qsTr("✓"); color: "#ffffff"
                        font.pixelSize: 12; visible: panel.s("textEinpassen", false) }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: canvas.eigenschaftAktualisieren("textEinpassen",
+                    onClicked: panel.canvas.eigenschaftAktualisieren("textEinpassen",
                                    !panel.s("textEinpassen", false)) }
             }
             Text { text: qsTr("Text in Rahmen einpassen"); color: theme.textMuted; font.pixelSize: 11
@@ -126,13 +126,13 @@ Item {
                 label:   qsTr("→ Waagrecht")
                 aktiv:   (panel.s("rotation", 0) % 180) === 0
                 breite:  86
-                onKlick: canvas.eigenschaftAktualisieren("rotation", 0)
+                onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 0)
             }
             MiniButton { theme: theme;
                 label:   qsTr("↑ Senkrecht")
                 aktiv:   (panel.s("rotation", 0) % 180) !== 0
                 breite:  86
-                onKlick: canvas.eigenschaftAktualisieren("rotation", 90)
+                onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 90)
             }
         }
         Item { height: 4 }

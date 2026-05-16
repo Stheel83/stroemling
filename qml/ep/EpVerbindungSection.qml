@@ -97,7 +97,7 @@ Item {
                         when: !bezTf.activeFocus
                         value: panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
                     }
-                    onEditingFinished: canvas.verbindungAnnotationAktualisieren("bezeichnung", text)
+                    onEditingFinished: panel.canvas.verbindungAnnotationAktualisieren("bezeichnung", text)
                     Keys.onEscapePressed: { text = panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""; focus = false }
                 }
             }
@@ -115,10 +115,10 @@ Item {
                     id: vorschlagMa; anchors.fill: parent
                     hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (canvas.projektId < 0) return
-                        var vorschlag = db.naechsteFreiePotenzialNummer(canvas.projektId, "", 1, 1)
+                        if (panel.canvas.projektId < 0) return
+                        var vorschlag = db.naechsteFreiePotenzialNummer(panel.canvas.projektId, "", 1, 1)
                         bezTf.text = vorschlag
-                        canvas.verbindungAnnotationAktualisieren("bezeichnung", vorschlag)
+                        panel.canvas.verbindungAnnotationAktualisieren("bezeichnung", vorschlag)
                     }
                 }
                 ToolTip.visible: vorschlagMa.containsMouse
@@ -145,7 +145,7 @@ Item {
                         width: 14; height: 14; radius: 2
                         anchors.verticalCenter: parent.verticalCenter
                         color: (modelData && modelData.ed && modelData.ed.aderfarbe)
-                               ? canvas.aderFarbeZuCanvas(modelData.ed.aderfarbe) : "transparent"
+                               ? panel.canvas.aderFarbeZuCanvas(modelData.ed.aderfarbe) : "transparent"
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter

@@ -66,7 +66,7 @@ Item {
                 if (!panel.el) return
                 var ed = panel.el.extraDaten ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                 ed.svAnschlusstyp = _keys[currentIndex]
-                canvas.eigenschaftAktualisieren("extraDaten", ed)
+                panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
             }
         }
 
@@ -86,7 +86,7 @@ Item {
                     if (isNaN(v)) return
                     var ed = panel.el.extraDaten ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                     ed.svQsMin = v
-                    canvas.eigenschaftAktualisieren("extraDaten", ed)
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
             }
             Text {
@@ -106,7 +106,7 @@ Item {
                     if (isNaN(v)) return
                     var ed = panel.el.extraDaten ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                     ed.svQsMax = v
-                    canvas.eigenschaftAktualisieren("extraDaten", ed)
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
             }
         }
@@ -125,7 +125,7 @@ Item {
                 if (isNaN(v)) return
                 var ed = panel.el.extraDaten ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
                 ed.svKabelDmMax = v
-                canvas.eigenschaftAktualisieren("extraDaten", ed)
+                panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
             }
         }
 

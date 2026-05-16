@@ -17,7 +17,7 @@ Item {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         ed[key] = val
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     component Trennlinie: Rectangle {

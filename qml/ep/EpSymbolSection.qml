@@ -70,7 +70,7 @@ Item {
                     label:   modelData.anzeige
                     aktiv:   panel.s("rotation", 0) === modelData.wert
                     breite:  40
-                    onKlick: canvas.eigenschaftAktualisieren("rotation", modelData.wert)
+                    onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.wert)
                 }
             }
         }
@@ -92,14 +92,14 @@ Item {
                 tooltip: qsTr("Horizontal spiegeln (Taste X)")
                 aktiv:   panel.s("spiegelX", false)
                 breite:  56
-                onKlick: canvas.eigenschaftAktualisieren("spiegelX", !panel.s("spiegelX", false))
+                onKlick: panel.canvas.eigenschaftAktualisieren("spiegelX", !panel.s("spiegelX", false))
             }
             MiniButton { theme: theme;
                 label:   qsTr("↕ V")
                 tooltip: qsTr("Vertikal spiegeln (Taste Y)")
                 aktiv:   panel.s("spiegelY", false)
                 breite:  56
-                onKlick: canvas.eigenschaftAktualisieren("spiegelY", !panel.s("spiegelY", false))
+                onKlick: panel.canvas.eigenschaftAktualisieren("spiegelY", !panel.s("spiegelY", false))
             }
         }
         Item {

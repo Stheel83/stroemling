@@ -20,18 +20,18 @@ Item {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
         ed[key] = val
-        canvas.eigenschaftAktualisieren("extraDaten", ed)
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     property var qvPartner: {
         if (!panel.el || panel.el.typ !== "symbol" || panel.el.symbolId !== "querverweis") return null
         var sn = (panel.el.extraDaten && panel.el.extraDaten.signalname) || ""
-        if (!sn || canvas.projektId < 0) return null
-        var alle = db.querverweiseLadenProjekt(canvas.projektId)
+        if (!sn || panel.canvas.projektId < 0) return null
+        var alle = db.querverweiseLadenProjekt(panel.canvas.projektId)
         for (var k = 0; k < alle.length; k++) {
             var qv = alle[k]
             if (qv.signalname !== sn) continue
-            if (qv.seiteId === canvas.seiteId && panel.el
+            if (qv.seiteId === panel.canvas.seiteId && panel.el
                 && Math.abs(qv.x1 - panel.el.x1) < 0.5
                 && Math.abs(qv.y1 - panel.el.y1) < 0.5) continue
             return qv
@@ -137,7 +137,7 @@ Item {
                     label:  modelData.label
                     aktiv:  panel.s("rotation", 0) === modelData.rot
                     breite: 36
-                    onKlick: canvas.eigenschaftAktualisieren("rotation", modelData.rot)
+                    onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.rot)
                 }
             }
         }
@@ -165,7 +165,7 @@ Item {
                 visible: root.qvPartner !== null
                 label: qsTr("→ (F)")
                 breite: 48
-                onKlick: canvas.querverweisZurGegenseiteNavigieren()
+                onKlick: panel.canvas.querverweisZurGegenseiteNavigieren()
             }
         }
         Item { height: 6 }
@@ -180,16 +180,16 @@ Item {
             property var offeneQv: {
                 var liste   = [{ label: qsTr("– auswählen –"), sn: "" }]
                 var curEl   = panel.el
-                var curSid  = canvas.seiteId
+                var curSid  = panel.canvas.seiteId
                 var curMode = (curEl && curEl.extraDaten && curEl.extraDaten.suchmodus)
                               || "signal"
-                var alle    = canvas.projektId >= 0
-                              ? db.querverweiseLadenProjekt(canvas.projektId)
+                var alle    = panel.canvas.projektId >= 0
+                              ? db.querverweiseLadenProjekt(panel.canvas.projektId)
                               : []
 
                 var filterAnlage = "", filterOrt = ""
                 if (curMode === "bmk" && curEl) {
-                    var nd   = canvas.normblattDaten
+                    var nd   = panel.canvas.normblattDaten
                     var sk   = panel.strukturkastenFuer(curEl)
                     filterAnlage = sk && sk.anlage ? sk.anlage
                                   : (nd ? nd.anlageKuerzel || "" : "")

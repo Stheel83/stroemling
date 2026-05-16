@@ -99,7 +99,7 @@ Item {
             model:   panel.farbpalette
             value:   panel.s("strichFarbe", theme.accent)
             theme:   theme
-            onColorSelected: function(c) { canvas.eigenschaftAktualisieren("strichFarbe", c) }
+            onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("strichFarbe", c) }
         }
         Item { height: 8; visible: !panel.el || panel.el.typ !== "bild" }
 
@@ -125,7 +125,7 @@ Item {
                             tooltip: modelData.anzeige + " mm"
                             aktiv:   Math.abs(panel.s("strichBreite", 1.5) - modelData.wert) < 0.01
                             breite:  32
-                            onKlick: canvas.eigenschaftAktualisieren("strichBreite", modelData.wert)
+                            onKlick: panel.canvas.eigenschaftAktualisieren("strichBreite", modelData.wert)
                         }
                     }
                 }
@@ -144,7 +144,7 @@ Item {
                 SchriftgrosseSelektor {
                     wert: panel.s("strichBreite", 3.5)
                     onWertGeaendert: function(v) {
-                        canvas.eigenschaftAktualisieren("strichBreite", v)
+                        panel.canvas.eigenschaftAktualisieren("strichBreite", v)
                     }
                 }
                 Item { height: 8 }
@@ -169,7 +169,7 @@ Item {
                     aktiv:   panel.s("strichArt", "solid") === modelData.wert
                     breite:  58
                     mono:    true
-                    onKlick: canvas.eigenschaftAktualisieren("strichArt", modelData.wert)
+                    onKlick: panel.canvas.eigenschaftAktualisieren("strichArt", modelData.wert)
                 }
             }
         }
@@ -200,7 +200,7 @@ Item {
                         }
                         onEditingFinished: {
                             var v = parseInt(text)
-                            if (!isNaN(v)) canvas.eigenschaftAktualisieren("opazitaet", Math.max(0.05, Math.min(1.0, v/100)))
+                            if (!isNaN(v)) panel.canvas.eigenschaftAktualisieren("opazitaet", Math.max(0.05, Math.min(1.0, v/100)))
                         }
                         Keys.onEscapePressed: { text = Math.round(panel.s("opazitaet", 1.0) * 100); focus = false }
                     }
@@ -213,7 +213,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             von: 0.05; bis: 1.0; schritt: 0.05
             wert: panel.s("opazitaet", 1.0)
-            onGeaendert: function(v) { canvas.eigenschaftAktualisieren("opazitaet", v) }
+            onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("opazitaet", v) }
         }
     }
 }

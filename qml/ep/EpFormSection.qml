@@ -51,7 +51,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 20; schritt: 1
             wert: panel.s("eckenRadius", 0)
-            onGeaendert: function(v) { canvas.eigenschaftAktualisieren("eckenRadius", v) }
+            onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("eckenRadius", v) }
         }
     }
 }

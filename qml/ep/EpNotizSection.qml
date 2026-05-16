@@ -66,14 +66,14 @@ Item {
                         event.accepted = false
                     } else {
                         var t = text.replace(/^\n+|\n+$/g, "").trim()
-                        if (t !== "") canvas.eigenschaftAktualisieren("textInhalt", t)
+                        if (t !== "") panel.canvas.eigenschaftAktualisieren("textInhalt", t)
                         focus = false; event.accepted = true
                     }
                 }
                 Keys.onEscapePressed: { text = panel.s("textInhalt", ""); focus = false }
                 onEditingFinished: {
                     var t = text.replace(/^\n+|\n+$/g, "").trim()
-                    if (t !== "") canvas.eigenschaftAktualisieren("textInhalt", t)
+                    if (t !== "") panel.canvas.eigenschaftAktualisieren("textInhalt", t)
                 }
             }
         }
@@ -93,7 +93,7 @@ Item {
                     border.width: (panel.s("fuellFarbe","#1a1a00") === modelData) ? 2 : 1
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: canvas.eigenschaftAktualisieren("fuellFarbe", modelData)
+                        onClicked: panel.canvas.eigenschaftAktualisieren("fuellFarbe", modelData)
                     }
                 }
             }

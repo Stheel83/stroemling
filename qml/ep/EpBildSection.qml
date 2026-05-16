@@ -59,7 +59,7 @@ Item {
                     label:   modelData.anzeige
                     aktiv:   panel.s("rotation", 0) === modelData.wert
                     breite:  40
-                    onKlick: canvas.eigenschaftAktualisieren("rotation", modelData.wert)
+                    onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.wert)
                 }
             }
         }
@@ -94,7 +94,7 @@ Item {
                         }
                         onEditingFinished: {
                             var v = parseFloat(text)
-                            if (!isNaN(v)) canvas.eigenschaftAktualisieren("rotation", ((v % 360) + 360) % 360)
+                            if (!isNaN(v)) panel.canvas.eigenschaftAktualisieren("rotation", ((v % 360) + 360) % 360)
                         }
                         Keys.onEscapePressed: { text = panel.s("rotation", 0).toFixed(1); focus = false }
                     }
@@ -113,14 +113,14 @@ Item {
                 tooltip: qsTr("Horizontal spiegeln (Taste X)")
                 aktiv:   panel.s("spiegelX", false)
                 breite:  56
-                onKlick: canvas.eigenschaftAktualisieren("spiegelX", !panel.s("spiegelX", false))
+                onKlick: panel.canvas.eigenschaftAktualisieren("spiegelX", !panel.s("spiegelX", false))
             }
             MiniButton { theme: theme;
                 label:   qsTr("↕ V")
                 tooltip: qsTr("Vertikal spiegeln (Taste Y)")
                 aktiv:   panel.s("spiegelY", false)
                 breite:  56
-                onKlick: canvas.eigenschaftAktualisieren("spiegelY", !panel.s("spiegelY", false))
+                onKlick: panel.canvas.eigenschaftAktualisieren("spiegelY", !panel.s("spiegelY", false))
             }
         }
         Item { height: 8 }
@@ -136,7 +136,7 @@ Item {
                 Text { anchors.centerIn: parent; text: qsTr("✓"); color: "#ffffff"
                        font.pixelSize: 12; visible: panel.s("proportional", false) }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: canvas.eigenschaftAktualisieren("proportional",
+                    onClicked: panel.canvas.eigenschaftAktualisieren("proportional",
                                    !panel.s("proportional", false)) }
             }
             Text { text: qsTr("Seitenverhältnis beibehalten"); color: theme.textMuted
@@ -157,12 +157,12 @@ Item {
                 color: theme.inputBg; border.color: theme.border
                 Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 9; color: theme.accent }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: canvas.eigenschaftAktualisieren("ausschnittLinks", 0) }
+                    onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittLinks", 0) }
             }
         }
         StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittLinks", 0)
-            onGeaendert: function(v) { canvas.eigenschaftAktualisieren("ausschnittLinks", v) } }
+            onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittLinks", v) } }
 
         Item {
             width: root.width; height: 22
@@ -175,12 +175,12 @@ Item {
                 color: theme.inputBg; border.color: theme.border
                 Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 9; color: theme.accent }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: canvas.eigenschaftAktualisieren("ausschnittRechts", 0) }
+                    onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittRechts", 0) }
             }
         }
         StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittRechts", 0)
-            onGeaendert: function(v) { canvas.eigenschaftAktualisieren("ausschnittRechts", v) } }
+            onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittRechts", v) } }
 
         Item {
             width: root.width; height: 22
@@ -193,12 +193,12 @@ Item {
                 color: theme.inputBg; border.color: theme.border
                 Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 9; color: theme.accent }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: canvas.eigenschaftAktualisieren("ausschnittOben", 0) }
+                    onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittOben", 0) }
             }
         }
         StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittOben", 0)
-            onGeaendert: function(v) { canvas.eigenschaftAktualisieren("ausschnittOben", v) } }
+            onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittOben", v) } }
 
         Item {
             width: root.width; height: 22
@@ -211,12 +211,12 @@ Item {
                 color: theme.inputBg; border.color: theme.border
                 Text { anchors.centerIn: parent; text: qsTr("✕"); font.pixelSize: 9; color: theme.accent }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: canvas.eigenschaftAktualisieren("ausschnittUnten", 0) }
+                    onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittUnten", 0) }
             }
         }
         StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittUnten", 0)
-            onGeaendert: function(v) { canvas.eigenschaftAktualisieren("ausschnittUnten", v) } }
+            onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittUnten", v) } }
 
         Item { height: 4 }
     }

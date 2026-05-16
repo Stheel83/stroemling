@@ -56,7 +56,7 @@ Item {
                        visible: panel.s("fuell", false) }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                             hoverEnabled: true
-                            onClicked: canvas.eigenschaftAktualisieren("fuell", !panel.s("fuell", false))
+                            onClicked: panel.canvas.eigenschaftAktualisieren("fuell", !panel.s("fuell", false))
                             ToolTip.visible: containsMouse
                             ToolTip.text:    qsTr("Füllung ein-/ausschalten")
                             ToolTip.delay:   500 }
@@ -79,7 +79,7 @@ Item {
                     model: panel.farbpalette
                     value: panel.s("fuellFarbe", theme.activeItemAlt)
                     theme: theme
-                    onColorSelected: function(c) { canvas.eigenschaftAktualisieren("fuellFarbe", c) }
+                    onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
                 }
                 Item { height: 8 }
 
@@ -108,7 +108,7 @@ Item {
                                 }
                                 onEditingFinished: {
                                     var v = parseInt(text)
-                                    if (!isNaN(v)) canvas.eigenschaftAktualisieren("fuellOpazitaet", Math.max(0.05, Math.min(1.0, v/100)))
+                                    if (!isNaN(v)) panel.canvas.eigenschaftAktualisieren("fuellOpazitaet", Math.max(0.05, Math.min(1.0, v/100)))
                                 }
                                 Keys.onEscapePressed: { text = Math.round(panel.s("fuellOpazitaet", 0.3) * 100); focus = false }
                             }
@@ -121,7 +121,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     von: 0.05; bis: 1.0; schritt: 0.05
                     wert: panel.s("fuellOpazitaet", 0.3)
-                    onGeaendert: function(v) { canvas.eigenschaftAktualisieren("fuellOpazitaet", v) }
+                    onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("fuellOpazitaet", v) }
                 }
             }
         }

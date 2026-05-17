@@ -126,6 +126,10 @@ qt_add_qml_module(stroemling_app
         qml/IbnFeldEditorDialog.qml
         qml/CanvasPanel.qml
         qml/KommandoPalette.qml
+        qml/NormblattEditorDialog.qml
+        qml/nb/NormblattEditorCanvas.qml
+        qml/nb/NormblattFeldPalette.qml
+        qml/nb/NormblattFeldProperties.qml
 )
 
 qt_add_resources(stroemling_app "database_seeds"

@@ -330,6 +330,52 @@ Item {
             ctx.lineWidth   = Math.max(1, s(0.7))
             ctx.strokeRect(iX0, iY0, iW, iH)
 
+            // ── Benutzerdefinierte Felder (Phase 2) ──────────────────────
+            var _felder = nd.felder
+            if (_felder && _felder.length > 0) {
+                var _feldWert = function(f) {
+                    var ft = f.feldtyp || "fest"
+                    if (ft === "fest")            return f.inhalt || ""
+                    if (ft === "datum")           return datumText()
+                    if (ft === "vollkennzeichen") return vollkz()
+                    if (ft === "format")          return formatText()
+                    var qs = f.quelleSpalte || ""
+                    var qmap = {
+                        "name": nd.projektName,         "projektnummer": nd.projektnummer,
+                        "auftraggeber": nd.auftraggeber, "auftragnehmer": nd.auftragnehmer,
+                        "bearbeiter": nd.bearbeiter,    "norm": nd.norm,
+                        "blattnummer": nd.blattnummer,  "bezeichnung": nd.bezeichnung,
+                        "anlage_kuerzel": nd.anlageKuerzel, "ort_kuerzel": nd.ortKuerzel
+                    }
+                    return (qmap[qs] || "").toString()
+                }
+                for (var _fi = 0; _fi < _felder.length; _fi++) {
+                    var _f = _felder[_fi]
+                    var _fx = sx(_f.xMm   * mpx)
+                    var _fy = sy(_f.yMm   * mpx)
+                    var _fw = s(_f.breiteMm)
+                    var _fh = s(_f.hoeheMm)
+                    if (_f.feldtyp === "logo") {
+                        if (root.normblattLogoUrl && drawCanvas.isImageLoaded(root.normblattLogoUrl)) {
+                            ctx.save()
+                            ctx.beginPath(); ctx.rect(_fx+1, _fy+1, _fw-2, _fh-2); ctx.clip()
+                            var _pad = s(2)
+                            ctx.drawImage(root.normblattLogoUrl, _fx+_pad, _fy+_pad, _fw-2*_pad, _fh-2*_pad)
+                            ctx.restore()
+                        }
+                    } else {
+                        zelle(_f.label || "", _feldWert(_f), _fx, _fy, _fw, _fh)
+                    }
+                    if (_f.rahmen) {
+                        ctx.strokeStyle = "#2a5080"
+                        ctx.lineWidth   = Math.max(0.5, s(0.25))
+                        ctx.strokeRect(_fx, _fy, _fw, _fh)
+                    }
+                }
+                ctx.restore()
+                return
+            }
+
             var vorlage = (nd.titelblattVorlage || "din6771").toString()
 
             // ── Schriftfeld ──────────────────────────────────────────────

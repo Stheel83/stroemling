@@ -316,6 +316,15 @@ ApplicationWindow {
                     opacity: enabled ? 1.0 : 0.4
                     onClicked: root.aktiveAnsicht = "ibn"
                 }
+                SidebarButton {
+                    theme:   appTheme
+                    icon:    "📐"
+                    label:   qsTr("Normblatt")
+                    active:  root.aktiveAnsicht === "normblatt"
+                    enabled: root.aktivProjektId >= 0
+                    opacity: enabled ? 1.0 : 0.4
+                    onClicked: root.aktiveAnsicht = "normblatt"
+                }
 
                 Item { Layout.fillHeight: true }
 
@@ -1016,6 +1025,13 @@ ApplicationWindow {
                     }
                 }
             }
+
+            // ── Normblatt-Vorlagen-Editor ──────────────────────────────
+            NormblattEditorDialog {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "normblatt"
+                theme:        appTheme
+            }
         }
     }
 
@@ -1043,4 +1059,5 @@ ApplicationWindow {
             }
         }
     }
+
 }

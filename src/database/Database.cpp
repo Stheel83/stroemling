@@ -176,6 +176,7 @@ bool Database::dropAllTables()
         "ort",
         "anlage",
         "changelog",
+        "normblatt_feld",
         "normblatt_vorlage",
         "projekt",
         "schema_version"
@@ -244,6 +245,31 @@ bool Database::createSchema()
         )
     )")) {
         qWarning() << "Fehler normblatt_vorlage:" << q.lastError().text();
+        return false;
+    }
+
+    // ----------------------------------------------------------
+    // Normblatt Felder
+    // ----------------------------------------------------------
+    if (!q.exec(R"(
+        CREATE TABLE normblatt_feld (
+            id             INTEGER PRIMARY KEY,
+            vorlage_id     INTEGER NOT NULL REFERENCES normblatt_vorlage(id) ON DELETE CASCADE,
+            feldtyp        TEXT NOT NULL DEFAULT 'fest',
+            x_mm           REAL NOT NULL DEFAULT 0,
+            y_mm           REAL NOT NULL DEFAULT 0,
+            breite_mm      REAL NOT NULL DEFAULT 50,
+            hoehe_mm       REAL NOT NULL DEFAULT 13,
+            label          TEXT,
+            inhalt         TEXT,
+            quelle_spalte  TEXT,
+            schriftgroesse REAL NOT NULL DEFAULT 3.5,
+            fett           INTEGER NOT NULL DEFAULT 0,
+            rahmen         INTEGER NOT NULL DEFAULT 1,
+            reihenfolge    INTEGER NOT NULL DEFAULT 0
+        )
+    )")) {
+        qWarning() << "Fehler normblatt_feld:" << q.lastError().text();
         return false;
     }
 
@@ -3196,30 +3222,208 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("randRechtsMm")]     = q.value("rand_rechts_mm");
     m[QStringLiteral("randObenMm")]       = q.value("rand_oben_mm");
     m[QStringLiteral("randUntenMm")]      = q.value("rand_unten_mm");
+
+    // Benutzerdefinierte Felder laden (nur wenn normblatt_id gesetzt)
+    {
+        QSqlQuery qnid;
+        qnid.prepare("SELECT normblatt_id FROM seite WHERE id = :sid");
+        qnid.bindValue(":sid", seiteId);
+        if (qnid.exec() && qnid.next()) {
+            QVariant normblattId = qnid.value(0);
+            if (!normblattId.isNull() && normblattId.toInt() > 0) {
+                m[QStringLiteral("normblattVorlageId")] = normblattId;
+                m[QStringLiteral("felder")] = normblattFelderLaden(normblattId.toInt());
+            }
+        }
+    }
+
     return m;
 }
 
 bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                              const QString &hintergrundFarbe,
                                              bool aussenOverlay,
-                                             const QString &titelblattVorlage)
+                                             const QString &titelblattVorlage,
+                                             int normblattId)
 {
     QSqlQuery q;
     q.prepare(R"(UPDATE seite SET
         normblatt_anzeigen = :an,
         hintergrund_farbe  = :hf,
         aussen_overlay     = :ao,
-        titelblatt_vorlage = :tv
+        titelblatt_vorlage = :tv,
+        normblatt_id       = :nid
         WHERE id = :sid)");
     q.bindValue(":an",  anzeigen ? 1 : 0);
     q.bindValue(":hf",  hintergrundFarbe);
     q.bindValue(":ao",  aussenOverlay ? 1 : 0);
     q.bindValue(":tv",  titelblattVorlage.isEmpty() ? QStringLiteral("din6771") : titelblattVorlage);
+    q.bindValue(":nid", normblattId > 0 ? QVariant(normblattId) : QVariant());
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
         qWarning() << "normblattEinstellungenSetzen:" << q.lastError().text();
         return false;
     }
+    return true;
+}
+
+// ============================================================
+// normblattVorlagen* / normblattFelder*
+// ============================================================
+
+QVariantList Database::normblattVorlagenListe()
+{
+    QSqlQuery q;
+    if (!q.exec("SELECT id, name, beschreibung, ist_standard, breite_mm, hoehe_mm, "
+                "rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm "
+                "FROM normblatt_vorlage ORDER BY name")) {
+        qWarning() << "normblattVorlagenListe:" << q.lastError().text();
+        return {};
+    }
+    QVariantList result;
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("id")]           = q.value("id");
+        m[QStringLiteral("name")]         = q.value("name");
+        m[QStringLiteral("beschreibung")] = q.value("beschreibung");
+        m[QStringLiteral("istStandard")]  = q.value("ist_standard");
+        m[QStringLiteral("breiteMm")]     = q.value("breite_mm");
+        m[QStringLiteral("hoeheMm")]      = q.value("hoehe_mm");
+        m[QStringLiteral("randLinksMm")]  = q.value("rand_links_mm");
+        m[QStringLiteral("randRechtsMm")] = q.value("rand_rechts_mm");
+        m[QStringLiteral("randObenMm")]   = q.value("rand_oben_mm");
+        m[QStringLiteral("randUntenMm")]  = q.value("rand_unten_mm");
+        result.append(m);
+    }
+    return result;
+}
+
+int Database::normblattVorlageSpeichern(const QVariantMap &v)
+{
+    QSqlQuery q;
+    if (v.value(QStringLiteral("id")).toInt() > 0) {
+        q.prepare(R"(UPDATE normblatt_vorlage SET
+            name           = :name,
+            beschreibung   = :beschr,
+            breite_mm      = :bMm,
+            hoehe_mm       = :hMm,
+            rand_links_mm  = :rl,
+            rand_rechts_mm = :rr,
+            rand_oben_mm   = :ro,
+            rand_unten_mm  = :ru
+            WHERE id = :id)");
+        q.bindValue(":id",    v.value(QStringLiteral("id")));
+    } else {
+        q.prepare(R"(INSERT INTO normblatt_vorlage
+            (name, beschreibung, breite_mm, hoehe_mm,
+             rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm)
+            VALUES (:name, :beschr, :bMm, :hMm, :rl, :rr, :ro, :ru))");
+    }
+    q.bindValue(":name",   v.value(QStringLiteral("name")));
+    q.bindValue(":beschr", v.value(QStringLiteral("beschreibung")));
+    q.bindValue(":bMm",    v.value(QStringLiteral("breiteMm"),    297.0));
+    q.bindValue(":hMm",    v.value(QStringLiteral("hoeheMm"),     210.0));
+    q.bindValue(":rl",     v.value(QStringLiteral("randLinksMm"),  20.0));
+    q.bindValue(":rr",     v.value(QStringLiteral("randRechtsMm"), 10.0));
+    q.bindValue(":ro",     v.value(QStringLiteral("randObenMm"),   10.0));
+    q.bindValue(":ru",     v.value(QStringLiteral("randUntenMm"),  10.0));
+    if (!q.exec()) {
+        qWarning() << "normblattVorlageSpeichern:" << q.lastError().text();
+        return -1;
+    }
+    if (v.value(QStringLiteral("id")).toInt() > 0)
+        return v.value(QStringLiteral("id")).toInt();
+    return q.lastInsertId().toInt();
+}
+
+bool Database::normblattVorlageLoeschen(int vorlageId)
+{
+    QSqlQuery q;
+    q.prepare("DELETE FROM normblatt_vorlage WHERE id = :id");
+    q.bindValue(":id", vorlageId);
+    if (!q.exec()) {
+        qWarning() << "normblattVorlageLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+QVariantList Database::normblattFelderLaden(int vorlageId)
+{
+    QSqlQuery q;
+    q.prepare(R"(SELECT id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm,
+                        label, inhalt, quelle_spalte,
+                        schriftgroesse, fett, rahmen, reihenfolge
+                 FROM normblatt_feld
+                 WHERE vorlage_id = :vid
+                 ORDER BY reihenfolge, id)");
+    q.bindValue(":vid", vorlageId);
+    if (!q.exec()) {
+        qWarning() << "normblattFelderLaden:" << q.lastError().text();
+        return {};
+    }
+    QVariantList result;
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("id")]            = q.value("id");
+        m[QStringLiteral("feldtyp")]       = q.value("feldtyp");
+        m[QStringLiteral("xMm")]           = q.value("x_mm");
+        m[QStringLiteral("yMm")]           = q.value("y_mm");
+        m[QStringLiteral("breiteMm")]      = q.value("breite_mm");
+        m[QStringLiteral("hoeheMm")]       = q.value("hoehe_mm");
+        m[QStringLiteral("label")]         = q.value("label");
+        m[QStringLiteral("inhalt")]        = q.value("inhalt");
+        m[QStringLiteral("quelleSpalte")]  = q.value("quelle_spalte");
+        m[QStringLiteral("schriftgroesse")]= q.value("schriftgroesse");
+        m[QStringLiteral("fett")]          = q.value("fett");
+        m[QStringLiteral("rahmen")]        = q.value("rahmen");
+        m[QStringLiteral("reihenfolge")]   = q.value("reihenfolge");
+        result.append(m);
+    }
+    return result;
+}
+
+bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felder)
+{
+    QSqlDatabase db = QSqlDatabase::database();
+    if (!db.transaction()) {
+        qWarning() << "normblattFelderSpeichern: Transaction fehlgeschlagen";
+        return false;
+    }
+    QSqlQuery q;
+    q.prepare("DELETE FROM normblatt_feld WHERE vorlage_id = :vid");
+    q.bindValue(":vid", vorlageId);
+    if (!q.exec()) {
+        qWarning() << "normblattFelderSpeichern DELETE:" << q.lastError().text();
+        db.rollback();
+        return false;
+    }
+    q.prepare(R"(INSERT INTO normblatt_feld
+        (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm,
+         label, inhalt, quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge)
+        VALUES (:vid, :ft, :x, :y, :b, :h, :lbl, :inh, :qs, :sg, :fett, :rahmen, :rei))");
+    for (int i = 0; i < felder.size(); ++i) {
+        const QVariantMap f = felder[i].toMap();
+        q.bindValue(":vid",    vorlageId);
+        q.bindValue(":ft",     f.value(QStringLiteral("feldtyp"), QStringLiteral("fest")));
+        q.bindValue(":x",      f.value(QStringLiteral("xMm"), 0.0));
+        q.bindValue(":y",      f.value(QStringLiteral("yMm"), 0.0));
+        q.bindValue(":b",      f.value(QStringLiteral("breiteMm"), 50.0));
+        q.bindValue(":h",      f.value(QStringLiteral("hoeheMm"), 13.0));
+        q.bindValue(":lbl",    f.value(QStringLiteral("label")));
+        q.bindValue(":inh",    f.value(QStringLiteral("inhalt")));
+        q.bindValue(":qs",     f.value(QStringLiteral("quelleSpalte")));
+        q.bindValue(":sg",     f.value(QStringLiteral("schriftgroesse"), 3.5));
+        q.bindValue(":fett",   f.value(QStringLiteral("fett"), 0));
+        q.bindValue(":rahmen", f.value(QStringLiteral("rahmen"), 1));
+        q.bindValue(":rei",    i);
+        if (!q.exec()) {
+            qWarning() << "normblattFelderSpeichern INSERT:" << q.lastError().text();
+            db.rollback();
+            return false;
+        }
+    }
+    db.commit();
     return true;
 }
 

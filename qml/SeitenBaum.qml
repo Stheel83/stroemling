@@ -516,6 +516,7 @@ Item {
         property string altHintergrundFarbe: ""
         property bool   altAussenOverlay:    false
         property string altTitelblattVorlage: "din6771"
+        property var    _normblattVorlagen:   []
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -529,13 +530,23 @@ Item {
             editRandRechts.value = dlgSeiteBearbeiten.altRandRechts
             editRandOben.value   = dlgSeiteBearbeiten.altRandOben
             editRandUnten.value  = dlgSeiteBearbeiten.altRandUnten
+            dlgSeiteBearbeiten._normblattVorlagen = db.normblattVorlagenListe()
             var nd = db.normblattDatenLaden(dlgSeiteBearbeiten.itemId)
             if (nd) {
                 chkNormblatt.checked       = nd.normblattAnzeigen !== false
                 tfHintergrundFarbe.text    = nd.hintergrundFarbe  || ""
                 chkAussenOverlay.checked   = nd.aussenOverlay === 1 || nd.aussenOverlay === true
-                var vi = cmbVorlage.model.indexOf(nd.titelblattVorlage || "din6771")
-                cmbVorlage.currentIndex    = vi >= 0 ? vi : 0
+                if (nd.normblattVorlageId) {
+                    cmbVorlage.currentIndex = 3  // "benutzerdefiniert"
+                    for (var j = 0; j < dlgSeiteBearbeiten._normblattVorlagen.length; j++) {
+                        if (dlgSeiteBearbeiten._normblattVorlagen[j].id === nd.normblattVorlageId) {
+                            cmbVorlageAuswahl.currentIndex = j; break
+                        }
+                    }
+                } else {
+                    var vi = cmbVorlage.model.indexOf(nd.titelblattVorlage || "din6771")
+                    cmbVorlage.currentIndex = vi >= 0 ? vi : 0
+                }
             }
         }
 
@@ -640,15 +651,16 @@ Item {
                 id: cmbVorlage
                 Layout.fillWidth: true
                 visible: chkNormblatt.checked
-                model: ["din6771", "kompakt", "rahmen"]
+                model: ["din6771", "kompakt", "rahmen", "benutzerdefiniert"]
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 contentItem: Text {
                     leftPadding: 8; text: {
                         switch(cmbVorlage.currentText) {
                             case "din6771":  return qsTr("DIN 6771 (vollständiges Schriftfeld)")
                             case "kompakt":  return qsTr("Kompakt (2-zeiliges Schriftfeld)")
-                            case "rahmen":   return qsTr("Nur Rahmen (kein Schriftfeld)")
-                            default:         return cmbVorlage.currentText
+                            case "rahmen":          return qsTr("Nur Rahmen (kein Schriftfeld)")
+                            case "benutzerdefiniert": return qsTr("Benutzerdefiniert …")
+                            default:                  return cmbVorlage.currentText
                         }
                     }
                     color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
@@ -662,14 +674,53 @@ Item {
                             switch(modelData) {
                                 case "din6771": return qsTr("DIN 6771 (vollständiges Schriftfeld)")
                                 case "kompakt": return qsTr("Kompakt (2-zeiliges Schriftfeld)")
-                                case "rahmen":  return qsTr("Nur Rahmen (kein Schriftfeld)")
-                                default:        return modelData
+                                case "rahmen":          return qsTr("Nur Rahmen (kein Schriftfeld)")
+                                case "benutzerdefiniert": return qsTr("Benutzerdefiniert …")
+                                default:                  return modelData
                             }
                         }
                         color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
                     }
                     background: Rectangle { color: highlighted ? theme.hover : "transparent" }
                 }
+            }
+
+            // Benutzerdefinierte Vorlage auswählen
+            Text {
+                text: qsTr("Vorlage auswählen")
+                color: theme.textMuted; font.pixelSize: 12
+                visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
+                height: visible ? implicitHeight : 0
+            }
+            ComboBox {
+                id: cmbVorlageAuswahl
+                Layout.fillWidth: true
+                visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
+                         && dlgSeiteBearbeiten._normblattVorlagen.length > 0
+                model: dlgSeiteBearbeiten._normblattVorlagen.map(function(v) { return v.name })
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                contentItem: Text {
+                    leftPadding: 8; text: cmbVorlageAuswahl.displayText
+                    color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
+                }
+                delegate: ItemDelegate {
+                    required property var modelData
+                    required property int index
+                    width: cmbVorlageAuswahl.width; implicitHeight: 32
+                    highlighted: cmbVorlageAuswahl.highlightedIndex === index
+                    contentItem: Text {
+                        leftPadding: 8; text: modelData
+                        color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle { color: highlighted ? theme.hover : "transparent" }
+                }
+            }
+            Text {
+                text: qsTr("Keine Vorlagen vorhanden. Über 'Normblatt' in der Seitenleiste anlegen.")
+                visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
+                         && dlgSeiteBearbeiten._normblattVorlagen.length === 0
+                color: theme.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap
+                Layout.fillWidth: true
             }
 
             // Außen-Overlay Checkbox (nur wenn Normblatt aktiv)
@@ -745,7 +796,11 @@ Item {
                             chkNormblatt.checked,
                             tfHintergrundFarbe.text.trim(),
                             chkAussenOverlay.checked,
-                            cmbVorlage.currentText)
+                            cmbVorlage.currentText,
+                            (cmbVorlage.currentText === "benutzerdefiniert"
+                             && cmbVorlageAuswahl.currentIndex >= 0
+                             && dlgSeiteBearbeiten._normblattVorlagen.length > 0)
+                                ? dlgSeiteBearbeiten._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
                         root.seiteFormatGeaendert(dlgSeiteBearbeiten.itemId)
                         dlgSeiteBearbeiten.close()
                     }
@@ -1381,4 +1436,5 @@ Item {
     }
 
     DebugLabel { panelName: qsTr("Seitenbaum"); visible: root.debug }
+
 }

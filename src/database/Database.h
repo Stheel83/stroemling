@@ -18,7 +18,7 @@ class Database : public QObject
 public:
     // Aktuelle Schema-Version. Erhöhen wenn sich Tabellenstruktur ändert.
     // Beim Start: stimmt DB-Version nicht überein → alle Tabellen drop + recreate.
-    static const int SCHEMA_VERSION = 37;
+    static const int SCHEMA_VERSION = 38;
 
     explicit Database(QObject *parent = nullptr);
 
@@ -148,10 +148,21 @@ public:
     Q_INVOKABLE QVariantMap normblattDatenLaden(int seiteId);
 
     // Normblatt-Einstellungen für eine Seite speichern.
+    // normblattId=-1 → kein benutzerdefiniertes Normblatt (titelblattVorlage greift).
     Q_INVOKABLE bool normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                                   const QString &hintergrundFarbe,
                                                   bool aussenOverlay,
-                                                  const QString &titelblattVorlage);
+                                                  const QString &titelblattVorlage,
+                                                  int normblattId = -1);
+
+    // Normblatt-Vorlagen (projektübergreifend)
+    Q_INVOKABLE QVariantList normblattVorlagenListe();
+    Q_INVOKABLE int          normblattVorlageSpeichern(const QVariantMap &vorlage);
+    Q_INVOKABLE bool         normblattVorlageLoeschen(int vorlageId);
+
+    // Felder einer Vorlage laden / als Ganzes ersetzen (DELETE + INSERT in Transaction)
+    Q_INVOKABLE QVariantList normblattFelderLaden(int vorlageId);
+    Q_INVOKABLE bool         normblattFelderSpeichern(int vorlageId, const QVariantList &felder);
 
     // ── Inbetriebnahme-Modus ─────────────────────────────────────
     // Alle BM mit BMK für ein Projekt laden; seiteId=-1 = alle Seiten.

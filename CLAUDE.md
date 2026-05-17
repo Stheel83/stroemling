@@ -62,6 +62,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/20_qml_initialisierung.md` | QML-Initialisierungsreihenfolge: C++-Phase, Singleton, Objektbaum-Aufbau, Component.onCompleted, reaktive Initialisierung durch Nutzer |
 | `konzept/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht nach C++ auslagern; API-Design, Element-Struct, Migrations-Reihenfolge (7 Schritte) |
 | `konzept/23_technische_ablaeufe.md` | Systemabläufe zum Verstehen des Codes: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern, Kabel, Querverweise |
+| `konzept/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: Schema v38, `normblatt_feld`, C++ API, Canvas-Renderer, 3-Pane-Editor, 10 Implementierungsschritte |
 
 ---
 

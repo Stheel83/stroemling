@@ -486,7 +486,8 @@ bool Database::createSchema()
             id             TEXT    PRIMARY KEY,
             name           TEXT    NOT NULL,
             kategorie      TEXT,
-            groesse_raster INTEGER NOT NULL DEFAULT 1,
+            breite_mm      INTEGER NOT NULL DEFAULT 16,
+            hoehe_mm       INTEGER NOT NULL DEFAULT 16,
             rolle          TEXT    NOT NULL DEFAULT 'durchleiter',
             ist_builtin    INTEGER NOT NULL DEFAULT 0,
             ibn_kategorie  TEXT    NOT NULL DEFAULT ''

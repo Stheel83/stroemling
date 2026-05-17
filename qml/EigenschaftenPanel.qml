@@ -32,7 +32,7 @@ Rectangle {
     // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins)
     readonly property var el: {
         var idx = canvas.ausgewaehlt
-        return (idx >= 0 && idx < elementeModel.anzahl) ? elementeModel.element(idx) : null
+        return (idx >= 0 && idx < canvas.elementeModel.anzahl) ? canvas.elementeModel.element(idx) : null
     }
 
     // Ausgewählte Auto-Verbindung (null wenn keine)
@@ -67,7 +67,7 @@ Rectangle {
     function strukturkastenFuer(el) {
         var cx = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
         var best = null, bestArea = Infinity
-        var _skSnap = elementeModel.snapshot()
+        var _skSnap = canvas.elementeModel.snapshot()
         for (var i = 0; i < _skSnap.length; i++) {
             var sk = _skSnap[i]
             if (sk.typ !== "strukturkasten") continue
@@ -86,7 +86,7 @@ Rectangle {
     function geraetekastenFuer(el) {
         var cx = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
         var best = null, bestArea = Infinity
-        var _gkSnap = elementeModel.snapshot()
+        var _gkSnap = canvas.elementeModel.snapshot()
         for (var i = 0; i < _gkSnap.length; i++) {
             var gk = _gkSnap[i]
             if (gk.typ !== "geraetekasten") continue

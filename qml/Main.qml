@@ -656,6 +656,7 @@ ApplicationWindow {
                             hintergrundFarbe: root.aktivProjektHintergrund
                             fokussiert:       root.fokussiertesPanel === 1 && root.splitAktiv
                             splitSchliessbar: root.splitAktiv
+                            elementeModel:    elementeModel1
 
                             onSplitSchliessen: {
                                 root.splitAktiv        = false
@@ -702,6 +703,7 @@ ApplicationWindow {
                             aktiveNorm:       root.aktivProjektNorm
                             hintergrundFarbe: root.aktivProjektHintergrund
                             fokussiert:       root.fokussiertesPanel === 2
+                            elementeModel:    elementeModel2
                             splitSchliessbar: root.splitAktiv
 
                             onSplitSchliessen: {
@@ -1012,6 +1014,7 @@ ApplicationWindow {
                         projektId:         root.aktivProjektId
                         seiteName:         root.aktivSeiteName
                         hintergrundFarbe:  root.aktivProjektHintergrund
+                        elementeModel:     elementeModel3
                         ibnModus:          true
                         ibnStatusMap:      ibnAnsicht.statusMap
 

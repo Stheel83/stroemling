@@ -34,22 +34,22 @@ public:
     // Gibt die Rolle des Symbols zurück (z.B. "durchleiter", "verbraucher").
     Q_INVOKABLE QString rolleForSymbol(const QString &symbolId) const;
 
-    // Gibt Basisdaten eines Symbols zurück: {name, kategorie, groesse_raster, rolle, ist_builtin}
+    // Gibt Basisdaten eines Symbols zurück: {name, kategorie, breiteMm, hoeheMm, rolle, ist_builtin}
     Q_INVOKABLE QVariantMap symbolInfo(const QString &symbolId) const;
 
-    // Gibt alle Symbole zurück: [{id, name, kategorie, groesse_raster, rolle, ist_builtin}, …]
+    // Gibt alle Symbole zurück: [{id, name, kategorie, breiteMm, hoeheMm, rolle, ist_builtin}, …]
     Q_INVOKABLE QVariantList alleSymbole() const;
 
     // ── Schreibmethoden ─────────────────────────────────────────────
 
     // Neues Symbol anlegen (ist_builtin = 0). Gibt false zurück wenn id schon belegt.
     Q_INVOKABLE bool symbolAnlegen(const QString &id, const QString &name,
-                                    const QString &kategorie, int groesse,
+                                    const QString &kategorie, int breiteMm, int hoeheMm,
                                     const QString &rolle);
 
     // Metadaten eines nicht-eingebauten Symbols aktualisieren.
     Q_INVOKABLE bool symbolAktualisieren(const QString &id, const QString &name,
-                                          const QString &kategorie, int groesse,
+                                          const QString &kategorie, int breiteMm, int hoeheMm,
                                           const QString &rolle);
 
     // Symbol löschen (nur ist_builtin = 0). Primitive und Pins werden per FK gelöscht.

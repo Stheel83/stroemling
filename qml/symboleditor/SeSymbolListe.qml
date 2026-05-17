@@ -115,7 +115,7 @@ Rectangle {
                                 Text {
                                     id: groesseLabel
                                     anchors.centerIn: parent
-                                    text: (modelData.groesse_raster || 1) + "×" + (modelData.groesse_raster || 1)
+                                    text: (modelData.breiteMm || 16) + "×" + (modelData.hoeheMm || 16) + "mm"
                                     font.pixelSize: 9; color: root.editor.theme.textMuted
                                 }
                             }

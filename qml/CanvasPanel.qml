@@ -11,6 +11,7 @@ Item {
     property string  aktiveNorm:       "IEC"
     property string  hintergrundFarbe: "#080f1c"
     required property var theme
+    required property var elementeModel
     property bool    debug:            false
     property bool    fokussiert:       false
 
@@ -263,6 +264,7 @@ Item {
             projektId:        root.projektId
             seiteName:        root.aktivSeiteName
             hintergrundFarbe: root.hintergrundFarbe
+            elementeModel:    root.elementeModel
 
             onAktivesWerkzeugChanged:
                 root.aktivesWerkzeugGeaendert(innerCanvas.aktivesWerkzeug)

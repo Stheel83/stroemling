@@ -67,7 +67,7 @@ Rectangle {
                         if (!pv) return ""
                         var val = pv[modelData] !== undefined ? pv[modelData] : 0
                         return editor.istPositionsfeld(modelData)
-                            ? editor.normToMm(val).toFixed(2)
+                            ? editor.normToMmForField(modelData, val).toFixed(2)
                             : val.toFixed(3)
                     }
                     background: Rectangle { color: editor.theme.inputBg; radius: 3; border.color: editor.theme.border }
@@ -79,7 +79,7 @@ Rectangle {
                         var pm  = Object.assign({}, arr[idx3])
                         var parsed = parseFloat(text) || 0
                         pm[modelData] = editor.istPositionsfeld(modelData)
-                            ? editor.mmToNorm(parsed)
+                            ? editor.mmToNormForField(modelData, parsed)
                             : parsed
                         arr[idx3] = pm
                         editor.primitive = arr

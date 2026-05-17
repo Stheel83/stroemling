@@ -38,6 +38,7 @@ Item {
 
     required property var theme
     property bool debug: false
+    required property var elementeModel
 
     signal hintergrundGeaendert(string farbe)
     // Wird ausgelöst wenn der Nutzer auf ein Querverweis-Symbol doppelklickt.
@@ -1513,13 +1514,7 @@ Item {
                 return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y1),
                         Qt.point(el.x2,el.y2), Qt.point(el.x1,el.y2)]
             if (el.typ==="kreis")    return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y2)]
-            if (el.typ==="symbol") {
-                // Verbindungselemente haben feste Größe – keine Griffe
-                var sid = el.symbolId || ""
-                if (sid === "winkel" || sid === "treffpunkt" || sid === "treffpunkt_l" || sid === "geraeteanschluss" || sid === "unterbrechung" || sid === "querverweis" || sid === "aderdefinition" || sid === "potenzial") return []
-                return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y1),
-                        Qt.point(el.x2,el.y2), Qt.point(el.x1,el.y2)]
-            }
+            if (el.typ==="symbol") return []  // Größe ist DB-definiert, kein Resize
             return []
         }
 
@@ -2100,9 +2095,53 @@ Item {
             return schnitte
         }
 
+        // Gibt für jedes H-Segment (Schlüssel "ni-si") eine sortierte Liste von
+        // World-X-Werten zurück, an denen ein V-Segment aus einem anderen Netz kreuzt.
+        // Nur strenge Kreuzungen (kein Endpunkt am Schnittpunkt).
+        function _kreuzungsLuecken(netze) {
+            var hSegs = []
+            var vSegs = []
+            for (var ni = 0; ni < netze.length; ni++) {
+                var segs = netze[ni].segmente
+                for (var si = 0; si < segs.length; si++) {
+                    var seg = segs[si]
+                    if (seg.logisch) continue
+                    if (Math.abs(seg.y2 - seg.y1) < 0.001) {
+                        hSegs.push({ni: ni, si: si,
+                                    x1: Math.min(seg.x1, seg.x2),
+                                    x2: Math.max(seg.x1, seg.x2),
+                                    y:  seg.y1})
+                    } else if (Math.abs(seg.x2 - seg.x1) < 0.001) {
+                        vSegs.push({ni: ni,
+                                    x:  seg.x1,
+                                    y1: Math.min(seg.y1, seg.y2),
+                                    y2: Math.max(seg.y1, seg.y2)})
+                    }
+                }
+            }
+            var result = {}
+            for (var hi = 0; hi < hSegs.length; hi++) {
+                var h = hSegs[hi]
+                for (var vi = 0; vi < vSegs.length; vi++) {
+                    var v = vSegs[vi]
+                    if (h.ni === v.ni) continue
+                    if (v.x <= h.x1 || v.x >= h.x2) continue
+                    if (h.y <= v.y1 || h.y >= v.y2) continue
+                    var key = h.ni + "-" + h.si
+                    if (!result[key]) result[key] = []
+                    result[key].push(v.x)
+                }
+            }
+            for (var k in result)
+                result[k].sort(function(a, b) { return a - b })
+            return result
+        }
+
         function maleAutoVerbindungen(ctx) {
             var netze = drawCanvas.autoNetzeBerechnen()
             if (netze.length === 0) return
+
+            var kreuzungsLuecken = drawCanvas._kreuzungsLuecken(netze)
 
             // Alle Aderdefinitionspunkte sammeln
             var adpList = []
@@ -2141,10 +2180,39 @@ Item {
 
                     ctx.strokeStyle = lineClr
                     ctx.lineWidth   = lw
-                    ctx.beginPath()
-                    ctx.moveTo(seg.x1 * root.zoom + root.worldX, seg.y1 * root.zoom + root.worldY)
-                    ctx.lineTo(seg.x2 * root.zoom + root.worldX, seg.y2 * root.zoom + root.worldY)
-                    ctx.stroke()
+                    var segKey  = ni + "-" + si
+                    var kreuzX  = kreuzungsLuecken[segKey]
+                    var isHSeg  = Math.abs(seg.y2 - seg.y1) < 0.001
+                    if (isHSeg && kreuzX && kreuzX.length > 0) {
+                        var luecke = 3
+                        var hx1 = Math.min(seg.x1, seg.x2)
+                        var hx2 = Math.max(seg.x1, seg.x2)
+                        var hy  = seg.y1
+                        var pos = hx1
+                        for (var ki = 0; ki < kreuzX.length; ki++) {
+                            var cx  = kreuzX[ki]
+                            var ls  = cx - luecke
+                            var le  = cx + luecke
+                            if (ls > pos) {
+                                ctx.beginPath()
+                                ctx.moveTo(pos * root.zoom + root.worldX, hy * root.zoom + root.worldY)
+                                ctx.lineTo(ls  * root.zoom + root.worldX, hy * root.zoom + root.worldY)
+                                ctx.stroke()
+                            }
+                            pos = le
+                        }
+                        if (pos < hx2) {
+                            ctx.beginPath()
+                            ctx.moveTo(pos * root.zoom + root.worldX, hy * root.zoom + root.worldY)
+                            ctx.lineTo(hx2 * root.zoom + root.worldX, hy * root.zoom + root.worldY)
+                            ctx.stroke()
+                        }
+                    } else {
+                        ctx.beginPath()
+                        ctx.moveTo(seg.x1 * root.zoom + root.worldX, seg.y1 * root.zoom + root.worldY)
+                        ctx.lineTo(seg.x2 * root.zoom + root.worldX, seg.y2 * root.zoom + root.worldY)
+                        ctx.stroke()
+                    }
 
                     if (sAdps.length >= 4) {
                         var mvx = (seg.x1 + seg.x2) / 2 * root.zoom + root.worldX
@@ -2378,11 +2446,6 @@ Item {
                         } else {
                             upd.x2 = wg.x; upd.y2 = wg.y
                         }
-                    } else if (eg.typ === "symbol") {
-                        if      (g === 0) { upd.x1 = wg.x; upd.y1 = wg.y }
-                        else if (g === 1) { upd.x2 = wg.x; upd.y1 = wg.y }
-                        else if (g === 2) { upd.x2 = wg.x; upd.y2 = wg.y }
-                        else              { upd.x1 = wg.x; upd.y2 = wg.y }
                     } else if (eg.typ === "polygonlinie") {
                         var plNeu = eg.punkte.map(function(p, pi) {
                             return pi === g ? { x: wg.x, y: wg.y } : p
@@ -4035,23 +4098,14 @@ Item {
     // Hilfsfunktion: Symbol-Vorschau-Objekt für gegebene Weltkoordinaten erstellen
     // Berücksichtigt paletteSymbolId, paletteSymbolRotation und Sondereinfügepunkte (Winkel).
     function symbolVorschauErstellen(wx, wy) {
-        var sid      = root.paletteSymbolId
-        var rot      = root.paletteSymbolRotation
-        // Referenzgröße: 1 Rasterzelle = 4 mm, fest – unabhängig von gridMm
-        var refPx    = 4.0 * root.mmToPx
-        var isTreff  = (sid === "treffpunkt")
-        var isTreffL = (sid === "treffpunkt_l")
-        var isVerbEl = (sid === "geraeteanschluss" || sid === "unterbrechung" || sid === "querverweis" || sid === "potenzial")
-        var isEinzel = (sid === "winkel" || sid === "aderdefinition")
-        var defW     = isEinzel ? refPx * 1 : (isVerbEl || isTreff || isTreffL) ? refPx * 2 : refPx * 8
-        var defH     = isEinzel ? refPx * 1 : (isVerbEl || isTreff || isTreffL) ? refPx * 2 : refPx * 4
-        // Kein needsSwap mehr – Bounding-Box bleibt immer defW × defH,
-        // Rotation wird rein über ctx.rotate in maleElement erledigt
+        var sid  = root.paletteSymbolId
+        var rot  = root.paletteSymbolRotation
+        var info = symbolDefinitionModel.symbolInfo(sid)
+        var defW = (info.breiteMm || 16) * root.mmToPx
+        var defH = (info.hoeheMm  || 16) * root.mmToPx
         var x1, y1
         if (sid === "winkel") {
-            // Ankerpunkt = grafische Ecke (0,h) in lokalen Coords = (-w/2, h/2) vom Zentrum
-            // 90° UZS: Ecke wandert nach oben-links → bbox beginnt bei Cursor
-            // 270° UZS: Ecke wandert nach unten-rechts → bbox endet bei Cursor
+            // Ankerpunkt = grafische Ecke (0,h) — Rotation dreht die Eckenrichtung
             if      (rot === 0)   { x1 = wx;        y1 = wy - defH }
             else if (rot === 90)  { x1 = wx;        y1 = wy        }
             else if (rot === 180) { x1 = wx - defW; y1 = wy        }

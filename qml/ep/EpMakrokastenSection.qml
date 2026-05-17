@@ -95,7 +95,7 @@ Item {
                 var minX = Math.min(el.x1, el.x2), minY = Math.min(el.y1, el.y2)
                 var maxX = Math.max(el.x1, el.x2), maxY = Math.max(el.y1, el.y2)
                 var cnt = 0
-                var alle = elementeModel.snapshot()
+                var alle = canvas.elementeModel.snapshot()
                 for (var i = 0; i < alle.length; i++) {
                     var e = alle[i]
                     if (e === el || e.typ === "makrokasten") continue

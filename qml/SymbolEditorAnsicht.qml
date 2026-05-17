@@ -31,7 +31,8 @@ Item {
     // ── Innerer Zustand ────────────────────────────────────────────
     property string nameText:      qsTr("Neues Symbol")
     property string kategorieText: ""
-    property int    groesse:       1
+    property int    breiteMm:      32
+    property int    hoeheMm:       16
     property string rolleText:     "durchleiter"
     property bool   istBuiltin:    false
     property string vorlageId:     ""   // wenn gesetzt: Geometrie aus diesem Symbol als Vorlage laden
@@ -66,9 +67,14 @@ Item {
         })
     }
 
-    readonly property real refMm: 4.0   // 1 Rasterzelle = 4 mm (feste Referenz)
-    function normToMm(v) { return v * root.groesse * root.refMm }
-    function mmToNorm(v) { return v / (root.groesse * root.refMm) }
+    function normToMmX(v) { return v * root.breiteMm }
+    function normToMmY(v) { return v * root.hoeheMm }
+    function normToMmForField(name, v) {
+        return (name === "y1" || name === "y2" || name === "y3") ? v * root.hoeheMm : v * root.breiteMm
+    }
+    function mmToNormForField(name, v) {
+        return (name === "y1" || name === "y2" || name === "y3") ? v / root.hoeheMm : v / root.breiteMm
+    }
     function istPositionsfeld(name) {
         return ["x1","y1","x2","y2","x3","y3","radius"].indexOf(name) >= 0
     }
@@ -88,9 +94,10 @@ Item {
             // Vorlage laden – Geometrie kopieren, Symbol-ID bleibt leer (wird beim Speichern neu vergeben)
             var vInfo = symbolDefinitionModel.symbolInfo(vorlageId)
             nameText      = qsTr("Kopie von ") + (vInfo.name || vorlageId)
-            kategorieText = vInfo.kategorie      || ""
-            groesse       = vInfo.groesse_raster || 1
-            rolleText     = vInfo.rolle          || "durchleiter"
+            kategorieText = vInfo.kategorie || ""
+            breiteMm      = vInfo.breiteMm  || 32
+            hoeheMm       = vInfo.hoeheMm   || 16
+            rolleText     = vInfo.rolle     || "durchleiter"
             istBuiltin    = false
 
             var vPrims   = symbolDefinitionModel.primitiveFuerSymbol(vorlageId)
@@ -113,17 +120,19 @@ Item {
         } else if (editSymbolId === "") {
             nameText      = qsTr("Neues Symbol")
             kategorieText = ""
-            groesse       = 1
+            breiteMm      = 32
+            hoeheMm       = 16
             rolleText     = "durchleiter"
             istBuiltin    = false
             primitive     = []
             pins          = []
         } else {
             var info = symbolDefinitionModel.symbolInfo(editSymbolId)
-            nameText      = info.name           || editSymbolId
-            kategorieText = info.kategorie       || ""
-            groesse       = info.groesse_raster  || 1
-            rolleText     = info.rolle           || "durchleiter"
+            nameText      = info.name      || editSymbolId
+            kategorieText = info.kategorie || ""
+            breiteMm      = info.breiteMm  || 32
+            hoeheMm       = info.hoeheMm   || 16
+            rolleText     = info.rolle     || "durchleiter"
             istBuiltin    = info.ist_builtin     || false
 
             var prims = symbolDefinitionModel.primitiveFuerSymbol(editSymbolId)
@@ -179,9 +188,9 @@ Item {
         function esc(s) { return (s || "").replace(/'/g, "''") }
         var lines = []
         lines.push("-- ── " + info.name + " ──")
-        lines.push("INSERT INTO symbol_definition (id, name, kategorie, groesse_raster, rolle, ist_builtin) VALUES")
+        lines.push("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES")
         lines.push("('" + esc(symbolId) + "', '" + esc(info.name) + "', '" + esc(info.kategorie || "") + "', " +
-                   (info.groesse_raster || 1) + ", '" + esc(info.rolle || "durchleiter") + "', 0);")
+                   (info.breiteMm || 32) + ", " + (info.hoeheMm || 16) + ", '" + esc(info.rolle || "durchleiter") + "', 0);")
         lines.push("")
         if (pinList.length > 0) {
             lines.push("INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES")
@@ -219,12 +228,10 @@ Item {
         return lines.join("\n")
     }
 
-    // ── Snap-to-Grid (20 Schritte) ─────────────────────────────────
-    function snap(v) {
-        // 0.5-mm-Snap: groesse * 4mm / 0.5mm = groesse * 8 Schritte
-        var steps = root.groesse * 8
-        return Math.round(v * steps) / steps
-    }
+    // ── Snap-to-Grid (0.5-mm-Raster) ──────────────────────────────
+    // Snap auf 0.5mm: breiteMm * 2 Schritte in X, hoeheMm * 2 Schritte in Y
+    function snapX(v) { return Math.round(v * root.breiteMm * 2) / (root.breiteMm * 2) }
+    function snapY(v) { return Math.round(v * root.hoeheMm  * 2) / (root.hoeheMm  * 2) }
 
     // ── Primitiv hinzufügen ────────────────────────────────────────
     function addPrimitiv(p) {
@@ -274,13 +281,13 @@ Item {
         }
 
         if (editSymbolId === "") {
-            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, groesse, rolleText)) {
+            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText)) {
                 speichernFehlerText.text = qsTr("Symbol-ID bereits vergeben. Bitte anderen Namen wählen.")
                 speichernFehlerDialog.open()
                 return
             }
         } else {
-            symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, groesse, rolleText)
+            symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText)
         }
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)
@@ -534,69 +541,78 @@ Item {
                         anchors.fill: parent
                         renderStrategy: Canvas.Threaded
 
-                        // Quadratischer Zeichenbereich zentriert im Canvas
+                        // Rechteckiger Zeichenbereich – Seitenverhältnis = breiteMm : hoeheMm
                         readonly property real padding:  36
-                        readonly property real drawSize: Math.min(width, height) - 2 * padding
-                        readonly property real drawX:    (width  - drawSize) / 2
-                        readonly property real drawY:    (height - drawSize) / 2
+                        readonly property real maxDim:   Math.min(width - 2*padding, height - 2*padding)
+                        readonly property real drawW:    maxDim * root.breiteMm / Math.max(root.breiteMm, root.hoeheMm)
+                        readonly property real drawH:    maxDim * root.hoeheMm  / Math.max(root.breiteMm, root.hoeheMm)
+                        readonly property real drawX:    (width  - drawW) / 2
+                        readonly property real drawY:    (height - drawH) / 2
 
-                        function n2sx(n) { return drawX + n * drawSize }
-                        function n2sy(n) { return drawY + n * drawSize }
+                        function n2sx(n) { return drawX + n * drawW }
+                        function n2sy(n) { return drawY + n * drawH }
 
                         onPaint: {
                             var ctx = getContext("2d")
                             ctx.clearRect(0, 0, width, height)
-                            var ds = drawSize, dx = drawX, dy = drawY
+                            var dw = drawW, dh = drawH, dx = drawX, dy = drawY
 
                             // ── Hintergrund der Zeichenfläche ──────────
                             ctx.fillStyle = "#fdf8e8"
-                            ctx.fillRect(dx, dy, ds, ds)
+                            ctx.fillRect(dx, dy, dw, dh)
 
                             // ── Punkt-Raster (0.5-mm-Schritte) ───────────────────
-                            var snapSteps = root.groesse * 8   // Schritte bei 0.5mm
+                            var stepsX = root.breiteMm * 2   // 0.5mm pro Schritt
+                            var stepsY = root.hoeheMm  * 2
                             ctx.fillStyle = "#2a3a5a"
-                            for (var gi = 0; gi <= snapSteps; gi++) {
-                                for (var gj = 0; gj <= snapSteps; gj++) {
+                            for (var gi = 0; gi <= stepsX; gi++) {
+                                for (var gj = 0; gj <= stepsY; gj++) {
                                     ctx.beginPath()
-                                    ctx.arc(dx + gi/snapSteps*ds, dy + gj/snapSteps*ds, 1.5, 0, 2*Math.PI)
+                                    ctx.arc(dx + gi/stepsX*dw, dy + gj/stepsY*dh, 1.5, 0, 2*Math.PI)
                                     ctx.fill()
                                 }
                             }
-                            // 4-mm-Rasterpunkte (Kanal auf 4mm-Grid) größer hervorheben
+                            // 4-mm-Rasterpunkte größer hervorheben
+                            var grid4X = Math.round(root.breiteMm / 4)
+                            var grid4Y = Math.round(root.hoeheMm  / 4)
                             ctx.fillStyle = "#5577aa"
-                            for (var gx4 = 0; gx4 <= root.groesse; gx4++) {
-                                for (var gy4 = 0; gy4 <= root.groesse; gy4++) {
+                            for (var gx4 = 0; gx4 <= grid4X; gx4++) {
+                                for (var gy4 = 0; gy4 <= grid4Y; gy4++) {
                                     ctx.beginPath()
-                                    ctx.arc(dx + gx4/root.groesse*ds, dy + gy4/root.groesse*ds, 3.0, 0, 2*Math.PI)
+                                    ctx.arc(dx + gx4/grid4X*dw, dy + gy4/grid4Y*dh, 3.0, 0, 2*Math.PI)
                                     ctx.fill()
                                 }
                             }
 
                             // ── mm-Lineal (oben und links) ────────────
-                            var totalMm  = root.groesse * 4.0
-                            var pxPerMm  = ds / totalMm
-                            var labelEvery = (totalMm <= 6) ? 1 : 2
+                            var pxPerMmX = dw / root.breiteMm
+                            var pxPerMmY = dh / root.hoeheMm
                             ctx.save()
                             ctx.lineWidth = 0.7
-                            for (var mi = 0; mi <= Math.round(totalMm); mi++) {
-                                var isLabeled = (mi % labelEvery === 0)
-                                var tickLen   = isLabeled ? 8 : 4
-                                // X-Lineal oben
-                                var xtx = dx + mi * pxPerMm
+                            // X-Lineal oben
+                            for (var mx = 0; mx <= root.breiteMm; mx++) {
+                                var isLabeledX = (mx % 4 === 0)
+                                var tickLenX   = isLabeledX ? 8 : 4
+                                var xtx = dx + mx * pxPerMmX
                                 ctx.strokeStyle = "#6688aa"
-                                ctx.beginPath(); ctx.moveTo(xtx, dy - tickLen); ctx.lineTo(xtx, dy); ctx.stroke()
-                                if (isLabeled) {
+                                ctx.beginPath(); ctx.moveTo(xtx, dy - tickLenX); ctx.lineTo(xtx, dy); ctx.stroke()
+                                if (isLabeledX) {
                                     ctx.fillStyle = "#6688aa"; ctx.font = "9px sans-serif"
                                     ctx.textAlign = "center"; ctx.textBaseline = "bottom"
-                                    ctx.fillText(mi, xtx, dy - tickLen - 1)
+                                    ctx.fillText(mx, xtx, dy - tickLenX - 1)
                                 }
-                                // Y-Lineal links
-                                var yty = dy + mi * pxPerMm
-                                ctx.beginPath(); ctx.moveTo(dx - tickLen, yty); ctx.lineTo(dx, yty); ctx.stroke()
-                                if (isLabeled) {
+                            }
+                            // Y-Lineal links
+                            for (var my = 0; my <= root.hoeheMm; my++) {
+                                var isLabeledY = (my % 4 === 0)
+                                var tickLenY   = isLabeledY ? 8 : 4
+                                var yty = dy + my * pxPerMmY
+                                ctx.strokeStyle = "#6688aa"
+                                ctx.beginPath(); ctx.moveTo(dx - tickLenY, yty); ctx.lineTo(dx, yty); ctx.stroke()
+                                if (isLabeledY) {
                                     ctx.fillStyle = "#6688aa"; ctx.font = "9px sans-serif"
                                     ctx.textAlign = "right"; ctx.textBaseline = "middle"
-                                    ctx.fillText(mi, dx - tickLen - 3, yty)
+                                    ctx.fillText(my, dx - tickLenY - 3, yty)
                                 }
                             }
                             // Einheit "mm" an der Ecke
@@ -609,7 +625,7 @@ Item {
                             ctx.strokeStyle = "#3a4a6a"
                             ctx.lineWidth   = 1
                             ctx.setLineDash([4, 4])
-                            ctx.strokeRect(dx + 0.5, dy + 0.5, ds - 1, ds - 1)
+                            ctx.strokeRect(dx + 0.5, dy + 0.5, dw - 1, dh - 1)
                             ctx.setLineDash([])
 
                             // ── Primitive ─────────────────────────────
@@ -628,7 +644,7 @@ Item {
                                 else if (la === "Strich-Punkt") ctx.setLineDash([8, 4, 2, 4])
                                 else                       ctx.setLineDash([])
 
-                                zeichneCanvas.zeichnePrimitiv(ctx, p, dx, dy, ds)
+                                zeichneCanvas.zeichnePrimitiv(ctx, p, dx, dy, dw, dh)
                                 ctx.setLineDash([])
 
                                 // Griffe bei Auswahl
@@ -654,9 +670,9 @@ Item {
                                     ctx.lineTo(n2sx(mx), n2sy(my))
                                     ctx.stroke()
                                 } else if (root.aktivesWerkzeug === "rechteck") {
-                                    ctx.strokeRect(n2sx(pts[0].x), n2sy(pts[0].y), (mx-pts[0].x)*ds, (my-pts[0].y)*ds)
+                                    ctx.strokeRect(n2sx(pts[0].x), n2sy(pts[0].y), (mx-pts[0].x)*dw, (my-pts[0].y)*dh)
                                 } else if (root.aktivesWerkzeug === "kreis_offen") {
-                                    var kd = Math.sqrt(((mx-pts[0].x)*ds)*((mx-pts[0].x)*ds)+((my-pts[0].y)*ds)*((my-pts[0].y)*ds))
+                                    var kd = Math.sqrt(Math.pow((mx-pts[0].x)*dw, 2) + Math.pow((my-pts[0].y)*dh, 2))
                                     ctx.beginPath()
                                     ctx.arc(n2sx(pts[0].x), n2sy(pts[0].y), kd, 0, 2*Math.PI)
                                     ctx.stroke()
@@ -667,9 +683,9 @@ Item {
                                         ctx.lineTo(n2sx(mx), n2sy(my))
                                         ctx.stroke()
                                     } else if (pts.length === 2) {
-                                        var bRad = Math.sqrt(((pts[1].x-pts[0].x)*ds)*((pts[1].x-pts[0].x)*ds)+((pts[1].y-pts[0].y)*ds)*((pts[1].y-pts[0].y)*ds))
-                                        var bW1  = Math.atan2((pts[1].y-pts[0].y)*ds, (pts[1].x-pts[0].x)*ds)
-                                        var bW2  = Math.atan2((my-pts[0].y)*ds, (mx-pts[0].x)*ds)
+                                        var bRad = Math.sqrt(Math.pow((pts[1].x-pts[0].x)*dw, 2) + Math.pow((pts[1].y-pts[0].y)*dh, 2))
+                                        var bW1  = Math.atan2((pts[1].y-pts[0].y)*dh, (pts[1].x-pts[0].x)*dw)
+                                        var bW2  = Math.atan2((my-pts[0].y)*dh, (mx-pts[0].x)*dw)
                                         ctx.beginPath()
                                         ctx.arc(n2sx(pts[0].x), n2sy(pts[0].y), bRad, bW1, bW2, false)
                                         ctx.stroke()
@@ -724,35 +740,35 @@ Item {
                             ctx.restore()
                         }
 
-                        function zeichnePrimitiv(ctx, p, dx, dy, ds) {
+                        function zeichnePrimitiv(ctx, p, dx, dy, dw, dh) {
                             switch (p.typ) {
                             case "linie":
                                 ctx.beginPath()
-                                ctx.moveTo(dx+(p.x1||0)*ds, dy+(p.y1||0)*ds)
-                                ctx.lineTo(dx+(p.x2||0)*ds, dy+(p.y2||0)*ds)
+                                ctx.moveTo(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh)
+                                ctx.lineTo(dx+(p.x2||0)*dw, dy+(p.y2||0)*dh)
                                 ctx.stroke()
                                 break
                             case "rechteck":
-                                ctx.strokeRect(dx+(p.x1||0)*ds, dy+(p.y1||0)*ds,
-                                               ((p.x2||0)-(p.x1||0))*ds, ((p.y2||0)-(p.y1||0))*ds)
+                                ctx.strokeRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh,
+                                               ((p.x2||0)-(p.x1||0))*dw, ((p.y2||0)-(p.y1||0))*dh)
                                 break
                             case "kreis_offen":
                                 ctx.beginPath()
-                                ctx.arc(dx+(p.x1||0)*ds, dy+(p.y1||0)*ds, (p.radius||0.1)*ds, 0, 2*Math.PI)
+                                ctx.arc(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, (p.radius||0.1)*dw, 0, 2*Math.PI)
                                 ctx.stroke()
                                 break
                             case "kreis_gefuellt":
                                 ctx.save()
                                 ctx.fillStyle = ctx.strokeStyle
                                 ctx.beginPath()
-                                ctx.arc(dx+(p.x1||0)*ds, dy+(p.y1||0)*ds, (p.radius||0.04)*ds, 0, 2*Math.PI)
+                                ctx.arc(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, (p.radius||0.04)*dw, 0, 2*Math.PI)
                                 ctx.fill(); ctx.restore()
                                 break
                             case "bogen": {
                                 var ra = (p.winkel_von||0) * Math.PI/180
                                 var re = (p.winkel_bis||90) * Math.PI/180
                                 ctx.beginPath()
-                                ctx.arc(dx+(p.x1||0)*ds, dy+(p.y1||0)*ds, (p.radius||0.1)*ds,
+                                ctx.arc(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, (p.radius||0.1)*dw,
                                         ra, re, p.bogen_gegen_uhrzeiger ? true : false)
                                 ctx.stroke()
                                 break
@@ -761,19 +777,19 @@ Item {
                                 ctx.save()
                                 ctx.fillStyle = ctx.strokeStyle
                                 ctx.font = ((p.schrift_fett ? "bold " : "") +
-                                            Math.round((p.schrift_relativ||0.15)*ds) + "px sans-serif")
+                                            Math.round((p.schrift_relativ||0.15)*dw) + "px sans-serif")
                                 ctx.textAlign    = p.text_align    || "center"
                                 ctx.textBaseline = p.text_baseline || "middle"
-                                ctx.fillText(p.text_inhalt||"?", dx+(p.x1||0)*ds, dy+(p.y1||0)*ds)
+                                ctx.fillText(p.text_inhalt||"?", dx+(p.x1||0)*dw, dy+(p.y1||0)*dh)
                                 ctx.restore()
                                 break
                             case "dreieck_gefuellt":
                                 ctx.save()
                                 ctx.fillStyle = ctx.strokeStyle
                                 ctx.beginPath()
-                                ctx.moveTo(dx+(p.x1||0)*ds, dy+(p.y1||0)*ds)
-                                ctx.lineTo(dx+(p.x2||0)*ds, dy+(p.y2||0)*ds)
-                                ctx.lineTo(dx+((p.x3||p.x1)||0)*ds, dy+((p.y3||p.y1)||0)*ds)
+                                ctx.moveTo(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh)
+                                ctx.lineTo(dx+(p.x2||0)*dw, dy+(p.y2||0)*dh)
+                                ctx.lineTo(dx+((p.x3||p.x1)||0)*dw, dy+((p.y3||p.y1)||0)*dh)
                                 ctx.closePath(); ctx.fill(); ctx.restore()
                                 break
                             }
@@ -793,10 +809,10 @@ Item {
                             property var  dragObjStart:    null
 
                             function mausZuNorm(mx, my) {
-                                var nx = (mx - zeichneCanvas.drawX) / zeichneCanvas.drawSize
-                                var ny = (my - zeichneCanvas.drawY) / zeichneCanvas.drawSize
-                                nx = Math.max(0, Math.min(1, root.snap(nx)))
-                                ny = Math.max(0, Math.min(1, root.snap(ny)))
+                                var nx = (mx - zeichneCanvas.drawX) / zeichneCanvas.drawW
+                                var ny = (my - zeichneCanvas.drawY) / zeichneCanvas.drawH
+                                nx = Math.max(0, Math.min(1, root.snapX(nx)))
+                                ny = Math.max(0, Math.min(1, root.snapY(ny)))
                                 return {x: nx, y: ny}
                             }
 
@@ -842,8 +858,8 @@ Item {
                                     if (dragIstPin && root.ausgewaehltPinIdx >= 0) {
                                         var arrP = root.pins.slice()
                                         var pp   = Object.assign({}, arrP[root.ausgewaehltPinIdx])
-                                        pp.x = Math.max(0, Math.min(1, root.snap(dragObjStart.x + ddx)))
-                                        pp.y = Math.max(0, Math.min(1, root.snap(dragObjStart.y + ddy)))
+                                        pp.x = Math.max(0, Math.min(1, root.snapX(dragObjStart.x + ddx)))
+                                        pp.y = Math.max(0, Math.min(1, root.snapY(dragObjStart.y + ddy)))
                                         arrP[root.ausgewaehltPinIdx] = pp
                                         root.pins = arrP
                                         dragBewegteSich = true
@@ -852,17 +868,17 @@ Item {
                                         var arr = root.primitive.slice()
                                         var p   = Object.assign({}, arr[idx])
                                         var o   = dragObjStart
-                                        p.x1 = Math.max(0, Math.min(1, root.snap((o.x1 || 0) + ddx)))
-                                        p.y1 = Math.max(0, Math.min(1, root.snap((o.y1 || 0) + ddy)))
+                                        p.x1 = Math.max(0, Math.min(1, root.snapX((o.x1 || 0) + ddx)))
+                                        p.y1 = Math.max(0, Math.min(1, root.snapY((o.y1 || 0) + ddy)))
                                         if (p.typ === "linie" || p.typ === "rechteck") {
-                                            p.x2 = Math.max(0, Math.min(1, root.snap((o.x2 || 0) + ddx)))
-                                            p.y2 = Math.max(0, Math.min(1, root.snap((o.y2 || 0) + ddy)))
+                                            p.x2 = Math.max(0, Math.min(1, root.snapX((o.x2 || 0) + ddx)))
+                                            p.y2 = Math.max(0, Math.min(1, root.snapY((o.y2 || 0) + ddy)))
                                         }
                                         if (p.typ === "dreieck_gefuellt") {
-                                            p.x2 = Math.max(0, Math.min(1, root.snap((o.x2 || 0) + ddx)))
-                                            p.y2 = Math.max(0, Math.min(1, root.snap((o.y2 || 0) + ddy)))
-                                            p.x3 = Math.max(0, Math.min(1, root.snap((o.x3 || 0) + ddx)))
-                                            p.y3 = Math.max(0, Math.min(1, root.snap((o.y3 || 0) + ddy)))
+                                            p.x2 = Math.max(0, Math.min(1, root.snapX((o.x2 || 0) + ddx)))
+                                            p.y2 = Math.max(0, Math.min(1, root.snapY((o.y2 || 0) + ddy)))
+                                            p.x3 = Math.max(0, Math.min(1, root.snapX((o.x3 || 0) + ddx)))
+                                            p.y3 = Math.max(0, Math.min(1, root.snapY((o.y3 || 0) + ddy)))
                                         }
                                         arr[idx] = p
                                         root.primitive = arr
@@ -927,8 +943,8 @@ Item {
                                     if (root.werkzeugPunkte.length === 0) {
                                         root.werkzeugPunkte = [{x:nx,y:ny}]
                                     } else {
-                                        var ds = zeichneCanvas.drawSize
-                                        var krad = Math.sqrt(((nx-root.werkzeugPunkte[0].x)*ds)*((nx-root.werkzeugPunkte[0].x)*ds)+((ny-root.werkzeugPunkte[0].y)*ds)*((ny-root.werkzeugPunkte[0].y)*ds)) / ds
+                                        var kdw = zeichneCanvas.drawW, kdh = zeichneCanvas.drawH
+                                        var krad = Math.sqrt(Math.pow((nx-root.werkzeugPunkte[0].x)*kdw, 2) + Math.pow((ny-root.werkzeugPunkte[0].y)*kdh, 2)) / kdw
                                         root.addPrimitiv({typ:"kreis_offen",x1:root.werkzeugPunkte[0].x,y1:root.werkzeugPunkte[0].y,radius:krad,linienart:root.aktLinienart})
                                         root.werkzeugPunkte = []
                                     }
@@ -941,11 +957,11 @@ Item {
                                     } else if (root.werkzeugPunkte.length === 1) {
                                         root.werkzeugPunkte = root.werkzeugPunkte.concat([{x:nx,y:ny}])
                                     } else {
-                                        var bds = zeichneCanvas.drawSize
+                                        var bdw = zeichneCanvas.drawW, bdh = zeichneCanvas.drawH
                                         var bcx = root.werkzeugPunkte[0].x, bcy = root.werkzeugPunkte[0].y
-                                        var bRad2 = Math.sqrt(((root.werkzeugPunkte[1].x-bcx)*bds)*((root.werkzeugPunkte[1].x-bcx)*bds)+((root.werkzeugPunkte[1].y-bcy)*bds)*((root.werkzeugPunkte[1].y-bcy)*bds)) / bds
-                                        var bWv = Math.atan2((root.werkzeugPunkte[1].y-bcy)*bds,(root.werkzeugPunkte[1].x-bcx)*bds)*180/Math.PI
-                                        var bWb = Math.atan2((ny-bcy)*bds,(nx-bcx)*bds)*180/Math.PI
+                                        var bRad2 = Math.sqrt(Math.pow((root.werkzeugPunkte[1].x-bcx)*bdw, 2) + Math.pow((root.werkzeugPunkte[1].y-bcy)*bdh, 2)) / bdw
+                                        var bWv = Math.atan2((root.werkzeugPunkte[1].y-bcy)*bdh,(root.werkzeugPunkte[1].x-bcx)*bdw)*180/Math.PI
+                                        var bWb = Math.atan2((ny-bcy)*bdh,(nx-bcx)*bdw)*180/Math.PI
                                         if (bWv < 0) bWv += 360; if (bWb < 0) bWb += 360
                                         root.addPrimitiv({typ:"bogen",x1:bcx,y1:bcy,radius:bRad2,winkel_von:bWv,winkel_bis:bWb,bogen_gegen_uhrzeiger:false,linienart:root.aktLinienart})
                                         root.werkzeugPunkte = []
@@ -978,7 +994,7 @@ Item {
                             id: koordinatenLbl
                             anchors.centerIn: parent
                             text: root.mausImCanvas
-                                  ? "x: " + root.normToMm(root.mausNormPos.x).toFixed(1) + " mm   y: " + root.normToMm(root.mausNormPos.y).toFixed(1) + " mm"
+                                  ? "x: " + root.normToMmX(root.mausNormPos.x).toFixed(1) + " mm   y: " + root.normToMmY(root.mausNormPos.y).toFixed(1) + " mm"
                                   : ""
                             font.pixelSize: 13; color: "#aabbcc"
                         }

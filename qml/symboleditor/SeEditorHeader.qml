@@ -35,13 +35,23 @@ Rectangle {
             color: editor.theme.textPrimary
         }
 
-        Text { text: qsTr("Größe:"); color: editor.theme.textMuted; font.pixelSize: 11 }
+        Text { text: qsTr("Breite:"); color: editor.theme.textMuted; font.pixelSize: 11 }
         ComboBox {
-            model: ["1×1 (4 mm)", "2×2 (8 mm)", "3×3 (12 mm)", "4×4 (16 mm)"]
-            currentIndex: editor.groesse - 1
-            onCurrentIndexChanged: editor.groesse = currentIndex + 1
-            implicitWidth: 110; implicitHeight: 28; font.pixelSize: 12
+            model: [8, 16, 24, 32]
+            currentIndex: Math.max(0, [8,16,24,32].indexOf(editor.breiteMm))
+            onActivated: editor.breiteMm = model[currentIndex]
+            implicitWidth: 68; implicitHeight: 28; font.pixelSize: 12
         }
+        Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
+
+        Text { text: qsTr("Höhe:"); color: editor.theme.textMuted; font.pixelSize: 11 }
+        ComboBox {
+            model: [8, 16, 24, 32]
+            currentIndex: Math.max(0, [8,16,24,32].indexOf(editor.hoeheMm))
+            onActivated: editor.hoeheMm = model[currentIndex]
+            implicitWidth: 68; implicitHeight: 28; font.pixelSize: 12
+        }
+        Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
 
         Text { text: qsTr("Rolle:"); color: editor.theme.textMuted; font.pixelSize: 11 }
         ComboBox {

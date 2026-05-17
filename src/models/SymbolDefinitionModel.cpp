@@ -113,15 +113,16 @@ QString SymbolDefinitionModel::rolleForSymbol(const QString &symbolId) const
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, groesse_raster, rolle, ist_builtin FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
-        m["name"]           = q.value(0).toString();
-        m["kategorie"]      = q.value(1).toString();
-        m["groesse_raster"] = q.value(2).toInt();
-        m["rolle"]          = q.value(3).toString();
-        m["ist_builtin"]    = q.value(4).toInt() != 0;
+        m["name"]        = q.value(0).toString();
+        m["kategorie"]   = q.value(1).toString();
+        m["breiteMm"]    = q.value(2).toInt();
+        m["hoeheMm"]     = q.value(3).toInt();
+        m["rolle"]       = q.value(4).toString();
+        m["ist_builtin"] = q.value(5).toInt() != 0;
         return m;
     }
     return {};
@@ -130,15 +131,16 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 QVariantList SymbolDefinitionModel::alleSymbole() const
 {
     QVariantList result;
-    QSqlQuery q("SELECT id, name, kategorie, groesse_raster, rolle, ist_builtin FROM symbol_definition ORDER BY ist_builtin DESC, kategorie, name");
+    QSqlQuery q("SELECT id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin FROM symbol_definition ORDER BY ist_builtin DESC, kategorie, name");
     while (q.next()) {
         QVariantMap m;
-        m["id"]             = q.value(0).toString();
-        m["name"]           = q.value(1).toString();
-        m["kategorie"]      = q.value(2).toString();
-        m["groesse_raster"] = q.value(3).toInt();
-        m["rolle"]          = q.value(4).toString();
-        m["ist_builtin"]    = q.value(5).toInt() != 0;
+        m["id"]          = q.value(0).toString();
+        m["name"]        = q.value(1).toString();
+        m["kategorie"]   = q.value(2).toString();
+        m["breiteMm"]    = q.value(3).toInt();
+        m["hoeheMm"]     = q.value(4).toInt();
+        m["rolle"]       = q.value(5).toString();
+        m["ist_builtin"] = q.value(6).toInt() != 0;
         result.append(m);
     }
     return result;
@@ -147,15 +149,16 @@ QVariantList SymbolDefinitionModel::alleSymbole() const
 // ── Schreibmethoden ─────────────────────────────────────────────────────────
 
 bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name,
-                                           const QString &kategorie, int groesse,
+                                           const QString &kategorie, int breiteMm, int hoeheMm,
                                            const QString &rolle)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, groesse_raster, rolle, ist_builtin) VALUES (:id, :name, :kat, :gr, :rolle, 0)");
+    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0)");
     q.bindValue(":id",    id);
     q.bindValue(":name",  name);
     q.bindValue(":kat",   kategorie);
-    q.bindValue(":gr",    groesse);
+    q.bindValue(":bMm",   breiteMm);
+    q.bindValue(":hMm",   hoeheMm);
     q.bindValue(":rolle", rolle);
     if (!q.exec()) {
         qWarning() << "symbolAnlegen:" << q.lastError().text();
@@ -165,14 +168,15 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
 }
 
 bool SymbolDefinitionModel::symbolAktualisieren(const QString &id, const QString &name,
-                                                  const QString &kategorie, int groesse,
+                                                  const QString &kategorie, int breiteMm, int hoeheMm,
                                                   const QString &rolle)
 {
     QSqlQuery q;
-    q.prepare("UPDATE symbol_definition SET name=:name, kategorie=:kat, groesse_raster=:gr, rolle=:rolle WHERE id=:id AND ist_builtin=0");
+    q.prepare("UPDATE symbol_definition SET name=:name, kategorie=:kat, breite_mm=:bMm, hoehe_mm=:hMm, rolle=:rolle WHERE id=:id AND ist_builtin=0");
     q.bindValue(":name",  name);
     q.bindValue(":kat",   kategorie);
-    q.bindValue(":gr",    groesse);
+    q.bindValue(":bMm",   breiteMm);
+    q.bindValue(":hMm",   hoeheMm);
     q.bindValue(":rolle", rolle);
     q.bindValue(":id",    id);
     if (!q.exec()) {

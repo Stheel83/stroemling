@@ -18,7 +18,7 @@ class Database : public QObject
 public:
     // Aktuelle Schema-Version. Erhöhen wenn sich Tabellenstruktur ändert.
     // Beim Start: stimmt DB-Version nicht überein → alle Tabellen drop + recreate.
-    static const int SCHEMA_VERSION = 38;
+    static const int SCHEMA_VERSION = 39;
 
     explicit Database(QObject *parent = nullptr);
 

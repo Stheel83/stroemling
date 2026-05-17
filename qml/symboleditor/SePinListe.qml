@@ -26,7 +26,7 @@ Rectangle {
             Button {
                 text: "↔ H"; implicitHeight: 24; implicitWidth: 40
                 ToolTip.visible: hovered; ToolTip.delay: 600
-                ToolTip.text: qsTr("Waagerecht: Pin 1 links (0 mm), Pin 2 rechts (%1 mm)").arg(root.editor.groesse * 4.0)
+                ToolTip.text: qsTr("Waagerecht: Pin 1 links (0 mm), Pin 2 rechts (%1 mm)").arg(root.editor.breiteMm)
                 onClicked: {
                     var yMid = 0.5
                     root.editor.pins = [
@@ -43,7 +43,7 @@ Rectangle {
             Button {
                 text: "↕ V"; implicitHeight: 24; implicitWidth: 40
                 ToolTip.visible: hovered; ToolTip.delay: 600
-                ToolTip.text: qsTr("Senkrecht: Pin 1 oben (0 mm), Pin 2 unten (%1 mm)").arg(root.editor.groesse * 4.0)
+                ToolTip.text: qsTr("Senkrecht: Pin 1 oben (0 mm), Pin 2 unten (%1 mm)").arg(root.editor.hoeheMm)
                 onClicked: {
                     var xMid = 0.5
                     root.editor.pins = [
@@ -108,14 +108,14 @@ Rectangle {
 
                     TextField {
                         width: 58; height: 30; font.pixelSize: 11
-                        text: root.editor.normToMm(parent.parent.myPin.x !== undefined ? parent.parent.myPin.x : 0).toFixed(2)
-                        validator: DoubleValidator { bottom: 0; top: root.editor.groesse * 4.0; decimals: 2 }
+                        text: root.editor.normToMmX(parent.parent.myPin.x !== undefined ? parent.parent.myPin.x : 0).toFixed(2)
+                        validator: DoubleValidator { bottom: 0; top: root.editor.breiteMm; decimals: 2 }
                         background: Rectangle { color: root.editor.theme.inputBg; radius: 3; border.color: root.editor.theme.border }
                         color: root.editor.theme.textPrimary
                         onEditingFinished: {
                             var arr = root.editor.pins.slice()
                             var p   = Object.assign({}, arr[parent.parent.myIdx])
-                            p.x = root.editor.mmToNorm(parseFloat(text)||0)
+                            p.x = (parseFloat(text)||0) / root.editor.breiteMm
                             arr[parent.parent.myIdx] = p; root.editor.pins = arr
                             root.editor.repaintAll()
                         }
@@ -123,14 +123,14 @@ Rectangle {
 
                     TextField {
                         width: 58; height: 30; font.pixelSize: 11
-                        text: root.editor.normToMm(parent.parent.myPin.y !== undefined ? parent.parent.myPin.y : 0.5).toFixed(2)
-                        validator: DoubleValidator { bottom: 0; top: root.editor.groesse * 4.0; decimals: 2 }
+                        text: root.editor.normToMmY(parent.parent.myPin.y !== undefined ? parent.parent.myPin.y : 0.5).toFixed(2)
+                        validator: DoubleValidator { bottom: 0; top: root.editor.hoeheMm; decimals: 2 }
                         background: Rectangle { color: root.editor.theme.inputBg; radius: 3; border.color: root.editor.theme.border }
                         color: root.editor.theme.textPrimary
                         onEditingFinished: {
                             var arr = root.editor.pins.slice()
                             var p   = Object.assign({}, arr[parent.parent.myIdx])
-                            p.y = root.editor.mmToNorm(parseFloat(text)||0.5)
+                            p.y = (parseFloat(text)||0.5) / root.editor.hoeheMm
                             arr[parent.parent.myIdx] = p; root.editor.pins = arr
                             root.editor.repaintAll()
                         }

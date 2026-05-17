@@ -124,7 +124,7 @@ Item {
             }
         }
 
-        // Symbol: X/Y/Breite/Höhe (nicht für Querverweis)
+        // Symbol: nur X/Y-Position (Größe ist fest durch DB-Definition)
         Column {
             width: parent.width; spacing: 0
             visible: panel.el && panel.el.typ === "symbol"
@@ -146,22 +146,6 @@ Item {
                     if (!panel.el) return
                     var h = panel.el.y2 - panel.el.y1
                     panel.canvas.eigenschaftenSetzen({ y1: v * panel.canvas.mmToPx, y2: v * panel.canvas.mmToPx + h })
-                }
-            }
-            MassField { theme: theme;
-                label: qsTr("Breite"); einheit: "mm"
-                wert: panel.el ? +(Math.abs(panel.el.x2 - panel.el.x1) / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) {
-                    if (!panel.el) return
-                    panel.canvas.eigenschaftAktualisieren("x2", panel.el.x1 + v * panel.canvas.mmToPx)
-                }
-            }
-            MassField { theme: theme;
-                label: qsTr("Höhe"); einheit: "mm"
-                wert: panel.el ? +(Math.abs(panel.el.y2 - panel.el.y1) / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) {
-                    if (!panel.el) return
-                    panel.canvas.eigenschaftAktualisieren("y2", panel.el.y1 + v * panel.canvas.mmToPx)
                 }
             }
         }

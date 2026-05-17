@@ -132,7 +132,9 @@ int main(int argc, char *argv[])
     SymbolDefinitionModel       symbolDefinitionModel;
     KabelRechnerModel           kabelRechnerModel;
     AppHelper                   appHelper;
-    ElementeModel               elementeModel;
+    ElementeModel               elementeModel1;
+    ElementeModel               elementeModel2;
+    ElementeModel               elementeModel3;   // IBN-Canvas
 
     // QML Engine starten
     QQmlApplicationEngine engine;
@@ -151,7 +153,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("symbolDefinitionModel", &symbolDefinitionModel);
     engine.rootContext()->setContextProperty("kabelRechnerModel",    &kabelRechnerModel);
     engine.rootContext()->setContextProperty("appHelper",            &appHelper);
-    engine.rootContext()->setContextProperty("elementeModel",        &elementeModel);
+    engine.rootContext()->setContextProperty("elementeModel1",       &elementeModel1);
+    engine.rootContext()->setContextProperty("elementeModel2",       &elementeModel2);
+    engine.rootContext()->setContextProperty("elementeModel3",       &elementeModel3);
 
     // Hauptfenster laden
     engine.loadFromModule("stroemling", "Main");

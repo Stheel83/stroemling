@@ -25,6 +25,16 @@ Item {
     property string _neuKatName: ""
     property string _neuArtTitel: ""
 
+    property string _importPfad: ""
+    property string _statusText: ""
+    property bool   _statusOk:   true
+
+    function _zeigeStatus(text, ok) {
+        _statusText = text
+        _statusOk   = (ok !== false)
+        statusTimer.restart()
+    }
+
     // Bilder des aktuellen Artikels — [{id, dateiname, mimeTyp, beschreibung, sortierung, tempPfad}]
     property var    _bilder:          []
     property string _vollbildPfad:    ""
@@ -146,6 +156,32 @@ Item {
                             font.weight:    Font.Medium
                             color:          root.theme.textMuted
                             Layout.fillWidth: true
+                        }
+                        Rectangle {
+                            width: 22; height: 22; radius: 3
+                            color: exportBtnHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            Text {
+                                anchors.centerIn: parent
+                                text: "↑"
+                                font.pixelSize: 12
+                                color: root.theme.textMuted
+                            }
+                            HoverHandler { id: exportBtnHover }
+                            TapHandler { onTapped: wikiExportDialog.open() }
+                        }
+                        Rectangle {
+                            width: 22; height: 22; radius: 3
+                            color: importBtnHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            Text {
+                                anchors.centerIn: parent
+                                text: "↓"
+                                font.pixelSize: 12
+                                color: root.theme.textMuted
+                            }
+                            HoverHandler { id: importBtnHover }
+                            TapHandler { onTapped: wikiImportDialog.open() }
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
@@ -891,6 +927,148 @@ Item {
                 }
             }
         }
+    }
+
+    // ── Wiki Export FileDialog ────────────────────────────────
+    FileDialog {
+        id:           wikiExportDialog
+        title:        qsTr("Wiki exportieren")
+        fileMode:     FileDialog.SaveFile
+        nameFilters:  [qsTr("JSON-Dateien (*.json)"), qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            const ok = db.wikiExportJson(selectedFile.toString())
+            root._zeigeStatus(ok ? qsTr("Wiki erfolgreich exportiert") : qsTr("Export fehlgeschlagen"), ok)
+        }
+    }
+
+    // ── Wiki Import FileDialog ────────────────────────────────
+    FileDialog {
+        id:           wikiImportDialog
+        title:        qsTr("Wiki importieren")
+        fileMode:     FileDialog.OpenFile
+        nameFilters:  [qsTr("JSON-Dateien (*.json)"), qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            root._importPfad = selectedFile.toString()
+            importModePopup.open()
+        }
+    }
+
+    // ── Import-Modus-Popup ────────────────────────────────────
+    Popup {
+        id:           importModePopup
+        anchors.centerIn: parent
+        width:        340
+        height:       160
+        modal:        true
+        padding:      0
+        closePolicy:  Popup.CloseOnEscape
+
+        background: Rectangle {
+            color:        root.theme.surface
+            radius:       6
+            border.color: root.theme.border
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors { fill: parent; margins: 20 }
+            spacing: 16
+
+            Text {
+                Layout.fillWidth: true
+                text:           qsTr("Wie soll importiert werden?")
+                font.pixelSize: 14
+                font.weight:    Font.Medium
+                color:          root.theme.textPrimary
+                wrapMode:       Text.Wrap
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 32; radius: 3
+                    color: mergeHover.containsMouse ? root.theme.accent : root.theme.border
+                    Text {
+                        anchors.centerIn: parent
+                        text:           qsTr("Zusammenführen")
+                        font.pixelSize: 11
+                        color:          root.theme.textPrimary
+                    }
+                    HoverHandler { id: mergeHover }
+                    TapHandler {
+                        onTapped: {
+                            importModePopup.close()
+                            const ok = db.wikiImportJson(root._importPfad, true)
+                            root._kategorienLaden()
+                            root._zeigeStatus(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true; height: 32; radius: 3
+                    color: replaceHover.containsMouse ? "#c0392b" : root.theme.border
+                    Text {
+                        anchors.centerIn: parent
+                        text:           qsTr("Ersetzen")
+                        font.pixelSize: 11
+                        color:          root.theme.textPrimary
+                    }
+                    HoverHandler { id: replaceHover }
+                    TapHandler {
+                        onTapped: {
+                            importModePopup.close()
+                            const ok = db.wikiImportJson(root._importPfad, false)
+                            root._kategorienLaden()
+                            root._artIdx     = -1
+                            root._aktArtikel = ({})
+                            root._bilder     = []
+                            root._zeigeStatus(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: 70; height: 32; radius: 3
+                    color: abbrImportHover.containsMouse ? root.theme.hover : "transparent"
+                    border.color: root.theme.border
+                    Text {
+                        anchors.centerIn: parent
+                        text:           qsTr("Abbrechen")
+                        font.pixelSize: 11
+                        color:          root.theme.textMuted
+                    }
+                    HoverHandler { id: abbrImportHover }
+                    TapHandler { onTapped: importModePopup.close() }
+                }
+            }
+        }
+    }
+
+    // ── Status-Toast ──────────────────────────────────────────
+    Rectangle {
+        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 20 }
+        width:   statusToastLabel.implicitWidth + 32
+        height:  36
+        radius:  6
+        color:   root._statusOk ? "#27ae60" : "#c0392b"
+        visible: root._statusText !== ""
+
+        Text {
+            id:             statusToastLabel
+            anchors.centerIn: parent
+            text:           root._statusText
+            font.pixelSize: 13
+            color:          "white"
+        }
+    }
+
+    Timer {
+        id:       statusTimer
+        interval: 3000
+        onTriggered: root._statusText = ""
     }
 
     // ── Bild-Import FileDialog ────────────────────────────────

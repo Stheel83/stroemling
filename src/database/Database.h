@@ -22,7 +22,7 @@ public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
     // als inkrementelle Migration in alleMigrationen() – diese Konstante bleibt fest.
     static const int BASELINE_VERSION    = 40;
-    static const int WIKI_SCHEMA_VERSION = 3;
+    static const int WIKI_SCHEMA_VERSION = 4;
 
     explicit Database(QObject *parent = nullptr);
 
@@ -37,6 +37,9 @@ public:
 
     // Aktuelles Projekt schließen
     Q_INVOKABLE void closeProjekt();
+
+    // Aktuelles Projekt als kompakte Kopie exportieren (VACUUM INTO)
+    Q_INVOKABLE bool projektExportieren(const QString &destPfad);
 
     // Ist gerade eine Projektdatei geöffnet?
     bool    projektOffen() const { return m_projektOffen; }
@@ -416,6 +419,10 @@ public:
 
     // Volltext-Suche (FTS5)
     Q_INVOKABLE QVariantList wikiSuchen(const QString &suchbegriff);
+
+    // Export / Import
+    Q_INVOKABLE bool wikiExportJson(const QString &pfad);
+    Q_INVOKABLE bool wikiImportJson(const QString &pfad, bool mergeMode);
 
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen

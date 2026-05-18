@@ -13,6 +13,15 @@ Item {
     property var  theme
     property bool debug: false
 
+    property string _exportStatus: ""
+    property bool   _exportStatusOk: true
+
+    function _zeigeExportStatus(text, ok) {
+        _exportStatus   = text
+        _exportStatusOk = (ok !== false)
+        exportStatusTimer.restart()
+    }
+
     // Wird nach oben gemeldet wenn ein Projekt ausgewählt wird
     signal projektGewaehlt(int id, string name)
 
@@ -34,6 +43,21 @@ Item {
                 font.weight:    Font.Medium
                 color:          theme.textBright
                 Layout.fillWidth: true
+            }
+
+            // Projekt importieren (bestehende .stroemling-Datei öffnen)
+            RoundButton {
+                text:   "📂"
+                width:  28
+                height: 28
+                font.pixelSize: 14
+                palette.button:     theme.border
+                palette.buttonText: theme.textPrimary
+
+                ToolTip.visible: hovered
+                ToolTip.text:    qsTr("Projekt importieren (.stroemling öffnen)")
+
+                onClicked: projektImportDialog.open()
             }
 
             // Neues Projekt anlegen
@@ -118,6 +142,26 @@ Item {
                             font.pixelSize: 11
                             color:          theme.panelMid
                         }
+                    }
+
+                    // Export-Button (nur beim Hover sichtbar)
+                    RoundButton {
+                        id:      exportBtn
+                        text:    "⬆"
+                        width:   24
+                        height:  24
+                        visible: itemHover.hovered
+                        font.pixelSize: 11
+                        palette.button:     "transparent"
+                        palette.buttonText: theme.textMuted
+                        anchors {
+                            right:          editBtn.left
+                            rightMargin:    2
+                            verticalCenter: parent.verticalCenter
+                        }
+                        ToolTip.visible: hovered
+                        ToolTip.text:    qsTr("Kopie exportieren (.stroemling)")
+                        onClicked: projektExportDialog.open()
                     }
 
                     // Bearbeiten-Button (nur beim Hover sichtbar)
@@ -346,6 +390,63 @@ Item {
                 }
             }
         }
+    }
+
+    // ── Projekt-Import FileDialog ─────────────────────────────
+    FileDialog {
+        id:           projektImportDialog
+        title:        qsTr("Projekt importieren")
+        fileMode:     FileDialog.OpenFile
+        nameFilters:  ["Strömling Projekte (*.stroemling)", qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
+            if (!db.openProjekt(pfad))
+                root._zeigeExportStatus(qsTr("Projekt konnte nicht geöffnet werden"), false)
+        }
+    }
+
+    // ── Projekt-Export FileDialog ─────────────────────────────
+    FileDialog {
+        id:           projektExportDialog
+        title:        qsTr("Projekt exportieren (Kopie erstellen)")
+        fileMode:     FileDialog.SaveFile
+        nameFilters:  ["Strömling Projekte (*.stroemling)", qsTr("Alle Dateien (*)")]
+        defaultSuffix: "stroemling"
+        onAccepted: {
+            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
+            const ok = db.projektExportieren(pfad)
+            root._zeigeExportStatus(
+                ok ? qsTr("Exportiert: ") + pfad.split("/").pop()
+                   : qsTr("Export fehlgeschlagen"),
+                ok
+            )
+        }
+    }
+
+    // ── Status-Toast ──────────────────────────────────────────
+    Rectangle {
+        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 16 }
+        width:   exportStatusLabel.implicitWidth + 28
+        height:  34
+        radius:  6
+        color:   root._exportStatusOk ? "#27ae60" : "#c0392b"
+        visible: root._exportStatus !== ""
+
+        Text {
+            id:             exportStatusLabel
+            anchors.centerIn: parent
+            text:           root._exportStatus
+            font.pixelSize: 12
+            color:          "white"
+            elide:          Text.ElideRight
+            maximumLineCount: 1
+        }
+    }
+
+    Timer {
+        id:       exportStatusTimer
+        interval: 3500
+        onTriggered: root._exportStatus = ""
     }
 
     DebugLabel { panelName: qsTr("Projektliste"); visible: root.debug }

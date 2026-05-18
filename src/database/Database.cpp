@@ -273,6 +273,32 @@ void Database::closeProjekt()
     emit projektOffenChanged();
 }
 
+bool Database::projektExportieren(const QString &destPfad)
+{
+    const QString localPfad = QUrl(destPfad).isLocalFile() ? QUrl(destPfad).toLocalFile() : destPfad;
+
+    if (!m_projektOffen) {
+        qWarning() << "projektExportieren: kein Projekt geöffnet";
+        return false;
+    }
+
+    // VACUUM INTO schlägt fehl wenn die Zieldatei bereits existiert
+    if (QFile::exists(localPfad) && !QFile::remove(localPfad)) {
+        qWarning() << "projektExportieren: Zieldatei konnte nicht gelöscht werden:" << localPfad;
+        return false;
+    }
+
+    QString escaped = localPfad;
+    escaped.replace("'", "''");
+    QSqlQuery q;
+    if (!q.exec("VACUUM INTO '" + escaped + "'")) {
+        qWarning() << "projektExportieren:" << q.lastError().text();
+        return false;
+    }
+    qInfo() << "Projekt exportiert nach:" << localPfad;
+    return true;
+}
+
 QString Database::projektPfad() const
 {
     return m_db.isOpen() ? m_db.databaseName() : QString();
@@ -405,6 +431,9 @@ bool Database::checkAndApplyWikiSchema()
         return false;
     }
 
+    // Alte Zeile löschen, damit LIMIT-1-Abfrage beim nächsten Start korrekt ist
+    QSqlQuery del(m_wikiDb);
+    del.exec("DELETE FROM schema_version");
     QSqlQuery ins(m_wikiDb);
     ins.prepare("INSERT INTO schema_version (version) VALUES (:v)");
     ins.bindValue(":v", WIKI_SCHEMA_VERSION);
@@ -6090,6 +6119,239 @@ QVariantList Database::wikiSuchen(const QString &suchbegriff)
 }
 
 // ============================================================
+// Wiki – Export / Import (JSON)
+// ============================================================
+bool Database::wikiExportJson(const QString &pfad)
+{
+    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+
+    // Kategorien
+    QJsonArray kategorienArr;
+    QSqlQuery qKat(m_wikiDb);
+    if (!qKat.exec("SELECT id, name, beschreibung, sortierung FROM wiki_kategorie ORDER BY sortierung, name")) {
+        qWarning() << "wikiExportJson kategorien:" << qKat.lastError().text();
+        return false;
+    }
+    while (qKat.next()) {
+        QJsonObject o;
+        o["id"]           = qKat.value(0).toInt();
+        o["name"]         = qKat.value(1).toString();
+        o["beschreibung"] = qKat.value(2).toString();
+        o["sortierung"]   = qKat.value(3).toInt();
+        kategorienArr.append(o);
+    }
+
+    // Nur Nutzer-Artikel (ist_system = 0)
+    QJsonArray artikelArr;
+    QSqlQuery qArt(m_wikiDb);
+    if (!qArt.exec(R"(
+        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags
+        FROM wiki_artikel wa
+        JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id
+        WHERE wa.ist_system = 0
+        ORDER BY wk.sortierung, wk.name, wa.titel
+    )")) {
+        qWarning() << "wikiExportJson artikel:" << qArt.lastError().text();
+        return false;
+    }
+    while (qArt.next()) {
+        QJsonObject o;
+        o["id"]             = qArt.value(0).toInt();
+        o["kategorie_id"]   = qArt.value(1).toInt();
+        o["kategorie_name"] = qArt.value(2).toString();
+        o["titel"]          = qArt.value(3).toString();
+        o["inhalt"]         = qArt.value(4).toString();
+        o["tags"]           = qArt.value(5).toString();
+        artikelArr.append(o);
+    }
+
+    // Bilder der exportierten Artikel
+    QJsonArray bilderArr;
+    QSqlQuery qBild(m_wikiDb);
+    if (!qBild.exec(R"(
+        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.daten, wb.beschreibung, wb.sortierung
+        FROM wiki_bild wb
+        JOIN wiki_artikel wa ON wa.id = wb.artikel_id
+        WHERE wa.ist_system = 0
+        ORDER BY wb.artikel_id, wb.sortierung, wb.id
+    )")) {
+        qWarning() << "wikiExportJson bilder:" << qBild.lastError().text();
+        return false;
+    }
+    while (qBild.next()) {
+        QJsonObject o;
+        o["id"]           = qBild.value(0).toInt();
+        o["artikel_id"]   = qBild.value(1).toInt();
+        o["dateiname"]    = qBild.value(2).toString();
+        o["mime_typ"]     = qBild.value(3).toString();
+        o["daten_base64"] = QString::fromLatin1(qBild.value(4).toByteArray().toBase64());
+        o["beschreibung"] = qBild.value(5).toString();
+        o["sortierung"]   = qBild.value(6).toInt();
+        bilderArr.append(o);
+    }
+
+    QJsonObject root;
+    root["wiki_export_version"] = 1;
+    root["exportiert_am"]       = QDateTime::currentDateTime().toString(Qt::ISODate);
+    root["kategorien"]          = kategorienArr;
+    root["artikel"]             = artikelArr;
+    root["bilder"]              = bilderArr;
+
+    QFile f(localPfad);
+    if (!f.open(QIODevice::WriteOnly)) {
+        qWarning() << "wikiExportJson: Datei nicht schreibbar:" << localPfad;
+        return false;
+    }
+    f.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    qInfo() << "Wiki exportiert:" << localPfad << "-" << artikelArr.size() << "Artikel";
+    return true;
+}
+
+bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
+{
+    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+
+    QFile f(localPfad);
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning() << "wikiImportJson: Datei nicht lesbar:" << localPfad;
+        return false;
+    }
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+    if (doc.isNull()) {
+        qWarning() << "wikiImportJson: JSON-Fehler:" << err.errorString();
+        return false;
+    }
+    const QJsonObject root = doc.object();
+    if (root["wiki_export_version"].toInt() != 1) {
+        qWarning() << "wikiImportJson: Unbekannte Export-Version:" << root["wiki_export_version"].toInt();
+        return false;
+    }
+
+    if (!m_wikiDb.transaction()) {
+        qWarning() << "wikiImportJson: Transaktion fehlgeschlagen";
+        return false;
+    }
+
+    // Replace-Modus: alle Nutzer-Artikel löschen (Bilder cascaden automatisch)
+    if (!mergeMode) {
+        QSqlQuery del(m_wikiDb);
+        if (!del.exec("DELETE FROM wiki_artikel WHERE ist_system = 0")) {
+            qWarning() << "wikiImportJson replace:" << del.lastError().text();
+            m_wikiDb.rollback();
+            return false;
+        }
+    }
+
+    // Kategorien: vorhandene nach Name finden oder neu anlegen; old-ID → new-ID Map
+    QMap<int, int> katIdMap;
+    const QJsonArray katArr = root["kategorien"].toArray();
+    for (const QJsonValue &v : katArr) {
+        const QJsonObject o = v.toObject();
+        const int    oldId  = o["id"].toInt();
+        const QString name  = o["name"].toString();
+
+        QSqlQuery find(m_wikiDb);
+        find.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
+        find.bindValue(":n", name);
+        if (find.exec() && find.next()) {
+            katIdMap[oldId] = find.value(0).toInt();
+        } else {
+            QSqlQuery ins(m_wikiDb);
+            ins.prepare("INSERT INTO wiki_kategorie (name, beschreibung, sortierung) VALUES (:n, :b, :s)");
+            ins.bindValue(":n", name);
+            ins.bindValue(":b", o["beschreibung"].toString());
+            ins.bindValue(":s", o["sortierung"].toInt());
+            if (!ins.exec()) {
+                qWarning() << "wikiImportJson Kategorie anlegen:" << ins.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+            katIdMap[oldId] = ins.lastInsertId().toInt();
+        }
+    }
+
+    // Artikel einfügen; old-Art-ID → new-Art-ID Map für Bild-Zuordnung
+    QMap<int, int> artIdMap;
+    const QJsonArray artArr = root["artikel"].toArray();
+    for (const QJsonValue &v : artArr) {
+        const QJsonObject o   = v.toObject();
+        const int oldArtId    = o["id"].toInt();
+        const int oldKatId    = o["kategorie_id"].toInt();
+        const QString katName = o["kategorie_name"].toString();
+
+        int newKatId = katIdMap.value(oldKatId, -1);
+        if (newKatId < 0) {
+            // Kategorie nicht im Export enthalten – nach Name suchen
+            QSqlQuery find(m_wikiDb);
+            find.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
+            find.bindValue(":n", katName);
+            if (find.exec() && find.next()) {
+                newKatId = find.value(0).toInt();
+                katIdMap[oldKatId] = newKatId;
+            } else {
+                QSqlQuery ins(m_wikiDb);
+                ins.prepare("INSERT INTO wiki_kategorie (name) VALUES (:n)");
+                ins.bindValue(":n", katName);
+                if (!ins.exec()) { m_wikiDb.rollback(); return false; }
+                newKatId = ins.lastInsertId().toInt();
+                katIdMap[oldKatId] = newKatId;
+            }
+        }
+
+        QSqlQuery ins(m_wikiDb);
+        ins.prepare(R"(
+            INSERT INTO wiki_artikel (kategorie_id, titel, inhalt, tags, ist_system)
+            VALUES (:kid, :t, :i, :tags, 0)
+        )");
+        ins.bindValue(":kid",  newKatId);
+        ins.bindValue(":t",    o["titel"].toString());
+        ins.bindValue(":i",    o["inhalt"].toString());
+        ins.bindValue(":tags", o["tags"].toString());
+        if (!ins.exec()) {
+            qWarning() << "wikiImportJson Artikel einfügen:" << ins.lastError().text();
+            m_wikiDb.rollback();
+            return false;
+        }
+        artIdMap[oldArtId] = ins.lastInsertId().toInt();
+    }
+
+    // Bilder einfügen
+    const QJsonArray bildArr = root["bilder"].toArray();
+    for (const QJsonValue &v : bildArr) {
+        const QJsonObject o = v.toObject();
+        const int newArtId  = artIdMap.value(o["artikel_id"].toInt(), -1);
+        if (newArtId < 0) continue;
+
+        QSqlQuery ins(m_wikiDb);
+        ins.prepare(R"(
+            INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, beschreibung, sortierung)
+            VALUES (:aid, :fn, :mime, :daten, :beschr, :sort)
+        )");
+        ins.bindValue(":aid",   newArtId);
+        ins.bindValue(":fn",    o["dateiname"].toString());
+        ins.bindValue(":mime",  o["mime_typ"].toString());
+        ins.bindValue(":daten", QByteArray::fromBase64(o["daten_base64"].toString().toLatin1()));
+        ins.bindValue(":beschr", o["beschreibung"].toString());
+        ins.bindValue(":sort",  o["sortierung"].toInt());
+        if (!ins.exec()) {
+            qWarning() << "wikiImportJson Bild einfügen:" << ins.lastError().text();
+            m_wikiDb.rollback();
+            return false;
+        }
+    }
+
+    if (!m_wikiDb.commit()) {
+        m_wikiDb.rollback();
+        qWarning() << "wikiImportJson commit:" << m_wikiDb.lastError().text();
+        return false;
+    }
+    qInfo() << "Wiki importiert:" << artArr.size() << "Artikel"
+            << (mergeMode ? "(Merge)" : "(Replace)");
+    return true;
+}
+
+// ============================================================
 // seedWikiStarterInhalte
 // Legt System-Kategorien und -Artikel an (INSERT OR IGNORE –
 // idempotent, bestehende Nutzer-Inhalte bleiben unberührt).
@@ -6261,6 +6523,72 @@ Das ausgefüllte IBN-Protokoll kann als Liste exportiert werden
 (Listen-Ansicht → IBN-Tab).
 )",
                     "inbetriebnahme prüfung messwert protokoll IBN"
+                },
+                {
+                    "Versionierung mit Git",
+                    R"(# Versionierung mit Git
+
+Strömling-Projekte sind eigenständige **SQLite-Dateien** (`.stroemling`).
+Da alle Daten in einer einzigen Datei stecken, funktioniert Git als
+Versionsverwaltung ohne jede Konfiguration in der App.
+
+## Einrichten (einmalig)
+
+```bash
+# Projektordner anlegen und als Git-Repo initialisieren
+mkdir ~/Projekte/Schaltschrank-A
+cd ~/Projekte/Schaltschrank-A
+git init
+
+# .gitignore anlegen (optional, aber empfohlen)
+echo "*.db-wal" >  .gitignore
+echo "*.db-shm" >> .gitignore
+git add .gitignore
+git commit -m "Repo initialisiert"
+```
+
+Danach das Projekt in diesem Ordner anlegen oder die `.stroemling`-Datei
+dorthin kopieren (📂 → **Projekt importieren**).
+
+## Täglicher Workflow
+
+```bash
+# Nach einer Arbeitssitzung
+git add schaltschrank_a.stroemling
+git commit -m "Hauptstromkreis: Schütze K1–K3 verdrahtet"
+
+# Verlauf anzeigen
+git log --oneline
+
+# Auf Stand vor 3 Commits zurückgehen (nur lesen, nicht überschreiben)
+git show HEAD~3:schaltschrank_a.stroemling > alt.stroemling
+```
+
+## Was Git kann und was nicht
+
+| ✅ Funktioniert | ❌ Funktioniert nicht |
+|---|---|
+| Vollständige Versionshistorie | Lesbares `git diff` (Binärdatei) |
+| Wiederherstellung beliebiger Stände | Zeilenweises Mergen zweier Versionen |
+| Branching (z. B. Varianten A/B) | Automatische Konfliktauflösung |
+| Backup auf GitHub/Gitea/lokalem Server | |
+
+## Tipps
+
+- **Sinnvolle Commit-Nachrichten** helfen später: lieber
+  *„Steuerstromkreis Schütz K2 korrigiert"* als *„Update"*.
+- **Vor größeren Umstrukturierungen** einen Commit machen – so kann
+  man jederzeit zum Ausgangszustand zurück.
+- **Projekt exportieren** (⬆-Button in der Projektliste) erzeugt eine
+  kompakte, saubere Kopie – ideal für Archivierung oder Weitergabe.
+- Mehrere Varianten eines Projekts: einfach **Branches** nutzen:
+  ```bash
+  git checkout -b variante-drehstrom
+  # ... Änderungen ...
+  git checkout main   # zurück zur Hauptvariante
+  ```
+)",
+                    "git versionierung backup revision history"
                 }
             }
         },

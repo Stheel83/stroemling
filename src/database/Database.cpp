@@ -5,8 +5,11 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QBuffer>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
 #include <QSet>
 #include <QTextStream>
 #include <QUrl>
@@ -15,6 +18,28 @@
 #include <QTextDocument>
 #include <algorithm>
 
+// ============================================================
+// Migrations-Katalog
+// Jede Migration hat eine aufsteigende Versionsnummer, eine
+// kurze Beschreibung und eine Liste von SQL-Statements.
+// Version 40 (Baseline) wird von checkAndApplySchema() speziell
+// behandelt und ruft dropAllTables() + createSchema() + Seeds.
+// ============================================================
+struct SchemaMigration {
+    int         version;
+    QString     beschreibung;
+    QStringList statements;
+};
+
+static QList<SchemaMigration> alleMigrationen()
+{
+    return {
+        { 40, "Baseline v40 – initiales Schema", {} },
+        // Zukünftige inkrementelle Migrationen hier eintragen:
+        // { 41, "Neue Tabelle xyz", { "ALTER TABLE ...", "CREATE INDEX ..." } },
+    };
+}
+
 Database::Database(QObject *parent)
     : QObject(parent)
 {
@@ -22,31 +47,464 @@ Database::Database(QObject *parent)
 
 bool Database::open(const QString &path)
 {
-    m_db = QSqlDatabase::addDatabase("QSQLITE");
-    m_db.setDatabaseName(path);
-
-    if (!m_db.open()) {
-        qWarning() << "Datenbank konnte nicht geöffnet werden:" << m_db.lastError().text();
-        return false;
-    }
-
-    {
-        // Block-Scope: pragma-Query muss vor checkAndApplySchema zerstört sein.
-        // PRAGMA journal_mode = WAL gibt eine Ergebniszeile zurück – der offene
-        // Lesecursor würde sonst den exklusiven Lock bei DROP TABLE blockieren.
-        QSqlQuery pragma;
-        pragma.exec("PRAGMA foreign_keys = ON");
-        pragma.exec("PRAGMA busy_timeout = 5000");   // 5s warten wenn DB gesperrt
-        pragma.exec("PRAGMA journal_mode = WAL");    // bessere Nebenläufigkeit
-    } // pragma-Cursor wird hier freigegeben
-
-    qInfo() << "Datenbank geöffnet:" << path;
-    return checkAndApplySchema();
+    return openProjekt(path);
 }
 
 void Database::close()
 {
     m_db.close();
+    if (m_wikiDb.isValid())    m_wikiDb.close();
+    if (m_launcherDb.isValid()) m_launcherDb.close();
+}
+
+// ============================================================
+// openLauncher
+// Öffnet oder legt die Launcher-DB an (stroemling.db).
+// Diese Datei enthält nur die zuletzt_geoeffnet-Tabelle –
+// keine Projektdaten.
+// ============================================================
+bool Database::openLauncher(const QString &path)
+{
+    m_launcherDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_launcher");
+    m_launcherDb.setDatabaseName(path);
+    if (!m_launcherDb.open()) {
+        qWarning() << "Launcher-DB konnte nicht geöffnet werden:" << m_launcherDb.lastError().text();
+        return false;
+    }
+    {
+        QSqlQuery q(m_launcherDb);
+        q.exec("PRAGMA journal_mode = WAL");
+        if (!q.exec(R"(
+            CREATE TABLE IF NOT EXISTS zuletzt_geoeffnet (
+                id           INTEGER PRIMARY KEY,
+                pfad         TEXT NOT NULL UNIQUE,
+                name         TEXT NOT NULL DEFAULT '',
+                geoeffnet_am TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        )")) {
+            qWarning() << "zuletzt_geoeffnet Tabelle:" << q.lastError().text();
+        }
+    }
+    qInfo() << "Launcher-DB geöffnet:" << path;
+
+    // Alte stroemling.db-Pfade (vor R7) als Projekte anbieten.
+    // Vor R7: org="Strömling Design", jetzt org="stroemling" → anderer XDG-Pfad.
+    // Basis-Verzeichnis ableiten: ein Ebene über dem aktuellen dataDir.
+    QString basedir = QFileInfo(path).absolutePath(); // z.B. ~/.local/share/stroemling/Strömling Design
+    QDir parentDir(basedir);
+    parentDir.cdUp(); // ~/.local/share/stroemling
+    parentDir.cdUp(); // ~/.local/share
+    const QString altPfad = parentDir.filePath(
+        "Strömling Design/Strömling Design/stroemling.db");
+    if (QFile::exists(altPfad)) {
+        QSqlQuery qCheck(m_launcherDb);
+        qCheck.prepare("SELECT COUNT(*) FROM zuletzt_geoeffnet WHERE pfad = :p");
+        qCheck.bindValue(":p", altPfad);
+        if (qCheck.exec() && qCheck.next() && qCheck.value(0).toInt() == 0) {
+            zuletzGeoeffnetEintragen(altPfad, "Bisheriges Projekt (vor R7)");
+            qInfo() << "Altes Projekt in zuletzt_geoeffnet eingetragen:" << altPfad;
+        }
+    }
+
+    return true;
+}
+
+// ============================================================
+// openProjekt
+// Öffnet eine existierende .stroemling-Projektdatei und führt
+// ggf. ausstehende Migrationen aus.
+// ============================================================
+bool Database::openProjekt(const QString &path)
+{
+    // Bestehende Projektverbindung trennen
+    if (m_projektOffen || m_db.isOpen()) {
+        m_db.close();
+        m_db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        m_projektOffen = false;
+    }
+
+    m_db = QSqlDatabase::addDatabase("QSQLITE");
+    m_db.setDatabaseName(path);
+    if (!m_db.open()) {
+        qWarning() << "Projekt konnte nicht geöffnet werden:" << m_db.lastError().text();
+        emit projektOffenChanged();
+        return false;
+    }
+    {
+        QSqlQuery pragma;
+        pragma.exec("PRAGMA foreign_keys = ON");
+        pragma.exec("PRAGMA busy_timeout = 5000");
+        pragma.exec("PRAGMA journal_mode = WAL");
+    }
+
+    if (!checkAndApplySchema()) {
+        m_db.close();
+        m_db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        emit projektOffenChanged();
+        return false;
+    }
+
+    m_projektOffen = true;
+
+    QString projektName;
+    {
+        QSqlQuery q;
+        if (q.exec("SELECT name FROM projekt LIMIT 1") && q.next())
+            projektName = q.value(0).toString();
+    }
+    if (projektName.isEmpty())
+        projektName = QFileInfo(path).baseName();
+
+    zuletzGeoeffnetEintragen(path, projektName);
+    qInfo() << "Projekt geöffnet:" << path;
+    emit projektOffenChanged();
+    return true;
+}
+
+// ============================================================
+// createProjekt
+// Legt eine neue leere Projektdatei an (ohne Beispieldaten).
+// ============================================================
+bool Database::createProjekt(const QString &path, const QString &projektName)
+{
+    if (QFile::exists(path)) {
+        qWarning() << "Projektdatei existiert bereits:" << path;
+        return false;
+    }
+
+    // Bestehende Projektverbindung trennen
+    if (m_projektOffen || m_db.isOpen()) {
+        m_db.close();
+        m_db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        m_projektOffen = false;
+    }
+
+    m_db = QSqlDatabase::addDatabase("QSQLITE");
+    m_db.setDatabaseName(path);
+    if (!m_db.open()) {
+        qWarning() << "Projektdatei konnte nicht erstellt werden:" << m_db.lastError().text();
+        return false;
+    }
+    {
+        QSqlQuery pragma;
+        pragma.exec("PRAGMA foreign_keys = ON");
+        pragma.exec("PRAGMA journal_mode = WAL");
+    }
+
+    // schema_migration-Tabelle anlegen (außerhalb der Transaktion)
+    {
+        QSqlQuery q;
+        if (!q.exec("CREATE TABLE IF NOT EXISTS schema_migration ("
+                    "version INTEGER PRIMARY KEY, beschreibung TEXT NOT NULL, "
+                    "angewendet_am TEXT NOT NULL DEFAULT (datetime('now')))")) {
+            qWarning() << "schema_migration für neues Projekt:" << q.lastError().text();
+            m_db.close(); m_db = QSqlDatabase();
+            QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+            QFile::remove(path);
+            return false;
+        }
+    }
+
+    if (!m_db.transaction()) {
+        qWarning() << "Transaktion für neues Projekt fehlgeschlagen";
+        m_db.close(); m_db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        QFile::remove(path);
+        return false;
+    }
+
+    // Schema + Seeds (inkl. Beispielprojekt für Einsteiger)
+    bool ok = createSchema()
+           && seedSymbolKatalog()
+           && seedBuiltinSymbolDefinitionen()
+           && seedIbnFeldvorlagen()
+           && seedExampleData();
+
+    if (ok) {
+        // Projektzeile mit Nutzernamen anlegen
+        QSqlQuery qp;
+        qp.prepare("INSERT INTO projekt (name) VALUES (:n)");
+        qp.bindValue(":n", projektName.isEmpty() ? QFileInfo(path).baseName() : projektName);
+        ok = qp.exec();
+        if (!ok)
+            qWarning() << "Projekt-Eintrag anlegen:" << qp.lastError().text();
+    }
+
+    if (ok) {
+        // Baseline-Version eintragen
+        QSqlQuery qm;
+        qm.prepare("INSERT INTO schema_migration (version, beschreibung) VALUES (:v, :d)");
+        qm.bindValue(":v", BASELINE_VERSION);
+        qm.bindValue(":d", QString("Baseline v%1 – neues Projekt").arg(BASELINE_VERSION));
+        ok = qm.exec();
+    }
+
+    if (!ok || !m_db.commit()) {
+        m_db.rollback();
+        m_db.close(); m_db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        QFile::remove(path);
+        return false;
+    }
+
+    m_projektOffen = true;
+    QString name = projektName.isEmpty() ? QFileInfo(path).baseName() : projektName;
+    zuletzGeoeffnetEintragen(path, name);
+    qInfo() << "Neues Projekt erstellt:" << path;
+    emit projektOffenChanged();
+    return true;
+}
+
+// ============================================================
+// closeProjekt
+// Schließt die aktuelle Projektdatei.
+// ============================================================
+void Database::closeProjekt()
+{
+    if (!m_projektOffen) return;
+    m_db.close();
+    m_db = QSqlDatabase();
+    QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    m_projektOffen = false;
+    qInfo() << "Projekt geschlossen.";
+    emit projektOffenChanged();
+}
+
+QString Database::projektPfad() const
+{
+    return m_db.isOpen() ? m_db.databaseName() : QString();
+}
+
+// ============================================================
+// zuletzGeoeffnete
+// Gibt die zuletzt geöffneten Projekte aus der Launcher-DB zurück.
+// ============================================================
+QVariantList Database::zuletzGeoeffnete() const
+{
+    QVariantList list;
+    if (!m_launcherDb.isOpen()) return list;
+    QSqlQuery q(m_launcherDb);
+    if (!q.exec("SELECT pfad, name, geoeffnet_am FROM zuletzt_geoeffnet "
+                "ORDER BY geoeffnet_am DESC LIMIT 10"))
+        return list;
+    while (q.next()) {
+        QString pfad = q.value(0).toString();
+        if (QFile::exists(pfad)) {
+            list.append(QVariantMap{
+                { "pfad",        pfad },
+                { "name",        q.value(1).toString() },
+                { "geoeffnetAm", q.value(2).toString() },
+            });
+        }
+    }
+    return list;
+}
+
+// ============================================================
+// ersteProjektInfo
+// Gibt id + name des ersten Projekts der geöffneten DB zurück.
+// ============================================================
+QVariantMap Database::ersteProjektInfo() const
+{
+    QVariantMap m;
+    if (!m_projektOffen) return m;
+    QSqlQuery q;
+    if (q.exec("SELECT id, name FROM projekt LIMIT 1") && q.next()) {
+        m["id"]   = q.value(0).toInt();
+        m["name"] = q.value(1).toString();
+    }
+    return m;
+}
+
+// ============================================================
+// zuletzGeoeffnetEintragen (privat)
+// ============================================================
+void Database::zuletzGeoeffnetEintragen(const QString &path, const QString &name)
+{
+    if (!m_launcherDb.isOpen()) return;
+    QSqlQuery q(m_launcherDb);
+    q.prepare(R"(
+        INSERT INTO zuletzt_geoeffnet (pfad, name, geoeffnet_am)
+        VALUES (:p, :n, datetime('now'))
+        ON CONFLICT(pfad) DO UPDATE SET name = :n, geoeffnet_am = datetime('now')
+    )");
+    q.bindValue(":p", path);
+    q.bindValue(":n", name);
+    q.exec();
+}
+
+bool Database::openWiki(const QString &path)
+{
+    m_wikiDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_wiki");
+    m_wikiDb.setDatabaseName(path);
+    if (!m_wikiDb.open()) {
+        qWarning() << "Wiki-Datenbank konnte nicht geöffnet werden:" << m_wikiDb.lastError().text();
+        return false;
+    }
+    {
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA foreign_keys = ON");
+        pragma.exec("PRAGMA journal_mode = WAL");
+    }
+    qInfo() << "Wiki-Datenbank geöffnet:" << path;
+    return checkAndApplyWikiSchema();
+}
+
+bool Database::checkAndApplyWikiSchema()
+{
+    int storedVersion = -1;
+    {
+        QSqlQuery q(m_wikiDb);
+        if (!q.exec("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")) {
+            qWarning() << "wiki schema_version anlegen:" << q.lastError().text();
+            return false;
+        }
+        if (q.exec("SELECT version FROM schema_version LIMIT 1") && q.next())
+            storedVersion = q.value(0).toInt();
+    }
+
+    if (storedVersion == WIKI_SCHEMA_VERSION) {
+        qInfo() << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– keine Änderung.";
+        return true;
+    }
+
+    qInfo() << "Wiki-Schema:" << storedVersion << "→" << WIKI_SCHEMA_VERSION;
+
+    // Backup vor Wiki-Migration (nur wenn DB bereits Daten hat)
+    if (storedVersion >= 0)
+        erstelleBackup("stroemling_wiki", "wiki", storedVersion);
+
+    if (!m_wikiDb.transaction()) {
+        qWarning() << "Wiki-Transaktion konnte nicht gestartet werden:" << m_wikiDb.lastError().text();
+        return false;
+    }
+
+    // Inkrementelle Spalten-Migrationen (einmalig je Version)
+    if (storedVersion >= 1 && storedVersion < 3) {
+        bool hatIstSystem = false;
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA table_info(wiki_artikel)");
+        while (pragma.next()) {
+            if (pragma.value(1).toString() == "ist_system") { hatIstSystem = true; break; }
+        }
+        if (!hatIstSystem) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN ist_system INTEGER NOT NULL DEFAULT 0")) {
+                qWarning() << "ALTER TABLE wiki_artikel ADD ist_system:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+    }
+
+    if (!createWikiSchema() || !seedWikiStarterInhalte()) {
+        m_wikiDb.rollback();
+        return false;
+    }
+
+    QSqlQuery ins(m_wikiDb);
+    ins.prepare("INSERT INTO schema_version (version) VALUES (:v)");
+    ins.bindValue(":v", WIKI_SCHEMA_VERSION);
+    if (!ins.exec()) {
+        qWarning() << "wiki schema_version schreiben:" << ins.lastError().text();
+        m_wikiDb.rollback();
+        return false;
+    }
+
+    if (!m_wikiDb.commit()) {
+        m_wikiDb.rollback();
+        return false;
+    }
+
+    qInfo() << "Wiki-Schema v" << WIKI_SCHEMA_VERSION << "erfolgreich angelegt.";
+    return true;
+}
+
+bool Database::createWikiSchema()
+{
+    QSqlQuery q(m_wikiDb);
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_kategorie (
+            id           INTEGER PRIMARY KEY,
+            name         TEXT    NOT NULL UNIQUE,
+            beschreibung TEXT    NOT NULL DEFAULT '',
+            sortierung   INTEGER NOT NULL DEFAULT 0
+        )
+    )")) {
+        qWarning() << "Fehler wiki_kategorie:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_artikel (
+            id           INTEGER PRIMARY KEY,
+            kategorie_id INTEGER NOT NULL REFERENCES wiki_kategorie(id) ON DELETE RESTRICT,
+            titel        TEXT    NOT NULL,
+            inhalt       TEXT    NOT NULL DEFAULT '',
+            tags         TEXT    NOT NULL DEFAULT '',
+            ist_system   INTEGER NOT NULL DEFAULT 0,
+            erstellt_am  TEXT    NOT NULL DEFAULT (datetime('now')),
+            geaendert_am TEXT    NOT NULL DEFAULT (datetime('now'))
+        )
+    )")) {
+        qWarning() << "Fehler wiki_artikel:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_bild (
+            id           INTEGER PRIMARY KEY,
+            artikel_id   INTEGER NOT NULL REFERENCES wiki_artikel(id) ON DELETE CASCADE,
+            dateiname    TEXT    NOT NULL,
+            mime_typ     TEXT    NOT NULL DEFAULT 'image/jpeg',
+            daten        BLOB    NOT NULL,
+            beschreibung TEXT    NOT NULL DEFAULT '',
+            sortierung   INTEGER NOT NULL DEFAULT 0
+        )
+    )")) {
+        qWarning() << "Fehler wiki_bild:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE VIRTUAL TABLE IF NOT EXISTS wiki_suche USING fts5(
+            titel, inhalt, tags,
+            content='wiki_artikel',
+            content_rowid='id'
+        )
+    )")) {
+        qWarning() << "Fehler wiki_suche (FTS5):" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TRIGGER IF NOT EXISTS wiki_artikel_ai AFTER INSERT ON wiki_artikel BEGIN
+            INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
+            VALUES (new.id, new.titel, new.inhalt, new.tags);
+        END
+    )")) { qWarning() << "Trigger wiki_artikel_ai:" << q.lastError().text(); return false; }
+
+    if (!q.exec(R"(
+        CREATE TRIGGER IF NOT EXISTS wiki_artikel_ad AFTER DELETE ON wiki_artikel BEGIN
+            INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
+            VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
+        END
+    )")) { qWarning() << "Trigger wiki_artikel_ad:" << q.lastError().text(); return false; }
+
+    if (!q.exec(R"(
+        CREATE TRIGGER IF NOT EXISTS wiki_artikel_au AFTER UPDATE ON wiki_artikel BEGIN
+            INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
+            VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
+            INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
+            VALUES (new.id, new.titel, new.inhalt, new.tags);
+        END
+    )")) { qWarning() << "Trigger wiki_artikel_au:" << q.lastError().text(); return false; }
+
+    return true;
 }
 
 bool Database::isOpen() const
@@ -59,63 +517,210 @@ QString Database::lastError() const
     return m_db.lastError().text();
 }
 
+QVariantMap Database::datenbankInfos() const
+{
+    QVariantMap m;
+    QString projektDatei = m_projektOffen ? m_db.databaseName() : QString();
+    QString wikiPfad     = m_wikiDb.isValid() ? m_wikiDb.databaseName() : QString();
+    // Backup-Verzeichnis neben der Launcher-DB (App-Datenverzeichnis)
+    QString backupDir = m_launcherDb.isOpen()
+        ? QFileInfo(m_launcherDb.databaseName()).absolutePath() + "/backups"
+        : (!projektDatei.isEmpty() ? QFileInfo(projektDatei).absolutePath() + "/backups" : QString());
+
+    int schemaVersion = 0;
+    if (m_projektOffen) {
+        QSqlQuery q;
+        if (q.exec("SELECT COALESCE(MAX(version),0) FROM schema_migration") && q.next())
+            schemaVersion = q.value(0).toInt();
+    }
+
+    m["hauptDb"]           = projektDatei;
+    m["wikiDb"]            = wikiPfad;
+    m["backupDir"]         = backupDir;
+    m["schemaVersion"]     = schemaVersion;
+    m["wikiSchemaVersion"] = WIKI_SCHEMA_VERSION;
+    m["backupAnzahl"]      = backupDir.isEmpty() ? 0 : QDir(backupDir).entryList({"*.db"}, QDir::Files).size();
+    return m;
+}
+
 // ============================================================
 // checkAndApplySchema
-// Liest die gespeicherte Schema-Version. Stimmt sie nicht mit
-// SCHEMA_VERSION überein, werden alle Objekte gelöscht und das
-// Schema komplett neu angelegt. Migrationen gibt es erst vor
-// dem ersten stabilen Release.
+// Inkrementelles Migrations-System: liest den höchsten
+// angewendeten Versions-Eintrag aus schema_migration und
+// führt alle ausstehenden Migrationen in Reihenfolge aus.
+//
+// Übergangslogik: existiert die alte schema_version-Tabelle
+// mit v=40, wird v40 als bereits angewendet übernommen ohne
+// Rebuild.
 // ============================================================
 bool Database::checkAndApplySchema()
 {
-    // Versionscheck in eigenem Block – Query muss zerstört sein bevor
-    // die Transaktion startet, sonst hält sie ein SQLite-Lock auf schema_version.
-    int storedVersion = -1;
+    // schema_migration-Tabelle sicherstellen (außerhalb jeder Transaktion)
     {
         QSqlQuery q;
-        if (!q.exec("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")) {
-            qWarning() << "schema_version anlegen fehlgeschlagen:" << q.lastError().text();
+        if (!q.exec(
+            "CREATE TABLE IF NOT EXISTS schema_migration ("
+            "    version       INTEGER PRIMARY KEY,"
+            "    beschreibung  TEXT    NOT NULL,"
+            "    angewendet_am TEXT    NOT NULL DEFAULT (datetime('now'))"
+            ")")) {
+            qWarning() << "schema_migration anlegen:" << q.lastError().text();
             return false;
         }
-        if (q.exec("SELECT version FROM schema_version LIMIT 1") && q.next())
-            storedVersion = q.value(0).toInt();
-    } // q wird hier zerstört → Lock freigegeben
-
-    if (storedVersion == SCHEMA_VERSION) {
-        qInfo() << "Schema bereits auf Version" << SCHEMA_VERSION << "– kein Update nötig.";
-        return true;
     }
 
-    qInfo() << "Schema-Version:" << storedVersion << "→" << SCHEMA_VERSION
-            << "– Datenbank wird neu aufgebaut.";
+    // Aktuelle Version ermitteln
+    int currentVersion = 0;
+    {
+        QSqlQuery q;
+        bool leer = true;
+        if (q.exec("SELECT COUNT(*) FROM schema_migration") && q.next())
+            leer = (q.value(0).toInt() == 0);
 
-    if (!m_db.transaction()) {
-        qWarning() << "Transaktion konnte nicht gestartet werden:" << m_db.lastError().text();
+        if (leer) {
+            // Übergang: alte schema_version-Tabelle prüfen
+            QSqlQuery sv;
+            if (sv.exec("SELECT version FROM schema_version LIMIT 1") && sv.next()
+                    && sv.value(0).toInt() == BASELINE_VERSION) {
+                QSqlQuery ins;
+                ins.prepare("INSERT INTO schema_migration (version, beschreibung) VALUES (:v, :b)");
+                ins.bindValue(":v", BASELINE_VERSION);
+                ins.bindValue(":b", QString("Baseline v%1 – übernommen aus schema_version").arg(BASELINE_VERSION));
+                ins.exec();
+                currentVersion = BASELINE_VERSION;
+                qInfo() << "schema_migration: Übergang schema_version → v" << BASELINE_VERSION;
+            }
+        } else {
+            if (q.exec("SELECT COALESCE(MAX(version), 0) FROM schema_migration") && q.next())
+                currentVersion = q.value(0).toInt();
+        }
+    }
+
+    // Backup erstellen wenn Migrationen ausstehen
+    {
+        const auto &migrationen = alleMigrationen();
+        bool hatAusstehende = std::any_of(migrationen.begin(), migrationen.end(),
+            [currentVersion](const SchemaMigration &m){ return m.version > currentVersion; });
+        if (hatAusstehende)
+            erstelleBackup("", "stroemling", currentVersion);
+    }
+
+    // Ausstehende Migrationen anwenden
+    for (const SchemaMigration &mig : alleMigrationen()) {
+        if (mig.version <= currentVersion) continue;
+
+        qInfo() << "Wende Migration" << mig.version << "an:" << mig.beschreibung;
+
+        if (!m_db.transaction()) {
+            qWarning() << "Transaktion fehlgeschlagen:" << m_db.lastError().text();
+            return false;
+        }
+
+        bool ok = false;
+        if (mig.version == BASELINE_VERSION) {
+            // Baseline: vollständiger Neuaufbau
+            ok = dropAllTables() && createSchema()
+                 && seedSymbolKatalog() && seedBuiltinSymbolDefinitionen()
+                 && seedIbnFeldvorlagen() && seedExampleData();
+        } else {
+            ok = applyMigrationStatements(mig.statements);
+        }
+
+        if (!ok) {
+            m_db.rollback();
+            return false;
+        }
+
+        QSqlQuery ins;
+        ins.prepare("INSERT INTO schema_migration (version, beschreibung) VALUES (:v, :b)");
+        ins.bindValue(":v", mig.version);
+        ins.bindValue(":b", mig.beschreibung);
+        if (!ins.exec()) {
+            qWarning() << "schema_migration schreiben:" << ins.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+
+        if (!m_db.commit()) {
+            qWarning() << "Commit fehlgeschlagen:" << m_db.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+
+        qInfo() << "Migration" << mig.version << "erfolgreich angewendet.";
+        currentVersion = mig.version;
+    }
+
+    qInfo() << "Hauptdatenbank auf Schema-Version" << currentVersion;
+    return true;
+}
+
+bool Database::applyMigrationStatements(const QStringList &statements)
+{
+    QSqlQuery q;
+    for (const QString &stmt : statements) {
+        if (stmt.trimmed().isEmpty()) continue;
+        if (!q.exec(stmt)) {
+            qWarning() << "Migration-Statement fehlgeschlagen:" << q.lastError().text();
+            qWarning() << "Statement:" << stmt.left(200);
+            return false;
+        }
+    }
+    return true;
+}
+
+// ============================================================
+// erstelleBackup
+// Kopiert dbPfad nach <dataDir>/backups/<prefix>_v<version>_<datum>.db.
+// Hält maximal 5 Backups je Prefix (älteste werden gelöscht).
+// Wird vor jeder ausstehenden Migration aufgerufen.
+// ============================================================
+bool Database::erstelleBackup(const QString &verbindungsName, const QString &prefix, int version)
+{
+    QSqlDatabase db = verbindungsName.isEmpty()
+                      ? QSqlDatabase::database()
+                      : QSqlDatabase::database(verbindungsName);
+
+    QString dbPfad = db.databaseName();
+    QFileInfo fi(dbPfad);
+    if (!fi.exists()) return true;  // Neuinstallation – nichts zu sichern
+
+    QString backupDir = fi.absolutePath() + "/backups";
+    if (!QDir().mkpath(backupDir)) {
+        qWarning() << "Backup-Verzeichnis konnte nicht angelegt werden:" << backupDir;
         return false;
     }
 
-    if (!dropAllTables() || !createSchema() || !seedSymbolKatalog()
-            || !seedBuiltinSymbolDefinitionen() || !seedIbnFeldvorlagen() || !seedExampleData()) {
-        m_db.rollback();
-        return false;
+    QString datum = QDate::currentDate().toString("yyyy-MM-dd");
+    QString backupPfad = backupDir + "/" + prefix + "_v" + QString::number(version)
+                         + "_" + datum + ".db";
+
+    // Zweiter Backup am selben Tag: Uhrzeit ergänzen
+    if (QFile::exists(backupPfad)) {
+        QString zeit = QTime::currentTime().toString("HHmm");
+        backupPfad = backupDir + "/" + prefix + "_v" + QString::number(version)
+                     + "_" + datum + "_" + zeit + ".db";
     }
 
-    QSqlQuery ins;
-    ins.prepare("INSERT INTO schema_version (version) VALUES (:v)");
-    ins.bindValue(":v", SCHEMA_VERSION);
-    if (!ins.exec()) {
-        qWarning() << "schema_version schreiben fehlgeschlagen:" << ins.lastError().text();
-        m_db.rollback();
+    // VACUUM INTO erzeugt eine saubere Kopie einer offenen SQLite-DB (WAL-sicher)
+    QString escaped = backupPfad;
+    escaped.replace("'", "''");
+    QSqlQuery q(db);
+    if (!q.exec("VACUUM INTO '" + escaped + "'")) {
+        qWarning() << "Backup fehlgeschlagen:" << backupPfad << q.lastError().text();
         return false;
     }
+    qInfo() << "Backup erstellt:" << backupPfad;
 
-    if (!m_db.commit()) {
-        qWarning() << "Commit fehlgeschlagen:" << m_db.lastError().text();
-        m_db.rollback();
-        return false;
+    // Älteste Backups löschen wenn mehr als 5 vorhanden
+    QDir bd(backupDir);
+    QStringList backups = bd.entryList({ prefix + "_v*.db" }, QDir::Files, QDir::Name);
+    while (backups.size() > 5) {
+        QString alt = backups.takeFirst();
+        if (bd.remove(alt))
+            qInfo() << "Altes Backup gelöscht:" << alt;
     }
 
-    qInfo() << "Schema v" << SCHEMA_VERSION << "erfolgreich angelegt.";
     return true;
 }
 
@@ -179,7 +784,7 @@ bool Database::dropAllTables()
         "normblatt_feld",
         "normblatt_vorlage",
         "projekt",
-        "schema_version"
+        "schema_version"   // alte Tabelle – wird beim ersten Rebuild entfernt
     };
 
     for (const QString &v : views) {
@@ -207,18 +812,6 @@ bool Database::dropAllTables()
 bool Database::createSchema()
 {
     QSqlQuery q;
-
-    // ----------------------------------------------------------
-    // schema_version
-    // ----------------------------------------------------------
-    if (!q.exec(R"(
-        CREATE TABLE schema_version (
-            version INTEGER NOT NULL
-        )
-    )")) {
-        qWarning() << "Fehler schema_version:" << q.lastError().text();
-        return false;
-    }
 
     // ----------------------------------------------------------
     // Normblatt Vorlage
@@ -5206,4 +5799,568 @@ bool Database::ibnProtokollPdfSpeichern(int projektId, int seiteId,
     doc.print(&printer);
 
     return QFile::exists(localPath);
+}
+
+// ============================================================
+// Wiki – Kategorien
+// ============================================================
+QVariantList Database::wikiAlleKategorien()
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT id, name, beschreibung, sortierung FROM wiki_kategorie ORDER BY sortierung, name");
+    QVariantList result;
+    if (!q.exec()) return result;
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]           = q.value(0);
+        m["name"]         = q.value(1);
+        m["beschreibung"] = q.value(2);
+        m["sortierung"]   = q.value(3);
+        result << m;
+    }
+    return result;
+}
+
+int Database::wikiKategorieAnlegen(const QString &name, const QString &beschreibung)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("INSERT INTO wiki_kategorie (name, beschreibung) VALUES (:n, :b)");
+    q.bindValue(":n", name);
+    q.bindValue(":b", beschreibung);
+    if (!q.exec()) {
+        qWarning() << "wikiKategorieAnlegen:" << q.lastError().text();
+        return -1;
+    }
+    return q.lastInsertId().toInt();
+}
+
+bool Database::wikiKategorieUmbenennen(int id, const QString &name, const QString &beschreibung)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("UPDATE wiki_kategorie SET name = :n, beschreibung = :b WHERE id = :id");
+    q.bindValue(":n",   name);
+    q.bindValue(":b",   beschreibung);
+    q.bindValue(":id",  id);
+    if (!q.exec()) {
+        qWarning() << "wikiKategorieUmbenennen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool Database::wikiKategorieLoeschen(int id)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("DELETE FROM wiki_kategorie WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qWarning() << "wikiKategorieLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool Database::wikiKategorieSortierungSetzen(int id, int sortierung)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("UPDATE wiki_kategorie SET sortierung = :s WHERE id = :id");
+    q.bindValue(":s",  sortierung);
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qWarning() << "wikiKategorieSortierungSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
+// Wiki – Artikel
+// ============================================================
+QVariantList Database::wikiArtikelFuerKategorie(int kategorieId)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT id, titel, tags, geaendert_am, ist_system FROM wiki_artikel WHERE kategorie_id = :kid ORDER BY titel");
+    q.bindValue(":kid", kategorieId);
+    QVariantList result;
+    if (!q.exec()) return result;
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]          = q.value(0);
+        m["titel"]       = q.value(1);
+        m["tags"]        = q.value(2);
+        m["geaendertAm"] = q.value(3);
+        m["istSystem"]   = q.value(4);
+        result << m;
+    }
+    return result;
+}
+
+QVariantMap Database::wikiArtikelLaden(int id)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT id, kategorie_id, titel, inhalt, tags, ist_system, erstellt_am, geaendert_am FROM wiki_artikel WHERE id = :id");
+    q.bindValue(":id", id);
+    QVariantMap m;
+    if (!q.exec() || !q.next()) return m;
+    m["id"]          = q.value(0);
+    m["kategorieId"] = q.value(1);
+    m["titel"]       = q.value(2);
+    m["inhalt"]      = q.value(3);
+    m["tags"]        = q.value(4);
+    m["istSystem"]   = q.value(5);
+    m["erstelltAm"]  = q.value(6);
+    m["geaendertAm"] = q.value(7);
+    return m;
+}
+
+int Database::wikiArtikelAnlegen(int kategorieId, const QString &titel)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("INSERT INTO wiki_artikel (kategorie_id, titel) VALUES (:kid, :t)");
+    q.bindValue(":kid", kategorieId);
+    q.bindValue(":t",   titel);
+    if (!q.exec()) {
+        qWarning() << "wikiArtikelAnlegen:" << q.lastError().text();
+        return -1;
+    }
+    return q.lastInsertId().toInt();
+}
+
+bool Database::wikiArtikelSpeichern(int id, const QString &titel,
+                                     const QString &inhalt, const QString &tags)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare(R"(
+        UPDATE wiki_artikel
+        SET titel = :t, inhalt = :i, tags = :tags,
+            geaendert_am = datetime('now')
+        WHERE id = :id
+    )");
+    q.bindValue(":t",    titel);
+    q.bindValue(":i",    inhalt);
+    q.bindValue(":tags", tags);
+    q.bindValue(":id",   id);
+    if (!q.exec()) {
+        qWarning() << "wikiArtikelSpeichern:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool Database::wikiArtikelLoeschen(int id)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("DELETE FROM wiki_artikel WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qWarning() << "wikiArtikelLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
+// Wiki – Bilder
+// ============================================================
+QVariantList Database::wikiBilderFuerArtikel(int artikelId)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT id, dateiname, mime_typ, beschreibung, sortierung FROM wiki_bild WHERE artikel_id = :aid ORDER BY sortierung, id");
+    q.bindValue(":aid", artikelId);
+    QVariantList result;
+    if (!q.exec()) return result;
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]           = q.value(0);
+        m["dateiname"]    = q.value(1);
+        m["mimeTyp"]      = q.value(2);
+        m["beschreibung"] = q.value(3);
+        m["sortierung"]   = q.value(4);
+        result << m;
+    }
+    return result;
+}
+
+int Database::wikiBildHinzufuegen(int artikelId, const QString &pfad)
+{
+    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+
+    QImage img(localPfad);
+    if (img.isNull()) {
+        qWarning() << "wikiBildHinzufuegen: Bild nicht lesbar:" << localPfad;
+        return -1;
+    }
+    if (img.width() > 1920)
+        img = img.scaledToWidth(1920, Qt::SmoothTransformation);
+
+    QByteArray daten;
+    QBuffer buf(&daten);
+    buf.open(QIODevice::WriteOnly);
+    const QString ext = QFileInfo(localPfad).suffix().toLower();
+    const QByteArray fmt = (ext == "png") ? "PNG" : "JPEG";
+    img.save(&buf, fmt.constData(), 85);
+
+    const QString mimeTyp   = (ext == "png") ? "image/png" : "image/jpeg";
+    const QString dateiname = QFileInfo(localPfad).fileName();
+
+    QSqlQuery q(m_wikiDb);
+    q.prepare(R"(
+        INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, sortierung)
+        VALUES (:aid, :fn, :mime, :daten,
+                (SELECT COALESCE(MAX(sortierung), 0) + 1 FROM wiki_bild WHERE artikel_id = :aid2))
+    )");
+    q.bindValue(":aid",   artikelId);
+    q.bindValue(":fn",    dateiname);
+    q.bindValue(":mime",  mimeTyp);
+    q.bindValue(":daten", daten);
+    q.bindValue(":aid2",  artikelId);
+    if (!q.exec()) {
+        qWarning() << "wikiBildHinzufuegen INSERT:" << q.lastError().text();
+        return -1;
+    }
+    return q.lastInsertId().toInt();
+}
+
+bool Database::wikiBildLoeschen(int id)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("DELETE FROM wiki_bild WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qWarning() << "wikiBildLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+QString Database::wikiBildAlsTempDatei(int id)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT daten, mime_typ FROM wiki_bild WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec() || !q.next()) return {};
+
+    const QByteArray daten = q.value(0).toByteArray();
+    const QString mimeTyp  = q.value(1).toString();
+    const QString ext      = mimeTyp.contains("png") ? ".png" : ".jpg";
+    const QString tmpPfad  = QDir::tempPath() + "/stroemling_wiki_" + QString::number(id) + ext;
+
+    QFile f(tmpPfad);
+    if (!f.open(QIODevice::WriteOnly)) {
+        qWarning() << "wikiBildAlsTempDatei: Datei nicht schreibbar:" << tmpPfad;
+        return {};
+    }
+    f.write(daten);
+    return tmpPfad;
+}
+
+// ============================================================
+// Wiki – Volltext-Suche (FTS5)
+// ============================================================
+QVariantList Database::wikiSuchen(const QString &suchbegriff)
+{
+    if (suchbegriff.trimmed().isEmpty()) return {};
+
+    QSqlQuery q(m_wikiDb);
+    q.prepare(R"(
+        SELECT wa.id, wa.kategorie_id, wa.titel, wa.tags,
+               snippet(wiki_suche, 1, '<b>', '</b>', '…', 20) AS snippet
+        FROM wiki_suche
+        JOIN wiki_artikel wa ON wa.id = wiki_suche.rowid
+        WHERE wiki_suche MATCH :q
+        ORDER BY rank
+    )");
+    q.bindValue(":q", suchbegriff + "*");
+
+    QVariantList result;
+    if (!q.exec()) {
+        qWarning() << "wikiSuchen:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]          = q.value(0);
+        m["kategorieId"] = q.value(1);
+        m["titel"]       = q.value(2);
+        m["tags"]        = q.value(3);
+        m["snippet"]     = q.value(4);
+        result << m;
+    }
+    return result;
+}
+
+// ============================================================
+// seedWikiStarterInhalte
+// Legt System-Kategorien und -Artikel an (INSERT OR IGNORE –
+// idempotent, bestehende Nutzer-Inhalte bleiben unberührt).
+// ============================================================
+bool Database::seedWikiStarterInhalte()
+{
+    struct Artikel {
+        QString titel;
+        QString inhalt;
+        QString tags;
+    };
+    struct Kategorie {
+        QString name;
+        QString beschreibung;
+        int sortierung;
+        bool istSystem;          // true → Artikel werden mit ist_system=1 gepflegt
+        QList<Artikel> artikel;
+    };
+
+    const QList<Kategorie> kategorien = {
+        {
+            "Bedienhinweise",
+            "Grundlegende Bedienung von Strömling Design",
+            1,
+            true,
+            {
+                {
+                    "Programmübersicht",
+                    R"(# Programmübersicht
+
+Strömling Design ist in mehrere Arbeitsbereiche aufgeteilt, zwischen denen
+du über die **Seitenleiste links** wechselst.
+
+## Arbeitsbereiche
+
+| Symbol | Bereich | Funktion |
+|--------|---------|----------|
+| 📐 | Schaltplan | Schaltpläne zeichnen, Verbindungen ziehen |
+| 🔧 | Symbole | Eigene Schaltsymbole erstellen und bearbeiten |
+| 📋 | Normblatt | Schriftfeld-Vorlagen gestalten |
+| ✅ | IBN | Inbetriebnahme-Prüfprotokoll |
+| ⚡ | Kabelrechner | Leitungsquerschnitt nach VDE berechnen |
+| 📊 | Listen | Kabel-, Klemmen- und Stücklisten |
+| 📖 | Wiki | Persönliche Erfahrungen und Notizen |
+
+## Grundprinzip
+
+- **Links:** Seitenbaum (Projektseiten) oder Navigationsleiste
+- **Mitte:** Arbeitsbereich / Zeichenfläche
+- **Rechts:** Eigenschaftenpanel – zeigt die Eigenschaften des gewählten Elements
+)",
+                    "übersicht navigation sidebar"
+                },
+                {
+                    "Schaltplan – Erste Schritte",
+                    R"(# Schaltplan – Erste Schritte
+
+## Projekt anlegen
+
+1. Beim Programmstart wird automatisch ein leeres Projekt geöffnet.
+2. Im **Seitenbaum links** siehst du alle Seiten des Projekts.
+3. Über das **+**-Symbol im Seitenbaum fügst du neue Seiten hinzu.
+
+## Zeichenfläche
+
+Die Zeichenfläche arbeitet mit einem **Raster** (Standardeinheit: Werkeeinheiten, WE).
+
+- **Zoomen:** Mausrad
+- **Verschieben:** Mittlere Maustaste gedrückt halten und ziehen
+- **Auswählen:** Linksklick auf ein Element
+
+## Elemente platzieren
+
+1. Im **Eigenschaftenpanel rechts** (oder über Tastenkürzel) Werkzeug wählen.
+2. Linksklick auf die Zeichenfläche → Element wird platziert.
+3. Element anklicken → Eigenschaften erscheinen im Panel rechts.
+
+## Verbindungen ziehen
+
+1. Verbindungswerkzeug aktivieren.
+2. Klick auf den Startpunkt (Pin eines Symbols oder freier Punkt).
+3. Klick auf den Endpunkt – die Verbindung wird automatisch geroutet.
+4. Kreuzungen mit Leitungen aus **anderen Netzen** werden automatisch
+   als Lücke dargestellt.
+)",
+                    "schaltplan seite projekt zeichenfläche verbindung"
+                },
+                {
+                    "Symbole platzieren und bearbeiten",
+                    R"(# Symbole platzieren und bearbeiten
+
+## Symbol aus der Bibliothek platzieren
+
+1. Im **Schaltplan-Werkzeugbereich** das Symbol-Werkzeug wählen.
+2. Aus der Symbol-Palette das gewünschte Symbol anklicken.
+3. Auf die Zeichenfläche klicken → Symbol wird platziert.
+4. Im **Eigenschaftenpanel** kannst du Betriebsmittelkennzeichen (BMK),
+   Beschriftung und weitere Eigenschaften setzen.
+
+## Symbol drehen
+
+- Platziertes Symbol anklicken → im Eigenschaftenpanel die **Rotation** ändern
+  (0°, 90°, 180°, 270°).
+
+## Eigene Symbole erstellen
+
+1. Seitenleiste → **Symbole** (🔧).
+2. **Neues Symbol** anlegen, Namen und Größe festlegen.
+3. Mit den Zeichenwerkzeugen (Linien, Kreise, Bögen, Text) das Symbol zeichnen.
+4. **Pins** definieren: Position und Bezeichnung für jeden Anschlusspunkt.
+5. Speichern – das Symbol steht danach im Schaltplan zur Verfügung.
+)",
+                    "symbol platzieren bibliothek pin rotation BMK"
+                },
+                {
+                    "Kabelrechner",
+                    R"(# Kabelrechner
+
+Der Kabelrechner berechnet den **Mindestquerschnitt** einer Leitung nach VDE.
+
+## Eingaben
+
+| Feld | Bedeutung |
+|------|-----------|
+| Strom (A) | Betriebsstrom der Leitung |
+| Länge (m) | einfache Leitungslänge |
+| Spannung (V) | Nennspannung (typisch 230 V oder 400 V) |
+| cos φ | Leistungsfaktor (1,0 für ohmsche Last) |
+| Verlegeart | Freie Luft, Rohr, Wand usw. |
+| Häufung | Anzahl gebündelter Leitungen |
+
+## Ergebnis
+
+Der Rechner gibt den **empfohlenen Querschnitt** in mm² aus und zeigt
+den berechneten Spannungsfall.
+
+> **Hinweis:** Das Ergebnis ersetzt keine normgerechte Planung nach
+> DIN VDE 0100. Bei sicherheitsrelevanten Anlagen immer einen
+> Fachplaner hinzuziehen.
+)",
+                    "kabel querschnitt VDE berechnung strom"
+                },
+                {
+                    "IBN – Inbetriebnahme",
+                    R"(# IBN – Inbetriebnahme
+
+Der IBN-Modus dient zur **strukturierten Prüfung und Dokumentation**
+von Schaltanlagen vor der Inbetriebnahme.
+
+## Ablauf
+
+1. Seitenleiste → **IBN** (✅).
+2. Die platzierten **Betriebsmittel** aus dem Schaltplan werden automatisch
+   als Prüfpositionen aufgelistet.
+3. Für jedes Betriebsmittel können **Messwerte** (Spannung, Strom,
+   Widerstand usw.) eingetragen werden.
+4. Felder mit **Soll-Werten** zeigen farblich an, ob der Messwert
+   im zulässigen Bereich liegt.
+
+## Feldvorlagen
+
+Über **Feldvorlagen** lässt sich definieren, welche Messwerte für
+welchen Betriebsmitteltyp erfasst werden. So hat z. B. ein Motor
+andere Prüffelder als eine Leuchte.
+
+## Prüfprotokoll
+
+Das ausgefüllte IBN-Protokoll kann als Liste exportiert werden
+(Listen-Ansicht → IBN-Tab).
+)",
+                    "inbetriebnahme prüfung messwert protokoll IBN"
+                }
+            }
+        },
+        {
+            "Altbestand – West",
+            "Installationen nach westdeutscher Norm (VDE), Übergangsperioden, Klassische Nullung",
+            10,
+            false,
+            {
+                { "Klassische Nullung – Grundlagen", "", "klassische nullung VDE altbestand" },
+                { "Klassische Nullung – Verbotsdaten nach VDE", "", "klassische nullung verbot datum" },
+                { "Kuriositäten: 3-adrig verdrahtet, aber KN angeklemmt", "", "klassische nullung kuriosum" }
+            }
+        },
+        {
+            "Altbestand – Ost",
+            "Installationen nach DDR-Norm TGL, Besonderheiten, Aluminium-Leitungen",
+            20,
+            false,
+            {
+                { "Aluminium-Leitungen nach DDR-Norm TGL", "", "aluminium TGL DDR altbestand" },
+                { "DDR-Farbnormen und TGL-Querschnitte", "", "farbnorm TGL DDR querschnitt" }
+            }
+        },
+        {
+            "Aderendhülsen",
+            "Typen, Farbtabellen, Crimp-Technik, häufige Fehler",
+            30,
+            false,
+            {
+                { "Querschnitt–Farb–Größentabelle", "", "aderendhülse querschnitt farbe tabelle" }
+            }
+        },
+        {
+            "Kuriositäten",
+            "Ungewöhnliche Fundsachen aus der Praxis",
+            40,
+            false,
+            {}
+        }
+    };
+
+    QSqlQuery qKat(m_wikiDb), qKatId(m_wikiDb), qArtIns(m_wikiDb), qArtUpd(m_wikiDb);
+    qKat.prepare(R"(
+        INSERT OR IGNORE INTO wiki_kategorie (name, beschreibung, sortierung)
+        VALUES (:name, :beschr, :sort)
+    )");
+    // Artikel neu anlegen, falls noch nicht vorhanden
+    qArtIns.prepare(R"(
+        INSERT OR IGNORE INTO wiki_artikel (kategorie_id, titel, inhalt, tags, ist_system)
+        SELECT :kid, :titel, :inhalt, :tags, :sys
+        WHERE NOT EXISTS (
+            SELECT 1 FROM wiki_artikel WHERE kategorie_id = :kid2 AND titel = :titel2
+        )
+    )");
+    // System-Artikel: Inhalt bei jeder Migration aktualisieren
+    qArtUpd.prepare(R"(
+        UPDATE wiki_artikel SET inhalt = :inhalt, tags = :tags
+        WHERE kategorie_id = :kid AND titel = :titel AND ist_system = 1
+    )");
+
+    for (const Kategorie &kat : kategorien) {
+        qKat.bindValue(":name",  kat.name);
+        qKat.bindValue(":beschr", kat.beschreibung);
+        qKat.bindValue(":sort",  kat.sortierung);
+        if (!qKat.exec()) {
+            qWarning() << "seedWikiStarterInhalte Kategorie:" << qKat.lastError().text();
+            return false;
+        }
+
+        qKatId.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
+        qKatId.bindValue(":n", kat.name);
+        qKatId.exec();
+        if (!qKatId.next()) continue;
+        const int katId = qKatId.value(0).toInt();
+
+        for (const Artikel &art : kat.artikel) {
+            qArtIns.bindValue(":kid",    katId);
+            qArtIns.bindValue(":kid2",   katId);
+            qArtIns.bindValue(":titel",  art.titel);
+            qArtIns.bindValue(":titel2", art.titel);
+            qArtIns.bindValue(":inhalt", art.inhalt);
+            qArtIns.bindValue(":tags",   art.tags);
+            qArtIns.bindValue(":sys",    kat.istSystem ? 1 : 0);
+            if (!qArtIns.exec()) {
+                qWarning() << "seedWikiStarterInhalte Artikel insert:" << qArtIns.lastError().text();
+                return false;
+            }
+            if (kat.istSystem) {
+                qArtUpd.bindValue(":kid",    katId);
+                qArtUpd.bindValue(":titel",  art.titel);
+                qArtUpd.bindValue(":inhalt", art.inhalt);
+                qArtUpd.bindValue(":tags",   art.tags);
+                if (!qArtUpd.exec()) {
+                    qWarning() << "seedWikiStarterInhalte Artikel update:" << qArtUpd.lastError().text();
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
 }

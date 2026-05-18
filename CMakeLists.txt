@@ -130,6 +130,9 @@ qt_add_qml_module(stroemling_app
         qml/nb/NormblattEditorCanvas.qml
         qml/nb/NormblattFeldPalette.qml
         qml/nb/NormblattFeldProperties.qml
+        qml/wiki/WikiAnsicht.qml
+        qml/einstellungen/EinstellungenAnsicht.qml
+        qml/ProjektStartAnsicht.qml
 )
 
 qt_add_resources(stroemling_app "database_seeds"

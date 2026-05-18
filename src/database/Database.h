@@ -15,17 +15,46 @@ class Database : public QObject
 {
     Q_OBJECT
 
+    Q_PROPERTY(bool    projektOffen READ projektOffen NOTIFY projektOffenChanged)
+    Q_PROPERTY(QString projektPfad  READ projektPfad  NOTIFY projektOffenChanged)
+
 public:
-    // Aktuelle Schema-Version. Erhöhen wenn sich Tabellenstruktur ändert.
-    // Beim Start: stimmt DB-Version nicht überein → alle Tabellen drop + recreate.
-    static const int SCHEMA_VERSION = 39;
+    // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
+    // als inkrementelle Migration in alleMigrationen() – diese Konstante bleibt fest.
+    static const int BASELINE_VERSION    = 40;
+    static const int WIKI_SCHEMA_VERSION = 3;
 
     explicit Database(QObject *parent = nullptr);
 
-    // Datenbankdatei öffnen oder neu anlegen
+    // Launcher-DB öffnen (stroemling.db – nur zuletzt-geöffnet-Liste + Wiki-DB-Pfad)
+    bool openLauncher(const QString &path);
+
+    // Projektdatei öffnen (existierende .stroemling-Datei)
+    Q_INVOKABLE bool openProjekt(const QString &path);
+
+    // Neue Projektdatei anlegen und öffnen
+    Q_INVOKABLE bool createProjekt(const QString &path, const QString &projektName);
+
+    // Aktuelles Projekt schließen
+    Q_INVOKABLE void closeProjekt();
+
+    // Ist gerade eine Projektdatei geöffnet?
+    bool    projektOffen() const { return m_projektOffen; }
+    QString projektPfad()  const;
+
+    // Zuletzt geöffnete Projekte (max. 10, nur existierende Dateien)
+    Q_INVOKABLE QVariantList zuletzGeoeffnete() const;
+
+    // Metadaten des ersten (einzigen) Projekts in der aktuellen DB
+    Q_INVOKABLE QVariantMap ersteProjektInfo() const;
+
+    // Hauptdatenbank öffnen oder neu anlegen (legacy – ruft openProjekt auf)
     bool open(const QString &path);
 
-    // Verbindung schließen
+    // Wiki-Datenbank öffnen (separate Datei, überlebt Schema-Upgrades)
+    bool openWiki(const QString &path);
+
+    // Verbindungen schließen
     void close();
 
     // Ist die Verbindung offen?
@@ -34,6 +63,10 @@ public:
     // Letzter Fehler (für Debugging)
     QString lastError() const;
 
+Q_SIGNALS:
+    void projektOffenChanged();
+
+public:
     // Grafikelemente einer Seite laden (gibt QVariantList aus QVariantMaps zurück)
     Q_INVOKABLE QVariantList grafikLaden(int seiteId);
 
@@ -45,6 +78,9 @@ public:
 
     // Favoritenstatus eines Symbols setzen
     Q_INVOKABLE bool symbolFavoritSetzen(int symbolId, bool favorit);
+
+    // Pfade und Meta-Infos aller Datenbanken zurückgeben (für Einstellungen-Ansicht)
+    Q_INVOKABLE QVariantMap datenbankInfos() const;
 
     // Norm eines Projekts lesen / schreiben
     Q_INVOKABLE QString projektNormLaden(int projektId);
@@ -356,14 +392,46 @@ public:
                                              const QString &beschreibung,
                                              const QString &kategorie);
 
+    // ── Wiki ─────────────────────────────────────────────────────────────────
+    // Kategorien
+    Q_INVOKABLE QVariantList wikiAlleKategorien();
+    Q_INVOKABLE int          wikiKategorieAnlegen(const QString &name, const QString &beschreibung);
+    Q_INVOKABLE bool         wikiKategorieUmbenennen(int id, const QString &name, const QString &beschreibung);
+    Q_INVOKABLE bool         wikiKategorieLoeschen(int id);
+    Q_INVOKABLE bool         wikiKategorieSortierungSetzen(int id, int sortierung);
+
+    // Artikel
+    Q_INVOKABLE QVariantList wikiArtikelFuerKategorie(int kategorieId);
+    Q_INVOKABLE QVariantMap  wikiArtikelLaden(int id);
+    Q_INVOKABLE int          wikiArtikelAnlegen(int kategorieId, const QString &titel);
+    Q_INVOKABLE bool         wikiArtikelSpeichern(int id, const QString &titel,
+                                                   const QString &inhalt, const QString &tags);
+    Q_INVOKABLE bool         wikiArtikelLoeschen(int id);
+
+    // Bilder
+    Q_INVOKABLE QVariantList wikiBilderFuerArtikel(int artikelId);
+    Q_INVOKABLE int          wikiBildHinzufuegen(int artikelId, const QString &pfad);
+    Q_INVOKABLE bool         wikiBildLoeschen(int id);
+    Q_INVOKABLE QString      wikiBildAlsTempDatei(int id);
+
+    // Volltext-Suche (FTS5)
+    Q_INVOKABLE QVariantList wikiSuchen(const QString &suchbegriff);
+
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();
 
-    // Alle Views und Tabellen in FK-sicherer Reihenfolge löschen
+    // Inkrementelle Migration ausführen (Liste von SQL-Statements)
+    bool applyMigrationStatements(const QStringList &statements);
+
+    // DB sichern via VACUUM INTO (funktioniert auch bei offener WAL-Verbindung).
+    // verbindungsName: "" = Haupt-DB, "stroemling_wiki" = Wiki-DB.
+    bool erstelleBackup(const QString &verbindungsName, const QString &prefix, int version);
+
+    // Alle Views und Tabellen in FK-sicherer Reihenfolge löschen (nur Baseline-Migration)
     bool dropAllTables();
 
-    // Alle Tabellen und Views anlegen (ohne IF NOT EXISTS)
+    // Alle Tabellen und Views anlegen – nur von Baseline-Migration aufgerufen
     bool createSchema();
 
     // Eingebauten Symbol-Katalog befüllen (immer nach Schema-Aufbau)
@@ -378,5 +446,20 @@ private:
     // IBN-Feldvorlagen (Systemfelder) nach Schema-Aufbau befüllen
     bool seedIbnFeldvorlagen();
 
+    // Wiki-Starter-Kategorien anlegen (einmalig nach frischem Wiki-Schema-Aufbau)
+    bool seedWikiStarterInhalte();
+
+    // Wiki-Schema prüfen und ggf. anlegen (analog checkAndApplySchema)
+    bool checkAndApplyWikiSchema();
+
+    // Wiki-Tabellen in wiki.db anlegen
+    bool createWikiSchema();
+
+    // Pfad + Name eines geöffneten Projekts in die zuletzt_geoeffnet-Tabelle eintragen
+    void zuletzGeoeffnetEintragen(const QString &path, const QString &name);
+
     QSqlDatabase m_db;
+    QSqlDatabase m_wikiDb;
+    QSqlDatabase m_launcherDb;
+    bool         m_projektOffen = false;
 };

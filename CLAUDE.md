@@ -63,6 +63,8 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht nach C++ auslagern; API-Design, Element-Struct, Migrations-Reihenfolge (7 Schritte) |
 | `konzept/23_technische_ablaeufe.md` | Systemabläufe zum Verstehen des Codes: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern, Kabel, Querverweise |
 | `konzept/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: Schema v38, `normblatt_feld`, C++ API, Canvas-Renderer, 3-Pane-Editor, 10 Implementierungsschritte |
+| `konzept/25_wiki.md` | Erfahrungs-Wiki: persönliche Felderfahrungen, Altbestand Ost/West, Klassische Nullung, Aluminium, Aderendhülsen; Schema v40, `WikiModel`, Bild-BLOBs, FTS5-Suche |
+| `konzept/26_release_migration.md` | Release-Vorbereitung: 3 Daten-Lebensdauern, DB-Trennung (stroemling.db / wiki.db / Projektdatei), Migrations-System (ersetzt DROP+CREATE), Git-Anbindung, Export/Import, App-Datenverzeichnis |
 
 ---
 
@@ -95,11 +97,13 @@ UI-Konsistenz-Korrekturen – nicht nur für neue Features.
 - **Schichtenmodell einhalten:** QML → C++ Modelle → SQLite
 - **Foreign Keys bleiben aktiviert** (`PRAGMA foreign_keys = ON`)
 
-### Entwicklungsphase-Regeln (aktuell gültig)
-- Datenbankschema wird bei jedem Start **komplett neu aufgebaut** (DROP + CREATE)
-- Keine Rücksicht auf Migrationen alter Versionen nötig
-- Datenbankdatei liegt im **Build-Ordner** (nicht in `~/.local/share/`)
-- Migrationshistorie und Versionierung kommen erst vor dem ersten stabilen Release
+### Migrations-System (ab R4 aktiv)
+- Datenbankschema wird **nicht** mehr bei jedem Start neu aufgebaut
+- Schemaänderungen kommen als inkrementelle Migration in `alleMigrationen()` in `Database.cpp`
+- Jede Migration bekommt eine aufsteigende Versionsnummer und eine `QStringList` mit SQL-Statements
+- **Vollständiger Rebuild** nur noch durch manuelles Löschen der DB-Datei (`~/.local/share/Strömling Design/stroemling.db`)
+- Datenbankdatei liegt in `~/.local/share/Strömling Design/stroemling.db` (R3 erledigt)
+- `SCHEMA_VERSION`-Konstante entfällt – Versionierung über `schema_migration`-Tabelle
 
 ### QML-Dateien: Pflichtregistrierung in CMakeLists.txt
 Jede neue `.qml`-Datei – egal ob in `qml/`, `qml/components/` oder `qml/ep/` – **muss sofort**

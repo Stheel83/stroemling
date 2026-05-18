@@ -12,6 +12,8 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QtGlobal>
+#include <QStandardPaths>
+#include <QDir>
 #include <cstdio>
 
 #include "database/Database.h"
@@ -108,15 +110,32 @@ int main(int argc, char *argv[])
     }
     // savedLanguage == "de": kein Translator nötig, Quellsprache ist Deutsch
 
-    // Entwicklungsphase: Datenbankdatei liegt neben dem Binary im Build-Ordner.
-    // Vor dem stabilen Release auf AppDataLocation umstellen.
-    QString dbPath = QCoreApplication::applicationDirPath() + "/stroemling.db";
+    // App-Datenverzeichnis: ~/.local/share/Strömling Design/ (Linux)
+    // Log-Datei bleibt neben dem Binary (Debug-Output, kein Nutzerdaten-Ordner).
+    QString dataDir      = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir().mkpath(dataDir);
+    QString launcherPath = dataDir + "/stroemling.db";  // Launcher-DB (nur zuletzt_geoeffnet)
+    QString wikiPath     = dataDir + "/wiki.db";
 
-    // Datenbankverbindung aufbauen
+    // Datenbankverbindungen aufbauen
     Database db;
-    if (!db.open(dbPath)) {
-        qCritical() << "Datenbank konnte nicht geöffnet werden:" << db.lastError();
+    if (!db.openLauncher(launcherPath)) {
+        qCritical() << "Launcher-DB konnte nicht geöffnet werden:" << db.lastError();
         return 1;
+    }
+    if (!db.openWiki(wikiPath)) {
+        qCritical() << "Wiki-Datenbank konnte nicht geöffnet werden:" << db.lastError();
+        return 1;
+    }
+
+    // Zuletzt geöffnetes Projekt automatisch laden (falls vorhanden)
+    {
+        QVariantList recent = db.zuletzGeoeffnete();
+        if (!recent.isEmpty()) {
+            QString lastPath = recent.first().toMap().value("pfad").toString();
+            if (!lastPath.isEmpty())
+                db.openProjekt(lastPath);
+        }
     }
 
     // Models anlegen

@@ -3,7 +3,11 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtCore
 import "components"
+import "wiki"
+import "einstellungen"
 import stroemling
+
+// ProjektStartAnsicht ist direkt im qml/-Ordner, kein Unterordner-Import nötig
 
 ApplicationWindow {
     id:         root
@@ -324,6 +328,20 @@ ApplicationWindow {
                     enabled: root.aktivProjektId >= 0
                     opacity: enabled ? 1.0 : 0.4
                     onClicked: root.aktiveAnsicht = "normblatt"
+                }
+                SidebarButton {
+                    theme:  appTheme
+                    icon:   "📚"
+                    label:  qsTr("Wiki")
+                    active: root.aktiveAnsicht === "wiki"
+                    onClicked: root.aktiveAnsicht = "wiki"
+                }
+                SidebarButton {
+                    theme:  appTheme
+                    icon:   "⚙"
+                    label:  qsTr("Einstellungen")
+                    active: root.aktiveAnsicht === "einstellungen"
+                    onClicked: root.aktiveAnsicht = "einstellungen"
                 }
 
                 Item { Layout.fillHeight: true }
@@ -1034,6 +1052,56 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "normblatt"
                 theme:        appTheme
+            }
+
+            // ── Wiki ───────────────────────────────────────────────────
+            WikiAnsicht {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "wiki"
+                theme:        appTheme
+            }
+
+            // ── Einstellungen ──────────────────────────────────────────
+            EinstellungenAnsicht {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "einstellungen"
+                theme:        appTheme
+            }
+        }
+    }
+
+    // ── Projekt-Start-Overlay (kein Projekt geöffnet) ────────────
+    ProjektStartAnsicht {
+        anchors.fill: parent
+        visible:      !db.projektOffen
+        theme:        appTheme
+        z:            200
+    }
+
+    // ── Projekt öffnen/schließen reagieren ───────────────────────
+    Connections {
+        target: db
+        function onProjektOffenChanged() {
+            if (!db.projektOffen) {
+                root.aktivProjektId   = -1
+                root.aktivProjektName = ""
+                root.aktivSeiteId     = -1
+                root.aktivSeiteName   = ""
+                root.aktiveAnsicht    = "projekte"
+                return
+            }
+            // Projekt-Modelle neu laden
+            projektModel.laden()
+            // Erstes (einziges) Projekt automatisch auswählen
+            var info = db.ersteProjektInfo()
+            if (info.id > 0) {
+                root.aktivProjektId          = info.id
+                root.aktivProjektName        = info.name
+                root.aktivProjektNorm        = db.projektNormLaden(info.id)
+                root.aktivProjektHintergrund = db.projektHintergrundLaden(info.id)
+                root.aktiveAnsicht           = "projekte"
+                seitenModel.laden(info.id)
+                klemmenleistenModel.laden(info.id)
             }
         }
     }

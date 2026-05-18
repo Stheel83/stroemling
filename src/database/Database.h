@@ -424,6 +424,72 @@ public:
     Q_INVOKABLE bool wikiExportJson(const QString &pfad);
     Q_INVOKABLE bool wikiImportJson(const QString &pfad, bool mergeMode);
 
+    // ── SPS/PLS-Integration ──────────────────────────────────────────────────
+    // Rack (Hardware-Einheit: ein S7-300-Baugruppenträger oder ein PLS-Rack)
+    Q_INVOKABLE QVariantList spsRackListe(int projektId);
+    Q_INVOKABLE int          spsRackAnlegen(int projektId, int rackNr,
+                                             const QString &systemTyp,
+                                             const QString &bezeichnung,
+                                             const QString &hersteller);
+    Q_INVOKABLE bool         spsRackAktualisieren(int id, int rackNr,
+                                                   const QString &systemTyp,
+                                                   const QString &bezeichnung,
+                                                   const QString &beschreibung,
+                                                   const QString &hersteller);
+    Q_INVOKABLE bool         spsRackLoeschen(int id);
+
+    // Baugruppe (Steckbaugruppe / I/O-Modul in einem Slot)
+    Q_INVOKABLE QVariantList spsBaugruppeListe(int rackId);
+    Q_INVOKABLE int          spsBaugruppeAnlegen(int rackId, int slot,
+                                                  const QString &typ,
+                                                  const QString &bezeichnung,
+                                                  int kanaele, int adressByteStart);
+    Q_INVOKABLE bool         spsBaugruppeAktualisieren(int id, int slot,
+                                                        const QString &typ,
+                                                        const QString &bezeichnung,
+                                                        const QString &artikelNr,
+                                                        int kanaele,
+                                                        const QString &datentypStandard,
+                                                        int adressByteStart,
+                                                        const QString &kommentar);
+    Q_INVOKABLE bool         spsBaugruppeLoeschen(int id);
+
+    // Kanal (einzelner I/O-Punkt / SPS-Variable / PLS-Messpunkt)
+    // Gibt [{id, adresse, adress_typ, byte_nr, bit_nr, datentyp, variablenname, kommentar,
+    //         baugruppe_id, rack_id, system_typ, rack_nr, slot, kanal_nr,
+    //         grafik_element_id, pls_einheit, pls_bereich_min, pls_bereich_max,
+    //         pls_alarm_ll, pls_alarm_lo, pls_alarm_hi, pls_alarm_hh,
+    //         pls_hart_adresse, pls_protokoll}] zurück.
+    Q_INVOKABLE QVariantList spsKanalListe(int projektId);
+    Q_INVOKABLE QVariantList spsKanalListeFuerBaugruppe(int baugruppeId);
+    Q_INVOKABLE int          spsKanalAnlegen(int projektId, int baugruppeId, int kanalNr,
+                                              const QString &adressTyp, int byteNr, int bitNr,
+                                              const QString &datentyp,
+                                              const QString &variablenname,
+                                              const QString &kommentar);
+    // felder: adress_typ, byte_nr, bit_nr, datentyp, variablenname, kommentar,
+    //          pls_einheit, pls_bereich_min, pls_bereich_max,
+    //          pls_alarm_ll, pls_alarm_lo, pls_alarm_hi, pls_alarm_hh,
+    //          pls_hart_adresse, pls_protokoll  (fehlende Keys bleiben unverändert)
+    Q_INVOKABLE bool         spsKanalAktualisieren(int id, const QVariantMap &felder);
+    Q_INVOKABLE bool         spsKanalLoeschen(int id);
+
+    // Formatierte Adresse: SPS → "E0.0", PLS → "R1 S3 K12"
+    Q_INVOKABLE QString      spsKanalAdresse(int kanalId);
+
+    // Canvas-Element ↔ Kanal verknüpfen / trennen
+    Q_INVOKABLE bool         spsKanalElementZuweisen(int kanalId, int elementId);
+    Q_INVOKABLE bool         spsKanalElementEntfernen(int kanalId);
+
+    // Kanal-Info für ein Canvas-Element (leer wenn keiner zugewiesen)
+    Q_INVOKABLE QVariantMap  spsKanalFuerElement(int elementId);
+
+    // Vollständige I/O-Liste für Export/Anzeige
+    Q_INVOKABLE QVariantList spsIOListe(int projektId);
+
+    // I/O-Liste als CSV (UTF-8 mit BOM, Semikolon-getrennt)
+    Q_INVOKABLE bool         spsIOListeCsvSpeichern(int projektId, const QString &pfad);
+
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();

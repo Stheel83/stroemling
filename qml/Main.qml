@@ -5,6 +5,7 @@ import QtCore
 import "components"
 import "wiki"
 import "einstellungen"
+import "sps"
 import stroemling
 
 // ProjektStartAnsicht ist direkt im qml/-Ordner, kein Unterordner-Import nötig
@@ -335,6 +336,15 @@ ApplicationWindow {
                     label:  qsTr("Wiki")
                     active: root.aktiveAnsicht === "wiki"
                     onClicked: root.aktiveAnsicht = "wiki"
+                }
+                SidebarButton {
+                    theme:   appTheme
+                    icon:    "⚡"
+                    label:   qsTr("SPS/PLS")
+                    active:  root.aktiveAnsicht === "sps"
+                    enabled: root.aktivProjektId >= 0
+                    opacity: enabled ? 1.0 : 0.4
+                    onClicked: root.aktiveAnsicht = "sps"
                 }
                 SidebarButton {
                     theme:  appTheme
@@ -1059,6 +1069,14 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "wiki"
                 theme:        appTheme
+            }
+
+            // ── SPS/PLS ────────────────────────────────────────────────
+            SpsAnsicht {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "sps"
+                theme:        appTheme
+                projektId:    root.aktivProjektId
             }
 
             // ── Einstellungen ──────────────────────────────────────────

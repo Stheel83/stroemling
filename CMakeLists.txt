@@ -132,6 +132,7 @@ qt_add_qml_module(stroemling_app
         qml/nb/NormblattFeldProperties.qml
         qml/wiki/WikiAnsicht.qml
         qml/einstellungen/EinstellungenAnsicht.qml
+        qml/sps/SpsAnsicht.qml
         qml/ProjektStartAnsicht.qml
 )
 

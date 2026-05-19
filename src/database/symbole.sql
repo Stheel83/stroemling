@@ -368,3 +368,361 @@ VALUES
 -- Bei 0°: ──( Pin links, offenes Leitungsende rechts
 ('isoliert_gelegte_ader', 0, 'linie', 0,    0.5, 0.65, 0.5, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('isoliert_gelegte_ader', 1, 'bogen', 0.65, 0.5, 0,    0,   0, 0, 0.15, 270, 90,  0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- SPS / PLS Baugruppen-Symbole (S6) — Kategorie "SPS/PLS"
+-- Pins links  = Eingaenge (DI, AI)
+-- Pins rechts = Ausgaenge (DO, AO)
+-- Y-Koordinaten: (i+1)/(n+1) gleichmaessig verteilt
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('sps_di_8',  'DI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
+('sps_di_16', 'DI-Baugruppe 16-Kanal',    'SPS/PLS', 32, 128, 'variabel', 1),
+('sps_do_8',  'DO-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
+('sps_do_16', 'DO-Baugruppe 16-Kanal',    'SPS/PLS', 32, 128, 'variabel', 1),
+('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'SPS/PLS', 32,  64, 'variabel', 1),
+('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
+('sps_ao_4',  'AO-Baugruppe 4-Kanal',     'SPS/PLS', 32,  64, 'variabel', 1),
+('sps_cpu',   'CPU-Baugruppe',            'SPS/PLS', 32,  48, 'variabel', 1),
+('pls_ai_8',  'PLS AI-Baugruppe 8-Kanal', 'SPS/PLS', 32,  80, 'variabel', 1),
+('pls_ao_4',  'PLS AO-Baugruppe 4-Kanal', 'SPS/PLS', 32,  64, 'variabel', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+-- sps_di_8: 8 Eingaenge links
+('sps_di_8',  'K0', 0, 0.111, -1, 0, 'neutral'),
+('sps_di_8',  'K1', 0, 0.222, -1, 0, 'neutral'),
+('sps_di_8',  'K2', 0, 0.333, -1, 0, 'neutral'),
+('sps_di_8',  'K3', 0, 0.444, -1, 0, 'neutral'),
+('sps_di_8',  'K4', 0, 0.556, -1, 0, 'neutral'),
+('sps_di_8',  'K5', 0, 0.667, -1, 0, 'neutral'),
+('sps_di_8',  'K6', 0, 0.778, -1, 0, 'neutral'),
+('sps_di_8',  'K7', 0, 0.889, -1, 0, 'neutral'),
+-- sps_di_16: 16 Eingaenge links
+('sps_di_16', 'K0',  0, 0.059, -1, 0, 'neutral'),
+('sps_di_16', 'K1',  0, 0.118, -1, 0, 'neutral'),
+('sps_di_16', 'K2',  0, 0.176, -1, 0, 'neutral'),
+('sps_di_16', 'K3',  0, 0.235, -1, 0, 'neutral'),
+('sps_di_16', 'K4',  0, 0.294, -1, 0, 'neutral'),
+('sps_di_16', 'K5',  0, 0.353, -1, 0, 'neutral'),
+('sps_di_16', 'K6',  0, 0.412, -1, 0, 'neutral'),
+('sps_di_16', 'K7',  0, 0.471, -1, 0, 'neutral'),
+('sps_di_16', 'K8',  0, 0.529, -1, 0, 'neutral'),
+('sps_di_16', 'K9',  0, 0.588, -1, 0, 'neutral'),
+('sps_di_16', 'K10', 0, 0.647, -1, 0, 'neutral'),
+('sps_di_16', 'K11', 0, 0.706, -1, 0, 'neutral'),
+('sps_di_16', 'K12', 0, 0.765, -1, 0, 'neutral'),
+('sps_di_16', 'K13', 0, 0.824, -1, 0, 'neutral'),
+('sps_di_16', 'K14', 0, 0.882, -1, 0, 'neutral'),
+('sps_di_16', 'K15', 0, 0.941, -1, 0, 'neutral'),
+-- sps_do_8: 8 Ausgaenge rechts
+('sps_do_8',  'K0', 1, 0.111, 1, 0, 'neutral'),
+('sps_do_8',  'K1', 1, 0.222, 1, 0, 'neutral'),
+('sps_do_8',  'K2', 1, 0.333, 1, 0, 'neutral'),
+('sps_do_8',  'K3', 1, 0.444, 1, 0, 'neutral'),
+('sps_do_8',  'K4', 1, 0.556, 1, 0, 'neutral'),
+('sps_do_8',  'K5', 1, 0.667, 1, 0, 'neutral'),
+('sps_do_8',  'K6', 1, 0.778, 1, 0, 'neutral'),
+('sps_do_8',  'K7', 1, 0.889, 1, 0, 'neutral'),
+-- sps_do_16: 16 Ausgaenge rechts
+('sps_do_16', 'K0',  1, 0.059, 1, 0, 'neutral'),
+('sps_do_16', 'K1',  1, 0.118, 1, 0, 'neutral'),
+('sps_do_16', 'K2',  1, 0.176, 1, 0, 'neutral'),
+('sps_do_16', 'K3',  1, 0.235, 1, 0, 'neutral'),
+('sps_do_16', 'K4',  1, 0.294, 1, 0, 'neutral'),
+('sps_do_16', 'K5',  1, 0.353, 1, 0, 'neutral'),
+('sps_do_16', 'K6',  1, 0.412, 1, 0, 'neutral'),
+('sps_do_16', 'K7',  1, 0.471, 1, 0, 'neutral'),
+('sps_do_16', 'K8',  1, 0.529, 1, 0, 'neutral'),
+('sps_do_16', 'K9',  1, 0.588, 1, 0, 'neutral'),
+('sps_do_16', 'K10', 1, 0.647, 1, 0, 'neutral'),
+('sps_do_16', 'K11', 1, 0.706, 1, 0, 'neutral'),
+('sps_do_16', 'K12', 1, 0.765, 1, 0, 'neutral'),
+('sps_do_16', 'K13', 1, 0.824, 1, 0, 'neutral'),
+('sps_do_16', 'K14', 1, 0.882, 1, 0, 'neutral'),
+('sps_do_16', 'K15', 1, 0.941, 1, 0, 'neutral'),
+-- sps_ai_4: 4 Eingaenge links
+('sps_ai_4',  'K0', 0, 0.2,   -1, 0, 'neutral'),
+('sps_ai_4',  'K1', 0, 0.4,   -1, 0, 'neutral'),
+('sps_ai_4',  'K2', 0, 0.6,   -1, 0, 'neutral'),
+('sps_ai_4',  'K3', 0, 0.8,   -1, 0, 'neutral'),
+-- sps_ai_8: 8 Eingaenge links
+('sps_ai_8',  'K0', 0, 0.111, -1, 0, 'neutral'),
+('sps_ai_8',  'K1', 0, 0.222, -1, 0, 'neutral'),
+('sps_ai_8',  'K2', 0, 0.333, -1, 0, 'neutral'),
+('sps_ai_8',  'K3', 0, 0.444, -1, 0, 'neutral'),
+('sps_ai_8',  'K4', 0, 0.556, -1, 0, 'neutral'),
+('sps_ai_8',  'K5', 0, 0.667, -1, 0, 'neutral'),
+('sps_ai_8',  'K6', 0, 0.778, -1, 0, 'neutral'),
+('sps_ai_8',  'K7', 0, 0.889, -1, 0, 'neutral'),
+-- sps_ao_4: 4 Ausgaenge rechts
+('sps_ao_4',  'K0', 1, 0.2,   1, 0, 'neutral'),
+('sps_ao_4',  'K1', 1, 0.4,   1, 0, 'neutral'),
+('sps_ao_4',  'K2', 1, 0.6,   1, 0, 'neutral'),
+('sps_ao_4',  'K3', 1, 0.8,   1, 0, 'neutral'),
+-- sps_cpu: DP / PN Kommunikations-Pins links
+('sps_cpu',   'DP', 0, 0.333, -1, 0, 'neutral'),
+('sps_cpu',   'PN', 0, 0.667, -1, 0, 'neutral'),
+-- pls_ai_8: 8 Eingaenge links
+('pls_ai_8',  'K0', 0, 0.111, -1, 0, 'neutral'),
+('pls_ai_8',  'K1', 0, 0.222, -1, 0, 'neutral'),
+('pls_ai_8',  'K2', 0, 0.333, -1, 0, 'neutral'),
+('pls_ai_8',  'K3', 0, 0.444, -1, 0, 'neutral'),
+('pls_ai_8',  'K4', 0, 0.556, -1, 0, 'neutral'),
+('pls_ai_8',  'K5', 0, 0.667, -1, 0, 'neutral'),
+('pls_ai_8',  'K6', 0, 0.778, -1, 0, 'neutral'),
+('pls_ai_8',  'K7', 0, 0.889, -1, 0, 'neutral'),
+-- pls_ao_4: 4 Ausgaenge rechts
+('pls_ao_4',  'K0', 1, 0.2,   1, 0, 'neutral'),
+('pls_ao_4',  'K1', 1, 0.4,   1, 0, 'neutral'),
+('pls_ao_4',  'K2', 1, 0.6,   1, 0, 'neutral'),
+('pls_ao_4',  'K3', 1, 0.8,   1, 0, 'neutral');
+
+INSERT INTO symbol_primitiv
+    (symbol_id, reihenfolge, typ,
+     x1, y1, x2, y2, x3, y3,
+     radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+     text_inhalt, schrift_relativ, schrift_fett,
+     text_align, text_baseline, linienart)
+VALUES
+-- ── sps_di_8 (Digital Input 8-Kanal, 32x80mm, Pins links) ──
+('sps_di_8',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('sps_di_8',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'DI 8', 0.08, 1, 'center', 'middle', 'solid'),
+('sps_di_8',  2, 'linie', 0,    0.111, 0.15, 0.111, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  3, 'linie', 0,    0.222, 0.15, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  4, 'linie', 0,    0.333, 0.15, 0.333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  5, 'linie', 0,    0.444, 0.15, 0.444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  6, 'linie', 0,    0.556, 0.15, 0.556, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  7, 'linie', 0,    0.667, 0.15, 0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  8, 'linie', 0,    0.778, 0.15, 0.778, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_8',  9, 'linie', 0,    0.889, 0.15, 0.889, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_di_16 (Digital Input 16-Kanal, 32x128mm, Pins links) ──
+('sps_di_16', 0,  'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sps_di_16', 1,  'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'DI 16', 0.06, 1, 'center', 'middle', 'solid'),
+('sps_di_16', 2,  'linie', 0, 0.059, 0.15, 0.059, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 3,  'linie', 0, 0.118, 0.15, 0.118, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 4,  'linie', 0, 0.176, 0.15, 0.176, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 5,  'linie', 0, 0.235, 0.15, 0.235, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 6,  'linie', 0, 0.294, 0.15, 0.294, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 7,  'linie', 0, 0.353, 0.15, 0.353, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 8,  'linie', 0, 0.412, 0.15, 0.412, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 9,  'linie', 0, 0.471, 0.15, 0.471, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 10, 'linie', 0, 0.529, 0.15, 0.529, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 11, 'linie', 0, 0.588, 0.15, 0.588, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 12, 'linie', 0, 0.647, 0.15, 0.647, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 13, 'linie', 0, 0.706, 0.15, 0.706, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 14, 'linie', 0, 0.765, 0.15, 0.765, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 15, 'linie', 0, 0.824, 0.15, 0.824, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 16, 'linie', 0, 0.882, 0.15, 0.882, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_di_16', 17, 'linie', 0, 0.941, 0.15, 0.941, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_do_8 (Digital Output 8-Kanal, 32x80mm, Pins rechts) ──
+('sps_do_8',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('sps_do_8',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'DO 8', 0.08, 1, 'center', 'middle', 'solid'),
+('sps_do_8',  2, 'linie', 0.85, 0.111, 1.0, 0.111, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  3, 'linie', 0.85, 0.222, 1.0, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  4, 'linie', 0.85, 0.333, 1.0, 0.333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  5, 'linie', 0.85, 0.444, 1.0, 0.444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  6, 'linie', 0.85, 0.556, 1.0, 0.556, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  7, 'linie', 0.85, 0.667, 1.0, 0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  8, 'linie', 0.85, 0.778, 1.0, 0.778, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_8',  9, 'linie', 0.85, 0.889, 1.0, 0.889, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_do_16 (Digital Output 16-Kanal, 32x128mm, Pins rechts) ──
+('sps_do_16', 0,  'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sps_do_16', 1,  'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'DO 16', 0.06, 1, 'center', 'middle', 'solid'),
+('sps_do_16', 2,  'linie', 0.85, 0.059, 1.0, 0.059, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 3,  'linie', 0.85, 0.118, 1.0, 0.118, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 4,  'linie', 0.85, 0.176, 1.0, 0.176, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 5,  'linie', 0.85, 0.235, 1.0, 0.235, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 6,  'linie', 0.85, 0.294, 1.0, 0.294, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 7,  'linie', 0.85, 0.353, 1.0, 0.353, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 8,  'linie', 0.85, 0.412, 1.0, 0.412, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 9,  'linie', 0.85, 0.471, 1.0, 0.471, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 10, 'linie', 0.85, 0.529, 1.0, 0.529, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 11, 'linie', 0.85, 0.588, 1.0, 0.588, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 12, 'linie', 0.85, 0.647, 1.0, 0.647, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 13, 'linie', 0.85, 0.706, 1.0, 0.706, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 14, 'linie', 0.85, 0.765, 1.0, 0.765, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 15, 'linie', 0.85, 0.824, 1.0, 0.824, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 16, 'linie', 0.85, 0.882, 1.0, 0.882, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_do_16', 17, 'linie', 0.85, 0.941, 1.0, 0.941, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_ai_4 (Analog Input 4-Kanal, 32x64mm, Pins links) ──
+('sps_ai_4',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('sps_ai_4',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'AI 4', 0.10, 1, 'center', 'middle', 'solid'),
+('sps_ai_4',  2, 'linie', 0, 0.2, 0.15, 0.2, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_4',  3, 'linie', 0, 0.4, 0.15, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_4',  4, 'linie', 0, 0.6, 0.15, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_4',  5, 'linie', 0, 0.8, 0.15, 0.8, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_ai_8 (Analog Input 8-Kanal, 32x80mm, Pins links) ──
+('sps_ai_8',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('sps_ai_8',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'AI 8', 0.08, 1, 'center', 'middle', 'solid'),
+('sps_ai_8',  2, 'linie', 0, 0.111, 0.15, 0.111, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  3, 'linie', 0, 0.222, 0.15, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  4, 'linie', 0, 0.333, 0.15, 0.333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  5, 'linie', 0, 0.444, 0.15, 0.444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  6, 'linie', 0, 0.556, 0.15, 0.556, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  7, 'linie', 0, 0.667, 0.15, 0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  8, 'linie', 0, 0.778, 0.15, 0.778, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  9, 'linie', 0, 0.889, 0.15, 0.889, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_ao_4 (Analog Output 4-Kanal, 32x64mm, Pins rechts) ──
+('sps_ao_4',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('sps_ao_4',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'AO 4', 0.10, 1, 'center', 'middle', 'solid'),
+('sps_ao_4',  2, 'linie', 0.85, 0.2, 1.0, 0.2, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ao_4',  3, 'linie', 0.85, 0.4, 1.0, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ao_4',  4, 'linie', 0.85, 0.6, 1.0, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ao_4',  5, 'linie', 0.85, 0.8, 1.0, 0.8, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_cpu (CPU-Baugruppe, 32x48mm) ──
+('sps_cpu',   0, 'rechteck', 0.1,  0.05, 0.9,  0.95, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sps_cpu',   1, 'text',     0.5,  0.35, 0,    0,    0, 0, 0, 0, 0, 0, 'CPU', 0.13, 1, 'center', 'middle', 'solid'),
+('sps_cpu',   2, 'text',     0.5,  0.65, 0,    0,    0, 0, 0, 0, 0, 0, 'SPS', 0.10, 0, 'center', 'middle', 'solid'),
+('sps_cpu',   3, 'linie', 0, 0.333, 0.1, 0.333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_cpu',   4, 'linie', 0, 0.667, 0.1, 0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── pls_ai_8 (PLS Analog Input 8-Kanal, 32x80mm, Pins links) ──
+('pls_ai_8',  0,  'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('pls_ai_8',  1,  'text',     0.5,  0.42, 0,    0,    0, 0, 0, 0, 0, 0, 'AI 8', 0.08, 1, 'center', 'middle', 'solid'),
+('pls_ai_8',  2,  'text',     0.5,  0.58, 0,    0,    0, 0, 0, 0, 0, 0, 'PLS',  0.06, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  3,  'linie', 0, 0.111, 0.15, 0.111, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  4,  'linie', 0, 0.222, 0.15, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  5,  'linie', 0, 0.333, 0.15, 0.333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  6,  'linie', 0, 0.444, 0.15, 0.444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  7,  'linie', 0, 0.556, 0.15, 0.556, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  8,  'linie', 0, 0.667, 0.15, 0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  9,  'linie', 0, 0.778, 0.15, 0.778, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ai_8',  10, 'linie', 0, 0.889, 0.15, 0.889, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── pls_ao_4 (PLS Analog Output 4-Kanal, 32x64mm, Pins rechts) ──
+('pls_ao_4',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('pls_ao_4',  1, 'text',     0.5,  0.4,  0,    0,    0, 0, 0, 0, 0, 0, 'AO 4', 0.10, 1, 'center', 'middle', 'solid'),
+('pls_ao_4',  2, 'text',     0.5,  0.62, 0,    0,    0, 0, 0, 0, 0, 0, 'PLS',  0.08, 0, 'center', 'middle', 'solid'),
+('pls_ao_4',  3, 'linie', 0.85, 0.2, 1.0, 0.2, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ao_4',  4, 'linie', 0.85, 0.4, 1.0, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ao_4',  5, 'linie', 0.85, 0.6, 1.0, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('pls_ao_4',  6, 'linie', 0.85, 0.8, 1.0, 0.8, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- KFZ-Elektrik Symbole (Kategorie 'KFZ')
+-- kfz_sicherung: Flachstecksicherung 32x16mm
+-- kfz_relais_4:  4-Pin-Relais (85/86/30/87) 32x48mm
+-- kfz_relais_5:  5-Pin-Relais (+87a) 32x64mm
+-- kfz_masse:     Fahrzeugmasse/GND 32x16mm
+-- kfz_batterie:  Batterie 12V 32x16mm (2-Zell IEC-Symbol)
+-- kfz_lichtmaschine: Generator/Alternator 32x16mm (Kreis+G)
+-- kfz_stecker_2/3/4: KFZ-Stecker 2/3/4-polig
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('kfz_sicherung',     'Flachstecksicherung',       'KFZ', 32, 16, 'variabel', 1),
+('kfz_relais_4',      'KFZ-Relais 4-polig',        'KFZ', 32, 48, 'variabel', 1),
+('kfz_relais_5',      'KFZ-Relais 5-polig',        'KFZ', 32, 64, 'variabel', 1),
+('kfz_masse',         'Fahrzeugmasse (GND)',        'KFZ', 32, 16, 'variabel', 1),
+('kfz_batterie',      'Batterie 12V',              'KFZ', 32, 16, 'variabel', 1),
+('kfz_lichtmaschine', 'Lichtmaschine (Generator)', 'KFZ', 32, 16, 'variabel', 1),
+('kfz_stecker_2',     'KFZ-Stecker 2-polig',       'KFZ', 32, 32, 'variabel', 1),
+('kfz_stecker_3',     'KFZ-Stecker 3-polig',       'KFZ', 32, 48, 'variabel', 1),
+('kfz_stecker_4',     'KFZ-Stecker 4-polig',       'KFZ', 32, 64, 'variabel', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+-- kfz_sicherung: A links, B rechts
+('kfz_sicherung',     'A',   0, 0.5,   -1, 0, 'neutral'),
+('kfz_sicherung',     'B',   1, 0.5,    1, 0, 'neutral'),
+-- kfz_relais_4: Spule 85/86, Kontakt 30/87
+('kfz_relais_4',      '85',  0, 0.25,  -1, 0, 'neutral'),
+('kfz_relais_4',      '86',  1, 0.25,   1, 0, 'neutral'),
+('kfz_relais_4',      '30',  0, 0.75,  -1, 0, 'neutral'),
+('kfz_relais_4',      '87',  1, 0.75,   1, 0, 'neutral'),
+-- kfz_relais_5: Spule 85/86, Kontakt 30/87/87a
+('kfz_relais_5',      '85',  0, 0.2,   -1, 0, 'neutral'),
+('kfz_relais_5',      '86',  1, 0.2,    1, 0, 'neutral'),
+('kfz_relais_5',      '30',  0, 0.7,   -1, 0, 'neutral'),
+('kfz_relais_5',      '87',  1, 0.55,   1, 0, 'neutral'),
+('kfz_relais_5',      '87a', 1, 0.85,   1, 0, 'neutral'),
+-- kfz_masse: Masse-Anschluss links
+('kfz_masse',         'M',   0, 0.5,   -1, 0, 'neutral'),
+-- kfz_batterie: + links, - rechts
+('kfz_batterie',      '+',   0, 0.5,   -1, 0, 'neutral'),
+('kfz_batterie',      '-',   1, 0.5,    1, 0, 'neutral'),
+-- kfz_lichtmaschine: + links, D+ rechts
+('kfz_lichtmaschine', '+',   0, 0.5,   -1, 0, 'neutral'),
+('kfz_lichtmaschine', 'D+',  1, 0.5,    1, 0, 'neutral'),
+-- kfz_stecker_2/3/4: Pins links
+('kfz_stecker_2',     '1',   0, 0.33,  -1, 0, 'neutral'),
+('kfz_stecker_2',     '2',   0, 0.67,  -1, 0, 'neutral'),
+('kfz_stecker_3',     '1',   0, 0.25,  -1, 0, 'neutral'),
+('kfz_stecker_3',     '2',   0, 0.5,   -1, 0, 'neutral'),
+('kfz_stecker_3',     '3',   0, 0.75,  -1, 0, 'neutral'),
+('kfz_stecker_4',     '1',   0, 0.2,   -1, 0, 'neutral'),
+('kfz_stecker_4',     '2',   0, 0.4,   -1, 0, 'neutral'),
+('kfz_stecker_4',     '3',   0, 0.6,   -1, 0, 'neutral'),
+('kfz_stecker_4',     '4',   0, 0.8,   -1, 0, 'neutral');
+
+INSERT INTO symbol_primitiv
+(symbol_id, reihenfolge, typ,
+ x1, y1, x2, y2, x3, y3,
+ radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+ text_inhalt, schrift_relativ, schrift_fett,
+ text_align, text_baseline, linienart)
+VALUES
+-- ── kfz_sicherung (32x16mm) ──
+('kfz_sicherung', 0, 'rechteck', 0.15, 0.15, 0.85, 0.85, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_sicherung', 1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'F',   0.40, 1, 'center', 'middle', 'solid'),
+('kfz_sicherung', 2, 'linie',    0,    0.5,  0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_sicherung', 3, 'linie',    0.85, 0.5,  1.0,  0.5,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+-- ── kfz_relais_4 (32x48mm, Spule oben / Kontakt unten) ──
+('kfz_relais_4', 0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_4', 1, 'linie',    0.15, 0.5,  0.85, 0.5,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_4', 2, 'text',     0.5,  0.25, 0,    0,    0, 0, 0, 0, 0, 0, 'Spule', 0.10, 0, 'center', 'middle', 'solid'),
+('kfz_relais_4', 3, 'text',     0.5,  0.75, 0,    0,    0, 0, 0, 0, 0, 0, 'K4',   0.13, 1, 'center', 'middle', 'solid'),
+('kfz_relais_4', 4, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_4', 5, 'linie',    0.85, 0.25, 1.0,  0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_4', 6, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_4', 7, 'linie',    0.85, 0.75, 1.0,  0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+-- ── kfz_relais_5 (32x64mm, 5-Pin mit 87a) ──
+('kfz_relais_5', 0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 1, 'linie',    0.15, 0.4,  0.85, 0.4,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 2, 'text',     0.5,  0.2,  0,    0,    0, 0, 0, 0, 0, 0, 'Spule', 0.08, 0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 3, 'text',     0.5,  0.7,  0,    0,    0, 0, 0, 0, 0, 0, 'K5',   0.10, 1, 'center', 'middle', 'solid'),
+('kfz_relais_5', 4, 'linie',    0,    0.2,  0.15, 0.2,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 5, 'linie',    0.85, 0.2,  1.0,  0.2,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 6, 'linie',    0,    0.7,  0.15, 0.7,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 7, 'linie',    0.85, 0.55, 1.0,  0.55, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 8, 'linie',    0.85, 0.85, 1.0,  0.85, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+-- ── kfz_masse (32x16mm, GND-Balken: vertikal + 3 waagrechte Linien) ──
+('kfz_masse', 0, 'linie', 0,    0.5, 0.25, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_masse', 1, 'linie', 0.25, 0.1, 0.25, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_masse', 2, 'linie', 0.25, 0.2, 1.0,  0.2, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_masse', 3, 'linie', 0.25, 0.5, 0.8,  0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_masse', 4, 'linie', 0.25, 0.8, 0.6,  0.8, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── kfz_batterie (32x16mm, 2-Zell IEC-Symbol) ──
+('kfz_batterie', 0, 'linie', 0,    0.5, 0.25, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_batterie', 1, 'linie', 0.25, 0.1, 0.25, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_batterie', 2, 'linie', 0.42, 0.3, 0.42, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_batterie', 3, 'linie', 0.58, 0.1, 0.58, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_batterie', 4, 'linie', 0.75, 0.3, 0.75, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_batterie', 5, 'linie', 0.75, 0.5, 1.0,  0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── kfz_lichtmaschine (32x16mm, Kreis mit G) ──
+('kfz_lichtmaschine', 0, 'kreis_offen', 0.5,  0.5, 0, 0, 0, 0, 0.22, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_lichtmaschine', 1, 'text',        0.5,  0.5, 0, 0, 0, 0, 0,    0, 0, 0, 'G',  0.35, 1, 'center', 'middle', 'solid'),
+('kfz_lichtmaschine', 2, 'linie',       0,    0.5, 0.28, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_lichtmaschine', 3, 'linie',       0.72, 0.5, 1.0,  0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── kfz_stecker_2 (32x32mm) ──
+('kfz_stecker_2', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 1, 'text',     0.35, 0.33, 0,    0,    0, 0, 0, 0, 0, 0, '1',  0.20, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 2, 'text',     0.35, 0.67, 0,    0,    0, 0, 0, 0, 0, 0, '2',  0.20, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 3, 'linie',    0,    0.33, 0.15, 0.33, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 4, 'linie',    0,    0.67, 0.15, 0.67, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+-- ── kfz_stecker_3 (32x48mm) ──
+('kfz_stecker_3', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_3', 1, 'text',     0.35, 0.25, 0,    0,    0, 0, 0, 0, 0, 0, '1',  0.13, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_3', 2, 'text',     0.35, 0.5,  0,    0,    0, 0, 0, 0, 0, 0, '2',  0.13, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_3', 3, 'text',     0.35, 0.75, 0,    0,    0, 0, 0, 0, 0, 0, '3',  0.13, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_3', 4, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_3', 5, 'linie',    0,    0.5,  0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_3', 6, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+-- ── kfz_stecker_4 (32x64mm) ──
+('kfz_stecker_4', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 1, 'text',     0.35, 0.2,  0,    0,    0, 0, 0, 0, 0, 0, '1',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 2, 'text',     0.35, 0.4,  0,    0,    0, 0, 0, 0, 0, 0, '2',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 3, 'text',     0.35, 0.6,  0,    0,    0, 0, 0, 0, 0, 0, '3',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 4, 'text',     0.35, 0.8,  0,    0,    0, 0, 0, 0, 0, 0, '4',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 5, 'linie',    0,    0.2,  0.15, 0.2,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 6, 'linie',    0,    0.4,  0.15, 0.4,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 7, 'linie',    0,    0.6,  0.15, 0.6,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 8, 'linie',    0,    0.8,  0.15, 0.8,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid');

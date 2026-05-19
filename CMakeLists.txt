@@ -81,6 +81,7 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpNotizSection.qml
         qml/ep/EpSteckverbinderSection.qml
         qml/ep/EpMasseSection.qml
+        qml/ep/EpSpsKanalSection.qml
 
         qml/ibn/IbnBmSplit.qml
         qml/ibn/IbnKabelSplit.qml

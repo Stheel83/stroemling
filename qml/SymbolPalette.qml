@@ -121,6 +121,8 @@ Rectangle {
             "signalgeraete": "Signalgeräte",
             "klemmen":       "Klemmen",
             "verbindungen":  "Verbindungen",
+            "sps_pls":       "SPS / PLS",
+            "kfz":           "KFZ-Elektrik",
             "eigene":        qsTr("Eigene Symbole")
         }
         return namen[id] || id

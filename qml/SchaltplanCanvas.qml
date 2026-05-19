@@ -175,7 +175,8 @@ Item {
 
     // ── Inbetriebnahme-Modus ─────────────────────────────────
     property bool ibnModus:    false
-    property var  ibnStatusMap: ({})   // bmk → "offen"|"in_arbeit"|"abgeschlossen"
+    property var  ibnStatusMap:    ({})   // bmk → "offen"|"in_arbeit"|"abgeschlossen"
+    property var  _spsKonfliktSet: ({})   // elementId → true  (mehr als 1 Kanal zugewiesen)
 
     function zentriereAuf(wx, wy) {
         root.worldX = wx - (drawCanvas.width  / (2 * root.zoom * root.mmToPx))
@@ -1062,6 +1063,27 @@ Item {
                             ctx.fill()
                             ctx.restore()
                         }
+                    }
+
+                    // ── SPS-Konflikt-Dot ─────────────────────────────────
+                    // Rotes "!"-Dot oben-links wenn Element mehr als einem Kanal zugewiesen
+                    if (!vorschau && (el.id || 0) > 0 && root._spsKonfliktSet[el.id]) {
+                        var _spsR  = Math.max(3, 3 * root.zoom)
+                        var _spsCx = Math.min(vx1, vx2) + _spsR + 2
+                        var _spsCy = Math.min(vy1, vy2) + _spsR + 2
+                        ctx.save()
+                        ctx.globalAlpha = 0.92
+                        ctx.beginPath()
+                        ctx.arc(_spsCx, _spsCy, _spsR, 0, Math.PI * 2)
+                        ctx.fillStyle = "#cc2222"
+                        ctx.fill()
+                        ctx.globalAlpha = 1.0
+                        ctx.fillStyle   = "#ffffff"
+                        ctx.font        = "bold " + Math.max(6, Math.round(_spsR * 1.5)) + "px sans-serif"
+                        ctx.textAlign    = "center"
+                        ctx.textBaseline = "middle"
+                        ctx.fillText("!", _spsCx, _spsCy)
+                        ctx.restore()
                     }
 
                     // ── HF-Querverweis-Hinweis (Kontaktspiegel) ──────────
@@ -3664,6 +3686,15 @@ Item {
         root._hfReferenzMap = map
     }
 
+    function spsKonfliktAktualisieren() {
+        if (root.projektId < 0) { root._spsKonfliktSet = {}; return }
+        var ids = db.spsKonfliktElementIds(root.projektId)
+        var s = {}
+        for (var i = 0; i < ids.length; i++) s[ids[i]] = true
+        root._spsKonfliktSet = s
+        repaintAll()
+    }
+
     function hfKarteAktualisieren() {
         hfReferenzMapAktualisieren()
         repaintAll()
@@ -4432,6 +4463,7 @@ Item {
         if (seiteId >= 0) {
             elementeModel.laden(seiteId)
             hfReferenzMapAktualisieren()
+            spsKonfliktAktualisieren()
             autoVerbindungenBerechnen()
             repaintAll()
         }
@@ -4470,6 +4502,8 @@ Item {
             root.kabelLinienCacheAktualisieren()
             // HF-Referenz-Map aufbauen
             root.hfReferenzMapAktualisieren()
+            // SPS-Konflikt-Set aufbauen
+            root.spsKonfliktAktualisieren()
             // Ansicht zurücksetzen; bei QV-Navigation danach auf Partner zoomen
             var _pendingZielPos = root._querverweisZielPos
             root._querverweisZielPos = null

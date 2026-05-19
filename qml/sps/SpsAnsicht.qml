@@ -21,6 +21,7 @@ Item {
     property var _baugruppen:  []
     property var _kanaele:     []
     property string _kanalFilter: "alle"
+    property var _pendingAutoAnlegenBg: null
 
     // ── Toast ────────────────────────────────────────────────────
     property string _statusText: ""
@@ -65,6 +66,64 @@ Item {
         for (var i = 0; i < _racks.length; i++)
             if (_racks[i].id === _ausgewaehlterRackId) return _racks[i]
         return null
+    }
+
+    function _kanaeleAutoAnlegen(bg) {
+        if (!bg) return
+        var keinIO = ["CPU", "PS", "CP", "FM", "andere"]
+        for (var ki = 0; ki < keinIO.length; ki++) {
+            if (bg.typ === keinIO[ki]) {
+                _zeigeStatus(qsTr("%1-Baugruppen haben keine I/O-Kanäle").arg(bg.typ), false)
+                return
+            }
+        }
+        var isPls  = root._ausgewaehlterSystemTyp === "PLS"
+        var n      = bg.kanaele
+        var count  = 0
+        var i, newId, byteNr, bitNr
+
+        if (isPls) {
+            var adressTypPls = (bg.typ === "AO" || bg.typ === "DO") ? "A" : "E"
+            for (i = 0; i < n; i++) {
+                newId = db.spsKanalAnlegen(root.projektId, bg.id, i,
+                                           adressTypPls, 0, 0, "REAL", "", "")
+                if (newId > 0) count++
+            }
+        } else {
+            var isAnalog = (bg.typ === "AI" || bg.typ === "AO" || bg.typ === "AIO")
+            var isDual   = (bg.typ === "DIO" || bg.typ === "AIO")
+            var datentyp = isAnalog ? "WORD" : "BOOL"
+            var byteStep = isAnalog ? 2 : 1
+            var nE = isDual ? Math.ceil(n / 2) : n
+            var nA = isDual ? Math.floor(n / 2) : n
+            var machE = (bg.typ === "DI" || bg.typ === "AI" || bg.typ === "DIO" || bg.typ === "AIO")
+            var machA = (bg.typ === "DO" || bg.typ === "AO" || bg.typ === "DIO" || bg.typ === "AIO")
+
+            if (machE) {
+                for (i = 0; i < nE; i++) {
+                    if (isAnalog) { byteNr = bg.adress_byte_start + i * byteStep; bitNr = -1 }
+                    else          { byteNr = bg.adress_byte_start + Math.floor(i / 8); bitNr = i % 8 }
+                    newId = db.spsKanalAnlegen(root.projektId, bg.id, i,
+                                               "E", byteNr, bitNr, datentyp, "", "")
+                    if (newId > 0) count++
+                }
+            }
+            if (machA) {
+                for (i = 0; i < nA; i++) {
+                    if (isAnalog) { byteNr = bg.adress_byte_start + i * byteStep; bitNr = -1 }
+                    else          { byteNr = bg.adress_byte_start + Math.floor(i / 8); bitNr = i % 8 }
+                    newId = db.spsKanalAnlegen(root.projektId, bg.id, i,
+                                               "A", byteNr, bitNr, datentyp, "", "")
+                    if (newId > 0) count++
+                }
+            }
+        }
+
+        root._ladeKanaele()
+        if (count > 0)
+            root._zeigeStatus(count + " " + qsTr("Kanäle angelegt"), true)
+        else
+            root._zeigeStatus(qsTr("Keine neuen Kanäle – Adresskonflikte oder bereits vorhanden"), false)
     }
 
     onProjektIdChanged: _ladeRacks()
@@ -245,6 +304,30 @@ Item {
                 else _ladeBaugruppen()
             }
         }
+    }
+
+    // ── Auto-Anlegen Bestätigung ──────────────────────────────────
+    Dialog {
+        id: autoAnlegenDialog
+        title: qsTr("Kanäle automatisch anlegen")
+        modal: true
+        anchors.centerIn: parent
+        width: 360
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        Label {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            color: root.theme.textPrimary
+            text: {
+                var bg = root._pendingAutoAnlegenBg
+                if (!bg) return ""
+                var vorh = db.spsKanalListeFuerBaugruppe(bg.id).length
+                return qsTr("Die Baugruppe \"%1\" hat bereits %2 Kanal(e).\nNeu anlegen überspringt Adresskonflikte.\nFortfahren?").arg(bg.bezeichnung || bg.typ).arg(vorh)
+            }
+        }
+
+        onAccepted: root._kanaeleAutoAnlegen(root._pendingAutoAnlegenBg)
     }
 
     // ── Kanal-Dialog ──────────────────────────────────────────────
@@ -699,7 +782,7 @@ Item {
                                 Label { text: qsTr("Bezeichnung"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
                                 Label { text: qsTr("Kanäle"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 55 }
                                 Label { text: qsTr("Startbyte"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
-                                Item { Layout.preferredWidth: 32 }
+                                Item { Layout.preferredWidth: 54 }
                             }
                         }
 
@@ -751,6 +834,24 @@ Item {
                                         color: root.theme.textMuted
                                         Layout.preferredWidth: 70
                                         horizontalAlignment: Text.AlignRight
+                                    }
+                                    RoundButton {
+                                        text: "⚡"
+                                        width: 22; height: 22
+                                        font.pixelSize: 11
+                                        visible: bgHover.containsMouse
+                                        ToolTip.visible: hovered
+                                        ToolTip.text: qsTr("Kanäle automatisch anlegen")
+                                        onClicked: {
+                                            var bg = bgDelegate.modelData
+                                            var vorh = db.spsKanalListeFuerBaugruppe(bg.id)
+                                            if (vorh.length > 0) {
+                                                root._pendingAutoAnlegenBg = bg
+                                                autoAnlegenDialog.open()
+                                            } else {
+                                                root._kanaeleAutoAnlegen(bg)
+                                            }
+                                        }
                                     }
                                     RoundButton {
                                         text: "✕"
@@ -843,10 +944,11 @@ Item {
                             spacing: 0
                             Label { text: qsTr("Adresse"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 100 }
                             Label { text: qsTr("Typ"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 50 }
-                            Label { text: qsTr("Variable / Tag"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 140 }
+                            Label { text: qsTr("Variable / Tag"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 130 }
                             Label { text: qsTr("Kommentar"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
-                            Label { text: qsTr("Einheit"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 60 }
-                            Label { text: qsTr("Bereich"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 100 }
+                            Label { text: qsTr("Einheit"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 55 }
+                            Label { text: qsTr("Bereich"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 90 }
+                            Label { text: qsTr("Element"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 120 }
                             Item { Layout.preferredWidth: 28 }
                         }
                     }
@@ -906,7 +1008,7 @@ Item {
                                     text: modelData.variablenname || ""
                                     color: root.theme.textPrimary
                                     elide: Text.ElideRight
-                                    Layout.preferredWidth: 140
+                                    Layout.preferredWidth: 130
                                 }
                                 Label {
                                     text: modelData.kommentar || ""
@@ -918,7 +1020,7 @@ Item {
                                     text: modelData.pls_einheit || ""
                                     color: root.theme.textMuted
                                     font.pixelSize: 11
-                                    Layout.preferredWidth: 60
+                                    Layout.preferredWidth: 55
                                 }
                                 Label {
                                     text: {
@@ -927,7 +1029,26 @@ Item {
                                     }
                                     color: root.theme.textMuted
                                     font.pixelSize: 11
-                                    Layout.preferredWidth: 100
+                                    Layout.preferredWidth: 90
+                                }
+                                Label {
+                                    id: elementLabel
+                                    property string _bmk: {
+                                        var ed = modelData.element_extra_daten
+                                        if (!ed) return ""
+                                        try { return JSON.parse(ed).bmk || "" } catch(e) { return "" }
+                                    }
+                                    text: _bmk
+                                          ? _bmk + (modelData.seite_name ? " · " + modelData.seite_name : "")
+                                          : (modelData.grafik_element_id ? "–" : "")
+                                    color: _bmk ? root.theme.accent : root.theme.borderLight
+                                    font.pixelSize: 11
+                                    elide: Text.ElideRight
+                                    Layout.preferredWidth: 120
+                                    ToolTip.visible: _bmk && elemLabelMa.containsMouse
+                                    ToolTip.text: _bmk + (modelData.seite_name ? "  (" + modelData.seite_name + ")" : "")
+                                    ToolTip.delay: 400
+                                    MouseArea { id: elemLabelMa; anchors.fill: parent; hoverEnabled: true }
                                 }
                                 RoundButton {
                                     text: "✕"

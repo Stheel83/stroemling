@@ -90,6 +90,298 @@ static QList<SchemaMigration> alleMigrationen()
             "CREATE INDEX IF NOT EXISTS idx_sps_kanal_element   ON sps_kanal(grafik_element_id)",
             "CREATE INDEX IF NOT EXISTS idx_sps_kanal_baugruppe ON sps_kanal(baugruppe_id)"
         }},
+        { 42, "SPS/PLS-Symbole: DI/DO/AI/AO-Baugruppen in symbol_definition + symbol-Katalog", {
+            R"SQL(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('sps_di_8',  'DI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
+('sps_di_16', 'DI-Baugruppe 16-Kanal',    'SPS/PLS', 32, 128, 'variabel', 1),
+('sps_do_8',  'DO-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
+('sps_do_16', 'DO-Baugruppe 16-Kanal',    'SPS/PLS', 32, 128, 'variabel', 1),
+('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'SPS/PLS', 32,  64, 'variabel', 1),
+('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
+('sps_ao_4',  'AO-Baugruppe 4-Kanal',     'SPS/PLS', 32,  64, 'variabel', 1),
+('sps_cpu',   'CPU-Baugruppe',            'SPS/PLS', 32,  48, 'variabel', 1),
+('pls_ai_8',  'PLS AI-Baugruppe 8-Kanal', 'SPS/PLS', 32,  80, 'variabel', 1),
+('pls_ao_4',  'PLS AO-Baugruppe 4-Kanal', 'SPS/PLS', 32,  64, 'variabel', 1))SQL",
+            "DELETE FROM symbol_pin WHERE symbol_id IN ('sps_di_8','sps_di_16','sps_do_8','sps_do_16','sps_ai_4','sps_ai_8','sps_ao_4','sps_cpu','pls_ai_8','pls_ao_4')",
+            R"SQL(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('sps_di_8','K0',0,0.111,-1,0,'neutral'),('sps_di_8','K1',0,0.222,-1,0,'neutral'),
+('sps_di_8','K2',0,0.333,-1,0,'neutral'),('sps_di_8','K3',0,0.444,-1,0,'neutral'),
+('sps_di_8','K4',0,0.556,-1,0,'neutral'),('sps_di_8','K5',0,0.667,-1,0,'neutral'),
+('sps_di_8','K6',0,0.778,-1,0,'neutral'),('sps_di_8','K7',0,0.889,-1,0,'neutral'),
+('sps_di_16','K0',0,0.059,-1,0,'neutral'),('sps_di_16','K1',0,0.118,-1,0,'neutral'),
+('sps_di_16','K2',0,0.176,-1,0,'neutral'),('sps_di_16','K3',0,0.235,-1,0,'neutral'),
+('sps_di_16','K4',0,0.294,-1,0,'neutral'),('sps_di_16','K5',0,0.353,-1,0,'neutral'),
+('sps_di_16','K6',0,0.412,-1,0,'neutral'),('sps_di_16','K7',0,0.471,-1,0,'neutral'),
+('sps_di_16','K8',0,0.529,-1,0,'neutral'),('sps_di_16','K9',0,0.588,-1,0,'neutral'),
+('sps_di_16','K10',0,0.647,-1,0,'neutral'),('sps_di_16','K11',0,0.706,-1,0,'neutral'),
+('sps_di_16','K12',0,0.765,-1,0,'neutral'),('sps_di_16','K13',0,0.824,-1,0,'neutral'),
+('sps_di_16','K14',0,0.882,-1,0,'neutral'),('sps_di_16','K15',0,0.941,-1,0,'neutral'),
+('sps_do_8','K0',1,0.111,1,0,'neutral'),('sps_do_8','K1',1,0.222,1,0,'neutral'),
+('sps_do_8','K2',1,0.333,1,0,'neutral'),('sps_do_8','K3',1,0.444,1,0,'neutral'),
+('sps_do_8','K4',1,0.556,1,0,'neutral'),('sps_do_8','K5',1,0.667,1,0,'neutral'),
+('sps_do_8','K6',1,0.778,1,0,'neutral'),('sps_do_8','K7',1,0.889,1,0,'neutral'),
+('sps_do_16','K0',1,0.059,1,0,'neutral'),('sps_do_16','K1',1,0.118,1,0,'neutral'),
+('sps_do_16','K2',1,0.176,1,0,'neutral'),('sps_do_16','K3',1,0.235,1,0,'neutral'),
+('sps_do_16','K4',1,0.294,1,0,'neutral'),('sps_do_16','K5',1,0.353,1,0,'neutral'),
+('sps_do_16','K6',1,0.412,1,0,'neutral'),('sps_do_16','K7',1,0.471,1,0,'neutral'),
+('sps_do_16','K8',1,0.529,1,0,'neutral'),('sps_do_16','K9',1,0.588,1,0,'neutral'),
+('sps_do_16','K10',1,0.647,1,0,'neutral'),('sps_do_16','K11',1,0.706,1,0,'neutral'),
+('sps_do_16','K12',1,0.765,1,0,'neutral'),('sps_do_16','K13',1,0.824,1,0,'neutral'),
+('sps_do_16','K14',1,0.882,1,0,'neutral'),('sps_do_16','K15',1,0.941,1,0,'neutral'),
+('sps_ai_4','K0',0,0.2,-1,0,'neutral'),('sps_ai_4','K1',0,0.4,-1,0,'neutral'),
+('sps_ai_4','K2',0,0.6,-1,0,'neutral'),('sps_ai_4','K3',0,0.8,-1,0,'neutral'),
+('sps_ai_8','K0',0,0.111,-1,0,'neutral'),('sps_ai_8','K1',0,0.222,-1,0,'neutral'),
+('sps_ai_8','K2',0,0.333,-1,0,'neutral'),('sps_ai_8','K3',0,0.444,-1,0,'neutral'),
+('sps_ai_8','K4',0,0.556,-1,0,'neutral'),('sps_ai_8','K5',0,0.667,-1,0,'neutral'),
+('sps_ai_8','K6',0,0.778,-1,0,'neutral'),('sps_ai_8','K7',0,0.889,-1,0,'neutral'),
+('sps_ao_4','K0',1,0.2,1,0,'neutral'),('sps_ao_4','K1',1,0.4,1,0,'neutral'),
+('sps_ao_4','K2',1,0.6,1,0,'neutral'),('sps_ao_4','K3',1,0.8,1,0,'neutral'),
+('sps_cpu','DP',0,0.333,-1,0,'neutral'),('sps_cpu','PN',0,0.667,-1,0,'neutral'),
+('pls_ai_8','K0',0,0.111,-1,0,'neutral'),('pls_ai_8','K1',0,0.222,-1,0,'neutral'),
+('pls_ai_8','K2',0,0.333,-1,0,'neutral'),('pls_ai_8','K3',0,0.444,-1,0,'neutral'),
+('pls_ai_8','K4',0,0.556,-1,0,'neutral'),('pls_ai_8','K5',0,0.667,-1,0,'neutral'),
+('pls_ai_8','K6',0,0.778,-1,0,'neutral'),('pls_ai_8','K7',0,0.889,-1,0,'neutral'),
+('pls_ao_4','K0',1,0.2,1,0,'neutral'),('pls_ao_4','K1',1,0.4,1,0,'neutral'),
+('pls_ao_4','K2',1,0.6,1,0,'neutral'),('pls_ao_4','K3',1,0.8,1,0,'neutral'))SQL",
+            "DELETE FROM symbol_primitiv WHERE symbol_id IN ('sps_di_8','sps_di_16','sps_do_8','sps_do_16','sps_ai_4','sps_ai_8','sps_ao_4','sps_cpu','pls_ai_8','pls_ao_4')",
+            R"SQL(INSERT INTO symbol_primitiv (symbol_id,reihenfolge,typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,text_align,text_baseline,linienart) VALUES
+('sps_di_8',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'DI 8',0.08,1,'center','middle','solid'),
+('sps_di_8',2,'linie',0,0.111,0.15,0.111,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',3,'linie',0,0.222,0.15,0.222,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',4,'linie',0,0.333,0.15,0.333,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',5,'linie',0,0.444,0.15,0.444,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',6,'linie',0,0.556,0.15,0.556,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',7,'linie',0,0.667,0.15,0.667,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',8,'linie',0,0.778,0.15,0.778,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_8',9,'linie',0,0.889,0.15,0.889,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'))SQL",
+            R"SQL(INSERT INTO symbol_primitiv (symbol_id,reihenfolge,typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,text_align,text_baseline,linienart) VALUES
+('sps_di_16',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'DI 16',0.06,1,'center','middle','solid'),
+('sps_di_16',2,'linie',0,0.059,0.15,0.059,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',3,'linie',0,0.118,0.15,0.118,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',4,'linie',0,0.176,0.15,0.176,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',5,'linie',0,0.235,0.15,0.235,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',6,'linie',0,0.294,0.15,0.294,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',7,'linie',0,0.353,0.15,0.353,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',8,'linie',0,0.412,0.15,0.412,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',9,'linie',0,0.471,0.15,0.471,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',10,'linie',0,0.529,0.15,0.529,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',11,'linie',0,0.588,0.15,0.588,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',12,'linie',0,0.647,0.15,0.647,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',13,'linie',0,0.706,0.15,0.706,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',14,'linie',0,0.765,0.15,0.765,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',15,'linie',0,0.824,0.15,0.824,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',16,'linie',0,0.882,0.15,0.882,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_di_16',17,'linie',0,0.941,0.15,0.941,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'))SQL",
+            R"SQL(INSERT INTO symbol_primitiv (symbol_id,reihenfolge,typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,text_align,text_baseline,linienart) VALUES
+('sps_do_8',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'DO 8',0.08,1,'center','middle','solid'),
+('sps_do_8',2,'linie',0.85,0.111,1.0,0.111,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',3,'linie',0.85,0.222,1.0,0.222,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',4,'linie',0.85,0.333,1.0,0.333,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',5,'linie',0.85,0.444,1.0,0.444,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',6,'linie',0.85,0.556,1.0,0.556,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',7,'linie',0.85,0.667,1.0,0.667,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',8,'linie',0.85,0.778,1.0,0.778,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_8',9,'linie',0.85,0.889,1.0,0.889,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'))SQL",
+            R"SQL(INSERT INTO symbol_primitiv (symbol_id,reihenfolge,typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,text_align,text_baseline,linienart) VALUES
+('sps_do_16',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'DO 16',0.06,1,'center','middle','solid'),
+('sps_do_16',2,'linie',0.85,0.059,1.0,0.059,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',3,'linie',0.85,0.118,1.0,0.118,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',4,'linie',0.85,0.176,1.0,0.176,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',5,'linie',0.85,0.235,1.0,0.235,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',6,'linie',0.85,0.294,1.0,0.294,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',7,'linie',0.85,0.353,1.0,0.353,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',8,'linie',0.85,0.412,1.0,0.412,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',9,'linie',0.85,0.471,1.0,0.471,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',10,'linie',0.85,0.529,1.0,0.529,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',11,'linie',0.85,0.588,1.0,0.588,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',12,'linie',0.85,0.647,1.0,0.647,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',13,'linie',0.85,0.706,1.0,0.706,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',14,'linie',0.85,0.765,1.0,0.765,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',15,'linie',0.85,0.824,1.0,0.824,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',16,'linie',0.85,0.882,1.0,0.882,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_do_16',17,'linie',0.85,0.941,1.0,0.941,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'))SQL",
+            R"SQL(INSERT INTO symbol_primitiv (symbol_id,reihenfolge,typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,text_align,text_baseline,linienart) VALUES
+('sps_ai_4',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_4',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'AI 4',0.10,1,'center','middle','solid'),
+('sps_ai_4',2,'linie',0,0.2,0.15,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_4',3,'linie',0,0.4,0.15,0.4,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_4',4,'linie',0,0.6,0.15,0.6,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_4',5,'linie',0,0.8,0.15,0.8,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'AI 8',0.08,1,'center','middle','solid'),
+('sps_ai_8',2,'linie',0,0.111,0.15,0.111,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',3,'linie',0,0.222,0.15,0.222,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',4,'linie',0,0.333,0.15,0.333,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',5,'linie',0,0.444,0.15,0.444,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',6,'linie',0,0.556,0.15,0.556,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',7,'linie',0,0.667,0.15,0.667,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',8,'linie',0,0.778,0.15,0.778,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ai_8',9,'linie',0,0.889,0.15,0.889,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ao_4',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ao_4',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'AO 4',0.10,1,'center','middle','solid'),
+('sps_ao_4',2,'linie',0.85,0.2,1.0,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ao_4',3,'linie',0.85,0.4,1.0,0.4,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ao_4',4,'linie',0.85,0.6,1.0,0.6,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_ao_4',5,'linie',0.85,0.8,1.0,0.8,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_cpu',0,'rechteck',0.1,0.05,0.9,0.95,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_cpu',1,'text',0.5,0.35,0,0,0,0,0,0,0,0,'CPU',0.13,1,'center','middle','solid'),
+('sps_cpu',2,'text',0.5,0.65,0,0,0,0,0,0,0,0,'SPS',0.10,0,'center','middle','solid'),
+('sps_cpu',3,'linie',0,0.333,0.1,0.333,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('sps_cpu',4,'linie',0,0.667,0.1,0.667,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',1,'text',0.5,0.42,0,0,0,0,0,0,0,0,'AI 8',0.08,1,'center','middle','solid'),
+('pls_ai_8',2,'text',0.5,0.58,0,0,0,0,0,0,0,0,'PLS',0.06,0,'center','middle','solid'),
+('pls_ai_8',3,'linie',0,0.111,0.15,0.111,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',4,'linie',0,0.222,0.15,0.222,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',5,'linie',0,0.333,0.15,0.333,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',6,'linie',0,0.444,0.15,0.444,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',7,'linie',0,0.556,0.15,0.556,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',8,'linie',0,0.667,0.15,0.667,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',9,'linie',0,0.778,0.15,0.778,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ai_8',10,'linie',0,0.889,0.15,0.889,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ao_4',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ao_4',1,'text',0.5,0.4,0,0,0,0,0,0,0,0,'AO 4',0.10,1,'center','middle','solid'),
+('pls_ao_4',2,'text',0.5,0.62,0,0,0,0,0,0,0,0,'PLS',0.08,0,'center','middle','solid'),
+('pls_ao_4',3,'linie',0.85,0.2,1.0,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ao_4',4,'linie',0.85,0.4,1.0,0.4,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ao_4',5,'linie',0.85,0.6,1.0,0.6,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('pls_ao_4',6,'linie',0.85,0.8,1.0,0.8,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'))SQL",
+            R"SQL(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES
+('sps_di_8',  'DI-Baugruppe 8-Kanal',     'sps_pls', 'IEC,ANSI', 8),
+('sps_di_16', 'DI-Baugruppe 16-Kanal',    'sps_pls', 'IEC,ANSI', 16),
+('sps_do_8',  'DO-Baugruppe 8-Kanal',     'sps_pls', 'IEC,ANSI', 8),
+('sps_do_16', 'DO-Baugruppe 16-Kanal',    'sps_pls', 'IEC,ANSI', 16),
+('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'sps_pls', 'IEC,ANSI', 4),
+('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'sps_pls', 'IEC,ANSI', 8),
+('sps_ao_4',  'AO-Baugruppe 4-Kanal',     'sps_pls', 'IEC,ANSI', 4),
+('sps_cpu',   'CPU-Baugruppe',            'sps_pls', 'IEC,ANSI', 2),
+('pls_ai_8',  'PLS AI-Baugruppe 8-Kanal', 'sps_pls', 'IEC,ANSI', 8),
+('pls_ao_4',  'PLS AO-Baugruppe 4-Kanal', 'sps_pls', 'IEC,ANSI', 4))SQL",
+        }},
+        { 43, "KFZ-Elektrik: 9 Symbole (Sicherung/Relais/Masse/Batterie/LiMa/Stecker) + DIN 72551 Leitungsfarben", {
+            R"SQL(INSERT OR IGNORE INTO symbol_definition (id,name,kategorie,breite_mm,hoehe_mm,rolle,ist_builtin) VALUES
+('kfz_sicherung',    'Flachstecksicherung',       'KFZ',32,16,'variabel',1),
+('kfz_relais_4',     'KFZ-Relais 4-polig',        'KFZ',32,48,'variabel',1),
+('kfz_relais_5',     'KFZ-Relais 5-polig',        'KFZ',32,64,'variabel',1),
+('kfz_masse',        'Fahrzeugmasse (GND)',        'KFZ',32,16,'variabel',1),
+('kfz_batterie',     'Batterie 12V',              'KFZ',32,16,'variabel',1),
+('kfz_lichtmaschine','Lichtmaschine (Generator)', 'KFZ',32,16,'variabel',1),
+('kfz_stecker_2',    'KFZ-Stecker 2-polig',       'KFZ',32,32,'variabel',1),
+('kfz_stecker_3',    'KFZ-Stecker 3-polig',       'KFZ',32,48,'variabel',1),
+('kfz_stecker_4',    'KFZ-Stecker 4-polig',       'KFZ',32,64,'variabel',1))SQL",
+            "DELETE FROM symbol_pin WHERE symbol_id IN ('kfz_sicherung','kfz_relais_4','kfz_relais_5','kfz_masse','kfz_batterie','kfz_lichtmaschine','kfz_stecker_2','kfz_stecker_3','kfz_stecker_4')",
+            R"SQL(INSERT INTO symbol_pin (symbol_id,name,x,y,offen_x,offen_y,signaltyp) VALUES
+('kfz_sicherung','A',0,0.5,-1,0,'neutral'),
+('kfz_sicherung','B',1,0.5,1,0,'neutral'),
+('kfz_relais_4','85',0,0.25,-1,0,'neutral'),
+('kfz_relais_4','86',1,0.25,1,0,'neutral'),
+('kfz_relais_4','30',0,0.75,-1,0,'neutral'),
+('kfz_relais_4','87',1,0.75,1,0,'neutral'),
+('kfz_relais_5','85',0,0.2,-1,0,'neutral'),
+('kfz_relais_5','86',1,0.2,1,0,'neutral'),
+('kfz_relais_5','30',0,0.7,-1,0,'neutral'),
+('kfz_relais_5','87',1,0.55,1,0,'neutral'),
+('kfz_relais_5','87a',1,0.85,1,0,'neutral'),
+('kfz_masse','M',0,0.5,-1,0,'neutral'),
+('kfz_batterie','+',0,0.5,-1,0,'neutral'),
+('kfz_batterie','-',1,0.5,1,0,'neutral'),
+('kfz_lichtmaschine','+',0,0.5,-1,0,'neutral'),
+('kfz_lichtmaschine','D+',1,0.5,1,0,'neutral'),
+('kfz_stecker_2','1',0,0.33,-1,0,'neutral'),
+('kfz_stecker_2','2',0,0.67,-1,0,'neutral'),
+('kfz_stecker_3','1',0,0.25,-1,0,'neutral'),
+('kfz_stecker_3','2',0,0.5,-1,0,'neutral'),
+('kfz_stecker_3','3',0,0.75,-1,0,'neutral'),
+('kfz_stecker_4','1',0,0.2,-1,0,'neutral'),
+('kfz_stecker_4','2',0,0.4,-1,0,'neutral'),
+('kfz_stecker_4','3',0,0.6,-1,0,'neutral'),
+('kfz_stecker_4','4',0,0.8,-1,0,'neutral'))SQL",
+            "DELETE FROM symbol_primitiv WHERE symbol_id IN ('kfz_sicherung','kfz_relais_4','kfz_relais_5','kfz_masse','kfz_batterie','kfz_lichtmaschine','kfz_stecker_2','kfz_stecker_3','kfz_stecker_4')",
+            R"SQL(INSERT INTO symbol_primitiv (symbol_id,reihenfolge,typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,text_align,text_baseline,linienart) VALUES
+('kfz_sicherung',0,'rechteck',0.15,0.15,0.85,0.85,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_sicherung',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'F',0.40,1,'center','middle','solid'),
+('kfz_sicherung',2,'linie',0,0.5,0.15,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_sicherung',3,'linie',0.85,0.5,1.0,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_4',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_4',1,'linie',0.15,0.5,0.85,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_4',2,'text',0.5,0.25,0,0,0,0,0,0,0,0,'Spule',0.10,0,'center','middle','solid'),
+('kfz_relais_4',3,'text',0.5,0.75,0,0,0,0,0,0,0,0,'K4',0.13,1,'center','middle','solid'),
+('kfz_relais_4',4,'linie',0,0.25,0.15,0.25,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_4',5,'linie',0.85,0.25,1.0,0.25,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_4',6,'linie',0,0.75,0.15,0.75,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_4',7,'linie',0.85,0.75,1.0,0.75,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',0,'rechteck',0.15,0.02,0.85,0.98,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',1,'linie',0.15,0.4,0.85,0.4,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',2,'text',0.5,0.2,0,0,0,0,0,0,0,0,'Spule',0.08,0,'center','middle','solid'),
+('kfz_relais_5',3,'text',0.5,0.7,0,0,0,0,0,0,0,0,'K5',0.10,1,'center','middle','solid'),
+('kfz_relais_5',4,'linie',0,0.2,0.15,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',5,'linie',0.85,0.2,1.0,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',6,'linie',0,0.7,0.15,0.7,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',7,'linie',0.85,0.55,1.0,0.55,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_relais_5',8,'linie',0.85,0.85,1.0,0.85,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_masse',0,'linie',0,0.5,0.25,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_masse',1,'linie',0.25,0.1,0.25,0.9,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_masse',2,'linie',0.25,0.2,1.0,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_masse',3,'linie',0.25,0.5,0.8,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_masse',4,'linie',0.25,0.8,0.6,0.8,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_batterie',0,'linie',0,0.5,0.25,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_batterie',1,'linie',0.25,0.1,0.25,0.9,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_batterie',2,'linie',0.42,0.3,0.42,0.7,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_batterie',3,'linie',0.58,0.1,0.58,0.9,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_batterie',4,'linie',0.75,0.3,0.75,0.7,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_batterie',5,'linie',0.75,0.5,1.0,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_lichtmaschine',0,'kreis_offen',0.5,0.5,0,0,0,0,0.22,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_lichtmaschine',1,'text',0.5,0.5,0,0,0,0,0,0,0,0,'G',0.35,1,'center','middle','solid'),
+('kfz_lichtmaschine',2,'linie',0,0.5,0.28,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_lichtmaschine',3,'linie',0.72,0.5,1.0,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_2',0,'rechteck',0.15,0.05,0.85,0.95,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_2',1,'text',0.35,0.33,0,0,0,0,0,0,0,0,'1',0.20,0,'center','middle','solid'),
+('kfz_stecker_2',2,'text',0.35,0.67,0,0,0,0,0,0,0,0,'2',0.20,0,'center','middle','solid'),
+('kfz_stecker_2',3,'linie',0,0.33,0.15,0.33,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_2',4,'linie',0,0.67,0.15,0.67,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_3',0,'rechteck',0.15,0.05,0.85,0.95,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_3',1,'text',0.35,0.25,0,0,0,0,0,0,0,0,'1',0.13,0,'center','middle','solid'),
+('kfz_stecker_3',2,'text',0.35,0.5,0,0,0,0,0,0,0,0,'2',0.13,0,'center','middle','solid'),
+('kfz_stecker_3',3,'text',0.35,0.75,0,0,0,0,0,0,0,0,'3',0.13,0,'center','middle','solid'),
+('kfz_stecker_3',4,'linie',0,0.25,0.15,0.25,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_3',5,'linie',0,0.5,0.15,0.5,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_3',6,'linie',0,0.75,0.15,0.75,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_4',0,'rechteck',0.15,0.05,0.85,0.95,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_4',1,'text',0.35,0.2,0,0,0,0,0,0,0,0,'1',0.10,0,'center','middle','solid'),
+('kfz_stecker_4',2,'text',0.35,0.4,0,0,0,0,0,0,0,0,'2',0.10,0,'center','middle','solid'),
+('kfz_stecker_4',3,'text',0.35,0.6,0,0,0,0,0,0,0,0,'3',0.10,0,'center','middle','solid'),
+('kfz_stecker_4',4,'text',0.35,0.8,0,0,0,0,0,0,0,0,'4',0.10,0,'center','middle','solid'),
+('kfz_stecker_4',5,'linie',0,0.2,0.15,0.2,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_4',6,'linie',0,0.4,0.15,0.4,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_4',7,'linie',0,0.6,0.15,0.6,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'),
+('kfz_stecker_4',8,'linie',0,0.8,0.15,0.8,0,0,0,0,0,0,NULL,0.5,0,'center','middle','solid'))SQL",
+            R"SQL(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES
+('kfz_sicherung',    'Flachstecksicherung',       'kfz','IEC,ANSI',2),
+('kfz_relais_4',     'KFZ-Relais 4-polig',        'kfz','IEC,ANSI',4),
+('kfz_relais_5',     'KFZ-Relais 5-polig',        'kfz','IEC,ANSI',5),
+('kfz_masse',        'Fahrzeugmasse (GND)',        'kfz','IEC,ANSI',1),
+('kfz_batterie',     'Batterie 12V',              'kfz','IEC,ANSI',2),
+('kfz_lichtmaschine','Lichtmaschine (Generator)', 'kfz','IEC,ANSI',2),
+('kfz_stecker_2',    'KFZ-Stecker 2-polig',       'kfz','IEC,ANSI',2),
+('kfz_stecker_3',    'KFZ-Stecker 3-polig',       'kfz','IEC,ANSI',3),
+('kfz_stecker_4',    'KFZ-Stecker 4-polig',       'kfz','IEC,ANSI',4))SQL",
+            "DELETE FROM farb_definition WHERE bezeichnung LIKE '%DIN 72551%'",
+            R"SQL(INSERT INTO farb_definition (hex_wert, bezeichnung, ist_standard, sortierung) VALUES
+('#CC0000','Rot - DIN 72551 (rt)',     0, 100),
+('#222222','Schwarz - DIN 72551 (sw)', 0, 101),
+('#FFCC00','Gelb - DIN 72551 (ge)',    0, 102),
+('#663300','Braun - DIN 72551 (br)',   0, 103),
+('#0044CC','Blau - DIN 72551 (bl)',    0, 104),
+('#228B22','Gruen - DIN 72551 (gn)',   0, 105),
+('#888888','Grau - DIN 72551 (gr)',    0, 106),
+('#EEEEEE','Weiss - DIN 72551 (ws)',   0, 107),
+('#8B008B','Violett - DIN 72551 (vi)', 0, 108),
+('#FF6600','Orange - DIN 72551 (or)',  0, 109))SQL",
+        }},
     };
 }
 
@@ -2102,6 +2394,27 @@ bool Database::seedSymbolKatalog()
         { "klemme",          "Klemme",                  "klemmen",        "IEC,ANSI", 2 },
         { "stecker",         "Stecker",                 "klemmen",        "IEC,ANSI", 2 },
         { "buchse",          "Buchse",                  "klemmen",        "IEC,ANSI", 2 },
+        // SPS/PLS-Baugruppen
+        { "sps_di_8",  "DI-Baugruppe 8-Kanal",     "sps_pls", "IEC,ANSI", 8  },
+        { "sps_di_16", "DI-Baugruppe 16-Kanal",    "sps_pls", "IEC,ANSI", 16 },
+        { "sps_do_8",  "DO-Baugruppe 8-Kanal",     "sps_pls", "IEC,ANSI", 8  },
+        { "sps_do_16", "DO-Baugruppe 16-Kanal",    "sps_pls", "IEC,ANSI", 16 },
+        { "sps_ai_4",  "AI-Baugruppe 4-Kanal",     "sps_pls", "IEC,ANSI", 4  },
+        { "sps_ai_8",  "AI-Baugruppe 8-Kanal",     "sps_pls", "IEC,ANSI", 8  },
+        { "sps_ao_4",  "AO-Baugruppe 4-Kanal",     "sps_pls", "IEC,ANSI", 4  },
+        { "sps_cpu",   "CPU-Baugruppe",            "sps_pls", "IEC,ANSI", 2  },
+        { "pls_ai_8",  "PLS AI-Baugruppe 8-Kanal", "sps_pls", "IEC,ANSI", 8  },
+        { "pls_ao_4",  "PLS AO-Baugruppe 4-Kanal", "sps_pls", "IEC,ANSI", 4  },
+        // KFZ-Elektrik
+        { "kfz_sicherung",    "Flachstecksicherung",       "kfz", "IEC,ANSI", 2 },
+        { "kfz_relais_4",     "KFZ-Relais 4-polig",        "kfz", "IEC,ANSI", 4 },
+        { "kfz_relais_5",     "KFZ-Relais 5-polig",        "kfz", "IEC,ANSI", 5 },
+        { "kfz_masse",        "Fahrzeugmasse (GND)",        "kfz", "IEC,ANSI", 1 },
+        { "kfz_batterie",     "Batterie 12V",               "kfz", "IEC,ANSI", 2 },
+        { "kfz_lichtmaschine","Lichtmaschine (Generator)",  "kfz", "IEC,ANSI", 2 },
+        { "kfz_stecker_2",    "KFZ-Stecker 2-polig",        "kfz", "IEC,ANSI", 2 },
+        { "kfz_stecker_3",    "KFZ-Stecker 3-polig",        "kfz", "IEC,ANSI", 3 },
+        { "kfz_stecker_4",    "KFZ-Stecker 4-polig",        "kfz", "IEC,ANSI", 4 },
     };
 
     QSqlQuery q;
@@ -2140,6 +2453,17 @@ bool Database::seedSymbolKatalog()
         { "#EEEEEE", "Wei\u00df \u2013 Sonderkreis",                  9 },
         { "#FFCC00", "Gelb \u2013 Sicherheitskreis",                 10 },
         { "#E8D8B0", "Beige \u2013 \u00e4ltere Installation",         11 },
+        // DIN 72551 KFZ-Leitungsfarben
+        { "#CC0000", "Rot - DIN 72551 (rt)",     100 },
+        { "#222222", "Schwarz - DIN 72551 (sw)", 101 },
+        { "#FFCC00", "Gelb - DIN 72551 (ge)",    102 },
+        { "#663300", "Braun - DIN 72551 (br)",   103 },
+        { "#0044CC", "Blau - DIN 72551 (bl)",    104 },
+        { "#228B22", "Gruen - DIN 72551 (gn)",   105 },
+        { "#888888", "Grau - DIN 72551 (gr)",    106 },
+        { "#EEEEEE", "Weiss - DIN 72551 (ws)",   107 },
+        { "#8B008B", "Violett - DIN 72551 (vi)", 108 },
+        { "#FF6600", "Orange - DIN 72551 (or)",  109 },
     };
 
     QSqlQuery fq;
@@ -6912,10 +7236,13 @@ static const QLatin1String _spsKanalSelectBase(
     "sk.pls_einheit, sk.pls_bereich_min, sk.pls_bereich_max, "
     "sk.pls_alarm_ll, sk.pls_alarm_lo, sk.pls_alarm_hi, sk.pls_alarm_hh, "
     "sk.pls_hart_adresse, sk.pls_protokoll, "
-    "sr.id AS rack_id, sr.rack_nr, sr.system_typ, sb.slot "
+    "sr.id AS rack_id, sr.rack_nr, sr.system_typ, sb.slot, "
+    "ge.extra_daten AS element_extra_daten, se.name AS seite_name "
     "FROM sps_kanal sk "
-    "LEFT JOIN sps_baugruppe sb ON sb.id = sk.baugruppe_id "
-    "LEFT JOIN sps_rack      sr ON sr.id = sb.rack_id ");
+    "LEFT JOIN sps_baugruppe  sb ON sb.id = sk.baugruppe_id "
+    "LEFT JOIN sps_rack       sr ON sr.id = sb.rack_id "
+    "LEFT JOIN grafik_element ge ON ge.id = sk.grafik_element_id "
+    "LEFT JOIN seite          se ON se.id = ge.seite_id ");
 
 static QVariantMap _spsKanalRow(QSqlQuery &q)
 {
@@ -6942,8 +7269,10 @@ static QVariantMap _spsKanalRow(QSqlQuery &q)
     m["pls_protokoll"]     = q.value(19).isNull() ? QVariant() : q.value(19).toString();
     m["rack_id"]           = q.value(20).isNull() ? QVariant() : q.value(20).toInt();
     m["rack_nr"]           = q.value(21).isNull() ? QVariant() : q.value(21).toInt();
-    m["system_typ"]        = q.value(22).isNull() ? QStringLiteral("SPS") : q.value(22).toString();
-    m["slot"]              = q.value(23).isNull() ? QVariant() : q.value(23).toInt();
+    m["system_typ"]             = q.value(22).isNull() ? QStringLiteral("SPS") : q.value(22).toString();
+    m["slot"]                   = q.value(23).isNull() ? QVariant() : q.value(23).toInt();
+    m["element_extra_daten"]    = q.value(24).isNull() ? QVariant() : q.value(24).toString();
+    m["seite_name"]             = q.value(25).isNull() ? QVariant() : q.value(25).toString();
     // Formatierte Adresse berechnen
     int rackNr  = q.value(21).isNull() ? 0 : q.value(21).toInt();
     int slot    = q.value(23).isNull() ? 0 : q.value(23).toInt();
@@ -7137,4 +7466,17 @@ bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
     file.close();
     qInfo() << "SPS/PLS I/O-Liste exportiert:" << localPfad << "(" << kanaele.size() << "Kanäle)";
     return true;
+}
+
+QVariantList Database::spsKonfliktElementIds(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q;
+    q.prepare("SELECT grafik_element_id FROM sps_kanal "
+              "WHERE projekt_id = :pid AND grafik_element_id IS NOT NULL "
+              "GROUP BY grafik_element_id HAVING COUNT(*) > 1");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) { qWarning() << "spsKonfliktElementIds:" << q.lastError().text(); return result; }
+    while (q.next()) result.append(q.value(0).toInt());
+    return result;
 }

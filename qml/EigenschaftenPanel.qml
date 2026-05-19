@@ -269,6 +269,9 @@ Rectangle {
 
             // ABSCHNITT: MAßE → EpMasseSection.qml
             EpMasseSection { canvas: canvas; panel: panel; theme: theme }
+            // ABSCHNITT: SPS/PLS-KANAL → EpSpsKanalSection.qml
+            EpSpsKanalSection { canvas: canvas; panel: panel; theme: theme }
+
             // ABSCHNITT: BETRIEBSMITTEL → EpBetriebsmittelSection.qml
             EpBetriebsmittelSection { canvas: canvas; panel: panel; theme: theme }
 

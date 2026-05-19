@@ -1,0 +1,364 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import "../components"
+
+Item {
+    id: root
+
+    required property var canvas
+    required property var panel
+    required property var theme
+
+    width:  parent ? parent.width : 0
+    height: _istSpsRelevant ? spsCol.implicitHeight : 0
+    visible: height > 0
+    clip:    true
+
+    readonly property bool _istSpsRelevant: {
+        if (!panel.el || (panel.el.typ || "") !== "symbol") return false
+        var sid = panel.el.symbolId || ""
+        return sid.indexOf("sps_") === 0 || sid.indexOf("pls_") === 0
+    }
+
+    property int _refresh: 0
+
+    property var kanalInfo: {
+        _refresh
+        if (!_istSpsRelevant || (panel.el.id || 0) <= 0) return ({})
+        var info = db.spsKanalFuerElement(panel.el.id)
+        return (info && info.id) ? info : ({})
+    }
+
+    readonly property bool hatKanal: (kanalInfo.id || 0) > 0
+    readonly property bool istPls:   hatKanal && (kanalInfo.system_typ || "SPS") === "PLS"
+
+    function richtungText(typ) {
+        if (typ === "E") return "Eingang"
+        if (typ === "A") return "Ausgang"
+        if (typ === "M") return "Merker"
+        if (typ === "T") return "Timer"
+        if (typ === "Z") return "Zaehler"
+        return typ
+    }
+
+    component Trennlinie: Rectangle {
+        width: root.width - 16; height: 1; color: root.theme.border
+        anchors.horizontalCenter: parent.horizontalCenter
+    }
+
+    component AbschnittTitel: Item {
+        property string text: ""
+        width: root.width; height: 26
+        Text {
+            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+            text: parent.text; font.pixelSize: 9; font.weight: Font.Bold
+            font.letterSpacing: 1.5; color: root.theme.borderLight
+        }
+    }
+
+    component InfoZeile: Item {
+        id: izRoot
+        property string label: ""
+        property string wert:  ""
+        property bool   fett:  false
+        width: root.width; height: 20
+        Row {
+            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+            spacing: 0
+            Text {
+                text: izRoot.label + ":"
+                font.pixelSize: 10; color: root.theme.panelMid
+                width: 72
+            }
+            Text {
+                text: izRoot.wert; font.pixelSize: 10; font.bold: izRoot.fett
+                color: root.theme.textSecondary
+                width: root.width - 12 - 72 - 8; elide: Text.ElideRight
+            }
+        }
+    }
+
+    Column {
+        id: spsCol
+        width: parent.width
+        spacing: 0
+
+        Trennlinie {}
+        AbschnittTitel { text: "SPS/PLS-KANAL" }
+
+        // ── kein Kanal zugewiesen ─────────────────────────────
+        Item {
+            visible: !root.hatKanal
+            width: parent.width; height: 34
+            Rectangle {
+                anchors {
+                    left: parent.left; right: parent.right
+                    margins: 12; verticalCenter: parent.verticalCenter
+                }
+                height: 26; radius: 3
+                color: zuweiseMa.containsMouse ? root.theme.border : root.theme.inputBg
+                border.color: root.theme.border
+                Text {
+                    anchors.centerIn: parent
+                    text: "Kanal zuweisen ..."
+                    font.pixelSize: 10; color: root.theme.accent
+                }
+                MouseArea {
+                    id: zuweiseMa; anchors.fill: parent
+                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: dlgKanalWaehlen.open()
+                }
+            }
+        }
+
+        // ── SPS-Kanal zugewiesen ──────────────────────────────
+        Column {
+            visible: root.hatKanal && !root.istPls
+            width: parent.width; spacing: 1
+
+            InfoZeile {
+                label: "Adresse"
+                wert: (root.kanalInfo.adresse || "?") + "  (SPS – " +
+                      root.richtungText(root.kanalInfo.adress_typ || "") +
+                      " " + (root.kanalInfo.datentyp || "") + ")"
+                fett: true
+            }
+            InfoZeile {
+                label: "Variable"
+                wert:  root.kanalInfo.variablenname || "–"
+            }
+            InfoZeile {
+                visible: (root.kanalInfo.kommentar || "") !== ""
+                label:   "Kommentar"
+                wert:    root.kanalInfo.kommentar || ""
+            }
+        }
+
+        // ── PLS-Kanal zugewiesen ──────────────────────────────
+        Column {
+            visible: root.hatKanal && root.istPls
+            width: parent.width; spacing: 1
+
+            InfoZeile {
+                label: "Adresse"
+                wert: (root.kanalInfo.adresse || "?") + "  (PLS – " +
+                      root.richtungText(root.kanalInfo.adress_typ || "") + ")"
+                fett: true
+            }
+            InfoZeile {
+                label: "Tag"
+                wert:  root.kanalInfo.variablenname || "–"
+            }
+            InfoZeile {
+                visible: (root.kanalInfo.kommentar || "") !== ""
+                label:   "Kommentar"
+                wert:    root.kanalInfo.kommentar || ""
+            }
+            InfoZeile {
+                visible: (root.kanalInfo.pls_einheit || "") !== ""
+                         || root.kanalInfo.pls_bereich_min !== undefined
+                label: "Einheit / Bereich"
+                wert: {
+                    var s   = root.kanalInfo.pls_einheit || ""
+                    var min = root.kanalInfo.pls_bereich_min
+                    var max = root.kanalInfo.pls_bereich_max
+                    if (min !== undefined && max !== undefined)
+                        s += (s ? "  " : "") + min + " – " + max
+                    return s || "–"
+                }
+            }
+            InfoZeile {
+                id: alarmZeile
+                property var k: root.kanalInfo
+                visible: k.pls_alarm_ll !== undefined || k.pls_alarm_lo !== undefined
+                         || k.pls_alarm_hi !== undefined || k.pls_alarm_hh !== undefined
+                label: "Alarm"
+                wert: {
+                    var parts = []
+                    if (alarmZeile.k.pls_alarm_ll !== undefined)
+                        parts.push("LL " + alarmZeile.k.pls_alarm_ll)
+                    if (alarmZeile.k.pls_alarm_lo !== undefined)
+                        parts.push("LO " + alarmZeile.k.pls_alarm_lo)
+                    if (alarmZeile.k.pls_alarm_hi !== undefined)
+                        parts.push("HI " + alarmZeile.k.pls_alarm_hi)
+                    if (alarmZeile.k.pls_alarm_hh !== undefined)
+                        parts.push("HH " + alarmZeile.k.pls_alarm_hh)
+                    return parts.join("  ·  ")
+                }
+            }
+        }
+
+        // ── Aktionsbuttons (Kanal zugewiesen) ────────────────
+        Item {
+            visible: root.hatKanal
+            width: parent.width; height: 34
+            Row {
+                anchors {
+                    left: parent.left; right: parent.right
+                    margins: 12; verticalCenter: parent.verticalCenter
+                }
+                spacing: 6
+                Rectangle {
+                    width: Math.round((parent.width - 6) * 0.58)
+                    height: 26; radius: 3
+                    color: aendernMa.containsMouse ? root.theme.border : root.theme.inputBg
+                    border.color: root.theme.border
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Andern ..."
+                        font.pixelSize: 10; color: root.theme.accent
+                    }
+                    MouseArea {
+                        id: aendernMa; anchors.fill: parent
+                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: dlgKanalWaehlen.open()
+                    }
+                }
+                Rectangle {
+                    width: Math.round((parent.width - 6) * 0.42)
+                    height: 26; radius: 3
+                    color: entfernenMa.containsMouse ? root.theme.border : root.theme.inputBg
+                    border.color: root.theme.border
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Entfernen"
+                        font.pixelSize: 10; color: root.theme.borderLight
+                    }
+                    MouseArea {
+                        id: entfernenMa; anchors.fill: parent
+                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var kid = root.kanalInfo.id || 0
+                            if (kid > 0) {
+                                db.spsKanalElementEntfernen(kid)
+                                root._refresh++
+                                panel.canvas.spsKonfliktAktualisieren()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Item { height: 4 }
+    }
+
+    // ── Dialog: Kanal wählen ──────────────────────────────────────────────
+    Dialog {
+        id: dlgKanalWaehlen
+        width: 400
+        anchors.centerIn: Overlay.overlay
+        modal: true
+
+        property int gewaehltId: 0
+
+        background: Rectangle {
+            color: root.theme.sidebar
+            border.color: root.theme.border
+            border.width: 1; radius: 6
+        }
+
+        header: Item {
+            height: 36
+            Text {
+                anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
+                text: "SPS/PLS-Kanal zuweisen"
+                color: root.theme.accent
+                font.pixelSize: 13; font.weight: Font.Medium
+            }
+        }
+
+        onOpened: {
+            dlgKanalWaehlen.gewaehltId = root.kanalInfo.id || 0
+        }
+
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onAccepted: {
+            if (!panel.el || dlgKanalWaehlen.gewaehltId <= 0) return
+            var aktId = root.kanalInfo.id || 0
+            if (aktId > 0 && aktId !== dlgKanalWaehlen.gewaehltId)
+                db.spsKanalElementEntfernen(aktId)
+            db.spsKanalElementZuweisen(dlgKanalWaehlen.gewaehltId, panel.el.id)
+            root._refresh++
+            panel.canvas.spsKonfliktAktualisieren()
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 8
+
+            Text {
+                text: "Freien Kanal auswählen:"
+                color: root.theme.textBright; font.pixelSize: 11
+            }
+
+            ListView {
+                id: kanalListe
+                Layout.fillWidth: true
+                height: Math.min(contentHeight, 220)
+                clip: true
+
+                model: {
+                    if (!panel.canvas || (panel.canvas.projektId || -1) < 0) return []
+                    var alle      = db.spsKanalListe(panel.canvas.projektId)
+                    var aktElemId = panel.el ? (panel.el.id || 0) : 0
+                    var ergebnis  = []
+                    for (var i = 0; i < alle.length; i++) {
+                        var eid = alle[i].grafik_element_id
+                        if (!eid || eid === aktElemId) ergebnis.push(alle[i])
+                    }
+                    return ergebnis
+                }
+
+                ScrollBar.vertical: ScrollBar {}
+
+                delegate: Rectangle {
+                    width: kanalListe.width; height: 30; radius: 3
+                    color: dlgKanalWaehlen.gewaehltId === modelData.id
+                           ? root.theme.activeItemAlt
+                           : (delegMa.containsMouse ? root.theme.hover : "transparent")
+                    border.color: dlgKanalWaehlen.gewaehltId === modelData.id
+                                  ? root.theme.accent : "transparent"
+                    Row {
+                        anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                        spacing: 8
+                        Text {
+                            text: modelData.adresse || "?"
+                            font.pixelSize: 11; font.bold: true; color: root.theme.accent
+                            width: 82; elide: Text.ElideRight
+                        }
+                        Text {
+                            text: modelData.variablenname || "–"
+                            font.pixelSize: 11; color: root.theme.textSecondary
+                            width: 110; elide: Text.ElideRight
+                        }
+                        Text {
+                            text: modelData.kommentar || ""
+                            font.pixelSize: 10; color: root.theme.textMuted
+                            elide: Text.ElideRight
+                            width: kanalListe.width - 8 - 82 - 110 - 32
+                        }
+                    }
+                    MouseArea {
+                        id: delegMa; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: dlgKanalWaehlen.gewaehltId = modelData.id
+                        onDoubleClicked: {
+                            dlgKanalWaehlen.gewaehltId = modelData.id
+                            dlgKanalWaehlen.accept()
+                        }
+                    }
+                }
+            }
+
+            Text {
+                visible: kanalListe.count === 0
+                text: "Keine freien Kanäle vorhanden.\nKanäle in der SPS/PLS-Ansicht anlegen."
+                color: root.theme.textMuted; font.pixelSize: 10; font.italic: true
+                wrapMode: Text.WordWrap; Layout.fillWidth: true
+            }
+        }
+    }
+}

@@ -490,6 +490,9 @@ public:
     // I/O-Liste als CSV (UTF-8 mit BOM, Semikolon-getrennt)
     Q_INVOKABLE bool         spsIOListeCsvSpeichern(int projektId, const QString &pfad);
 
+    // Element-IDs die mehr als einem Kanal zugewiesen sind (Adress-Konflikt)
+    Q_INVOKABLE QVariantList spsKonfliktElementIds(int projektId);
+
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();

@@ -2128,14 +2128,14 @@ Item {
                 for (var si = 0; si < segs.length; si++) {
                     var seg = segs[si]
                     if (seg.logisch) continue
-                    if (Math.abs(seg.y2 - seg.y1) < 0.001) {
+                    if (Math.abs(seg.y2 - seg.y1) < 0.5) {
                         hSegs.push({ni: ni, si: si,
                                     x1: Math.min(seg.x1, seg.x2),
                                     x2: Math.max(seg.x1, seg.x2),
-                                    y:  seg.y1})
-                    } else if (Math.abs(seg.x2 - seg.x1) < 0.001) {
+                                    y:  (seg.y1 + seg.y2) / 2})
+                    } else if (Math.abs(seg.x2 - seg.x1) < 0.5) {
                         vSegs.push({ni: ni,
-                                    x:  seg.x1,
+                                    x:  (seg.x1 + seg.x2) / 2,
                                     y1: Math.min(seg.y1, seg.y2),
                                     y2: Math.max(seg.y1, seg.y2)})
                     }
@@ -2164,6 +2164,13 @@ Item {
             if (netze.length === 0) return
 
             var kreuzungsLuecken = drawCanvas._kreuzungsLuecken(netze)
+            if (root.debug) {
+                var _nKreuz = Object.keys(kreuzungsLuecken).length
+                if (_nKreuz > 0)
+                    console.log("[CANVAS-CROSS] " + _nKreuz + " Kreuzung(en) erkannt:", JSON.stringify(kreuzungsLuecken))
+                else
+                    console.log("[CANVAS-CROSS] Keine Kreuzungen erkannt. Netze:", netze.length)
+            }
 
             // Alle Aderdefinitionspunkte sammeln
             var adpList = []
@@ -2204,13 +2211,16 @@ Item {
                     ctx.lineWidth   = lw
                     var segKey  = ni + "-" + si
                     var kreuzX  = kreuzungsLuecken[segKey]
-                    var isHSeg  = Math.abs(seg.y2 - seg.y1) < 0.001
+                    var isHSeg  = Math.abs(seg.y2 - seg.y1) < 0.5
                     if (isHSeg && kreuzX && kreuzX.length > 0) {
-                        var luecke = 3
+                        // Gap-Breite: konstant 8 Pixel sichtbar, unabhängig von Zoom
+                        var luecke  = 4 / root.zoom
                         var hx1 = Math.min(seg.x1, seg.x2)
                         var hx2 = Math.max(seg.x1, seg.x2)
-                        var hy  = seg.y1
+                        var hy  = (seg.y1 + seg.y2) / 2
                         var pos = hx1
+                        ctx.save()
+                        ctx.lineCap = "butt"   // kein Cap-Überhang → exakte Lücke
                         for (var ki = 0; ki < kreuzX.length; ki++) {
                             var cx  = kreuzX[ki]
                             var ls  = cx - luecke
@@ -2229,6 +2239,7 @@ Item {
                             ctx.lineTo(hx2 * root.zoom + root.worldX, hy * root.zoom + root.worldY)
                             ctx.stroke()
                         }
+                        ctx.restore()
                     } else {
                         ctx.beginPath()
                         ctx.moveTo(seg.x1 * root.zoom + root.worldX, seg.y1 * root.zoom + root.worldY)

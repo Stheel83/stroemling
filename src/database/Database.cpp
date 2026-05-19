@@ -588,6 +588,46 @@ static QList<SchemaMigration> alleMigrationen()
 ('ard_pir',   'PIR Sensor',     'arduino','IEC,ANSI', 3))SQL",
             R"SQL(UPDATE symbol SET norm='IEC,ANSI' WHERE kategorie_pfad='arduino' AND (norm IS NULL OR norm=''))SQL",
         }},
+        { 45, "SPS-GRID-01: Pin-Positionen auf 4mm-Raster korrigiert (SPS hoehe_mm, KFZ y-Werte)", {
+            // SPS/PLS: hoehe_mm anpassen damit k/(N+1)*hoehe_mm ein Vielfaches von 4mm ergibt
+            "UPDATE symbol_definition SET hoehe_mm=72  WHERE id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8')",
+            "UPDATE symbol_definition SET hoehe_mm=136 WHERE id IN ('sps_di_16','sps_do_16')",
+            "UPDATE symbol_definition SET hoehe_mm=40  WHERE id IN ('sps_ai_4','sps_ao_4','pls_ao_4')",
+            // kfz_stecker_2 (32mm): 0.33/0.67 -> 0.25/0.75 (8mm/24mm)
+            "UPDATE symbol_pin SET y=0.25 WHERE symbol_id='kfz_stecker_2' AND name='1'",
+            "UPDATE symbol_pin SET y=0.75 WHERE symbol_id='kfz_stecker_2' AND name='2'",
+            "UPDATE symbol_primitiv SET y1=0.25        WHERE symbol_id='kfz_stecker_2' AND reihenfolge=1",
+            "UPDATE symbol_primitiv SET y1=0.75        WHERE symbol_id='kfz_stecker_2' AND reihenfolge=2",
+            "UPDATE symbol_primitiv SET y1=0.25,y2=0.25 WHERE symbol_id='kfz_stecker_2' AND reihenfolge=3",
+            "UPDATE symbol_primitiv SET y1=0.75,y2=0.75 WHERE symbol_id='kfz_stecker_2' AND reihenfolge=4",
+            // kfz_stecker_4 (64mm): 0.2/0.4/0.6/0.8 -> 0.1875/0.375/0.5625/0.75 (12/24/36/48mm)
+            "UPDATE symbol_pin SET y=0.1875 WHERE symbol_id='kfz_stecker_4' AND name='1'",
+            "UPDATE symbol_pin SET y=0.375  WHERE symbol_id='kfz_stecker_4' AND name='2'",
+            "UPDATE symbol_pin SET y=0.5625 WHERE symbol_id='kfz_stecker_4' AND name='3'",
+            "UPDATE symbol_pin SET y=0.75   WHERE symbol_id='kfz_stecker_4' AND name='4'",
+            "UPDATE symbol_primitiv SET y1=0.1875          WHERE symbol_id='kfz_stecker_4' AND reihenfolge=1",
+            "UPDATE symbol_primitiv SET y1=0.375           WHERE symbol_id='kfz_stecker_4' AND reihenfolge=2",
+            "UPDATE symbol_primitiv SET y1=0.5625          WHERE symbol_id='kfz_stecker_4' AND reihenfolge=3",
+            "UPDATE symbol_primitiv SET y1=0.75            WHERE symbol_id='kfz_stecker_4' AND reihenfolge=4",
+            "UPDATE symbol_primitiv SET y1=0.1875,y2=0.1875 WHERE symbol_id='kfz_stecker_4' AND reihenfolge=5",
+            "UPDATE symbol_primitiv SET y1=0.375, y2=0.375  WHERE symbol_id='kfz_stecker_4' AND reihenfolge=6",
+            "UPDATE symbol_primitiv SET y1=0.5625,y2=0.5625 WHERE symbol_id='kfz_stecker_4' AND reihenfolge=7",
+            "UPDATE symbol_primitiv SET y1=0.75,  y2=0.75   WHERE symbol_id='kfz_stecker_4' AND reihenfolge=8",
+            // kfz_relais_5 (64mm): Pins auf 4mm-Raster: 85/86=16mm, 87=36mm, 30=44mm, 87a=56mm
+            "UPDATE symbol_pin SET y=0.25   WHERE symbol_id='kfz_relais_5' AND name='85'",
+            "UPDATE symbol_pin SET y=0.25   WHERE symbol_id='kfz_relais_5' AND name='86'",
+            "UPDATE symbol_pin SET y=0.5625 WHERE symbol_id='kfz_relais_5' AND name='87'",
+            "UPDATE symbol_pin SET y=0.6875 WHERE symbol_id='kfz_relais_5' AND name='30'",
+            "UPDATE symbol_pin SET y=0.875  WHERE symbol_id='kfz_relais_5' AND name='87a'",
+            "UPDATE symbol_primitiv SET y1=0.375, y2=0.375   WHERE symbol_id='kfz_relais_5' AND reihenfolge=1",
+            "UPDATE symbol_primitiv SET y1=0.1875             WHERE symbol_id='kfz_relais_5' AND reihenfolge=2",
+            "UPDATE symbol_primitiv SET y1=0.6875             WHERE symbol_id='kfz_relais_5' AND reihenfolge=3",
+            "UPDATE symbol_primitiv SET y1=0.25,  y2=0.25    WHERE symbol_id='kfz_relais_5' AND reihenfolge=4",
+            "UPDATE symbol_primitiv SET y1=0.25,  y2=0.25    WHERE symbol_id='kfz_relais_5' AND reihenfolge=5",
+            "UPDATE symbol_primitiv SET y1=0.6875,y2=0.6875  WHERE symbol_id='kfz_relais_5' AND reihenfolge=6",
+            "UPDATE symbol_primitiv SET y1=0.5625,y2=0.5625  WHERE symbol_id='kfz_relais_5' AND reihenfolge=7",
+            "UPDATE symbol_primitiv SET y1=0.875, y2=0.875   WHERE symbol_id='kfz_relais_5' AND reihenfolge=8",
+        }},
     };
 }
 

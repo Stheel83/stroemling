@@ -377,16 +377,16 @@ VALUES
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('sps_di_8',  'DI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
-('sps_di_16', 'DI-Baugruppe 16-Kanal',    'SPS/PLS', 32, 128, 'variabel', 1),
-('sps_do_8',  'DO-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
-('sps_do_16', 'DO-Baugruppe 16-Kanal',    'SPS/PLS', 32, 128, 'variabel', 1),
-('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'SPS/PLS', 32,  64, 'variabel', 1),
-('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  80, 'variabel', 1),
-('sps_ao_4',  'AO-Baugruppe 4-Kanal',     'SPS/PLS', 32,  64, 'variabel', 1),
+('sps_di_8',  'DI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  72, 'variabel', 1),
+('sps_di_16', 'DI-Baugruppe 16-Kanal',    'SPS/PLS', 32, 136, 'variabel', 1),
+('sps_do_8',  'DO-Baugruppe 8-Kanal',     'SPS/PLS', 32,  72, 'variabel', 1),
+('sps_do_16', 'DO-Baugruppe 16-Kanal',    'SPS/PLS', 32, 136, 'variabel', 1),
+('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'SPS/PLS', 32,  40, 'variabel', 1),
+('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  72, 'variabel', 1),
+('sps_ao_4',  'AO-Baugruppe 4-Kanal',     'SPS/PLS', 32,  40, 'variabel', 1),
 ('sps_cpu',   'CPU-Baugruppe',            'SPS/PLS', 32,  48, 'variabel', 1),
-('pls_ai_8',  'PLS AI-Baugruppe 8-Kanal', 'SPS/PLS', 32,  80, 'variabel', 1),
-('pls_ao_4',  'PLS AO-Baugruppe 4-Kanal', 'SPS/PLS', 32,  64, 'variabel', 1);
+('pls_ai_8',  'PLS AI-Baugruppe 8-Kanal', 'SPS/PLS', 32,  72, 'variabel', 1),
+('pls_ao_4',  'PLS AO-Baugruppe 4-Kanal', 'SPS/PLS', 32,  40, 'variabel', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
 -- sps_di_8: 8 Eingaenge links
@@ -629,11 +629,11 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('kfz_relais_4',      '30',  0, 0.75,  -1, 0, 'neutral'),
 ('kfz_relais_4',      '87',  1, 0.75,   1, 0, 'neutral'),
 -- kfz_relais_5: Spule 85/86, Kontakt 30/87/87a
-('kfz_relais_5',      '85',  0, 0.2,   -1, 0, 'neutral'),
-('kfz_relais_5',      '86',  1, 0.2,    1, 0, 'neutral'),
-('kfz_relais_5',      '30',  0, 0.7,   -1, 0, 'neutral'),
-('kfz_relais_5',      '87',  1, 0.55,   1, 0, 'neutral'),
-('kfz_relais_5',      '87a', 1, 0.85,   1, 0, 'neutral'),
+('kfz_relais_5',      '85',  0, 0.25,   -1, 0, 'neutral'),
+('kfz_relais_5',      '86',  1, 0.25,    1, 0, 'neutral'),
+('kfz_relais_5',      '30',  0, 0.6875, -1, 0, 'neutral'),
+('kfz_relais_5',      '87',  1, 0.5625,  1, 0, 'neutral'),
+('kfz_relais_5',      '87a', 1, 0.875,   1, 0, 'neutral'),
 -- kfz_masse: Masse-Anschluss links
 ('kfz_masse',         'M',   0, 0.5,   -1, 0, 'neutral'),
 -- kfz_batterie: + links, - rechts
@@ -643,15 +643,15 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('kfz_lichtmaschine', '+',   0, 0.5,   -1, 0, 'neutral'),
 ('kfz_lichtmaschine', 'D+',  1, 0.5,    1, 0, 'neutral'),
 -- kfz_stecker_2/3/4: Pins links
-('kfz_stecker_2',     '1',   0, 0.33,  -1, 0, 'neutral'),
-('kfz_stecker_2',     '2',   0, 0.67,  -1, 0, 'neutral'),
+('kfz_stecker_2',     '1',   0, 0.25,  -1, 0, 'neutral'),
+('kfz_stecker_2',     '2',   0, 0.75,  -1, 0, 'neutral'),
 ('kfz_stecker_3',     '1',   0, 0.25,  -1, 0, 'neutral'),
 ('kfz_stecker_3',     '2',   0, 0.5,   -1, 0, 'neutral'),
 ('kfz_stecker_3',     '3',   0, 0.75,  -1, 0, 'neutral'),
-('kfz_stecker_4',     '1',   0, 0.2,   -1, 0, 'neutral'),
-('kfz_stecker_4',     '2',   0, 0.4,   -1, 0, 'neutral'),
-('kfz_stecker_4',     '3',   0, 0.6,   -1, 0, 'neutral'),
-('kfz_stecker_4',     '4',   0, 0.8,   -1, 0, 'neutral');
+('kfz_stecker_4',     '1',   0, 0.1875, -1, 0, 'neutral'),
+('kfz_stecker_4',     '2',   0, 0.375,  -1, 0, 'neutral'),
+('kfz_stecker_4',     '3',   0, 0.5625, -1, 0, 'neutral'),
+('kfz_stecker_4',     '4',   0, 0.75,   -1, 0, 'neutral');
 
 INSERT INTO symbol_primitiv
 (symbol_id, reihenfolge, typ,
@@ -675,15 +675,15 @@ VALUES
 ('kfz_relais_4', 6, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
 ('kfz_relais_4', 7, 'linie',    0.85, 0.75, 1.0,  0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
 -- ── kfz_relais_5 (32x64mm, 5-Pin mit 87a) ──
-('kfz_relais_5', 0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 1, 'linie',    0.15, 0.4,  0.85, 0.4,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 2, 'text',     0.5,  0.2,  0,    0,    0, 0, 0, 0, 0, 0, 'Spule', 0.08, 0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 3, 'text',     0.5,  0.7,  0,    0,    0, 0, 0, 0, 0, 0, 'K5',   0.10, 1, 'center', 'middle', 'solid'),
-('kfz_relais_5', 4, 'linie',    0,    0.2,  0.15, 0.2,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 5, 'linie',    0.85, 0.2,  1.0,  0.2,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 6, 'linie',    0,    0.7,  0.15, 0.7,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 7, 'linie',    0.85, 0.55, 1.0,  0.55, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
-('kfz_relais_5', 8, 'linie',    0.85, 0.85, 1.0,  0.85, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 0, 'rechteck', 0.15, 0.02,   0.85, 0.98,   0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 1, 'linie',    0.15, 0.375,  0.85, 0.375,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 2, 'text',     0.5,  0.1875, 0,    0,      0, 0, 0, 0, 0, 0, 'Spule', 0.08, 0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 3, 'text',     0.5,  0.6875, 0,    0,      0, 0, 0, 0, 0, 0, 'K5',   0.10, 1, 'center', 'middle', 'solid'),
+('kfz_relais_5', 4, 'linie',    0,    0.25,   0.15, 0.25,   0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 5, 'linie',    0.85, 0.25,   1.0,  0.25,   0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 6, 'linie',    0,    0.6875, 0.15, 0.6875, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 7, 'linie',    0.85, 0.5625, 1.0,  0.5625, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('kfz_relais_5', 8, 'linie',    0.85, 0.875,  1.0,  0.875,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
 -- ── kfz_masse (32x16mm, GND-Balken: vertikal + 3 waagrechte Linien) ──
 ('kfz_masse', 0, 'linie', 0,    0.5, 0.25, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('kfz_masse', 1, 'linie', 0.25, 0.1, 0.25, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
@@ -704,10 +704,10 @@ VALUES
 ('kfz_lichtmaschine', 3, 'linie',       0.72, 0.5, 1.0,  0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- ── kfz_stecker_2 (32x32mm) ──
 ('kfz_stecker_2', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
-('kfz_stecker_2', 1, 'text',     0.35, 0.33, 0,    0,    0, 0, 0, 0, 0, 0, '1',  0.20, 0, 'center', 'middle', 'solid'),
-('kfz_stecker_2', 2, 'text',     0.35, 0.67, 0,    0,    0, 0, 0, 0, 0, 0, '2',  0.20, 0, 'center', 'middle', 'solid'),
-('kfz_stecker_2', 3, 'linie',    0,    0.33, 0.15, 0.33, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
-('kfz_stecker_2', 4, 'linie',    0,    0.67, 0.15, 0.67, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 1, 'text',     0.35, 0.25, 0,    0,    0, 0, 0, 0, 0, 0, '1',  0.20, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 2, 'text',     0.35, 0.75, 0,    0,    0, 0, 0, 0, 0, 0, '2',  0.20, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 3, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_2', 4, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 -- ── kfz_stecker_3 (32x48mm) ──
 ('kfz_stecker_3', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 ('kfz_stecker_3', 1, 'text',     0.35, 0.25, 0,    0,    0, 0, 0, 0, 0, 0, '1',  0.13, 0, 'center', 'middle', 'solid'),
@@ -717,15 +717,15 @@ VALUES
 ('kfz_stecker_3', 5, 'linie',    0,    0.5,  0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 ('kfz_stecker_3', 6, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 -- ── kfz_stecker_4 (32x64mm) ──
-('kfz_stecker_4', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 1, 'text',     0.35, 0.2,  0,    0,    0, 0, 0, 0, 0, 0, '1',  0.10, 0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 2, 'text',     0.35, 0.4,  0,    0,    0, 0, 0, 0, 0, 0, '2',  0.10, 0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 3, 'text',     0.35, 0.6,  0,    0,    0, 0, 0, 0, 0, 0, '3',  0.10, 0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 4, 'text',     0.35, 0.8,  0,    0,    0, 0, 0, 0, 0, 0, '4',  0.10, 0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 5, 'linie',    0,    0.2,  0.15, 0.2,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 6, 'linie',    0,    0.4,  0.15, 0.4,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 7, 'linie',    0,    0.6,  0.15, 0.6,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
-('kfz_stecker_4', 8, 'linie',    0,    0.8,  0.15, 0.8,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid');
+('kfz_stecker_4', 0, 'rechteck', 0.15, 0.05,   0.85, 0.95,   0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 1, 'text',     0.35, 0.1875, 0,    0,      0, 0, 0, 0, 0, 0, '1',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 2, 'text',     0.35, 0.375,  0,    0,      0, 0, 0, 0, 0, 0, '2',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 3, 'text',     0.35, 0.5625, 0,    0,      0, 0, 0, 0, 0, 0, '3',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 4, 'text',     0.35, 0.75,   0,    0,      0, 0, 0, 0, 0, 0, '4',  0.10, 0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 5, 'linie',    0,    0.1875, 0.15, 0.1875, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 6, 'linie',    0,    0.375,  0.15, 0.375,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 7, 'linie',    0,    0.5625, 0.15, 0.5625, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_stecker_4', 8, 'linie',    0,    0.75,   0.15, 0.75,   0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid');
 
 -- ══════════════════════════════════════════════════════════════
 -- Arduino Symbole (Kategorie 'Arduino')

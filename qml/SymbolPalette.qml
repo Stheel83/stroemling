@@ -124,6 +124,7 @@ Rectangle {
             "sps_pls":       "SPS / PLS",
             "kfz":           "KFZ-Elektrik",
             "arduino":       "Arduino",
+            "sensoren":      "Sensoren",
             "eigene":        qsTr("Eigene Symbole")
         }
         return namen[id] || id

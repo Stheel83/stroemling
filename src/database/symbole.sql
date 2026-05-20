@@ -1003,3 +1003,90 @@ VALUES
 ('ard_pir', 5, 'text',  0.2, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 'VCC', 0.11, 0, 'left', 'middle', 'solid'),
 ('ard_pir', 6, 'text',  0.2, 0.50, 0, 0, 0, 0, 0, 0, 0, 0, 'OUT', 0.11, 0, 'left', 'middle', 'solid'),
 ('ard_pir', 7, 'text',  0.2, 0.75, 0, 0, 0, 0, 0, 0, 0, 0, 'GND', 0.11, 0, 'left', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- Sensoren (Kategorie 'Sensoren')
+-- 3-Draht PNP (L+/M/Q): induktiv, kapazitiv, optisch, ultraschall, druck – 32x16mm
+-- 2-Draht: sensor_temp (PT100) – 16x16mm
+-- Pin-Positionen: L+ y=0.25 (4mm), M y=0.75 (12mm), Q y=0.5 (8mm) → 4mm-Raster
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('sensor_induktiv',   'Induktiver Näherungsschalter',  'Sensoren', 32, 16, 'variabel', 1),
+('sensor_kapazitiv',  'Kapazitiver Näherungsschalter', 'Sensoren', 32, 16, 'variabel', 1),
+('sensor_optisch',    'Optischer Sensor',              'Sensoren', 32, 16, 'variabel', 1),
+('sensor_ultraschall','Ultraschallsensor',             'Sensoren', 32, 16, 'variabel', 1),
+('sensor_druck',      'Drucksensor',                   'Sensoren', 32, 16, 'variabel', 1),
+('sensor_temp',       'Temperatursensor (PT100)',       'Sensoren', 16, 16, 'variabel', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('sensor_induktiv',   'L+', 0, 0.25, -1, 0, 'power'),
+('sensor_induktiv',   'M',  0, 0.75, -1, 0, 'power'),
+('sensor_induktiv',   'Q',  1, 0.5,   1, 0, 'neutral'),
+('sensor_kapazitiv',  'L+', 0, 0.25, -1, 0, 'power'),
+('sensor_kapazitiv',  'M',  0, 0.75, -1, 0, 'power'),
+('sensor_kapazitiv',  'Q',  1, 0.5,   1, 0, 'neutral'),
+('sensor_optisch',    'L+', 0, 0.25, -1, 0, 'power'),
+('sensor_optisch',    'M',  0, 0.75, -1, 0, 'power'),
+('sensor_optisch',    'Q',  1, 0.5,   1, 0, 'neutral'),
+('sensor_ultraschall','L+', 0, 0.25, -1, 0, 'power'),
+('sensor_ultraschall','M',  0, 0.75, -1, 0, 'power'),
+('sensor_ultraschall','Q',  1, 0.5,   1, 0, 'neutral'),
+('sensor_druck',      'L+', 0, 0.25, -1, 0, 'power'),
+('sensor_druck',      'M',  0, 0.75, -1, 0, 'power'),
+('sensor_druck',      'Q',  1, 0.5,   1, 0, 'neutral'),
+('sensor_temp',       '1',  0, 0.5,  -1, 0, 'neutral'),
+('sensor_temp',       '2',  1, 0.5,   1, 0, 'neutral');
+
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
+-- sensor_induktiv: Rechteck + Pinleiter + Label + 3 Spulenbögen
+('sensor_induktiv', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0,     0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_induktiv', 1, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0,     0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_induktiv', 2, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0,     0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_induktiv', 3, 'linie',    0.85, 0.5,  1.0,  0.5,  0, 0, 0,     0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_induktiv', 4, 'text',     0.5,  0.22, 0,    0,    0, 0, 0,     0,   0, 0, 'IND', 0.16, 1, 'center', 'middle', 'solid'),
+('sensor_induktiv', 5, 'bogen',    0.33, 0.70, 0,    0,    0, 0, 0.065, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sensor_induktiv', 6, 'bogen',    0.46, 0.70, 0,    0,    0, 0, 0.065, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sensor_induktiv', 7, 'bogen',    0.59, 0.70, 0,    0,    0, 0, 0.065, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- sensor_kapazitiv: Rechteck + Pinleiter + Label + 2 Kondensatorplatten
+('sensor_kapazitiv', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_kapazitiv', 1, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_kapazitiv', 2, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_kapazitiv', 3, 'linie',    0.85, 0.5,  1.0,  0.5,  0, 0, 0, 0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_kapazitiv', 4, 'text',     0.5,  0.22, 0,    0,    0, 0, 0, 0,   0, 0, 'CAP', 0.16, 1, 'center', 'middle', 'solid'),
+('sensor_kapazitiv', 5, 'linie',    0.25, 0.57, 0.75, 0.57, 0, 0, 0, 0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_kapazitiv', 6, 'linie',    0.25, 0.71, 0.75, 0.71, 0, 0, 0, 0,   0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+-- sensor_optisch: Rechteck + Pinleiter + Label + Kreis (LED) + 3 Lichtstrahlen
+('sensor_optisch', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 1, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 2, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 3, 'linie',    0.85, 0.5,  1.0,  0.5,  0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 4, 'text',     0.5,  0.22, 0,    0,    0, 0, 0,    0, 0, 0, 'OPT', 0.16, 1, 'center', 'middle', 'solid'),
+('sensor_optisch', 5, 'kreis',    0.36, 0.67, 0,    0,    0, 0, 0.06, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 6, 'linie',    0.43, 0.57, 0.65, 0.47, 0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 7, 'linie',    0.43, 0.67, 0.65, 0.67, 0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_optisch', 8, 'linie',    0.43, 0.77, 0.65, 0.87, 0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+-- sensor_ultraschall: Rechteck + Pinleiter + Label + 3 konzentrische Schallwellenbögen
+('sensor_ultraschall', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0,    0,   0,  0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 1, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0,    0,   0,  0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 2, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0,    0,   0,  0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 3, 'linie',    0.85, 0.5,  1.0,  0.5,  0, 0, 0,    0,   0,  0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 4, 'text',     0.5,  0.22, 0,    0,    0, 0, 0,    0,   0,  0, 'ULT', 0.16, 1, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 5, 'bogen',    0.50, 0.65, 0,    0,    0, 0, 0.05, 270, 90, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 6, 'bogen',    0.47, 0.65, 0,    0,    0, 0, 0.09, 270, 90, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_ultraschall', 7, 'bogen',    0.44, 0.65, 0,    0,    0, 0, 0.13, 270, 90, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+-- sensor_druck: Rechteck + Pinleiter + Label + Dreieck (Pfeil aufwärts)
+('sensor_druck', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sensor_druck', 1, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sensor_druck', 2, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sensor_druck', 3, 'linie',    0.85, 0.5,  1.0,  0.5,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sensor_druck', 4, 'text',     0.5,  0.20, 0,    0,    0, 0, 0, 0, 0, 0, 'DRUCK', 0.11, 1, 'center', 'middle', 'solid'),
+('sensor_druck', 5, 'linie',    0.50, 0.38, 0.37, 0.80, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sensor_druck', 6, 'linie',    0.50, 0.38, 0.63, 0.80, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('sensor_druck', 7, 'linie',    0.37, 0.80, 0.63, 0.80, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+-- sensor_temp (16x16mm): Rechteck + Pinleiter + "PT" + "100"
+('sensor_temp', 0, 'rechteck', 0.1,  0.1,  0.9,  0.9,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_temp', 1, 'linie',    0,    0.5,  0.1,  0.5,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_temp', 2, 'linie',    0.9,  0.5,  1.0,  0.5,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('sensor_temp', 3, 'text',     0.5,  0.35, 0,    0,    0, 0, 0, 0, 0, 0, 'PT',  0.22, 1, 'center', 'middle', 'solid'),
+('sensor_temp', 4, 'text',     0.5,  0.65, 0,    0,    0, 0, 0, 0, 0, 0, '100', 0.18, 0, 'center', 'middle', 'solid');

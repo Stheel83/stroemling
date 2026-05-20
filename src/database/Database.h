@@ -493,6 +493,12 @@ public:
     // Element-IDs die mehr als einem Kanal zugewiesen sind (Adress-Konflikt)
     Q_INVOKABLE QVariantList spsKonfliktElementIds(int projektId);
 
+    // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
+    // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.
+    // pfad: lokaler Dateipfad oder file://-URL.
+    Q_INVOKABLE bool canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt = true);
+    Q_INVOKABLE bool canvasSeiteExportieren(int seiteId,  const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false);
+
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();

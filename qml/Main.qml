@@ -165,6 +165,20 @@ ApplicationWindow {
         onActivated: kommandoPalette.open()
     }
 
+    Shortcut {
+        sequence:    "Ctrl+Shift+P"
+        context:     Shortcut.ApplicationShortcut
+        enabled:     root.aktivProjektId >= 0
+        onActivated: pdfExportDialog.open()
+    }
+
+    PdfExportDialog {
+        id:        pdfExportDialog
+        theme:     appTheme
+        projektId: root.aktivProjektId
+        seiteId:   root.aktivSeiteId
+    }
+
     KommandoPalette {
         id:        kommandoPalette
         theme:     appTheme
@@ -329,6 +343,14 @@ ApplicationWindow {
                     enabled: root.aktivProjektId >= 0
                     opacity: enabled ? 1.0 : 0.4
                     onClicked: root.aktiveAnsicht = "normblatt"
+                }
+                SidebarButton {
+                    theme:   appTheme
+                    icon:    "🖨"
+                    label:   qsTr("PDF-Export")
+                    enabled: root.aktivProjektId >= 0
+                    opacity: enabled ? 1.0 : 0.4
+                    onClicked: pdfExportDialog.open()
                 }
                 SidebarButton {
                     theme:  appTheme

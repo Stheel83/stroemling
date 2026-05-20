@@ -124,6 +124,7 @@ qt_add_qml_module(stroemling_app
         qml/AderzuordnungDialog.qml
         qml/MakrobenennDialog.qml
         qml/IbnAnsicht.qml
+        qml/PdfExportDialog.qml
         qml/IbnFeldEditorDialog.qml
         qml/CanvasPanel.qml
         qml/KommandoPalette.qml

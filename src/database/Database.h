@@ -499,6 +499,13 @@ public:
     Q_INVOKABLE bool canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt = true);
     Q_INVOKABLE bool canvasSeiteExportieren(int seiteId,  const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false);
 
+    // ── Datensicherung / Komplettarchiv (L18) ───────────────────────────────
+    // Exportiert Wiki + alle bekannten Projekte in einen Zielordner.
+    // Gibt {erfolg, meldung, projekteAnzahl, wikiOk} zurück.
+    Q_INVOKABLE QVariantMap komplettarchivExportieren(const QString &zielOrdner);
+    // Importiert ein Komplettarchiv: Wiki (merge) + Projekte in zuletzt_geoeffnet.
+    Q_INVOKABLE QVariantMap komplettarchivImportieren(const QString &quellOrdner);
+
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();

@@ -8851,3 +8851,155 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
             << (vollCanvas ? "(vollCanvas)" : "");
     return QFile::exists(localPath);
 }
+
+// ── Komplettarchiv-Export ────────────────────────────────────────────────────
+// Struktur im Zielordner:
+//   manifest.json       — Metadaten + Projektliste
+//   wiki_export.json    — vollständige Wiki-Sicherung (JSON)
+//   projekte/           — Kopien aller bekannten .stroemling-Projektdateien
+// ────────────────────────────────────────────────────────────────────────────
+QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
+{
+    QString ziel = QUrl(zielOrdner).isLocalFile() ? QUrl(zielOrdner).toLocalFile() : zielOrdner;
+    if (!QDir().mkpath(ziel))
+        return {{"erfolg", false}, {"meldung", QStringLiteral("Zielordner konnte nicht erstellt werden")}};
+
+    // 1. Wiki als JSON exportieren
+    QString wikiJsonPfad = ziel + QStringLiteral("/wiki_export.json");
+    bool wikiOk = wikiExportJson(wikiJsonPfad);
+
+    // 2. Bekannte Projektdateien kopieren
+    QString projOrdner = ziel + QStringLiteral("/projekte");
+    if (!QDir().mkpath(projOrdner))
+        return {{"erfolg", false}, {"meldung", QStringLiteral("Projektordner konnte nicht erstellt werden")}};
+
+    int projekteAnzahl = 0;
+    QJsonArray projekteListe;
+
+    QSqlQuery q(m_launcherDb);
+    if (q.exec("SELECT pfad, name FROM zuletzt_geoeffnet ORDER BY geoeffnet_am DESC")) {
+        while (q.next()) {
+            QString pfad = q.value(0).toString();
+            QString name = q.value(1).toString();
+            if (!QFile::exists(pfad)) continue;
+
+            QString dateiName = QFileInfo(pfad).fileName();
+            QString zielPfad  = projOrdner + "/" + dateiName;
+            // Namenskonflikt auflösen
+            if (QFile::exists(zielPfad)) {
+                QString stem = QFileInfo(dateiName).baseName();
+                dateiName = stem + "_" + QString::number(projekteAnzahl + 1) + ".stroemling";
+                zielPfad  = projOrdner + "/" + dateiName;
+            }
+            if (QFile::copy(pfad, zielPfad)) {
+                projekteAnzahl++;
+                projekteListe.append(QJsonObject{
+                    {QStringLiteral("name"),         name},
+                    {QStringLiteral("datei"),        dateiName},
+                    {QStringLiteral("originalPfad"), pfad}
+                });
+            } else {
+                qWarning() << "komplettarchivExportieren: Kopie fehlgeschlagen:" << pfad;
+            }
+        }
+    }
+
+    // 3. Schema-Version ermitteln
+    int schemaVer = 0;
+    {
+        QSqlQuery sv;
+        if (sv.exec("SELECT COALESCE(MAX(version),0) FROM schema_migration") && sv.next())
+            schemaVer = sv.value(0).toInt();
+    }
+
+    // 4. manifest.json schreiben
+    QJsonObject manifest{
+        {QStringLiteral("stroemling_backup_version"), 1},
+        {QStringLiteral("exportiert_am"),  QDateTime::currentDateTime().toString(Qt::ISODate)},
+        {QStringLiteral("schema_version"), schemaVer},
+        {QStringLiteral("wiki_exportiert"), wikiOk},
+        {QStringLiteral("projekte"),        projekteListe}
+    };
+    QFile mf(ziel + QStringLiteral("/manifest.json"));
+    if (mf.open(QIODevice::WriteOnly | QIODevice::Text))
+        mf.write(QJsonDocument(manifest).toJson(QJsonDocument::Indented));
+
+    qInfo() << "komplettarchivExportieren:" << projekteAnzahl << "Projekt(e),"
+            << "Wiki:" << wikiOk << "→" << ziel;
+    return {
+        {QStringLiteral("erfolg"),         true},
+        {QStringLiteral("projekteAnzahl"), projekteAnzahl},
+        {QStringLiteral("wikiOk"),         wikiOk},
+        {QStringLiteral("meldung"),        QString("%1 Projekt(e) gesichert%2")
+                                               .arg(projekteAnzahl)
+                                               .arg(wikiOk ? ", Wiki exportiert" : "")}
+    };
+}
+
+// ── Komplettarchiv-Import ────────────────────────────────────────────────────
+// Liest manifest.json aus quellOrdner, importiert Wiki (merge) und
+// registriert alle Projekte in zuletzt_geoeffnet.
+// ────────────────────────────────────────────────────────────────────────────
+QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
+{
+    QString quelle = QUrl(quellOrdner).isLocalFile() ? QUrl(quellOrdner).toLocalFile() : quellOrdner;
+
+    // manifest.json lesen
+    QFile mf(quelle + QStringLiteral("/manifest.json"));
+    if (!mf.open(QIODevice::ReadOnly))
+        return {{"erfolg", false}, {"meldung", QStringLiteral("manifest.json nicht gefunden – kein gültiges Archiv")}};
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(mf.readAll(), &err);
+    if (doc.isNull() || !doc.isObject())
+        return {{"erfolg", false}, {"meldung", QStringLiteral("Ungültiges Archiv: ") + err.errorString()}};
+
+    QJsonObject root = doc.object();
+    if (root.value(QStringLiteral("stroemling_backup_version")).toInt() != 1)
+        return {{"erfolg", false}, {"meldung", QStringLiteral("Unbekannte Archiv-Version")}};
+
+    // 1. Wiki importieren (merge – bestehende Nutzerartikel bleiben erhalten)
+    bool wikiOk = false;
+    QString wikiJsonPfad = quelle + QStringLiteral("/wiki_export.json");
+    if (QFile::exists(wikiJsonPfad))
+        wikiOk = wikiImportJson(wikiJsonPfad, true);
+
+    // 2. Projekte in zuletzt_geoeffnet eintragen
+    int projekteAnzahl = 0;
+    QJsonArray projekteListe = root.value(QStringLiteral("projekte")).toArray();
+    QString projOrdner = quelle + QStringLiteral("/projekte");
+
+    for (const QJsonValue &v : projekteListe) {
+        QJsonObject pj     = v.toObject();
+        QString dateiName  = pj.value(QStringLiteral("datei")).toString();
+        QString name       = pj.value(QStringLiteral("name")).toString();
+        QString pfad       = projOrdner + "/" + dateiName;
+
+        if (!QFile::exists(pfad)) {
+            qWarning() << "komplettarchivImportieren: Datei nicht gefunden:" << pfad;
+            continue;
+        }
+
+        if (!m_launcherDb.isOpen()) continue;
+        QSqlQuery q(m_launcherDb);
+        q.prepare(R"(
+            INSERT INTO zuletzt_geoeffnet (pfad, name, geoeffnet_am)
+            VALUES (:p, :n, datetime('now'))
+            ON CONFLICT(pfad) DO UPDATE SET name=excluded.name, geoeffnet_am=excluded.geoeffnet_am
+        )");
+        q.bindValue(":p", pfad);
+        q.bindValue(":n", name);
+        if (q.exec()) projekteAnzahl++;
+    }
+
+    qInfo() << "komplettarchivImportieren:" << projekteAnzahl << "Projekt(e),"
+            << "Wiki:" << wikiOk;
+    return {
+        {QStringLiteral("erfolg"),         true},
+        {QStringLiteral("projekteAnzahl"), projekteAnzahl},
+        {QStringLiteral("wikiOk"),         wikiOk},
+        {QStringLiteral("meldung"),        QString("%1 Projekt(e) registriert%2")
+                                               .arg(projekteAnzahl)
+                                               .arg(wikiOk ? ", Wiki importiert (merge)" : "")}
+    };
+}

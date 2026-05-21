@@ -11,6 +11,8 @@ Item {
     signal jetztTesten()
     signal gespraechTexteGeaendert(string json)
 
+    property bool seiteOffen: true   // von Main.qml: root.aktivSeiteId >= 0
+
     property var _infos: ({})
 
     TextEdit { id: _clipboard; visible: false }
@@ -559,6 +561,15 @@ Item {
                                 cursorShape:  Qt.PointingHandCursor
                                 onClicked:    root.jetztTesten()
                             }
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            visible:          !root.seiteOffen
+                            text:             qsTr("⚠ Zuerst eine Seite im Schaltplan öffnen.")
+                            font.pixelSize:   11
+                            color:            root.theme.accent
+                            wrapMode:         Text.WordWrap
                         }
 
                         // ── Eigene Gesprächstexte ──────────────────

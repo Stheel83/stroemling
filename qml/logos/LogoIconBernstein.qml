@@ -1,70 +1,71 @@
 import QtQuick
+import "LogoBase.js" as Base
 
 Canvas {
-    id: root
     width: 52; height: 52
+    property color iconBg: "#0d1b2a"
+    onIconBgChanged: requestPaint()
     onPaint: {
         var ctx = getContext("2d")
-        var w = width, h = height, cx = w/2, cy = h/2
-        ctx.clearRect(0, 0, w, h)
+        var cx = width/2, cy = height/2
+        ctx.clearRect(0, 0, width, height)
+        ctx.fillStyle = iconBg; ctx.fillRect(0, 0, width, height)
 
-        ctx.fillStyle = "#0f1923"; ctx.fillRect(0, 0, w, h)
+        // Bernstein-Körper: kleines, kantiges unregelmäßiges Polygon (Fossil-Stein)
+        var pts = [
+            [cx,    cy-16], // oben
+            [cx+10, cy-11], // oben rechts
+            [cx+13, cy-2],  // rechts oben
+            [cx+11, cy+8],  // rechts
+            [cx+5,  cy+14], // unten rechts
+            [cx-4,  cy+15], // unten
+            [cx-11, cy+9],  // unten links
+            [cx-13, cy+1],  // links
+            [cx-10, cy-10]  // oben links
+        ]
 
-        // Bernstein-Körper (unregelmäßige Tropfenform)
+        // Hinterleuchten
         ctx.save()
-        ctx.globalAlpha = 0.15
-        ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI*2)
+        ctx.globalAlpha = 0.12
+        ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2)
         ctx.fillStyle = "#c06010"; ctx.fill()
         ctx.restore()
 
+        // Körper (gefüllt)
         ctx.beginPath()
-        ctx.moveTo(cx, 4)
-        ctx.bezierCurveTo(cx+14, 3, cx+22, 10, cx+22, cx)
-        ctx.bezierCurveTo(cx+22, cy+16, cx+12, cy+22, cx, cy+22)
-        ctx.bezierCurveTo(cx-14, cy+22, cx-22, cy+12, cx-22, cy)
-        ctx.bezierCurveTo(cx-22, cy-14, cx-12, 3, cx, 4)
-        var grad = ctx.createRadialGradient(cx-4, cy-6, 2, cx, cy, 22)
+        ctx.moveTo(pts[0][0], pts[0][1])
+        for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
+        ctx.closePath()
+        var grad = ctx.createRadialGradient(cx-3, cy-5, 1, cx, cy, 16)
         grad.addColorStop(0, "#fff0a0")
-        grad.addColorStop(0.3, "#f0b030")
+        grad.addColorStop(0.35, "#f0b030")
         grad.addColorStop(0.7, "#c06010")
         grad.addColorStop(1, "#7a3000")
         ctx.fillStyle = grad; ctx.globalAlpha = 0.92; ctx.fill()
-        ctx.globalAlpha = 0.4
+        ctx.globalAlpha = 0.45
         ctx.strokeStyle = "#f0b030"; ctx.lineWidth = 0.8; ctx.stroke()
 
-        // Glanz
+        // Glanz-Facette
         ctx.save()
-        ctx.globalAlpha = 0.4
+        ctx.globalAlpha = 0.35
         ctx.beginPath()
-        ctx.moveTo(cx-5, 8); ctx.bezierCurveTo(cx+5, 5, cx+16, 12, cx+18, 20)
-        ctx.bezierCurveTo(cx+8, 10, cx-2, 6, cx-8, 10)
+        ctx.moveTo(pts[0][0], pts[0][1])
+        ctx.lineTo(pts[1][0], pts[1][1])
+        ctx.lineTo(cx+2, cy-4)
         ctx.closePath()
         ctx.fillStyle = "#fff8c0"; ctx.fill()
         ctx.restore()
 
-        // Orbits
-        function orbit(angle) {
-            ctx.save()
-            ctx.translate(cx, cy); ctx.rotate(angle * Math.PI/180)
-            ctx.globalAlpha = 0.4; ctx.strokeStyle = "#3ecfcf"; ctx.lineWidth = 0.8
-            ctx.setLineDash([3, 2])
-            ctx.beginPath(); ctx.ellipse(0, 0, 26, 7, 0, 0, Math.PI*2); ctx.stroke()
-            ctx.restore()
-        }
-        orbit(-15); orbit(55)
+        // 2 Orbits (gestrichelt)
+        ctx.save()
+        ctx.setLineDash([2.5, 2])
+        Base.ellipse(ctx, cx, cy, 24, 6, -15 * Math.PI/180)
+        ctx.globalAlpha = 0.35; ctx.strokeStyle = "#3ecfcf"; ctx.lineWidth = 0.8; ctx.stroke()
+        Base.ellipse(ctx, cx, cy, 24, 6, 55 * Math.PI/180)
+        ctx.stroke()
+        ctx.restore()
 
-        // Elektronen
-        function elektron(ex, ey) {
-            ctx.save()
-            ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2)
-            var eg = ctx.createRadialGradient(ex-1, ey-1, 0.5, ex, ey, 4)
-            eg.addColorStop(0, "#ffffff"); eg.addColorStop(1, "#f0b030")
-            ctx.fillStyle = eg; ctx.globalAlpha = 1; ctx.fill()
-            ctx.globalAlpha = 0.8
-            ctx.beginPath(); ctx.arc(ex+1.5, ey-1.5, 1.5, 0, Math.PI*2)
-            ctx.fillStyle = "#ffffff"; ctx.fill()
-            ctx.restore()
-        }
-        elektron(46, 18); elektron(4, 36)
+        Base.elektron(ctx, 47, 19, 4)
+        Base.elektron(ctx, 5,  36, 4)
     }
 }

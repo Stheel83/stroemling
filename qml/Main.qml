@@ -342,6 +342,7 @@ ApplicationWindow {
                 Item { height: 4 }
                 LogoHeader {
                     logoIndex: root._logoIndex
+                    theme:     appTheme
                     Layout.fillWidth: true
                 }
 
@@ -1183,7 +1184,9 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "einstellungen"
                 theme:        appTheme
+                seiteOffen:   root.aktivSeiteId >= 0
                 onJetztTesten: {
+                    if (root.aktivSeiteId < 0) return
                     var c = root.aktiverCanvas
                     if (!c) c = panel1.canvas
                     funOverlay.canvas  = c

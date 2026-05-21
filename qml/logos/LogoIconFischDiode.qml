@@ -3,26 +3,21 @@ import "LogoFischBase.js" as Base
 
 Canvas {
     width: 52; height: 52
+    property color iconBg: "#0d1b2a"
+    onIconBgChanged: requestPaint()
     onPaint: {
-        Base.drawFisch(getContext("2d"), width, height, function(ctx, cx) {
-            // Diode DIN: Dreieck (Spitze rechts) + Sperrschicht-Strich
-            var y = 34, lx = cx-14, rx = cx+14
-            var tx = cx-6   // Dreieck linke Kante
-            var tip = cx+4  // Dreieck Spitze (rechts)
-            ctx.lineWidth = 1.5; ctx.strokeStyle = "#3ecfcf"
-            // Draht links
-            ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(tx, y); ctx.stroke()
-            // Dreieck (Anode-Kathode-Symbol, DIN)
+        Base.drawFisch(getContext("2d"), width, height, iconBg, function(ctx, sx, sy) {
+            // Diode DIN: Dreieck Spitze rechts + Sperrschicht; sx≈38
+            ctx.strokeStyle = "#3ecfcf"; ctx.lineWidth = 1.5
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx+2, sy); ctx.stroke()
             ctx.beginPath()
-            ctx.moveTo(tx, y-6)
-            ctx.lineTo(tip, y)
-            ctx.lineTo(tx, y+6)
+            ctx.moveTo(sx+2, sy-5)
+            ctx.lineTo(sx+9, sy)
+            ctx.lineTo(sx+2, sy+5)
             ctx.closePath()
             ctx.stroke()
-            // Sperrschicht (senkrechter Strich an Spitze)
-            ctx.beginPath(); ctx.moveTo(tip, y-6); ctx.lineTo(tip, y+6); ctx.stroke()
-            // Draht rechts
-            ctx.beginPath(); ctx.moveTo(tip, y); ctx.lineTo(rx, y); ctx.stroke()
+            ctx.beginPath(); ctx.moveTo(sx+9, sy-5); ctx.lineTo(sx+9, sy+5); ctx.stroke()
+            ctx.beginPath(); ctx.moveTo(sx+9, sy); ctx.lineTo(sx+12, sy); ctx.stroke()
         })
     }
 }

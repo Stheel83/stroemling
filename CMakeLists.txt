@@ -46,6 +46,7 @@ qt_add_qml_module(stroemling_app
         qml/SeitenBaum.qml
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
+        qml/PokestroemPlaceholder.qml
         qml/EigenschaftenPanel.qml
         qml/SymbolPalette.qml
         qml/ListenAnsicht.qml
@@ -157,6 +158,7 @@ qt_add_qml_module(stroemling_app
         qml/logos/LogoIconFischWiderstand.qml
         qml/logos/LogoIconFischDiode.qml
         qml/logos/LogoFischBase.js
+        qml/logos/LogoBase.js
 )
 
 qt_add_resources(stroemling_app "database_seeds"
@@ -182,6 +184,7 @@ qt_add_translations(stroemling_app
         qml/SeitenBaum.qml
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
+        qml/PokestroemPlaceholder.qml
         qml/EigenschaftenPanel.qml
         qml/SymbolPalette.qml
         qml/ListenAnsicht.qml

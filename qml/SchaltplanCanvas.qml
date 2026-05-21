@@ -2362,17 +2362,12 @@ Item {
     }
 
     // --------------------------------------------------------
-    // Platzhalter
+    // Platzhalter (Pokestr\u00f6m)
     // --------------------------------------------------------
-    Item {
-        anchors.fill: parent; visible: root.seiteId < 0
-        Column { anchors.centerIn: parent; spacing: 12
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: qsTr("Schaltplan")
-                   font.pixelSize: 22; font.weight: Font.Light; color: theme.borderDark }
-            Text { anchors.horizontalCenter: parent.horizontalCenter
-                   text: qsTr("Seite im Baum anklicken um zu \u00f6ffnen.")
-                   font.pixelSize: 14; color: theme.border }
-        }
+    PokestroemPlaceholder {
+        anchors.fill: parent
+        visible: root.seiteId < 0
+        theme:   root.theme
     }
 
     // --------------------------------------------------------

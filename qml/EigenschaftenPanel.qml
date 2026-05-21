@@ -26,11 +26,20 @@ Rectangle {
     property var  theme
     property bool debug: false
 
-    // Refresh-Zähler für EpKabelDefinitionSection – hochzählen erzwingt Binding-Neuauswertung
+    // Refresh-Zähler: hochzählen erzwingt Binding-Neuauswertung von el + EpKabelDefinitionSection.
+    // Wird bei jedem elementeModel.geaendert inkrementiert, damit in-place-Änderungen
+    // (z.B. extraDaten per eigenschaftAktualisieren) sofort im Panel sichtbar werden.
     property int _refresh: 0
 
-    // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins)
+    Connections {
+        target: canvas ? canvas.elementeModel : null
+        function onGeaendert() { panel._refresh++ }
+    }
+
+    // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins).
+    // Abhängig von _refresh damit eigenschaftAktualisieren()-Aufrufe sofort reflektiert werden.
     readonly property var el: {
+        var _ = _refresh   // Binding-Abhängigkeit auf _refresh erzwingen
         var idx = canvas.ausgewaehlt
         return (idx >= 0 && idx < canvas.elementeModel.anzahl) ? canvas.elementeModel.element(idx) : null
     }

@@ -1,5 +1,4 @@
 import QtQuick
-import QtCore
 
 // Gespräch: 2 Symbole nähern sich, Sprechblasen mit Elektrotechnik-Witzen erscheinen.
 Item {
@@ -8,13 +7,10 @@ Item {
     required property real canvasW
     required property real canvasH
 
-    signal fertig()
+    // Eigene Texte werden reaktiv von FunModusOverlay → Main.qml → Einstellungen durchgereicht.
+    property string gespraechTexte: "[]"
 
-    Settings {
-        id:       gesprSettings
-        category: "funmodus"
-        property string gespraechTexte: "[]"
-    }
+    signal fertig()
 
     property var _activeDialog: []
 
@@ -150,7 +146,7 @@ Item {
         for (var i = 0; i < _builtinDialog.length; i++)
             combined.push(_builtinDialog[i])
         try {
-            var custom = JSON.parse(gesprSettings.gespraechTexte || "[]")
+            var custom = JSON.parse(root.gespraechTexte || "[]")
             for (var j = 0; j < custom.length; j++)
                 if (custom[j].a && custom[j].b)
                     combined.push([custom[j].a, custom[j].b])

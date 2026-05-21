@@ -9,6 +9,7 @@ Item {
     required property var theme
 
     signal jetztTesten()
+    signal gespraechTexteGeaendert(string json)
 
     property var _infos: ({})
 
@@ -34,7 +35,9 @@ Item {
         var arr = []
         for (var i = 0; i < gespraechModel.count; i++)
             arr.push({ a: gespraechModel.get(i).a, b: gespraechModel.get(i).b })
-        funSettings.gespraechTexte = JSON.stringify(arr)
+        var json = JSON.stringify(arr)
+        funSettings.gespraechTexte = json
+        root.gespraechTexteGeaendert(json)
     }
 
     Component.onCompleted: { _infos = db.datenbankInfos(); _gespraechLaden() }

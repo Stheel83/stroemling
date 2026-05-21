@@ -155,9 +155,14 @@ ApplicationWindow {
     Settings {
         id:       funModusSettings
         category: "funmodus"
-        property bool aktiv:        false
-        property int  wartezeitMin: 10
+        property bool   aktiv:          false
+        property int    wartezeitMin:   10
+        property string gespraechTexte: "[]"
     }
+
+    // Reaktiver Zwischenspeicher: wird initial aus Settings gelesen, dann per Signal aus
+    // EinstellungenAnsicht aktualisiert (mehrere Settings-Objekte teilen keine Bindings).
+    property string _funGesprTexte: funModusSettings.gespraechTexte
 
     property string aktivSprache: langSettings.language
 
@@ -1169,6 +1174,7 @@ ApplicationWindow {
                     funOverlay.canvas  = c
                     funOverlay.visible = true
                 }
+                onGespraechTexteGeaendert: root._funGesprTexte = json
             }
         }
     }
@@ -1183,12 +1189,13 @@ ApplicationWindow {
 
     // ── Fun-Modus-Overlay ─────────────────────────────────────────
     FunModusOverlay {
-        id:           funOverlay
-        anchors.fill: parent
-        visible:      false
-        z:            600
-        theme:        appTheme
-        onDeaktiviert: idleTimer.restart()
+        id:              funOverlay
+        anchors.fill:    parent
+        visible:         false
+        z:               600
+        theme:           appTheme
+        gespraechTexte:  root._funGesprTexte
+        onDeaktiviert:   idleTimer.restart()
     }
 
     // ── Globale Löschen-Shortcuts ────────────────────────────────

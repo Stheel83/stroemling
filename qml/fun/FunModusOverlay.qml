@@ -6,8 +6,9 @@ import QtQuick.Controls
 Item {
     id: root
 
-    property var canvas: null   // aktiver SchaltplanCanvas – muss vor visible=true gesetzt werden
+    property var    canvas: null   // aktiver SchaltplanCanvas – muss vor visible=true gesetzt werden
     required property var theme
+    property string gespraechTexte: "[]"
 
     signal deaktiviert()
 
@@ -68,11 +69,12 @@ Item {
         canvasH:      root.height
     }
     FunSzeneGespraech {
-        id:           gespraechSzene
-        anchors.fill: parent          // Sprechblasen-Rechtecke brauchen Kontext
-        sprites:      spriteModel
-        canvasW:      root.width
-        canvasH:      root.height
+        id:             gespraechSzene
+        anchors.fill:   parent          // Sprechblasen-Rechtecke brauchen Kontext
+        sprites:        spriteModel
+        canvasW:        root.width
+        canvasH:        root.height
+        gespraechTexte: root.gespraechTexte
     }
     FunSzeneFall {
         id:           fallSzene

@@ -123,9 +123,9 @@ Item {
                                           parseInt(modelData.farbe.slice(3,5),16)/255,
                                           parseInt(modelData.farbe.slice(5,7),16)/255,
                                           0.25)
-                                    : theme.inputBg
+                                    : (root.theme ? root.theme.inputBg : "transparent")
                             border.color: root.aktuellSig === modelData.key
-                                          ? modelData.farbe : theme.border
+                                          ? modelData.farbe : (root.theme ? root.theme.border : "transparent")
                             border.width: 1
                             Text {
                                 id: gaSigLbl
@@ -133,7 +133,7 @@ Item {
                                 text: modelData.label
                                 font.pixelSize: 10
                                 color: root.aktuellSig === modelData.key
-                                       ? modelData.farbe : theme.panelMid
+                                       ? modelData.farbe : (root.theme ? root.theme.panelMid : "gray")
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor

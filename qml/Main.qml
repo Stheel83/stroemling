@@ -1216,11 +1216,12 @@ ApplicationWindow {
         onDeaktiviert:   idleTimer.restart()
     }
 
-    // ── Globale Löschen-Shortcuts ────────────────────────────────
-    // Einzige Instanz für Delete/Backspace – vermeidet Ambiguität durch mehrere
-    // SchaltplanCanvas-Instanzen (panel1/panel2/ibnCanvas).
-    // Qt.WindowShortcut feuert erst nachdem ein TextInput den Event selbst verarbeitet hat,
-    // daher funktioniert Löschen in Textfeldern weiterhin korrekt.
+    // ── Globale Canvas-Shortcuts ──────────────────────────────────
+    // Eine einzige Instanz pro Taste – leitet über root.aktiverCanvas weiter.
+    // Verhindert Ambiguität wenn panel1 + panel2 im Split-Modus beide sichtbar sind.
+    // WindowShortcut feuert erst nachdem ein TextInput den Event selbst verarbeitet hat.
+
+    // Löschen
     Shortcut {
         sequence: "Delete"
         onActivated: {
@@ -1237,6 +1238,47 @@ ApplicationWindow {
             if (c && c.auswahl.length > 0 && !c.textEditAktiv) c.loeschen()
         }
     }
+
+    // Werkzeuge (nur wenn kein Text-Overlay aktiv)
+    Shortcut { sequence: "V"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="zeiger"} } }
+    Shortcut { sequence: "L"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="linie"} } }
+    Shortcut { sequence: "P"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="polygonlinie"} } }
+    Shortcut { sequence: "R"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="rechteck"} } }
+    Shortcut { sequence: "K"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="kreis"} } }
+    Shortcut { sequence: "T"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="text"} } }
+    Shortcut { sequence: "G"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="geraetekasten"} } }
+    Shortcut { sequence: "U"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="strukturkasten"} } }
+    Shortcut { sequence: "M"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="makrokasten"} } }
+    Shortcut { sequence: "C"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="kabellinie"} } }
+    Shortcut { sequence: "N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="notiz"} } }
+    Shortcut { sequence: "S"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv&&c.paletteSymbolId!==""){c.abbruch();c.aktivesWerkzeug="symbol"} } }
+    Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
+    Shortcut { sequence: "Escape"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.handleEscape() } }
+
+    // Undo / Redo
+    Shortcut { sequence: "Ctrl+Z";       onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.undo() } }
+    Shortcut { sequence: "Ctrl+Y";       onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.redo() } }
+    Shortcut { sequence: "Ctrl+Shift+Z"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.redo() } }
+
+    // Auswahl / Bearbeiten
+    Shortcut { sequence: "Ctrl+A"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.alleAuswaehlen() } }
+    Shortcut { sequence: "Ctrl+C"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.kopieren(0) } }
+    Shortcut { sequence: "Ctrl+X"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.kopieren(0);c.loeschen()} } }
+    Shortcut { sequence: "Ctrl+V"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.einfuegen(0) } }
+
+    // Zwischenablage-Slots
+    Shortcut { sequence: "Ctrl+Shift+1"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.kopieren(1) } }
+    Shortcut { sequence: "Ctrl+Shift+2"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.kopieren(2) } }
+    Shortcut { sequence: "Ctrl+Shift+3"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.kopieren(3) } }
+    Shortcut { sequence: "Ctrl+Shift+4"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.kopieren(4) } }
+    Shortcut { sequence: "Ctrl+1"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.einfuegen(1) } }
+    Shortcut { sequence: "Ctrl+2"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.einfuegen(2) } }
+    Shortcut { sequence: "Ctrl+3"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.einfuegen(3) } }
+    Shortcut { sequence: "Ctrl+4"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.einfuegen(4) } }
+
+    // Zoom
+    Shortcut { sequence: "Ctrl+Shift+H"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.zoomAllesEinpassen() } }
+    Shortcut { sequence: "Ctrl+Shift+N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0&&c.normblattDaten!==null) c.zoomNormblattEinpassen() } }
 
     // ── Projekt öffnen/schließen reagieren ───────────────────────
     Connections {

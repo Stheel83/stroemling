@@ -2380,16 +2380,7 @@ Item {
         anchors { top: parent.top; left: parent.left; right: parent.right }
     }
 
-    Shortcut {
-        sequence: "Ctrl+Shift+H"
-        enabled:  root.seiteId >= 0
-        onActivated: root.zoomAllesEinpassen()
-    }
-    Shortcut {
-        sequence: "Ctrl+Shift+N"
-        enabled:  root.seiteId >= 0 && root.normblattDaten !== null
-        onActivated: root.zoomNormblattEinpassen()
-    }
+    // Zoom-Shortcuts (Ctrl+Shift+H / Ctrl+Shift+N) → Main.qml
 
     // --------------------------------------------------------
     // Fußzeile
@@ -3088,58 +3079,21 @@ Item {
     // --------------------------------------------------------
     // Tastaturkürzel
     // --------------------------------------------------------
-    Shortcut { sequence: "V"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "zeiger"        } }
-    Shortcut { sequence: "L"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "linie"         } }
-    Shortcut { sequence: "P"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "polygonlinie"  } }
-    Shortcut { sequence: "R"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "rechteck"      } }
-    Shortcut { sequence: "K"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "kreis"         } }
-    Shortcut { sequence: "T"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "text"          } }
-    Shortcut { sequence: "G"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "geraetekasten" } }
-    Shortcut { sequence: "U"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "strukturkasten"} }
-    Shortcut { sequence: "M"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "makrokasten"  } }
-    Shortcut { sequence: "C"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "kabellinie"    } }
-    Shortcut { sequence: "N"; onActivated: { root.abbruch(); root.aktivesWerkzeug = "notiz"         } }
-    Shortcut { sequence: "F"; onActivated: root.querverweisZurGegenseiteNavigieren() }
+    // Alle Shortcuts (V/L/R/…, Ctrl+Z/A/C/V/X, Escape, F, …) → Main.qml
+    // Verhindert Ambiguität wenn zwei Canvas-Instanzen im Split-Modus sichtbar sind.
 
-    Shortcut { sequence: "S"
-        onActivated: {
+    function handleEscape() {
+        if (root.amZeichnen) {
             root.abbruch()
-            if (root.paletteSymbolId !== "") root.aktivesWerkzeug = "symbol"
+        } else {
+            root.auswahl      = []
+            root.aktiverGriff = -1
+            root.amRubberband = false
+            root.aktivesWerkzeug = "zeiger"
+            root.vorschau = null
+            drawCanvas.requestPaint()
         }
     }
-    Shortcut { sequence: "Escape"
-        onActivated: {
-            if (root.amZeichnen) {
-                root.abbruch()
-            } else {
-                root.auswahl      = []
-                root.aktiverGriff = -1
-                root.amRubberband = false
-                root.aktivesWerkzeug = "zeiger"
-                root.vorschau = null
-                drawCanvas.requestPaint()
-            }
-        }
-    }
-    // TAB: Symbol-Vorschau um 90° rotieren (nur wenn Symbol-Werkzeug aktiv)
-    // Delete/Backspace: nur als Keys.onPressed (Zeile 24) – globaler Shortcut liegt in Main.qml,
-    // um Ambiguität durch mehrere Canvas-Instanzen (panel1/panel2/ibnCanvas) zu vermeiden.
-    Shortcut { sequence: "Ctrl+Z";       onActivated: root.undo() }
-    Shortcut { sequence: "Ctrl+Y";       onActivated: root.redo() }
-    Shortcut { sequence: "Ctrl+Shift+Z"; onActivated: root.redo() }
-    Shortcut { sequence: "Ctrl+A";       onActivated: root.alleAuswaehlen() }
-    Shortcut { sequence: "Ctrl+C";         onActivated: root.kopieren(0) }
-    Shortcut { sequence: "Ctrl+X";         onActivated: { root.kopieren(0); root.loeschen() } }
-    Shortcut { sequence: "Ctrl+V";         onActivated: root.einfuegen(0) }
-
-    Shortcut { sequence: "Ctrl+Shift+1";   onActivated: root.kopieren(1) }
-    Shortcut { sequence: "Ctrl+Shift+2";   onActivated: root.kopieren(2) }
-    Shortcut { sequence: "Ctrl+Shift+3";   onActivated: root.kopieren(3) }
-    Shortcut { sequence: "Ctrl+Shift+4";   onActivated: root.kopieren(4) }
-    Shortcut { sequence: "Ctrl+1";         onActivated: root.einfuegen(1); enabled: root.seiteId >= 0 }
-    Shortcut { sequence: "Ctrl+2";         onActivated: root.einfuegen(2); enabled: root.seiteId >= 0 }
-    Shortcut { sequence: "Ctrl+3";         onActivated: root.einfuegen(3); enabled: root.seiteId >= 0 }
-    Shortcut { sequence: "Ctrl+4";         onActivated: root.einfuegen(4); enabled: root.seiteId >= 0 }
 
     // --------------------------------------------------------
     // Eigenschaften-Panel (rechts, NACH interaktionArea deklariert

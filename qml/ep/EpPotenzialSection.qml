@@ -96,7 +96,8 @@ Item {
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: root.extraSetzen("signaltyp", modelData.key)
+                        onClicked: root.extraSetzen("signaltyp",
+                            root.aktuellSig === modelData.key ? "neutral" : modelData.key)
                     }
                 }
             }

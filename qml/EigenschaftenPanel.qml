@@ -37,10 +37,9 @@ Rectangle {
     }
 
     // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins).
-    // Abhängig von _refresh damit eigenschaftAktualisieren()-Aufrufe sofort reflektiert werden.
+    // _refresh * 0 in den idx-Ausdruck damit der AOT-Compiler die Abhängigkeit nicht wegoptimiert.
     readonly property var el: {
-        var _ = _refresh   // Binding-Abhängigkeit auf _refresh erzwingen
-        var idx = canvas.ausgewaehlt
+        var idx = canvas.ausgewaehlt + _refresh * 0
         return (idx >= 0 && idx < canvas.elementeModel.anzahl) ? canvas.elementeModel.element(idx) : null
     }
 

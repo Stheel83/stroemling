@@ -25,7 +25,10 @@ Danach den relevanten Log-Ausschnitt einfügen (journalctl-Output).
 
 ```
 Build:            cd build && make -j$(nproc)
-Schema-Version:   static const int SCHEMA_VERSION = X;  → src/database/Database.h
+Schema-Version:   wird über schema_migration-Tabelle verwaltet (SCHEMA_VERSION-Konstante entfällt)
+                  Neue Migration → alleMigrationen() in src/database/Database.cpp ergänzen
+DB-Pfad:          ~/.local/share/Strömling Design/stroemling.db
+DB zurücksetzen:  Datei löschen → App neu starten (alle Migrationen laufen erneut)
 Neue QML-Datei:   1) CMakeLists.txt unter QML_FILES eintragen
                   2) cmake .. im build-Ordner ausführen
                   3) make -j$(nproc)

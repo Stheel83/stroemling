@@ -146,6 +146,17 @@ qt_add_qml_module(stroemling_app
         qml/fun/FunSzeneFormation.qml
         qml/fun/FunSzeneGespraech.qml
         qml/fun/FunSzeneFall.qml
+        qml/logos/LogoHeader.qml
+        qml/logos/LogoIconSinus.qml
+        qml/logos/LogoIconAtom.qml
+        qml/logos/LogoIconBernstein.qml
+        qml/logos/LogoIconCee.qml
+        qml/logos/LogoIconOstsee.qml
+        qml/logos/LogoIconFischKondensator.qml
+        qml/logos/LogoIconFischSpule.qml
+        qml/logos/LogoIconFischWiderstand.qml
+        qml/logos/LogoIconFischDiode.qml
+        qml/logos/LogoFischBase.js
 )
 
 qt_add_resources(stroemling_app "database_seeds"

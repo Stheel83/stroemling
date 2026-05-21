@@ -66,6 +66,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/25_wiki.md` | Erfahrungs-Wiki: persönliche Felderfahrungen, Altbestand Ost/West, Klassische Nullung, Aluminium, Aderendhülsen; Schema v40, `WikiModel`, Bild-BLOBs, FTS5-Suche |
 | `konzept/26_release_migration.md` | Release-Vorbereitung: 3 Daten-Lebensdauern, DB-Trennung (stroemling.db / wiki.db / Projektdatei), Migrations-System (ersetzt DROP+CREATE), Git-Anbindung, Export/Import, App-Datenverzeichnis |
 | `konzept/27_sps.md` | SPS-Integration: DB-Schema (sps_rack/baugruppe/adresse), SPS-Ansicht (Hardware/Adressen/Export-Tabs), EP-Adresszuweisung, Symbolpalette, I/O-Liste, CSV-Export (TIA/STEP7/CODESYS), S1–S10 |
+| `konzept/30_fun_modus.md` | Fun-Modus (Easter Egg): Idle-Screensaver, QML-Layer über Canvas, 8 Szenarien (Springseil/Fangen/DVD/Conga/Orbit/Formation/Gespräch/Schwerkraft), Sprite-System, Implementierungsschritte |
 
 ---
 

@@ -614,6 +614,7 @@ ApplicationWindow {
                             }
                             root.aktiverCanvas.paletteSymbolId = "klemme_anschluss"
                             root.aktiverCanvas.aktivesWerkzeug = "symbol"
+                            root.aktiverCanvas.forceActiveFocus()
                         }
 
                         onWidthChanged: if (width >= 180) panelBreiten.seitenBaumBreite = width
@@ -662,6 +663,7 @@ ApplicationWindow {
                         onSymbolGewaehlt: function(symCode) {
                             root.aktiverCanvas.paletteSymbolId = symCode
                             root.aktiverCanvas.aktivesWerkzeug = "symbol"
+                            root.aktiverCanvas.forceActiveFocus()
                         }
                         onNormGeaendert: function(neuNorm) {
                             root.aktivProjektNorm = neuNorm
@@ -834,6 +836,7 @@ ApplicationWindow {
                     }
                     root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                     root.aktiverCanvas.aktivesWerkzeug  = "symbol"
+                    root.aktiverCanvas.forceActiveFocus()
                 }
             }
 
@@ -924,6 +927,7 @@ ApplicationWindow {
                             }
                             root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                             root.aktiverCanvas.aktivesWerkzeug  = "symbol"
+                            root.aktiverCanvas.forceActiveFocus()
                         }
                     }
                 }
@@ -1116,6 +1120,28 @@ ApplicationWindow {
         visible:      !db.projektOffen
         theme:        appTheme
         z:            200
+    }
+
+    // ── Globale Löschen-Shortcuts ────────────────────────────────
+    // Einzige Instanz für Delete/Backspace – vermeidet Ambiguität durch mehrere
+    // SchaltplanCanvas-Instanzen (panel1/panel2/ibnCanvas).
+    // Qt.WindowShortcut feuert erst nachdem ein TextInput den Event selbst verarbeitet hat,
+    // daher funktioniert Löschen in Textfeldern weiterhin korrekt.
+    Shortcut {
+        sequence: "Delete"
+        onActivated: {
+            if (root.aktiveAnsicht !== "seiten") return
+            var c = root.aktiverCanvas
+            if (c && c.auswahl.length > 0 && !c.textEditAktiv) c.loeschen()
+        }
+    }
+    Shortcut {
+        sequence: "Backspace"
+        onActivated: {
+            if (root.aktiveAnsicht !== "seiten") return
+            var c = root.aktiverCanvas
+            if (c && c.auswahl.length > 0 && !c.textEditAktiv) c.loeschen()
+        }
     }
 
     // ── Projekt öffnen/schließen reagieren ───────────────────────

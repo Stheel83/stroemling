@@ -23,7 +23,13 @@ Item {
     }
     Keys.onPressed: function(event) {
         if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
-            root.loeschen()
+            if (root.aktivesWerkzeug === "symbol" && root.paletteSymbolId !== "") {
+                root.abbruch()
+                root.paletteSymbolId = ""
+                root.aktivesWerkzeug = "zeiger"
+            } else {
+                root.loeschen()
+            }
             event.accepted = true
         }
     }
@@ -97,6 +103,11 @@ Item {
 
     // Auswahl & Verschieben (Zeiger-Werkzeug)
     property var  auswahl:             []     // Indizes aller selektierten Elemente
+    onAuswahlChanged: {
+        // Re-focus canvas after EP becomes visible (EP's ScrollView can grab focus synchronously)
+        if (root.auswahl.length > 0 && !root.textEditAktiv)
+            Qt.callLater(function() { root.forceActiveFocus() })
+    }
     // Compat-Alias: -1 wenn Mehrfachauswahl, sonst der einzelne Index
     readonly property int ausgewaehlt: auswahl.length === 1 ? auswahl[0] : -1
     onAusgewaehltChanged: Qt.callLater(autoPanFuerAuswahl)
@@ -3116,8 +3127,8 @@ Item {
         }
     }
     // TAB: Symbol-Vorschau um 90° rotieren (nur wenn Symbol-Werkzeug aktiv)
-    Shortcut { sequence: "Delete";       onActivated: root.loeschen() }
-    Shortcut { sequence: "Backspace";    onActivated: root.loeschen() }
+    // Delete/Backspace: nur als Keys.onPressed (Zeile 24) – globaler Shortcut liegt in Main.qml,
+    // um Ambiguität durch mehrere Canvas-Instanzen (panel1/panel2/ibnCanvas) zu vermeiden.
     Shortcut { sequence: "Ctrl+Z";       onActivated: root.undo() }
     Shortcut { sequence: "Ctrl+Y";       onActivated: root.redo() }
     Shortcut { sequence: "Ctrl+Shift+Z"; onActivated: root.redo() }

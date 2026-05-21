@@ -136,6 +136,16 @@ qt_add_qml_module(stroemling_app
         qml/einstellungen/EinstellungenAnsicht.qml
         qml/sps/SpsAnsicht.qml
         qml/ProjektStartAnsicht.qml
+        qml/fun/FunModusOverlay.qml
+        qml/fun/FunSprite.qml
+        qml/fun/FunSzeneDvd.qml
+        qml/fun/FunSzeneOrbit.qml
+        qml/fun/FunSzeneConga.qml
+        qml/fun/FunSzeneFangen.qml
+        qml/fun/FunSzeneSpringeil.qml
+        qml/fun/FunSzeneFormation.qml
+        qml/fun/FunSzeneGespraech.qml
+        qml/fun/FunSzeneFall.qml
 )
 
 qt_add_resources(stroemling_app "database_seeds"

@@ -6,6 +6,7 @@ import "components"
 import "wiki"
 import "einstellungen"
 import "sps"
+import "fun"
 import stroemling
 
 // ProjektStartAnsicht ist direkt im qml/-Ordner, kein Unterordner-Import nötig
@@ -151,7 +152,59 @@ ApplicationWindow {
         property int seitenBaumBreite: 280
     }
 
+    Settings {
+        id:       funModusSettings
+        category: "funmodus"
+        property bool aktiv:        false
+        property int  wartezeitMin: 10
+    }
+
     property string aktivSprache: langSettings.language
+
+    // ── Fun-Modus Idle-Detection ─────────────────────────────────
+    // Beobachtet Mausbewegungen im gesamten Fenster; stört andere Elemente nicht.
+    // WICHTIG: running-Binding auf idleTimer vermeiden – restart() bricht Bindings.
+    MouseArea {
+        id:                      idleMouseWatcher
+        anchors.fill:            parent
+        z:                       -999
+        hoverEnabled:            true
+        propagateComposedEvents: true
+        acceptedButtons:         Qt.NoButton
+        onPositionChanged: {
+            if (funModusSettings.aktiv && root.aktivProjektId >= 0 && !funOverlay.visible)
+                idleTimer.restart()
+        }
+    }
+
+    Timer {
+        id:       idleTimer
+        interval: funModusSettings.wartezeitMin * 60 * 1000
+        repeat:   false
+
+        onTriggered: {
+            var c = root.aktiverCanvas
+            if (!c) return
+            if (root.aktiveAnsicht !== "seiten") return
+            if (root.aktivSeiteId < 0) return
+            if (c.elementeModel.anzahl < 2) return
+            if (c.auswahl && c.auswahl.length > 0) return
+
+            funOverlay.canvas  = c
+            funOverlay.visible = true
+        }
+    }
+
+    // Wenn Fun-Modus in den Einstellungen aktiviert wird: Timer sofort starten
+    Connections {
+        target: funModusSettings
+        function onAktivChanged() {
+            if (funModusSettings.aktiv && root.aktivProjektId >= 0)
+                idleTimer.restart()
+            else
+                idleTimer.stop()
+        }
+    }
 
     Shortcut {
         sequence:    "Ctrl+Shift+D"
@@ -1110,6 +1163,12 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "einstellungen"
                 theme:        appTheme
+                onJetztTesten: {
+                    var c = root.aktiverCanvas
+                    if (!c) c = panel1.canvas
+                    funOverlay.canvas  = c
+                    funOverlay.visible = true
+                }
             }
         }
     }
@@ -1120,6 +1179,16 @@ ApplicationWindow {
         visible:      !db.projektOffen
         theme:        appTheme
         z:            200
+    }
+
+    // ── Fun-Modus-Overlay ─────────────────────────────────────────
+    FunModusOverlay {
+        id:           funOverlay
+        anchors.fill: parent
+        visible:      false
+        z:            600
+        theme:        appTheme
+        onDeaktiviert: idleTimer.restart()
     }
 
     // ── Globale Löschen-Shortcuts ────────────────────────────────

@@ -55,6 +55,8 @@ public:
 
     Q_PROPERTY(bool undoMoeglich READ undoMoeglich NOTIFY geaendert)
     Q_PROPERTY(bool redoMoeglich READ redoMoeglich NOTIFY geaendert)
+    Q_PROPERTY(int  undoAnzahl  READ undoAnzahl  NOTIFY geaendert)
+    Q_PROPERTY(int  redoAnzahl  READ redoAnzahl  NOTIFY geaendert)
 
     Q_INVOKABLE void undoCheckpoint();
     Q_INVOKABLE void undoCheckpointFromSnapshot(const QVariantList &snapshot);
@@ -62,6 +64,8 @@ public:
     Q_INVOKABLE void redo();
     Q_INVOKABLE bool undoMoeglich() const;
     Q_INVOKABLE bool redoMoeglich() const;
+    Q_INVOKABLE int  undoAnzahl()  const;
+    Q_INVOKABLE int  redoAnzahl()  const;
 
 signals:
     void geaendert();

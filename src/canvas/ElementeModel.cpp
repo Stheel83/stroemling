@@ -296,6 +296,8 @@ void ElementeModel::redo()
 
 bool ElementeModel::undoMoeglich() const { return !m_undoStack.empty(); }
 bool ElementeModel::redoMoeglich() const { return !m_redoStack.empty(); }
+int  ElementeModel::undoAnzahl()  const { return static_cast<int>(m_undoStack.size()); }
+int  ElementeModel::redoAnzahl()  const { return static_cast<int>(m_redoStack.size()); }
 
 // ── Hit-Testing ──────────────────────────────────────────────────────────────
 

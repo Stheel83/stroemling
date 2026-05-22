@@ -3039,6 +3039,80 @@ Item {
     }
 
     // --------------------------------------------------------
+    // Rechtsklick-Kontextmenü
+    // TapHandler koexistiert mit DragHandler (panHandler) für denselben Button:
+    // Drag beyond threshold → Pan; sauberer Klick → Menü
+    // --------------------------------------------------------
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        enabled:         root.seiteId >= 0
+        onTapped: function(eventPoint) {
+            if (root.aktivesWerkzeug !== "zeiger") return
+            var vpX = eventPoint.position.x
+            var vpY = eventPoint.position.y
+            // Element unter Maus auto-selektieren wenn noch nicht in Auswahl
+            var hitIdx = root.elementBeiPosition(vpX, vpY)
+            if (hitIdx >= 0 && root.auswahl.indexOf(hitIdx) < 0)
+                root.auswahl = [hitIdx]
+            canvasKontextMenu.popup(vpX, vpY)
+        }
+    }
+
+    Menu {
+        id: canvasKontextMenu
+
+        MenuItem {
+            text:      "Kopieren\t(Ctrl+C)"
+            enabled:   root.auswahl.length > 0
+            onTriggered: root.kopieren(0)
+        }
+        MenuItem {
+            text:      "Ausschneiden\t(Ctrl+X)"
+            enabled:   root.auswahl.length > 0
+            onTriggered: { root.kopieren(0); root.loeschen() }
+        }
+        MenuItem {
+            text:      "Einfuegen\t(Ctrl+V)"
+            enabled:   root.zwischenablage.length > 0 && root.seiteId >= 0
+            onTriggered: root.einfuegen(0)
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: "Drehen 90 Grad"
+            enabled: {
+                if (root.auswahl.length === 0) return false
+                for (var i = 0; i < root.auswahl.length; i++)
+                    if (elementeModel.element(root.auswahl[i]).typ === "symbol") return true
+                return false
+            }
+            onTriggered: {
+                if (root.auswahl.length === 1) {
+                    var el = elementeModel.element(root.ausgewaehlt)
+                    root.eigenschaftAktualisieren("rotation", ((el.rotation || 0) + 90) % 360)
+                } else {
+                    root.multiRotationUmPivot(90)
+                }
+            }
+        }
+        MenuSeparator {}
+        MenuItem {
+            text:      "Loeschen\t(Del)"
+            enabled:   root.auswahl.length > 0
+            onTriggered: root.loeschen()
+        }
+        MenuSeparator {}
+        MenuItem {
+            text:      "Alles auswaehlen\t(Ctrl+A)"
+            onTriggered: root.alleAuswaehlen()
+        }
+        MenuItem {
+            text:      "Auswahl aufheben\t(Esc)"
+            enabled:   root.auswahl.length > 0
+            onTriggered: { root.auswahl = []; drawCanvas.requestPaint() }
+        }
+    }
+
+    // --------------------------------------------------------
     // Zoom – Mausrad + Touchpad-Scroll
     // --------------------------------------------------------
     WheelHandler {

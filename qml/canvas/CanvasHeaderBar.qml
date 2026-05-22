@@ -24,7 +24,12 @@ Rectangle {
                 font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered && parent.enabled ? AppTheme.activeItem : "transparent"; radius: 4 }
             onClicked: canvas.undo()
-            ToolTip.visible: hovered; ToolTip.text: qsTr("Rückgängig (Ctrl+Z)"); ToolTip.delay: 500
+            ToolTip.visible: hovered; ToolTip.delay: 500
+            ToolTip.text: {
+                var n = canvas.elementeModel.undoAnzahl
+                return n > 0 ? "Rueckgaengig: " + n + (n === 1 ? " Schritt" : " Schritte") + "  (Ctrl+Z)"
+                             : "Rueckgaengig – kein Schritt vorhanden  (Ctrl+Z)"
+            }
         }
         Button {
             flat: true; implicitWidth: 26; implicitHeight: 26; enabled: canvas.elementeModel.redoMoeglich
@@ -32,7 +37,12 @@ Rectangle {
                 font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered && parent.enabled ? AppTheme.activeItem : "transparent"; radius: 4 }
             onClicked: canvas.redo()
-            ToolTip.visible: hovered; ToolTip.text: qsTr("Wiederholen (Ctrl+Y)"); ToolTip.delay: 500
+            ToolTip.visible: hovered; ToolTip.delay: 500
+            ToolTip.text: {
+                var n = canvas.elementeModel.redoAnzahl
+                return n > 0 ? "Wiederholen: " + n + (n === 1 ? " Schritt" : " Schritte") + "  (Ctrl+Y)"
+                             : "Wiederholen – kein Schritt vorhanden  (Ctrl+Y)"
+            }
         }
 
         Rectangle { width: 1; height: 20; color: AppTheme.border }

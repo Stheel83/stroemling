@@ -68,6 +68,7 @@ public:
 
 Q_SIGNALS:
     void projektOffenChanged();
+    void dbFehler(const QString &meldung);
 
 public:
     // Grafikelemente einer Seite laden (gibt QVariantList aus QVariantMaps zurück)

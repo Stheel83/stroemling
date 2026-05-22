@@ -1332,6 +1332,8 @@ bool Database::checkAndApplySchema()
 
         if (!ok) {
             m_db.rollback();
+            emit dbFehler(QString("Migration v%1 fehlgeschlagen. Die Datenbank wurde nicht verändert "
+                                  "(Backup vorhanden).").arg(mig.version));
             return false;
         }
 
@@ -3082,7 +3084,9 @@ QVariantList Database::grafikLaden(int seiteId)
 bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
 {
     if (!m_db.transaction()) {
-        qWarning() << "grafikSpeichern: Transaktion:" << m_db.lastError().text();
+        auto msg = m_db.lastError().text();
+        qWarning() << "grafikSpeichern: Transaktion:" << msg;
+        emit dbFehler("Speichern fehlgeschlagen (Transaktion konnte nicht gestartet werden).\n" + msg);
         return false;
     }
 
@@ -3276,8 +3280,12 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
     }
 
     if (!m_db.commit()) {
-        qWarning() << "grafikSpeichern commit:" << m_db.lastError().text();
-        m_db.rollback(); return false;
+        auto msg = m_db.lastError().text();
+        qWarning() << "grafikSpeichern commit:" << msg;
+        m_db.rollback();
+        emit dbFehler("Speichern fehlgeschlagen (Commit nicht möglich). Änderungen dieser Aktion "
+                      "wurden zurückgerollt.\n" + msg);
+        return false;
     }
     return true;
 }

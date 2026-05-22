@@ -1291,6 +1291,31 @@ ApplicationWindow {
     // Shortcut-Übersicht
     Shortcut { sequence: "F1"; context: Shortcut.ApplicationShortcut; onActivated: shortcutUebersicht.visible = !shortcutUebersicht.visible }
 
+    // ── Datenbank-Fehler-Dialog ───────────────────────────────────
+    Dialog {
+        id:              dbFehlerDialog
+        title:           "Datenbankfehler"
+        modal:           true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Ok
+        property string meldung: ""
+
+        Label {
+            width:     Math.min(500, dbFehlerDialog.availableWidth)
+            text:      dbFehlerDialog.meldung
+            wrapMode:  Text.WordWrap
+            color:     appTheme.textPrimary
+        }
+    }
+
+    Connections {
+        target: db
+        function onDbFehler(meldung) {
+            dbFehlerDialog.meldung = meldung
+            dbFehlerDialog.open()
+        }
+    }
+
     // ── Projekt öffnen/schließen reagieren ───────────────────────
     Connections {
         target: db

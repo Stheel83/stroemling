@@ -21,19 +21,6 @@ Item {
         }
         event.accepted = true
     }
-    Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
-            if (root.aktivesWerkzeug === "symbol" && root.paletteSymbolId !== "") {
-                root.abbruch()
-                root.paletteSymbolId = ""
-                root.aktivesWerkzeug = "zeiger"
-            } else {
-                root.loeschen()
-            }
-            event.accepted = true
-        }
-    }
-
     // --------------------------------------------------------
     // Öffentliche Properties
     // --------------------------------------------------------

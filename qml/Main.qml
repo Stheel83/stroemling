@@ -1235,7 +1235,12 @@ ApplicationWindow {
         onActivated: {
             if (root.aktiveAnsicht !== "seiten") return
             var c = root.aktiverCanvas
-            if (c && c.auswahl.length > 0 && !c.textEditAktiv) c.loeschen()
+            if (!c || c.textEditAktiv) return
+            if (c.aktivesWerkzeug === "symbol" && c.paletteSymbolId !== "") {
+                c.abbruch(); c.paletteSymbolId = ""; c.aktivesWerkzeug = "zeiger"
+            } else if (c.auswahl.length > 0) {
+                c.loeschen()
+            }
         }
     }
     Shortcut {
@@ -1243,7 +1248,12 @@ ApplicationWindow {
         onActivated: {
             if (root.aktiveAnsicht !== "seiten") return
             var c = root.aktiverCanvas
-            if (c && c.auswahl.length > 0 && !c.textEditAktiv) c.loeschen()
+            if (!c || c.textEditAktiv) return
+            if (c.aktivesWerkzeug === "symbol" && c.paletteSymbolId !== "") {
+                c.abbruch(); c.paletteSymbolId = ""; c.aktivesWerkzeug = "zeiger"
+            } else if (c.auswahl.length > 0) {
+                c.loeschen()
+            }
         }
     }
 

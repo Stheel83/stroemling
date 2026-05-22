@@ -898,6 +898,14 @@ Item {
                             Text { anchors.centerIn: parent; text: "───"; font.pixelSize: 10; color: root.theme.textPrimary }
                             MouseArea { id: tbHrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("\n\n---\n\n") }
                         }
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbBrMouse.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbBrMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zeilenumbruch (innerhalb Absatz)"
+                            Text { anchors.centerIn: parent; text: "↵"; font.pixelSize: 13; color: root.theme.textPrimary }
+                            MouseArea { id: tbBrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("  \n") }
+                        }
 
                         // Separator
                         Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }

@@ -86,6 +86,42 @@ Item {
         _editModus  = true
     }
 
+    // ── Toolbar-Hilfsfunktionen ───────────────────────────────
+    function _fmtWrap(vor, nach) {
+        var sel = inhaltEdit.selectedText
+        if (sel.length > 0) {
+            var start = inhaltEdit.selectionStart
+            var end   = inhaltEdit.selectionEnd
+            inhaltEdit.remove(start, end)
+            inhaltEdit.insert(start, vor + sel + nach)
+            inhaltEdit.select(start + vor.length, start + vor.length + sel.length)
+        } else {
+            var pos = inhaltEdit.cursorPosition
+            inhaltEdit.insert(pos, vor + nach)
+            inhaltEdit.cursorPosition = pos + vor.length
+        }
+        inhaltEdit.forceActiveFocus()
+    }
+
+    function _fmtZeile(praefix) {
+        var pos   = inhaltEdit.cursorPosition
+        var txt   = inhaltEdit.text
+        var start = pos
+        while (start > 0 && txt[start - 1] !== '\n') start--
+        if (txt.substring(start, start + praefix.length) === praefix)
+            inhaltEdit.remove(start, start + praefix.length)
+        else {
+            inhaltEdit.insert(start, praefix)
+            inhaltEdit.cursorPosition = pos + praefix.length
+        }
+        inhaltEdit.forceActiveFocus()
+    }
+
+    function _fmtEinfuegen(text) {
+        inhaltEdit.insert(inhaltEdit.cursorPosition, text)
+        inhaltEdit.forceActiveFocus()
+    }
+
     function _speichern() {
         if (_aktArtId < 0) return
         db.wikiArtikelSpeichern(_aktArtId, _editTitel.trim(), _editInhalt, _editTags.trim())
@@ -731,8 +767,142 @@ Item {
                     }
                 }
 
+                // ── Formatierungs-Toolbar (Edit-Modus) ───────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height:           visible ? 36 : 0
+                    visible:          root._editModus
+                    color:            root.theme.surfaceDeep
+
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        width: parent.width; height: 1; color: root.theme.border
+                    }
+
+                    Row {
+                        anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                        spacing: 3
+
+                        // ── Inline-Formatierung ───────────────
+                        Rectangle {
+                            width: 26; height: 24; radius: 3
+                            color: tbBHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbBHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Fett (Ctrl+B)"
+                            Text { anchors.centerIn: parent; text: "B"; font.bold: true; font.pixelSize: 12; color: root.theme.textPrimary }
+                            HoverHandler { id: tbBHover }
+                            TapHandler   { onTapped: root._fmtWrap("**", "**") }
+                        }
+                        Rectangle {
+                            width: 26; height: 24; radius: 3
+                            color: tbIHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbIHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Kursiv (Ctrl+I)"
+                            Text { anchors.centerIn: parent; text: "I"; font.italic: true; font.pixelSize: 12; color: root.theme.textPrimary }
+                            HoverHandler { id: tbIHover }
+                            TapHandler   { onTapped: root._fmtWrap("*", "*") }
+                        }
+                        Rectangle {
+                            width: 26; height: 24; radius: 3
+                            color: tbSHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbSHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Durchgestrichen"
+                            Text { anchors.centerIn: parent; text: "S"; font.strikeout: true; font.pixelSize: 12; color: root.theme.textPrimary }
+                            HoverHandler { id: tbSHover }
+                            TapHandler   { onTapped: root._fmtWrap("~~", "~~") }
+                        }
+                        Rectangle {
+                            width: 26; height: 24; radius: 3
+                            color: tbCodeHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbCodeHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Code (inline)"
+                            Text { anchors.centerIn: parent; text: "`"; font.family: "monospace"; font.pixelSize: 13; color: root.theme.textPrimary }
+                            HoverHandler { id: tbCodeHover }
+                            TapHandler   { onTapped: root._fmtWrap("`", "`") }
+                        }
+
+                        // Separator
+                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
+
+                        // ── Überschriften ─────────────────────
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbH1Hover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbH1Hover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 1"
+                            Text { anchors.centerIn: parent; text: "H1"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
+                            HoverHandler { id: tbH1Hover }
+                            TapHandler   { onTapped: root._fmtZeile("# ") }
+                        }
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbH2Hover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbH2Hover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 2"
+                            Text { anchors.centerIn: parent; text: "H2"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
+                            HoverHandler { id: tbH2Hover }
+                            TapHandler   { onTapped: root._fmtZeile("## ") }
+                        }
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbH3Hover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbH3Hover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 3"
+                            Text { anchors.centerIn: parent; text: "H3"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
+                            HoverHandler { id: tbH3Hover }
+                            TapHandler   { onTapped: root._fmtZeile("### ") }
+                        }
+
+                        // Separator
+                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
+
+                        // ── Listen & Struktur ─────────────────
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbUlHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbUlHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Aufzählungsliste"
+                            Text { anchors.centerIn: parent; text: "• —"; font.pixelSize: 10; color: root.theme.textPrimary }
+                            HoverHandler { id: tbUlHover }
+                            TapHandler   { onTapped: root._fmtZeile("- ") }
+                        }
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbOlHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbOlHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Nummerierte Liste"
+                            Text { anchors.centerIn: parent; text: "1."; font.pixelSize: 10; color: root.theme.textPrimary }
+                            HoverHandler { id: tbOlHover }
+                            TapHandler   { onTapped: root._fmtZeile("1. ") }
+                        }
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbQHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbQHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zitat"
+                            Text { anchors.centerIn: parent; text: "❝"; font.pixelSize: 12; color: root.theme.textPrimary }
+                            HoverHandler { id: tbQHover }
+                            TapHandler   { onTapped: root._fmtZeile("> ") }
+                        }
+
+                        // Separator
+                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
+
+                        // ── Trennlinie ────────────────────────
+                        Rectangle {
+                            width: 36; height: 24; radius: 3
+                            color: tbHrHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbHrHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Trennlinie"
+                            Text { anchors.centerIn: parent; text: "───"; font.pixelSize: 10; color: root.theme.textPrimary }
+                            HoverHandler { id: tbHrHover }
+                            TapHandler   { onTapped: root._fmtEinfuegen("\n\n---\n\n") }
+                        }
+                    }
+                }
+
                 // ── Textbereich ───────────────────────────────
-                // Leseansicht (Markdown)
+                // Leseansicht (Markdown gerendert)
                 ScrollView {
                     Layout.fillWidth:  true
                     Layout.fillHeight: true
@@ -758,7 +928,7 @@ Item {
                     }
                 }
 
-                // Bearbeitungsansicht (Plaintext)
+                // Bearbeitungsansicht
                 ScrollView {
                     Layout.fillWidth:  true
                     Layout.fillHeight: true
@@ -766,16 +936,15 @@ Item {
                     clip:              true
 
                     TextArea {
-                        id:           inhaltEdit
-                        leftPadding:  24
-                        rightPadding: 24
-                        topPadding:   20
-                        wrapMode:     TextArea.Wrap
+                        id:             inhaltEdit
+                        leftPadding:    24
+                        rightPadding:   24
+                        topPadding:     16
+                        wrapMode:       TextArea.Wrap
                         font.pixelSize: 13
-                        font.family:  "monospace"
-                        color:        root.theme.textPrimary
-                        background:   null
-                        placeholderText: qsTr("Markdown schreiben … (# Überschrift, **fett**, - Liste)")
+                        color:          root.theme.textPrimary
+                        background:     null
+                        placeholderText: qsTr("Text eingeben – Toolbar nutzen oder Markdown schreiben")
 
                         text: root._editInhalt
 
@@ -786,9 +955,10 @@ Item {
                         onTextChanged: root._editInhalt = text
 
                         Keys.onPressed: function(e) {
-                            if ((e.modifiers & Qt.ControlModifier) && e.key === Qt.Key_S) {
-                                root._speichern()
-                                e.accepted = true
+                            if (e.modifiers & Qt.ControlModifier) {
+                                if      (e.key === Qt.Key_S) { root._speichern();               e.accepted = true }
+                                else if (e.key === Qt.Key_B) { root._fmtWrap("**", "**");       e.accepted = true }
+                                else if (e.key === Qt.Key_I) { root._fmtWrap("*", "*");         e.accepted = true }
                             }
                         }
                     }

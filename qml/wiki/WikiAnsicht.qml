@@ -122,6 +122,18 @@ Item {
         inhaltEdit.forceActiveFocus()
     }
 
+    function _fmtLink() {
+        var sel   = inhaltEdit.selectedText
+        var ltext = sel.length > 0 ? sel : "Linktext"
+        var start = sel.length > 0 ? inhaltEdit.selectionStart : inhaltEdit.cursorPosition
+        if (sel.length > 0)
+            inhaltEdit.remove(inhaltEdit.selectionStart, inhaltEdit.selectionEnd)
+        inhaltEdit.insert(start, "[" + ltext + "](https://)")
+        // Cursor direkt hinter "https://" positionieren
+        inhaltEdit.cursorPosition = start + ltext.length + 11
+        inhaltEdit.forceActiveFocus()
+    }
+
     // Ersetzt wiki://bild/ID durch den aktuellen Temp-Pfad des jeweiligen Bildes
     function _preprocessMarkdown(md) {
         var result = md
@@ -827,6 +839,14 @@ Item {
                             Text { anchors.centerIn: parent; text: "`"; font.family: "monospace"; font.pixelSize: 13; color: root.theme.textPrimary }
                             MouseArea { id: tbCodeMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("`", "`") }
                         }
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbLinkMouse.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbLinkMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Link einfügen"
+                            Text { anchors.centerIn: parent; text: "🔗"; font.pixelSize: 11 }
+                            MouseArea { id: tbLinkMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtLink() }
+                        }
 
                         // Separator
                         Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
@@ -904,7 +924,7 @@ Item {
                             border.color: root.theme.border
                             ToolTip.visible: tbBrMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zeilenumbruch (innerhalb Absatz)"
                             Text { anchors.centerIn: parent; text: "↵"; font.pixelSize: 13; color: root.theme.textPrimary }
-                            MouseArea { id: tbBrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("  \n") }
+                            MouseArea { id: tbBrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("\\\n") }
                         }
 
                         // Separator
@@ -943,6 +963,7 @@ Item {
                         color:          root.theme.textPrimary
                         background:     null
                         selectByMouse:  true
+                        onLinkActivated: function(link) { Qt.openUrlExternally(link) }
                         text:           (root._aktArtikel.inhalt || "") !== ""
                                         ? root._preprocessMarkdown(root._aktArtikel.inhalt)
                                         : qsTr("*(Noch kein Inhalt – auf Bearbeiten klicken)*")

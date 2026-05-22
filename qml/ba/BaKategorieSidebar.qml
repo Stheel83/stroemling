@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import stroemling
 
 Rectangle {
@@ -164,6 +165,250 @@ Rectangle {
         }
     }
 
+    // ── CSV-Import FileDialog ────────────────────────────────
+    FileDialog {
+        id:          csvFileDialog
+        title:       qsTr("CSV-Datei auswählen")
+        nameFilters: [qsTr("CSV-Dateien (*.csv *.txt)"), qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            dlgCsvMapping._pfad = selectedFile.toString().replace("file://", "")
+            dlgCsvMapping.open()
+        }
+    }
+
+    // ── CSV-Mapping-Dialog ───────────────────────────────────
+    Dialog {
+        id:    dlgCsvMapping
+        title: qsTr("CSV-Datei importieren")
+        modal: true; parent: Overlay.overlay; anchors.centerIn: parent
+        width: 540; padding: 0
+        closePolicy: Popup.CloseOnEscape
+
+        property string _pfad:      ""
+        property var    _spalten:   []
+        property var    _kategorien: []
+        property int    _importiert: -1
+
+        onOpened: {
+            _spalten    = db.csvKopfzeile(_pfad)
+            _kategorien = db.bauteilAlleKategorienFlach()
+            _importiert = -1
+        }
+
+        background: Rectangle {
+            color: theme.sidebar; radius: 6
+            border.color: theme.border; border.width: 1
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 0
+
+            // ── Kopf ──────────────────────────────────────────
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.margins: 20
+                Layout.bottomMargin: 12
+                spacing: 6
+                Text {
+                    text:           dlgCsvMapping.title
+                    font.pixelSize: 15; font.weight: Font.Medium
+                    color:          theme.textPrimary
+                }
+                Text {
+                    visible:        dlgCsvMapping._spalten.length > 0
+                    text:           qsTr("%1 Spalten erkannt: %2")
+                                        .arg(dlgCsvMapping._spalten.length)
+                                        .arg(dlgCsvMapping._spalten.join(", "))
+                    font.pixelSize: 10; color: theme.textMuted
+                    wrapMode:       Text.Wrap
+                    Layout.fillWidth: true
+                }
+                Text {
+                    visible:        dlgCsvMapping._spalten.length === 0
+                    text:           qsTr("Keine Spalten erkannt – Datei prüfen")
+                    font.pixelSize: 10; color: "#e74c3c"
+                }
+                // Erfolgsmeldung nach Import
+                Text {
+                    visible:        dlgCsvMapping._importiert >= 0
+                    text:           qsTr("%1 Bauteile importiert").arg(dlgCsvMapping._importiert)
+                    font.pixelSize: 11; color: "#27ae60"; font.weight: Font.Medium
+                }
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+
+            // ── Zielkategorie ──────────────────────────────────
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.margins: 20; Layout.topMargin: 12; Layout.bottomMargin: 8
+                spacing: 10
+                Text {
+                    text:           qsTr("Zielkategorie:")
+                    font.pixelSize: 12; color: theme.textMuted
+                    width:          130
+                }
+                ComboBox {
+                    id:               cmbZielkat
+                    Layout.fillWidth: true
+                    model:            dlgCsvMapping._kategorien
+                    textRole:         "name"
+                    font.pixelSize:   12
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                    contentItem: Text {
+                        leftPadding: 8
+                        text:        cmbZielkat.displayText
+                        font:        cmbZielkat.font
+                        color:       theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    delegate: ItemDelegate {
+                        width: cmbZielkat.width
+                        contentItem: Text {
+                            text:  modelData.name
+                            font:  cmbZielkat.font
+                            color: theme.textPrimary
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        highlighted: cmbZielkat.highlightedIndex === index
+                        background: Rectangle { color: highlighted ? theme.hover : theme.inputBg }
+                    }
+                    popup: Popup {
+                        y: cmbZielkat.height; width: cmbZielkat.width
+                        padding: 1
+                        contentItem: ListView {
+                            clip: true
+                            implicitHeight: Math.min(contentHeight, 200)
+                            model: cmbZielkat.delegateModel
+                            ScrollIndicator.vertical: ScrollIndicator {}
+                        }
+                        background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                    }
+                }
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.divider }
+
+            // ── Spalten-Zuordnung ──────────────────────────────
+            Text {
+                text:            qsTr("Spalten zuordnen:")
+                font.pixelSize:  11; font.weight: Font.Medium
+                color:           theme.textMuted
+                Layout.margins:  20; Layout.bottomMargin: 6
+            }
+
+            Repeater {
+                id: feldRepeater
+                model: [
+                    { dbFeld: "bezeichnung",   label: qsTr("Bezeichnung *") },
+                    { dbFeld: "hersteller",    label: qsTr("Hersteller") },
+                    { dbFeld: "artikelnummer", label: qsTr("Artikelnummer") },
+                    { dbFeld: "lieferant",     label: qsTr("Lieferant") },
+                    { dbFeld: "bestellnummer", label: qsTr("Bestellnummer") },
+                    { dbFeld: "preis_eur",     label: qsTr("Preis (EUR)") },
+                    { dbFeld: "spannung_v",    label: qsTr("Spannung (V)") },
+                    { dbFeld: "strom_a",       label: qsTr("Strom (A)") },
+                    { dbFeld: "leistung_w",    label: qsTr("Leistung (W)") },
+                    { dbFeld: "bemerkung",     label: qsTr("Bemerkung") },
+                ]
+
+                delegate: RowLayout {
+                    property string dbFeld:    modelData.dbFeld
+                    property int    csvColIdx: cmbFeld.currentIndex - 1
+
+                    Layout.fillWidth:   true
+                    Layout.leftMargin:  20
+                    Layout.rightMargin: 20
+                    Layout.bottomMargin: 3
+                    spacing: 10
+
+                    Text {
+                        text:           modelData.label
+                        font.pixelSize: 12
+                        color:          modelData.dbFeld === "bezeichnung"
+                                        ? theme.textPrimary : theme.textMuted
+                        width:          130
+                    }
+                    ComboBox {
+                        id:               cmbFeld
+                        Layout.fillWidth: true
+                        implicitHeight:   28
+                        font.pixelSize:   11
+                        model:            [qsTr("(nicht importieren)")].concat(dlgCsvMapping._spalten)
+                        background: Rectangle {
+                            color:        theme.inputBg
+                            border.color: theme.border; radius: 4
+                        }
+                        contentItem: Text {
+                            leftPadding: 8
+                            text:        cmbFeld.displayText
+                            font:        cmbFeld.font
+                            color:       cmbFeld.currentIndex === 0 ? theme.textMuted : theme.textPrimary
+                            verticalAlignment: Text.AlignVCenter
+                            elide:       Text.ElideRight
+                        }
+                    }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 12 }
+
+            // ── Buttons ────────────────────────────────────────
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.margins: 16; Layout.topMargin: 12
+                spacing: 8
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: qsTr("Schließen"); flat: true; implicitHeight: 34
+                    contentItem: Text {
+                        text: parent.text; color: theme.panelMid; font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment:   Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4
+                    }
+                    onClicked: dlgCsvMapping.close()
+                }
+
+                Button {
+                    id:              btnImport
+                    text:            qsTr("Importieren")
+                    implicitWidth:   110; implicitHeight: 34
+                    enabled:         dlgCsvMapping._spalten.length > 0 && feldRepeater.count > 0 &&
+                                     feldRepeater.itemAt(0) !== null &&
+                                     feldRepeater.itemAt(0).csvColIdx >= 0
+                    contentItem: Text {
+                        text: parent.text; color: theme.textPrimary; font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment:   Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color:  parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4
+                    }
+                    onClicked: {
+                        var mapping = {}
+                        for (var i = 0; i < feldRepeater.count; i++) {
+                            var item = feldRepeater.itemAt(i)
+                            if (item && item.csvColIdx >= 0)
+                                mapping[item.dbFeld] = item.csvColIdx
+                        }
+                        var katId = (dlgCsvMapping._kategorien.length > 0 && cmbZielkat.currentIndex >= 0)
+                            ? dlgCsvMapping._kategorien[cmbZielkat.currentIndex].id
+                            : -1
+                        var n = db.csvBauteileImportieren(dlgCsvMapping._pfad, katId, mapping)
+                        dlgCsvMapping._importiert = n
+                        if (n >= 0) {
+                            bauteilModel.laden(-1)
+                            kategorieModel.laden()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // ── Kategoriebaum ────────────────────────────────────────
     ColumnLayout {
         anchors.fill: parent; spacing: 0
@@ -188,6 +433,14 @@ Rectangle {
                 Text { text: "📦"; font.pixelSize: 12 }
                 Text { text: qsTr("Bauteile"); font.pixelSize: 13; Layout.fillWidth: true
                        color: parent.parent.sel ? theme.textPrimary : theme.textSecondary }
+                Button {
+                    visible: baulibH.hovered; width: 22; height: 22; flat: true
+                    contentItem: Text { text: "⇩"; color: theme.textMuted; font.pixelSize: 13;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
+                    ToolTip.visible: hovered; ToolTip.delay: 700; ToolTip.text: qsTr("CSV importieren")
+                    onClicked: csvFileDialog.open()
+                }
                 Button {
                     visible: baulibH.hovered; width: 22; height: 22; flat: true
                     contentItem: Text { text: "+"; color: theme.accent; font.pixelSize: 14;

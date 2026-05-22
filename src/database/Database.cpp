@@ -9118,3 +9118,144 @@ QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
                                                .arg(wikiOk ? ", Wiki importiert (merge)" : "")}
     };
 }
+
+// ============================================================
+// CSV-Import Bauteilkatalog (M7)
+// ============================================================
+
+static QList<QStringList> parseCsvRows(const QString &pfad, QChar &trenn)
+{
+    QFile f(pfad);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return {};
+    QTextStream in(&f);
+    in.setEncoding(QStringConverter::Utf8);
+    QString content = in.readAll();
+    f.close();
+
+    QStringList lines = content.split('\n');
+    if (lines.isEmpty()) return {};
+
+    // Trennzeichen aus erster Zeile ermitteln
+    QString first = lines.first();
+    trenn = (first.count(';') >= first.count(',')) ? ';' : ',';
+
+    QList<QStringList> result;
+    for (const QString &rawLine : lines) {
+        QString line = rawLine.trimmed();
+        if (line.isEmpty()) continue;
+
+        QStringList row;
+        bool inQuotes = false;
+        QString field;
+        for (int i = 0; i < line.length(); i++) {
+            QChar c = line[i];
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line[i + 1] == '"') {
+                    field += '"'; ++i;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == trenn && !inQuotes) {
+                row.append(field.trimmed());
+                field.clear();
+            } else {
+                field += c;
+            }
+        }
+        row.append(field.trimmed());
+        result.append(row);
+    }
+    return result;
+}
+
+QStringList Database::csvKopfzeile(const QString &pfad)
+{
+    QChar trenn;
+    auto rows = parseCsvRows(pfad, trenn);
+    return rows.isEmpty() ? QStringList() : rows.first();
+}
+
+QVariantList Database::csvVorschau(const QString &pfad, int maxZeilen)
+{
+    QChar trenn;
+    auto rows = parseCsvRows(pfad, trenn);
+    QVariantList result;
+    for (int i = 1; i < rows.size() && result.size() < maxZeilen; i++) {
+        QVariantList row;
+        for (const QString &s : rows[i]) row.append(s);
+        result.append(QVariant(row));
+    }
+    return result;
+}
+
+int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
+                                      const QVariantMap &mapping)
+{
+    QChar trenn;
+    auto rows = parseCsvRows(pfad, trenn);
+    if (rows.size() < 2) return 0;
+
+    static const QStringList numericFelder = {
+        "preis_eur", "spannung_v", "strom_a", "leistung_w"
+    };
+    static const QStringList erlaubteFelder = {
+        "bezeichnung", "hersteller", "artikelnummer", "artikelnummer_2",
+        "lieferant", "bestellnummer", "preis_eur", "spannung_v",
+        "strom_a", "leistung_w", "schutzart", "norm", "bmk_vorlage", "bemerkung"
+    };
+
+    QStringList dbFelder;
+    QStringList bindVars;
+    QList<int>  colIndizes;
+    for (auto it = mapping.begin(); it != mapping.end(); ++it) {
+        const QString &feld = it.key();
+        int colIdx = it.value().toInt();
+        if (colIdx < 0 || !erlaubteFelder.contains(feld)) continue;
+        dbFelder   << feld;
+        bindVars   << (":" + feld);
+        colIndizes << colIdx;
+    }
+    if (!dbFelder.contains("bezeichnung")) return -1;
+
+    QString sql = QString("INSERT INTO bauteil (kategorie_id, %1) VALUES (:katId, %2)")
+                      .arg(dbFelder.join(", "), bindVars.join(", "));
+
+    QSqlDatabase::database().transaction();
+    QSqlQuery q;
+    int count = 0;
+    for (int row = 1; row < rows.size(); row++) {
+        const QStringList &cols = rows[row];
+        q.prepare(sql);
+        q.bindValue(":katId", kategorieId > 0 ? QVariant(kategorieId) : QVariant());
+        for (int f = 0; f < dbFelder.size(); f++) {
+            int     ci  = colIndizes[f];
+            QString val = (ci < cols.size()) ? cols[ci] : QString();
+            if (numericFelder.contains(dbFelder[f])) {
+                bool ok;
+                double d = QString(val).replace(',', '.').toDouble(&ok);
+                q.bindValue(":" + dbFelder[f], (ok && !val.isEmpty()) ? QVariant(d) : QVariant());
+            } else {
+                q.bindValue(":" + dbFelder[f], val.isEmpty() ? QVariant() : QVariant(val));
+            }
+        }
+        if (q.exec()) ++count;
+        else qWarning() << "csvBauteileImportieren Zeile" << row << ":" << q.lastError().text();
+    }
+    QSqlDatabase::database().commit();
+    return count;
+}
+
+QVariantList Database::bauteilAlleKategorienFlach()
+{
+    QVariantList result;
+    QSqlQuery q;
+    q.exec("SELECT id, name FROM bauteil_kategorie ORDER BY sortierung, name");
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]   = q.value(0).toInt();
+        m["name"] = q.value(1).toString();
+        result.append(m);
+    }
+    return result;
+}

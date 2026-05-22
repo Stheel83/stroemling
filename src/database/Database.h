@@ -510,6 +510,13 @@ public:
     // Importiert ein Komplettarchiv: Wiki (merge) + Projekte in zuletzt_geoeffnet.
     Q_INVOKABLE QVariantMap komplettarchivImportieren(const QString &quellOrdner);
 
+    // ── CSV-Import Bauteilkatalog (M7) ──────────────────────────
+    Q_INVOKABLE QStringList  csvKopfzeile(const QString &pfad);
+    Q_INVOKABLE QVariantList csvVorschau(const QString &pfad, int maxZeilen = 3);
+    Q_INVOKABLE int          csvBauteileImportieren(const QString &pfad, int kategorieId,
+                                                    const QVariantMap &mapping);
+    Q_INVOKABLE QVariantList bauteilAlleKategorienFlach();
+
 private:
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();

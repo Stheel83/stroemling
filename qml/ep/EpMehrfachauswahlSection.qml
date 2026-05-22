@@ -9,8 +9,10 @@ Item {
     required property var theme
 
     readonly property bool hatSymbole: {
-        for (var i = 0; i < panel.canvas.auswahl.length; i++) {
-            var idx = panel.canvas.auswahl[i]
+        var _dep = panel._refresh * 0
+        var sel = canvas.auswahl
+        for (var i = 0; i < sel.length + _dep; i++) {
+            var idx = sel[i]
             if (idx >= 0 && idx < canvas.elementeModel.anzahl
                     && canvas.elementeModel.element(idx).typ === "symbol") return true
         }
@@ -18,7 +20,7 @@ Item {
     }
 
     width:   parent ? parent.width : 0
-    height:  (panel.canvas.auswahl.length > 1 && hatSymbole) ? multiCol.implicitHeight : 0
+    height:  (panel._refresh * 0 + canvas.auswahl.length > 1 && hatSymbole) ? multiCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 

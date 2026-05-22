@@ -35,6 +35,10 @@ Rectangle {
         target: canvas ? canvas.elementeModel : null
         function onGeaendert() { panel._refresh++ }
     }
+    Connections {
+        target: canvas
+        function onAuswahlChanged() { panel._refresh++ }
+    }
 
     // Shortcut – aktuell ausgewähltes Element-Objekt (null wenn keins).
     // _refresh * 0 in den idx-Ausdruck damit der AOT-Compiler die Abhängigkeit nicht wegoptimiert.

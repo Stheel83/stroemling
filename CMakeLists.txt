@@ -107,6 +107,7 @@ qt_add_qml_module(stroemling_app
         qml/canvas/CanvasHeaderBar.qml
         qml/canvas/CanvasFooterBar.qml
         qml/canvas/CanvasWerkzeugLeiste.qml
+        qml/canvas/CanvasInteraktionArea.qml
 
         qml/symboleditor/SeSymbolListe.qml
         qml/symboleditor/SeEditorHeader.qml

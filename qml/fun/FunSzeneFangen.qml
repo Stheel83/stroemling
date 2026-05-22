@@ -29,20 +29,19 @@ Item {
             _vel.push({ dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed })
         }
 
-        fangenTimer.restart()
+        fangenAnim.running = true
     }
 
     function stoppen() {
-        fangenTimer.stop()
+        fangenAnim.running = false
     }
 
-    Timer {
-        id:       fangenTimer
-        interval: 16
-        repeat:   true
+    FrameAnimation {
+        id:      fangenAnim
+        running: false
         onTriggered: {
             if (sprites.count < 2) return
-            var dt = 0.016
+            var dt = Math.min(frameTime, 0.05)
             if (root._cooldown > 0) root._cooldown--
 
             // Fänger: Ziel = nächster Flüchtling

@@ -1216,6 +1216,14 @@ ApplicationWindow {
         onDeaktiviert:   idleTimer.restart()
     }
 
+    // ── Shortcut-Übersicht ────────────────────────────────────────
+    ShortcutUebersicht {
+        id:           shortcutUebersicht
+        anchors.fill: parent
+        z:            700
+        theme:        appTheme
+    }
+
     // ── Globale Canvas-Shortcuts ──────────────────────────────────
     // Eine einzige Instanz pro Taste – leitet über root.aktiverCanvas weiter.
     // Verhindert Ambiguität wenn panel1 + panel2 im Split-Modus beide sichtbar sind.
@@ -1279,6 +1287,9 @@ ApplicationWindow {
     // Zoom
     Shortcut { sequence: "Ctrl+Shift+H"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.zoomAllesEinpassen() } }
     Shortcut { sequence: "Ctrl+Shift+N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0&&c.normblattDaten!==null) c.zoomNormblattEinpassen() } }
+
+    // Shortcut-Übersicht
+    Shortcut { sequence: "F1"; context: Shortcut.ApplicationShortcut; onActivated: shortcutUebersicht.visible = !shortcutUebersicht.visible }
 
     // ── Projekt öffnen/schließen reagieren ───────────────────────
     Connections {

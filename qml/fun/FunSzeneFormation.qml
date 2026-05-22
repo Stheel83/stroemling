@@ -34,11 +34,10 @@ Item {
         }
     }
 
-    // ── Bewegungs-Timer (Lerp zu Zielen) ─────────────────────────
-    Timer {
-        id:       formTimer
-        interval: 16
-        repeat:   true
+    // ── Bewegungs-Animation (Lerp zu Zielen) ─────────────────────
+    FrameAnimation {
+        id:      formAnim
+        running: false
         onTriggered: {
             var n       = sprites.count
             var arrived = true
@@ -57,7 +56,7 @@ Item {
                 }
             }
             if (arrived) {
-                formTimer.stop()
+                formAnim.running = false
                 pauseTimer.restart()
             }
         }
@@ -73,7 +72,7 @@ Item {
             root._ziele     = root._berechnZiele(root._formation)
             formTitel.text  = root._formNamen[root._formation]
             titelAnim.restart()
-            formTimer.restart()
+            formAnim.running = true
         }
     }
 
@@ -83,11 +82,11 @@ Item {
         _ziele     = _berechnZiele(0)
         formTitel.text = _formNamen[0]
         titelAnim.restart()
-        formTimer.restart()
+        formAnim.running = true
     }
 
     function stoppen() {
-        formTimer.stop()
+        formAnim.running = false
         pauseTimer.stop()
         titelAnim.stop()
         formTitel.opacity = 0

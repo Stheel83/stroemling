@@ -61,13 +61,12 @@ Item {
         }
     }
 
-    // ── Logik-Timer ───────────────────────────────────────────────
-    Timer {
-        id:       seilTimer
-        interval: 16
-        repeat:   true
+    // ── Logik-Animation ───────────────────────────────────────────
+    FrameAnimation {
+        id:      seilAnim
+        running: false
         onTriggered: {
-            root._phase += 2.8 * 0.016   // Seilgeschwindigkeit rad/s
+            root._phase += 2.8 * Math.min(frameTime, 0.05)   // Seilgeschwindigkeit rad/s
 
             seilCanvas.requestPaint()
 
@@ -119,11 +118,11 @@ Item {
         }
 
         seilCanvas.visible = true
-        seilTimer.restart()
+        seilAnim.running = true
     }
 
     function stoppen() {
-        seilTimer.stop()
+        seilAnim.running = false
         seilCanvas.visible = false
     }
 }

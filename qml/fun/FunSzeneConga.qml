@@ -32,19 +32,18 @@ Item {
         for (var i = 0; i < needed; i++)
             _history.push({ x: _hx, y: _hy })
 
-        congaTimer.restart()
+        congaAnim.running = true
     }
 
     function stoppen() {
-        congaTimer.stop()
+        congaAnim.running = false
     }
 
-    Timer {
-        id:       congaTimer
-        interval: 16
-        repeat:   true
+    FrameAnimation {
+        id:      congaAnim
+        running: false
         onTriggered: {
-            var dt = 0.016
+            var dt = Math.min(frameTime, 0.05)
 
             root._hx += root._dx * dt
             root._hy += root._dy * dt

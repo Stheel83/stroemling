@@ -47,6 +47,7 @@ qt_add_qml_module(stroemling_app
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
         qml/PokestroemPlaceholder.qml
+        qml/ShortcutUebersicht.qml
         qml/EigenschaftenPanel.qml
         qml/SymbolPalette.qml
         qml/ListenAnsicht.qml
@@ -185,6 +186,7 @@ qt_add_translations(stroemling_app
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
         qml/PokestroemPlaceholder.qml
+        qml/ShortcutUebersicht.qml
         qml/EigenschaftenPanel.qml
         qml/SymbolPalette.qml
         qml/ListenAnsicht.qml

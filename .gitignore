@@ -6,3 +6,7 @@ build/
 *.o
 stroemling-app
 Programmversionen/
+*.kate-swp
+*.swp
+*.swo
+.qtcreator/

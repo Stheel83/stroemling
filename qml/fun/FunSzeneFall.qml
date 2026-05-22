@@ -13,13 +13,12 @@ Item {
     property var _settled:  []      // true wenn Sprite auf dem Boden/aufgestapelt
     property int _phase:    0       // 0=fallen 1=pause 2=abgesprungen
 
-    // ── Fallen-Timer ──────────────────────────────────────────────
-    Timer {
-        id:       fallTimer
-        interval: 16
-        repeat:   true
+    // ── Fallen-Animation ──────────────────────────────────────────
+    FrameAnimation {
+        id:      fallAnim
+        running: false
         onTriggered: {
-            var dt      = 0.016
+            var dt      = Math.min(frameTime, 0.05)
             var gravity = 520.0
             var n       = sprites.count
             var allDown = true
@@ -52,7 +51,7 @@ Item {
 
             if (allDown && root._phase === 0) {
                 root._phase = 1
-                fallTimer.stop()
+                fallAnim.running = false
                 pauseTimer.start()
             }
         }
@@ -70,7 +69,7 @@ Item {
                 root._settled[i] = false
             }
             root._phase = 0
-            fallTimer.restart()
+            fallAnim.running = true
         }
     }
 
@@ -95,11 +94,11 @@ Item {
             _settled.push(false)
         }
 
-        fallTimer.restart()
+        fallAnim.running = true
     }
 
     function stoppen() {
-        fallTimer.stop()
+        fallAnim.running = false
         pauseTimer.stop()
     }
 }

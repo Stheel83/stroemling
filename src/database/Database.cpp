@@ -708,6 +708,10 @@ static QList<SchemaMigration> alleMigrationen()
 ('sensor_druck',      'Drucksensor',                   'sensoren','IEC,ANSI',3),
 ('sensor_temp',       'Temperatursensor (PT100)',       'sensoren','IEC,ANSI',2))SQL",
         }},
+        { 47, "D-01: Indices auf häufig gefilterte Spalten", {
+            "CREATE INDEX IF NOT EXISTS idx_grafik_element_seite ON grafik_element(seite_id)",
+            "CREATE INDEX IF NOT EXISTS idx_verbindung_segment_seite ON verbindung_segment(seite_id)",
+        }},
     };
 }
 

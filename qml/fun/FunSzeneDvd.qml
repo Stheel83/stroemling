@@ -18,19 +18,18 @@ Item {
             var angle = Math.random() * 2 * Math.PI
             _vel.push({ dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed })
         }
-        dvdTimer.restart()
+        dvdAnim.running = true
     }
 
     function stoppen() {
-        dvdTimer.stop()
+        dvdAnim.running = false
     }
 
-    Timer {
-        id:       dvdTimer
-        interval: 16
-        repeat:   true
+    FrameAnimation {
+        id:      dvdAnim
+        running: false
         onTriggered: {
-            var dt = 0.016
+            var dt = Math.min(frameTime, 0.05)
             var n  = Math.min(sprites.count, root._vel.length)
             for (var i = 0; i < n; i++) {
                 var sx = sprites.get(i).sx

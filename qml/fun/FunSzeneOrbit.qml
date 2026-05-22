@@ -36,21 +36,20 @@ Item {
                 speed: dir * (0.4 + Math.random() * 0.5)
             })
         }
-        orbitTimer.restart()
+        orbitAnim.running = true
     }
 
     function stoppen() {
-        orbitTimer.stop()
+        orbitAnim.running = false
     }
 
-    Timer {
-        id:       orbitTimer
-        interval: 16
-        repeat:   true
+    FrameAnimation {
+        id:      orbitAnim
+        running: false
         onTriggered: {
             var cx = canvasW / 2
             var cy = canvasH / 2
-            var dt = 0.016
+            var dt = Math.min(frameTime, 0.05)
 
             for (var i = 1; i < sprites.count && i - 1 < root._orbits.length; i++) {
                 var o  = root._orbits[i - 1]

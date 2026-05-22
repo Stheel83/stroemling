@@ -3,7 +3,7 @@ project(stroemling VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Quick Sql LinguistTools PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Sql LinguistTools PrintSupport Test)
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(stroemling_app
@@ -176,6 +176,39 @@ target_link_libraries(stroemling_app PRIVATE
     Qt6::PrintSupport
 )
 
+# ============================================================
+# Tests
+# ============================================================
+enable_testing()
+
+qt_add_executable(stroemling_test
+    tests/tst_migrationen.cpp
+    src/database/Database.cpp
+    src/database/Database.h
+)
+
+qt_add_resources(stroemling_test "database_seeds_test"
+    PREFIX "/database"
+    BASE "src/database"
+    FILES
+        src/database/symbole.sql
+)
+
+target_include_directories(stroemling_test PRIVATE src)
+
+target_link_libraries(stroemling_test PRIVATE
+    Qt6::Test
+    Qt6::Core
+    Qt6::Sql
+    Qt6::PrintSupport
+)
+
+add_test(NAME TstMigrationen COMMAND stroemling_test)
+set_tests_properties(TstMigrationen PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# ============================================================
 qt_add_translations(stroemling_app
     TS_FILES
         i18n/stroemling_en.ts

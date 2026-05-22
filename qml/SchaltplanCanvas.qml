@@ -59,6 +59,9 @@ Item {
     property real worldX: 0
     property real worldY: 0
 
+    property var  _zoomPanCache:   ({})  // seiteId → {zoom, worldX, worldY}
+    property int  _vorherSeiteId:  -1    // seiteId vor dem letzten Seitenwechsel
+
     property real gridMm:  4.0
     property real mmToPx:  4.0
     property bool rastend: true
@@ -4524,6 +4527,14 @@ Item {
 
     onSeiteIdChanged: {
         if (seiteId >= 0) {
+            // Zoom/Pan der verlassenen Seite sichern
+            if (root._vorherSeiteId >= 0) {
+                var saveCache = root._zoomPanCache
+                saveCache[root._vorherSeiteId] = {zoom: root.zoom, worldX: root.worldX, worldY: root.worldY}
+                root._zoomPanCache = saveCache
+            }
+            root._vorherSeiteId = seiteId
+
             root.auswahl = []; root.vorschau  = null; root.amZeichnen = false
             root.amVerschieben   = false; root.mausUeberElement = false
             root.aktiverGriff    = -1; root.mausUeberGriff = false; root.verschiebenErlaubt = false
@@ -4549,14 +4560,22 @@ Item {
             root.hfReferenzMapAktualisieren()
             // SPS-Konflikt-Set aufbauen
             root.spsKonfliktAktualisieren()
-            // Ansicht zurücksetzen; bei QV-Navigation danach auf Partner zoomen
+            // Ansicht wiederherstellen oder zurücksetzen
             var _pendingZielPos = root._querverweisZielPos
             root._querverweisZielPos = null
             if (_pendingZielPos) {
                 ansichtZuruecksetzen()
                 Qt.callLater(function() { root._zoomZuWeltPosition(_pendingZielPos.x, _pendingZielPos.y) })
             } else {
-                ansichtZuruecksetzen()
+                var saved = root._zoomPanCache[seiteId]
+                if (saved !== undefined) {
+                    root.zoom   = saved.zoom
+                    root.worldX = saved.worldX
+                    root.worldY = saved.worldY
+                    root.repaintAll()
+                } else {
+                    ansichtZuruecksetzen()
+                }
             }
         } else {
             root.normblattDaten   = null

@@ -712,6 +712,10 @@ static QList<SchemaMigration> alleMigrationen()
             "CREATE INDEX IF NOT EXISTS idx_grafik_element_seite ON grafik_element(seite_id)",
             "CREATE INDEX IF NOT EXISTS idx_verbindung_segment_seite ON verbindung_segment(seite_id)",
         }},
+        { 48, "M6: Revisionsmarker / Freigabestempel pro Seite", {
+            "ALTER TABLE seite ADD COLUMN revision_status  TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE seite ADD COLUMN revision_kennung TEXT NOT NULL DEFAULT ''",
+        }},
     };
 }
 
@@ -4506,6 +4510,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         SELECT s.blattnummer, s.bezeichnung, s.anlage_kuerzel, s.ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
+               s.revision_status, s.revision_kennung,
                p.name         AS projekt_name,
                p.projektnummer,
                p.auftraggeber,
@@ -4540,7 +4545,9 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("normblattAnzeigen")] = q.value("normblatt_anzeigen");
     m[QStringLiteral("hintergrundFarbe")] = q.value("hintergrund_farbe");
     m[QStringLiteral("aussenOverlay")]    = q.value("aussen_overlay");
-    m[QStringLiteral("titelblattVorlage")]= q.value("titelblatt_vorlage");
+    m[QStringLiteral("titelblattVorlage")] = q.value("titelblatt_vorlage");
+    m[QStringLiteral("revisionStatus")]   = q.value("revision_status");
+    m[QStringLiteral("revisionKennung")]  = q.value("revision_kennung");
     m[QStringLiteral("projektName")]      = q.value("projekt_name");
     m[QStringLiteral("projektnummer")]    = q.value("projektnummer");
     m[QStringLiteral("auftraggeber")]     = q.value("auftraggeber");
@@ -4614,6 +4621,24 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
         qWarning() << "normblattEinstellungenSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
+// seiteRevision*
+// ============================================================
+
+bool Database::seiteRevisionSetzen(int seiteId, const QString &status, const QString &kennung)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE seite SET revision_status = :st, revision_kennung = :kn WHERE id = :sid");
+    q.bindValue(":st",  status);
+    q.bindValue(":kn",  kennung);
+    q.bindValue(":sid", seiteId);
+    if (!q.exec()) {
+        qWarning() << "seiteRevisionSetzen:" << q.lastError().text();
         return false;
     }
     return true;

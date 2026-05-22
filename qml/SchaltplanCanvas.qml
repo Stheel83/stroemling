@@ -62,6 +62,9 @@ Item {
     property var  _zoomPanCache:   ({})  // seiteId → {zoom, worldX, worldY}
     property int  _vorherSeiteId:  -1    // seiteId vor dem letzten Seitenwechsel
 
+    property string revisionStatus:  ""  // '', 'entwurf', 'freigegeben', 'veraltet'
+    property string revisionKennung: ""  // z.B. "A", "B", "1.0"
+
     property real gridMm:  4.0
     property real mmToPx:  4.0
     property bool rastend: true
@@ -511,7 +514,7 @@ Item {
                 zelle("BEARBEITER",   nd.bearbeiter || "",   cX[0], rowY[2], cX[1]-cX[0], rowH)
                 zelle("SEITENKENNZ.", vollkz(),              cX[1], rowY[2], cX[2]-cX[1], rowH)
                 zelle("NORM",         nd.norm || "IEC",      cX[2], rowY[2], cX[3]-cX[2], rowH)
-                zelle("INDEX",        "–",                   cX[3], rowY[2], cX[4]-cX[3], rowH)
+                zelle("REV.",         root.revisionKennung || "–", cX[3], rowY[2], cX[4]-cX[3], rowH)
 
                 ctx.strokeStyle = "#4a7ab0"
                 ctx.lineWidth   = Math.max(1, s(0.7))
@@ -2352,6 +2355,33 @@ Item {
                 ctx.restore()
             }
             drawCanvas.drawNormblattAussenoverlay(ctx)
+            // Revisionsmarker-Wasserzeichen
+            if (root.revisionStatus !== "") {
+                var wmText = ""
+                var wmColor = "#888888"
+                if (root.revisionStatus === "entwurf") {
+                    wmText  = "ENTWURF"
+                    wmColor = "#d97706"
+                } else if (root.revisionStatus === "freigegeben") {
+                    wmText  = "FREIGEGEBEN" + (root.revisionKennung ? "  REV. " + root.revisionKennung : "")
+                    wmColor = "#16a34a"
+                } else if (root.revisionStatus === "veraltet") {
+                    wmText  = "VERALTET"
+                    wmColor = "#dc2626"
+                }
+                if (wmText !== "") {
+                    ctx.save()
+                    ctx.translate(width / 2, height / 2)
+                    ctx.rotate(-Math.PI / 6)
+                    ctx.globalAlpha = 0.10
+                    ctx.fillStyle   = wmColor
+                    ctx.textAlign   = "center"
+                    ctx.textBaseline = "middle"
+                    ctx.font        = "bold " + Math.round(Math.min(width, height) / 5) + "px sans-serif"
+                    ctx.fillText(wmText, 0, 0)
+                    ctx.restore()
+                }
+            }
         }
     }
 
@@ -4521,6 +4551,8 @@ Item {
         if (seiteId >= 0) {
             normblattDaten   = db.normblattDatenLaden(seiteId)
             normblattLogoUrl = normblattDaten ? (normblattDaten.logoDataUrl || "") : ""
+            revisionStatus   = normblattDaten ? (normblattDaten.revisionStatus  || "") : ""
+            revisionKennung  = normblattDaten ? (normblattDaten.revisionKennung || "") : ""
             repaintAll()
         }
     }
@@ -4549,9 +4581,11 @@ Item {
             var cache = {}
             for (var i = 0; i < annListe.length; i++) cache[annListe[i].netKey] = annListe[i]
             root.verbindungAnnotationenCache = cache
-            // Normblatt-Daten laden
-            root.normblattDaten   = db.normblattDatenLaden(seiteId)
-            root.normblattLogoUrl = root.normblattDaten ? (root.normblattDaten.logoDataUrl || "") : ""
+            // Normblatt-Daten laden (enthält auch revisionStatus/revisionKennung)
+            root.normblattDaten    = db.normblattDatenLaden(seiteId)
+            root.normblattLogoUrl  = root.normblattDaten ? (root.normblattDaten.logoDataUrl || "") : ""
+            root.revisionStatus    = root.normblattDaten ? (root.normblattDaten.revisionStatus  || "") : ""
+            root.revisionKennung   = root.normblattDaten ? (root.normblattDaten.revisionKennung || "") : ""
             // Querverweis-Partner-Cache aufbauen
             root.querverweisPartnerCacheAktualisieren()
             // Kabellinien-Anzahl-Cache aufbauen
@@ -4580,6 +4614,8 @@ Item {
         } else {
             root.normblattDaten   = null
             root.normblattLogoUrl = ""
+            root.revisionStatus   = ""
+            root.revisionKennung  = ""
             root.repaintAll()
         }
     }

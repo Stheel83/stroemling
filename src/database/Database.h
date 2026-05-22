@@ -195,6 +195,9 @@ public:
                                                   const QString &titelblattVorlage,
                                                   int normblattId = -1);
 
+    // Revisionsstatus einer Seite setzen (status: '', 'entwurf', 'freigegeben', 'veraltet')
+    Q_INVOKABLE bool seiteRevisionSetzen(int seiteId, const QString &status, const QString &kennung);
+
     // Normblatt-Vorlagen (projektübergreifend)
     Q_INVOKABLE QVariantList normblattVorlagenListe();
     Q_INVOKABLE int          normblattVorlageSpeichern(const QVariantMap &vorlage);

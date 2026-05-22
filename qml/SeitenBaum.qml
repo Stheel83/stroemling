@@ -517,6 +517,8 @@ Item {
         property bool   altAussenOverlay:    false
         property string altTitelblattVorlage: "din6771"
         property var    _normblattVorlagen:   []
+        property string altRevisionStatus:   ""
+        property string altRevisionKennung:  ""
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -547,6 +549,9 @@ Item {
                     var vi = cmbVorlage.model.indexOf(nd.titelblattVorlage || "din6771")
                     cmbVorlage.currentIndex = vi >= 0 ? vi : 0
                 }
+                var ri = cmbRevisionStatus.model.indexOf(nd.revisionStatus || "")
+                cmbRevisionStatus.currentIndex = ri >= 0 ? ri : 0
+                tfRevisionKennung.text = nd.revisionKennung || ""
             }
         }
 
@@ -767,6 +772,78 @@ Item {
                 }
             }
 
+            // ── Revisionsstatus ──────────────────────────────────────────
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 2 }
+            Text { text: qsTr("Revisionsstatus"); color: theme.textMuted; font.pixelSize: 12 }
+            ComboBox {
+                id: cmbRevisionStatus
+                Layout.fillWidth: true
+                model: ["", "entwurf", "freigegeben", "veraltet"]
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                contentItem: Text {
+                    leftPadding: 8
+                    text: {
+                        switch(cmbRevisionStatus.currentText) {
+                            case "entwurf":     return qsTr("Entwurf")
+                            case "freigegeben": return qsTr("Freigegeben")
+                            case "veraltet":    return qsTr("Veraltet")
+                            default:            return qsTr("Kein Status")
+                        }
+                    }
+                    color: {
+                        switch(cmbRevisionStatus.currentText) {
+                            case "entwurf":     return "#d97706"
+                            case "freigegeben": return "#16a34a"
+                            case "veraltet":    return "#dc2626"
+                            default:            return theme.textMuted
+                        }
+                    }
+                    font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
+                }
+                delegate: ItemDelegate {
+                    required property var modelData
+                    required property int index
+                    width: cmbRevisionStatus.width; implicitHeight: 32
+                    highlighted: cmbRevisionStatus.highlightedIndex === index
+                    contentItem: Text {
+                        leftPadding: 8
+                        text: {
+                            switch(modelData) {
+                                case "entwurf":     return qsTr("Entwurf")
+                                case "freigegeben": return qsTr("Freigegeben")
+                                case "veraltet":    return qsTr("Veraltet")
+                                default:            return qsTr("Kein Status")
+                            }
+                        }
+                        color: {
+                            switch(modelData) {
+                                case "entwurf":     return "#d97706"
+                                case "freigegeben": return "#16a34a"
+                                case "veraltet":    return "#dc2626"
+                                default:            return theme.textMuted
+                            }
+                        }
+                        font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle { color: highlighted ? theme.hover : "transparent" }
+                }
+            }
+            Text {
+                text: qsTr("Revisionskennzeichen (z. B. A, B, 1.0)")
+                color: theme.textMuted; font.pixelSize: 12
+                visible: cmbRevisionStatus.currentText !== ""
+                height: visible ? implicitHeight : 0
+            }
+            TextField {
+                id: tfRevisionKennung
+                Layout.fillWidth: true
+                visible: cmbRevisionStatus.currentText !== ""
+                height: visible ? implicitHeight : 0
+                placeholderText: qsTr("leer lassen wenn nicht relevant")
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                color: theme.textPrimary; font.pixelSize: 13
+            }
+
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
             RowLayout {
                 Layout.fillWidth: true; spacing: 8
@@ -801,6 +878,10 @@ Item {
                              && cmbVorlageAuswahl.currentIndex >= 0
                              && dlgSeiteBearbeiten._normblattVorlagen.length > 0)
                                 ? dlgSeiteBearbeiten._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
+                        db.seiteRevisionSetzen(
+                            dlgSeiteBearbeiten.itemId,
+                            cmbRevisionStatus.currentText,
+                            tfRevisionKennung.text.trim())
                         root.seiteFormatGeaendert(dlgSeiteBearbeiten.itemId)
                         dlgSeiteBearbeiten.close()
                     }

@@ -122,6 +122,17 @@ Item {
         inhaltEdit.forceActiveFocus()
     }
 
+    // Ersetzt wiki://bild/ID durch den aktuellen Temp-Pfad des jeweiligen Bildes
+    function _preprocessMarkdown(md) {
+        var result = md
+        for (var i = 0; i < root._bilder.length; i++) {
+            var b = root._bilder[i]
+            if (b.tempPfad && b.id)
+                result = result.split("wiki://bild/" + b.id).join("file://" + b.tempPfad)
+        }
+        return result
+    }
+
     function _speichern() {
         if (_aktArtId < 0) return
         db.wikiArtikelSpeichern(_aktArtId, _editTitel.trim(), _editInhalt, _editTags.trim())
@@ -898,6 +909,20 @@ Item {
                             HoverHandler { id: tbHrHover }
                             TapHandler   { onTapped: root._fmtEinfuegen("\n\n---\n\n") }
                         }
+
+                        // Separator
+                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
+
+                        // ── Bild einfügen ─────────────────────
+                        Rectangle {
+                            width: 28; height: 24; radius: 3
+                            color: tbImgHover.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            ToolTip.visible: tbImgHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Bild in Text einfügen"
+                            Text { anchors.centerIn: parent; text: "🖼"; font.pixelSize: 12 }
+                            HoverHandler { id: tbImgHover }
+                            TapHandler   { onTapped: bildEinfuegenPopup.open() }
+                        }
                     }
                 }
 
@@ -922,7 +947,7 @@ Item {
                         font.pixelSize: 13
                         color:          root.theme.textPrimary
                         text:           (root._aktArtikel.inhalt || "") !== ""
-                                        ? root._aktArtikel.inhalt
+                                        ? root._preprocessMarkdown(root._aktArtikel.inhalt)
                                         : qsTr("*(Noch kein Inhalt – auf Bearbeiten klicken)*")
                         selectByMouse:  true
                     }
@@ -934,6 +959,7 @@ Item {
                     Layout.fillHeight: true
                     visible:           root._editModus
                     clip:              true
+                    contentWidth:      availableWidth
 
                     TextArea {
                         id:             inhaltEdit
@@ -1093,6 +1119,102 @@ Item {
                         color:    root.theme.textMuted
                         font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Bild-Einfügen-Popup ───────────────────────────────────
+    Popup {
+        id:           bildEinfuegenPopup
+        anchors.centerIn: parent
+        width:        Math.min(root.width * 0.6, 620)
+        height:       160
+        modal:        true
+        padding:      12
+        closePolicy:  Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color:        root.theme.surface
+            radius:       6
+            border.color: root.theme.border
+            border.width: 1
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing:      8
+
+            Text {
+                text:           qsTr("Bild wählen – wird an Cursorposition eingefügt:")
+                font.pixelSize: 11
+                color:          root.theme.textMuted
+            }
+
+            Text {
+                visible:          root._bilder.length === 0
+                Layout.fillWidth: true
+                text:             qsTr("Noch keine Bilder – erst in der Galerie unten zum Artikel hinzufügen.")
+                font.pixelSize:   11
+                color:            root.theme.textMuted
+                wrapMode:         Text.Wrap
+            }
+
+            ListView {
+                Layout.fillWidth:  true
+                Layout.fillHeight: true
+                orientation:       ListView.Horizontal
+                spacing:           8
+                clip:              true
+                model:             root._bilder
+                visible:           root._bilder.length > 0
+
+                delegate: Item {
+                    width:  96
+                    height: ListView.view.height
+
+                    Rectangle {
+                        id:     thumbPickRect
+                        width:  88; height: 88; radius: 4
+                        color:  root.theme.border
+                        clip:   true
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Image {
+                            anchors.fill: parent
+                            source:       modelData.tempPfad ? "file://" + modelData.tempPfad : ""
+                            fillMode:     Image.PreserveAspectCrop
+                            smooth:       true
+                            asynchronous: true
+                        }
+
+                        Rectangle {
+                            anchors.fill:  parent
+                            radius:        4
+                            color:         pickHover.containsMouse ? root.theme.accent + "44" : "transparent"
+                            border.color:  pickHover.containsMouse ? root.theme.accent : "transparent"
+                            border.width:  2
+                        }
+                    }
+
+                    Text {
+                        anchors { top: thumbPickRect.bottom; topMargin: 4; horizontalCenter: parent.horizontalCenter }
+                        width:          88
+                        text:           modelData.beschreibung || modelData.dateiname || ""
+                        font.pixelSize: 9
+                        color:          root.theme.textMuted
+                        elide:          Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    HoverHandler { id: pickHover }
+                    TapHandler {
+                        onTapped: {
+                            var descr = modelData.beschreibung || modelData.dateiname || ""
+                            root._fmtEinfuegen("![" + descr + "](wiki://bild/" + modelData.id + ")")
+                            bildEinfuegenPopup.close()
+                        }
                     }
                 }
             }

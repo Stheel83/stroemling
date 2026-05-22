@@ -136,6 +136,8 @@ Item {
                     ShortcutSectionHeader { text: "Ansicht" }
                     ShortcutZeile { kuerzel: "Ctrl+Shift+H"; aktion: "Gesamte Seite einpassen" }
                     ShortcutZeile { kuerzel: "Ctrl+Shift+N"; aktion: "Normblatt einpassen" }
+                    ShortcutZeile { kuerzel: "Bild-auf";     aktion: "Vorherige Seite" }
+                    ShortcutZeile { kuerzel: "Bild-ab";      aktion: "Naechste Seite" }
 
                     Item { width: 1; height: 8 }
 

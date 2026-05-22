@@ -1288,6 +1288,40 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+Shift+H"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.zoomAllesEinpassen() } }
     Shortcut { sequence: "Ctrl+Shift+N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0&&c.normblattDaten!==null) c.zoomNormblattEinpassen() } }
 
+    // Seitennavigation
+    Shortcut {
+        sequence: "PgUp"
+        context:  Shortcut.ApplicationShortcut
+        onActivated: {
+            if (root.aktiveAnsicht !== "seiten" || root.aktivProjektId < 0 || root.aktivSeiteId < 0) return
+            var seiten = db.alleSeitenFlach(root.aktivProjektId)
+            for (var i = 0; i < seiten.length; i++) {
+                if (seiten[i].id === root.aktivSeiteId && i > 0) {
+                    var s = seiten[i - 1]
+                    var p = root.fokussiertesPanel === 1 ? panel1 : panel2
+                    p.seiteOeffnen(s.id, s.blattnummer, s.bezeichnung)
+                    break
+                }
+            }
+        }
+    }
+    Shortcut {
+        sequence: "PgDown"
+        context:  Shortcut.ApplicationShortcut
+        onActivated: {
+            if (root.aktiveAnsicht !== "seiten" || root.aktivProjektId < 0 || root.aktivSeiteId < 0) return
+            var seiten = db.alleSeitenFlach(root.aktivProjektId)
+            for (var i = 0; i < seiten.length; i++) {
+                if (seiten[i].id === root.aktivSeiteId && i < seiten.length - 1) {
+                    var s = seiten[i + 1]
+                    var p = root.fokussiertesPanel === 1 ? panel1 : panel2
+                    p.seiteOeffnen(s.id, s.blattnummer, s.bezeichnung)
+                    break
+                }
+            }
+        }
+    }
+
     // Shortcut-Übersicht
     Shortcut { sequence: "F1"; context: Shortcut.ApplicationShortcut; onActivated: shortcutUebersicht.visible = !shortcutUebersicht.visible }
 

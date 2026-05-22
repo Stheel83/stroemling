@@ -797,39 +797,35 @@ Item {
                         // ── Inline-Formatierung ───────────────
                         Rectangle {
                             width: 26; height: 24; radius: 3
-                            color: tbBHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbBMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbBHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Fett (Ctrl+B)"
+                            ToolTip.visible: tbBMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Fett (Ctrl+B)"
                             Text { anchors.centerIn: parent; text: "B"; font.bold: true; font.pixelSize: 12; color: root.theme.textPrimary }
-                            HoverHandler { id: tbBHover }
-                            TapHandler   { onTapped: root._fmtWrap("**", "**") }
+                            MouseArea { id: tbBMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("**", "**") }
                         }
                         Rectangle {
                             width: 26; height: 24; radius: 3
-                            color: tbIHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbIMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbIHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Kursiv (Ctrl+I)"
+                            ToolTip.visible: tbIMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Kursiv (Ctrl+I)"
                             Text { anchors.centerIn: parent; text: "I"; font.italic: true; font.pixelSize: 12; color: root.theme.textPrimary }
-                            HoverHandler { id: tbIHover }
-                            TapHandler   { onTapped: root._fmtWrap("*", "*") }
+                            MouseArea { id: tbIMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("*", "*") }
                         }
                         Rectangle {
                             width: 26; height: 24; radius: 3
-                            color: tbSHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbSMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbSHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Durchgestrichen"
+                            ToolTip.visible: tbSMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Durchgestrichen"
                             Text { anchors.centerIn: parent; text: "S"; font.strikeout: true; font.pixelSize: 12; color: root.theme.textPrimary }
-                            HoverHandler { id: tbSHover }
-                            TapHandler   { onTapped: root._fmtWrap("~~", "~~") }
+                            MouseArea { id: tbSMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("~~", "~~") }
                         }
                         Rectangle {
                             width: 26; height: 24; radius: 3
-                            color: tbCodeHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbCodeMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbCodeHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Code (inline)"
+                            ToolTip.visible: tbCodeMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Code (inline)"
                             Text { anchors.centerIn: parent; text: "`"; font.family: "monospace"; font.pixelSize: 13; color: root.theme.textPrimary }
-                            HoverHandler { id: tbCodeHover }
-                            TapHandler   { onTapped: root._fmtWrap("`", "`") }
+                            MouseArea { id: tbCodeMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("`", "`") }
                         }
 
                         // Separator
@@ -838,30 +834,27 @@ Item {
                         // ── Überschriften ─────────────────────
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbH1Hover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbH1Mouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbH1Hover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 1"
+                            ToolTip.visible: tbH1Mouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 1"
                             Text { anchors.centerIn: parent; text: "H1"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
-                            HoverHandler { id: tbH1Hover }
-                            TapHandler   { onTapped: root._fmtZeile("# ") }
+                            MouseArea { id: tbH1Mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("# ") }
                         }
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbH2Hover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbH2Mouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbH2Hover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 2"
+                            ToolTip.visible: tbH2Mouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 2"
                             Text { anchors.centerIn: parent; text: "H2"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
-                            HoverHandler { id: tbH2Hover }
-                            TapHandler   { onTapped: root._fmtZeile("## ") }
+                            MouseArea { id: tbH2Mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("## ") }
                         }
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbH3Hover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbH3Mouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbH3Hover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 3"
+                            ToolTip.visible: tbH3Mouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 3"
                             Text { anchors.centerIn: parent; text: "H3"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
-                            HoverHandler { id: tbH3Hover }
-                            TapHandler   { onTapped: root._fmtZeile("### ") }
+                            MouseArea { id: tbH3Mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("### ") }
                         }
 
                         // Separator
@@ -870,30 +863,27 @@ Item {
                         // ── Listen & Struktur ─────────────────
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbUlHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbUlMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbUlHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Aufzählungsliste"
+                            ToolTip.visible: tbUlMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Aufzählungsliste"
                             Text { anchors.centerIn: parent; text: "• —"; font.pixelSize: 10; color: root.theme.textPrimary }
-                            HoverHandler { id: tbUlHover }
-                            TapHandler   { onTapped: root._fmtZeile("- ") }
+                            MouseArea { id: tbUlMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("- ") }
                         }
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbOlHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbOlMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbOlHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Nummerierte Liste"
+                            ToolTip.visible: tbOlMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Nummerierte Liste"
                             Text { anchors.centerIn: parent; text: "1."; font.pixelSize: 10; color: root.theme.textPrimary }
-                            HoverHandler { id: tbOlHover }
-                            TapHandler   { onTapped: root._fmtZeile("1. ") }
+                            MouseArea { id: tbOlMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("1. ") }
                         }
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbQHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbQMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbQHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zitat"
+                            ToolTip.visible: tbQMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zitat"
                             Text { anchors.centerIn: parent; text: "❝"; font.pixelSize: 12; color: root.theme.textPrimary }
-                            HoverHandler { id: tbQHover }
-                            TapHandler   { onTapped: root._fmtZeile("> ") }
+                            MouseArea { id: tbQMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("> ") }
                         }
 
                         // Separator
@@ -902,12 +892,11 @@ Item {
                         // ── Trennlinie ────────────────────────
                         Rectangle {
                             width: 36; height: 24; radius: 3
-                            color: tbHrHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbHrMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbHrHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Trennlinie"
+                            ToolTip.visible: tbHrMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Trennlinie"
                             Text { anchors.centerIn: parent; text: "───"; font.pixelSize: 10; color: root.theme.textPrimary }
-                            HoverHandler { id: tbHrHover }
-                            TapHandler   { onTapped: root._fmtEinfuegen("\n\n---\n\n") }
+                            MouseArea { id: tbHrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("\n\n---\n\n") }
                         }
 
                         // Separator
@@ -916,12 +905,11 @@ Item {
                         // ── Bild einfügen ─────────────────────
                         Rectangle {
                             width: 28; height: 24; radius: 3
-                            color: tbImgHover.containsMouse ? root.theme.hover : "transparent"
+                            color: tbImgMouse.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
-                            ToolTip.visible: tbImgHover.containsMouse; ToolTip.delay: 700; ToolTip.text: "Bild in Text einfügen"
+                            ToolTip.visible: tbImgMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Bild in Text einfügen"
                             Text { anchors.centerIn: parent; text: "🖼"; font.pixelSize: 12 }
-                            HoverHandler { id: tbImgHover }
-                            TapHandler   { onTapped: bildEinfuegenPopup.open() }
+                            MouseArea { id: tbImgMouse; anchors.fill: parent; hoverEnabled: true; onClicked: bildEinfuegenPopup.open() }
                         }
                     }
                 }
@@ -935,8 +923,7 @@ Item {
                     clip:              true
                     contentWidth:      availableWidth
 
-                    TextEdit {
-                        width:          parent.width
+                    TextArea {
                         leftPadding:    24
                         rightPadding:   24
                         topPadding:     20
@@ -946,10 +933,11 @@ Item {
                         textFormat:     TextEdit.MarkdownText
                         font.pixelSize: 13
                         color:          root.theme.textPrimary
+                        background:     null
+                        selectByMouse:  true
                         text:           (root._aktArtikel.inhalt || "") !== ""
                                         ? root._preprocessMarkdown(root._aktArtikel.inhalt)
                                         : qsTr("*(Noch kein Inhalt – auf Bearbeiten klicken)*")
-                        selectByMouse:  true
                     }
                 }
 

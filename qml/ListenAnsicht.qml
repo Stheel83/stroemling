@@ -137,6 +137,8 @@ Item {
         { header: "Nach",        w: 90  }
     ]
 
+    Rectangle { anchors.fill: parent; color: theme.surface }
+
     ColumnLayout {
         anchors.fill: parent; spacing: 0
 

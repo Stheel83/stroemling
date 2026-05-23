@@ -43,6 +43,7 @@ ColumnLayout {
     ScrollView {
         Layout.fillWidth: true; Layout.fillHeight: true
         clip: true; contentWidth: availableWidth
+        background: Rectangle { color: theme.surface }
 
         Column {
             width: parent.width
@@ -57,7 +58,7 @@ ColumnLayout {
                     // Kabel-Kopfzeile
                     Rectangle {
                         width: parent.width; height: 30
-                        color: hovered ? theme.tableHover
+                        color: hovered ? theme.hover
                                        : (index % 2 === 0 ? theme.tableEven : theme.tableOdd)
                         property bool hovered: false
                         HoverHandler { onHoveredChanged: parent.hovered = hovered }

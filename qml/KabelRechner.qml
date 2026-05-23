@@ -45,7 +45,7 @@ Item {
                 Rectangle {
                     width: 188; height: 30
                     radius: 6
-                    color:        theme.background
+                    color:        theme.inputBg
                     border.color: theme.border; border.width: 1
 
                     Row {
@@ -136,7 +136,7 @@ Item {
                             Text { text: qsTr("Material"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
                             Rectangle {
                                 Layout.fillWidth: true; height: 26; radius: 4
-                                color: theme.background; border.color: theme.border; border.width: 1
+                                color: theme.inputBg; border.color: theme.border; border.width: 1
                                 Row {
                                     anchors.fill: parent
                                     Rectangle {
@@ -256,7 +256,7 @@ Item {
             Rectangle {
                 Layout.fillWidth:  true
                 Layout.fillHeight: true
-                color: theme.background
+                color: theme.surface
 
                 ScrollView {
                     id: resultSv

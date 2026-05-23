@@ -102,7 +102,8 @@ Item {
             Qt.callLater(function() { root.forceActiveFocus() })
     }
     // Compat-Alias: -1 wenn Mehrfachauswahl, sonst der einzelne Index
-    readonly property int ausgewaehlt: auswahl.length === 1 ? auswahl[0] : -1
+    readonly property int ausgewaehlt:   auswahl.length === 1 ? auswahl[0] : -1
+    readonly property int auswahlLaenge: auswahl.length
     onAusgewaehltChanged: Qt.callLater(autoPanFuerAuswahl)
     property bool amVerschieben:       false
     property real verschiebenMausVpX:  0
@@ -193,6 +194,7 @@ Item {
     // Brücken-Funktionen für CanvasInteraktionArea
     function verbindungBeiPosition(x, y)   { return drawCanvas.verbindungBeiPosition(x, y) }
     function koordinatenTextSetzen(text)   { footerBar.koordinatenText = text }
+    function bildLaden(url)                { drawCanvas.loadImage(url) }
 
     function textEditorNeuOeffnen(vpX, vpY, weltX, weltY) {
         root.textEditVpX      = vpX;  root.textEditVpY  = vpY
@@ -216,19 +218,18 @@ Item {
         textEditor.forceActiveFocus()
         textEditor.selectAll()
     }
-    function kabellinieDialogFuerNeuOeffnen(elIdx) {
-        kabellinieDialog.elementIndex       = elIdx
-        kabellinieDialog.bezeichnung        = "";  kabellinieDialog.kabeltyp       = ""
-        kabellinieDialog.aderzahl           = 0;   kabellinieDialog.querschnittMm2 = 0
-        kabellinieDialog.bauteilKabelId     = 0
-        kabellinieDialog.vonOrt             = "";  kabellinieDialog.nachOrt        = ""
-        kabellinieDialog.bestehendesKabelId = 0
-        kabellinieDialog.vorhandeneKabel    = (root.projektId >= 0) ? db.kabelListe(root.projektId) : []
-        kabellinieDialog.open()
-    }
-    function makrobenennDialogFuerNeuOeffnen(elIdx) {
-        makrobenennDialog.elementIndex = elIdx
-        makrobenennDialog.open()
+    function kabellinieDialogFuerNeuOeffnen(elIdx) { dialogLayer.kabellinieNeuOeffnen(elIdx) }
+    function makrobenennDialogFuerNeuOeffnen(elIdx) { dialogLayer.makrobenennNeuOeffnen(elIdx) }
+
+    // Aderzuordnungsdialog vorbereiten (drawCanvas-Zugriffe bleiben hier) und öffnen
+    function kabellinieNachSpeichernAderZuordnung(newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern, freshKlEl) {
+        var neueNetze = drawCanvas.autoNetzeBerechnen()
+        var schnitte  = drawCanvas.kabelSchnittNetzeBerechnen(freshKlEl, neueNetze)
+        if (schnitte.length > 0) {
+            dialogLayer.aderzuordnungOeffnen(
+                newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern,
+                schnitte, {}, freshKlEl.id || 0, _pinNummernFuerNetze(neueNetze))
+        }
     }
 
     // --------------------------------------------------------
@@ -2461,7 +2462,7 @@ Item {
         canvas: root
         visible: root.seiteId >= 0
         anchors { top: headerBar.bottom; bottom: footerBar.top; left: parent.left }
-        onBildWerkzeugAngefordert: bildDialog.open()
+        onBildWerkzeugAngefordert: bildWerkzeug.dialogOeffnen()
     }
 
     // --------------------------------------------------------
@@ -2561,6 +2562,30 @@ Item {
         color: theme.surfaceDeep; border.color: theme.border; border.width: 1
 
         EigenschaftenPanel { anchors.fill: parent; canvas: root; theme: root.theme; debug: root.debug }
+    }
+
+    // --------------------------------------------------------
+    // Bild-Werkzeug (FileDialog + Drag-Drop)
+    // --------------------------------------------------------
+    CanvasBildWerkzeug {
+        id: bildWerkzeug
+        canvas: root
+        anchors {
+            top:    headerBar.bottom
+            bottom: footerBar.top
+            left:   werkzeugLeiste.right
+            right:  eigenschaftenPanel.visible ? eigenschaftenPanel.left : parent.right
+        }
+    }
+
+    // --------------------------------------------------------
+    // Dialog-Layer (Kabellinie / Aderzuordnung / Makrobenennen)
+    // --------------------------------------------------------
+    CanvasDialogLayer {
+        id:    dialogLayer
+        canvas: root
+        theme: root.theme
+        debug: root.debug
     }
 
     // --------------------------------------------------------
@@ -3194,13 +3219,11 @@ Item {
         var kabelId = ed.kabelId || 0
         if (kabelId <= 0) return
 
-        // Elemente neu laden damit el.id aktuelle grafik_element_id enthält
         var savedAuswahl = root.auswahl.slice()
         elementeModel.laden(root.seiteId)
         root.auswahl = savedAuswahl
         var reloaded = elementeModel.snapshot()
 
-        // Frisches Element per kabelId finden
         var freshEl = null
         for (var i = 0; i < reloaded.length; i++) {
             var fe = reloaded[i]
@@ -3211,19 +3234,12 @@ Item {
         var currentEl = freshEl || el
         var freshGeid = currentEl.id || 0
 
-        var details = db.kabelLinieDetails(freshGeid)
-        var netze   = drawCanvas.autoNetzeBerechnen()
+        var details  = db.kabelLinieDetails(freshGeid)
+        var netze    = drawCanvas.autoNetzeBerechnen()
         var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(currentEl, netze)
-        aderzuordnungDialog.kabelId                    = kabelId
-        aderzuordnungDialog.kabelBezeichnung           = ed.bezeichnung || ""
-        aderzuordnungDialog.kabeltyp                   = ed.kabeltyp    || ""
-        aderzuordnungDialog.aderzahl                   = ed.aderzahl    || 0
-        aderzuordnungDialog.adern                      = details.adern  || []
-        aderzuordnungDialog.schnittNetze               = schnitte
-        aderzuordnungDialog.aderZuordnung              = ed.aderZuordnung || {}
-        aderzuordnungDialog.kabellinieGrafikElementId  = freshGeid
-        aderzuordnungDialog.pinNummernMap              = _pinNummernFuerNetze(netze)
-        aderzuordnungDialog.open()
+        dialogLayer.aderzuordnungOeffnen(kabelId, ed.bezeichnung || "", ed.kabeltyp || "",
+            ed.aderzahl || 0, details.adern || [], schnitte, ed.aderZuordnung || {},
+            freshGeid, _pinNummernFuerNetze(netze))
     }
 
     function aktionAusfuehren(neueElemente) {
@@ -3927,337 +3943,6 @@ Item {
     }
     onWidthChanged:  root.repaintAll()
     onHeightChanged: root.repaintAll()
-
-    // --------------------------------------------------------
-    // Dateidialog: Bild auswählen
-    // --------------------------------------------------------
-    FileDialog {
-        id:           bildDialog
-        title:        qsTr("Bild auswählen (max. 5 MB)")
-        nameFilters:  ["Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.webp)", "Alle Dateien (*)"]
-
-        onAccepted: {
-            var result = db.bildAlsDataUrl(selectedFile.toString())
-            if (result.startsWith("error:")) {
-                bildFehlerText.text = result.substring(6)
-                bildFehlerDialog.open()
-                root.aktivesWerkzeug = "zeiger"
-            } else {
-                root.paletteImageData = result
-                // Bild vorladen damit Vorschau sofort erscheint
-                drawCanvas.loadImage(result)
-                root.aktivesWerkzeug = "bild"
-            }
-        }
-        onRejected: {
-            root.aktivesWerkzeug = "zeiger"
-        }
-    }
-
-    // Fehlermeldung wenn Bild zu groß oder nicht lesbar
-    Dialog {
-        id:           bildFehlerDialog
-        title:        qsTr("Bild konnte nicht geladen werden")
-        modal:        true
-        anchors.centerIn: parent
-        standardButtons: Dialog.Ok
-        Label {
-            id:    bildFehlerText
-            color: "#c05050"
-            wrapMode: Text.Wrap
-            width:    300
-        }
-    }
-
-    // --------------------------------------------------------
-    // Drag & Drop: Bilder per Datei-Drag aus dem Dateimanager
-    // --------------------------------------------------------
-    DropArea {
-        id: bildDropArea
-        anchors {
-            top:    headerBar.bottom
-            bottom: footerBar.top
-            left:   werkzeugLeiste.right
-            right:  eigenschaftenPanel.visible ? eigenschaftenPanel.left : parent.right
-        }
-        enabled: root.seiteId >= 0
-        keys: ["text/uri-list"]
-
-        // Visuelles Feedback während des Drags
-        Rectangle {
-            anchors.fill: parent
-            color: "transparent"
-            border.color: "#4a9eff"
-            border.width: 3
-            visible: bildDropArea.containsDrag
-            z: 9999
-
-            Rectangle {
-                anchors.centerIn: parent
-                width:  hintText.implicitWidth + 32
-                height: 44
-                color:  "#cc0d1a2b"
-                radius: 8
-
-                Text {
-                    id:   hintText
-                    anchors.centerIn: parent
-                    text: qsTr("Bild hier ablegen")
-                    color: "#4a9eff"
-                    font.pixelSize: 16
-                    font.bold: true
-                }
-            }
-        }
-
-        onDropped: function(drop) {
-            if (!drop.hasUrls) return
-            var urls = drop.urls
-            for (var i = 0; i < urls.length; i++) {
-                var url = urls[i].toString()
-                if (!/\.(png|jpg|jpeg|bmp|gif|webp)$/i.test(url)) continue
-                var result = db.bildAlsDataUrl(url)
-                if (result.startsWith("error:")) {
-                    bildFehlerText.text = result.substring(6)
-                    bildFehlerDialog.open()
-                    continue
-                }
-                // Drop-Position in Weltkoordinaten umrechnen
-                var vp = bildDropArea.mapToItem(root, drop.x, drop.y)
-                var w  = root.viewportZuWelt(vp.x, vp.y)
-                if (root.rastend) w = root.rasterPunkt(w.x, w.y)
-                // Bild in gleicher Größe wie Klick-Platzierung einfügen
-                drawCanvas.loadImage(result)
-                var hs = root.gridPx * 4
-                var elBild = {
-                    typ:            "bild",
-                    x1: w.x - hs,  y1: w.y - hs,
-                    x2: w.x + hs,  y2: w.y + hs,
-                    bildDaten:      result,
-                    strichFarbe:    root.stilVorlage.strichFarbe,
-                    strichBreite:   root.stilVorlage.strichBreite,
-                    strichArt:      root.stilVorlage.strichArt,
-                    fuell:          false, fuellFarbe: "#000000", fuellOpazitaet: 0,
-                    opazitaet:      1.0, eckenRadius: 0,
-                    rotation: 0, spiegelX: false, spiegelY: false, proportional: false,
-                    ausschnittLinks: 0, ausschnittRechts: 0, ausschnittOben: 0, ausschnittUnten: 0
-                }
-                root.aktionAusfuehren(elementeModel.snapshot().concat([elBild]))
-                root.auswahl = [elementeModel.anzahl - 1]
-                break  // nur das erste Bild verarbeiten
-            }
-            drop.accepted = true
-        }
-    }
-
-    // --------------------------------------------------------
-    // Kabellinie-Dialog: öffnet sich direkt nach dem Zeichnen
-    // --------------------------------------------------------
-    KabellinieDialog {
-        id:         kabellinieDialog
-        theme:      root.theme
-        debug:      root.debug
-        projektId:  root.projektId
-
-        onAccepted: {
-            var idx = elementIndex
-            if (idx < 0 || idx >= elementeModel.anzahl) return
-            // extraDaten des Elements im Canvas aktualisieren
-            var el = Object.assign({}, elementeModel.element(idx))
-            var savedX1 = el.x1, savedY1 = el.y1
-            el.extraDaten = {
-                bezeichnung:    kabellinieDialog.bezeichnung,
-                kabeltyp:       kabellinieDialog.kabeltyp,
-                aderzahl:       kabellinieDialog.aderzahl,
-                querschnittMm2: kabellinieDialog.querschnittMm2,
-                bauteilKabelId: kabellinieDialog.bauteilKabelId,
-                vonOrt:         kabellinieDialog.vonOrt,
-                nachOrt:        kabellinieDialog.nachOrt
-            }
-            elementeModel.eigenschaftSetzen(idx, "extraDaten", el.extraDaten)
-            root.grafikSpeichernJetzt()
-            // grafik_element-ID holen (nach Speichern in DB vorhanden)
-            elementeModel.laden(root.seiteId)
-            var reloaded = elementeModel.snapshot()
-            for (var ri = 0; ri < reloaded.length; ri++) {
-                var re = reloaded[ri]
-                if (re.typ === "kabellinie"
-                        && Math.abs(re.x1 - savedX1) < 0.01
-                        && Math.abs(re.y1 - savedY1) < 0.01) {
-                    if (root.projektId < 0) break
-
-                    var newKabelId = 0
-                    var bkAdern   = []
-
-                    if (kabellinieDialog.bestehendesKabelId > 0) {
-                        // Bestehende Kabellinie – nur verknüpfen, kein neues kabel anlegen
-                        newKabelId = kabellinieDialog.bestehendesKabelId
-                        // Von/Nach aktualisieren falls gesetzt
-                        if (kabellinieDialog.vonOrt || kabellinieDialog.nachOrt) {
-                            db.kabelMetaAktualisieren(newKabelId,
-                                kabellinieDialog.bezeichnung,
-                                kabellinieDialog.kabeltyp,
-                                kabellinieDialog.aderzahl,
-                                kabellinieDialog.querschnittMm2,
-                                kabellinieDialog.vonOrt,
-                                kabellinieDialog.nachOrt)
-                        }
-                        var existDetails = db.kabelLinieDetails(re.id || 0)
-                        bkAdern = existDetails.adern || []
-                    } else {
-                        newKabelId = db.kabelAnlegen(root.projektId,
-                                        kabellinieDialog.bezeichnung,
-                                        kabellinieDialog.kabeltyp,
-                                        kabellinieDialog.aderzahl,
-                                        kabellinieDialog.querschnittMm2,
-                                        re.id || 0,
-                                        kabellinieDialog.vonOrt,
-                                        kabellinieDialog.nachOrt)
-                        if (newKabelId > 0 && kabellinieDialog.bauteilKabelId > 0) {
-                            var bkMeta = db.kabelBauteilKabelSetzen(newKabelId, kabellinieDialog.bauteilKabelId)
-                            bkAdern = bkMeta.adern || []
-                        }
-                    }
-
-                    // kabelId stabil in extraDaten speichern (überlebt DELETE+INSERT in grafikSpeichern)
-                    if (newKabelId > 0) {
-                        var el2 = Object.assign({}, elementeModel.element(ri))
-                        el2.extraDaten = Object.assign({}, el2.extraDaten || {})
-                        el2.extraDaten.kabelId = newKabelId
-                        if (bkAdern.length > 0) el2.extraDaten.adern = bkAdern
-                        elementeModel.eigenschaftSetzen(ri, "extraDaten", el2.extraDaten)
-                        root.grafikSpeichernJetzt()  // speichert kabelId → grafikSpeichern verlinkt kabel.grafik_element_id
-                        root.kabelLinienCacheAktualisieren()
-
-                        // Elemente neu laden – zweites grafikSpeichern hat DELETE+INSERT durchgeführt,
-                        // daher hat das Element eine neue DB-ID; frische ID per kabelId suchen
-                        elementeModel.laden(root.seiteId)
-                        var freshReloaded = elementeModel.snapshot()
-
-                        var freshKlEl = null
-                        for (var fi = 0; fi < freshReloaded.length; fi++) {
-                            var fe = freshReloaded[fi]
-                            if (fe.typ === "kabellinie" && fe.extraDaten && fe.extraDaten.kabelId === newKabelId) {
-                                freshKlEl = fe; break
-                            }
-                        }
-
-                        // Aderzuordnungsdialog öffnen wenn Schnittpunkte vorhanden (Phase 6)
-                        if (freshKlEl) {
-                            var neueNetze  = drawCanvas.autoNetzeBerechnen()
-                            var schnitte   = drawCanvas.kabelSchnittNetzeBerechnen(freshKlEl, neueNetze)
-                            if (schnitte.length > 0) {
-                                aderzuordnungDialog.kabelId                   = newKabelId
-                                aderzuordnungDialog.kabelBezeichnung          = kabellinieDialog.bezeichnung
-                                aderzuordnungDialog.kabeltyp                  = kabellinieDialog.kabeltyp
-                                aderzuordnungDialog.aderzahl                  = kabellinieDialog.aderzahl
-                                aderzuordnungDialog.adern                     = bkAdern
-                                aderzuordnungDialog.schnittNetze              = schnitte
-                                aderzuordnungDialog.aderZuordnung             = {}
-                                aderzuordnungDialog.kabellinieGrafikElementId = freshKlEl.id || 0
-                                aderzuordnungDialog.pinNummernMap             = _pinNummernFuerNetze(neueNetze)
-                                aderzuordnungDialog.open()
-                            }
-                        }
-                    }
-                    break
-                }
-            }
-            drawCanvas.requestPaint()
-        }
-
-        onRejected: {
-            // Linie wieder aus den Elementen entfernen
-            var idx = elementIndex
-            if (idx >= 0 && idx < elementeModel.anzahl) {
-                var cleaned = elementeModel.snapshot()
-                cleaned.splice(idx, 1)
-                root.aktionAusfuehren(cleaned)
-                drawCanvas.requestPaint()
-            }
-        }
-    }
-
-    AderzuordnungDialog {
-        id:    aderzuordnungDialog
-        theme: root.theme
-        debug: root.debug
-        onAccepted: drawCanvas.requestPaint()
-        onZuordnungGespeichert: function(netKeyMap) {
-            console.log("onZuordnungGespeichert: ausgewaehlt=", root.ausgewaehlt,
-                        "netKeyMap=", JSON.stringify(netKeyMap))
-            var idx = root.ausgewaehlt
-            if (idx < 0 || idx >= elementeModel.anzahl) {
-                console.log("  → abgebrochen: idx ungültig")
-                return
-            }
-            var el = elementeModel.element(idx)
-            if (!el || el.typ !== "kabellinie") {
-                console.log("  → abgebrochen: kein kabellinie, typ=", el ? el.typ : "null")
-                return
-            }
-            var el2 = Object.assign({}, el)
-            el2.extraDaten = Object.assign({}, el2.extraDaten || {})
-            el2.extraDaten.aderZuordnung = netKeyMap
-            elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
-            root.grafikSpeichernJetzt()
-            root.kabelLinienCacheAktualisieren()
-            // Elemente neu laden damit die EP-Bindings die aktuelle grafik_element_id erhalten
-            elementeModel.laden(root.seiteId)
-            root.verdrahtungswegeAktualisieren()
-        }
-    }
-
-    // --------------------------------------------------------
-    // Makrokasten-Dialog: öffnet sich direkt nach dem Zeichnen
-    // --------------------------------------------------------
-    MakrobenennDialog {
-        id:    makrobenennDialog
-        theme: root.theme
-
-        property int elementIndex: -1
-
-        onAccepted: {
-            var idx = elementIndex
-            if (idx < 0 || idx >= elementeModel.anzahl) return
-            var snap = elementeModel.snapshot()
-            var el = Object.assign({}, snap[idx])
-            el.extraDaten = {
-                name:         makrobenennDialog.name,
-                beschreibung: makrobenennDialog.beschreibung,
-                kategorie:    makrobenennDialog.kategorie,
-                makroId:      0
-            }
-            snap[idx] = el
-            root.aktionAusfuehren(snap)
-            root.grafikSpeichernJetzt()   // Element bekommt DB-id nach Reload
-
-            // Sofort als Makro in DB speichern – dann erscheint es gleich in der Seitenleiste
-            var savedEl = elementeModel.element(idx)
-            if (savedEl && (savedEl.id || 0) > 0) {
-                var newMakroId = db.makroSpeichern(savedEl.id, root.seiteId)
-                if (newMakroId > 0) {
-                    var el2 = Object.assign({}, elementeModel.element(idx))
-                    el2.extraDaten = Object.assign({}, el2.extraDaten, { makroId: newMakroId })
-                    elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
-                    root.makroListeGeaendert()
-                    drawCanvas.requestPaint()
-                }
-            }
-        }
-
-        onRejected: {
-            // Kasten wieder entfernen
-            var idx = elementIndex
-            if (idx >= 0 && idx < elementeModel.anzahl) {
-                var updated = elementeModel.snapshot()
-                updated.splice(idx, 1)
-                root.aktionAusfuehren(updated)
-                root.grafikSpeichernJetzt()
-            }
-            root.auswahl = []
-        }
-    }
 
     DebugLabel { panelName: qsTr("Schaltplan-Canvas"); visible: root.debug }
 }

@@ -14,11 +14,7 @@ Item {
         "LogoIconAtom.qml",
         "LogoIconBernstein.qml",
         "LogoIconCee.qml",
-        "LogoIconOstsee.qml",
-        "LogoIconFischKondensator.qml",
-        "LogoIconFischSpule.qml",
-        "LogoIconFischWiderstand.qml",
-        "LogoIconFischDiode.qml"
+        "LogoIconOstsee.qml"
     ]
 
     readonly property color _iconBg:

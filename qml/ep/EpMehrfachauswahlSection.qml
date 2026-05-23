@@ -8,19 +8,24 @@ Item {
     required property var panel
     required property var theme
 
-    readonly property bool hatSymbole: {
-        var _dep = panel._refresh * 0
+    // canvas.auswahlLaenge ist readonly property int → ändert sich bei JEDER
+    // Auswahländerung, auch wenn ausgewaehlt konstant -1 bleibt (z.B. Keine→Mehrfach).
+    // canvas.auswahl (property var) ist in AOT nicht direkt trackbar.
+    readonly property bool _hatSymbole: {
+        var n  = canvas.auswahlLaenge         // int, AOT-sicher, alle Übergänge
+        var em = canvas.elementeModel.anzahl  // int, AOT-sicher getrackt
+        if (n < 2) return false
         var sel = canvas.auswahl
-        for (var i = 0; i < sel.length + _dep; i++) {
+        for (var i = 0; i < sel.length; i++) {
             var idx = sel[i]
-            if (idx >= 0 && idx < canvas.elementeModel.anzahl
+            if (idx >= 0 && idx < em
                     && canvas.elementeModel.element(idx).typ === "symbol") return true
         }
         return false
     }
 
     width:   parent ? parent.width : 0
-    height:  (panel._refresh * 0 + canvas.auswahl.length > 1 && hatSymbole) ? multiCol.implicitHeight : 0
+    height:  (canvas.auswahlLaenge > 1 && _hatSymbole) ? multiCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 

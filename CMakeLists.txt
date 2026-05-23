@@ -109,6 +109,8 @@ qt_add_qml_module(stroemling_app
         qml/canvas/CanvasWerkzeugLeiste.qml
         qml/canvas/CanvasInteraktionArea.qml
         qml/canvas/CanvasNavigationHandler.qml
+        qml/canvas/CanvasDialogLayer.qml
+        qml/canvas/CanvasBildWerkzeug.qml
 
         qml/symboleditor/SeSymbolListe.qml
         qml/symboleditor/SeEditorHeader.qml
@@ -177,6 +179,9 @@ target_link_libraries(stroemling_app PRIVATE
     Qt6::Sql
     Qt6::PrintSupport
 )
+
+string(TIMESTAMP BUILD_DATE "%Y-%m-%d")
+target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}")
 
 # ============================================================
 # Tests

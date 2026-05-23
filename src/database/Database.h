@@ -497,6 +497,11 @@ public:
     // Element-IDs die mehr als einem Kanal zugewiesen sind (Adress-Konflikt)
     Q_INVOKABLE QVariantList spsKonfliktElementIds(int projektId);
 
+    // ── DRC (Design Rule Check) ──────────────────────────────────────────────
+    // Gibt alle BMK-Werte zurück, die im Projekt mehrfach vorkommen.
+    // Rückgabe: [{bmk, anzahl, ids:[...]}]
+    Q_INVOKABLE QVariantList drcDoppelteBmk(int projektId);
+
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.
     // pfad: lokaler Dateipfad oder file://-URL.

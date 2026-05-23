@@ -39,6 +39,7 @@ ApplicationWindow {
     property string aktivProjektHintergrund: "#080f1c"
 
     property bool   debugModeAktiv:         false
+    property bool   drcPanelOffen:          false
 
     property string symbolEditorId:         ""
     property string symbolEditorVorlageId:  ""
@@ -443,6 +444,15 @@ ApplicationWindow {
                     onClicked: root.aktiveAnsicht = "sps"
                 }
                 SidebarButton {
+                    theme:   appTheme
+                    icon:    "⚠"
+                    label:   qsTr("DRC")
+                    active:  root.drcPanelOffen
+                    enabled: root.aktivProjektId >= 0
+                    opacity: enabled ? 1.0 : 0.4
+                    onClicked: root.drcPanelOffen = !root.drcPanelOffen
+                }
+                SidebarButton {
                     theme:  appTheme
                     icon:   "⚙"
                     label:  qsTr("Einstellungen")
@@ -644,8 +654,13 @@ ApplicationWindow {
                 visible:      root.aktiveAnsicht === "seiten"
 
                 RowLayout {
-                    anchors.fill: parent
-                    spacing:      0
+                    anchors {
+                        left:   parent.left
+                        right:  parent.right
+                        top:    parent.top
+                        bottom: drcPanel.top
+                    }
+                    spacing: 0
 
                     SeitenBaum {
                         id:                    seitenBaum
@@ -866,6 +881,23 @@ ApplicationWindow {
                             onTeilenUnten:  { /* Verschachtelung nicht unterst\u00fctzt */ }
                         }
                     }
+                }
+
+                // \u2500\u2500 DRC-Panel (unten, ausklappbar) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                DrcPanel {
+                    id:    drcPanel
+                    anchors {
+                        left:   parent.left
+                        right:  parent.right
+                        bottom: parent.bottom
+                    }
+                    height:    root.drcPanelOffen ? 200 : 0
+                    visible:   root.drcPanelOffen
+                    theme:     appTheme
+                    projektId: root.aktivProjektId
+                    onSchliessen: root.drcPanelOffen = false
+
+                    Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 }
             }
 

@@ -9894,6 +9894,37 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
     return count;
 }
 
+QVariantList Database::drcDoppelteBmk(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q;
+    q.prepare(
+        "SELECT bv.bmk_vollstaendig, COUNT(*) AS anzahl, GROUP_CONCAT(b.id) AS ids "
+        "FROM betriebsmittel b "
+        "JOIN betriebsmittel_bmk bv ON b.id = bv.id "
+        "WHERE b.projekt_id = :pid "
+        "GROUP BY bv.bmk_vollstaendig "
+        "HAVING COUNT(*) > 1 "
+        "ORDER BY bv.bmk_vollstaendig"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "drcDoppelteBmk:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantList ids;
+        for (const QString &s : q.value(2).toString().split(','))
+            ids << s.trimmed().toInt();
+        QVariantMap fund;
+        fund["bmk"]    = q.value(0).toString();
+        fund["anzahl"] = q.value(1).toInt();
+        fund["ids"]    = ids;
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

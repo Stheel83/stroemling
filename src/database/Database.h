@@ -501,6 +501,9 @@ public:
     // Gibt alle BMK-Werte zurück, die im Projekt mehrfach vorkommen.
     // Rückgabe: [{bmk, anzahl, ids:[...]}]
     Q_INVOKABLE QVariantList drcDoppelteBmk(int projektId);
+    // Gibt Symbole zurück, die ein BMK benötigen aber keines haben.
+    // Rückgabe: [{elementId, symbolId, seiteId, seiteName}]
+    Q_INVOKABLE QVariantList drcSymboleOhneBmk(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

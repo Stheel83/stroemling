@@ -23,14 +23,28 @@ Item {
 
     function pruefen() {
         ergebnisModel.clear()
-        var funde = db.drcDoppelteBmk(root.projektId)
-        for (var i = 0; i < funde.length; i++) {
-            var f = funde[i]
+
+        var d01 = db.drcDoppelteBmk(root.projektId)
+        for (var i = 0; i < d01.length; i++) {
+            var f = d01[i]
             ergebnisModel.append({
-                "typ":     "doppelter_bmk",
-                "bmk":     f.bmk,
-                "anzahl":  f.anzahl,
-                "ids":     f.ids.join(", ")
+                "typ":       "doppelter_bmk",
+                "meldung":   qsTr("Doppelter BMK: %1  (%2×)").arg(f.bmk).arg(f.anzahl),
+                "detail":    qsTr("IDs: %1").arg(f.ids.join(", ")),
+                "seiteId":   -1,
+                "elementId": -1
+            })
+        }
+
+        var d02 = db.drcSymboleOhneBmk(root.projektId)
+        for (var j = 0; j < d02.length; j++) {
+            var g = d02[j]
+            ergebnisModel.append({
+                "typ":       "symbol_ohne_bmk",
+                "meldung":   qsTr("Symbol ohne BMK: %1").arg(g.symbolId),
+                "detail":    qsTr("Seite: %1").arg(g.seiteName),
+                "seiteId":   g.seiteId,
+                "elementId": g.elementId
             })
         }
     }
@@ -176,13 +190,12 @@ Item {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: qsTr("Doppelter BMK: <b>%1</b>  (%2×)").arg(model.bmk).arg(model.anzahl)
+                        text: model.meldung
                         font.pixelSize: 11
                         color: root.theme.textPrimary
-                        textFormat: Text.RichText
                     }
                     Text {
-                        text: qsTr("IDs: %1").arg(model.ids)
+                        text: model.detail
                         font.pixelSize: 10
                         font.family: "monospace"
                         color: root.theme.textMuted

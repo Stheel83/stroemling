@@ -9925,6 +9925,40 @@ QVariantList Database::drcDoppelteBmk(int projektId)
     return ergebnis;
 }
 
+QVariantList Database::drcSymboleOhneBmk(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q;
+    q.prepare(
+        "SELECT ge.id, ge.symbol_id, ge.seite_id, s.bezeichnung "
+        "FROM grafik_element ge "
+        "JOIN seite s ON ge.seite_id = s.id "
+        "LEFT JOIN betriebsmittel b ON ge.betriebsmittel_id = b.id "
+        "WHERE s.projekt_id = :pid "
+        "  AND ge.typ = 'symbol' "
+        "  AND ge.symbol_id NOT IN ("
+        "    'winkel','treffpunkt','treffpunkt_l','geraeteanschluss',"
+        "    'unterbrechung','querverweis','aderdefinition','klemme_anschluss') "
+        "  AND (ge.betriebsmittel_id IS NULL "
+        "       OR TRIM(COALESCE(b.betriebsmittel_kz,'')) = '') "
+        "ORDER BY s.blattnummer, ge.id"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "drcSymboleOhneBmk:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap fund;
+        fund["elementId"] = q.value(0).toInt();
+        fund["symbolId"]  = q.value(1).toString();
+        fund["seiteId"]   = q.value(2).toInt();
+        fund["seiteName"] = q.value(3).toString();
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

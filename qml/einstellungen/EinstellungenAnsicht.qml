@@ -1025,6 +1025,85 @@ Item {
                     }
                 }
 
+                // ── Sektion: Lizenz & Open Source ────────────────
+                Item { height: 28 }
+                Text {
+                    Layout.leftMargin:   20
+                    text:                qsTr("Lizenz & Open Source")
+                    font.pixelSize:      11
+                    font.weight:         Font.Medium
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing:  1
+                    color:               root.theme.textMuted
+                }
+                Item { height: 8 }
+
+                Rectangle {
+                    Layout.fillWidth:   true
+                    Layout.leftMargin:  12
+                    Layout.rightMargin: 12
+                    color:              root.theme.surface
+                    radius:             6
+                    border.color:       root.theme.border
+                    height:             lizenzCol.implicitHeight + 24
+
+                    Column {
+                        id:               lizenzCol
+                        anchors {
+                            left:         parent.left
+                            right:        parent.right
+                            top:          parent.top
+                            margins:      12
+                        }
+                        spacing: 8
+
+                        Text {
+                            width:          parent.width
+                            text:           qsTr("Strömling Design ist freie Software, lizenziert unter der GNU General Public License v3.")
+                            font.pixelSize: 12
+                            color:          root.theme.textPrimary
+                            wrapMode:       Text.WordWrap
+                        }
+                        Column {
+                            width:   parent.width
+                            spacing: 4
+                            Repeater {
+                                model: [
+                                    qsTr("✓  Privat nutzbar – kostenlos"),
+                                    qsTr("✓  Bildungseinrichtungen – kostenlos"),
+                                    qsTr("✓  Quellcode öffentlich einsehbar"),
+                                    qsTr("✓  Zukünftige Versionen bleiben Open Source"),
+                                    qsTr("✓  Beiträge und Verbesserungen willkommen")
+                                ]
+                                delegate: Text {
+                                    width:          parent.width
+                                    text:           modelData
+                                    font.pixelSize: 12
+                                    color:          root.theme.textPrimary
+                                    wrapMode:       Text.WordWrap
+                                }
+                            }
+                        }
+                        Text {
+                            width:          parent.width
+                            text:           qsTr("Wenn dir das Programm nützt, freue ich mich über eine Spende – das hilft, das Projekt weiterzuentwickeln.")
+                            font.pixelSize: 11
+                            font.italic:    true
+                            color:          root.theme.textMuted
+                            wrapMode:       Text.WordWrap
+                            topPadding:     4
+                        }
+                        Text {
+                            width:          parent.width
+                            text:           "GPL-3.0-or-later · https://www.gnu.org/licenses/gpl-3.0.txt"
+                            font.pixelSize: 10
+                            font.family:    "monospace"
+                            color:          root.theme.textMuted
+                            wrapMode:       Text.WordWrap
+                        }
+                    }
+                }
+
                 Item { height: 32 }
             }
         }

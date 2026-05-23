@@ -59,6 +59,19 @@ Item {
                 "elementId": -1
             })
         }
+
+        var d04 = db.drcKabeladernOhneAnschluss(root.projektId)
+        for (var l = 0; l < d04.length; l++) {
+            var a = d04[l]
+            var aderLabel = a.aderBez !== "" ? a.aderBez : qsTr("Ader %1").arg(a.aderNr)
+            ergebnisModel.append({
+                "typ":       "kabelader_ohne_anschluss",
+                "meldung":   qsTr("Kabelader ohne Anschluss: %1 / %2").arg(a.kabelName).arg(aderLabel),
+                "detail":    a.wasFehlt,
+                "seiteId":   -1,
+                "elementId": -1
+            })
+        }
     }
 
     // Hintergrund

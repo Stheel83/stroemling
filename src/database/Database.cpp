@@ -9983,6 +9983,42 @@ QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
     return ergebnis;
 }
 
+QVariantList Database::drcKabeladernOhneAnschluss(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q;
+    q.prepare(
+        "SELECT ka.id, ka.ader_nr, ka.bezeichnung, k.bezeichnung, "
+        "  CASE "
+        "    WHEN TRIM(COALESCE(ka.von_gerat_pin,''))  = '' "
+        "     AND TRIM(COALESCE(ka.nach_gerat_pin,'')) = '' THEN 'Von + Nach fehlen' "
+        "    WHEN TRIM(COALESCE(ka.von_gerat_pin,''))  = '' THEN 'Von fehlt' "
+        "    ELSE 'Nach fehlt' "
+        "  END "
+        "FROM kabel_ader ka "
+        "JOIN kabel k ON ka.kabel_id = k.id "
+        "WHERE k.projekt_id = :pid "
+        "  AND (TRIM(COALESCE(ka.von_gerat_pin,''))  = '' "
+        "    OR TRIM(COALESCE(ka.nach_gerat_pin,'')) = '') "
+        "ORDER BY k.bezeichnung, ka.ader_nr"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "drcKabeladernOhneAnschluss:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap fund;
+        fund["aderId"]    = q.value(0).toInt();
+        fund["aderNr"]    = q.value(1).toInt();
+        fund["aderBez"]   = q.value(2).toString();
+        fund["kabelName"] = q.value(3).toString();
+        fund["wasFehlt"]  = q.value(4).toString();
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

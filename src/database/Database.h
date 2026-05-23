@@ -507,6 +507,9 @@ public:
     // Gibt Seiten zurück, die keine Bezeichnung haben.
     // Rückgabe: [{seiteId, blattnummer}]
     Q_INVOKABLE QVariantList drcSeitenOhneBezeichnung(int projektId);
+    // Gibt Kabeladern zurück, bei denen Von- oder Nach-Anschluss fehlt.
+    // Rückgabe: [{aderId, aderNr, aderBez, kabelName, wasFehlt}]
+    Q_INVOKABLE QVariantList drcKabeladernOhneAnschluss(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

@@ -2,11 +2,13 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import "../components"
 
 Item {
     id: root
 
     required property var theme
+    property bool debug: false
 
     // ── State ─────────────────────────────────────────────────
     property var  _kategorien: []
@@ -1462,4 +1464,6 @@ Item {
             }
         }
     }
+
+    DebugLabel { panelName: qsTr("Wiki-Ansicht"); visible: root.debug }
 }

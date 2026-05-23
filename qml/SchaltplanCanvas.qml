@@ -31,6 +31,7 @@ Item {
 
     required property var theme
     property bool debug: false
+    onDebugChanged: drawCanvas.requestPaint()
     required property var elementeModel
 
     signal hintergrundGeaendert(string farbe)

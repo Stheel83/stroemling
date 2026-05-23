@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import stroemling
+import "../components"
 
 Rectangle {
     id: root
@@ -56,4 +57,6 @@ Rectangle {
             ToolTip.delay:   500
         }
     }
+
+    DebugLabel { panelName: qsTr("Canvas-Werkzeuge"); visible: canvas.debug }
 }

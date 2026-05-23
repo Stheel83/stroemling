@@ -1,12 +1,14 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import "components"
 
 Popup {
     id: root
 
     property int    projektId:  -1
     required property var theme
+    property bool   debug: false
 
     // Werkzeug-Aktivierung
     signal werkzeugAktiviert(string werkzeug)
@@ -213,4 +215,6 @@ Popup {
 
     // Klick außerhalb schließt
     Overlay.modal: Rectangle { color: "transparent" }
+
+    DebugLabel { parent: root.contentItem; panelName: qsTr("Kommando-Palette"); visible: root.debug && root.visible }
 }

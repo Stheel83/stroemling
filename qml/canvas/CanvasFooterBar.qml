@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import stroemling
+import "../components"
 
 Rectangle {
     id: root
@@ -99,4 +100,6 @@ Rectangle {
         Item { Layout.fillWidth: true }
         Text { text: root.koordinatenText; color: AppTheme.borderLight; font.pixelSize: 10; font.family: "monospace" }
     }
+
+    DebugLabel { panelName: qsTr("Canvas-Footer"); corner: "br"; visible: canvas.debug }
 }

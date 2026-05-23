@@ -1,5 +1,6 @@
 import QtQuick
 import stroemling
+import "../components"
 
 // Kabel-, Aderzuordnungs- und Makro-Dialoge des SchaltplanCanvas.
 // Kommuniziert ausschließlich über `canvas` (SchaltplanCanvas-Referenz).
@@ -233,4 +234,6 @@ Item {
             canvas.auswahl = []
         }
     }
+
+    DebugLabel { panelName: qsTr("Canvas-Dialog-Layer"); visible: root.debug }
 }

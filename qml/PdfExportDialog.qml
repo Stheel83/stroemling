@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs
+import "components"
 
 Dialog {
     id: root
@@ -15,6 +16,7 @@ Dialog {
     required property var theme
     required property int projektId
     required property int seiteId
+    property bool         debug: false
 
     title: qsTr("PDF-Export")
 
@@ -229,4 +231,6 @@ Dialog {
             }
         }
     }
+
+    DebugLabel { parent: root.contentItem; panelName: qsTr("PDF-Export-Dialog"); visible: root.debug && root.visible }
 }

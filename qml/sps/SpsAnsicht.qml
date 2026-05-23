@@ -2,12 +2,14 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs
+import "../components"
 
 Item {
     id: root
 
     property int projektId: -1
     property var theme
+    property bool debug: false
 
     // ── Auswahl-State ────────────────────────────────────────────
     property int _ausgewaehlterRackId:      -1
@@ -1149,4 +1151,6 @@ Item {
             }
         }
     }
+
+    DebugLabel { panelName: qsTr("SPS-Ansicht"); visible: root.debug }
 }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import stroemling
+import "../components"
 
 Rectangle {
     id: root
@@ -117,4 +118,6 @@ Rectangle {
             ToolTip.text: qsTr("Normblatt einpassen (Ctrl+Shift+N)")
         }
     }
+
+    DebugLabel { panelName: qsTr("Canvas-Header"); corner: "tr"; visible: canvas.debug }
 }

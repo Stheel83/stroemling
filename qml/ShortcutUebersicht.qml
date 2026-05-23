@@ -1,10 +1,12 @@
 import QtQuick
 import QtQuick.Layouts
+import "components"
 
 Item {
     id: root
 
     required property var theme
+    property bool debug: false
 
     visible: false
 
@@ -146,7 +148,7 @@ Item {
                     ShortcutZeile { kuerzel: "Ctrl+P";       aktion: "Kommandopalette oeffnen" }
                     ShortcutZeile { kuerzel: "Ctrl+Shift+P"; aktion: "PDF-Export" }
                     ShortcutZeile { kuerzel: "F1";           aktion: "Diese Uebersicht" }
-                    ShortcutZeile { kuerzel: "Ctrl+Shift+D"; aktion: "Debug-Modus umschalten" }
+                    ShortcutZeile { kuerzel: "Ctrl+Shift+Alt+D"; aktion: "Debug-Modus umschalten" }
                 }
             }
 
@@ -197,4 +199,6 @@ Item {
             }
         }
     }
+
+    DebugLabel { panelName: qsTr("Shortcut-Uebersicht"); visible: root.debug && root.visible }
 }

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "components"
 
 // DRC-Ergebnis-Panel – erscheint am unteren Rand des Canvas-Bereichs.
 // Auslösung: manuell per Prüfen-Button. Ergebnisse bleiben bis zum nächsten
@@ -10,6 +11,7 @@ Item {
 
     required property var    theme
     required property int    projektId
+    property bool            debug: false
 
     signal schliessen()
 
@@ -253,4 +255,6 @@ Item {
             }
         }
     }
+
+    DebugLabel { panelName: qsTr("DRC-Panel"); visible: root.debug }
 }

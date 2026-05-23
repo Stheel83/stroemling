@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
+import "../components"
 
 // Bild-Werkzeug: FileDialog + Drag-Drop-Bereich des SchaltplanCanvas.
 // Anchoring (top/bottom/left/right) wird vom Aufrufer (SchaltplanCanvas) gesetzt.
@@ -120,4 +121,6 @@ Item {
             drop.accepted = true
         }
     }
+
+    DebugLabel { panelName: qsTr("Canvas-Bild-Werkzeug"); visible: canvas.debug }
 }

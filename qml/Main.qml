@@ -232,7 +232,7 @@ ApplicationWindow {
     }
 
     Shortcut {
-        sequence:    "Ctrl+Shift+D"
+        sequence:    "Ctrl+Shift+Alt+D"
         context:     Shortcut.ApplicationShortcut
         onActivated: root.debugModeAktiv = !root.debugModeAktiv
     }
@@ -255,12 +255,14 @@ ApplicationWindow {
         theme:     appTheme
         projektId: root.aktivProjektId
         seiteId:   root.aktivSeiteId
+        debug:     root.debugModeAktiv
     }
 
     KommandoPalette {
         id:        kommandoPalette
         theme:     appTheme
         projektId: root.aktivProjektId
+        debug:     root.debugModeAktiv
 
         onWerkzeugAktiviert: function(werkzeug) {
             if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
@@ -895,6 +897,7 @@ ApplicationWindow {
                     visible:   root.drcPanelOffen
                     theme:     appTheme
                     projektId: root.aktivProjektId
+                    debug:     root.debugModeAktiv
                     onSchliessen: root.drcPanelOffen = false
 
                     Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -1194,6 +1197,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "normblatt"
                 theme:        appTheme
+                debug:        root.debugModeAktiv
             }
 
             // ── Wiki ───────────────────────────────────────────────────
@@ -1201,6 +1205,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "wiki"
                 theme:        appTheme
+                debug:        root.debugModeAktiv
             }
 
             // ── SPS/PLS ────────────────────────────────────────────────
@@ -1209,6 +1214,7 @@ ApplicationWindow {
                 visible:      root.aktiveAnsicht === "sps"
                 theme:        appTheme
                 projektId:    root.aktivProjektId
+                debug:        root.debugModeAktiv
             }
 
             // ── Einstellungen ──────────────────────────────────────────
@@ -1217,6 +1223,7 @@ ApplicationWindow {
                 visible:      root.aktiveAnsicht === "einstellungen"
                 theme:        appTheme
                 seiteOffen:   root.aktivSeiteId >= 0
+                debug:        root.debugModeAktiv
                 onJetztTesten: {
                     if (root.aktivSeiteId < 0) return
                     var c = root.aktiverCanvas
@@ -1235,6 +1242,7 @@ ApplicationWindow {
         visible:      !db.projektOffen
         theme:        appTheme
         z:            200
+        debug:        root.debugModeAktiv
     }
 
     // ── Fun-Modus-Overlay ─────────────────────────────────────────
@@ -1254,6 +1262,7 @@ ApplicationWindow {
         anchors.fill: parent
         z:            700
         theme:        appTheme
+        debug:        root.debugModeAktiv
     }
 
     // ── Globale Canvas-Shortcuts ──────────────────────────────────

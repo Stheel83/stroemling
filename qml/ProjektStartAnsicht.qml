@@ -2,10 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import "components"
 
 Item {
     id: root
     required property var theme
+    property bool debug: false
 
     // ── Datei-Dialoge ────────────────────────────────────────────
     FileDialog {
@@ -247,4 +249,6 @@ Item {
             visible:          false
         }
     }
+
+    DebugLabel { panelName: qsTr("Projekt-Start-Ansicht"); visible: root.debug }
 }

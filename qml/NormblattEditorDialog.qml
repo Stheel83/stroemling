@@ -2,11 +2,13 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "nb"
+import "components"
 
 Item {
     id: root
 
     required property var theme
+    property bool debug: false
 
     signal gespeichert(int vorlageId)
 
@@ -329,4 +331,6 @@ Item {
             }
         }
     }
+
+    DebugLabel { panelName: qsTr("Normblatt-Editor"); visible: root.debug }
 }

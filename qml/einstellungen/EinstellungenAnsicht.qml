@@ -3,10 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtCore
+import "../components"
 
 Item {
     id: root
     required property var theme
+    property bool debug: false
 
     signal jetztTesten()
     signal gespraechTexteGeaendert(string json)
@@ -1206,4 +1208,6 @@ Item {
             }
         }
     }
+
+    DebugLabel { panelName: qsTr("Einstellungen-Ansicht"); visible: root.debug }
 }

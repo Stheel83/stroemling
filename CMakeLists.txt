@@ -58,6 +58,7 @@ qt_add_qml_module(stroemling_app
         qml/components/InputField.qml
         qml/components/ColorPalette.qml
         qml/components/MiniButton.qml
+        qml/components/AderfarbenSwatch.qml
         qml/components/StilSlider.qml
         qml/components/MassField.qml
 
@@ -175,6 +176,13 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/pokestroem_cee.png
         qml/assets/impulsino_sheet.png
         qml/assets/isolus.png
+        qml/assets/brauno_uebersicht.png
+        qml/assets/blaubertha_uebersicht.png
+        qml/assets/grausel_uebersicht.png
+        qml/assets/erdikus_uebersicht.png
+        qml/assets/datinchen_uebersicht.png
+        qml/assets/impulsino_uebersicht.png
+        qml/assets/isolus_kampf.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

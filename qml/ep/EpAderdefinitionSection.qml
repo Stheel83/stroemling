@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import "../components"
 
 Item {
@@ -75,13 +76,38 @@ Item {
             spacing: 4; bottomPadding: 4
             Repeater {
                 model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE"]
-                MiniButton { theme: theme;
-                    label: modelData; breite: 38; hoehe: 24
-                    aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData
-                    onKlick: {
-                        var cur = panel.el ? ((panel.el.extraDaten || {}).aderfarbe || "") : ""
-                        root.extraSetzen("aderfarbe", cur === modelData ? "" : modelData)
+                delegate: Rectangle {
+                    property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData
+                    property string sName: ({"BN":"Brauno – L1","BK":"Schwärzchen – L2",
+                        "GY":"Grausel – L3","BU":"Blaubertha – N","GNYE":"Erdikus – PE"})[modelData] || ""
+                    width: 50; height: 24; radius: 4
+                    color:        aktiv ? theme.activeItemAlt : (abMaus.containsMouse ? theme.hover : theme.inputBg)
+                    border.color: aktiv ? theme.accent : theme.border
+
+                    Row {
+                        anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
+                        spacing: 3
+                        AderfarbenSwatch {
+                            aderCode: modelData; width: 10; height: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData; font.pixelSize: 9
+                            color: aktiv ? theme.accent : theme.textMuted
+                        }
                     }
+                    MouseArea {
+                        id: abMaus; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var cur = panel.el ? ((panel.el.extraDaten || {}).aderfarbe || "") : ""
+                            root.extraSetzen("aderfarbe", cur === modelData ? "" : modelData)
+                        }
+                    }
+                    ToolTip.visible:  sName !== "" && abMaus.containsMouse
+                    ToolTip.text:     sName
+                    ToolTip.delay:    500
                 }
             }
         }

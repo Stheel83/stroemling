@@ -7456,11 +7456,11 @@ oder einen **Systemzustand** – erkennbar an Farbe, Körpermerkmalen und Persö
 
 | Familie | Charaktere | Norm |
 |---|---|---|
-| Netzleiter | Brauno (L1), Schwärzchen (L2), Grausel (L3), Blaubert (N), Erdikus (PE) | IEC 60446 |
+| Netzleiter | Brauno (L1), Schwärzchen (L2), Grausel (L3), Blaubertha (N), Erdikus (PE) | IEC 60446 |
+| Leitung & Kabelbrücke | Linus (Kabelbrücke) + Farbvarianten | DIN VDE 0293 |
 | Signale & Bus | Impulsino (Signal), Datinchen (Bus) | – |
 | Schutz & Isolierung | Isolus (Dunkleosteus-Panzerfish) | IEC Klasse II |
-| Fehlerzustände | Krizzo (Kurzschluss), Errikus (Fehler), Fusius (Überlast), Stoppius (Not-Aus) | – |
-| Leitungen | Linus (Kabelbrücke) + Farbvarianten | DIN VDE 0293 |
+| Fehlerzustände | Krizzo (Kurzschluss), Errinka (Fehler), Fusia (Überlast), Stoppius (Not-Aus) | – |
 )",
                     "strömling maskottchen übersicht charakter"
                 },
@@ -7565,6 +7565,157 @@ spannungsführenden Leitern und allem, was sie nicht berühren soll.
 Isolus erscheint in der **Wiki-Artikelliste** als Wächter, wenn noch keine Artikel angelegt sind.
 )",
                     "isolus isolation schutz dunkleosteus panzer IEC klasse II"
+                },
+                {
+                    "Brauno – Außenleiter L1",
+                    R"(# Brauno – Außenleiter L1
+
+Brauno repräsentiert den **Außenleiter L1** (braun) nach IEC 60446 / DIN VDE 0293.
+Er ist der Erste unter den Netzleitern – solide, zuverlässig, trägt die Last.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Aderfarbe** | Braun |
+| **Körperfarbe** | Warmes Schokoladenbraun `#7B3F1E` |
+| **Leiterbahnen** | Kupferfarbig-golden `#D4A520`, Sinuswelle |
+| **Glühbirnen** | Bernstein-orange, warm leuchtend |
+| **Augen** | Selbstbewusst geradeaus – der Erste, der Anführer |
+
+## Persönlichkeit
+
+Solide, etwas ernst. *Trägt die Last – kein Drama, einfach da.*
+Brust raus, leicht stolz. Hat den Anführer-Anspruch verinnerlicht.
+
+## Norm-Referenz
+
+- **Farbe:** Braun (L1) nach IEC 60446 und DIN VDE 0293
+- **Einsatz:** Erster Außenleiter in Drehstromnetzen (400 V / 50 Hz)
+)",
+                    "brauno L1 außenleiter netzleiter IEC braun"
+                },
+                {
+                    "Blaubertha – Neutralleiter N",
+                    R"(# Blaubertha – Neutralleiter N
+
+Blaubertha repräsentiert den **Neutralleiter N** (blau) nach IEC 60446.
+Sie hofft inständig, nie wirklich gebraucht zu werden – und ist
+dennoch absolut zuverlässig, wenn es darauf ankommt.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Aderfarbe** | Blau |
+| **Körperfarbe** | IEC-Blau `#0057A8` |
+| **Leiterbahnen** | Dunkelblau `#003580`, geschlossene Schleifen (Rückstromweg) |
+| **Glühbirnen** | Blasses Blau, kaum leuchtend – im Fehlerfall: leuchtet rot |
+| **Augen** | Weit geöffnet, leicht ängstlich – immer bereit |
+
+## Persönlichkeit
+
+Ruhig, ausgeglichen. *Der Rückgeber.* Mag Ordnung. Etwas ängstlich –
+hofft, nie wirklich belastet zu werden, doch wenn doch, dann perfekt.
+
+## Norm-Referenz
+
+- **Farbe:** Blau (N) nach IEC 60446 und DIN VDE 0293
+- **Besonderheit:** Im Normalbetrieb kein Strom → Glühbirnen fast dunkel
+)",
+                    "blaubertha N neutralleiter netzleiter IEC blau rückleiter"
+                },
+                {
+                    "Grausel – Außenleiter L3",
+                    R"(# Grausel – Außenleiter L3
+
+Grausel repräsentiert den **Außenleiter L3** (grau) nach IEC 60446.
+Pragmatisch, unauffällig – macht einfach ihren Job, ohne Aufhebens.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Aderfarbe** | Grau |
+| **Körperfarbe** | Metallisches Neutralgrau `#6B6B6B` |
+| **Leiterbahnen** | Hellblau-silbern `#A8D8EA`, diagonal-ungeordnet |
+| **Glühbirnen** | Silbrig-weiß, diskret leuchtend |
+| **Augen** | Leicht müde – den Dritten-Platz kennt man, akzeptiert ihn |
+
+## Persönlichkeit
+
+Die Erfahrene. *Hat alles schon gesehen.* Entspannte Pose, leicht hängend –
+macht ihren Job ruhig und fehlerfrei, ohne je die Aufmerksamkeit zu suchen.
+
+## Norm-Referenz
+
+- **Farbe:** Grau (L3) nach IEC 60446 und DIN VDE 0293
+- **Einsatz:** Dritter Außenleiter in Drehstromnetzen (400 V / 50 Hz)
+)",
+                    "grausel L3 außenleiter netzleiter IEC grau"
+                },
+                {
+                    "Erdikus – Schutzleiter PE",
+                    R"(# Erdikus – Schutzleiter PE
+
+Erdikus repräsentiert den **Schutzleiter PE** (grün-gelb) nach IEC 60446.
+Der ewige Bodyguard. Stoisch, wortlos, geht nirgendwo hin.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Aderfarbe** | Grün-Gelb (zweifarbig, alternierend) |
+| **Körperfarbe** | Diagonale Streifen: Grün `#4CAF50` / Gelb `#FFD700` |
+| **Leiterbahnen** | Grün `#2E7D32` mit gelben Via-Punkten |
+| **Glühbirnen** | Eine grün, eine gelb – zweifarbig |
+| **Augen** | Entspannt, geerdet, schläfrig – der Ruhepol |
+| **Besonderheit** | Erdungssymbol ⏚ als Tattoo auf dem Bauch |
+
+## Persönlichkeit
+
+*Stoisch. Absolut zuverlässig. Spricht wenig.* Breit aufgestellt, solide,
+geht nirgendwo hin. Der Stille, der alles auffängt, wenn es wirklich drauf ankommt.
+
+## Norm-Referenz
+
+- **Farbe:** Grün-Gelb (PE) nach IEC 60446 und DIN VDE 0293
+- **Einsatz:** Schutzleiter – fängt Fehlerströme auf, schützt vor Berührungsspannung
+- **Verbündeter:** Isolus – beide schützen das System, ohne viele Worte
+)",
+                    "erdikus PE schutzleiter netzleiter IEC grün gelb erde"
+                },
+                {
+                    "Datinchen – Kommunikation",
+                    R"(# Datinchen – Kommunikation & Bus
+
+Datinchen repräsentiert das **Kommunikationssignal** – Bus, Feldbus,
+Differenzsignal (RS-485, CAN, Ethernet). Sie weiß mehr als alle anderen
+und hält alles zusammen.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Farbe** | Tiefviolett `#7B2FBE` |
+| **Leiterbahnen** | Doppelte Traces `#C084FC` – Differenzpaar-Symbol |
+| **Ohren** | Keine Glühbirnen – stattdessen zwei kleine Antennen |
+| **Augen** | Klug, leicht verschmitzt – weiß mehr als alle anderen |
+
+## Persönlichkeit
+
+Kommunikativ, redselig, verbindet alle.
+*„Ich sage immer das erste und das letzte Wort."*
+Der soziale Knotenpunkt – ohne Datinchen weiß die linke Hand nicht,
+was die rechte tut.
+
+## Norm-Referenz
+
+- Differenzpaar-Signalübertragung (RS-485, CAN, Profibus, EtherCAT)
+- Zwei parallele Traces = differenzielles Signal
+- **Antennen** statt Glühbirnen: drahtlose Variante möglich
+)",
+                    "datinchen kommunikation bus signal CAN RS485 lila violett"
                 },
                 {
                     "Pokeström",
@@ -7886,10 +8037,15 @@ Programmstart erhalten.
             qWarning() << "seedBild INSERT:" << qIns.lastError().text();
     };
 
-    seedBild("Schwärzchen – Systemfisch L2",  ":/assets/schwaerzchen_sheet.png", "schwaerzchen_sheet.png");
-    seedBild("Impulsino – Signal",             ":/assets/impulsino_sheet.png",    "impulsino_sheet.png");
-    seedBild("Isolus – Schutz & Isolierung",   ":/assets/isolus.png",             "isolus.png");
-    seedBild("Pokeström",                       ":/assets/pokestroem_cee.png",     "pokestroem_cee.png");
+    seedBild("Schwärzchen – Systemfisch L2",  ":/assets/schwaerzchen_sheet.png",    "schwaerzchen_sheet.png");
+    seedBild("Impulsino – Signal",             ":/assets/impulsino_uebersicht.png", "impulsino_uebersicht.png");
+    seedBild("Isolus – Schutz & Isolierung",   ":/assets/isolus.png",               "isolus.png");
+    seedBild("Pokeström",                       ":/assets/pokestroem_cee.png",       "pokestroem_cee.png");
+    seedBild("Brauno – Außenleiter L1",         ":/assets/brauno_uebersicht.png",    "brauno_uebersicht.png");
+    seedBild("Blaubertha – Neutralleiter N",    ":/assets/blaubertha_uebersicht.png","blaubertha_uebersicht.png");
+    seedBild("Grausel – Außenleiter L3",        ":/assets/grausel_uebersicht.png",   "grausel_uebersicht.png");
+    seedBild("Erdikus – Schutzleiter PE",       ":/assets/erdikus_uebersicht.png",   "erdikus_uebersicht.png");
+    seedBild("Datinchen – Kommunikation",       ":/assets/datinchen_uebersicht.png", "datinchen_uebersicht.png");
 
     return true;
 }

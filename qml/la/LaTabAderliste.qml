@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import stroemling
+import "../components"
 
 ColumnLayout {
     id: root
@@ -52,7 +53,20 @@ ColumnLayout {
                 anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                 spacing: 0
                 Text { width: panel.alCols[0].w; text: model.bezeichnung    || "–"; font.pixelSize: 12; color: theme.textSecondary; elide: Text.ElideRight }
-                Text { width: panel.alCols[1].w; text: model.aderfarbe      || "–"; font.pixelSize: 12; color: theme.textSecondary; elide: Text.ElideRight }
+                Item {
+                    width: panel.alCols[1].w; height: 30
+                    AderfarbenSwatch {
+                        id: alSwatch
+                        aderCode: model.aderfarbe || ""
+                        width: 14; height: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        anchors { left: alSwatch.right; leftMargin: 4; verticalCenter: parent.verticalCenter }
+                        width: parent.width - (model.aderfarbe ? 18 : 0)
+                        text: model.aderfarbe || "–"; font.pixelSize: 12; color: theme.textSecondary; elide: Text.ElideRight
+                    }
+                }
                 Text { width: panel.alCols[2].w; text: model.querschnittMm2 > 0 ? model.querschnittMm2 + " mm²" : "–"; font.pixelSize: 12; color: theme.textSecondary; elide: Text.ElideRight }
                 Text { width: panel.alCols[3].w; text: model.laengeM        > 0 ? model.laengeM + " m"    : "–"; font.pixelSize: 12; color: theme.textSecondary; elide: Text.ElideRight }
                 Text { width: panel.alCols[4].w; text: model.seite          || ""; font.pixelSize: 12; color: theme.accentLight;   elide: Text.ElideRight }

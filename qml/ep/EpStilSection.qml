@@ -92,7 +92,11 @@ Item {
 
         AbschnittTitel { text: qsTr("STIL") }
 
-        FeldLabel { text: qsTr("Farbe"); visible: !panel.el || panel.el.typ !== "bild" }
+        FeldLabel {
+            visible: !panel.el || panel.el.typ !== "bild"
+            text: (panel.el && (panel.el.typ === "text" || panel.el.typ === "notiz"))
+                  ? qsTr("Schriftfarbe") : qsTr("Farbe")
+        }
         ColorPalette {
             visible: !panel.el || panel.el.typ !== "bild"
             height:  visible ? implicitHeight : 0
@@ -105,7 +109,7 @@ Item {
 
         Item {
             width: parent.width
-            height: (panel.el && panel.el.typ !== "text" && panel.el.typ !== "bild") ? strichCol.implicitHeight : 0
+            height: (panel.el && panel.el.typ !== "text" && panel.el.typ !== "notiz" && panel.el.typ !== "bild") ? strichCol.implicitHeight : 0
             visible: height > 0; clip: true
             Column {
                 id: strichCol
@@ -135,7 +139,7 @@ Item {
 
         Item {
             width: parent.width
-            height: (panel.el && panel.el.typ === "text") ? txtSchriftCol.implicitHeight : 0
+            height: (panel.el && (panel.el.typ === "text" || panel.el.typ === "notiz")) ? txtSchriftCol.implicitHeight : 0
             visible: height > 0; clip: true
             Column {
                 id: txtSchriftCol
@@ -151,11 +155,11 @@ Item {
             }
         }
 
-        FeldLabel { text: qsTr("Linienart"); visible: !panel.el || panel.el.typ !== "bild" }
+        FeldLabel { text: qsTr("Linienart"); visible: !panel.el || (panel.el.typ !== "bild" && panel.el.typ !== "notiz") }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            visible: !panel.el || panel.el.typ !== "bild"
+            visible: !panel.el || (panel.el.typ !== "bild" && panel.el.typ !== "notiz")
             height: visible ? implicitHeight : 0
             Repeater {
                 model: [
@@ -173,7 +177,7 @@ Item {
                 }
             }
         }
-        Item { height: 8; visible: !panel.el || panel.el.typ !== "bild" }
+        Item { height: 8; visible: !panel.el || (panel.el.typ !== "bild" && panel.el.typ !== "notiz") }
 
         Item {
             width: root.width; height: 22

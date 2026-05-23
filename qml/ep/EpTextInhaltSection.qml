@@ -136,5 +136,64 @@ Item {
             }
         }
         Item { height: 4 }
+
+        Trennlinie {}
+        AbschnittTitel { text: qsTr("HINTERGRUND") }
+
+        Row {
+            leftPadding: 12; height: 30; spacing: 8
+            Rectangle {
+                width: 20; height: 20; radius: 4; anchors.verticalCenter: parent.verticalCenter
+                color: panel.s("fuell", false) ? theme.accent : theme.inputBg
+                border.color: theme.border
+                Text { anchors.centerIn: parent; text: qsTr("✓"); color: "#ffffff"
+                       font.pixelSize: 12; visible: panel.s("fuell", false) }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: panel.canvas.eigenschaftAktualisieren("fuell", !panel.s("fuell", false)) }
+            }
+            Text { text: qsTr("Hintergrund aktiv"); color: theme.textMuted; font.pixelSize: 11
+                   anchors.verticalCenter: parent.verticalCenter }
+        }
+        ColorPalette {
+            visible: panel.s("fuell", false)
+            height:  visible ? implicitHeight : 0
+            model:   panel.farbpalette
+            value:   panel.s("fuellFarbe", "#1a1a00")
+            theme:   theme
+            onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
+        }
+        Item { height: 4; visible: panel.s("fuell", false) }
+
+        Trennlinie {}
+        AbschnittTitel { text: qsTr("RAHMEN") }
+
+        FeldLabel { text: qsTr("Rahmenfarbe") }
+        ColorPalette {
+            model:   panel.farbpalette
+            value:   (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.rahmFarbe || "") : ""
+            theme:   theme
+            onColorSelected: function(c) {
+                var ed = JSON.parse(JSON.stringify(panel.el ? (panel.el.extraDaten || {}) : {}))
+                ed.rahmFarbe = c
+                panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+            }
+        }
+        Item { height: 4 }
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.rahmFarbe)
+            height: visible ? implicitHeight : 0
+            MiniButton {
+                theme: theme
+                label: qsTr("Rahmen entfernen")
+                breite: 140
+                onKlick: {
+                    var ed = JSON.parse(JSON.stringify(panel.el ? (panel.el.extraDaten || {}) : {}))
+                    delete ed.rahmFarbe
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+                }
+            }
+        }
+        Item { height: 8 }
     }
 }

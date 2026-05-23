@@ -864,9 +864,27 @@ Item {
                                            : (vorschau ? "#4a9eff88" : (el.strichFarbe || "#c0d8f0"))
                     var ctxAlign = txtAlign === "mitte" ? "center"
                                  : txtAlign === "rechts" ? "right" : "left"
+                    var tSelW  = txtRot !== 0 ? txtBhPx : txtBwPx
+                    var tSelH  = txtRot !== 0 ? txtBwPx : txtBhPx
+                    var tBxOff = txtAlign === "mitte"  ? -tSelW / 2
+                               : txtAlign === "rechts" ? -tSelW : 0
                     ctx.save()
                     ctx.translate(vx1, vy1)
                     if (txtRot !== 0) ctx.rotate(txtRot)
+                    ctx.globalAlpha = op
+                    // Hintergrund
+                    if (!gewaehlt && !vorschau && el.fuell) {
+                        ctx.fillStyle   = el.fuellFarbe || "#000000"
+                        ctx.globalAlpha = op * (el.fuellOpazitaet !== undefined ? el.fuellOpazitaet : 0.85)
+                        ctx.fillRect(tBxOff, 0, tSelW, tSelH)
+                        ctx.globalAlpha = op
+                    }
+                    // Rahmen
+                    var tRahmFarbe = el.extraDaten ? el.extraDaten.rahmFarbe : undefined
+                    if (!gewaehlt && !vorschau && tRahmFarbe) {
+                        ctx.strokeStyle = tRahmFarbe; ctx.lineWidth = 1.5; ctx.setLineDash([])
+                        ctx.strokeRect(tBxOff, 0, tSelW, tSelH)
+                    }
                     ctx.font         = "bold " + txtFsPx + "px sans-serif"
                     ctx.textBaseline = "top"
                     ctx.textAlign    = ctxAlign
@@ -878,13 +896,9 @@ Item {
                     // Bei –90° (senkrecht) sind Breite und Höhe im Bildschirmraum
                     // getauscht; der Rahmen bleibt im lokalen (rotierten) Raum korrekt.
                     if (gewaehlt) {
-                        var selW = txtRot !== 0 ? txtBhPx : txtBwPx
-                        var selH = txtRot !== 0 ? txtBwPx : txtBhPx
-                        var bxOff = txtAlign === "mitte" ? -selW / 2
-                                  : txtAlign === "rechts" ? -selW : 0
                         ctx.strokeStyle = "#f0a030"; ctx.lineWidth = 1
                         ctx.setLineDash([3, 3])
-                        ctx.strokeRect(bxOff - 2, -2, selW + 4, selH + 4)
+                        ctx.strokeRect(tBxOff - 2, -2, tSelW + 4, tSelH + 4)
                     }
                     ctx.restore()
                 }
@@ -946,14 +960,15 @@ Item {
                     ctx.fillRect(nRx, nRy, nRw, nRh)
                     ctx.globalAlpha = op
                     // Rahmen
-                    ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : (el.strichFarbe || "#cccc22"))
+                    var nRahmF = (el.extraDaten && el.extraDaten.rahmFarbe) ? el.extraDaten.rahmFarbe : (el.strichFarbe || "#cccc22")
+                    ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : nRahmF)
                     ctx.lineWidth   = 1.5
                     ctx.setLineDash([])
                     ctx.strokeRect(nRx, nRy, nRw, nRh)
                     // Text
                     var nText = el.textInhalt || ""
                     if (nText !== "") {
-                        var nFsPx  = (el.schriftGroesse || 3.5) * root.mmToPx * root.zoom
+                        var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
                         var nLines = nText.split("\n")
                         var nLineH = nFsPx * 1.3
                         var nPad   = Math.max(4, nFsPx * 0.35)
@@ -963,7 +978,7 @@ Item {
                         ctx.rect(nRx + 1, nRy + 1, nRw - 2, nRh - 2)
                         ctx.clip()
 
-                        ctx.fillStyle    = el.textFarbe || el.strichFarbe || "#cccc22"
+                        ctx.fillStyle    = el.strichFarbe || "#cccc22"
                         ctx.font         = nFsPx + "px sans-serif"
                         ctx.textBaseline = "top"
                         ctx.textAlign    = "left"

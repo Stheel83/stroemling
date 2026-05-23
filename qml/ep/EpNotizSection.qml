@@ -80,21 +80,41 @@ Item {
         Item { height: 6 }
 
         FeldLabel { text: qsTr("Hintergrundfarbe") }
+        ColorPalette {
+            model:   panel.farbpalette
+            value:   panel.s("fuellFarbe", "#1a1a00")
+            theme:   theme
+            onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
+        }
+        Item { height: 6 }
+
+        Trennlinie {}
+        AbschnittTitel { text: qsTr("RAHMEN") }
+
+        FeldLabel { text: qsTr("Rahmenfarbe") }
+        ColorPalette {
+            model:   panel.farbpalette
+            value:   (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.rahmFarbe || "") : ""
+            theme:   theme
+            onColorSelected: function(c) {
+                var ed = JSON.parse(JSON.stringify(panel.el ? (panel.el.extraDaten || {}) : {}))
+                ed.rahmFarbe = c
+                panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+            }
+        }
+        Item { height: 4 }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 4
-            Repeater {
-                model: ["#1a1a00","#001a00","#001a1a","#1a001a","#1a0a00","#0a0a18"]
-                Rectangle {
-                    width: 22; height: 22; radius: 3
-                    color: modelData
-                    border.color: (panel.s("fuellFarbe","#1a1a00") === modelData)
-                                  ? theme.accent : theme.border
-                    border.width: (panel.s("fuellFarbe","#1a1a00") === modelData) ? 2 : 1
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.canvas.eigenschaftAktualisieren("fuellFarbe", modelData)
-                    }
+            visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.rahmFarbe)
+            height: visible ? implicitHeight : 0
+            MiniButton {
+                theme: theme
+                label: qsTr("Rahmen entfernen")
+                breite: 140
+                onKlick: {
+                    var ed = JSON.parse(JSON.stringify(panel.el ? (panel.el.extraDaten || {}) : {}))
+                    delete ed.rahmFarbe
+                    panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                 }
             }
         }

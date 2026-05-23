@@ -785,6 +785,56 @@ Item {
                     }
                 }
 
+                // ── Sektion: Strömlinge ──────────────────────────
+                Item { height: 28 }
+                Text {
+                    Layout.leftMargin:   20
+                    text:                qsTr("Strömlinge")
+                    font.pixelSize:      11
+                    font.weight:         Font.Medium
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing:  1
+                    color:               root.theme.textMuted
+                }
+                Item { height: 8 }
+
+                Rectangle {
+                    Layout.fillWidth:   true
+                    Layout.leftMargin:  12
+                    Layout.rightMargin: 12
+                    implicitHeight:     schwCol.implicitHeight + 24
+                    color:              root.theme.surface
+                    radius:             6
+                    border.color:       root.theme.border
+                    clip:               true
+
+                    Column {
+                        id:    schwCol
+                        width: parent.width
+                        anchors.top: parent.top
+                        anchors.topMargin: 16
+
+                        Image {
+                            width:            parent.width - 32
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            source:           "qrc:/assets/schwaerzchen_sheet.png"
+                            fillMode:         Image.PreserveAspectFit
+                            smooth:           true
+                            mipmap:           true
+                        }
+                        Item { height: 10 }
+                        Text {
+                            width:          parent.width - 32
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text:           qsTr("Die Strömlinge sind das lebendige Maskottchen-System von Strömling Design. Jeder Strömling repräsentiert einen elektrischen Leitertyp, ein Signal oder einen Systemzustand.")
+                            font.pixelSize: 11
+                            color:          root.theme.textMuted
+                            wrapMode:       Text.WordWrap
+                        }
+                        Item { height: 8 }
+                    }
+                }
+
                 // ── Sektion: Mitwirkende ─────────────────────────
                 Item { height: 28 }
                 Text {

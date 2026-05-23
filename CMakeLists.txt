@@ -166,6 +166,14 @@ qt_add_qml_module(stroemling_app
         qml/logos/LogoBase.js
 )
 
+qt_add_resources(stroemling_app "stromlinge_assets"
+    PREFIX "/assets"
+    BASE "qml/assets"
+    FILES
+        qml/assets/schwaerzchen_sheet.png
+        qml/assets/pokestroem_cee.png
+)
+
 qt_add_resources(stroemling_app "database_seeds"
     PREFIX "/database"
     BASE "src/database"

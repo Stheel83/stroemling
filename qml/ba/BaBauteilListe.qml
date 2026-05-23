@@ -158,11 +158,24 @@ Item {
                 model: bauteilModel
                 clip: true
 
-                Text {
+                Column {
                     anchors.centerIn: parent
-                    visible: bauteilListe.count === 0
-                    text: qsTr("Keine Bauteile – mit '+ Neu' anlegen.")
-                    color: theme.borderDark; font.pixelSize: 14
+                    visible:  bauteilListe.count === 0
+                    spacing:  12
+
+                    Image {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        source:   "qrc:/assets/pokestroem_cee.png"
+                        width:    560; height: 560
+                        fillMode: Image.PreserveAspectFit
+                        smooth:   true; mipmap: true
+                    }
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text:           qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
+                        color:          theme.textMuted
+                        font.pixelSize: 13
+                    }
                 }
 
                 delegate: Rectangle {

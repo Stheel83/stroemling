@@ -510,6 +510,9 @@ public:
     // Gibt Kabeladern zurück, bei denen Von- oder Nach-Anschluss fehlt.
     // Rückgabe: [{aderId, aderNr, aderBez, kabelName, wasFehlt}]
     Q_INVOKABLE QVariantList drcKabeladernOhneAnschluss(int projektId);
+    // D-05: Pins die keine Leitung berühren (alle Seiten des Projekts).
+    // Rückgabe: [{elementId, symbolId, pinName, seiteId, seiteName}]
+    Q_INVOKABLE QVariantList drcUnverbundenePins(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

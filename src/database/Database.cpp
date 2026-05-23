@@ -1,4 +1,5 @@
 #include "Database.h"
+#include <cmath>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -10015,6 +10016,122 @@ QVariantList Database::drcKabeladernOhneAnschluss(int projektId)
         fund["kabelName"] = q.value(3).toString();
         fund["wasFehlt"]  = q.value(4).toString();
         ergebnis << fund;
+    }
+    return ergebnis;
+}
+
+QVariantList Database::drcUnverbundenePins(int projektId)
+{
+    // Hilfs-Symbole, die keine BMK-Verbindung benötigen
+    static const QSet<QString> hilfs = {
+        "winkel", "treffpunkt", "treffpunkt_l", "geraeteanschluss",
+        "unterbrechung", "querverweis", "aderdefinition", "klemme_anschluss"
+    };
+
+    QVariantList ergebnis;
+
+    // Alle Seiten des Projekts laden
+    QSqlQuery seitenQ;
+    seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
+    seitenQ.bindValue(":pid", projektId);
+    if (!seitenQ.exec()) {
+        qWarning() << "drcUnverbundenePins seiten:" << seitenQ.lastError().text();
+        return ergebnis;
+    }
+
+    while (seitenQ.next()) {
+        const int    seiteId   = seitenQ.value(0).toInt();
+        const QString seiteName = seitenQ.value(1).toString();
+
+        // Linienendpunkte dieser Seite sammeln
+        struct Pt { double x, y; };
+        QVector<Pt> enden;
+        {
+            QSqlQuery lQ;
+            lQ.prepare("SELECT x1,y1,x2,y2 FROM grafik_element "
+                       "WHERE seite_id=:sid AND typ='linie'");
+            lQ.bindValue(":sid", seiteId);
+            if (lQ.exec()) {
+                while (lQ.next()) {
+                    enden.push_back({lQ.value(0).toDouble(), lQ.value(1).toDouble()});
+                    enden.push_back({lQ.value(2).toDouble(), lQ.value(3).toDouble()});
+                }
+            }
+        }
+
+        // Pin-Cache: symbol_id → [{x,y,name}]
+        struct PinDef { double x, y; QString name; };
+        QMap<QString, QList<PinDef>> pinCache;
+
+        // Symbole laden (keine Hilfs-Symbole)
+        QSqlQuery symQ;
+        symQ.prepare("SELECT id, symbol_id, x1,y1,x2,y2, rotation, spiegel_x, spiegel_y "
+                     "FROM grafik_element "
+                     "WHERE seite_id=:sid AND typ='symbol'");
+        symQ.bindValue(":sid", seiteId);
+        if (!symQ.exec()) continue;
+
+        while (symQ.next()) {
+            const QString symId = symQ.value(1).toString();
+            if (hilfs.contains(symId)) continue;
+
+            const int    elId  = symQ.value(0).toInt();
+            const double x1    = symQ.value(2).toDouble();
+            const double y1    = symQ.value(3).toDouble();
+            const double x2    = symQ.value(4).toDouble();
+            const double y2    = symQ.value(5).toDouble();
+            const int    rot   = symQ.value(6).toInt();
+            const bool   spX   = symQ.value(7).toInt() != 0;
+            const bool   spY   = symQ.value(8).toInt() != 0;
+
+            // Pins für dieses Symbol (gecacht)
+            if (!pinCache.contains(symId)) {
+                QList<PinDef> pList;
+                QSqlQuery pQ;
+                pQ.prepare("SELECT x, y, name FROM symbol_pin WHERE symbol_id=:sid");
+                pQ.bindValue(":sid", symId);
+                if (pQ.exec()) {
+                    while (pQ.next())
+                        pList.push_back({pQ.value(0).toDouble(),
+                                         pQ.value(1).toDouble(),
+                                         pQ.value(2).toString()});
+                }
+                pinCache[symId] = pList;
+            }
+
+            const double sw  = x2 - x1, sh = y2 - y1;
+            const double scx = x1 + sw / 2.0, scy = y1 + sh / 2.0;
+            const double rad = rot * M_PI / 180.0;
+            const double cosR = std::cos(rad), sinR = std::sin(rad);
+
+            for (const PinDef &p : pinCache[symId]) {
+                // pinWeltPos – identische Formel wie in SchaltplanCanvas.qml
+                double cx = (p.x - 0.5) * std::abs(sw);
+                double cy = (p.y - 0.5) * std::abs(sh);
+                if (spX) cx = -cx;
+                if (spY) cy = -cy;
+                const double wx = scx + cx * cosR - cy * sinR;
+                const double wy = scy + cx * sinR + cy * cosR;
+
+                // Prüfen ob ein Leitungsende diesen Pin trifft
+                bool verbunden = false;
+                for (const Pt &lp : enden) {
+                    if (std::abs(lp.x - wx) < 0.5 && std::abs(lp.y - wy) < 0.5) {
+                        verbunden = true;
+                        break;
+                    }
+                }
+                if (!verbunden) {
+                    QVariantMap fund;
+                    fund["elementId"] = elId;
+                    fund["symbolId"]  = symId;
+                    fund["pinName"]   = p.name;
+                    fund["seiteId"]   = seiteId;
+                    fund["seiteName"] = seiteName;
+                    ergebnis << fund;
+                }
+            }
+        }
     }
     return ergebnis;
 }

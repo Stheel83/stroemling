@@ -72,6 +72,18 @@ Item {
                 "elementId": -1
             })
         }
+
+        var d05 = db.drcUnverbundenePins(root.projektId)
+        for (var m = 0; m < d05.length; m++) {
+            var p = d05[m]
+            ergebnisModel.append({
+                "typ":       "unverbundener_pin",
+                "meldung":   qsTr("Unverbundener Pin: %1  Pin %2").arg(p.symbolId).arg(p.pinName),
+                "detail":    qsTr("Seite: %1").arg(p.seiteName),
+                "seiteId":   p.seiteId,
+                "elementId": p.elementId
+            })
+        }
     }
 
     // Hintergrund

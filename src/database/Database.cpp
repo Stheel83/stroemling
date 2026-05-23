@@ -10262,6 +10262,185 @@ QVariantList Database::drcLeitungsenden(int projektId)
     return ergebnis;
 }
 
+QVariantList Database::drcPotenzialkonflikte(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q;
+    q.prepare(R"(
+        SELECT id, COALESCE(NULLIF(bezeichnung,''), potenzial, 'unbekannt'), potenzial
+        FROM verbindung
+        WHERE projekt_id = :pid AND signaltyp = 'konflikt'
+        ORDER BY id
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "drcPotenzialkonflikte:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["verbindungId"] = q.value(0).toInt();
+        m["name"]         = q.value(1).toString();
+        m["potenzial"]    = q.value(2).toString();
+        ergebnis << m;
+    }
+    return ergebnis;
+}
+
+QVariantList Database::drcParallelQuellen(int projektId)
+{
+    // Findet Netze auf denen >= 2 Quell-Symbole (rolle='quelle') liegen.
+    // Variabel-Symbole mit extraDaten.rolle='quelle' werden ebenfalls erfasst.
+    // PE- und N-Netze sind bewusst ausgenommen (mehrere Erdungspunkte sind normal).
+
+    struct PinDef { double x, y; };
+    const double eps = 0.5;
+
+    // verbindung_id → {seiten-Set, quellen-Anzahl}
+    struct NetInfo { QSet<QString> seiten; int quellen = 0; QString name; };
+    QMap<int, NetInfo> netMap;
+
+    // Alle Seiten des Projekts
+    QSqlQuery seitenQ;
+    seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
+    seitenQ.bindValue(":pid", projektId);
+    if (!seitenQ.exec()) {
+        qWarning() << "drcParallelQuellen seiten:" << seitenQ.lastError().text();
+        return {};
+    }
+
+    // Pin-Definitions-Cache: symbol_id → [{x,y}]
+    QMap<QString, QList<PinDef>> pinCache;
+
+    while (seitenQ.next()) {
+        const int     seiteId   = seitenQ.value(0).toInt();
+        const QString seiteName = seitenQ.value(1).toString();
+
+        // Verbindungssegment-Endpunkte dieser Seite: verbindung_id → [{x,y}]
+        QMap<int, QList<PinDef>> segEnden;
+        {
+            QSqlQuery vsQ;
+            vsQ.prepare(R"(
+                SELECT vs.verbindung_id, vs.punkte, v.bezeichnung, v.potenzial, v.signaltyp
+                FROM verbindung_segment vs
+                JOIN verbindung v ON vs.verbindung_id = v.id
+                WHERE vs.seite_id = :sid AND v.projekt_id = :pid
+            )");
+            vsQ.bindValue(":sid", seiteId);
+            vsQ.bindValue(":pid", projektId);
+            if (!vsQ.exec()) continue;
+            while (vsQ.next()) {
+                const int     vid      = vsQ.value(0).toInt();
+                const QString sig      = vsQ.value(4).toString();
+                // PE und N ausschließen (mehrere Quellen erlaubt)
+                if (sig == "pe" || sig == "n") continue;
+
+                const QString punkte   = vsQ.value(1).toString();
+                const QString bez      = vsQ.value(2).toString();
+                const QString pot      = vsQ.value(3).toString();
+
+                if (!netMap.contains(vid)) {
+                    NetInfo ni;
+                    ni.name = bez.isEmpty() ? pot : bez;
+                    netMap[vid] = ni;
+                }
+
+                const QJsonArray pts = QJsonDocument::fromJson(punkte.toUtf8()).array();
+                for (const QJsonValue &pt : pts) {
+                    const QJsonObject o = pt.toObject();
+                    segEnden[vid].push_back({o["x"].toDouble(), o["y"].toDouble()});
+                }
+            }
+        }
+        if (segEnden.isEmpty()) continue;
+
+        // Quelle-Symbole dieser Seite mit ihren Pin-Weltpositionen
+        QSqlQuery symQ;
+        symQ.prepare(R"(
+            SELECT ge.id, ge.symbol_id, ge.x1, ge.y1, ge.x2, ge.y2,
+                   ge.rotation, ge.spiegel_x, ge.spiegel_y, ge.extra_daten,
+                   sd.rolle
+            FROM grafik_element ge
+            LEFT JOIN symbol_definition sd ON sd.id = ge.symbol_id
+            WHERE ge.seite_id = :sid AND ge.typ = 'symbol'
+        )");
+        symQ.bindValue(":sid", seiteId);
+        if (!symQ.exec()) continue;
+
+        while (symQ.next()) {
+            const QString symId   = symQ.value(1).toString();
+            const QString rolleSd = symQ.value(10).toString();
+            const QString extJson = symQ.value(9).toString();
+
+            // Rolle bestimmen (variabel kann durch extraDaten überschrieben werden)
+            QString rolle = rolleSd;
+            if (rolle == "variabel") {
+                const QJsonObject ext = QJsonDocument::fromJson(extJson.toUtf8()).object();
+                rolle = ext["rolle"].toString("ziel");
+            }
+            if (rolle != "quelle") continue;
+
+            // Pin-Weltpositionen berechnen
+            if (!pinCache.contains(symId)) {
+                QList<PinDef> pList;
+                QSqlQuery pQ;
+                pQ.prepare("SELECT x, y FROM symbol_pin WHERE symbol_id = :sid");
+                pQ.bindValue(":sid", symId);
+                if (pQ.exec())
+                    while (pQ.next())
+                        pList.push_back({pQ.value(0).toDouble(), pQ.value(1).toDouble()});
+                pinCache[symId] = pList;
+            }
+
+            const double sw  = symQ.value(4).toDouble() - symQ.value(2).toDouble();
+            const double sh  = symQ.value(5).toDouble() - symQ.value(3).toDouble();
+            const double scx = symQ.value(2).toDouble() + sw / 2.0;
+            const double scy = symQ.value(3).toDouble() + sh / 2.0;
+            const double rad = symQ.value(6).toInt() * M_PI / 180.0;
+            const double cosR = std::cos(rad), sinR = std::sin(rad);
+            const bool   spX = symQ.value(7).toInt() != 0;
+            const bool   spY = symQ.value(8).toInt() != 0;
+
+            for (const PinDef &p : pinCache[symId]) {
+                double cx = (p.x - 0.5) * std::abs(sw);
+                double cy = (p.y - 0.5) * std::abs(sh);
+                if (spX) cx = -cx;
+                if (spY) cy = -cy;
+                const double wx = scx + cx * cosR - cy * sinR;
+                const double wy = scy + cx * sinR + cy * cosR;
+
+                // Liegt dieser Pin auf einem Verbindungssegment-Endpunkt?
+                for (auto it = segEnden.begin(); it != segEnden.end(); ++it) {
+                    for (const PinDef &ep : it.value()) {
+                        if (std::abs(ep.x - wx) < eps && std::abs(ep.y - wy) < eps) {
+                            netMap[it.key()].quellen++;
+                            netMap[it.key()].seiten.insert(seiteName);
+                            goto nextPin;
+                        }
+                    }
+                }
+                nextPin:;
+            }
+        }
+    }
+
+    // Netze mit >= 2 Quellen melden
+    QVariantList ergebnis;
+    for (auto it = netMap.begin(); it != netMap.end(); ++it) {
+        if (it.value().quellen >= 2) {
+            QVariantMap m;
+            m["verbindungId"]  = it.key();
+            m["name"]          = it.value().name.isEmpty()
+                                 ? QString("Netz %1").arg(it.key()) : it.value().name;
+            m["quellenAnzahl"] = it.value().quellen;
+            m["seiteNamen"]    = QStringList(it.value().seiten.begin(),
+                                             it.value().seiten.end()).join(", ");
+            ergebnis << m;
+        }
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

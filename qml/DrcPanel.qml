@@ -98,6 +98,30 @@ Item {
                 "elementId": w.elementId
             })
         }
+
+        var d07 = db.drcPotenzialkonflikte(root.projektId)
+        for (var o = 0; o < d07.length; o++) {
+            var pk = d07[o]
+            ergebnisModel.append({
+                "typ":       "potenzialkonflikt",
+                "meldung":   qsTr("Potenzialkonflikt: %1").arg(pk.name),
+                "detail":    qsTr("Verbindung-ID: %1").arg(pk.verbindungId),
+                "seiteId":   -1,
+                "elementId": -1
+            })
+        }
+
+        var d08 = db.drcParallelQuellen(root.projektId)
+        for (var q2 = 0; q2 < d08.length; q2++) {
+            var pq = d08[q2]
+            ergebnisModel.append({
+                "typ":       "parallel_quellen",
+                "meldung":   qsTr("Zwei Ausgänge direkt verbunden: %1  (%2×)").arg(pq.name).arg(pq.quellenAnzahl),
+                "detail":    pq.seiteNamen,
+                "seiteId":   -1,
+                "elementId": -1
+            })
+        }
     }
 
     // Hintergrund

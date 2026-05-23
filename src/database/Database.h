@@ -516,6 +516,12 @@ public:
     // D-06: Leitungsenden die weder einen Pin noch ein anderes Leitungsende treffen.
     // Rückgabe: [{elementId, seiteId, seiteName, endpunkt}]
     Q_INVOKABLE QVariantList drcLeitungsenden(int projektId);
+    // D-07: Netze mit Signaltyp-Konflikt (z.B. phase + steuer direkt verbunden).
+    // Rückgabe: [{verbindungId, name, potenzial}]
+    Q_INVOKABLE QVariantList drcPotenzialkonflikte(int projektId);
+    // D-08: Netze auf denen mehr als eine Quelle (Ausgang) liegt.
+    // Rückgabe: [{verbindungId, name, quellenAnzahl, seiteNamen}]
+    Q_INVOKABLE QVariantList drcParallelQuellen(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

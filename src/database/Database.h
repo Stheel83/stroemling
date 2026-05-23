@@ -22,7 +22,7 @@ public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
     // als inkrementelle Migration in alleMigrationen() – diese Konstante bleibt fest.
     static const int BASELINE_VERSION    = 40;
-    static const int WIKI_SCHEMA_VERSION = 4;
+    static const int WIKI_SCHEMA_VERSION = 5;
 
     explicit Database(QObject *parent = nullptr);
 

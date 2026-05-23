@@ -9959,6 +9959,30 @@ QVariantList Database::drcSymboleOhneBmk(int projektId)
     return ergebnis;
 }
 
+QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q;
+    q.prepare(
+        "SELECT id, blattnummer FROM seite "
+        "WHERE projekt_id = :pid "
+        "  AND TRIM(COALESCE(bezeichnung,'')) = '' "
+        "ORDER BY blattnummer"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "drcSeitenOhneBezeichnung:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap fund;
+        fund["seiteId"]     = q.value(0).toInt();
+        fund["blattnummer"] = q.value(1).toString();
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

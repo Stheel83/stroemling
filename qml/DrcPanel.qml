@@ -47,6 +47,18 @@ Item {
                 "elementId": g.elementId
             })
         }
+
+        var d03 = db.drcSeitenOhneBezeichnung(root.projektId)
+        for (var k = 0; k < d03.length; k++) {
+            var h = d03[k]
+            ergebnisModel.append({
+                "typ":       "seite_ohne_bezeichnung",
+                "meldung":   qsTr("Seite ohne Bezeichnung: Blatt %1").arg(h.blattnummer),
+                "detail":    qsTr("Seiten-ID: %1").arg(h.seiteId),
+                "seiteId":   h.seiteId,
+                "elementId": -1
+            })
+        }
     }
 
     // Hintergrund

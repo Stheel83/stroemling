@@ -504,6 +504,9 @@ public:
     // Gibt Symbole zurück, die ein BMK benötigen aber keines haben.
     // Rückgabe: [{elementId, symbolId, seiteId, seiteName}]
     Q_INVOKABLE QVariantList drcSymboleOhneBmk(int projektId);
+    // Gibt Seiten zurück, die keine Bezeichnung haben.
+    // Rückgabe: [{seiteId, blattnummer}]
+    Q_INVOKABLE QVariantList drcSeitenOhneBezeichnung(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

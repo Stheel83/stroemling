@@ -1594,7 +1594,7 @@ Item {
                 return plGriffe.map(function(p) { return Qt.point(p.x, p.y) })
             }
             if (el.typ==="rechteck" || el.typ==="geraetekasten" || el.typ==="strukturkasten"
-                    || el.typ==="makrokasten" || el.typ==="bild")
+                    || el.typ==="makrokasten" || el.typ==="bild" || el.typ==="notiz")
                 return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y1),
                         Qt.point(el.x2,el.y2), Qt.point(el.x1,el.y2)]
             if (el.typ==="kreis")    return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y2)]

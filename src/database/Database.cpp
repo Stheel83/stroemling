@@ -7385,6 +7385,49 @@ so wie es die GPL vorschreibt. Für den produktiven Einsatz in
 sicherheitsrelevanten Anlagen liegt die Verantwortung beim Anwender.
 )",
                     "lizenz open source GPL frei kostenlos spende"
+                },
+                {
+                    "Über dieses Projekt",
+                    R"(# Über dieses Projekt
+
+## Entstehung
+
+Strömling Design wurde am **08.04.2026** gestartet.
+
+Im Berufsalltag arbeite ich mit **EPLAN P8 Electric**, privat hatte ich
+**QElectroTech** genutzt. Beides war nicht das, was ich mir für den
+Privatgebrauch vorgestellt hatte — also habe ich angefangen, selbst etwas
+zu bauen.
+
+## Der Name
+
+Den Begriff **„Strömlinge"** kenne ich noch aus meiner Lehrzeit, irgendwo
+um die Jahrtausendwende herum. In der Elektrowelt kennt jeder das Bild:
+der kleine Strom, der durch die Leitung fließt. Jetzt konnte ich den
+Begriff endlich mal in einem eigenen Projekt verwenden.
+
+## KI-Unterstützung
+
+Dieses Projekt wurde offen und transparent mit Unterstützung von
+KI-Werkzeugen entwickelt:
+
+| Werkzeug | Aufgabe |
+|---|---|
+| **Claude Code** (Anthropic) | Code, Architektur, Konzepte |
+| **ChatGPT / DALL-E** (OpenAI) | Strömlinge-Charakterbilder |
+
+Die Projektidee, alle inhaltlichen Entscheidungen, das Konzept und die
+Verantwortung für den Code liegen beim Projektinhaber. KI hat geholfen,
+diese Ideen schneller und mit mehr Funktionsumfang umzusetzen, als es
+allein möglich gewesen wäre.
+
+## Warum Open Source?
+
+Weil ich selbst von Open-Source-Projekten profitiere — und weil ein
+Werkzeug für Elektrotechnik der Gemeinschaft gehören sollte, nicht einem
+Konzern.
+)",
+                    "entstehung projekt KI claude chatgpt open source geschichte"
                 }
             }
         },

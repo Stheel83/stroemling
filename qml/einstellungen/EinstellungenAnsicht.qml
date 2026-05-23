@@ -1025,6 +1025,90 @@ Item {
                     }
                 }
 
+                // ── Sektion: Entstehung & KI-Werkzeuge ───────────
+                Item { height: 28 }
+                Text {
+                    Layout.leftMargin:   20
+                    text:                qsTr("Entstehung & KI-Werkzeuge")
+                    font.pixelSize:      11
+                    font.weight:         Font.Medium
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing:  1
+                    color:               root.theme.textMuted
+                }
+                Item { height: 8 }
+
+                Rectangle {
+                    Layout.fillWidth:   true
+                    Layout.leftMargin:  12
+                    Layout.rightMargin: 12
+                    color:              root.theme.surface
+                    radius:             6
+                    border.color:       root.theme.border
+                    height:             entstehungCol.implicitHeight + 24
+
+                    Column {
+                        id:      entstehungCol
+                        anchors {
+                            left:    parent.left
+                            right:   parent.right
+                            top:     parent.top
+                            margins: 12
+                        }
+                        spacing: 10
+
+                        Text {
+                            width:          parent.width
+                            text:           qsTr("Strömling Design entstand am 08.04.2026 aus einem persönlichen Bedürfnis: Im Berufsalltag arbeite ich mit EPLAN P8 Electric, privat hatte ich QElectroTech genutzt — beides nicht das, was ich wollte. Also habe ich angefangen, selbst etwas zu bauen.")
+                            font.pixelSize: 12
+                            color:          root.theme.textPrimary
+                            wrapMode:       Text.WordWrap
+                        }
+                        Text {
+                            width:          parent.width
+                            text:           qsTr("Den Begriff \"Strömlinge\" kenne ich noch aus meiner Lehrzeit um die Jahrtausendwende — endlich konnte ich ihn mal verwenden.")
+                            font.pixelSize: 12
+                            color:          root.theme.textPrimary
+                            wrapMode:       Text.WordWrap
+                        }
+
+                        Rectangle { width: parent.width; height: 1; color: root.theme.border }
+
+                        Text {
+                            width:          parent.width
+                            text:           qsTr("Dieses Projekt wurde mit Unterstützung von KI-Werkzeugen entwickelt:")
+                            font.pixelSize: 12
+                            color:          root.theme.textPrimary
+                            wrapMode:       Text.WordWrap
+                        }
+                        Column {
+                            width:   parent.width
+                            spacing: 4
+                            Repeater {
+                                model: [
+                                    qsTr("⚙  Claude Code (Anthropic) — Code & Konzepte"),
+                                    qsTr("🖼  ChatGPT / DALL-E (OpenAI) — Strömlinge-Bilder")
+                                ]
+                                Text {
+                                    width:          parent.width
+                                    text:           modelData
+                                    font.pixelSize: 12
+                                    color:          root.theme.textSecondary
+                                    wrapMode:       Text.WordWrap
+                                }
+                            }
+                        }
+                        Text {
+                            width:          parent.width
+                            text:           qsTr("Der Quellcode, alle Konzepte und die Projektidee stammen von mir. KI hat geholfen, sie umzusetzen — schneller und mit mehr Funktionen als ich es allein geschafft hätte.")
+                            font.pixelSize: 11
+                            color:          root.theme.textMuted
+                            wrapMode:       Text.WordWrap
+                        }
+                        Item { height: 2 }
+                    }
+                }
+
                 // ── Sektion: Lizenz & Open Source ────────────────
                 Item { height: 28 }
                 Text {

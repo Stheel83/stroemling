@@ -10136,6 +10136,132 @@ QVariantList Database::drcUnverbundenePins(int projektId)
     return ergebnis;
 }
 
+QVariantList Database::drcLeitungsenden(int projektId)
+{
+    static const QSet<QString> hilfs = {
+        "winkel", "treffpunkt", "treffpunkt_l", "geraeteanschluss",
+        "unterbrechung", "querverweis", "aderdefinition", "klemme_anschluss"
+    };
+    const double eps = 0.5;
+
+    QVariantList ergebnis;
+
+    QSqlQuery seitenQ;
+    seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
+    seitenQ.bindValue(":pid", projektId);
+    if (!seitenQ.exec()) {
+        qWarning() << "drcLeitungsenden seiten:" << seitenQ.lastError().text();
+        return ergebnis;
+    }
+
+    while (seitenQ.next()) {
+        const int     seiteId   = seitenQ.value(0).toInt();
+        const QString seiteName = seitenQ.value(1).toString();
+
+        struct Pt { double x, y; };
+
+        // Alle Leitungsendpunkte dieser Seite
+        struct LiniePt { int elId; double x, y; };
+        QVector<LiniePt> liniePunkte;
+        {
+            QSqlQuery lQ;
+            lQ.prepare("SELECT id,x1,y1,x2,y2 FROM grafik_element "
+                       "WHERE seite_id=:sid AND typ='linie'");
+            lQ.bindValue(":sid", seiteId);
+            if (lQ.exec()) {
+                while (lQ.next()) {
+                    int id = lQ.value(0).toInt();
+                    liniePunkte.push_back({id, lQ.value(1).toDouble(), lQ.value(2).toDouble()});
+                    liniePunkte.push_back({id, lQ.value(3).toDouble(), lQ.value(4).toDouble()});
+                }
+            }
+        }
+        if (liniePunkte.isEmpty()) continue;
+
+        // Pin-Weltpositionen aller Symbole auf dieser Seite
+        struct PinDef { double x, y; QString name; };
+        QMap<QString, QList<PinDef>> pinCache;
+        QVector<Pt> pinWeltPos;
+
+        {
+            QSqlQuery symQ;
+            symQ.prepare("SELECT symbol_id,x1,y1,x2,y2,rotation,spiegel_x,spiegel_y "
+                         "FROM grafik_element WHERE seite_id=:sid AND typ='symbol'");
+            symQ.bindValue(":sid", seiteId);
+            if (symQ.exec()) {
+                while (symQ.next()) {
+                    const QString symId = symQ.value(0).toString();
+                    if (!pinCache.contains(symId)) {
+                        QList<PinDef> pList;
+                        QSqlQuery pQ;
+                        pQ.prepare("SELECT x,y,name FROM symbol_pin WHERE symbol_id=:sid");
+                        pQ.bindValue(":sid", symId);
+                        if (pQ.exec())
+                            while (pQ.next())
+                                pList.push_back({pQ.value(0).toDouble(),
+                                                 pQ.value(1).toDouble(),
+                                                 pQ.value(2).toString()});
+                        pinCache[symId] = pList;
+                    }
+                    const double sw  = symQ.value(3).toDouble() - symQ.value(1).toDouble();
+                    const double sh  = symQ.value(4).toDouble() - symQ.value(2).toDouble();
+                    const double scx = symQ.value(1).toDouble() + sw / 2.0;
+                    const double scy = symQ.value(2).toDouble() + sh / 2.0;
+                    const double rad = symQ.value(5).toInt() * M_PI / 180.0;
+                    const double cosR = std::cos(rad), sinR = std::sin(rad);
+                    const bool   spX = symQ.value(6).toInt() != 0;
+                    const bool   spY = symQ.value(7).toInt() != 0;
+
+                    for (const PinDef &p : pinCache[symId]) {
+                        double cx = (p.x - 0.5) * std::abs(sw);
+                        double cy = (p.y - 0.5) * std::abs(sh);
+                        if (spX) cx = -cx;
+                        if (spY) cy = -cy;
+                        pinWeltPos.push_back({scx + cx*cosR - cy*sinR,
+                                              scy + cx*sinR + cy*cosR});
+                    }
+                }
+            }
+        }
+
+        // Jedes Leitungsende prüfen
+        QSet<int> gemeldet; // elId deduplizieren (ein Element max. einmal)
+        for (int i = 0; i < liniePunkte.size(); i++) {
+            const LiniePt &lp = liniePunkte[i];
+            if (gemeldet.contains(lp.elId)) continue;
+
+            // 1. Trifft es einen Symbol-Pin?
+            bool verbunden = false;
+            for (const Pt &pp : pinWeltPos) {
+                if (std::abs(pp.x - lp.x) < eps && std::abs(pp.y - lp.y) < eps) {
+                    verbunden = true; break;
+                }
+            }
+            if (verbunden) continue;
+
+            // 2. Trifft es ein anderes Leitungsende?
+            for (int j = 0; j < liniePunkte.size(); j++) {
+                if (i == j) continue;
+                const LiniePt &lp2 = liniePunkte[j];
+                if (std::abs(lp2.x - lp.x) < eps && std::abs(lp2.y - lp.y) < eps) {
+                    verbunden = true; break;
+                }
+            }
+            if (verbunden) continue;
+
+            // Leitungsende hängt in der Luft
+            gemeldet.insert(lp.elId);
+            QVariantMap fund;
+            fund["elementId"] = lp.elId;
+            fund["seiteId"]   = seiteId;
+            fund["seiteName"] = seiteName;
+            fund["endpunkt"]  = QString("(%1, %2)").arg(lp.x, 0, 'f', 1).arg(lp.y, 0, 'f', 1);
+            ergebnis << fund;
+        }
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

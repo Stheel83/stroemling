@@ -513,6 +513,9 @@ public:
     // D-05: Pins die keine Leitung berühren (alle Seiten des Projekts).
     // Rückgabe: [{elementId, symbolId, pinName, seiteId, seiteName}]
     Q_INVOKABLE QVariantList drcUnverbundenePins(int projektId);
+    // D-06: Leitungsenden die weder einen Pin noch ein anderes Leitungsende treffen.
+    // Rückgabe: [{elementId, seiteId, seiteName, endpunkt}]
+    Q_INVOKABLE QVariantList drcLeitungsenden(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

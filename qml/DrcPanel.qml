@@ -84,6 +84,18 @@ Item {
                 "elementId": p.elementId
             })
         }
+
+        var d06 = db.drcLeitungsenden(root.projektId)
+        for (var n = 0; n < d06.length; n++) {
+            var w = d06[n]
+            ergebnisModel.append({
+                "typ":       "leitungsende_luft",
+                "meldung":   qsTr("Leitungsende in der Luft"),
+                "detail":    qsTr("Seite: %1  %2").arg(w.seiteName).arg(w.endpunkt),
+                "seiteId":   w.seiteId,
+                "elementId": w.elementId
+            })
+        }
     }
 
     // Hintergrund

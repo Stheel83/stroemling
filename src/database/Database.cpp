@@ -7382,6 +7382,177 @@ git show HEAD~3:schaltschrank_a.stroemling > alt.stroemling
             40,
             false,
             {}
+        },
+        {
+            "Strömlinge",
+            "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
+            50,
+            true,
+            {
+                {
+                    "Strömlinge – Überblick",
+                    R"(# Die Strömlinge
+
+Die Strömlinge sind das lebendige Maskottchen-System von Strömling Design.
+Jeder Strömling repräsentiert einen **elektrischen Leitertyp**, ein **Signal**
+oder einen **Systemzustand** – erkennbar an Farbe, Körpermerkmalen und Persönlichkeit.
+
+## Grundformen
+
+### Form A – Runder Fisch (Standard-Strömling)
+- Runder, leicht plumper Fischkörper
+- **Glühbirnen als Ohren** (leuchtend, charakterspezifisch eingefärbt)
+- **Fluoreszierende Leiterbahnen** auf dem Körper (PCB-Stil)
+- Schielende oder eigenartige Augen – jeder hat seinen eigenen Blick
+
+### Form B – Aalförmig (Leitungs-Strömling)
+- Langer, schlanker, gewundener Körper (Sinuswelle)
+- **Stecker-/Buchsenenden** an Kopf und Schwanz
+- **Aderstreifen** in Normfarben längs am Körper
+
+## Familien
+
+| Familie | Charaktere | Norm |
+|---|---|---|
+| Netzleiter | Brauno (L1), Schwärzchen (L2), Grausel (L3), Blaubert (N), Erdikus (PE) | IEC 60446 |
+| Signale & Bus | Impulsino (Signal), Datinchen (Bus) | – |
+| Schutz & Isolierung | Isolus (Dunkleosteus-Panzerfish) | IEC Klasse II |
+| Fehlerzustände | Krizzo (Kurzschluss), Errikus (Fehler), Fusius (Überlast), Stoppius (Not-Aus) | – |
+| Leitungen | Linus (Kabelbrücke) + Farbvarianten | DIN VDE 0293 |
+)",
+                    "strömling maskottchen übersicht charakter"
+                },
+                {
+                    "Schwärzchen – Systemfisch L2",
+                    R"(# Schwärzchen – Systemfisch // Phase 2
+
+Schwärzchen ist der **coole** unter den drei Außenleitern.
+Er repräsentiert den **Außenleiter L2** (schwarz) nach IEC 60446 / DIN VDE 0293.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Aderfarbe** | Schwarz |
+| **Körperfarbe** | Tiefes Anthrazit / Schwarz mit leichtem Blauschimmer |
+| **Leiterbahnen** | Neongrün, scharf kontraststark |
+| **Glühbirnen** | Kaltweißes LED-Licht, minimal |
+| **Augen** | Leicht schmale Augen, cooler Blick |
+
+## Persönlichkeit
+
+Ruhig, cool, etwas mysteriös. *Läuft einfach.*
+Macht keine großen Worte. Sein Blick sagt: er hat das schon tausendmal gemacht.
+
+## Norm-Referenz
+
+- **Farbe:** Schwarz (L2) nach IEC 60446 und DIN VDE 0293
+- **Einsatz:** Außenleiter in Drehstromnetzen (400 V / 50 Hz)
+- **Körper-Hex:** `#1A1A2E` · **Leiterbahnen-Hex:** `#39FF14`
+)",
+                    "schwärzchen L2 außenleiter netzleiter IEC schwarz"
+                },
+                {
+                    "Impulsino – Signal",
+                    R"(# Impulsino – der hyperaktive Signalströmling
+
+Impulsino repräsentiert das **digitale Steuersignal** – er *ist* der Impuls.
+Orange wie die DIN-Signalfarbe, nie still.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Farbe** | Signal-Orange |
+| **Leiterbahnen** | Rechteckwellen-Puls-Trace (nur rechte Winkel) |
+| **Glühbirnen** | Blinkt rhythmisch – eine an, eine aus |
+| **Augen** | Aufmerksam, wach, leicht zappelig |
+
+## Persönlichkeit
+
+Quirlig, immer in Bewegung, hyperaktiv. Liebt hohe Frequenzen.
+*„ON! OFF! ON! OFF! Das ist mein Leben!"*
+
+## Im Programm
+
+Impulsino begleitet den **Fun-Modus** als Bonus-Charakter –
+er bounced als hyperaktiver Botschafter über den Canvas, pulsiert periodisch.
+
+- **Körper-Hex:** `#FF6B00` · **Leiterbahnen-Hex:** `#FF9E40`
+)",
+                    "impulsino signal impuls digital orange funmodus"
+                },
+                {
+                    "Isolus – Schutz & Isolierung",
+                    R"(# Isolus – der Uralte Wächter
+
+> *„Seit dem Devon bewacht er die Grenze. Sein Knochenkiefer hat noch jeden
+> Lichtbogen weggeknappt."*
+
+Isolus ist der **Wächter der Isolierung**. Inspiriert vom **Dunkleosteus** –
+dem gepanzerten Urhai des Devon-Zeitalters. Er steht zwischen den
+spannungsführenden Leitern und allem, was sie nicht berühren soll.
+
+## Merkmale
+
+| Merkmal | Ausprägung |
+|---|---|
+| **Grundform** | Dunkleosteus: breiter Panzerkopf, massiver Körper |
+| **Körperfarbe** | Tiefschwarz mit mattgelbem Sicherheitsstreifen |
+| **Panzer** | Überlappende Knochenplatten mit **☐☐**-Symbol (IEC Klasse II) |
+| **Ohren** | Keine Glühbirnen – Isolator-Porzellanglocken |
+| **Augen** | Tief versenkt, schmal, uralt blickend |
+
+## Zustände
+
+| Zustand | Aussehen | Bedeutung |
+|---|---|---|
+| **Intakt** | Glatte Platten, Kiefer geschlossen | Isolation in Ordnung |
+| **Beansprucht** | Feine Risse, schmalere Augen | Isolationswiderstand sinkt |
+| **Beschädigt** | Platten gesprungen, Kiefer halb offen | Isolationsfehler – Eingriff nötig |
+| **Gefallen** | Am Boden, Platten aufgebrochen | Isolationsversagen |
+
+## Beziehungen
+
+- **Feind:** Krizzo (Kurzschluss) – versucht die Panzerplatten zu durchbrechen
+- **Verbündeter:** Erdikus (PE) – steht still hinter Isolus, sagt nichts, ist einfach da
+- **Verbündeter:** Stoppius (Not-Aus) – gemeinsam die letzte Verteidigungslinie
+
+## Im Programm
+
+Isolus erscheint in der **Wiki-Artikelliste** als Wächter, wenn noch keine Artikel angelegt sind.
+)",
+                    "isolus isolation schutz dunkleosteus panzer IEC klasse II"
+                },
+                {
+                    "Pokeström",
+                    R"(# Pokeström – das Maskottchen
+
+Pokeström ist der erste Strömling – die Urform des Charakter-Systems.
+Er ist nicht an einen bestimmten Leitertyp gebunden, sondern steht für
+**Strömling Design** als Ganzes.
+
+## Erkennungsmerkmale
+
+- Runder, pausbackiger Fischkörper
+- **Zwei leuchtende Glühbirnen** als Ohren (gelb, warm)
+- **Fluoreszierende Leiterbahnen** – PCB-Stil
+- **Schielende Augen** – der typische Pokeström-Blick
+
+## Im Programm
+
+- **Startbildschirm:** Pokeström schwimmt von links nach rechts, wenn kein Projekt offen ist
+- **Bauteilbibliothek:** erscheint als Platzhalter, wenn noch keine Bauteile angelegt sind
+
+## Ursprung
+
+Die erste Skizze entstand auf einem Whiteboard: ein Fisch, der ein ET-Symbol
+(Kondensator) in der Flosse hält – und der Gedanke war: *„Was wäre, wenn jedes
+elektrische Bauteil seinen eigenen Fisch-Charakter hätte?"*
+)",
+                    "pokeström maskottchen startbildschirm fisch charakter"
+                }
+            }
         }
     };
 
@@ -7443,6 +7614,46 @@ git show HEAD~3:schaltschrank_a.stroemling > alt.stroemling
             }
         }
     }
+
+    // ── Strömlinge: Bilder aus QRC-Ressourcen einmalig einsamen ──────────
+    auto seedBild = [&](const QString &artikelTitel, const QString &qrcPfad,
+                        const QString &dateiname) {
+        QSqlQuery qId(m_wikiDb);
+        qId.prepare("SELECT id FROM wiki_artikel WHERE titel = :t");
+        qId.bindValue(":t", artikelTitel);
+        if (!qId.exec() || !qId.next()) return;
+        const int artId = qId.value(0).toInt();
+
+        QSqlQuery qCount(m_wikiDb);
+        qCount.prepare("SELECT COUNT(*) FROM wiki_bild WHERE artikel_id = :aid");
+        qCount.bindValue(":aid", artId);
+        if (!qCount.exec() || !qCount.next() || qCount.value(0).toInt() > 0) return;
+
+        QFile f(qrcPfad);
+        if (!f.open(QIODevice::ReadOnly)) {
+            qWarning() << "seedBild: Datei nicht gefunden:" << qrcPfad;
+            return;
+        }
+        const QByteArray daten = f.readAll();
+        f.close();
+        if (daten.isEmpty()) return;
+
+        QSqlQuery qIns(m_wikiDb);
+        qIns.prepare(R"(
+            INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, sortierung)
+            VALUES (:aid, :fn, 'image/png', :d, 1)
+        )");
+        qIns.bindValue(":aid", artId);
+        qIns.bindValue(":fn",  dateiname);
+        qIns.bindValue(":d",   daten);
+        if (!qIns.exec())
+            qWarning() << "seedBild INSERT:" << qIns.lastError().text();
+    };
+
+    seedBild("Schwärzchen – Systemfisch L2",  ":/assets/schwaerzchen_sheet.png", "schwaerzchen_sheet.png");
+    seedBild("Impulsino – Signal",             ":/assets/impulsino_sheet.png",    "impulsino_sheet.png");
+    seedBild("Isolus – Schutz & Isolierung",   ":/assets/isolus.png",             "isolus.png");
+    seedBild("Pokeström",                       ":/assets/pokestroem_cee.png",     "pokestroem_cee.png");
 
     return true;
 }

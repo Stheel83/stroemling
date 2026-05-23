@@ -435,7 +435,7 @@ MouseArea {
                     canvas.verschiebenStartPos = [{ x1: rEl.x1, y1: rEl.y1,
                                                     x2: rEl.x2, y2: rEl.y2 }]
                     canvas.schnapshotVorMove   = em.snapshot()
-                    canvas.verschiebenErlaubt  = true
+                    canvas.verschiebenErlaubt  = false
                 }
                 canvas.grafikSpeichernJetzt()
                 return
@@ -501,6 +501,7 @@ MouseArea {
                                         x2: newElR.x2, y2: newElR.y2 }]
         canvas.schnapshotVorMove   = em.snapshot()
         canvas.vorschau = null; canvas.amZeichnen = false
+        canvas.verschiebenErlaubt = false
         canvas.neuZeichnen()
         if (elR.typ === "kabellinie") canvas.kabellinieDialogFuerNeuOeffnen(newIdx)
         if (elR.typ === "makrokasten") canvas.makrobenennDialogFuerNeuOeffnen(newIdx)

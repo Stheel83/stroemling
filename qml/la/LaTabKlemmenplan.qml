@@ -40,9 +40,13 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
+    Rectangle {
+        Layout.fillWidth: true; Layout.fillHeight: true
+        color: theme.surface
+
     ListView {
         id: kpView
-        Layout.fillWidth: true; Layout.fillHeight: true
+        anchors.fill: parent
         model: panel._klemmenplanModel; clip: true
         ScrollBar.vertical: ScrollBar {}
 
@@ -93,6 +97,7 @@ ColumnLayout {
             }
         }
     }
+    } // Rectangle (ListView-Hintergrund)
     Text {
         visible: panel.klemmenplanZaehler === 0
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter

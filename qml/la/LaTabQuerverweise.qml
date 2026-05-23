@@ -40,9 +40,13 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
+    Rectangle {
+        Layout.fillWidth: true; Layout.fillHeight: true
+        color: theme.surface
+
     ListView {
         id: qvView
-        Layout.fillWidth: true; Layout.fillHeight: true
+        anchors.fill: parent
         model: panel._querverweisModel; clip: true
         ScrollBar.vertical: ScrollBar {}
         delegate: Rectangle {
@@ -60,6 +64,7 @@ ColumnLayout {
             }
         }
     }
+    } // Rectangle (ListView-Hintergrund)
     Text {
         visible: panel._querverweisModel.count === 0
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter

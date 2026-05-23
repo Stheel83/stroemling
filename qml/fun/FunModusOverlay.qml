@@ -84,6 +84,13 @@ Item {
         canvasH:      root.height
     }
 
+    FunSzeneImpulsino {
+        id:      impulsinoSzene
+        canvasW: root.width
+        canvasH: root.height
+        running: root.visible
+    }
+
     property var  _szenen:        [dvdSzene, orbitSzene, congaSzene, fangenSzene,
                                    springeilSzene, formationSzene, gespraechSzene, fallSzene]
     property var  _aktiveSzene:   null

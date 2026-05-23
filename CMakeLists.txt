@@ -152,6 +152,7 @@ qt_add_qml_module(stroemling_app
         qml/fun/FunSzeneFormation.qml
         qml/fun/FunSzeneGespraech.qml
         qml/fun/FunSzeneFall.qml
+        qml/fun/FunSzeneImpulsino.qml
         qml/logos/LogoHeader.qml
         qml/logos/LogoIconSinus.qml
         qml/logos/LogoIconAtom.qml
@@ -172,6 +173,8 @@ qt_add_resources(stroemling_app "stromlinge_assets"
     FILES
         qml/assets/schwaerzchen_sheet.png
         qml/assets/pokestroem_cee.png
+        qml/assets/impulsino_sheet.png
+        qml/assets/isolus.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

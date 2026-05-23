@@ -592,13 +592,25 @@ Item {
                         }
                     }
 
-                    Text {
+                    Column {
                         anchors.centerIn: parent
-                        visible:   artListe.count === 0 && root._hatKategorie
-                        text:      qsTr("Noch keine Artikel.\nAuf + klicken um einen anzulegen.")
-                        color:     root.theme.textMuted
-                        font.pixelSize: 11
-                        horizontalAlignment: Text.AlignHCenter
+                        visible: artListe.count === 0 && root._hatKategorie
+                        spacing: 12
+
+                        Image {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            source:   "qrc:/assets/isolus.png"
+                            width:    180; height: 180
+                            fillMode: Image.PreserveAspectFit
+                            smooth:   true; mipmap: true
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text:           qsTr("Noch keine Artikel.\nAuf + klicken um einen anzulegen.")
+                            color:          root.theme.textMuted
+                            font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter
+                        }
                     }
                 }
             }

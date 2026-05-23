@@ -41,13 +41,9 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    Rectangle {
-        Layout.fillWidth: true; Layout.fillHeight: true
-        color: theme.surface
-
     ListView {
         id: alView
-        anchors.fill: parent
+        Layout.fillWidth: true; Layout.fillHeight: true
         model: panel._aderlisteModel; clip: true
         ScrollBar.vertical: ScrollBar {}
         delegate: Rectangle {
@@ -81,7 +77,6 @@ ColumnLayout {
             }
         }
     }
-    } // Rectangle (ListView-Hintergrund)
     Text {
         visible: panel._aderlisteModel.count === 0
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter

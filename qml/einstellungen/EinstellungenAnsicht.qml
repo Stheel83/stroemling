@@ -1047,7 +1047,7 @@ Item {
                     border.color:       root.theme.border
                     height:             entstehungCol.implicitHeight + 24
 
-                    Column {
+                    ColumnLayout {
                         id:      entstehungCol
                         anchors {
                             left:    parent.left
@@ -1058,31 +1058,45 @@ Item {
                         spacing: 10
 
                         Text {
-                            width:          parent.width
+                            text:           "Stephan Theelke"
+                            font.pixelSize: 14
+                            font.weight:    Font.Medium
+                            color:          root.theme.textPrimary
+                        }
+                        Text {
+                            text:           qsTr("Projektinhaber")
+                            font.pixelSize: 11
+                            color:          root.theme.textMuted
+                        }
+
+                        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+                        Text {
+                            Layout.fillWidth: true
                             text:           qsTr("Strömling Design entstand am 08.04.2026 aus einem persönlichen Bedürfnis: Im Berufsalltag arbeite ich mit EPLAN P8 Electric, privat hatte ich QElectroTech genutzt — beides nicht das, was ich wollte. Also habe ich angefangen, selbst etwas zu bauen.")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap
                         }
                         Text {
-                            width:          parent.width
+                            Layout.fillWidth: true
                             text:           qsTr("Den Begriff \"Strömlinge\" kenne ich noch aus meiner Lehrzeit um die Jahrtausendwende — endlich konnte ich ihn mal verwenden.")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap
                         }
 
-                        Rectangle { width: parent.width; height: 1; color: root.theme.border }
+                        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
                         Text {
-                            width:          parent.width
+                            Layout.fillWidth: true
                             text:           qsTr("Dieses Projekt wurde mit Unterstützung von KI-Werkzeugen entwickelt:")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap
                         }
-                        Column {
-                            width:   parent.width
+                        ColumnLayout {
+                            Layout.fillWidth: true
                             spacing: 4
                             Repeater {
                                 model: [
@@ -1090,7 +1104,7 @@ Item {
                                     qsTr("🖼  ChatGPT / DALL-E (OpenAI) — Strömlinge-Bilder")
                                 ]
                                 Text {
-                                    width:          parent.width
+                                    Layout.fillWidth: true
                                     text:           modelData
                                     font.pixelSize: 12
                                     color:          root.theme.textSecondary
@@ -1099,13 +1113,13 @@ Item {
                             }
                         }
                         Text {
-                            width:          parent.width
-                            text:           qsTr("Der Quellcode, alle Konzepte und die Projektidee stammen von mir. KI hat geholfen, sie umzusetzen — schneller und mit mehr Funktionen als ich es allein geschafft hätte.")
+                            Layout.fillWidth: true
+                            text:           qsTr("Die Projektidee stammt von mir — Konzepte und Quellcode habe ich gemeinsam mit KI erarbeitet.")
                             font.pixelSize: 11
                             color:          root.theme.textMuted
                             wrapMode:       Text.WordWrap
                         }
-                        Item { height: 2 }
+                        Item { implicitHeight: 2 }
                     }
                 }
 
@@ -1131,7 +1145,7 @@ Item {
                     border.color:       root.theme.border
                     height:             lizenzCol.implicitHeight + 24
 
-                    Column {
+                    ColumnLayout {
                         id:               lizenzCol
                         anchors {
                             left:         parent.left
@@ -1142,14 +1156,14 @@ Item {
                         spacing: 8
 
                         Text {
-                            width:          parent.width
+                            Layout.fillWidth: true
                             text:           qsTr("Strömling Design ist freie Software, lizenziert unter der GNU General Public License v3.")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap
                         }
-                        Column {
-                            width:   parent.width
+                        ColumnLayout {
+                            Layout.fillWidth: true
                             spacing: 4
                             Repeater {
                                 model: [
@@ -1160,7 +1174,7 @@ Item {
                                     qsTr("✓  Beiträge und Verbesserungen willkommen")
                                 ]
                                 delegate: Text {
-                                    width:          parent.width
+                                    Layout.fillWidth: true
                                     text:           modelData
                                     font.pixelSize: 12
                                     color:          root.theme.textPrimary
@@ -1169,7 +1183,7 @@ Item {
                             }
                         }
                         Text {
-                            width:          parent.width
+                            Layout.fillWidth: true
                             text:           qsTr("Wenn dir das Programm nützt, freue ich mich über eine Spende – das hilft, das Projekt weiterzuentwickeln.")
                             font.pixelSize: 11
                             font.italic:    true
@@ -1178,7 +1192,7 @@ Item {
                             topPadding:     4
                         }
                         Text {
-                            width:          parent.width
+                            Layout.fillWidth: true
                             text:           "GPL-3.0-or-later · https://www.gnu.org/licenses/gpl-3.0.txt"
                             font.pixelSize: 10
                             font.family:    "monospace"

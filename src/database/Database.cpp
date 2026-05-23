@@ -7390,6 +7390,10 @@ sicherheitsrelevanten Anlagen liegt die Verantwortung beim Anwender.
                     "Über dieses Projekt",
                     R"(# Über dieses Projekt
 
+## Projektinhaber
+
+**Stephan Theelke**
+
 ## Entstehung
 
 Strömling Design wurde am **08.04.2026** gestartet.
@@ -7416,10 +7420,8 @@ KI-Werkzeugen entwickelt:
 | **Claude Code** (Anthropic) | Code, Architektur, Konzepte |
 | **ChatGPT / DALL-E** (OpenAI) | Strömlinge-Charakterbilder |
 
-Die Projektidee, alle inhaltlichen Entscheidungen, das Konzept und die
-Verantwortung für den Code liegen beim Projektinhaber. KI hat geholfen,
-diese Ideen schneller und mit mehr Funktionsumfang umzusetzen, als es
-allein möglich gewesen wäre.
+Die Projektidee stammt vom Projektinhaber — Konzepte und Quellcode
+wurden gemeinsam mit KI erarbeitet.
 
 ## Warum Open Source?
 

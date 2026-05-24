@@ -9,6 +9,16 @@ qt_standard_project_setup(REQUIRES 6.5)
 qt_add_executable(stroemling_app
     src/main.cpp
     src/database/Database.cpp
+    src/database/Database_Canvas.cpp
+    src/database/Database_Listen.cpp
+    src/database/Database_Normblatt.cpp
+    src/database/Database_Kabel.cpp
+    src/database/Database_Makro.cpp
+    src/database/Database_IBN.cpp
+    src/database/Database_Wiki.cpp
+    src/database/Database_SPS.cpp
+    src/database/Database_PDF.cpp
+    src/database/Database_DRC.cpp
     src/database/Database.h
     src/models/ProjektModel.cpp
     src/models/ProjektModel.h
@@ -213,6 +223,16 @@ enable_testing()
 qt_add_executable(stroemling_test
     tests/tst_migrationen.cpp
     src/database/Database.cpp
+    src/database/Database_Canvas.cpp
+    src/database/Database_Listen.cpp
+    src/database/Database_Normblatt.cpp
+    src/database/Database_Kabel.cpp
+    src/database/Database_Makro.cpp
+    src/database/Database_IBN.cpp
+    src/database/Database_Wiki.cpp
+    src/database/Database_SPS.cpp
+    src/database/Database_PDF.cpp
+    src/database/Database_DRC.cpp
     src/database/Database.h
 )
 

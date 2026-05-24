@@ -1443,7 +1443,7 @@ bool Database::applyMigrationStatements(const QStringList &statements)
 bool Database::erstelleBackup(const QString &verbindungsName, const QString &prefix, int version)
 {
     QSqlDatabase db = verbindungsName.isEmpty()
-                      ? QSqlDatabase::database()
+                      ? m_db
                       : QSqlDatabase::database(verbindungsName);
 
     QString dbPfad = db.databaseName();
@@ -4817,8 +4817,7 @@ QVariantList Database::normblattFelderLaden(int vorlageId)
 
 bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felder)
 {
-    QSqlDatabase db = QSqlDatabase::database();
-    if (!db.transaction()) {
+    if (!m_db.transaction()) {
         qWarning() << "normblattFelderSpeichern: Transaction fehlgeschlagen";
         return false;
     }
@@ -4827,7 +4826,7 @@ bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felde
     q.bindValue(":vid", vorlageId);
     if (!q.exec()) {
         qWarning() << "normblattFelderSpeichern DELETE:" << q.lastError().text();
-        db.rollback();
+        m_db.rollback();
         return false;
     }
     q.prepare(R"(INSERT INTO normblatt_feld
@@ -4851,11 +4850,11 @@ bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felde
         q.bindValue(":rei",    i);
         if (!q.exec()) {
             qWarning() << "normblattFelderSpeichern INSERT:" << q.lastError().text();
-            db.rollback();
+            m_db.rollback();
             return false;
         }
     }
-    db.commit();
+    m_db.commit();
     return true;
 }
 
@@ -5671,8 +5670,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     const double maxX = std::max(kx1, kx2);
     const double maxY = std::max(ky1, ky2);
 
-    QSqlDatabase dbConn = QSqlDatabase::database();
-    if (!dbConn.transaction()) {
+    if (!m_db.transaction()) {
         qWarning() << "makroSpeichern: transaction fehlgeschlagen";
         return -1;
     }
@@ -5691,14 +5689,14 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qm.bindValue(":id", makroId);
         if (!qm.exec()) {
             qWarning() << "makroSpeichern UPDATE makro:" << qm.lastError().text();
-            dbConn.rollback(); return -1;
+            m_db.rollback(); return -1;
         }
         QSqlQuery qdel;
         qdel.prepare("DELETE FROM makro_element WHERE makro_id = :id");
         qdel.bindValue(":id", makroId);
         if (!qdel.exec()) {
             qWarning() << "makroSpeichern DELETE makro_element:" << qdel.lastError().text();
-            dbConn.rollback(); return -1;
+            m_db.rollback(); return -1;
         }
     } else {
         qm.prepare("INSERT INTO makro (name, beschreibung, kategorie, kasten_breite, kasten_hoehe) "
@@ -5710,7 +5708,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qm.bindValue(":h",  maxY - minY);
         if (!qm.exec()) {
             qWarning() << "makroSpeichern INSERT makro:" << qm.lastError().text();
-            dbConn.rollback(); return -1;
+            m_db.rollback(); return -1;
         }
         makroId = qm.lastInsertId().toInt();
     }
@@ -5734,7 +5732,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     qe.bindValue(":maxy", maxY);
     if (!qe.exec()) {
         qWarning() << "makroSpeichern SELECT elemente:" << qe.lastError().text();
-        dbConn.rollback(); return -1;
+        m_db.rollback(); return -1;
     }
 
     QSqlQuery qi;
@@ -5756,7 +5754,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qi.bindValue(":sort", qe.value(7));
         if (!qi.exec()) {
             qWarning() << "makroSpeichern INSERT makro_element:" << qi.lastError().text();
-            dbConn.rollback(); return -1;
+            m_db.rollback(); return -1;
         }
     }
 
@@ -5768,10 +5766,10 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     qu.bindValue(":id", grafikElementId);
     if (!qu.exec()) {
         qWarning() << "makroSpeichern UPDATE extra_daten:" << qu.lastError().text();
-        dbConn.rollback(); return -1;
+        m_db.rollback(); return -1;
     }
 
-    if (!dbConn.commit()) {
+    if (!m_db.commit()) {
         qWarning() << "makroSpeichern: commit fehlgeschlagen";
         return -1;
     }
@@ -5826,8 +5824,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
     // speichert diese im extra_daten nicht zuverlässig. Wir lesen sie aus dem Original.
     // Für eine saubere Implementierung: in makro_element auch strich_farbe etc. speichern.
     // Aktuell: Standard-Werte, werden nach Speichern vom grafikSpeichern-Roundtrip überschrieben.
-    QSqlDatabase dbConn = QSqlDatabase::database();
-    if (!dbConn.transaction()) { qWarning() << "makroElementeEinfuegen: transaction"; return newIds; }
+    if (!m_db.transaction()) { qWarning() << "makroElementeEinfuegen: transaction"; return newIds; }
 
     QSqlQuery qi;
     qi.prepare(R"(
@@ -5855,12 +5852,12 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         qi.bindValue(":sort", qe.value(7));
         if (!qi.exec()) {
             qWarning() << "makroElementeEinfuegen INSERT:" << qi.lastError().text();
-            dbConn.rollback(); return QVariantList();
+            m_db.rollback(); return QVariantList();
         }
         newIds.append(qi.lastInsertId().toInt());
     }
 
-    if (!dbConn.commit()) { qWarning() << "makroElementeEinfuegen: commit"; return QVariantList(); }
+    if (!m_db.commit()) { qWarning() << "makroElementeEinfuegen: commit"; return QVariantList(); }
     return newIds;
 }
 
@@ -10309,7 +10306,10 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
     QString sql = QString("INSERT INTO bauteil (kategorie_id, %1) VALUES (:katId, %2)")
                       .arg(dbFelder.join(", "), bindVars.join(", "));
 
-    QSqlDatabase::database().transaction();
+    if (!m_db.transaction()) {
+        qWarning() << "csvBauteileImportieren: transaction fehlgeschlagen";
+        return 0;
+    }
     QSqlQuery q(m_db);
     int count = 0;
     for (int row = 1; row < rows.size(); row++) {
@@ -10330,7 +10330,7 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
         if (q.exec()) ++count;
         else qWarning() << "csvBauteileImportieren Zeile" << row << ":" << q.lastError().text();
     }
-    QSqlDatabase::database().commit();
+    m_db.commit();
     return count;
 }
 

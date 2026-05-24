@@ -22,7 +22,7 @@ public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
     // als inkrementelle Migration in alleMigrationen() – diese Konstante bleibt fest.
     static const int BASELINE_VERSION    = 40;
-    static const int WIKI_SCHEMA_VERSION = 9;
+    static const int WIKI_SCHEMA_VERSION = 10;
 
     explicit Database(QObject *parent = nullptr);
 
@@ -424,9 +424,24 @@ public:
     // Volltext-Suche (FTS5)
     Q_INVOKABLE QVariantList wikiSuchen(const QString &suchbegriff);
 
-    // Export / Import
+    // Export / Import (klassisch)
     Q_INVOKABLE bool wikiExportJson(const QString &pfad);
     Q_INVOKABLE bool wikiImportJson(const QString &pfad, bool mergeMode);
+
+    // Bundle-System (TB-2)
+    // Spielt ein Bundle ein (Datei- oder Qt-Ressourcenpfad).
+    // Gibt {erfolg, neu, aktualisiert, uebersprungen, meldung} zurück.
+    Q_INVOKABLE QVariantMap wikiBundleAnwenden(const QString &pfad);
+    // Exportiert gewählte Kategorien als Bundle-JSON.
+    Q_INVOKABLE bool wikiBundleExportieren(const QString &pfad,
+                                            const QString &kennung,
+                                            const QString &titel,
+                                            int version,
+                                            const QVariantList &kategorieIds);
+    // Setzt von_nutzer_geaendert = 0 für einen Bundle-Artikel (erzwingt Update beim nächsten Import).
+    Q_INVOKABLE bool wikiBundleArtikelZuruecksetzen(int id);
+    // Gibt alle aktiven Bundles zurück: [{kennung, version}]
+    Q_INVOKABLE QVariantList wikiBundleAktiveListe();
 
     // ── SPS/PLS-Integration ──────────────────────────────────────────────────
     // Rack (Hardware-Einheit: ein S7-300-Baugruppenträger oder ein PLS-Rack)

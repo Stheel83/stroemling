@@ -1198,6 +1198,7 @@ Item {
                                 contentItem: Text { text: "▲"; color: theme.textMuted; font.pixelSize: 11;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Seite nach oben"); ToolTip.delay: 700
                                 onClicked: seitenModel.seiteHoch(model.itemId)
                             }
                             Button {
@@ -1206,6 +1207,7 @@ Item {
                                 contentItem: Text { text: "▼"; color: theme.textMuted; font.pixelSize: 11;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Seite nach unten"); ToolTip.delay: 700
                                 onClicked: seitenModel.seiteRunter(model.itemId)
                             }
                             Button {
@@ -1214,6 +1216,9 @@ Item {
                                 contentItem: Text { text: "+"; color: theme.accent; font.pixelSize: 16;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered
+                                ToolTip.text:    model.knotenTyp === 0 ? qsTr("Ort anlegen") : qsTr("Seite anlegen")
+                                ToolTip.delay:   700
                                 onClicked: {
                                     if (model.knotenTyp === 0) { dlgOrt.fuerAnlageId = model.itemId; dlgOrt.open() }
                                     else { dlgSeite.fuerOrtId = model.itemId; dlgSeite.open() }
@@ -1224,6 +1229,7 @@ Item {
                                 contentItem: Text { text: qsTr("\u270E"); color: theme.accent; font.pixelSize: 14;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Bearbeiten"); ToolTip.delay: 700
                                 onClicked: {
                                     if (model.knotenTyp === 0) {
                                         dlgAnlageBearbeiten.itemId = model.itemId
@@ -1256,6 +1262,9 @@ Item {
                                 contentItem: Text { text: qsTr("\u2192"); color: "#44aa66"; font.pixelSize: 14;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? "#1a3a2a" : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered
+                                ToolTip.text:    model.knotenTyp === 1 ? qsTr("Ort verschieben") : qsTr("Seite verschieben")
+                                ToolTip.delay:   700
                                 onClicked: {
                                     if (model.knotenTyp === 1) {
                                         dlgOrtVerschieben.ortId = model.itemId
@@ -1271,6 +1280,7 @@ Item {
                                 contentItem: Text { text: qsTr("\u00D7"); color: "#aa4444"; font.pixelSize: 16;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Löschen"); ToolTip.delay: 700
                                 onClicked: {
                                     if (model.knotenTyp === 2) {
                                         dlgSeiteLoeschen.loeschSeiteId        = model.itemId

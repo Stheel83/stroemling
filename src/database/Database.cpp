@@ -1056,7 +1056,15 @@ bool Database::openWiki(const QString &path)
         pragma.exec("PRAGMA journal_mode = WAL");
     }
     qInfo() << "Wiki-Datenbank geöffnet:" << path;
-    return checkAndApplyWikiSchema();
+    if (!checkAndApplyWikiSchema())
+        return false;
+    // Eingebettete Bundles (Qt-Ressourcen) automatisch einspielen
+    const QStringList eingebetteteBundles = {};  // hier :/bundles/xxx.json eintragen sobald vorhanden
+    for (const QString &res : eingebetteteBundles) {
+        if (QFile::exists(res))
+            wikiBundleAnwenden(res);
+    }
+    return true;
 }
 
 bool Database::checkAndApplyWikiSchema()
@@ -1106,6 +1114,40 @@ bool Database::checkAndApplyWikiSchema()
         }
     }
 
+    // v10: bundle_kennung + von_nutzer_geaendert in wiki_artikel; wiki_meta-Tabelle
+    if (storedVersion >= 1 && storedVersion < 10) {
+        bool hatBundleKennung = false, hatVonNutzerGeaendert = false;
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA table_info(wiki_artikel)");
+        while (pragma.next()) {
+            const QString col = pragma.value(1).toString();
+            if (col == "bundle_kennung")       hatBundleKennung = true;
+            if (col == "von_nutzer_geaendert") hatVonNutzerGeaendert = true;
+        }
+        if (!hatBundleKennung) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN bundle_kennung TEXT DEFAULT NULL")) {
+                qWarning() << "ALTER wiki_artikel ADD bundle_kennung:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+        if (!hatVonNutzerGeaendert) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN von_nutzer_geaendert INTEGER NOT NULL DEFAULT 0")) {
+                qWarning() << "ALTER wiki_artikel ADD von_nutzer_geaendert:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+        QSqlQuery q(m_wikiDb);
+        if (!q.exec("CREATE TABLE IF NOT EXISTS wiki_meta (schluessel TEXT PRIMARY KEY, wert TEXT NOT NULL)")) {
+            qWarning() << "CREATE wiki_meta:" << q.lastError().text();
+            m_wikiDb.rollback();
+            return false;
+        }
+    }
+
     if (!createWikiSchema() || !seedWikiStarterInhalte()) {
         m_wikiDb.rollback();
         return false;
@@ -1150,17 +1192,29 @@ bool Database::createWikiSchema()
 
     if (!q.exec(R"(
         CREATE TABLE IF NOT EXISTS wiki_artikel (
-            id           INTEGER PRIMARY KEY,
-            kategorie_id INTEGER NOT NULL REFERENCES wiki_kategorie(id) ON DELETE RESTRICT,
-            titel        TEXT    NOT NULL,
-            inhalt       TEXT    NOT NULL DEFAULT '',
-            tags         TEXT    NOT NULL DEFAULT '',
-            ist_system   INTEGER NOT NULL DEFAULT 0,
-            erstellt_am  TEXT    NOT NULL DEFAULT (datetime('now')),
-            geaendert_am TEXT    NOT NULL DEFAULT (datetime('now'))
+            id                   INTEGER PRIMARY KEY,
+            kategorie_id         INTEGER NOT NULL REFERENCES wiki_kategorie(id) ON DELETE RESTRICT,
+            titel                TEXT    NOT NULL,
+            inhalt               TEXT    NOT NULL DEFAULT '',
+            tags                 TEXT    NOT NULL DEFAULT '',
+            ist_system           INTEGER NOT NULL DEFAULT 0,
+            bundle_kennung       TEXT    DEFAULT NULL,
+            von_nutzer_geaendert INTEGER NOT NULL DEFAULT 0,
+            erstellt_am          TEXT    NOT NULL DEFAULT (datetime('now')),
+            geaendert_am         TEXT    NOT NULL DEFAULT (datetime('now'))
         )
     )")) {
         qWarning() << "Fehler wiki_artikel:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_meta (
+            schluessel TEXT PRIMARY KEY,
+            wert       TEXT NOT NULL
+        )
+    )")) {
+        qWarning() << "Fehler wiki_meta:" << q.lastError().text();
         return false;
     }
 
@@ -6663,17 +6717,19 @@ bool Database::wikiKategorieSortierungSetzen(int id, int sortierung)
 QVariantList Database::wikiArtikelFuerKategorie(int kategorieId)
 {
     QSqlQuery q(m_wikiDb);
-    q.prepare("SELECT id, titel, tags, geaendert_am, ist_system FROM wiki_artikel WHERE kategorie_id = :kid ORDER BY titel");
+    q.prepare("SELECT id, titel, tags, geaendert_am, ist_system, bundle_kennung, von_nutzer_geaendert FROM wiki_artikel WHERE kategorie_id = :kid ORDER BY titel");
     q.bindValue(":kid", kategorieId);
     QVariantList result;
     if (!q.exec()) return result;
     while (q.next()) {
         QVariantMap m;
-        m["id"]          = q.value(0);
-        m["titel"]       = q.value(1);
-        m["tags"]        = q.value(2);
-        m["geaendertAm"] = q.value(3);
-        m["istSystem"]   = q.value(4);
+        m["id"]                 = q.value(0);
+        m["titel"]              = q.value(1);
+        m["tags"]               = q.value(2);
+        m["geaendertAm"]        = q.value(3);
+        m["istSystem"]          = q.value(4);
+        m["bundleKennung"]      = q.value(5);
+        m["vonNutzerGeaendert"] = q.value(6);
         result << m;
     }
     return result;
@@ -6682,18 +6738,20 @@ QVariantList Database::wikiArtikelFuerKategorie(int kategorieId)
 QVariantMap Database::wikiArtikelLaden(int id)
 {
     QSqlQuery q(m_wikiDb);
-    q.prepare("SELECT id, kategorie_id, titel, inhalt, tags, ist_system, erstellt_am, geaendert_am FROM wiki_artikel WHERE id = :id");
+    q.prepare("SELECT id, kategorie_id, titel, inhalt, tags, ist_system, bundle_kennung, von_nutzer_geaendert, erstellt_am, geaendert_am FROM wiki_artikel WHERE id = :id");
     q.bindValue(":id", id);
     QVariantMap m;
     if (!q.exec() || !q.next()) return m;
-    m["id"]          = q.value(0);
-    m["kategorieId"] = q.value(1);
-    m["titel"]       = q.value(2);
-    m["inhalt"]      = q.value(3);
-    m["tags"]        = q.value(4);
-    m["istSystem"]   = q.value(5);
-    m["erstelltAm"]  = q.value(6);
-    m["geaendertAm"] = q.value(7);
+    m["id"]                 = q.value(0);
+    m["kategorieId"]        = q.value(1);
+    m["titel"]              = q.value(2);
+    m["inhalt"]             = q.value(3);
+    m["tags"]               = q.value(4);
+    m["istSystem"]          = q.value(5);
+    m["bundleKennung"]      = q.value(6);
+    m["vonNutzerGeaendert"] = q.value(7);
+    m["erstelltAm"]         = q.value(8);
+    m["geaendertAm"]        = q.value(9);
     return m;
 }
 
@@ -6728,6 +6786,11 @@ bool Database::wikiArtikelSpeichern(int id, const QString &titel,
         qWarning() << "wikiArtikelSpeichern:" << q.lastError().text();
         return false;
     }
+    // Wenn es ein Bundle-Artikel ist, Nutzer-Änderung markieren
+    QSqlQuery flag(m_wikiDb);
+    flag.prepare("UPDATE wiki_artikel SET von_nutzer_geaendert = 1 WHERE id = :id AND bundle_kennung IS NOT NULL");
+    flag.bindValue(":id", id);
+    flag.exec();
     return true;
 }
 
@@ -7104,6 +7167,381 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
     qInfo() << "Wiki importiert:" << artArr.size() << "Artikel"
             << (mergeMode ? "(Merge)" : "(Replace)");
     return true;
+}
+
+// ============================================================
+// wikiBundleAnwenden
+// Spielt ein Bundle (Datei oder Qt-Ressource) ein.
+// Gibt {erfolg, neu, aktualisiert, uebersprungen, meldung} zurück.
+// ============================================================
+QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
+{
+    QVariantMap result;
+    result["erfolg"]        = false;
+    result["neu"]           = 0;
+    result["aktualisiert"]  = 0;
+    result["uebersprungen"] = 0;
+    result["meldung"]       = QString();
+
+    // Pfad normalisieren: file:// → lokaler Pfad; qrc:/ → :/
+    QString localPfad = pfad;
+    if (QUrl(pfad).isLocalFile())
+        localPfad = QUrl(pfad).toLocalFile();
+    else if (localPfad.startsWith("qrc:/"))
+        localPfad = localPfad.mid(3);
+
+    QFile f(localPfad);
+    if (!f.open(QIODevice::ReadOnly)) {
+        result["meldung"] = QString("Datei nicht lesbar: %1").arg(localPfad);
+        qWarning() << "wikiBundleAnwenden:" << result["meldung"].toString();
+        return result;
+    }
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+    if (doc.isNull()) {
+        result["meldung"] = QString("JSON-Fehler: %1").arg(err.errorString());
+        qWarning() << "wikiBundleAnwenden:" << result["meldung"].toString();
+        return result;
+    }
+    const QJsonObject root = doc.object();
+    if (root["wiki_export_version"].toInt() != 1) {
+        result["meldung"] = QString("Unbekannte Export-Version: %1").arg(root["wiki_export_version"].toInt());
+        return result;
+    }
+    const QString kennung       = root["bundle_kennung"].toString();
+    const int     bundleVersion = root["bundle_version"].toInt();
+    if (kennung.isEmpty()) {
+        result["meldung"] = "Bundle hat keine Kennung (bundle_kennung fehlt) – nutze Wiki-Import statt Bundle-Import";
+        return result;
+    }
+
+    // Versionsprüfung gegen wiki_meta
+    {
+        QSqlQuery vq(m_wikiDb);
+        vq.prepare("SELECT wert FROM wiki_meta WHERE schluessel = :s");
+        vq.bindValue(":s", "bundle_version_" + kennung);
+        if (vq.exec() && vq.next()) {
+            const int gespeichert = vq.value(0).toString().toInt();
+            if (bundleVersion <= gespeichert) {
+                result["erfolg"]  = true;
+                result["meldung"] = QString("Bereits aktuell (v%1)").arg(gespeichert);
+                return result;
+            }
+        }
+    }
+
+    if (!m_wikiDb.transaction()) {
+        result["meldung"] = "Transaktion fehlgeschlagen";
+        return result;
+    }
+
+    int neuCount = 0, aktCount = 0, skipCount = 0;
+
+    // Kategorien: nach Name finden oder neu anlegen
+    QMap<int, int> katIdMap;
+    for (const QJsonValue &v : root["kategorien"].toArray()) {
+        const QJsonObject o  = v.toObject();
+        const int    oldId   = o["id"].toInt();
+        const QString name   = o["name"].toString();
+        QSqlQuery find(m_wikiDb);
+        find.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
+        find.bindValue(":n", name);
+        if (find.exec() && find.next()) {
+            katIdMap[oldId] = find.value(0).toInt();
+        } else {
+            QSqlQuery ins(m_wikiDb);
+            ins.prepare("INSERT INTO wiki_kategorie (name, beschreibung, sortierung) VALUES (:n, :b, :s)");
+            ins.bindValue(":n", name);
+            ins.bindValue(":b", o["beschreibung"].toString());
+            ins.bindValue(":s", o["sortierung"].toInt());
+            if (!ins.exec()) {
+                m_wikiDb.rollback();
+                result["meldung"] = "Kategorie anlegen: " + ins.lastError().text();
+                return result;
+            }
+            katIdMap[oldId] = ins.lastInsertId().toInt();
+        }
+    }
+
+    // Bilder nach bundle-lokaler Artikel-ID gruppieren
+    QMap<int, QList<QJsonObject>> bilderNachArtId;
+    for (const QJsonValue &v : root["bilder"].toArray())
+        bilderNachArtId[v.toObject()["artikel_id"].toInt()].append(v.toObject());
+
+    // Artikel einfügen / aktualisieren / überspringen
+    for (const QJsonValue &v : root["artikel"].toArray()) {
+        const QJsonObject o   = v.toObject();
+        const int  oldArtId   = o["id"].toInt();
+        const int  oldKatId   = o["kategorie_id"].toInt();
+        const QString katName = o["kategorie_name"].toString();
+        const QString titel   = o["titel"].toString();
+        const QString inhalt  = o["inhalt"].toString();
+        const QString tags    = o["tags"].toString();
+
+        // Kategorie-ID auflösen (Fallback über Name)
+        int newKatId = katIdMap.value(oldKatId, -1);
+        if (newKatId < 0) {
+            QSqlQuery find(m_wikiDb);
+            find.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
+            find.bindValue(":n", katName);
+            if (find.exec() && find.next()) {
+                newKatId = find.value(0).toInt();
+                katIdMap[oldKatId] = newKatId;
+            } else {
+                QSqlQuery ins(m_wikiDb);
+                ins.prepare("INSERT INTO wiki_kategorie (name) VALUES (:n)");
+                ins.bindValue(":n", katName);
+                if (!ins.exec()) { m_wikiDb.rollback(); result["meldung"] = "Kategorie (Fallback): " + ins.lastError().text(); return result; }
+                newKatId = ins.lastInsertId().toInt();
+                katIdMap[oldKatId] = newKatId;
+            }
+        }
+
+        // Vorhandenen Artikel suchen
+        QSqlQuery find(m_wikiDb);
+        find.prepare("SELECT id, von_nutzer_geaendert FROM wiki_artikel WHERE bundle_kennung = :bk AND titel = :t");
+        find.bindValue(":bk", kennung);
+        find.bindValue(":t",  titel);
+
+        auto _bilderEinfuegen = [&](int artDbId, const QString &inhaltVorlage) -> QString {
+            QMap<int, int> bildIdMap;
+            for (const QJsonObject &b : bilderNachArtId.value(oldArtId)) {
+                QSqlQuery bIns(m_wikiDb);
+                bIns.prepare(R"(
+                    INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, beschreibung, sortierung)
+                    VALUES (:aid, :fn, :mime, :daten, :beschr, :sort)
+                )");
+                bIns.bindValue(":aid",   artDbId);
+                bIns.bindValue(":fn",    b["dateiname"].toString());
+                bIns.bindValue(":mime",  b["mime_typ"].toString());
+                bIns.bindValue(":daten", QByteArray::fromBase64(b["daten_base64"].toString().toLatin1()));
+                bIns.bindValue(":beschr", b["beschreibung"].toString());
+                bIns.bindValue(":sort",  b["sortierung"].toInt());
+                if (bIns.exec())
+                    bildIdMap[b["id"].toInt()] = bIns.lastInsertId().toInt();
+            }
+            // wiki://bild/{bundle-lokal} → wiki://bild/{db-id}
+            QString inhaltRemap = inhaltVorlage;
+            for (auto it = bildIdMap.cbegin(); it != bildIdMap.cend(); ++it)
+                inhaltRemap.replace(
+                    QString("wiki://bild/%1").arg(it.key()),
+                    QString("wiki://bild/%1").arg(it.value())
+                );
+            return inhaltRemap;
+        };
+
+        if (find.exec() && find.next()) {
+            const int existingId          = find.value(0).toInt();
+            const int vonNutzerGeaendert  = find.value(1).toInt();
+            if (vonNutzerGeaendert == 1) {
+                skipCount++;
+            } else {
+                // Bilder löschen (cascaden würde nicht, da kein ON DELETE CASCADE für UPDATE)
+                QSqlQuery delBilder(m_wikiDb);
+                delBilder.prepare("DELETE FROM wiki_bild WHERE artikel_id = :aid");
+                delBilder.bindValue(":aid", existingId);
+                delBilder.exec();
+
+                const QString inhaltRemap = _bilderEinfuegen(existingId, inhalt);
+                QSqlQuery upd(m_wikiDb);
+                upd.prepare(R"(
+                    UPDATE wiki_artikel
+                    SET titel = :t, inhalt = :i, tags = :tags,
+                        kategorie_id = :kid, geaendert_am = datetime('now')
+                    WHERE id = :id
+                )");
+                upd.bindValue(":t",   titel);
+                upd.bindValue(":i",   inhaltRemap);
+                upd.bindValue(":tags", tags);
+                upd.bindValue(":kid", newKatId);
+                upd.bindValue(":id",  existingId);
+                if (!upd.exec()) {
+                    m_wikiDb.rollback();
+                    result["meldung"] = "UPDATE: " + upd.lastError().text();
+                    return result;
+                }
+                // Inhalt mit remappten IDs zurückschreiben
+                if (inhaltRemap != inhalt) {
+                    QSqlQuery updInhalt(m_wikiDb);
+                    updInhalt.prepare("UPDATE wiki_artikel SET inhalt = :i WHERE id = :id");
+                    updInhalt.bindValue(":i",  inhaltRemap);
+                    updInhalt.bindValue(":id", existingId);
+                    updInhalt.exec();
+                }
+                aktCount++;
+            }
+        } else {
+            // Neu anlegen
+            QSqlQuery ins(m_wikiDb);
+            ins.prepare(R"(
+                INSERT INTO wiki_artikel (kategorie_id, titel, inhalt, tags, bundle_kennung, ist_system)
+                VALUES (:kid, :t, :i, :tags, :bk, 0)
+            )");
+            ins.bindValue(":kid",  newKatId);
+            ins.bindValue(":t",    titel);
+            ins.bindValue(":i",    inhalt);
+            ins.bindValue(":tags", tags);
+            ins.bindValue(":bk",   kennung);
+            if (!ins.exec()) {
+                m_wikiDb.rollback();
+                result["meldung"] = "INSERT: " + ins.lastError().text();
+                return result;
+            }
+            const int newArtId    = ins.lastInsertId().toInt();
+            const QString inhaltRemap = _bilderEinfuegen(newArtId, inhalt);
+            if (inhaltRemap != inhalt) {
+                QSqlQuery updInhalt(m_wikiDb);
+                updInhalt.prepare("UPDATE wiki_artikel SET inhalt = :i WHERE id = :id");
+                updInhalt.bindValue(":i",  inhaltRemap);
+                updInhalt.bindValue(":id", newArtId);
+                updInhalt.exec();
+            }
+            neuCount++;
+        }
+    }
+
+    // Bundle-Version speichern
+    {
+        QSqlQuery upsert(m_wikiDb);
+        upsert.prepare("INSERT OR REPLACE INTO wiki_meta (schluessel, wert) VALUES (:s, :v)");
+        upsert.bindValue(":s", "bundle_version_" + kennung);
+        upsert.bindValue(":v", QString::number(bundleVersion));
+        upsert.exec();
+    }
+
+    if (!m_wikiDb.commit()) {
+        m_wikiDb.rollback();
+        result["meldung"] = "Commit fehlgeschlagen";
+        return result;
+    }
+
+    result["erfolg"]        = true;
+    result["neu"]           = neuCount;
+    result["aktualisiert"]  = aktCount;
+    result["uebersprungen"] = skipCount;
+    result["meldung"]       = QString("%1 neu, %2 aktualisiert, %3 übersprungen")
+                                .arg(neuCount).arg(aktCount).arg(skipCount);
+    qInfo() << "wikiBundleAnwenden" << kennung << "v" << bundleVersion << "–" << result["meldung"].toString();
+    return result;
+}
+
+// ============================================================
+// wikiBundleExportieren
+// ============================================================
+bool Database::wikiBundleExportieren(const QString &pfad, const QString &kennung,
+                                      const QString &titel, int version,
+                                      const QVariantList &kategorieIds)
+{
+    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+
+    QSet<int> katIdSet;
+    for (const QVariant &v : kategorieIds)
+        katIdSet.insert(v.toInt());
+
+    // Kategorien
+    QJsonArray kategorienArr;
+    QSqlQuery qKat(m_wikiDb);
+    if (!qKat.exec("SELECT id, name, beschreibung, sortierung FROM wiki_kategorie ORDER BY sortierung, name"))
+        return false;
+    while (qKat.next()) {
+        if (!katIdSet.contains(qKat.value(0).toInt())) continue;
+        QJsonObject o;
+        o["id"]           = qKat.value(0).toInt();
+        o["name"]         = qKat.value(1).toString();
+        o["beschreibung"] = qKat.value(2).toString();
+        o["sortierung"]   = qKat.value(3).toInt();
+        kategorienArr.append(o);
+    }
+
+    // Artikel (keine ist_system=1)
+    QJsonArray artikelArr;
+    QSet<int> exportArtIds;
+    QSqlQuery qArt(m_wikiDb);
+    if (!qArt.exec(R"(
+        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags
+        FROM wiki_artikel wa JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id
+        WHERE wa.ist_system = 0
+        ORDER BY wk.sortierung, wk.name, wa.titel
+    )")) return false;
+    while (qArt.next()) {
+        if (!katIdSet.contains(qArt.value(1).toInt())) continue;
+        QJsonObject o;
+        o["id"]             = qArt.value(0).toInt();
+        o["kategorie_id"]   = qArt.value(1).toInt();
+        o["kategorie_name"] = qArt.value(2).toString();
+        o["titel"]          = qArt.value(3).toString();
+        o["inhalt"]         = qArt.value(4).toString();
+        o["tags"]           = qArt.value(5).toString();
+        artikelArr.append(o);
+        exportArtIds.insert(qArt.value(0).toInt());
+    }
+
+    // Bilder der exportierten Artikel
+    QJsonArray bilderArr;
+    QSqlQuery qBild(m_wikiDb);
+    if (!qBild.exec(R"(
+        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.daten, wb.beschreibung, wb.sortierung
+        FROM wiki_bild wb JOIN wiki_artikel wa ON wa.id = wb.artikel_id
+        WHERE wa.ist_system = 0
+        ORDER BY wb.artikel_id, wb.sortierung, wb.id
+    )")) return false;
+    while (qBild.next()) {
+        if (!exportArtIds.contains(qBild.value(1).toInt())) continue;
+        QJsonObject o;
+        o["id"]           = qBild.value(0).toInt();
+        o["artikel_id"]   = qBild.value(1).toInt();
+        o["dateiname"]    = qBild.value(2).toString();
+        o["mime_typ"]     = qBild.value(3).toString();
+        o["daten_base64"] = QString::fromLatin1(qBild.value(4).toByteArray().toBase64());
+        o["beschreibung"] = qBild.value(5).toString();
+        o["sortierung"]   = qBild.value(6).toInt();
+        bilderArr.append(o);
+    }
+
+    QJsonObject rootObj;
+    rootObj["wiki_export_version"] = 1;
+    rootObj["bundle_kennung"]      = kennung;
+    rootObj["bundle_version"]      = version;
+    rootObj["bundle_titel"]        = titel;
+    rootObj["exportiert_am"]       = QDateTime::currentDateTime().toString(Qt::ISODate);
+    rootObj["kategorien"]          = kategorienArr;
+    rootObj["artikel"]             = artikelArr;
+    rootObj["bilder"]              = bilderArr;
+
+    QFile f(localPfad);
+    if (!f.open(QIODevice::WriteOnly)) {
+        qWarning() << "wikiBundleExportieren: nicht schreibbar:" << localPfad;
+        return false;
+    }
+    f.write(QJsonDocument(rootObj).toJson());
+    qInfo() << "wikiBundleExportieren:" << kennung << "v" << version
+            << artikelArr.size() << "Artikel, Pfad:" << localPfad;
+    return true;
+}
+
+// ============================================================
+// wikiBundleArtikelZuruecksetzen / wikiBundleAktiveListe
+// ============================================================
+bool Database::wikiBundleArtikelZuruecksetzen(int id)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("UPDATE wiki_artikel SET von_nutzer_geaendert = 0 WHERE id = :id AND bundle_kennung IS NOT NULL");
+    q.bindValue(":id", id);
+    return q.exec();
+}
+
+QVariantList Database::wikiBundleAktiveListe()
+{
+    QSqlQuery q(m_wikiDb);
+    q.exec("SELECT schluessel, wert FROM wiki_meta WHERE schluessel LIKE 'bundle_version_%' ORDER BY schluessel");
+    QVariantList result;
+    while (q.next()) {
+        QVariantMap m;
+        m["kennung"] = q.value(0).toString().mid(QString("bundle_version_").length());
+        m["version"] = q.value(1).toString().toInt();
+        result << m;
+    }
+    return result;
 }
 
 // ============================================================

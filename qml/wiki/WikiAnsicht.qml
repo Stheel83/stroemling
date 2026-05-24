@@ -27,9 +27,14 @@ Item {
     property string _neuKatName: ""
     property string _neuArtTitel: ""
 
-    property string _importPfad: ""
-    property string _statusText: ""
-    property bool   _statusOk:   true
+    property string _importPfad:       ""
+    property string _statusText:       ""
+    property bool   _statusOk:         true
+    property string _bundleExportPfad: ""
+    property string _bundleKennung:    ""
+    property string _bundleTitel:      ""
+    property int    _bundleVersion:    1
+    property var    _bundleKatIds:     []
 
     function _zeigeStatus(text, ok) {
         _statusText = text
@@ -228,6 +233,9 @@ Item {
                                 font.pixelSize: 12
                                 color: root.theme.textMuted
                             }
+                            ToolTip.visible: exportBtnHover.hovered
+                            ToolTip.text:    qsTr("Wiki exportieren")
+                            ToolTip.delay:   700
                             HoverHandler { id: exportBtnHover }
                             TapHandler { onTapped: wikiExportDialog.open() }
                         }
@@ -241,8 +249,26 @@ Item {
                                 font.pixelSize: 12
                                 color: root.theme.textMuted
                             }
+                            ToolTip.visible: importBtnHover.hovered
+                            ToolTip.text:    qsTr("Wiki importieren")
+                            ToolTip.delay:   700
                             HoverHandler { id: importBtnHover }
                             TapHandler { onTapped: wikiImportDialog.open() }
+                        }
+                        Rectangle {
+                            width: 22; height: 22; radius: 3
+                            color: bundleBtnHover.containsMouse ? "#5b8dd9" + "33" : "transparent"
+                            border.color: (bundleBtnHover.containsMouse) ? "#5b8dd9" : root.theme.border
+                            Text {
+                                anchors.centerIn: parent
+                                text: "🗂"
+                                font.pixelSize: 11
+                            }
+                            ToolTip.visible: bundleBtnHover.hovered
+                            ToolTip.text:    qsTr("Bundle-Menü")
+                            ToolTip.delay:   700
+                            HoverHandler { id: bundleBtnHover }
+                            TapHandler { onTapped: bundleMenuPopup.open() }
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
@@ -255,6 +281,9 @@ Item {
                                 font.pixelSize: 14
                                 color: root.theme.textPrimary
                             }
+                            ToolTip.visible: katAddHover.hovered
+                            ToolTip.text:    qsTr("Neue Kategorie")
+                            ToolTip.delay:   700
                             HoverHandler { id: katAddHover }
                             TapHandler { onTapped: { root._neuKatName = ""; root._neuKatModus = true } }
                         }
@@ -296,6 +325,9 @@ Item {
                             width: 22; height: 22; radius: 3
                             color: katOkHover.containsMouse ? root.theme.accent : root.theme.border
                             Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; color: root.theme.textPrimary }
+                            ToolTip.visible: katOkHover.hovered
+                            ToolTip.text:    qsTr("Kategorie anlegen")
+                            ToolTip.delay:   700
                             HoverHandler { id: katOkHover }
                             TapHandler { onTapped: root._neueKategorieBestaetigen() }
                         }
@@ -304,6 +336,9 @@ Item {
                             color: katXHover.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: root.theme.textMuted }
+                            ToolTip.visible: katXHover.hovered
+                            ToolTip.text:    qsTr("Abbrechen")
+                            ToolTip.delay:   700
                             HoverHandler { id: katXHover }
                             TapHandler { onTapped: root._neuKatModus = false }
                         }
@@ -429,6 +464,9 @@ Item {
                                 font.pixelSize: 14
                                 color: root.theme.textPrimary
                             }
+                            ToolTip.visible: artAddHover.hovered
+                            ToolTip.text:    qsTr("Neuer Artikel")
+                            ToolTip.delay:   700
                             HoverHandler { id: artAddHover }
                             TapHandler { onTapped: { root._neuArtTitel = ""; root._neuArtModus = true } }
                         }
@@ -507,6 +545,9 @@ Item {
                             width: 22; height: 22; radius: 3
                             color: artOkHover.containsMouse ? root.theme.accent : root.theme.border
                             Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; color: root.theme.textPrimary }
+                            ToolTip.visible: artOkHover.hovered
+                            ToolTip.text:    qsTr("Artikel anlegen")
+                            ToolTip.delay:   700
                             HoverHandler { id: artOkHover }
                             TapHandler { onTapped: root._neuerArtikelBestaetigen() }
                         }
@@ -515,6 +556,9 @@ Item {
                             color: artXHover.containsMouse ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: root.theme.textMuted }
+                            ToolTip.visible: artXHover.hovered
+                            ToolTip.text:    qsTr("Abbrechen")
+                            ToolTip.delay:   700
                             HoverHandler { id: artXHover }
                             TapHandler { onTapped: root._neuArtModus = false }
                         }
@@ -571,6 +615,21 @@ Item {
                                         text:           "SYS"
                                         font.pixelSize: 8
                                         color:          root.theme.accent
+                                    }
+                                }
+                                Rectangle {
+                                    visible: (modelData.bundleKennung || "") !== ""
+                                    width:  artBundleText.implicitWidth + 6
+                                    height: 13
+                                    radius: 3
+                                    color:  "#5b8dd9" + "44"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        id: artBundleText
+                                        anchors.centerIn: parent
+                                        text:           "BND"
+                                        font.pixelSize: 8
+                                        color:          "#5b8dd9"
                                     }
                                 }
                             }
@@ -760,6 +819,52 @@ Item {
                         text:           "🏷 " + (root._aktArtikel.tags || "")
                         font.pixelSize: 10
                         color:          root.theme.textMuted
+                    }
+                }
+
+                // Bundle-Indikator (Leseansicht)
+                Rectangle {
+                    Layout.fillWidth: true
+                    height:           visible ? 30 : 0
+                    visible:          !root._editModus && (root._aktArtikel.bundleKennung || "") !== ""
+                    color:            "#5b8dd9" + "18"
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        width: parent.width; height: 1; color: root.theme.divider
+                    }
+                    RowLayout {
+                        anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
+                        spacing: 6
+                        Text {
+                            text:           "🗂 Bundle: " + (root._aktArtikel.bundleKennung || "")
+                                            + ((root._aktArtikel.vonNutzerGeaendert == 1) ? "  • bearbeitet" : "")
+                            font.pixelSize: 10
+                            color:          "#5b8dd9"
+                            Layout.fillWidth: true
+                        }
+                        Rectangle {
+                            visible:  root._aktArtikel.vonNutzerGeaendert == 1
+                            width:    resetBndHover.containsMouse ? resetBndText.implicitWidth + 12 : 16
+                            height:   18; radius: 3
+                            color:    resetBndHover.containsMouse ? "#5b8dd9" + "33" : "transparent"
+                            border.color: "#5b8dd9" + "66"
+                            Behavior on width { NumberAnimation { duration: 100 } }
+                            Text {
+                                id:             resetBndText
+                                anchors.centerIn: parent
+                                text:           resetBndHover.containsMouse ? qsTr("Zurücksetzen") : "↺"
+                                font.pixelSize: 9
+                                color:          "#5b8dd9"
+                            }
+                            HoverHandler { id: resetBndHover }
+                            TapHandler {
+                                onTapped: {
+                                    db.wikiBundleArtikelZuruecksetzen(root._aktArtId)
+                                    root._aktArtikel = db.wikiArtikelLaden(root._aktArtId)
+                                    root._artikel    = db.wikiArtikelFuerKategorie(root._aktKatId)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1466,4 +1571,262 @@ Item {
     }
 
     DebugLabel { panelName: qsTr("Wiki-Ansicht"); visible: root.debug }
+
+    // ── Bundle-Menü-Popup ─────────────────────────────────────
+    Popup {
+        id:           bundleMenuPopup
+        anchors.centerIn: parent
+        width:        280
+        height:       contentCol.implicitHeight + 32
+        modal:        true
+        padding:      0
+        closePolicy:  Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color: root.theme.surface; radius: 6; border.color: root.theme.border
+        }
+
+        Column {
+            id:      contentCol
+            anchors { fill: parent; margins: 16 }
+            spacing: 10
+
+            Text {
+                text:           qsTr("Bundle-Aktionen")
+                font.pixelSize: 13; font.weight: Font.Medium
+                color:          root.theme.textPrimary
+            }
+            Rectangle { width: parent.width; height: 1; color: root.theme.divider }
+
+            Rectangle {
+                width: parent.width; height: 32; radius: 3
+                color: bndImportHover.containsMouse ? root.theme.hover : "transparent"
+                border.color: root.theme.border
+                Text {
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    text: qsTr("↓  Bundle importieren (.json)")
+                    font.pixelSize: 11; color: root.theme.textPrimary
+                }
+                HoverHandler { id: bndImportHover }
+                TapHandler {
+                    onTapped: { bundleMenuPopup.close(); bundleImportDialog.open() }
+                }
+            }
+            Rectangle {
+                width: parent.width; height: 32; radius: 3
+                color: bndExportHover.containsMouse ? root.theme.hover : "transparent"
+                border.color: root.theme.border
+                Text {
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    text: qsTr("↑  Bundle exportieren …")
+                    font.pixelSize: 11; color: root.theme.textPrimary
+                }
+                HoverHandler { id: bndExportHover }
+                TapHandler {
+                    onTapped: {
+                        bundleMenuPopup.close()
+                        // Bundle-Version vorschlagen: letzte bekannte + 1
+                        const aktiveListe = db.wikiBundleAktiveListe()
+                        root._bundleVersion = 1
+                        root._bundleKennung = ""
+                        root._bundleTitel   = ""
+                        root._bundleKatIds  = []
+                        bundleExportPopup.open()
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Bundle-Import FileDialog ──────────────────────────────
+    FileDialog {
+        id:          bundleImportDialog
+        title:       qsTr("Bundle importieren")
+        fileMode:    FileDialog.OpenFile
+        nameFilters: [qsTr("Bundle-JSON (*.json)"), qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            const res = db.wikiBundleAnwenden(selectedFile.toString())
+            root._kategorienLaden()
+            root._artIdx     = -1
+            root._aktArtikel = ({})
+            root._bilder     = []
+            root._zeigeStatus(
+                res.erfolg
+                    ? qsTr("Bundle eingespielt: %1").arg(res.meldung)
+                    : qsTr("Bundle-Fehler: %1").arg(res.meldung),
+                res.erfolg
+            )
+        }
+    }
+
+    // ── Bundle-Export-Dialog ──────────────────────────────────
+    Popup {
+        id:           bundleExportPopup
+        anchors.centerIn: parent
+        width:        420
+        modal:        true
+        padding:      0
+        closePolicy:  Popup.CloseOnEscape
+
+        background: Rectangle {
+            color: root.theme.surface; radius: 6; border.color: root.theme.border
+        }
+
+        ColumnLayout {
+            anchors { fill: parent; margins: 20 }
+            spacing: 12
+
+            Text {
+                text: qsTr("Bundle exportieren")
+                font.pixelSize: 14; font.weight: Font.Medium
+                color: root.theme.textPrimary
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.divider }
+
+            // Kennung
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Text {
+                    text: qsTr("Kennung:"); font.pixelSize: 11; color: root.theme.textMuted
+                    width: 70
+                }
+                TextField {
+                    id: bndKennungFeld
+                    Layout.fillWidth: true; height: 28; font.pixelSize: 11
+                    placeholderText: "z.B. meine_tutorials"
+                    color: root.theme.textPrimary
+                    text: root._bundleKennung
+                    onTextChanged: root._bundleKennung = text
+                    background: Rectangle {
+                        radius: 3; color: root.theme.inputBg
+                        border.color: bndKennungFeld.activeFocus ? root.theme.accent : root.theme.border
+                    }
+                }
+            }
+
+            // Titel
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Text {
+                    text: qsTr("Titel:"); font.pixelSize: 11; color: root.theme.textMuted
+                    width: 70
+                }
+                TextField {
+                    id: bndTitelFeld
+                    Layout.fillWidth: true; height: 28; font.pixelSize: 11
+                    placeholderText: qsTr("Lesbarer Name")
+                    color: root.theme.textPrimary
+                    text: root._bundleTitel
+                    onTextChanged: root._bundleTitel = text
+                    background: Rectangle {
+                        radius: 3; color: root.theme.inputBg
+                        border.color: bndTitelFeld.activeFocus ? root.theme.accent : root.theme.border
+                    }
+                }
+            }
+
+            // Version
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Text {
+                    text: qsTr("Version:"); font.pixelSize: 11; color: root.theme.textMuted
+                    width: 70
+                }
+                SpinBox {
+                    id: bndVersionSpin
+                    from: 1; to: 9999; value: root._bundleVersion
+                    onValueChanged: root._bundleVersion = value
+                    font.pixelSize: 11
+                }
+            }
+
+            // Kategorien
+            Text {
+                text: qsTr("Kategorien:"); font.pixelSize: 11; color: root.theme.textMuted
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                height: Math.min(bndKatCol.implicitHeight + 8, 160)
+                color: root.theme.inputBg; radius: 3; border.color: root.theme.border
+                clip: true
+                Flickable {
+                    anchors { fill: parent; margins: 4 }
+                    contentHeight: bndKatCol.implicitHeight
+                    Column {
+                        id: bndKatCol
+                        width: parent.width; spacing: 2
+                        Repeater {
+                            model: root._kategorien
+                            delegate: RowLayout {
+                                width: parent.width; spacing: 6; height: 24
+                                CheckBox {
+                                    id: bndKatChk
+                                    checked: root._bundleKatIds.indexOf(modelData.id) >= 0
+                                    onCheckedChanged: {
+                                        var ids = root._bundleKatIds.slice()
+                                        if (checked) { if (ids.indexOf(modelData.id) < 0) ids.push(modelData.id) }
+                                        else { ids = ids.filter(function(i) { return i !== modelData.id }) }
+                                        root._bundleKatIds = ids
+                                    }
+                                }
+                                Text {
+                                    text: modelData.name; font.pixelSize: 11
+                                    color: root.theme.textPrimary
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Buttons
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Item { Layout.fillWidth: true }
+                Rectangle {
+                    width: 80; height: 30; radius: 3
+                    color: bndExpSaveHover.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.15)
+                    enabled: root._bundleKennung.trim() !== "" && root._bundleKatIds.length > 0
+                    opacity: enabled ? 1.0 : 0.5
+                    Text { anchors.centerIn: parent; text: qsTr("Speichern"); font.pixelSize: 11; color: "white" }
+                    HoverHandler { id: bndExpSaveHover }
+                    TapHandler {
+                        onTapped: {
+                            bundleExportPopup.close()
+                            bundleExportSaveDialog.open()
+                        }
+                    }
+                }
+                Rectangle {
+                    width: 70; height: 30; radius: 3
+                    color: bndExpAbbrHover.containsMouse ? root.theme.hover : "transparent"
+                    border.color: root.theme.border
+                    Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); font.pixelSize: 11; color: root.theme.textMuted }
+                    HoverHandler { id: bndExpAbbrHover }
+                    TapHandler { onTapped: bundleExportPopup.close() }
+                }
+            }
+        }
+    }
+
+    // ── Bundle-Export SaveFileDialog ──────────────────────────
+    FileDialog {
+        id:          bundleExportSaveDialog
+        title:       qsTr("Bundle speichern")
+        fileMode:    FileDialog.SaveFile
+        nameFilters: [qsTr("Bundle-JSON (*.json)"), qsTr("Alle Dateien (*)")]
+        onAccepted: {
+            const ok = db.wikiBundleExportieren(
+                selectedFile.toString(),
+                root._bundleKennung.trim(),
+                root._bundleTitel.trim(),
+                root._bundleVersion,
+                root._bundleKatIds
+            )
+            root._zeigeStatus(
+                ok ? qsTr("Bundle exportiert") : qsTr("Bundle-Export fehlgeschlagen"), ok
+            )
+        }
+    }
 }

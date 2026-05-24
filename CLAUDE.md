@@ -71,6 +71,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/27_sps.md` | SPS-Integration: DB-Schema (sps_rack/baugruppe/adresse), SPS-Ansicht (Hardware/Adressen/Export-Tabs), EP-Adresszuweisung, Symbolpalette, I/O-Liste, CSV-Export (TIA/STEP7/CODESYS), S1–S10 |
 | `konzept/30_fun_modus.md` | Fun-Modus (Easter Egg): Idle-Screensaver, QML-Layer über Canvas, 8 Szenarien (Springseil/Fangen/DVD/Conga/Orbit/Formation/Gespräch/Schwerkraft), Sprite-System, Implementierungsschritte |
 | `konzept/34_stromlinge.md` | Strömlinge-Charakter-System: 13+ Figuren (Brauno/Schwärzchen/Isolus/…), 2 Grundformen, 5 Kategorien, Verwendung in App, offene Punkte; Quellmaterial in `konzept/Strömlinge/` |
+| `konzept/36_tutorial_bundles.md` | Wiki-Inhalts-Bundles: JSON-Pakete (Tutorials + Fachartikel + Bilder) automatisch an Tester ausliefern; `bundle_kennung`/`von_nutzer_geaendert`-Spalten, `wiki_meta`-Tabelle, `wikiBundleAnwenden()`, Qt-Ressource-Auto-Import; TB-1 bis TB-7 |
 
 ---
 

@@ -45,33 +45,46 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | Datei | Inhalt |
 |---|---|
 | `konzept/AKTUELL.md` | **Einstieg:** Was zuletzt fertig, was als nächstes, bekannte Bugs |
-| `konzept/01_vision_architektur.md` | Projektziele, Stack, Schichtenmodell, Abgrenzung |
-| `konzept/02_datenbankschema.md` | Alle Tabellen, Views, Relationen, Schema-Strategie |
-| `konzept/03_canvas_zeichenfläche.md` | Canvas-Modi, Zoom/Pan, Raster, Hintergrundfarbe |
-| `konzept/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation |
-| `konzept/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas |
-| `konzept/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen |
-| `konzept/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771 |
-| `konzept/08_roadmap.md` | Implementierungsstand, nächste Schritte, offene Punkte |
-| `konzept/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung, Schema v8 |
-| `konzept/10_ui_terminologie.md` | verbindlichen Bezeichnungen für alle Fenster, Panels und Bereiche der Anwendung |
-| `konzept/11_symboleditor.md` | Symbole visuell zu erstellen und bestehende Symbole zu bearbeiten |
-| `konzept/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner (✅ implementiert): Formeln, UI-Layout, Berechnungslogik; Normen-Referenztabellen (IP/IK/VDE/IEC) |
-| `konzept/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll; DB-Schema (`inbetriebnahme`, `ibn_feldvorlage`, `ibn_feldwert`) |
-| `konzept/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema v31 (`makro`, `makro_element`), UX-Ablauf, C++-API |
-| `konzept/17_qml_struktur.md` | QML-Dateistruktur aller Unterordner (ep/canvas/ba/la/…), Architektur-Konventionen, EP-Auslöserbedingungen, Sektion-Grundgerüst |
-| `konzept/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
-| `konzept/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund, Konventionen für neue Komponenten |
-| `konzept/20_qml_initialisierung.md` | QML-Initialisierungsreihenfolge: C++-Phase, Singleton, Objektbaum-Aufbau, Component.onCompleted, reaktive Initialisierung durch Nutzer |
-| `konzept/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht nach C++ auslagern; API-Design, Element-Struct, Migrations-Reihenfolge (7 Schritte) |
-| `konzept/23_technische_ablaeufe.md` | Systemabläufe zum Verstehen des Codes: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern, Kabel, Querverweise |
-| `konzept/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: Schema v38, `normblatt_feld`, C++ API, Canvas-Renderer, 3-Pane-Editor, 10 Implementierungsschritte |
-| `konzept/25_wiki.md` | Erfahrungs-Wiki: persönliche Felderfahrungen, Altbestand Ost/West, Klassische Nullung, Aluminium, Aderendhülsen; Schema v40, `WikiModel`, Bild-BLOBs, FTS5-Suche |
-| `konzept/26_release_migration.md` | Release-Vorbereitung: 3 Daten-Lebensdauern, DB-Trennung (stroemling.db / wiki.db / Projektdatei), Migrations-System (ersetzt DROP+CREATE), Git-Anbindung, Export/Import, App-Datenverzeichnis |
-| `konzept/27_sps.md` | SPS-Integration: DB-Schema (sps_rack/baugruppe/adresse), SPS-Ansicht (Hardware/Adressen/Export-Tabs), EP-Adresszuweisung, Symbolpalette, I/O-Liste, CSV-Export (TIA/STEP7/CODESYS), S1–S10 |
-| `konzept/30_fun_modus.md` | Fun-Modus (Easter Egg): Idle-Screensaver, QML-Layer über Canvas, 8 Szenarien (Springseil/Fangen/DVD/Conga/Orbit/Formation/Gespräch/Schwerkraft), Sprite-System, Implementierungsschritte |
-| `konzept/34_stromlinge.md` | Strömlinge-Charakter-System: 13+ Figuren (Brauno/Schwärzchen/Isolus/…), 2 Grundformen, 5 Kategorien, Verwendung in App, offene Punkte; Quellmaterial in `konzept/Strömlinge/` |
-| `konzept/36_tutorial_bundles.md` | Wiki-Inhalts-Bundles: JSON-Pakete (Tutorials + Fachartikel + Bilder) automatisch an Tester ausliefern; `bundle_kennung`/`von_nutzer_geaendert`-Spalten, `wiki_meta`-Tabelle, `wikiBundleAnwenden()`, Qt-Ressource-Auto-Import; TB-1 bis TB-7 |
+| **`konzept/architektur/`** | **Wie ist die App gebaut?** |
+| `konzept/architektur/01_vision_architektur.md` | Projektziele, Stack, Schichtenmodell, Abgrenzung |
+| `konzept/architektur/02_datenbankschema.md` | Alle Tabellen, Views, Relationen, Schema-Strategie |
+| `konzept/architektur/03_canvas_zeichenfläche.md` | Canvas-Modi, Zoom/Pan, Raster, Hintergrundfarbe |
+| `konzept/architektur/10_ui_terminologie.md` | Verbindliche Bezeichnungen für alle Fenster, Panels und Bereiche |
+| `konzept/architektur/17_qml_struktur.md` | QML-Dateistruktur aller Unterordner (ep/canvas/ba/la/…), Architektur-Konventionen, EP-Auslöserbedingungen |
+| `konzept/architektur/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund |
+| `konzept/architektur/20_qml_initialisierung.md` | QML-Initialisierungsreihenfolge: C++-Phase, Singleton, Objektbaum-Aufbau, Component.onCompleted |
+| `konzept/architektur/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht; API-Design, Element-Struct |
+| `konzept/architektur/23_technische_ablaeufe.md` | Systemabläufe: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern, Kabel |
+| `konzept/architektur/26_release_migration.md` | Release-Vorbereitung: DB-Trennung, Migrations-System, Export/Import, App-Datenverzeichnis |
+| **`konzept/features/`** | **Was kann die App?** |
+| `konzept/features/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation |
+| `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas |
+| `konzept/features/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen |
+| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771 |
+| `konzept/features/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung |
+| `konzept/features/11_symboleditor.md` | Symbole visuell erstellen und bearbeiten |
+| `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen |
+| `konzept/features/13_Normen.md` | Normen-Referenztabellen (IP/IK/VDE/IEC) |
+| `konzept/features/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll |
+| `konzept/features/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema v31 (`makro`, `makro_element`), UX-Ablauf, C++-API |
+| `konzept/features/16_eigenschaftenpanel.md` | Eigenschaften-Panel: Sektionen, Auslöserbedingungen, EP-Architektur |
+| `konzept/features/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: Schema v38, `normblatt_feld`, C++ API, Canvas-Renderer |
+| `konzept/features/25_wiki.md` | Erfahrungs-Wiki: Schema v40, `WikiModel`, Bild-BLOBs, FTS5-Suche |
+| `konzept/features/27_sps.md` | SPS-Integration: DB-Schema, SPS-Ansicht, EP-Adresszuweisung, I/O-Liste, CSV-Export |
+| `konzept/features/28_arduino.md` | Arduino-Symbole (Schema v44): 6 Symbole, Pin-Formel |
+| `konzept/features/29_pdf_export.md` | PDF-Export: Vektor-PDF, alle Element-Typen, Kreuzungslücken, Aderbeschriftung |
+| `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System |
+| `konzept/features/35_drc.md` | Design Rule Check: 8 Checks (D-01 bis D-08) |
+| `konzept/features/36_tutorial_bundles.md` | Wiki-Inhalts-Bundles: JSON-Pakete, `bundle_kennung`, `wikiBundleAnwenden()`, TB-1 bis TB-7 |
+| **`konzept/technik/`** | **Wie entwickle ich daran?** |
+| `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
+| `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten |
+| `konzept/technik/31_optimierungen.md` | Optimierungspotenziale (C-01/C-02/D-02 langfristig offen) |
+| `konzept/technik/33_rotation_multi_debug.md` | Debugging-Protokoll: ROTATION-MULTI-01 (Mehrfachauswahl-EP, offen) |
+| **`konzept/projekt/`** | **Wer ist das Projekt?** |
+| `konzept/projekt/08_roadmap.md` | Implementierungsstand, nächste Schritte, offene Punkte |
+| `konzept/projekt/32_mitwirkende.md` | Mitwirkende, Danksagungen, Entstehungsgeschichte |
+| `konzept/projekt/34_stromlinge.md` | Strömlinge-Charakter-System: 13+ Figuren, Verwendung in App; Quellmaterial in `konzept/Strömlinge/` |
 
 ---
 
@@ -91,7 +104,7 @@ Konzeptdateien auf Aktualität prüfen und **sofort** anpassen:
 2. Stimmen Status-Marker (✅ / 📋 / 🔄), Schema-Versionen und
    Implementierungsstand-Tabellen noch?
 3. Neue Designentscheidungen oder Abweichungen vom Konzept kurz begründen
-4. Offene Punkte und TODOs in `konzept/08_roadmap.md` eintragen oder aktualisieren
+4. Offene Punkte und TODOs in `konzept/projekt/08_roadmap.md` eintragen oder aktualisieren
 5. **`konzept/AKTUELL.md` auf aktuellen Stand bringen** – was wurde fertig, was kommt als nächstes
 6. **Memory-Datei** `~/.claude/projects/.../memory/project_stroemling_stand.md` aktualisieren
 
@@ -126,14 +139,14 @@ zur Laufzeit nicht). Nach jedem neuen Eintrag `cmake ..` im Build-Ordner ausfüh
 
 ### Bekannte QML-Fallstricke in diesem Projekt
 
-Vollständige Liste mit Ursachen und Fixes: → `konzept/18_debugging.md` §5
+Vollständige Liste mit Ursachen und Fixes: → `konzept/technik/18_debugging.md` §5
 
 ### Konzeptpflege
 - Wenn eine Konzeptentscheidung sich im Gespräch ändert: **Konzeptdatei sofort
   aktualisieren**, bevor Code geändert wird
-- Offene Punkte und TODOs in `konzept/08_roadmap.md` eintragen
+- Offene Punkte und TODOs in `konzept/projekt/08_roadmap.md` eintragen
 - Bei Designentscheidungen kurz begründen warum – analog zum Stil in
-  `konzept/01_vision_architektur.md` Abschnitt „Designentscheidungen"
+  `konzept/architektur/01_vision_architektur.md` Abschnitt „Designentscheidungen"
 
 ### Abgleich Konzept ↔ Code (bei Unklarheit)
 Wenn der Überblick fehlt oder Konzept und Code auseinanderdriften:
@@ -145,4 +158,4 @@ Wenn der Überblick fehlt oder Konzept und Code auseinanderdriften:
 
 ## Projektstruktur
 Aktuelle Struktur immer per `tree stroemling/` prüfen.
-Übersicht: `konzept/01_vision_architektur.md`
+Übersicht: `konzept/architektur/01_vision_architektur.md`

@@ -209,14 +209,15 @@ Item {
             snap[idx] = el
             canvas.aktionAusfuehren(snap)
             canvas.grafikSpeichernJetzt()
+            // grafikSpeichern macht DELETE+INSERT → alle DB-IDs ändern sich; neu laden für frische IDs
+            elementeModel.laden(canvas.seiteId)
 
             var savedEl = elementeModel.element(idx)
             if (savedEl && (savedEl.id || 0) > 0) {
                 var newMakroId = db.makroSpeichern(savedEl.id, canvas.seiteId)
                 if (newMakroId > 0) {
-                    var el2 = Object.assign({}, elementeModel.element(idx))
-                    el2.extraDaten = Object.assign({}, el2.extraDaten, { makroId: newMakroId })
-                    elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
+                    // Nach makroSpeichern extra_daten.makroId aus DB holen
+                    elementeModel.laden(canvas.seiteId)
                     canvas.makroListeGeaendert()
                     canvas.neuZeichnen()
                 }

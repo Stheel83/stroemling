@@ -130,12 +130,18 @@ Item {
                     radius: 4; border.color: root.theme.accent
                 }
                 onClicked: {
-                    var el = panel.el
-                    if (!el || !(el.id > 0)) return
-                    var newId = db.makroSpeichern(el.id, panel.canvas.seiteId)
+                    var idx = canvas.ausgewaehlt
+                    if (idx < 0) return
+                    // grafikSpeichern macht DELETE+INSERT → ID im Speicher ist veraltet (evtl. 0)
+                    canvas.grafikSpeichernJetzt()
+                    canvas.elementeModel.laden(canvas.seiteId)
+                    var freshEl = canvas.elementeModel.element(idx)
+                    if (!freshEl || !(freshEl.id > 0)) return
+                    var newId = db.makroSpeichern(freshEl.id, canvas.seiteId)
                     if (newId > 0) {
-                        root.extraSetzen("makroId", newId)
-                        panel.canvas.makroListeGeaendert()
+                        canvas.elementeModel.laden(canvas.seiteId)
+                        canvas.makroListeGeaendert()
+                        canvas.neuZeichnen()
                     }
                 }
             }

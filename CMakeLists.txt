@@ -165,6 +165,7 @@ qt_add_qml_module(stroemling_app
         qml/logos/LogoIconFischSpule.qml
         qml/logos/LogoIconFischWiderstand.qml
         qml/logos/LogoIconFischDiode.qml
+        qml/logos/LogoIconGruenerFisch.qml
         qml/logos/LogoFischBase.js
         qml/logos/LogoBase.js
 )
@@ -184,6 +185,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/datinchen_uebersicht.png
         qml/assets/impulsino_uebersicht.png
         qml/assets/isolus_kampf.png
+        qml/assets/gruener_fisch_logo.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

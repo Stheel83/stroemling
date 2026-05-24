@@ -14,7 +14,8 @@ Item {
         "LogoIconAtom.qml",
         "LogoIconBernstein.qml",
         "LogoIconCee.qml",
-        "LogoIconOstsee.qml"
+        "LogoIconOstsee.qml",
+        "LogoIconGruenerFisch.qml"
     ]
 
     readonly property color _iconBg:

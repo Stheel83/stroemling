@@ -57,25 +57,21 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/architektur/23_technische_ablaeufe.md` | Systemabläufe: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern, Kabel |
 | `konzept/architektur/26_release_migration.md` | Release-Vorbereitung: DB-Trennung, Migrations-System, Export/Import, App-Datenverzeichnis |
 | **`konzept/features/`** | **Was kann die App?** |
-| `konzept/features/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation |
+| `konzept/features/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation; Domain-Symbole Arduino (§9) |
 | `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas |
 | `konzept/features/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen |
 | `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771 |
 | `konzept/features/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung |
 | `konzept/features/11_symboleditor.md` | Symbole visuell erstellen und bearbeiten |
-| `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen |
-| `konzept/features/13_Normen.md` | Normen-Referenztabellen (IP/IK/VDE/IEC) |
+| `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen (IP/IK/VDE/IEC) |
 | `konzept/features/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll |
 | `konzept/features/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema v31 (`makro`, `makro_element`), UX-Ablauf, C++-API |
-| `konzept/features/16_eigenschaftenpanel.md` | Eigenschaften-Panel: Sektionen, Auslöserbedingungen, EP-Architektur |
 | `konzept/features/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: Schema v38, `normblatt_feld`, C++ API, Canvas-Renderer |
-| `konzept/features/25_wiki.md` | Erfahrungs-Wiki: Schema v40, `WikiModel`, Bild-BLOBs, FTS5-Suche |
+| `konzept/features/25_wiki.md` | Erfahrungs-Wiki (W1–W4 ✅) + Inhalts-Bundles (TB-1–TB-7 ✅): Schema v40/WIKI_SCHEMA v10, `WikiModel`, Bundle-JSON, `bundle_erstellen.py` |
 | `konzept/features/27_sps.md` | SPS-Integration: DB-Schema, SPS-Ansicht, EP-Adresszuweisung, I/O-Liste, CSV-Export |
-| `konzept/features/28_arduino.md` | Arduino-Symbole (Schema v44): 6 Symbole, Pin-Formel |
 | `konzept/features/29_pdf_export.md` | PDF-Export: Vektor-PDF, alle Element-Typen, Kreuzungslücken, Aderbeschriftung |
 | `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System |
 | `konzept/features/35_drc.md` | Design Rule Check: 8 Checks (D-01 bis D-08) |
-| `konzept/features/36_tutorial_bundles.md` | Wiki-Inhalts-Bundles: JSON-Pakete, `bundle_kennung`, `wikiBundleAnwenden()`, TB-1 bis TB-7 |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten |

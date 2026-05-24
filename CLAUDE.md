@@ -85,6 +85,8 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/projekt/08_roadmap.md` | Implementierungsstand, nächste Schritte, offene Punkte |
 | `konzept/projekt/32_mitwirkende.md` | Mitwirkende, Danksagungen, Entstehungsgeschichte |
 | `konzept/projekt/34_stromlinge.md` | Strömlinge-Charakter-System: 13+ Figuren, Verwendung in App; Quellmaterial in `konzept/Strömlinge/` |
+| **`konzept/archiv/`** | **Abgeschlossenes Werk (Referenz)** |
+| `konzept/archiv/erledigt.md` | Alle erledigten Meilensteine, Optimierungen und Sprint-Changelog; nicht mehr aktiv gepflegt |
 
 ---
 

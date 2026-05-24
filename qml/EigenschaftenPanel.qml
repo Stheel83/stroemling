@@ -47,6 +47,12 @@ Rectangle {
         return (idx >= 0 && idx < canvas.elementeModel.anzahl) ? canvas.elementeModel.element(idx) : null
     }
 
+    // Anzahl selektierter Elemente – als getypte int-Property hier in EigenschaftenPanel
+    // definiert, damit EpMehrfachauswahlSection über panel.auswahlLaenge binden kann.
+    // canvas.auswahlLaenge direkt aus der Section zu binden funktioniert im AOT-Modus
+    // nicht zuverlässig (required property var canvas als Holder).
+    readonly property int auswahlLaenge: canvas ? canvas.auswahlLaenge : 0
+
     // Ausgewählte Auto-Verbindung (null wenn keine)
     readonly property var verbindung: canvas.ausgewaehltVerbindung
 

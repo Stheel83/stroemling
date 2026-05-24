@@ -8,11 +8,11 @@ Item {
     required property var panel
     required property var theme
 
-    // canvas.auswahlLaenge ist readonly property int → ändert sich bei JEDER
+    // panel.auswahlLaenge ist readonly property int → ändert sich bei JEDER
     // Auswahländerung, auch wenn ausgewaehlt konstant -1 bleibt (z.B. Keine→Mehrfach).
     // canvas.auswahl (property var) ist in AOT nicht direkt trackbar.
     readonly property bool _hatSymbole: {
-        var n  = canvas.auswahlLaenge         // int, AOT-sicher, alle Übergänge
+        var n  = panel.auswahlLaenge         // int, AOT-sicher, alle Übergänge
         var em = canvas.elementeModel.anzahl  // int, AOT-sicher getrackt
         if (n < 2) return false
         var sel = canvas.auswahl
@@ -25,7 +25,7 @@ Item {
     }
 
     width:   parent ? parent.width : 0
-    height:  (canvas.auswahlLaenge > 1 && _hatSymbole) ? multiCol.implicitHeight : 0
+    height:  (panel.auswahlLaenge > 1 && _hatSymbole) ? multiCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 

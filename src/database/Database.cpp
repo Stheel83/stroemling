@@ -830,7 +830,7 @@ bool Database::openProjekt(const QString &path)
 
     QString projektName;
     {
-        QSqlQuery q;
+        QSqlQuery q(m_db);
         if (q.exec("SELECT name FROM projekt LIMIT 1") && q.next())
             projektName = q.value(0).toString();
     }
@@ -876,7 +876,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
 
     // schema_migration-Tabelle anlegen (außerhalb der Transaktion)
     {
-        QSqlQuery q;
+        QSqlQuery q(m_db);
         if (!q.exec("CREATE TABLE IF NOT EXISTS schema_migration ("
                     "version INTEGER PRIMARY KEY, beschreibung TEXT NOT NULL, "
                     "angewendet_am TEXT NOT NULL DEFAULT (datetime('now')))")) {
@@ -970,7 +970,7 @@ bool Database::projektExportieren(const QString &destPfad)
 
     QString escaped = localPfad;
     escaped.replace("'", "''");
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     if (!q.exec("VACUUM INTO '" + escaped + "'")) {
         qWarning() << "projektExportieren:" << q.lastError().text();
         return false;
@@ -1017,7 +1017,7 @@ QVariantMap Database::ersteProjektInfo() const
 {
     QVariantMap m;
     if (!m_projektOffen) return m;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     if (q.exec("SELECT id, name FROM projekt LIMIT 1") && q.next()) {
         m["id"]   = q.value(0).toInt();
         m["name"] = q.value(1).toString();
@@ -1292,7 +1292,7 @@ QVariantMap Database::datenbankInfos() const
 
     int schemaVersion = 0;
     if (m_projektOffen) {
-        QSqlQuery q;
+        QSqlQuery q(m_db);
         if (q.exec("SELECT COALESCE(MAX(version),0) FROM schema_migration") && q.next())
             schemaVersion = q.value(0).toInt();
     }
@@ -1320,7 +1320,7 @@ bool Database::checkAndApplySchema()
 {
     // schema_migration-Tabelle sicherstellen (außerhalb jeder Transaktion)
     {
-        QSqlQuery q;
+        QSqlQuery q(m_db);
         if (!q.exec(
             "CREATE TABLE IF NOT EXISTS schema_migration ("
             "    version       INTEGER PRIMARY KEY,"
@@ -1335,7 +1335,7 @@ bool Database::checkAndApplySchema()
     // Aktuelle Version ermitteln
     int currentVersion = 0;
     {
-        QSqlQuery q;
+        QSqlQuery q(m_db);
         bool leer = true;
         if (q.exec("SELECT COUNT(*) FROM schema_migration") && q.next())
             leer = (q.value(0).toInt() == 0);
@@ -1422,7 +1422,7 @@ bool Database::checkAndApplySchema()
 
 bool Database::applyMigrationStatements(const QStringList &statements)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     for (const QString &stmt : statements) {
         if (stmt.trimmed().isEmpty()) continue;
         if (!q.exec(stmt)) {
@@ -1498,7 +1498,7 @@ bool Database::dropAllTables()
 {
     // Foreign Keys während des Drops deaktivieren – SQLite ignoriert
     // FK-Constraints bei DDL ohnehin, aber sicherheitshalber.
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.exec("PRAGMA foreign_keys = OFF");
 
     const QStringList views = {
@@ -1576,7 +1576,7 @@ bool Database::dropAllTables()
 // ============================================================
 bool Database::createSchema()
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
 
     // ----------------------------------------------------------
     // Normblatt Vorlage
@@ -2493,7 +2493,7 @@ bool Database::seedExampleData()
                .arg(bmk, ft1, ft2);
     };
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
 
     // ----------------------------------------------------------
     // Projekt
@@ -2822,7 +2822,7 @@ bool Database::seedSymbolKatalog()
         { "sensor_temp",       "Temperatursensor (PT100)",       "sensoren", "IEC,ANSI", 2 },
     };
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO symbol (code, name, kategorie_pfad, norm, anschluesse)
         VALUES (:code, :name, :kat, :norm, :anschl)
@@ -2913,7 +2913,7 @@ bool Database::seedBuiltinSymbolDefinitionen()
     }
     const QString cleanSql = cleanLines.join(QLatin1Char('\n'));
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     const QStringList statements = cleanSql.split(QLatin1Char(';'), Qt::SkipEmptyParts);
     for (const QString &raw : statements) {
         const QString stmt = raw.trimmed();
@@ -2938,7 +2938,7 @@ bool Database::seedBuiltinSymbolDefinitionen()
 QVariantList Database::symboleNachNorm(const QString &norm)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, code, name, kategorie_pfad, norm, favorit, anschluesse
         FROM symbol
@@ -2969,7 +2969,7 @@ QVariantList Database::symboleNachNorm(const QString &norm)
 // ============================================================
 bool Database::symbolFavoritSetzen(int symbolId, bool favorit)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE symbol SET favorit = :fav WHERE id = :id");
     q.bindValue(":fav", favorit ? 1 : 0);
     q.bindValue(":id",  symbolId);
@@ -2985,7 +2985,7 @@ bool Database::symbolFavoritSetzen(int symbolId, bool favorit)
 // ============================================================
 QString Database::projektNormLaden(int projektId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT norm FROM projekt WHERE id = :pid");
     q.bindValue(":pid", projektId);
     if (q.exec() && q.next())
@@ -2995,7 +2995,7 @@ QString Database::projektNormLaden(int projektId)
 
 bool Database::projektNormSpeichern(int projektId, const QString &norm)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET norm = :norm WHERE id = :pid");
     q.bindValue(":norm", norm);
     q.bindValue(":pid",  projektId);
@@ -3011,7 +3011,7 @@ bool Database::projektNormSpeichern(int projektId, const QString &norm)
 // ============================================================
 QString Database::projektHintergrundLaden(int projektId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT canvas_hintergrund FROM projekt WHERE id = :pid");
     q.bindValue(":pid", projektId);
     if (q.exec() && q.next())
@@ -3021,7 +3021,7 @@ QString Database::projektHintergrundLaden(int projektId)
 
 bool Database::projektHintergrundSpeichern(int projektId, const QString &farbe)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET canvas_hintergrund = :farbe WHERE id = :pid");
     q.bindValue(":farbe", farbe);
     q.bindValue(":pid",   projektId);
@@ -3040,7 +3040,7 @@ bool Database::projektHintergrundSpeichern(int projektId, const QString &farbe)
 QVariantList Database::grafikLaden(int seiteId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, typ, x1, y1, x2, y2,
                strich_farbe, strich_breite, strich_art,
@@ -3410,7 +3410,7 @@ QString Database::naechsteBmkNummer(int projektId, const QString &praefix)
     if (praefix.isEmpty())
         return praefix + QStringLiteral("1");
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.extra_daten
         FROM grafik_element ge
@@ -3593,7 +3593,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
 bool Database::verbindungAktualisieren(int verbindungId, const QString &bezeichnung,
                                         const QString &farbe, double querschnitt)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE verbindung SET bezeichnung = :bez, farbe = :farbe, querschnitt_mm2 = :q WHERE id = :id");
     q.bindValue(":bez",   bezeichnung.isEmpty() ? QVariant(QMetaType::fromType<QString>()) : bezeichnung);
     q.bindValue(":farbe", farbe.isEmpty()       ? QVariant(QMetaType::fromType<QString>()) : farbe);
@@ -3615,7 +3615,7 @@ bool Database::verbindungAktualisieren(int verbindungId, const QString &bezeichn
 QVariantList Database::verbindungAnnotationenLaden(int seiteId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT v.id, v.potenzial, v.bezeichnung, v.farbe, v.querschnitt_mm2, v.signaltyp
         FROM verbindung_segment vs
@@ -3648,7 +3648,7 @@ QVariantList Database::verbindungAnnotationenLaden(int seiteId)
 QVariantList Database::verbindungenProjektLaden(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT id, bezeichnung, signaltyp FROM verbindung WHERE projekt_id = :pid ORDER BY id");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
@@ -3674,7 +3674,7 @@ QString Database::naechsteFreiePotenzialNummer(int projektId,
                                                 const QString &praefix,
                                                 int start, int schrittweite)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT bezeichnung FROM verbindung WHERE projekt_id = :pid AND bezeichnung IS NOT NULL");
     q.bindValue(":pid", projektId);
     if (!q.exec()) return praefix + QString::number(start);
@@ -3706,7 +3706,7 @@ bool Database::verbindungenBulkBezeichnungSetzen(int projektId, const QVariantLi
         qWarning() << "verbindungenBulkBezeichnungSetzen: transaction:" << m_db.lastError().text();
         return false;
     }
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE verbindung SET bezeichnung = :bez WHERE id = :id AND projekt_id = :pid");
     for (const QVariant &var : zuweisungen) {
         QVariantMap m = var.toMap();
@@ -3732,7 +3732,7 @@ bool Database::verbindungenBulkBezeichnungSetzen(int projektId, const QVariantLi
 QVariantList Database::alleSeitenFlach(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT s.id, s.blattnummer, COALESCE(s.bezeichnung, '')
         FROM seite s
@@ -3765,7 +3765,7 @@ QVariantList Database::alleSeitenFlach(int projektId)
 QVariantList Database::querverweiseLadenProjekt(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.seite_id,
                s.blattnummer,
@@ -3825,7 +3825,7 @@ QVariantList Database::querverweiseLadenProjekt(int projektId)
 QVariantList Database::stueckliste(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.extra_daten, ge.symbol_id,
                s.blattnummer,
@@ -3913,7 +3913,7 @@ QVariantList Database::stueckliste(int projektId)
 QVariantList Database::querverweisListe(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.extra_daten,
                s.blattnummer,
@@ -3975,7 +3975,7 @@ QVariantList Database::querverweisListe(int projektId)
 QVariantList Database::aderliste(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.extra_daten,
                s.blattnummer,
@@ -4060,7 +4060,7 @@ QVariantList Database::aderliste(int projektId)
 QVariantList Database::betriebsmittelListe(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT b.id, b.betriebsmittel_kz, b.bezeichnung, "
         "       COUNT(g.id) AS anzahl "
@@ -4083,7 +4083,7 @@ QVariantList Database::betriebsmittelListe(int projektId)
 
 int Database::betriebsmittelAnlegen(int projektId, const QString &kz, const QString &bezeichnung)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("INSERT INTO betriebsmittel (projekt_id, betriebsmittel_kz, bezeichnung) "
               "VALUES (:pid, :kz, :bez)");
     q.bindValue(":pid", projektId);
@@ -4098,7 +4098,7 @@ int Database::betriebsmittelAnlegen(int projektId, const QString &kz, const QStr
 
 bool Database::grafikElementVerknuepfen(int elementId, int betriebsmittelId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE grafik_element SET betriebsmittel_id = :bid WHERE id = :id");
     q.bindValue(":bid", betriebsmittelId);
     q.bindValue(":id",  elementId);
@@ -4118,7 +4118,7 @@ bool Database::grafikElementEntknuepfen(int elementId)
     clr.bindValue(":eid", elementId);
     clr.exec();
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE grafik_element SET betriebsmittel_id = NULL WHERE id = :id");
     q.bindValue(":id", elementId);
     if (!q.exec()) {
@@ -4141,7 +4141,7 @@ QVariantList Database::betriebsmittelMitglieder(int betriebsmittelId)
     }
 
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT g.id, s.blattnummer, s.bezeichnung, g.extra_daten, g.symbol_id, g.typ "
         "FROM grafik_element g "
@@ -4175,7 +4175,7 @@ QVariantList Database::betriebsmittelMitglieder(int betriebsmittelId)
 
 QString Database::betriebsmittelKz(int betriebsmittelId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT betriebsmittel_kz FROM betriebsmittel WHERE id = :id");
     q.bindValue(":id", betriebsmittelId);
     if (q.exec() && q.next())
@@ -4186,7 +4186,7 @@ QString Database::betriebsmittelKz(int betriebsmittelId)
 QVariantMap Database::betriebsmittelInfo(int betriebsmittelId)
 {
     QVariantMap m;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT id, betriebsmittel_kz, bezeichnung, haupt_element_id "
               "FROM betriebsmittel WHERE id = :id");
     q.bindValue(":id", betriebsmittelId);
@@ -4200,7 +4200,7 @@ QVariantMap Database::betriebsmittelInfo(int betriebsmittelId)
 
 bool Database::betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int elementId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE betriebsmittel SET haupt_element_id = :eid WHERE id = :bid");
     q.bindValue(":eid", elementId);
     q.bindValue(":bid", betriebsmittelId);
@@ -4245,7 +4245,7 @@ bool Database::betriebsmittelBmkSynchronisieren(int betriebsmittelId)
 QVariantList Database::betriebsmittelHfListe(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT b.id, b.haupt_element_id, s.blattnummer, g.seite_id "
         "FROM betriebsmittel b "
@@ -4272,7 +4272,7 @@ QVariantList Database::betriebsmittelHfListe(int projektId)
 QVariantList Database::klemmenplan(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT kl.id, kl.bezeichnung, "
         "COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung), "
@@ -4545,7 +4545,7 @@ bool Database::kabellisteCsvSpeichern(int projektId, const QString &pfad)
 // ============================================================
 QVariantMap Database::seiteBasisDaten(int seiteId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT blattnummer, COALESCE(bezeichnung,'') FROM seite WHERE id = :id");
     q.bindValue(":id", seiteId);
     if (!q.exec() || !q.next()) return {};
@@ -4560,7 +4560,7 @@ QVariantMap Database::seiteBasisDaten(int seiteId)
 // ============================================================
 QVariantMap Database::normblattDatenLaden(int seiteId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT s.blattnummer, s.bezeichnung, s.anlage_kuerzel, s.ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
@@ -4660,7 +4660,7 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                              const QString &titelblattVorlage,
                                              int normblattId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(UPDATE seite SET
         normblatt_anzeigen = :an,
         hintergrund_farbe  = :hf,
@@ -4687,7 +4687,7 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
 
 bool Database::seiteRevisionSetzen(int seiteId, const QString &status, const QString &kennung)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE seite SET revision_status = :st, revision_kennung = :kn WHERE id = :sid");
     q.bindValue(":st",  status);
     q.bindValue(":kn",  kennung);
@@ -4705,7 +4705,7 @@ bool Database::seiteRevisionSetzen(int seiteId, const QString &status, const QSt
 
 QVariantList Database::normblattVorlagenListe()
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     if (!q.exec("SELECT id, name, beschreibung, ist_standard, breite_mm, hoehe_mm, "
                 "rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm "
                 "FROM normblatt_vorlage ORDER BY name")) {
@@ -4732,7 +4732,7 @@ QVariantList Database::normblattVorlagenListe()
 
 int Database::normblattVorlageSpeichern(const QVariantMap &v)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     if (v.value(QStringLiteral("id")).toInt() > 0) {
         q.prepare(R"(UPDATE normblatt_vorlage SET
             name           = :name,
@@ -4770,7 +4770,7 @@ int Database::normblattVorlageSpeichern(const QVariantMap &v)
 
 bool Database::normblattVorlageLoeschen(int vorlageId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM normblatt_vorlage WHERE id = :id");
     q.bindValue(":id", vorlageId);
     if (!q.exec()) {
@@ -4782,7 +4782,7 @@ bool Database::normblattVorlageLoeschen(int vorlageId)
 
 QVariantList Database::normblattFelderLaden(int vorlageId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(SELECT id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm,
                         label, inhalt, quelle_spalte,
                         schriftgroesse, fett, rahmen, reihenfolge
@@ -4822,7 +4822,7 @@ bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felde
         qWarning() << "normblattFelderSpeichern: Transaction fehlgeschlagen";
         return false;
     }
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM normblatt_feld WHERE vorlage_id = :vid");
     q.bindValue(":vid", vorlageId);
     if (!q.exec()) {
@@ -4866,7 +4866,7 @@ bool Database::projektMetaSpeichern(int projektId,
                                      const QString &auftragnehmer,
                                      const QString &bearbeiter)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET name = :name, projektnummer = :nr, "
               "auftraggeber = :ag, auftragnehmer = :an, bearbeiter = :be "
               "WHERE id = :id");
@@ -4904,7 +4904,7 @@ bool Database::projektLogoSpeichern(int projektId, const QString &pfad)
     else if (suffix == QLatin1String("gif"))  mime = QStringLiteral("image/gif");
     else if (suffix == QLatin1String("webp")) mime = QStringLiteral("image/webp");
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET logo_data = :d, logo_mime = :m WHERE id = :id");
     q.bindValue(":d",  data);
     q.bindValue(":m",  mime);
@@ -4915,7 +4915,7 @@ bool Database::projektLogoSpeichern(int projektId, const QString &pfad)
 
 QString Database::projektLogoDataUrl(int projektId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT logo_data, logo_mime FROM projekt WHERE id = :id");
     q.bindValue(":id", projektId);
     if (!q.exec() || !q.next()) return {};
@@ -4928,7 +4928,7 @@ QString Database::projektLogoDataUrl(int projektId)
 
 bool Database::projektLogoLoeschen(int projektId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET logo_data = NULL, logo_mime = NULL WHERE id = :id");
     q.bindValue(":id", projektId);
     if (!q.exec()) { qWarning() << "projektLogoLoeschen:" << q.lastError().text(); return false; }
@@ -4938,7 +4938,7 @@ bool Database::projektLogoLoeschen(int projektId)
 QVariantList Database::klemmenFuerLeiste(int leisteId) const
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT k.id, k.nummer, k.sortierung, k.bauteil_id, "
         "       bk.id, COALESCE(b.bezeichnung,''), "
@@ -4970,7 +4970,7 @@ QVariantList Database::klemmenFuerLeiste(int leisteId) const
 QVariantList Database::anschluesseFuerKlemme(int bauteilId) const
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT ebenen_anzahl, punkte_seite_a, punkte_seite_b, fuss_kontakt_pe "
         "FROM bauteil_klemme WHERE bauteil_id = :bid"
@@ -5021,7 +5021,7 @@ int Database::kabelAnlegen(int projektId, const QString &bezeichnung,
                            double querschnittMm2, int grafikElementId,
                            const QString &vonOrt, const QString &nachOrt)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO kabel (projekt_id, bezeichnung, kabeltyp, aderzahl,
                            querschnitt_mm2, grafik_element_id, von_ort, nach_ort)
@@ -5053,7 +5053,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
                                  int verbindungId,
                                  int kabellinieGrafikElementId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT id FROM kabel_ader WHERE kabel_id=:kid AND ader_nr=:nr");
     q.bindValue(":kid", kabelId);
     q.bindValue(":nr",  aderNr);
@@ -5112,7 +5112,7 @@ QVariantMap Database::kabelLinieDetails(int grafikElementId)
 
     // Kabel über den kabelId-Eintrag im extra_daten-JSON des Grafikelements suchen.
     // Funktioniert auch für nicht-primäre Linien eines Kabels (M9).
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT k.id, k.bezeichnung, k.kabeltyp, k.aderzahl, k.querschnitt_mm2,
                k.grafik_element_id, k.bauteil_kabel_id, k.von_ort, k.nach_ort
@@ -5167,7 +5167,7 @@ QVariantMap Database::kabelLinieDetails(int grafikElementId)
 QVariantList Database::kabelListe(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, bezeichnung, kabeltyp, aderzahl, querschnitt_mm2,
                laenge_m, von_ort, nach_ort, grafik_element_id
@@ -5289,7 +5289,7 @@ bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
                                        double querschnittMm2,
                                        const QString &vonOrt, const QString &nachOrt)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         UPDATE kabel SET bezeichnung=:bez, kabeltyp=:typ, aderzahl=:anz,
                          querschnitt_mm2=:qs, von_ort=:von, nach_ort=:nach
@@ -5317,7 +5317,7 @@ bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
 QVariantList Database::kabelAderListeMitVerbindung(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ka.kabel_id, ka.ader_nr, ka.verbindung_id,
                COALESCE(ka.kabellinie_grafik_element_id, 0)
@@ -5354,7 +5354,7 @@ bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &a
         qWarning() << "kabelAderEndpunkteBulkSetzen: Transaktion:" << m_db.lastError().text();
         return false;
     }
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         UPDATE kabel_ader SET von_gerat_pin = :von, nach_gerat_pin = :nach
         WHERE kabel_id = :kid AND ader_nr = :nr
@@ -5393,7 +5393,7 @@ bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &a
 // ============================================================
 bool Database::kabelLoeschen(int kabelId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM kabel WHERE id = :id");
     q.bindValue(":id", kabelId);
     if (!q.exec()) {
@@ -5420,7 +5420,7 @@ QVariantList Database::bauteilKabelListe()
         else
             qWarning() << "bauteilKabelListe: COUNT Fehler:" << cnt.lastError().text();
     }
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     if (!q.exec(R"(
         SELECT bk.id, bk.bauteil_id, b.bezeichnung, bk.kabeltyp,
                COUNT(ba.id) AS aderzahl,
@@ -5497,7 +5497,7 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
         }
     }
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         UPDATE kabel SET bauteil_kabel_id=:bkid, kabeltyp=:typ,
                aderzahl=:anz, querschnitt_mm2=:qs
@@ -5548,7 +5548,7 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
 QVariantList Database::kabelAlleLinienLaden(int kabelId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.id, ge.seite_id, s.bezeichnung,
                COUNT(ka.id) AS ader_anzahl
@@ -5583,7 +5583,7 @@ QVariantList Database::kabelAlleLinienLaden(int kabelId)
 QVariantList Database::kabelFreieAderLaden(int kabelId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ader_nr, farbe, bezeichnung, verbindung_id
         FROM kabel_ader
@@ -5614,7 +5614,7 @@ QVariantList Database::kabelAderFuerLinieLaden(int kabellinieGrafikElementId)
 {
     QVariantList result;
     if (kabellinieGrafikElementId <= 0) return result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ader_nr, farbe, bezeichnung, verbindung_id
         FROM kabel_ader
@@ -5869,7 +5869,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
 // ============================================================
 bool Database::makroLoeschen(int makroId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM makro WHERE id = :id");
     q.bindValue(":id", makroId);
     if (!q.exec()) {
@@ -5886,7 +5886,7 @@ bool Database::makroMetaAktualisieren(int makroId, const QString &name,
                                        const QString &beschreibung,
                                        const QString &kategorie)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k WHERE id=:id");
     q.bindValue(":n",  name);
     q.bindValue(":b",  beschreibung);
@@ -5904,7 +5904,7 @@ bool Database::makroMetaAktualisieren(int makroId, const QString &name,
 // ============================================================
 QVariantList Database::ibnListeLaden(int projektId, int seiteId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT
             MIN(ge.id)                                       AS element_id,
@@ -5974,7 +5974,7 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
                                     const QString &geprueftVon,
                                     const QString &geprueftAm)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     // Sicherstellen dass ein Datensatz existiert
     q.prepare(R"(
         INSERT INTO inbetriebnahme (projekt_id, seite_id, bmk, erstellt_am)
@@ -6014,7 +6014,7 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
 
 bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &status)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     // Eintrag anlegen falls noch nicht vorhanden (projekt_id wird aus seite abgeleitet)
     q.prepare(R"(
         INSERT INTO inbetriebnahme (projekt_id, seite_id, bmk, status, erstellt_am)
@@ -6037,7 +6037,7 @@ bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &s
 
 QVariantList Database::ibnKabelListeLaden(int projektId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT k.id              AS kabel_id,
                k.bezeichnung,
@@ -6090,7 +6090,7 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
                                   const QString &geprueftVon,
                                   const QString &geprueftAm)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO ibn_kabel (projekt_id, kabel_id, status, notiz, geprueft_von, geprueft_am)
         VALUES (:pid, :kid, :st, :no, :gv, :ga)
@@ -6128,7 +6128,7 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
 
 bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO ibn_kabel (projekt_id, kabel_id, status)
         VALUES ((SELECT projekt_id FROM kabel WHERE id = :kid), :kid, :st)
@@ -6200,7 +6200,7 @@ bool Database::seedIbnFeldvorlagen()
         { "transformator",          "bemerkung",        "Bemerkung",             "text",     "", "",   0, 5 },
     };
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT OR IGNORE INTO ibn_feldvorlage
             (symbol_kategorie, feldname, label, feldtyp, optionen, einheit, pflichtfeld, reihenfolge, erstellt_von)
@@ -6248,7 +6248,7 @@ QVariantList Database::ibnFeldvorlagenLaden(const QString &symbolKategorie)
 {
     if (symbolKategorie.isEmpty())
         return {};
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT feldname, label, feldtyp, optionen, einheit, pflichtfeld
         FROM ibn_feldvorlage
@@ -6276,7 +6276,7 @@ QVariantList Database::ibnFeldvorlagenLaden(const QString &symbolKategorie)
 
 QVariantList Database::ibnAlleVorlagenLaden()
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, symbol_kategorie, feldname, label, feldtyp, optionen,
                einheit, pflichtfeld, reihenfolge, erstellt_von
@@ -6326,7 +6326,7 @@ bool Database::ibnFeldVorlageSpeichern(const QString &symbolKategorie,
                                         const QString &einheit,
                                         bool pflichtfeld)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO ibn_feldvorlage
             (symbol_kategorie, feldname, label, feldtyp, optionen, einheit,
@@ -6353,7 +6353,7 @@ bool Database::ibnFeldVorlageSpeichern(const QString &symbolKategorie,
 
 bool Database::ibnFeldVorlageLoeschen(int id)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM ibn_feldvorlage WHERE id = :id AND erstellt_von = 'user'");
     q.bindValue(":id", id);
     if (!q.exec()) {
@@ -6365,7 +6365,7 @@ bool Database::ibnFeldVorlageLoeschen(int id)
 
 QVariantList Database::ibnFeldwerteLaden(int inbetriebnahmeId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT feldname, wert FROM ibn_feldwert
         WHERE inbetriebnahme_id = :id
@@ -6387,7 +6387,7 @@ QVariantList Database::ibnFeldwerteLaden(int inbetriebnahmeId)
 
 bool Database::ibnFeldwerteAktualisieren(int inbetriebnahmeId, const QVariantList &felder)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO ibn_feldwert (inbetriebnahme_id, feldname, wert)
         VALUES (:id, :fn, :wert)
@@ -8543,7 +8543,7 @@ Programmstart erhalten.
 QVariantList Database::spsRackListe(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT id, rack_nr, system_typ, bezeichnung, beschreibung, hersteller, sortierung "
               "FROM sps_rack WHERE projekt_id = :pid ORDER BY sortierung, rack_nr");
     q.bindValue(":pid", projektId);
@@ -8565,7 +8565,7 @@ QVariantList Database::spsRackListe(int projektId)
 int Database::spsRackAnlegen(int projektId, int rackNr, const QString &systemTyp,
                               const QString &bezeichnung, const QString &hersteller)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("INSERT INTO sps_rack (projekt_id, rack_nr, system_typ, bezeichnung, hersteller) "
               "VALUES (:pid, :nr, :typ, :bez, :her)");
     q.bindValue(":pid", projektId);
@@ -8581,7 +8581,7 @@ bool Database::spsRackAktualisieren(int id, int rackNr, const QString &systemTyp
                                      const QString &bezeichnung, const QString &beschreibung,
                                      const QString &hersteller)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE sps_rack SET rack_nr=:nr, system_typ=:typ, bezeichnung=:bez, "
               "beschreibung=:desc, hersteller=:her WHERE id=:id");
     q.bindValue(":nr",   rackNr);
@@ -8596,7 +8596,7 @@ bool Database::spsRackAktualisieren(int id, int rackNr, const QString &systemTyp
 
 bool Database::spsRackLoeschen(int id)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_rack WHERE id=:id");
     q.bindValue(":id", id);
     if (!q.exec()) { qWarning() << "spsRackLoeschen:" << q.lastError().text(); return false; }
@@ -8608,7 +8608,7 @@ bool Database::spsRackLoeschen(int id)
 QVariantList Database::spsBaugruppeListe(int rackId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT id, rack_id, slot, typ, bezeichnung, artikel_nr, kanaele, "
               "datentyp_standard, adress_byte_start, kommentar "
               "FROM sps_baugruppe WHERE rack_id = :rid ORDER BY slot");
@@ -8634,7 +8634,7 @@ QVariantList Database::spsBaugruppeListe(int rackId)
 int Database::spsBaugruppeAnlegen(int rackId, int slot, const QString &typ,
                                    const QString &bezeichnung, int kanaele, int adressByteStart)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("INSERT INTO sps_baugruppe (rack_id, slot, typ, bezeichnung, kanaele, adress_byte_start) "
               "VALUES (:rid, :slot, :typ, :bez, :kan, :abs)");
     q.bindValue(":rid",  rackId);
@@ -8652,7 +8652,7 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
                                           int kanaele, const QString &datentypStandard,
                                           int adressByteStart, const QString &kommentar)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE sps_baugruppe SET slot=:slot, typ=:typ, bezeichnung=:bez, artikel_nr=:art, "
               "kanaele=:kan, datentyp_standard=:dts, adress_byte_start=:abs, kommentar=:kom "
               "WHERE id=:id");
@@ -8671,7 +8671,7 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
 
 bool Database::spsBaugruppeLoeschen(int id)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_baugruppe WHERE id=:id");
     q.bindValue(":id", id);
     if (!q.exec()) { qWarning() << "spsBaugruppeLoeschen:" << q.lastError().text(); return false; }
@@ -8751,7 +8751,7 @@ static QVariantMap _spsKanalRow(QSqlQuery &q)
 QVariantList Database::spsKanalListe(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(QString(_spsKanalSelectBase)
               + "WHERE sk.projekt_id = :pid "
                 "ORDER BY sr.rack_nr, sb.slot, sk.kanal_nr, sk.adress_typ, sk.byte_nr, sk.bit_nr");
@@ -8764,7 +8764,7 @@ QVariantList Database::spsKanalListe(int projektId)
 QVariantList Database::spsKanalListeFuerBaugruppe(int baugruppeId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(QString(_spsKanalSelectBase)
               + "WHERE sk.baugruppe_id = :bid ORDER BY sk.kanal_nr, sk.byte_nr, sk.bit_nr");
     q.bindValue(":bid", baugruppeId);
@@ -8778,7 +8778,7 @@ int Database::spsKanalAnlegen(int projektId, int baugruppeId, int kanalNr,
                                const QString &datentyp, const QString &variablenname,
                                const QString &kommentar)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("INSERT INTO sps_kanal "
               "(projekt_id, baugruppe_id, kanal_nr, adress_typ, byte_nr, bit_nr, "
               " datentyp, variablenname, kommentar) "
@@ -8828,7 +8828,7 @@ bool Database::spsKanalAktualisieren(int id, const QVariantMap &felder)
     }
     if (setClauses.isEmpty()) return true;
 
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(QStringLiteral("UPDATE sps_kanal SET %1 WHERE id=:id").arg(setClauses.join(",")));
     for (auto it = bv.constBegin(); it != bv.constEnd(); ++it)
         q.bindValue(QStringLiteral(":") + it.key(), it.value());
@@ -8839,7 +8839,7 @@ bool Database::spsKanalAktualisieren(int id, const QVariantMap &felder)
 
 bool Database::spsKanalLoeschen(int id)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_kanal WHERE id=:id");
     q.bindValue(":id", id);
     if (!q.exec()) { qWarning() << "spsKanalLoeschen:" << q.lastError().text(); return false; }
@@ -8848,7 +8848,7 @@ bool Database::spsKanalLoeschen(int id)
 
 QString Database::spsKanalAdresse(int kanalId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(QString(_spsKanalSelectBase) + "WHERE sk.id = :id");
     q.bindValue(":id", kanalId);
     if (!q.exec() || !q.next()) return QString();
@@ -8857,7 +8857,7 @@ QString Database::spsKanalAdresse(int kanalId)
 
 bool Database::spsKanalElementZuweisen(int kanalId, int elementId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE sps_kanal SET grafik_element_id=:eid WHERE id=:id");
     q.bindValue(":eid", elementId);
     q.bindValue(":id",  kanalId);
@@ -8867,7 +8867,7 @@ bool Database::spsKanalElementZuweisen(int kanalId, int elementId)
 
 bool Database::spsKanalElementEntfernen(int kanalId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("UPDATE sps_kanal SET grafik_element_id=NULL WHERE id=:id");
     q.bindValue(":id", kanalId);
     if (!q.exec()) { qWarning() << "spsKanalElementEntfernen:" << q.lastError().text(); return false; }
@@ -8876,7 +8876,7 @@ bool Database::spsKanalElementEntfernen(int kanalId)
 
 QVariantMap Database::spsKanalFuerElement(int elementId)
 {
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(QString(_spsKanalSelectBase) + "WHERE sk.grafik_element_id = :eid");
     q.bindValue(":eid", elementId);
     if (!q.exec() || !q.next()) return {};
@@ -8935,7 +8935,7 @@ bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
 QVariantList Database::spsKonfliktElementIds(int projektId)
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare("SELECT grafik_element_id FROM sps_kanal "
               "WHERE projekt_id = :pid AND grafik_element_id IS NOT NULL "
               "GROUP BY grafik_element_id HAVING COUNT(*) > 1");
@@ -9083,11 +9083,11 @@ static void pdfPrimitivRendern(QPainter &p, const QVariantMap &pr,
 static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
                              double x, double y, double sw, double sh,
                              int rotation, bool spiegelX, bool spiegelY,
-                             const QPen &pen)
+                             const QPen &pen, const QSqlDatabase &db)
 {
     if (sw < 0.5 || sh < 0.5) return;
 
-    QSqlQuery q;
+    QSqlQuery q(db);
     q.prepare(R"(SELECT typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,
                         bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,
                         text_align,text_baseline,linienart
@@ -9219,7 +9219,7 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
 
 // Einzelnes grafik_element rendern
 static void pdfElementRendern(QPainter &p, const QVariantMap &el,
-                               double C, double pxPerMm)
+                               double C, double pxPerMm, const QSqlDatabase &db)
 {
     QString typ = el.value("typ").toString();
     double x1 = el.value("x1").toDouble() * C;
@@ -9474,7 +9474,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                          el.value("rotation").toInt(),
                          el.value("spiegelX").toBool(),
                          el.value("spiegelY").toBool(),
-                         pen);
+                         pen, db);
         pdfBeschriftungRendern(p, el, C, pxPerMm);
 
         // ── Aderdefinitions-Textblock ────────────────────────────────────────
@@ -9550,7 +9550,8 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
 }
 
 // Verbindungsleitungen aus verbindung_segment rendern
-static void pdfLeitungenRendern(QPainter &p, int seiteId, double C, double pxPerMm)
+static void pdfLeitungenRendern(QPainter &p, int seiteId, double C, double pxPerMm,
+                                const QSqlDatabase &db)
 {
     // ── Alle Segmente laden ──────────────────────────────────────────────────
     struct Seg {
@@ -9561,7 +9562,7 @@ static void pdfLeitungenRendern(QPainter &p, int seiteId, double C, double pxPer
     };
     QVector<Seg> segs;
 
-    QSqlQuery q;
+    QSqlQuery q(db);
     q.prepare(R"(
         SELECT vs.punkte, vs.verbindung_id, v.signaltyp, v.farbe
         FROM verbindung_segment vs
@@ -9873,7 +9874,7 @@ static void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPer
 bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt)
 {
     // Alle Seiten des Projekts in Anzeigereihenfolge laden
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT s.id
         FROM seite s
@@ -9938,10 +9939,10 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         // Canvas-Elemente rendern
         QVariantList elemente = grafikLaden(seiteId);
         for (const QVariant &ev : elemente)
-            pdfElementRendern(painter, ev.toMap(), C, pxPerMm);
+            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
 
         // Verbindungsleitungen aus DB
-        pdfLeitungenRendern(painter, seiteId, C, pxPerMm);
+        pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
 
         // Normblatt-Rahmen + Schriftfeld
         if (mitNormblatt && nb.value("normblattAnzeigen").toBool())
@@ -10041,9 +10042,9 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
 
     QVariantList elemente = grafikLaden(seiteId);
     for (const QVariant &ev : elemente)
-        pdfElementRendern(painter, ev.toMap(), C, pxPerMm);
+        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
 
-    pdfLeitungenRendern(painter, seiteId, C, pxPerMm);
+    pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
 
     if (mitNormblatt && nb.value("normblattAnzeigen").toBool())
         pdfNormblattRendern(painter, nb, pxPerMm);
@@ -10309,7 +10310,7 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
                       .arg(dbFelder.join(", "), bindVars.join(", "));
 
     QSqlDatabase::database().transaction();
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     int count = 0;
     for (int row = 1; row < rows.size(); row++) {
         const QStringList &cols = rows[row];
@@ -10336,7 +10337,7 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
 QVariantList Database::drcDoppelteBmk(int projektId)
 {
     QVariantList ergebnis;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT bv.bmk_vollstaendig, COUNT(*) AS anzahl, GROUP_CONCAT(b.id) AS ids "
         "FROM betriebsmittel b "
@@ -10367,7 +10368,7 @@ QVariantList Database::drcDoppelteBmk(int projektId)
 QVariantList Database::drcSymboleOhneBmk(int projektId)
 {
     QVariantList ergebnis;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT ge.id, ge.symbol_id, ge.seite_id, s.bezeichnung "
         "FROM grafik_element ge "
@@ -10401,7 +10402,7 @@ QVariantList Database::drcSymboleOhneBmk(int projektId)
 QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
 {
     QVariantList ergebnis;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT id, blattnummer FROM seite "
         "WHERE projekt_id = :pid "
@@ -10425,7 +10426,7 @@ QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
 QVariantList Database::drcKabeladernOhneAnschluss(int projektId)
 {
     QVariantList ergebnis;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(
         "SELECT ka.id, ka.ader_nr, ka.bezeichnung, k.bezeichnung, "
         "  CASE "
@@ -10703,7 +10704,7 @@ QVariantList Database::drcLeitungsenden(int projektId)
 QVariantList Database::drcPotenzialkonflikte(int projektId)
 {
     QVariantList ergebnis;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, COALESCE(NULLIF(bezeichnung,''), potenzial, 'unbekannt'), potenzial
         FROM verbindung
@@ -10882,7 +10883,7 @@ QVariantList Database::drcParallelQuellen(int projektId)
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;
-    QSqlQuery q;
+    QSqlQuery q(m_db);
     q.exec("SELECT id, name FROM bauteil_kategorie ORDER BY sortierung, name");
     while (q.next()) {
         QVariantMap m;

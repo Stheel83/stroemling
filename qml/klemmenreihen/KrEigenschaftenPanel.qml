@@ -351,6 +351,10 @@ Rectangle {
                         color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
                     }
                     onClicked: root.bauteilWaehlenAngefordert(panel.aktivKlemme.klemmeId)
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: panel.aktivKlemme && panel.aktivKlemme.bauteilId > 0
+                                  ? qsTr("Anderes Klemmen-Bauteil aus dem Katalog wählen")
+                                  : qsTr("Klemmen-Bauteil aus dem Katalog zuweisen")
                 }
                 Button {
                     visible: panel.aktivKlemme !== null && panel.aktivKlemme.bauteilId > 0
@@ -364,6 +368,8 @@ Rectangle {
                         color: parent.hovered ? "#3a1010" : "transparent"; border.color: "#7a3030"; border.width: 1; radius: 3
                     }
                     onClicked: klemmenreiheModel.klemmeBauteilSetzen(panel.aktivKlemme.klemmeId, 0)
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Bauteil-Zuweisung dieser Klemme entfernen")
                 }
                 Item { Layout.fillWidth: true }
             }
@@ -413,6 +419,8 @@ Rectangle {
                     background: Rectangle {
                         color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
                     }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Klemme als verknüpftes Symbol in den Schaltplan platzieren")
                     onClicked: {
                         klemmeModel.laden(panel.aktivKlemme.bauteilId)
                         var bkId      = klemmeModel.klemme["klemmeId"] || -1
@@ -475,6 +483,8 @@ Rectangle {
                 background: Rectangle {
                     color: parent.hovered ? "#3a1010" : "transparent"; border.color: "#7a3030"; border.width: 1; radius: 4
                 }
+                ToolTip.visible: hovered; ToolTip.delay: 500
+                ToolTip.text: qsTr("Diese Klemmenleiste mit allen Klemmen unwiderruflich löschen")
                 onClicked: {
                     klemmenleistenModel.loeschen(panel.aktivLeistenId)
                     panel.aktivLeistenId = -1

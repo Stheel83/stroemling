@@ -275,6 +275,8 @@ SplitView {
                         font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter;
                         verticalAlignment: Text.AlignVCenter }
                     background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Status, Notiz, Prüfer und Datum speichern")
                     onClicked: {
                         var fl = kabelListe._gelistet
                         if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return
@@ -309,6 +311,8 @@ SplitView {
                                 verticalAlignment: Text.AlignVCenter }
                             background: Rectangle { color: parent.hovered
                                 ? Qt.darker(modelData.farbe, 1.2) : modelData.farbe; radius: 4 }
+                            ToolTip.visible: hovered; ToolTip.delay: 500
+                            ToolTip.text: qsTr("Status direkt auf '%1' setzen (nur Status, ohne Prüfer/Datum)").arg(modelData.label)
                             onClicked: {
                                 var fl = kabelListe._gelistet
                                 if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return

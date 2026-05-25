@@ -54,12 +54,19 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered ? AppTheme.activeItem : "transparent"; radius: 4 }
             onClicked: canvas.zoomAnpassen(1/1.25)
+            ToolTip.visible: hovered; ToolTip.delay: 500
+            ToolTip.text: qsTr("Herauszoomen  (Mausrad / Strg+−)")
         }
         Text {
             text: Math.round(canvas.zoom*100) + "%"; color: AppTheme.accent
             font.pixelSize: 12; font.weight: Font.Medium; leftPadding: 2; rightPadding: 2
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: canvas.ansichtZuruecksetzen() }
+            MouseArea {
+                id: zoomResetMa
+                anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                onClicked: canvas.ansichtZuruecksetzen()
+            }
+            ToolTip.visible: zoomResetMa.containsMouse; ToolTip.delay: 500
+            ToolTip.text: qsTr("Zoom zurücksetzen auf 100 %  (Klick)")
         }
         Button {
             text: "+"; flat: true; implicitWidth: 26; implicitHeight: 26
@@ -67,6 +74,8 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered ? AppTheme.activeItem : "transparent"; radius: 4 }
             onClicked: canvas.zoomAnpassen(1.25)
+            ToolTip.visible: hovered; ToolTip.delay: 500
+            ToolTip.text: qsTr("Hineinzoomen  (Mausrad / Strg++)")
         }
         Button {
             flat: true; implicitWidth: 26; implicitHeight: 26; enabled: canvas.seiteId >= 0

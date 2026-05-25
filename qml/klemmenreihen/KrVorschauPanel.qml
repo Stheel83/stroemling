@@ -221,6 +221,8 @@ Item {
                         if (k && klemmenreiheModel.klemmeSchieben(k.klemmeId, -1))
                             panel.aktivKlemmeIdx -= 1
                     }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Klemme nach links verschieben")
                 }
                 Button {
                     visible: panel.aktivKlemmeIdx >= 0 && panel.aktivKlemmeIdx < klemmenreiheModel.klemmen.length - 1
@@ -238,6 +240,8 @@ Item {
                         if (k && klemmenreiheModel.klemmeSchieben(k.klemmeId, 1))
                             panel.aktivKlemmeIdx += 1
                     }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Klemme nach rechts verschieben")
                 }
 
                 // Löschen-Button (nur wenn Klemme ausgewählt)

@@ -965,13 +965,13 @@ Item {
                     ctx.lineWidth   = 1.5
                     ctx.setLineDash([])
                     ctx.strokeRect(nRx, nRy, nRw, nRh)
-                    // Text
+                    // Text mit automatischem Zeilenumbruch
                     var nText = el.textInhalt || ""
                     if (nText !== "") {
                         var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
-                        var nLines = nText.split("\n")
                         var nLineH = nFsPx * 1.3
                         var nPad   = Math.max(4, nFsPx * 0.35)
+                        var nMaxW  = nRw - 2 * nPad
 
                         ctx.save()
                         ctx.beginPath()
@@ -983,13 +983,34 @@ Item {
                         ctx.textBaseline = "top"
                         ctx.textAlign    = "left"
 
-                        for (var nLi = 0; nLi < nLines.length; nLi++) {
-                            if (nRy + nPad + nLi * nLineH > nRy + nRh - nPad) break
-                                ctx.fillText(nLines[nLi], nRx + nPad, nRy + nPad + nLi * nLineH)
+                        // Word-wrap: explizite \n beachten, lange Zeilen umbrechen
+                        var wrappedLines = []
+                        var paraLines = nText.split("\n")
+                        for (var nPi = 0; nPi < paraLines.length; nPi++) {
+                            var para = paraLines[nPi]
+                            if (para === "") { wrappedLines.push(""); continue }
+                            var words = para.split(" ")
+                            var curLine = ""
+                            for (var nWi = 0; nWi < words.length; nWi++) {
+                                var testLine = curLine === "" ? words[nWi] : curLine + " " + words[nWi]
+                                if (nMaxW > 0 && ctx.measureText(testLine).width > nMaxW && curLine !== "") {
+                                    wrappedLines.push(curLine)
+                                    curLine = words[nWi]
+                                } else {
+                                    curLine = testLine
+                                }
                             }
+                            wrappedLines.push(curLine)
+                        }
+
+                        for (var nLi = 0; nLi < wrappedLines.length; nLi++) {
+                            var nYPos = nRy + nPad + nLi * nLineH
+                            if (nYPos + nLineH > nRy + nRh) break
+                            ctx.fillText(wrappedLines[nLi], nRx + nPad, nYPos)
                         }
                         ctx.restore()
                     }
+                }
             } else if (el.typ === "symbol") {
                 var sw = vx2 - vx1, sh = vy2 - vy1
                 if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {

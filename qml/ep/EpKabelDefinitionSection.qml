@@ -322,8 +322,8 @@ Item {
                 font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             }
             background: Rectangle {
-                color: parent.hovered && parent.enabled ? theme.hover : theme.inputBg
-                radius: 3; border.color: theme.border
+                color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                radius: 3; border.color: parent.enabled ? theme.accent : theme.border
             }
             onClicked: panel.canvas.aderzuordnungDialogOeffnen(panel.el)
         }

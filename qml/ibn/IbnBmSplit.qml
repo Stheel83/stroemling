@@ -310,7 +310,7 @@ SplitView {
                     contentItem: Text { text: parent.text; color: theme.textPrimary;
                         font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter;
                         verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.btnPrimary : theme.activeItem; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
                     onClicked: {
                         var fl = bmListe._gelistet
                         if (!fl || panel.ausgewaehlterIndex >= fl.length) return

@@ -222,7 +222,8 @@ Rectangle {
                 }
                 Rectangle {
                     width: 22; height: 22; radius: 3
-                    color: addStegBtn.containsMouse ? theme.btnPrimary : theme.activeItem
+                    color: addStegBtn.containsMouse ? theme.accent : theme.inputBg
+                    border.color: theme.accent
                     Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 16; color: theme.textPrimary }
                     MouseArea {
                         id: addStegBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -347,7 +348,7 @@ Rectangle {
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? theme.btnPrimary : theme.activeItem; radius: 3
+                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
                     }
                     onClicked: root.bauteilWaehlenAngefordert(panel.aktivKlemme.klemmeId)
                 }
@@ -410,7 +411,7 @@ Rectangle {
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? theme.btnPrimary : theme.activeItem; radius: 3
+                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
                     }
                     onClicked: {
                         klemmeModel.laden(panel.aktivKlemme.bauteilId)

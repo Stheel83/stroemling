@@ -37,9 +37,9 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgKategorieNeu.close()
                 }
                 Button {
@@ -47,7 +47,10 @@ Rectangle {
                     enabled: inpKatName.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         kategorieModel.anlegen(dlgKategorieNeu.parentId, inpKatName.text.trim())
                         inpKatName.text = ""
@@ -84,9 +87,9 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgKategorieBearbeiten.close()
                 }
                 Button {
@@ -94,7 +97,10 @@ Rectangle {
                     enabled: editKatName.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         kategorieModel.bearbeiten(dlgKategorieBearbeiten.itemId, editKatName.text.trim())
                         dlgKategorieBearbeiten.close()
@@ -136,9 +142,9 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgBauteilNeu.close()
                 }
                 Button {
@@ -146,7 +152,10 @@ Rectangle {
                     enabled: neuForm.bezeichnung.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         bauteilModel.anlegen(
                             dlgBauteilNeu.kategorieId,
@@ -362,12 +371,12 @@ Rectangle {
                 Button {
                     text: qsTr("Schließen"); flat: true; implicitHeight: 34
                     contentItem: Text {
-                        text: parent.text; color: theme.panelMid; font.pixelSize: 13
+                        text: parent.text; color: theme.textSecondary; font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment:   Text.AlignVCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4
+                        color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border
                     }
                     onClicked: dlgCsvMapping.close()
                 }
@@ -385,7 +394,8 @@ Rectangle {
                         verticalAlignment:   Text.AlignVCenter
                     }
                     background: Rectangle {
-                        color:  parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
                     }
                     onClicked: {
                         var mapping = {}

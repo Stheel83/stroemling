@@ -196,7 +196,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                     background: Rectangle {
-                        color: parent.hovered ? theme.btnPrimary : theme.activeItem; radius: 4
+                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent
                     }
                     onClicked: {
                         klemmenreiheModel.klemmeAnlegen(-1)

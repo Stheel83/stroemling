@@ -46,7 +46,7 @@ Item {
             Text { text: qsTr("Datei beschädigt oder falsches Format."); color: root.theme.textMuted; font.pixelSize: 11 }
             Button {
                 text: qsTr("OK"); onClicked: fehlerPopup.close()
-                background: Rectangle { color: root.theme.btnPrimary; radius: 4 }
+                background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
                 contentItem: Text { text: parent.text; color: root.theme.textPrimary; horizontalAlignment: Text.AlignHCenter }
             }
         }

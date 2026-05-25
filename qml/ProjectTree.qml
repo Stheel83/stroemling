@@ -329,7 +329,7 @@ Item {
                     text: qsTr("Logo wählen …"); implicitHeight: 30; flat: true
                     contentItem: Text { text: parent.text; color: theme.accent; font.pixelSize: 12;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : theme.inputBg;
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg;
                                             border.color: theme.border; radius: 4 }
                     onClicked: logoFileDialog.open()
                 }
@@ -363,17 +363,20 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgProjektEigenschaften.close()
                 }
                 Button {
                     text: qsTr("Speichern"); implicitWidth: 90; implicitHeight: 34
                     enabled: epName.text.trim().length > 0
-                    contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: parent.enabled ? theme.textPrimary : theme.textMuted; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         db.projektMetaSpeichern(
                             dlgProjektEigenschaften.projektId,

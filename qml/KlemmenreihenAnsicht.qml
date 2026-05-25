@@ -107,7 +107,10 @@ Item {
                     enabled: neueLeisteDlg.eingegebenerName.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? (parent.hovered ? theme.btnPrimary : theme.activeItem) : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: neueLeisteDlg.accept()
                 }
             }
@@ -373,7 +376,10 @@ Item {
                     enabled: klemmenreiheModel.klemmen.length >= 2
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? (parent.hovered ? theme.btnPrimary : theme.activeItem) : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: neueStegDlg.accept()
                 }
             }
@@ -481,7 +487,8 @@ Item {
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     background: Rectangle {
-                        color: parent.enabled ? (parent.hovered ? theme.btnPrimary : theme.activeItem) : theme.btnDisabled; radius: 4
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
                     }
                     onClicked: modusAPlatzierDlg.accept()
                 }
@@ -530,7 +537,8 @@ Item {
                         }
                         Rectangle {
                             width: 26; height: 26; radius: 4
-                            color: addLeistenBtn.containsMouse ? theme.btnPrimary : theme.activeItem
+                            color: addLeistenBtn.containsMouse ? theme.accent : theme.inputBg
+                            border.color: theme.accent
                             Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 18; color: theme.textPrimary }
                             MouseArea {
                                 id:            addLeistenBtn

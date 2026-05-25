@@ -60,9 +60,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgBauteilBearbeiten.close()
                 }
                 Button {
@@ -70,7 +70,10 @@ Item {
                     enabled: editForm.bezeichnung.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         bauteilModel.bearbeiten(
                             dlgBauteilBearbeiten.itemId,
@@ -124,7 +127,7 @@ Item {
                     visible: suchfeld.text.length > 0; text: "×"; flat: true; implicitWidth: 28; implicitHeight: 28
                     contentItem: Text { text: parent.text; color: theme.textMuted; font.pixelSize: 16;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: { suchfeld.text = ""; bauteilModel.laden(bauteilModel.aktiveKategorieId) }
                 }
             }

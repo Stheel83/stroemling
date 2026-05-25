@@ -142,7 +142,7 @@ Item {
                             text: qsTr("Übernehmen"); implicitHeight: 30
                             contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12;
                                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            background: Rectangle { color: parent.hovered ? theme.btnPrimary : theme.activeItem; radius: 4 }
+                            background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
                             onClicked: {
                                 bauteilModel.bauteilTitelSpeichern(root.bauteilId,
                                     tfKabBez.text, tfKabHer.text, tfKabArt.text)
@@ -262,7 +262,7 @@ Item {
                         Layout.fillWidth: true; text: qsTr("Kabel-Daten speichern")
                         contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12;
                                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        background: Rectangle { color: parent.hovered ? theme.btnPrimary : theme.activeItem; radius: 4 }
+                        background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
                         onClicked: {
                             if (kabelModel.stammdatenSpeichern(kabelMapSammeln()))
                                 root.bauteilGespeichert(root.bauteilId, tfKabBez.text)

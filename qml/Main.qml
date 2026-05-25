@@ -310,7 +310,7 @@ ApplicationWindow {
                         text: parent.text; color: appTheme.textPrimary; font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
-                    background: Rectangle { color: parent.hovered ? appTheme.btnPrimary : appTheme.activeItem; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? appTheme.accent : appTheme.inputBg; radius: 4; border.color: appTheme.accent }
                     onClicked: keineSeiteMeldung.close()
                 }
             }

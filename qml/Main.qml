@@ -357,42 +357,49 @@ ApplicationWindow {
                 Item { height: 4 }
 
                 SidebarButton {
-                    theme:  appTheme
-                    icon:   "📁"
-                    label:  qsTr("Projekte")
-                    active: root.aktiveAnsicht === "projekte"
+                    theme:   appTheme
+                    icon:    "📁"
+                    label:   qsTr("Projekte")
+                    active:  root.aktiveAnsicht === "projekte"
+                    tooltip: qsTr("Neues Projekt anlegen oder vorhandenes öffnen")
                     onClicked: root.aktiveAnsicht = "projekte"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "📄"
-                    label:   qsTr("Seiten")
-                    active:  root.aktiveAnsicht === "seiten"
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "📄"
+                    label:           qsTr("Seiten")
+                    active:          root.aktiveAnsicht === "seiten"
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("Seitenbaum: Seiten, Anlagen und Orte verwalten")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: root.aktiveAnsicht = "seiten"
                 }
                 SidebarButton {
-                    theme:  appTheme
-                    icon:   "🔧"
-                    label:  qsTr("Bauteile")
-                    active: root.aktiveAnsicht === "bauteile"
+                    theme:   appTheme
+                    icon:    "🔧"
+                    label:   qsTr("Bauteile")
+                    active:  root.aktiveAnsicht === "bauteile"
+                    tooltip: qsTr("Bauteilkatalog: Klemmen, Kabel und Geräte verwalten")
                     onClicked: root.aktiveAnsicht = "bauteile"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "📋"
-                    label:   qsTr("Listen")
-                    active:  root.aktiveAnsicht === "stueckliste"
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "📋"
+                    label:           qsTr("Listen")
+                    active:          root.aktiveAnsicht === "stueckliste"
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("Stückliste, Kabelliste, Klemmenplan und Querverweise")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: root.aktiveAnsicht = "stueckliste"
                 }
                 SidebarButton {
-                    theme:  appTheme
-                    icon:   "✏"
-                    label:  qsTr("Symbole")
-                    active: root.aktiveAnsicht === "symbol_editor"
+                    theme:   appTheme
+                    icon:    "✏"
+                    label:   qsTr("Symbole")
+                    active:  root.aktiveAnsicht === "symbol_editor"
+                    tooltip: qsTr("Symboleditor: Eigene Schaltsymbole zeichnen und bearbeiten")
                     onClicked: {
                         root.symbolEditorVorher    = root.aktiveAnsicht
                         root.symbolEditorId        = ""
@@ -401,68 +408,81 @@ ApplicationWindow {
                     }
                 }
                 SidebarButton {
-                    theme:  appTheme
-                    icon:   "⚡"
-                    label:  qsTr("Kabelrechner")
-                    active: root.aktiveAnsicht === "kabelrechner"
+                    theme:   appTheme
+                    icon:    "⚡"
+                    label:   qsTr("Kabelrechner")
+                    active:  root.aktiveAnsicht === "kabelrechner"
+                    tooltip: qsTr("Leitungsquerschnitt nach VDE 0298 / IEC 60364 berechnen")
                     onClicked: root.aktiveAnsicht = "kabelrechner"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "✔"
-                    label:   qsTr("IBN")
-                    active:  root.aktiveAnsicht === "ibn"
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "✔"
+                    label:           qsTr("IBN")
+                    active:          root.aktiveAnsicht === "ibn"
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("Inbetriebnahme: Betriebsmittel prüfen und Messwerte erfassen")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: root.aktiveAnsicht = "ibn"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "📐"
-                    label:   qsTr("Normblatt")
-                    active:  root.aktiveAnsicht === "normblatt"
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "📐"
+                    label:           qsTr("Normblatt")
+                    active:          root.aktiveAnsicht === "normblatt"
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("Schriftfeld nach DIN 6771 gestalten und Normblatt-Vorlage wählen")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: root.aktiveAnsicht = "normblatt"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "🖨"
-                    label:   qsTr("PDF-Export")
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "🖨"
+                    label:           qsTr("PDF-Export")
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("Alle Seiten des Projekts als PDF exportieren")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: pdfExportDialog.open()
                 }
                 SidebarButton {
-                    theme:  appTheme
-                    icon:   "📚"
-                    label:  qsTr("Wiki")
-                    active: root.aktiveAnsicht === "wiki"
+                    theme:   appTheme
+                    icon:    "📚"
+                    label:   qsTr("Wiki")
+                    active:  root.aktiveAnsicht === "wiki"
+                    tooltip: qsTr("Erfahrungs-Wiki: Fachwissen nachschlagen und eigene Artikel erfassen")
                     onClicked: root.aktiveAnsicht = "wiki"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "⚡"
-                    label:   qsTr("SPS/PLS")
-                    active:  root.aktiveAnsicht === "sps"
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "⚡"
+                    label:           qsTr("SPS/PLS")
+                    active:          root.aktiveAnsicht === "sps"
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("SPS/PLS-Konfiguration: Hardware, Baugruppen und I/O-Kanäle verwalten")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: root.aktiveAnsicht = "sps"
                 }
                 SidebarButton {
-                    theme:   appTheme
-                    icon:    "⚠"
-                    label:   qsTr("DRC")
-                    active:  root.drcPanelOffen
-                    enabled: root.aktivProjektId >= 0
-                    opacity: enabled ? 1.0 : 0.4
+                    theme:           appTheme
+                    icon:            "⚠"
+                    label:           qsTr("DRC")
+                    active:          root.drcPanelOffen
+                    enabled:         root.aktivProjektId >= 0
+                    opacity:         enabled ? 1.0 : 0.4
+                    tooltip:         qsTr("Design Rule Check: Schaltplan auf häufige Fehler und Inkonsistenzen prüfen")
+                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
                     onClicked: root.drcPanelOffen = !root.drcPanelOffen
                 }
                 SidebarButton {
-                    theme:  appTheme
-                    icon:   "⚙"
-                    label:  qsTr("Einstellungen")
-                    active: root.aktiveAnsicht === "einstellungen"
+                    theme:   appTheme
+                    icon:    "⚙"
+                    label:   qsTr("Einstellungen")
+                    active:  root.aktiveAnsicht === "einstellungen"
+                    tooltip: qsTr("Theme, Darstellung und App-Einstellungen")
                     onClicked: root.aktiveAnsicht = "einstellungen"
                 }
 

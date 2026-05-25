@@ -9,10 +9,12 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    property string icon:   "●"
-    property string label:  qsTr("Button")
-    property bool   active: false
+    property string icon:            "●"
+    property string label:           qsTr("Button")
+    property bool   active:          false
     property var    theme
+    property string tooltip:         ""
+    property string tooltipDisabled: ""
 
     signal clicked()
 
@@ -70,6 +72,14 @@ Item {
             onExited:   parent.hovered = false
             onClicked:  root.clicked()
             cursorShape: Qt.PointingHandCursor
+        }
+
+        ToolTip {
+            visible: parent.hovered &&
+                     ((!root.enabled && root.tooltipDisabled !== "") ||
+                      (root.enabled  && root.tooltip          !== ""))
+            text:    (!root.enabled && root.tooltipDisabled !== "") ? root.tooltipDisabled : root.tooltip
+            delay:   500
         }
     }
 }

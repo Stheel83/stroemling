@@ -31,6 +31,9 @@ Item {
     // Wird nach oben gemeldet wenn Projekt-Metadaten gespeichert wurden
     signal projektMetaGeaendert(int id)
 
+    // Wird nach oben gemeldet wenn ein Projekt gelöscht wurde
+    signal projektGeloescht(int id)
+
     ColumnLayout {
         anchors.fill:   parent
         anchors.margins: 12
@@ -452,10 +455,12 @@ Item {
                 Button {
                     text: qsTr("Löschen"); implicitHeight: 30; implicitWidth: 100
                     onClicked: {
-                        projektModel.loeschen(root._loeschenProjektId)
+                        var pid = root._loeschenProjektId
+                        projektModel.loeschen(pid)
                         root._loeschenProjektId   = -1
                         root._loeschenProjektName = ""
                         dlgLoeschen.close()
+                        root.projektGeloescht(pid)
                     }
                     background: Rectangle { color: parent.hovered ? "#cc2222" : theme.inputBg; radius: 4; border.color: "#ff4444" }
                     contentItem: Text { text: parent.text; color: parent.hovered ? "white" : "#ff4444"; font.pixelSize: 11;

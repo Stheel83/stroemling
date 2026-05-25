@@ -672,6 +672,17 @@ ApplicationWindow {
                         panel2.normblattNeuLaden()
                     }
                 }
+                onProjektGeloescht: function(id) {
+                    if (id === root.aktivProjektId) {
+                        root.aktivProjektId   = -1
+                        root.aktivProjektName = ""
+                        root.aktivSeiteId     = -1
+                        root.aktivSeiteName   = ""
+                        seitenModel.laden(-1)
+                        klemmenleistenModel.laden(-1)
+                        root.aktiveAnsicht    = "projekte"
+                    }
+                }
             }
 
             // Seitenbaum + Canvas (Split-Layout)

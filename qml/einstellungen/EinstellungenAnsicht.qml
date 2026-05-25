@@ -761,28 +761,49 @@ Item {
                     Layout.fillWidth:   true
                     Layout.leftMargin:  12
                     Layout.rightMargin: 12
-                    height:             44
+                    height:             88
                     color:              root.theme.surface
                     radius:             6
                     border.color:       root.theme.border
 
-                    RowLayout {
-                        anchors {
-                            fill:        parent
-                            leftMargin:  12
-                            rightMargin: 12
-                        }
-                        Text {
-                            text:             qsTr("Build-Datum")
-                            font.pixelSize:   12
-                            color:            root.theme.textPrimary
+                    ColumnLayout {
+                        anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+                        spacing: 0
+
+                        RowLayout {
                             Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            Text {
+                                text:             qsTr("Version")
+                                font.pixelSize:   12
+                                color:            root.theme.textPrimary
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                text:           appVersion
+                                font.pixelSize: 12
+                                font.family:    "monospace"
+                                color:          root.theme.accent
+                            }
                         }
-                        Text {
-                            text:           buildDatum
-                            font.pixelSize: 12
-                            font.family:    "monospace"
-                            color:          root.theme.accent
+
+                        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.divider }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            Text {
+                                text:             qsTr("Build-Datum")
+                                font.pixelSize:   12
+                                color:            root.theme.textPrimary
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                text:           buildDatum
+                                font.pixelSize: 12
+                                font.family:    "monospace"
+                                color:          root.theme.accent
+                            }
                         }
                     }
                 }

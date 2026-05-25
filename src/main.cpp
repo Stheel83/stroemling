@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("elementeModel2",       &elementeModel2);
     engine.rootContext()->setContextProperty("elementeModel3",       &elementeModel3);
     engine.rootContext()->setContextProperty("buildDatum",           QString(BUILD_DATE));
+    engine.rootContext()->setContextProperty("appVersion",            QString(APP_VERSION));
 
     // Hauptfenster laden
     engine.loadFromModule("stroemling", "Main");

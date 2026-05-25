@@ -37,6 +37,9 @@ Item {
     property bool   istBuiltin:    false
     property string vorlageId:     ""   // wenn gesetzt: Geometrie aus diesem Symbol als Vorlage laden
     property bool   _kopierModus:  false
+    property real   _seZoom: 1.0
+    property real   _sePanX: 0.0
+    property real   _sePanY: 0.0
 
     property var    primitive:          []   // array of QVariantMap
     property var    pins:               []   // array of {name, x, y, offenX, offenY, signaltyp, kontext}
@@ -555,11 +558,11 @@ Item {
 
                         // Rechteckiger Zeichenbereich – Seitenverhältnis = breiteMm : hoeheMm
                         readonly property real padding:  36
-                        readonly property real maxDim:   Math.min(width - 2*padding, height - 2*padding)
-                        readonly property real drawW:    maxDim * root.breiteMm / Math.max(root.breiteMm, root.hoeheMm)
-                        readonly property real drawH:    maxDim * root.hoeheMm  / Math.max(root.breiteMm, root.hoeheMm)
-                        readonly property real drawX:    (width  - drawW) / 2
-                        readonly property real drawY:    (height - drawH) / 2
+                        readonly property real baseSize: Math.min(width - 2*padding, height - 2*padding)
+                        readonly property real drawW:    baseSize * root._seZoom * root.breiteMm / Math.max(root.breiteMm, root.hoeheMm)
+                        readonly property real drawH:    baseSize * root._seZoom * root.hoeheMm  / Math.max(root.breiteMm, root.hoeheMm)
+                        readonly property real drawX:    (width  - drawW) / 2 + root._sePanX
+                        readonly property real drawY:    (height - drawH) / 2 + root._sePanY
 
                         function n2sx(n) { return drawX + n * drawW }
                         function n2sy(n) { return drawY + n * drawH }
@@ -811,7 +814,7 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                             // Drag-Zustand (Auswahl-Werkzeug)
                             property bool dragAktiv:       false
@@ -819,6 +822,12 @@ Item {
                             property bool dragBewegteSich: false
                             property var  dragStartNorm:   ({x: 0, y: 0})
                             property var  dragObjStart:    null
+
+                            // Pan-Zustand (mittlere Maustaste)
+                            property bool _panAktiv:  false
+                            property var  _panStart:  ({x: 0, y: 0})
+                            property real _panStartX: 0
+                            property real _panStartY: 0
 
                             function mausZuNorm(mx, my) {
                                 var nx = (mx - zeichneCanvas.drawX) / zeichneCanvas.drawW
@@ -829,6 +838,13 @@ Item {
                             }
 
                             onPressed: function(mouse) {
+                                if (mouse.button === Qt.MiddleButton) {
+                                    _panAktiv  = true
+                                    _panStart  = {x: mouse.x, y: mouse.y}
+                                    _panStartX = root._sePanX
+                                    _panStartY = root._sePanY
+                                    return
+                                }
                                 if (root.aktivesWerkzeug !== "auswahl") return
                                 var nm = mausZuNorm(mouse.x, mouse.y)
                                 var pi = root.treffePin(nm.x, nm.y)
@@ -854,12 +870,22 @@ Item {
                                 }
                             }
 
-                            onReleased: {
+                            onReleased: function(mouse) {
+                                if (mouse.button === Qt.MiddleButton) {
+                                    _panAktiv = false
+                                    return
+                                }
                                 dragAktiv    = false
                                 dragObjStart = null
                             }
 
                             onPositionChanged: function(mouse) {
+                                if (_panAktiv) {
+                                    root._sePanX = _panStartX + (mouse.x - _panStart.x)
+                                    root._sePanY = _panStartY + (mouse.y - _panStart.y)
+                                    zeichneCanvas.requestPaint()
+                                    return
+                                }
                                 var nm = mausZuNorm(mouse.x, mouse.y)
                                 root.mausNormPos  = nm
                                 root.mausImCanvas = true
@@ -907,6 +933,7 @@ Item {
                             }
 
                             onClicked: function(mouse) {
+                                if (mouse.button === Qt.MiddleButton) return
                                 if (dragBewegteSich) { dragBewegteSich = false; return }
                                 root.forceActiveFocus()
                                 var nm = mausZuNorm(mouse.x, mouse.y)
@@ -996,6 +1023,71 @@ Item {
                             }
                         }
                     } // Canvas
+
+                    // Scroll-Zoom (Mausrad zoomt auf Cursor-Position)
+                    WheelHandler {
+                        onWheel: function(event) {
+                            var dy = event.angleDelta.y !== 0 ? event.angleDelta.y
+                                                              : event.pixelDelta.y * 4
+                            if (Math.abs(dy) < 1) { event.accepted = false; return }
+                            var factor   = Math.pow(1.001, dy)
+                            var newZoom  = Math.max(0.15, Math.min(8.0, root._seZoom * factor))
+                            var scale    = newZoom / root._seZoom
+                            var newDrawW = zeichneCanvas.drawW * scale
+                            var newDrawH = zeichneCanvas.drawH * scale
+                            var newDrawX = event.x - (event.x - zeichneCanvas.drawX) * scale
+                            var newDrawY = event.y - (event.y - zeichneCanvas.drawY) * scale
+                            root._sePanX = newDrawX - (zeichneCanvas.width  - newDrawW) / 2
+                            root._sePanY = newDrawY - (zeichneCanvas.height - newDrawH) / 2
+                            root._seZoom = newZoom
+                            zeichneCanvas.requestPaint()
+                            event.accepted = true
+                        }
+                    }
+
+                    // Zoom-Steuerung (oben rechts, analog zu CanvasHeaderBar)
+                    Row {
+                        anchors { top: parent.top; right: parent.right; topMargin: 4; rightMargin: 6 }
+                        spacing: 0
+
+                        Button {
+                            text: qsTr("−"); flat: true; implicitWidth: 26; implicitHeight: 26
+                            contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 18
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"; radius: 4 }
+                            onClicked: {
+                                var s = Math.max(0.15, root._seZoom / 1.25) / root._seZoom
+                                root._sePanX = root._sePanX * s; root._sePanY = root._sePanY * s
+                                root._seZoom = Math.max(0.15, root._seZoom / 1.25)
+                                zeichneCanvas.requestPaint()
+                            }
+                        }
+                        Text {
+                            text: Math.round(root._seZoom * 100) + "%"
+                            color: root.theme.accent; font.pixelSize: 12; font.weight: Font.Medium
+                            leftPadding: 2; rightPadding: 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root._seZoom = 1.0; root._sePanX = 0.0; root._sePanY = 0.0
+                                    zeichneCanvas.requestPaint()
+                                }
+                            }
+                        }
+                        Button {
+                            text: "+"; flat: true; implicitWidth: 26; implicitHeight: 26
+                            contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 16
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"; radius: 4 }
+                            onClicked: {
+                                var s = Math.min(8.0, root._seZoom * 1.25) / root._seZoom
+                                root._sePanX = root._sePanX * s; root._sePanY = root._sePanY * s
+                                root._seZoom = Math.min(8.0, root._seZoom * 1.25)
+                                zeichneCanvas.requestPaint()
+                            }
+                        }
+                    }
 
                     // Koordinaten-Anzeige
                     Rectangle {

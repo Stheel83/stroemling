@@ -119,7 +119,7 @@ Rectangle {
 
         Button {
             text: qsTr("Speichern")
-            enabled: !editor.istBuiltin
+            visible: !editor.istBuiltin
             implicitHeight: 28; implicitWidth: 90
             onClicked: editor.speichern()
             background: Rectangle {

@@ -68,6 +68,9 @@ Item {
                 ed.svAnschlusstyp = _keys[currentIndex]
                 panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
             }
+            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+            contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
 
         FeldLabel { text: qsTr("Querschnitt (mm²)") }
@@ -80,6 +83,8 @@ Item {
                 text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.svQsMin !== undefined)
                       ? String(panel.el.extraDaten.svQsMin).replace(".", ",") : ""
                 inputMethodHints: Qt.ImhFormattedNumbersOnly
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                color: root.theme.textPrimary
                 onEditingFinished: {
                     if (!panel.el) return
                     var v = parseFloat(text.replace(",", "."))
@@ -100,6 +105,8 @@ Item {
                 text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.svQsMax !== undefined)
                       ? String(panel.el.extraDaten.svQsMax).replace(".", ",") : ""
                 inputMethodHints: Qt.ImhFormattedNumbersOnly
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                color: root.theme.textPrimary
                 onEditingFinished: {
                     if (!panel.el) return
                     var v = parseFloat(text.replace(",", "."))
@@ -119,6 +126,8 @@ Item {
             text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.svKabelDmMax !== undefined)
                   ? String(panel.el.extraDaten.svKabelDmMax).replace(".", ",") : ""
             inputMethodHints: Qt.ImhFormattedNumbersOnly
+            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+            color: root.theme.textPrimary
             onEditingFinished: {
                 if (!panel.el) return
                 var v = parseFloat(text.replace(",", "."))

@@ -105,6 +105,9 @@ Item {
                                 id: betriebsartBox
                                 Layout.fillWidth: true; font.pixelSize: 12
                                 model: [qsTr("AC einphasig"), qsTr("Drehstrom"), "DC"]
+                                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                                contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
+                                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             }
                             Item { Layout.preferredWidth: 28 }
                         }
@@ -167,6 +170,9 @@ Item {
                                 Layout.fillWidth: true; font.pixelSize: 12
                                 model: ["A1", "A2", "B1", "B2", "C", "D1", "D2", "E", "F"]
                                 currentIndex: 3
+                                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                                contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
+                                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             }
                             Item { Layout.preferredWidth: 28 }
                         }
@@ -186,6 +192,9 @@ Item {
                                 id: haefungBox
                                 Layout.fillWidth: true; font.pixelSize: 12
                                 model: [qsTr("1 (keine)"), "2", "3", "4", "5", "6+"]
+                                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                                contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
+                                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             }
                             Item { Layout.preferredWidth: 28 }
                         }
@@ -199,7 +208,13 @@ Item {
                             visible: root.istGenau
                             width: parent.width; height: 32; spacing: 8
                             Text { text: qsTr("Typ / I_n"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
-                            ComboBox { id: schutzOrganTypBox; Layout.preferredWidth: 64; font.pixelSize: 12; model: ["B", "C", "D"]; currentIndex: 1 }
+                            ComboBox {
+                                id: schutzOrganTypBox; Layout.preferredWidth: 64; font.pixelSize: 12
+                                model: ["B", "C", "D"]; currentIndex: 1
+                                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                                contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
+                                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                            }
                             NavTextField { id: schutzOrganStromFeld; Layout.fillWidth: true; text: "16"; font.pixelSize: 12; horizontalAlignment: TextInput.AlignRight
                                 color: theme.textPrimary
                                 background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border } }
@@ -458,7 +473,11 @@ Item {
 
         width: parent.width; height: 32; spacing: 8
         Text { text: label; font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
-        TextField { id: eingabe; Layout.fillWidth: true; text: wert; font.pixelSize: 12; horizontalAlignment: TextInput.AlignRight }
+        TextField {
+            id: eingabe; Layout.fillWidth: true; text: wert; font.pixelSize: 12; horizontalAlignment: TextInput.AlignRight
+            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+            color: theme.textPrimary
+        }
         Text { text: einheit; font.pixelSize: 12; color: theme.textMuted; Layout.preferredWidth: 28 }
     }
 

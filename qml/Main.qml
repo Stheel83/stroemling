@@ -20,6 +20,10 @@ ApplicationWindow {
     title:      qsTr("Strömling Design")
     color:      appTheme.surface
 
+    // Globale Palette: sorgt dafür dass TextField-Hintergründe im Theme-Farbton erscheinen
+    palette.base: appTheme.inputBg
+    palette.text: appTheme.textPrimary
+
     property int    aktivProjektId:   -1
     property string aktivProjektName: ""
     property string aktiveAnsicht:    "projekte"

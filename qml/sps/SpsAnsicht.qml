@@ -154,12 +154,18 @@ Item {
                 id: rackNrSpin
                 from: 0; to: 99
                 Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
             Label { text: qsTr("System-Typ"); color: root.theme.textPrimary }
             ComboBox {
                 id: systemTypCombo
                 model: ["SPS", "PLS"]
                 Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             }
             Label { text: qsTr("Bezeichnung"); color: root.theme.textPrimary }
             TextField {
@@ -239,13 +245,21 @@ Item {
             spacing: 8
 
             Label { text: qsTr("Slot"); color: root.theme.textPrimary }
-            SpinBox { id: bgSlotSpin; from: 0; to: 31; Layout.fillWidth: true }
+            SpinBox {
+                id: bgSlotSpin; from: 0; to: 31; Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            }
 
             Label { text: qsTr("Typ"); color: root.theme.textPrimary }
             ComboBox {
                 id: bgTypCombo
                 model: ["CPU","PS","DI","DO","DIO","AI","AO","AIO","CP","FM","andere"]
                 Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             }
             Label { text: qsTr("Bezeichnung"); color: root.theme.textPrimary }
             TextField {
@@ -262,10 +276,20 @@ Item {
                 color: root.theme.textPrimary
             }
             Label { text: qsTr("Kanäle"); color: root.theme.textPrimary }
-            SpinBox { id: bgKanaeleSpin; from: 1; to: 128; value: 8; Layout.fillWidth: true }
+            SpinBox {
+                id: bgKanaeleSpin; from: 1; to: 128; value: 8; Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            }
 
             Label { text: qsTr("Startbyte (SPS)"); color: root.theme.textPrimary }
-            SpinBox { id: bgStartbyteSpin; from: 0; to: 9999; value: 0; Layout.fillWidth: true }
+            SpinBox {
+                id: bgStartbyteSpin; from: 0; to: 9999; value: 0; Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            }
         }
 
         function oeffnenNeu() {
@@ -362,22 +386,43 @@ Item {
                     visible: !kanalDialog.istPls
                     model: ["E","A","M","T","Z"]
                     Layout.fillWidth: true
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 }
                 Label { text: qsTr("Byte-Nr."); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
-                SpinBox { id: kanalByteNrSpin; visible: !kanalDialog.istPls; from: 0; to: 99999; Layout.fillWidth: true }
+                SpinBox {
+                    id: kanalByteNrSpin; visible: !kanalDialog.istPls; from: 0; to: 99999; Layout.fillWidth: true
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
                 Label { text: qsTr("Bit-Nr. (−1 für WORD/BYTE/DWORD)"); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
-                SpinBox { id: kanalBitNrSpin; visible: !kanalDialog.istPls; from: 0; to: 7; Layout.fillWidth: true }
+                SpinBox {
+                    id: kanalBitNrSpin; visible: !kanalDialog.istPls; from: 0; to: 7; Layout.fillWidth: true
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
                 Label { text: qsTr("Datentyp"); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
                 ComboBox {
                     id: kanalDatentypCombo
                     visible: !kanalDialog.istPls
                     model: ["BOOL","BYTE","WORD","DWORD","REAL","INT","DINT"]
                     Layout.fillWidth: true
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 }
 
                 // PLS-Felder
                 Label { text: qsTr("Kanal-Nr. (innerhalb Baugruppe, 0-basiert)"); visible: kanalDialog.istPls; color: root.theme.textPrimary }
-                SpinBox { id: kanalNrSpin; visible: kanalDialog.istPls; from: 0; to: 127; Layout.fillWidth: true }
+                SpinBox {
+                    id: kanalNrSpin; visible: kanalDialog.istPls; from: 0; to: 127; Layout.fillWidth: true
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
 
                 // Gemeinsam
                 Label { text: qsTr("Variable / Tag (ISA: TIC-001)"); color: root.theme.textPrimary }
@@ -403,6 +448,9 @@ Item {
                     })
                     property int ausgewaehlteId: root._baugruppen.length > 0
                                                   ? root._baugruppen[currentIndex].id : -1
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 }
 
                 // PLS-Metadaten
@@ -454,6 +502,9 @@ Item {
                     visible: kanalDialog.istPls
                     model: ["analog","HART","PROFIBUS_PA","FOUNDATION_FF"]
                     Layout.fillWidth: true
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 }
             }
         }
@@ -915,6 +966,9 @@ Item {
                                 model: ["alle","E (Eingang)","A (Ausgang)","M (Merker)","PLS-AI","PLS-AO"]
                                 Layout.preferredWidth: 140
                                 onActivated: root._kanalFilter = model[currentIndex]
+                                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
+                                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             }
                             Item { Layout.fillWidth: true }
                             Label {

@@ -1737,6 +1737,9 @@ Item {
                     from: 1; to: 9999; value: root._bundleVersion
                     onValueChanged: root._bundleVersion = value
                     font.pixelSize: 11
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 11;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
             }
 

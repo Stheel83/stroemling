@@ -231,6 +231,9 @@ Item {
                             return 0
                         }
                         property string selectedTypValue: model.get(currentIndex) ? model.get(currentIndex).value : "schraube"
+                        background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
+                                            leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     }
 
                     // Ebenen / Punkte
@@ -245,6 +248,9 @@ Item {
                             id: sbEbenen
                             from: 1; to: 4; value: 1
                             Layout.fillWidth: true
+                            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                            contentItem: Text { text: parent.value; color: theme.textPrimary; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
 
                         Text { text: qsTr("Punkte Seite A"); color: theme.textMuted; font.pixelSize: 11 }
@@ -252,6 +258,9 @@ Item {
                             id: sbPktA
                             from: 1; to: 4; value: 1
                             Layout.fillWidth: true
+                            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                            contentItem: Text { text: parent.value; color: theme.textPrimary; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
 
                         Text { text: qsTr("Punkte Seite B"); color: theme.textMuted; font.pixelSize: 11 }
@@ -259,6 +268,9 @@ Item {
                             id: sbPktB
                             from: 1; to: 4; value: 1
                             Layout.fillWidth: true
+                            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                            contentItem: Text { text: parent.value; color: theme.textPrimary; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                     }
 
@@ -294,6 +306,7 @@ Item {
                         Layout.fillWidth: true
                         model: farbModel
                         textRole: "bezeichnung"
+                        background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
 
                         property int currentFarbId: -1
 
@@ -467,9 +480,19 @@ Item {
                         visible: (klemmeModel.klemme.ebenenAnzahl || 1) > 1
                         spacing: 6
 
-                        SpinBox { id: sbVon;  from: 1; to: klemmeModel.klemme.ebenenAnzahl || 1; value: 1; implicitWidth: 96; implicitHeight: 32 }
+                        SpinBox {
+                            id: sbVon; from: 1; to: klemmeModel.klemme.ebenenAnzahl || 1; value: 1; implicitWidth: 96; implicitHeight: 32
+                            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                            contentItem: Text { text: parent.value; color: theme.textPrimary; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        }
                         Text { text: "→"; color: theme.textMuted }
-                        SpinBox { id: sbNach; from: 1; to: klemmeModel.klemme.ebenenAnzahl || 1; value: 2; implicitWidth: 96; implicitHeight: 32 }
+                        SpinBox {
+                            id: sbNach; from: 1; to: klemmeModel.klemme.ebenenAnzahl || 1; value: 2; implicitWidth: 96; implicitHeight: 32
+                            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                            contentItem: Text { text: parent.value; color: theme.textPrimary; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        }
                         Button {
                             text: qsTr("Brücke")
                             font.pixelSize: 11

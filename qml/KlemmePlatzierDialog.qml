@@ -41,11 +41,6 @@ Dialog {
     contentItem: ColumnLayout {
         spacing: 12
 
-        Text {
-            text: root.title
-            color: theme.textPrimary; font.pixelSize: 14; font.weight: Font.Medium
-        }
-
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // Bauteil-Info
@@ -143,7 +138,10 @@ Dialog {
                 enabled: anschlussCombo.currentIndex >= 0 && klemmeModel.anschluesse.length > 0
                 contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.enabled ? theme.activeItem : theme.btnDisabled; radius: 4 }
+                background: Rectangle {
+                    color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                    radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                }
                 onClicked: {
                     var list = klemmeModel.anschluesse
                     if (anschlussCombo.currentIndex >= 0 && anschlussCombo.currentIndex < list.length)

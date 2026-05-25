@@ -461,11 +461,11 @@ Dialog {
             Button {
                 text: qsTr("Abbrechen"); flat: true; implicitHeight: 32
                 contentItem: Text {
-                    text: parent.text; color: theme.textMuted; font.pixelSize: 13
+                    text: parent.text; color: theme.textSecondary; font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: parent.hovered ? theme.hover : "transparent"; radius: 4
+                    color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border
                 }
                 onClicked: root.reject()
             }
@@ -475,7 +475,10 @@ Dialog {
                     text: parent.text; color: theme.textPrimary; font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
-                background: Rectangle { color: theme.activeItem; radius: 4 }
+                background: Rectangle {
+                    color: parent.hovered ? theme.accent : theme.inputBg
+                    radius: 4; border.color: theme.accent
+                }
                 onClicked: {
                     var ef          = root._effektiveAdern()
                     var aderVerbMap = {}

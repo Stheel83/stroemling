@@ -53,12 +53,6 @@ Dialog {
     contentItem: ColumnLayout {
         spacing: 12
 
-        Text {
-            text: root.title
-            color: theme.textPrimary
-            font.pixelSize: 14; font.weight: Font.Medium
-        }
-
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // Bestehende Kabel – nur anzeigen wenn mindestens ein Kabel existiert
@@ -257,8 +251,9 @@ Dialog {
                 contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 background: Rectangle {
-                    color: parent.enabled ? theme.activeItem : theme.btnDisabled
+                    color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
                     radius: 4
+                    border.color: parent.enabled ? theme.accent : theme.border
                 }
                 onClicked: {
                     root.bezeichnung        = tfBezeichnung.text.trim()

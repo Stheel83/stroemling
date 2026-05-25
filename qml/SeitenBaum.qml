@@ -81,9 +81,10 @@ Item {
         Button {
             text: qsTr("Abbrechen")
             flat: true
-            contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+            implicitHeight: 32
+            contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                  horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+            background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
             onClicked: if (onCancel) onCancel()
         }
         // Bestätigen
@@ -91,10 +92,14 @@ Item {
             text: confirmText
             enabled: confirmEnabled
             implicitWidth: 90
-            implicitHeight: 34
-            contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
+            implicitHeight: 32
+            contentItem: Text { text: parent.text; color: parent.enabled ? theme.textPrimary : theme.textMuted; font.pixelSize: 13;
                                  horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+            background: Rectangle {
+                color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                radius: 4
+                border.color: parent.enabled ? theme.accent : theme.border
+            }
             onClicked: if (onConfirm) onConfirm()
         }
     }
@@ -142,9 +147,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                          horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgSeiteLoeschen.close()
                 }
                 Button {
@@ -182,8 +187,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgAnlage.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Kürzel (z.B. EG, OG, KG)"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: inpAnlageKuerzel; Layout.fillWidth: true; placeholderText: "EG"
@@ -202,9 +205,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgAnlage.close()
                 }
                 Button {
@@ -212,7 +215,10 @@ Item {
                     enabled: inpAnlageKuerzel.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         seitenModel.anlageAnlegen(dlgAnlage.fuerProjektId,
                             inpAnlageKuerzel.text.trim(), inpAnlageBez.text.trim())
@@ -239,8 +245,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgOrt.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Kürzel (z.B. A1, B2)"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: inpOrtKuerzel; Layout.fillWidth: true; placeholderText: "A1"
@@ -259,9 +263,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgOrt.close()
                 }
                 Button {
@@ -269,7 +273,10 @@ Item {
                     enabled: inpOrtKuerzel.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         seitenModel.ortAnlegen(dlgOrt.fuerAnlageId,
                             inpOrtKuerzel.text.trim(), inpOrtBez.text.trim())
@@ -296,8 +303,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgSeite.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Blattnummer (z.B. 001)"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: inpBlatt; Layout.fillWidth: true; placeholderText: "001"
@@ -340,9 +345,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgSeite.close()
                 }
                 Button {
@@ -350,7 +355,10 @@ Item {
                     enabled: inpBlatt.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         var fmt = cmbFormat.model.get(cmbFormat.currentIndex)
                         seitenModel.seiteAnlegen(dlgSeite.fuerOrtId,
@@ -390,8 +398,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgAnlageBearbeiten.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Kürzel"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: editAnlageKuerzel; Layout.fillWidth: true
@@ -410,9 +416,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgAnlageBearbeiten.close()
                 }
                 Button {
@@ -420,7 +426,10 @@ Item {
                     enabled: editAnlageKuerzel.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         seitenModel.anlageBearbeiten(dlgAnlageBearbeiten.itemId,
                             editAnlageKuerzel.text.trim(), editAnlageBez.text.trim())
@@ -453,8 +462,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgOrtBearbeiten.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Kürzel"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: editOrtKuerzel; Layout.fillWidth: true
@@ -473,9 +480,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgOrtBearbeiten.close()
                 }
                 Button {
@@ -483,7 +490,10 @@ Item {
                     enabled: editOrtKuerzel.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         seitenModel.ortBearbeiten(dlgOrtBearbeiten.itemId,
                             editOrtKuerzel.text.trim(), editOrtBez.text.trim())
@@ -500,7 +510,7 @@ Item {
         modal: true
         parent: Overlay.overlay
         anchors.centerIn: parent
-        width: 360
+        width: 460
         padding: 20
 
         property int    itemId:               -1
@@ -520,7 +530,9 @@ Item {
         property string altRevisionStatus:   ""
         property string altRevisionKennung:  ""
 
+        height: Math.min(implicitHeight, 680)
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
+        DebugLabel { panelName: "Seite-ID: " + dlgSeiteBearbeiten.itemId; visible: root.debug && dlgSeiteBearbeiten.visible; parent: dlgSeiteBearbeiten.background }
 
         onOpened: {
             editBlatt.text      = dlgSeiteBearbeiten.altBlattnummer
@@ -556,9 +568,18 @@ Item {
         }
 
         contentItem: ColumnLayout {
-            spacing: 10
-            Text { text: dlgSeiteBearbeiten.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+            spacing: 0
+
+            ScrollView {
+                id: dlgSeiteBearbeitenScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+            ColumnLayout {
+                width: dlgSeiteBearbeitenScroll.width
+                spacing: 10
             Text { text: qsTr("Blattnummer"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: editBlatt; Layout.fillWidth: true
@@ -603,19 +624,19 @@ Item {
                 Text { text: qsTr("Rechts"); color: theme.textMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
                 Text { text: qsTr("Oben");   color: theme.textMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
                 Text { text: qsTr("Unten");  color: theme.textMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
-                SpinBox { id: editRandLinks;  from: 5; to: 50; value: 20; implicitWidth: 72
+                SpinBox { id: editRandLinks;  from: 5; to: 50; value: 20; implicitWidth: 88
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                     contentItem: Text { text: editRandLinks.value; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter } }
-                SpinBox { id: editRandRechts; from: 5; to: 30; value: 10; implicitWidth: 72
+                SpinBox { id: editRandRechts; from: 5; to: 30; value: 10; implicitWidth: 88
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                     contentItem: Text { text: editRandRechts.value; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter } }
-                SpinBox { id: editRandOben;   from: 5; to: 30; value: 10; implicitWidth: 72
+                SpinBox { id: editRandOben;   from: 5; to: 30; value: 10; implicitWidth: 88
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                     contentItem: Text { text: editRandOben.value; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter } }
-                SpinBox { id: editRandUnten;  from: 5; to: 30; value: 10; implicitWidth: 72
+                SpinBox { id: editRandUnten;  from: 5; to: 30; value: 10; implicitWidth: 88
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                     contentItem: Text { text: editRandUnten.value; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter } }
@@ -843,6 +864,9 @@ Item {
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 13
             }
+            Item { height: 4 }
+            } // ColumnLayout (ScrollView content)
+            } // ScrollView
 
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
             RowLayout {
@@ -850,9 +874,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgSeiteBearbeiten.close()
                 }
                 Button {
@@ -860,7 +884,10 @@ Item {
                     enabled: editBlatt.text.trim().length > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         var fmt = editCmbFormat.model.get(editCmbFormat.currentIndex)
                         seitenModel.seiteBearbeiten(dlgSeiteBearbeiten.itemId,
@@ -920,8 +947,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgSeiteVerschieben.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Anlage"); color: theme.textMuted; font.pixelSize: 12 }
             ComboBox {
                 id: cmbVersAnlage
@@ -958,9 +983,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgSeiteVerschieben.close()
                 }
                 Button {
@@ -968,7 +993,10 @@ Item {
                     enabled: cmbVersOrt.currentIndex >= 0 && ortModelVers.count > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         var ortId = ortModelVers.get(cmbVersOrt.currentIndex).itemId
                         seitenModel.seiteVerschieben(dlgSeiteVerschieben.seiteId, ortId)
@@ -1004,8 +1032,6 @@ Item {
 
         contentItem: ColumnLayout {
             spacing: 10
-            Text { text: dlgOrtVerschieben.title; font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary }
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
             Text { text: qsTr("Anlage"); color: theme.textMuted; font.pixelSize: 12 }
             ComboBox {
                 id: cmbVersOrtAnlage
@@ -1022,9 +1048,9 @@ Item {
                 Item { Layout.fillWidth: true }
                 Button {
                     text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
-                    contentItem: Text { text: parent.text; color: theme.panelMid; font.pixelSize: 13;
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hoverBtn : "transparent"; radius: 4 }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
                     onClicked: dlgOrtVerschieben.close()
                 }
                 Button {
@@ -1032,7 +1058,10 @@ Item {
                     enabled: cmbVersOrtAnlage.currentIndex >= 0 && anlageModelOrtVers.count > 0
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.enabled ? theme.btnPrimary : theme.btnDisabled; radius: 4 }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
                     onClicked: {
                         var anlId = anlageModelOrtVers.get(cmbVersOrtAnlage.currentIndex).itemId
                         seitenModel.ortVerschieben(dlgOrtVerschieben.ortId, anlId)

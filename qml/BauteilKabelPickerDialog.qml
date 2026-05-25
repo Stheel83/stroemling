@@ -56,12 +56,6 @@ Dialog {
     contentItem: ColumnLayout {
         spacing: 10
 
-        Text {
-            text: root.title
-            color: theme.textPrimary
-            font.pixelSize: 14; font.weight: Font.Medium
-        }
-
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
         // ── Liste ──────────────────────────────────────────────
@@ -198,7 +192,8 @@ Dialog {
                     verticalAlignment: Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color: theme.activeItem; radius: 4
+                    color: parent.hovered ? theme.accent : theme.inputBg
+                    radius: 4; border.color: theme.accent
                 }
                 onClicked: {
                     if (root.selIdx === -1) {

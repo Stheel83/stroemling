@@ -193,6 +193,17 @@ Item {
                 }
 
                 Button {
+                    flat: true; implicitWidth: 86; implicitHeight: 26
+                    contentItem: Text { text: qsTr("⬇ PDF"); color: theme.textPrimary; font.pixelSize: 11;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4;
+                        border.color: theme.accent }
+                    onClicked: pdfSaveDialog.open()
+                    ToolTip.visible: hovered; ToolTip.text: qsTr("Prüfprotokoll als PDF exportieren")
+                    ToolTip.delay: 600
+                }
+
+                Button {
                     flat: true; implicitWidth: 70; implicitHeight: 26
                     contentItem: Text { text: qsTr("⚙ Felder"); color: theme.textSecondary; font.pixelSize: 11;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -298,17 +309,6 @@ Item {
                     font.pixelSize: 10; color: theme.textMuted
                 }
                 Item { Layout.fillWidth: true }
-
-                Button {
-                    text: qsTr("PDF"); flat: true; implicitHeight: 24; implicitWidth: 44
-                    contentItem: Text { text: parent.text; color: theme.accent; font.pixelSize: 11;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 3;
-                        border.color: parent.hovered ? theme.border : "transparent" }
-                    onClicked: pdfSaveDialog.open()
-                    ToolTip.visible: hovered; ToolTip.text: qsTr("Prüfprotokoll als PDF exportieren")
-                    ToolTip.delay: 600
-                }
 
                 Button {
                     text: qsTr("⟳"); flat: true; implicitHeight: 24; implicitWidth: 28

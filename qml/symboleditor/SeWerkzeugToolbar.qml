@@ -27,8 +27,8 @@ Rectangle {
                 width: 38; height: 38; radius: 6
                 color: editor.aktivesWerkzeug === modelData.id
                        ? editor.theme.accent
-                       : (btnHover.containsMouse ? editor.theme.badge : "transparent")
-                ToolTip.visible: btnHover.containsMouse
+                       : (btnArea.containsMouse ? editor.theme.badge : "transparent")
+                ToolTip.visible: btnArea.containsMouse
                 ToolTip.delay: 600
                 ToolTip.text: modelData.tooltip
                 Text {
@@ -37,9 +37,12 @@ Rectangle {
                     font.pixelSize: 18
                     color: editor.aktivesWerkzeug === modelData.id ? "white" : editor.theme.textPrimary
                 }
-                HoverHandler { id: btnHover }
-                TapHandler {
-                    onTapped: {
+                MouseArea {
+                    id: btnArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
                         editor.aktivesWerkzeug = modelData.id
                         editor.werkzeugPunkte  = []
                         editor.forceActiveFocus()
@@ -71,10 +74,10 @@ Rectangle {
             text: "⌘Z"
             font.pixelSize: 9; color: editor.theme.textMuted
             topPadding: 4
-            ToolTip.visible: undoHover.containsMouse
+            ToolTip.visible: undoArea.containsMouse
             ToolTip.delay: 600
             ToolTip.text: qsTr("Strg+Z: Letztes rückgängig")
-            HoverHandler { id: undoHover }
+            MouseArea { id: undoArea; anchors.fill: parent; hoverEnabled: true }
         }
     }
 }

@@ -9,6 +9,9 @@ Item {
     required property var theme
     property bool debug: false
 
+    property var projektZumLoeschen: null
+    property var recentModel: db.zuletzGeoeffnete()
+
     // ── Datei-Dialoge ────────────────────────────────────────────
     FileDialog {
         id: neuesProjektDialog
@@ -48,6 +51,91 @@ Item {
                 text: qsTr("OK"); onClicked: fehlerPopup.close()
                 background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
                 contentItem: Text { text: parent.text; color: root.theme.textPrimary; horizontalAlignment: Text.AlignHCenter }
+            }
+        }
+    }
+
+    // ── Bestätigungs-Dialog Löschen ──────────────────────────────
+    Popup {
+        id:               loeschenDialog
+        modal:            true
+        anchors.centerIn: parent
+        padding:          24
+        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 8 }
+
+        contentItem: Column {
+            spacing: 14
+            width: 340
+
+            Text {
+                text: qsTr("Projekt löschen?")
+                font.pixelSize: 14; font.weight: Font.Medium
+                color: root.theme.textPrimary
+            }
+
+            Text {
+                width: parent.width
+                text: root.projektZumLoeschen ? (root.projektZumLoeschen.name || qsTr("(Unbenannt)")) : ""
+                font.pixelSize: 13; color: root.theme.accent
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                text: root.projektZumLoeschen ? root.projektZumLoeschen.pfad : ""
+                font.pixelSize: 10; font.family: "monospace"; color: root.theme.textMuted
+                elide: Text.ElideMiddle
+            }
+
+            Rectangle { width: parent.width; height: 1; color: root.theme.border }
+
+            Text {
+                width: parent.width
+                text: qsTr("Die Projektdatei wird unwiederbringlich vom Dateisystem gelöscht.")
+                font.pixelSize: 11; color: "#ff8888"
+                wrapMode: Text.WordWrap
+            }
+
+            Row {
+                anchors.right: parent.right
+                spacing: 8
+
+                Button {
+                    text: qsTr("Abbrechen")
+                    implicitHeight: 30; implicitWidth: 100
+                    onClicked: loeschenDialog.close()
+                    background: Rectangle {
+                        color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                        radius: 4; border.color: root.theme.border
+                    }
+                    contentItem: Text {
+                        text: parent.text; color: root.theme.textSecondary; font.pixelSize: 11
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                Button {
+                    text: qsTr("Löschen")
+                    implicitHeight: 30; implicitWidth: 100
+                    onClicked: {
+                        if (root.projektZumLoeschen) {
+                            db.projektLoeschen(root.projektZumLoeschen.pfad)
+                            root.recentModel = db.zuletzGeoeffnete()
+                            root.projektZumLoeschen = null
+                        }
+                        loeschenDialog.close()
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? "#cc2222" : root.theme.inputBg
+                        radius: 4; border.color: "#ff4444"
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: parent.hovered ? "white" : "#ff4444"
+                        font.pixelSize: 11
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                }
             }
         }
     }
@@ -227,26 +315,26 @@ Item {
                 visible:      recentList.count > 0
 
                 Repeater {
-                    id: recentList
-                    model: db.zuletzGeoeffnete()
+                    id:    recentList
+                    model: root.recentModel
 
                     delegate: Item {
                         width:  parent.width
                         height: 52
 
                         Rectangle {
-                            visible:        index > 0
-                            anchors.top:    parent.top
-                            width:          parent.width; height: 1
-                            color:          root.theme.divider
+                            visible:     index > 0
+                            anchors.top: parent.top
+                            width:       parent.width; height: 1
+                            color:       root.theme.divider
                         }
 
                         Rectangle {
                             anchors.fill: parent
-                            color:        itemHover.containsMouse ? root.theme.hover : "transparent"
+                            color: itemHover.containsMouse ? root.theme.hover : "transparent"
 
                             RowLayout {
-                                anchors { fill: parent; leftMargin: 16; rightMargin: 16 }
+                                anchors { fill: parent; leftMargin: 16; rightMargin: 48 }
                                 spacing: 12
 
                                 Text { text: "📄"; font.pixelSize: 14 }
@@ -272,8 +360,37 @@ Item {
                                 }
                             }
 
+                            // Lösch-Button (erscheint beim Hover)
+                            Rectangle {
+                                anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                                width: 28; height: 28; radius: 4
+                                z: 1
+                                visible: itemHover.containsMouse || delArea.containsMouse
+                                color:   delArea.containsMouse ? "#3a1a1a" : "transparent"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✕"; font.pixelSize: 13; color: "#ff4444"
+                                }
+
+                                ToolTip.visible: delArea.containsMouse
+                                ToolTip.delay:   600
+                                ToolTip.text:    qsTr("Projekt löschen")
+
+                                MouseArea {
+                                    id:          delArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape:  Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.projektZumLoeschen = modelData
+                                        loeschenDialog.open()
+                                    }
+                                }
+                            }
+
                             MouseArea {
-                                id:          itemHover
+                                id:           itemHover
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape:  Qt.PointingHandCursor

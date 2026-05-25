@@ -1058,6 +1058,28 @@ QVariantList Database::zuletzGeoeffnete() const
 }
 
 // ============================================================
+// projektLoeschen
+// Löscht die .stroemling-Datei vom Dateisystem und entfernt
+// den Launcher-Eintrag aus zuletzt_geoeffnet.
+// ============================================================
+bool Database::projektLoeschen(const QString &pfad)
+{
+    if (QFile::exists(pfad)) {
+        if (!QFile::remove(pfad)) {
+            qWarning() << "projektLoeschen: Datei konnte nicht gelöscht werden:" << pfad;
+            return false;
+        }
+    }
+    if (m_launcherDb.isOpen()) {
+        QSqlQuery q(m_launcherDb);
+        q.prepare("DELETE FROM zuletzt_geoeffnet WHERE pfad = :p");
+        q.bindValue(":p", pfad);
+        q.exec();
+    }
+    return true;
+}
+
+// ============================================================
 // ersteProjektInfo
 // Gibt id + name des ersten Projekts der geöffneten DB zurück.
 // ============================================================

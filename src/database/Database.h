@@ -48,6 +48,9 @@ public:
     // Zuletzt geöffnete Projekte (max. 10, nur existierende Dateien)
     Q_INVOKABLE QVariantList zuletzGeoeffnete() const;
 
+    // Projektdatei löschen + Launcher-Eintrag entfernen
+    Q_INVOKABLE bool projektLoeschen(const QString &pfad);
+
     // Metadaten des ersten (einzigen) Projekts in der aktuellen DB
     Q_INVOKABLE QVariantMap ersteProjektInfo() const;
 

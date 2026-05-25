@@ -94,6 +94,7 @@ Manuell kopieren und an den von `qt.conf` erwarteten Ort verschieben:
 
 ```bash
 QT_QML=$(qmake6 -query QT_INSTALL_QML 2>/dev/null || qmake -query QT_INSTALL_QML)
+mkdir -p appimage/AppDir/usr/lib/qt6/qml
 cp -r "$QT_QML"/. appimage/AppDir/usr/lib/qt6/qml/
 mv appimage/AppDir/usr/lib/qt6/qml appimage/AppDir/usr/qml
 ```

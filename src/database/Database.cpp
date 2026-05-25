@@ -717,6 +717,54 @@ static QList<SchemaMigration> alleMigrationen()
             "ALTER TABLE seite ADD COLUMN revision_status  TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE seite ADD COLUMN revision_kennung TEXT NOT NULL DEFAULT ''",
         }},
+        { 49, "PIN-GRID-01: Pin-Koordinaten auf exaktes 4mm-Raster korrigiert", {
+            // lampe (32mm breit): x=0.2→0.25 (8mm), x=0.8→0.75 (24mm)
+            "UPDATE symbol_pin       SET x=0.25 WHERE symbol_id='lampe'   AND name='1'",
+            "UPDATE symbol_pin       SET x=0.75 WHERE symbol_id='lampe'   AND name='2'",
+            "UPDATE symbol_primitiv  SET x1=0.25 WHERE symbol_id='lampe'  AND reihenfolge=0",
+            "UPDATE symbol_primitiv  SET x2=0.75 WHERE symbol_id='lampe'  AND reihenfolge=1",
+            // klemme (16mm breit): x=0.3→0.25 (4mm), x=0.7→0.75 (12mm)
+            "UPDATE symbol_pin       SET x=0.25 WHERE symbol_id='klemme'  AND name='1'",
+            "UPDATE symbol_pin       SET x=0.75 WHERE symbol_id='klemme'  AND name='2'",
+            "UPDATE symbol_primitiv  SET x1=0.25 WHERE symbol_id='klemme' AND reihenfolge=0",
+            "UPDATE symbol_primitiv  SET x2=0.75 WHERE symbol_id='klemme' AND reihenfolge=1",
+            // stecker (16mm breit): x=0.3→0.25 (4mm), x=0.6→0.75 (12mm); Box bis 0.75 erweitert
+            "UPDATE symbol_pin       SET x=0.25 WHERE symbol_id='stecker' AND name='1'",
+            "UPDATE symbol_pin       SET x=0.75 WHERE symbol_id='stecker' AND name='2'",
+            "UPDATE symbol_primitiv  SET x1=0.25 WHERE symbol_id='stecker' AND reihenfolge=0",
+            "UPDATE symbol_primitiv  SET x2=0.75 WHERE symbol_id='stecker' AND reihenfolge=1",
+            // buchse (16mm breit): x=0.3→0.25 (4mm); Pin 2 bei x=0.5 schon korrekt
+            "UPDATE symbol_pin       SET x=0.25 WHERE symbol_id='buchse'  AND name='1'",
+            "UPDATE symbol_primitiv  SET x1=0.25 WHERE symbol_id='buchse' AND reihenfolge=0",
+            // sps_di_8 / sps_do_8 / sps_ai_8 / pls_ai_8 (72mm hoch, Divisor=9)
+            "UPDATE symbol_pin SET y=0.111111 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K1'",
+            "UPDATE symbol_pin SET y=0.222222 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K2'",
+            "UPDATE symbol_pin SET y=0.333333 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K3'",
+            "UPDATE symbol_pin SET y=0.444444 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K4'",
+            "UPDATE symbol_pin SET y=0.555556 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K5'",
+            "UPDATE symbol_pin SET y=0.666667 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K6'",
+            "UPDATE symbol_pin SET y=0.777778 WHERE symbol_id IN ('sps_di_8','sps_do_8','sps_ai_8','pls_ai_8') AND name='K7'",
+            // sps_cpu (48mm hoch): 1/3 und 2/3
+            "UPDATE symbol_pin SET y=0.333333 WHERE symbol_id='sps_cpu' AND name='DP'",
+            "UPDATE symbol_pin SET y=0.666667 WHERE symbol_id='sps_cpu' AND name='PN'",
+            // sps_di_16 / sps_do_16 (136mm hoch, Divisor=17)
+            "UPDATE symbol_pin SET y=0.058824 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K0'",
+            "UPDATE symbol_pin SET y=0.117647 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K1'",
+            "UPDATE symbol_pin SET y=0.176471 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K2'",
+            "UPDATE symbol_pin SET y=0.235294 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K3'",
+            "UPDATE symbol_pin SET y=0.294118 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K4'",
+            "UPDATE symbol_pin SET y=0.352941 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K5'",
+            "UPDATE symbol_pin SET y=0.411765 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K6'",
+            "UPDATE symbol_pin SET y=0.470588 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K7'",
+            "UPDATE symbol_pin SET y=0.529412 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K8'",
+            "UPDATE symbol_pin SET y=0.588235 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K9'",
+            "UPDATE symbol_pin SET y=0.647059 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K10'",
+            "UPDATE symbol_pin SET y=0.705882 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K11'",
+            "UPDATE symbol_pin SET y=0.764706 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K12'",
+            "UPDATE symbol_pin SET y=0.823529 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K13'",
+            "UPDATE symbol_pin SET y=0.882353 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K14'",
+            "UPDATE symbol_pin SET y=0.941176 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K15'",
+        }},
     };
 }
 

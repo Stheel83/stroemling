@@ -174,12 +174,16 @@ QVariantList Database::ibnKabelListeLaden(int projektId)
                COALESCE(k.von_ort, '')          AS von_ort,
                COALESCE(k.nach_ort, '')         AS nach_ort,
                COALESCE(k.grafik_element_id, 0) AS grafik_element_id,
+               COALESCE(ge.seite_id, -1)        AS seite_id,
+               COALESCE(ge.x1, 0)               AS x1,
+               COALESCE(ge.y1, 0)               AS y1,
                COALESCE(ib.status, 'offen')     AS status,
                COALESCE(ib.notiz, '')           AS notiz,
                COALESCE(ib.geprueft_von, '')    AS geprueft_von,
                COALESCE(ib.geprueft_am, '')     AS geprueft_am
         FROM kabel k
         LEFT JOIN ibn_kabel ib ON ib.kabel_id = k.id
+        LEFT JOIN grafik_element ge ON ge.id = k.grafik_element_id
         WHERE k.projekt_id = :pid
         ORDER BY k.bezeichnung
     )");
@@ -201,6 +205,9 @@ QVariantList Database::ibnKabelListeLaden(int projektId)
             { "vonOrt",         q.value("von_ort")         },
             { "nachOrt",        q.value("nach_ort")        },
             { "grafikElementId",q.value("grafik_element_id")},
+            { "seiteId",        q.value("seite_id")        },
+            { "x1",             q.value("x1")              },
+            { "y1",             q.value("y1")              },
             { "status",         q.value("status")          },
             { "notiz",          q.value("notiz")           },
             { "geprueftVon",    q.value("geprueft_von")    },

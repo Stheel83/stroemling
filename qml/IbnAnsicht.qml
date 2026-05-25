@@ -126,100 +126,115 @@ Item {
 
         // ── Kopfzeile ─────────────────────────────────────────
         Rectangle {
-            Layout.fillWidth: true; height: 44; color: theme.surfaceDeep
+            Layout.fillWidth: true
+            height: titelZeile.height + steuerZeile.height
+            color: theme.surfaceDeep
 
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
-                spacing: 6
+            Column {
+                anchors.fill: parent
 
-                Text {
-                    text: qsTr("⚡ Inbetriebnahme")
-                    font.pixelSize: 13; font.weight: Font.Medium
-                    color: theme.textPrimary
+                // Zeile 1: Titel + Schließen
+                RowLayout {
+                    id: titelZeile
+                    width: parent.width
+                    height: 36
+                    spacing: 6
+
+                    Item { width: 12 }
+
+                    Text {
+                        text: qsTr("⚡ Inbetriebnahme")
+                        font.pixelSize: 13; font.weight: Font.Medium
+                        color: theme.textPrimary
+                        Layout.fillWidth: true
+                    }
+
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 28
+                        contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                        onClicked: root.geschlossen()
+                    }
+
+                    Item { width: 4 }
                 }
 
-                Item { Layout.fillWidth: true }
-
-                // BM / Kabel Toggle
+                // Zeile 2: Toggles + PDF
                 RowLayout {
-                    spacing: 2
-                    Repeater {
-                        model: [
-                            { key: "bm",    label: qsTr("BM")    },
-                            { key: "kabel", label: qsTr("Kabel") }
-                        ]
-                        delegate: Rectangle {
-                            implicitWidth: 48; implicitHeight: 26; radius: 4
-                            color: root._kategorie === modelData.key
-                                   ? theme.accent : theme.activeItem
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.label; font.pixelSize: 11
+                    id: steuerZeile
+                    width: parent.width
+                    height: 32
+                    spacing: 6
+
+                    Item { width: 6 }
+
+                    // BM / Kabel Toggle
+                    RowLayout {
+                        spacing: 2
+                        Repeater {
+                            model: [
+                                { key: "bm",    label: qsTr("BM")    },
+                                { key: "kabel", label: qsTr("Kabel") }
+                            ]
+                            delegate: Rectangle {
+                                implicitWidth: 46; implicitHeight: 24; radius: 4
                                 color: root._kategorie === modelData.key
-                                       ? "white" : theme.textSecondary
-                            }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: root._kategorie = modelData.key
+                                       ? theme.accent : theme.activeItem
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label; font.pixelSize: 11
+                                    color: root._kategorie === modelData.key
+                                           ? "white" : theme.textSecondary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: root._kategorie = modelData.key
+                                }
                             }
                         }
                     }
-                }
 
-                // Projekt / Seite Toggle
-                RowLayout {
-                    spacing: 2
-                    Repeater {
-                        model: [
-                            { key: "projekt", label: qsTr("Projekt") },
-                            { key: "seite",   label: qsTr("Seite")   }
-                        ]
-                        delegate: Rectangle {
-                            implicitWidth: 52; implicitHeight: 26; radius: 4
-                            color: root.ansichtModus === modelData.key
-                                   ? theme.accent : theme.activeItem
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.label; font.pixelSize: 11
+                    // Projekt / Seite Toggle
+                    RowLayout {
+                        spacing: 2
+                        Repeater {
+                            model: [
+                                { key: "projekt", label: qsTr("Projekt") },
+                                { key: "seite",   label: qsTr("Seite")   }
+                            ]
+                            delegate: Rectangle {
+                                implicitWidth: 50; implicitHeight: 24; radius: 4
                                 color: root.ansichtModus === modelData.key
-                                       ? "white" : theme.textSecondary
-                            }
-                            MouseArea {
-                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: root.ansichtModus = modelData.key
+                                       ? theme.accent : theme.activeItem
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.label; font.pixelSize: 11
+                                    color: root.ansichtModus === modelData.key
+                                           ? "white" : theme.textSecondary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.ansichtModus = modelData.key
+                                }
                             }
                         }
                     }
-                }
 
-                Button {
-                    flat: true; implicitWidth: 86; implicitHeight: 26
-                    contentItem: Text { text: qsTr("⬇ PDF"); color: theme.textPrimary; font.pixelSize: 11;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4;
-                        border.color: theme.accent }
-                    onClicked: pdfSaveDialog.open()
-                    ToolTip.visible: hovered; ToolTip.text: qsTr("Prüfprotokoll als PDF exportieren")
-                    ToolTip.delay: 600
-                }
+                    Item { Layout.fillWidth: true }
 
-                Button {
-                    flat: true; implicitWidth: 70; implicitHeight: 26
-                    contentItem: Text { text: qsTr("⚙ Felder"); color: theme.textSecondary; font.pixelSize: 11;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4;
-                        border.color: theme.border }
-                    onClicked: bmSplit.openFeldEditor()
-                    ToolTip.visible: hovered; ToolTip.text: qsTr("Benutzerdefinierte IBN-Felder bearbeiten")
-                    ToolTip.delay: 600
-                }
+                    Button {
+                        flat: true; implicitWidth: 86; implicitHeight: 24
+                        contentItem: Text { text: qsTr("⬇ PDF"); color: theme.textPrimary; font.pixelSize: 11;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4;
+                            border.color: theme.accent }
+                        onClicked: pdfSaveDialog.open()
+                        ToolTip.visible: hovered; ToolTip.text: qsTr("Prüfprotokoll als PDF exportieren")
+                        ToolTip.delay: 600
+                    }
 
-                Button {
-                    flat: true; implicitWidth: 28; implicitHeight: 28
-                    contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
-                    onClicked: root.geschlossen()
+                    Item { width: 4 }
                 }
             }
         }
@@ -289,6 +304,7 @@ Item {
             visible:           root._kategorie === "kabel"
             Layout.fillWidth:  true
             Layout.fillHeight: root._kategorie === "kabel"
+            onKabelGewaehlt: function(sId, eId, x, y) { root.bmkGewaehlt(sId, eId, x, y) }
         }
 
         // ── Statusleiste ──────────────────────────────────────
@@ -309,6 +325,18 @@ Item {
                     font.pixelSize: 10; color: theme.textMuted
                 }
                 Item { Layout.fillWidth: true }
+
+                Button {
+                    flat: true; implicitWidth: 70; implicitHeight: 22
+                    visible: root._kategorie === "bm"
+                    contentItem: Text { text: qsTr("⚙ Felder"); color: theme.textSecondary; font.pixelSize: 10;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 3;
+                        border.color: theme.border }
+                    onClicked: bmSplit.openFeldEditor()
+                    ToolTip.visible: hovered; ToolTip.text: qsTr("Benutzerdefinierte IBN-Felder bearbeiten")
+                    ToolTip.delay: 600
+                }
 
                 Button {
                     text: qsTr("⟳"); flat: true; implicitHeight: 24; implicitWidth: 28

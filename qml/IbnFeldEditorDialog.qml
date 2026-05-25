@@ -118,7 +118,7 @@ Dialog {
             Rectangle {
                 Layout.preferredWidth: 300
                 Layout.fillHeight: true
-                color: "transparent"
+                color: root.theme.sidebar
                 Rectangle { anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
                             width: 1; color: root.theme.border }
 
@@ -145,7 +145,7 @@ Dialog {
 
                     delegate: Rectangle {
                         width: listeView.width; height: 36
-                        color: listeHover.containsMouse ? root.theme.hover : "transparent"
+                        color: listeHover.containsMouse ? root.theme.hover : root.theme.sidebar
                         HoverHandler { id: listeHover }
 
                         RowLayout {
@@ -205,7 +205,13 @@ Dialog {
                 contentWidth: availableWidth
                 clip: true
 
+                Rectangle {
+                    width: parent.width
+                    implicitHeight: innerLayout.implicitHeight + 16
+                    color: root.theme.sidebar
+
                 ColumnLayout {
+                    id: innerLayout
                     width: parent.width
                     spacing: 10
                     Layout.margins: 16
@@ -246,6 +252,22 @@ Dialog {
                                 font.pixelSize: 12
                                 background: null
                                 onTextEdited: cmbKat.editText = text
+                            }
+                            popup.background: Rectangle {
+                                color: root.theme.surfaceDeep
+                                border.color: root.theme.border; radius: 4
+                            }
+                            delegate: ItemDelegate {
+                                width: cmbKat.width; implicitHeight: 28
+                                highlighted: cmbKat.highlightedIndex === index
+                                contentItem: Text {
+                                    leftPadding: 8; text: modelData
+                                    color: root.theme.textPrimary; font.pixelSize: 11
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle {
+                                    color: highlighted ? root.theme.hover : "transparent"
+                                }
                             }
                         }
                     }
@@ -314,6 +336,22 @@ Dialog {
                                 leftPadding: 8; text: cmbTyp.displayText
                                 color: root.theme.textPrimary
                                 font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
+                            }
+                            popup.background: Rectangle {
+                                color: root.theme.surfaceDeep
+                                border.color: root.theme.border; radius: 4
+                            }
+                            delegate: ItemDelegate {
+                                width: cmbTyp.width; implicitHeight: 28
+                                highlighted: cmbTyp.highlightedIndex === index
+                                contentItem: Text {
+                                    leftPadding: 8; text: modelData
+                                    color: root.theme.textPrimary; font.pixelSize: 11
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle {
+                                    color: highlighted ? root.theme.hover : "transparent"
+                                }
                             }
                         }
                     }
@@ -440,8 +478,9 @@ Dialog {
                         Layout.leftMargin: 16
                     }
 
-                    Item { Layout.fillHeight: true }
+                    Item { height: 8 }
                 }
+                } // Rectangle
             }
         }
 

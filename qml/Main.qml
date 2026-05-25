@@ -1160,8 +1160,12 @@ ApplicationWindow {
                         onGeschlossen: root.aktiveAnsicht = "seiten"
 
                         onBmkGewaehlt: function(sid, elementId, wx, wy) {
-                            root.aktivSeiteId = sid
-                            ibnCanvas.zentriereAuf(wx, wy)
+                            if (sid !== root.aktivSeiteId) {
+                                ibnCanvas._querverweisZielPos = { x: wx, y: wy }
+                                root.aktivSeiteId = sid
+                            } else {
+                                ibnCanvas._zoomZuWeltPosition(wx, wy)
+                            }
                         }
                     }
 

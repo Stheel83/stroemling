@@ -7,6 +7,8 @@ SplitView {
     required property var panel
     required property var theme
 
+    signal kabelGewaehlt(int seiteId, int elementId, real x1, real y1)
+
     orientation: Qt.Horizontal
 
     handle: Rectangle {
@@ -77,7 +79,12 @@ SplitView {
                 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: panel.kabelAusgewaehlterIndex = index
+                    onClicked: {
+                        panel.kabelAusgewaehlterIndex = index
+                        if (modelData.grafikElementId > 0 && modelData.seiteId > 0)
+                            root.kabelGewaehlt(modelData.seiteId, modelData.grafikElementId,
+                                               modelData.x1, modelData.y1)
+                    }
                 }
             }
         }

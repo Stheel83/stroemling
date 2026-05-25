@@ -700,6 +700,8 @@ Item {
                                     text: "+"
                                     width: 26; height: 26
                                     font.pixelSize: 14
+                                    palette.button:     root.theme.border
+                                    palette.buttonText: root.theme.accent
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Rack anlegen")
                                     onClicked: rackDialog.oeffnenNeu()
@@ -812,6 +814,8 @@ Item {
                                     width: 26; height: 26
                                     font.pixelSize: 14
                                     enabled: root._ausgewaehlterRackId >= 0
+                                    palette.button:     root.theme.border
+                                    palette.buttonText: root.theme.accent
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Baugruppe anlegen")
                                     onClicked: bgDialog.oeffnenNeu()
@@ -981,6 +985,8 @@ Item {
                                 width: 26; height: 26
                                 font.pixelSize: 14
                                 enabled: root.projektId >= 0
+                                palette.button:     root.theme.border
+                                palette.buttonText: root.theme.accent
                                 ToolTip.visible: hovered
                                 ToolTip.text: qsTr("Kanal anlegen")
                                 onClicked: kanalDialog.oeffnenNeu()

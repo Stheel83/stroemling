@@ -1164,18 +1164,23 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "ibn"
 
-                RowLayout {
+                SplitView {
                     anchors.fill: parent
-                    spacing:      0
+                    orientation:  Qt.Horizontal
+                    handle: Rectangle {
+                        implicitWidth: 5
+                        color: SplitHandle.pressed ? appTheme.accent
+                             : SplitHandle.hovered  ? appTheme.activeItem : appTheme.border
+                    }
 
                     IbnAnsicht {
-                        id:                    ibnAnsicht
-                        Layout.fillHeight:     true
-                        Layout.preferredWidth: 400
-                        theme:                 appTheme
-                        debug:                 root.debugModeAktiv
-                        projektId:             root.aktivProjektId
-                        seiteId:               root.aktivSeiteId
+                        id:                       ibnAnsicht
+                        SplitView.preferredWidth: 400
+                        SplitView.minimumWidth:   200
+                        theme:                    appTheme
+                        debug:                    root.debugModeAktiv
+                        projektId:                root.aktivProjektId
+                        seiteId:                  root.aktivSeiteId
 
                         onGeschlossen: root.aktiveAnsicht = "seiten"
 
@@ -1189,25 +1194,18 @@ ApplicationWindow {
                         }
                     }
 
-                    Rectangle {
-                        width:             1
-                        Layout.fillHeight: true
-                        color:             appTheme.border
-                    }
-
                     SchaltplanCanvas {
-                        id:                ibnCanvas
-                        Layout.fillWidth:  true
-                        Layout.fillHeight: true
-                        theme:             appTheme
-                        debug:             root.debugModeAktiv
-                        seiteId:           root.aktivSeiteId
-                        projektId:         root.aktivProjektId
-                        seiteName:         root.aktivSeiteName
-                        hintergrundFarbe:  root.aktivProjektHintergrund
-                        elementeModel:     elementeModel3
-                        ibnModus:          true
-                        ibnStatusMap:      ibnAnsicht.statusMap
+                        id:                      ibnCanvas
+                        SplitView.fillWidth:     true
+                        theme:                   appTheme
+                        debug:                   root.debugModeAktiv
+                        seiteId:                 root.aktivSeiteId
+                        projektId:               root.aktivProjektId
+                        seiteName:               root.aktivSeiteName
+                        hintergrundFarbe:        root.aktivProjektHintergrund
+                        elementeModel:           elementeModel3
+                        ibnModus:                true
+                        ibnStatusMap:            ibnAnsicht.statusMap
 
                         onHintergrundGeaendert: function(farbe) {
                             root.aktivProjektHintergrund = farbe

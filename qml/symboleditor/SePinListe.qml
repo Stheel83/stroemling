@@ -1,12 +1,12 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 Rectangle {
     id: root
     required property var editor
 
-    height: 190
     color:  editor.theme.sidebar
 
     ColumnLayout {
@@ -203,4 +203,5 @@ Rectangle {
             }
         }
     }
+    DebugLabel { panelName: qsTr("SE Pin-Liste"); visible: editor.debug }
 }

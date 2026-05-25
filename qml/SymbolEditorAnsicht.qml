@@ -537,10 +537,21 @@ Item {
             }
             Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
-            // ── Mitte: Toolbar | Zeichenfläche | Eigenschaften ────────
-            RowLayout {
+            // ── Mitte + Pins: vertikal ziehbar ───────────────────────
+            SplitView {
                 Layout.fillWidth:  true
                 Layout.fillHeight: true
+                orientation: Qt.Vertical
+                handle: Rectangle {
+                    implicitHeight: 5
+                    color: SplitHandle.pressed ? root.theme.accent
+                         : SplitHandle.hovered  ? root.theme.activeItem : root.theme.border
+                }
+
+            // ── Mitte: Toolbar | Zeichenfläche | Eigenschaften ────────
+            RowLayout {
+                SplitView.fillHeight: true
+                SplitView.minimumHeight: 120
                 spacing: 0
 
 
@@ -1147,13 +1158,13 @@ Item {
                 }
             } // inner RowLayout
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
             // ── Pin-Liste ──────────────────────────────────────────────
             SePinListe {
                 editor: root
-                Layout.fillWidth: true
+                SplitView.preferredHeight: 190
+                SplitView.minimumHeight:   80
             }
+            } // SplitView
         } // ColumnLayout
     } // outer RowLayout
 

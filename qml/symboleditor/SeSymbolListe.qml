@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 Rectangle {
     id: root
@@ -183,4 +184,5 @@ Rectangle {
             }
         }
     }
+    DebugLabel { panelName: qsTr("SE Symbol-Liste"); visible: editor.debug }
 }

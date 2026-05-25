@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 Rectangle {
     id: root
@@ -162,4 +163,5 @@ Rectangle {
             font.pixelSize: 10; color: editor.theme.textMuted
         }
     }
+    DebugLabel { panelName: qsTr("SE Eigenschaften"); visible: editor.debug }
 }

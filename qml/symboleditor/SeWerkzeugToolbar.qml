@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "../components"
 
 Rectangle {
     id: root
@@ -80,4 +81,5 @@ Rectangle {
             MouseArea { id: undoArea; anchors.fill: parent; hoverEnabled: true }
         }
     }
+    DebugLabel { panelName: qsTr("SE Werkzeuge"); visible: editor.debug }
 }

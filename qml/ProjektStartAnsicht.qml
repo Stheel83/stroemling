@@ -142,6 +142,56 @@ Item {
             }
         }
 
+        // Erste Schritte (nur beim allerersten Start / noch keine Projekte)
+        Item { height: 28; visible: recentList.count === 0 }
+        Rectangle {
+            Layout.fillWidth: true
+            visible: recentList.count === 0
+            color:   root.theme.surface
+            radius:  8
+            border.color: root.theme.accent
+            border.width: 1
+
+            ColumnLayout {
+                anchors { fill: parent; margins: 16 }
+                spacing: 10
+
+                Text {
+                    text: qsTr("Erste Schritte")
+                    font.pixelSize: 12; font.weight: Font.Medium
+                    color: root.theme.accent
+                }
+
+                Repeater {
+                    model: [
+                        { nr: "1", text: qsTr("\"Neues Projekt\" wählen und Datei speichern") },
+                        { nr: "2", text: qsTr("Im Seitenbaum (links) eine Seite anlegen") },
+                        { nr: "3", text: qsTr("Symbole aus der Palette platzieren und Leitungen ziehen") }
+                    ]
+                    delegate: RowLayout {
+                        spacing: 10
+                        Rectangle {
+                            width: 20; height: 20; radius: 10
+                            color: root.theme.accent
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData.nr
+                                font.pixelSize: 10; font.weight: Font.Bold
+                                color: "white"
+                            }
+                        }
+                        Text {
+                            text: modelData.text
+                            font.pixelSize: 12
+                            color: root.theme.textSecondary
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+            }
+        }
+
         // Zuletzt geöffnet
         Item { height: 28 }
         Text {

@@ -135,6 +135,9 @@ Rectangle {
                     pm3.linienart = model[idx]; arr3[idx7] = pm3; editor.primitive = arr3
                     editor.repaintAll()
                 }
+                background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+                contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 11;
+                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             }
         }
 

@@ -61,6 +61,9 @@ Rectangle {
             currentIndex: ["durchgehend","gestrichelt","gepunktet","Strich-Punkt"].indexOf(editor.aktLinienart)
             onCurrentIndexChanged: editor.aktLinienart = ["durchgehend","gestrichelt","gepunktet","Strich-Punkt"][currentIndex]
             font.pixelSize: 10; implicitHeight: 24
+            background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+            contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 10;
+                                leftPadding: 6; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
 
         Text {

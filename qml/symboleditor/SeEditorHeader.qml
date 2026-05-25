@@ -41,6 +41,9 @@ Rectangle {
             currentIndex: Math.max(0, [8,16,24,32].indexOf(editor.breiteMm))
             onActivated: editor.breiteMm = model[currentIndex]
             implicitWidth: 68; implicitHeight: 28; font.pixelSize: 12
+            background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+            contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 12;
+                                leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
         Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
 
@@ -50,6 +53,9 @@ Rectangle {
             currentIndex: Math.max(0, [8,16,24,32].indexOf(editor.hoeheMm))
             onActivated: editor.hoeheMm = model[currentIndex]
             implicitWidth: 68; implicitHeight: 28; font.pixelSize: 12
+            background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+            contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 12;
+                                leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
         Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
 
@@ -59,6 +65,9 @@ Rectangle {
             currentIndex: Math.max(0, model.indexOf(editor.rolleText))
             onCurrentIndexChanged: editor.rolleText = model[currentIndex]
             implicitWidth: 115; implicitHeight: 28; font.pixelSize: 12
+            background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+            contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 12;
+                                leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
 
         Item { Layout.fillWidth: true }

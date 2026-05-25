@@ -179,6 +179,9 @@ Rectangle {
                             var p   = Object.assign({}, arr[parent.parent.myIdx])
                             p.signaltyp = model[idx]; arr[parent.parent.myIdx] = p; root.editor.pins = arr
                         }
+                        background: Rectangle { color: root.editor.theme.inputBg; border.color: root.editor.theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: root.editor.theme.textPrimary; font.pixelSize: 10;
+                                            leftPadding: 6; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     }
 
                     Rectangle {

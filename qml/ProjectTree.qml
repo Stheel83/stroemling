@@ -16,6 +16,9 @@ Item {
     property string _exportStatus: ""
     property bool   _exportStatusOk: true
 
+    property int    _loeschenProjektId:   -1
+    property string _loeschenProjektName: ""
+
     function _zeigeExportStatus(text, ok) {
         _exportStatus   = text
         _exportStatusOk = (ok !== false)
@@ -205,7 +208,11 @@ Item {
                             rightMargin:    6
                             verticalCenter: parent.verticalCenter
                         }
-                        onClicked: projektModel.loeschen(model.projektId)
+                        onClicked: {
+                            root._loeschenProjektId   = model.projektId
+                            root._loeschenProjektName = model.name
+                            dlgLoeschen.open()
+                        }
                     }
                 }
             }
@@ -390,6 +397,69 @@ Item {
                         root.projektMetaGeaendert(dlgProjektEigenschaften.projektId)
                         dlgProjektEigenschaften.close()
                     }
+                }
+            }
+        }
+    }
+
+    // ── Bestätigungs-Dialog: Projekt löschen ─────────────────────
+    Dialog {
+        id:               dlgLoeschen
+        modal:            true
+        parent:           Overlay.overlay
+        anchors.centerIn: parent
+        width:            340
+        padding:          20
+
+        background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 8 }
+
+        contentItem: ColumnLayout {
+            spacing: 12
+
+            Text {
+                text: qsTr("Projekt löschen?")
+                font.pixelSize: 14; font.weight: Font.Medium
+                color: theme.textPrimary
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: root._loeschenProjektName
+                font.pixelSize: 13; color: theme.accent
+                elide: Text.ElideRight
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("Alle Seiten, Elemente und Leitungen dieses Projekts werden unwiederbringlich gelöscht.")
+                font.pixelSize: 11; color: "#ff8888"
+                wrapMode: Text.WordWrap
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: qsTr("Abbrechen"); implicitHeight: 30; implicitWidth: 100
+                    onClicked: dlgLoeschen.close()
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 11;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
+                Button {
+                    text: qsTr("Löschen"); implicitHeight: 30; implicitWidth: 100
+                    onClicked: {
+                        projektModel.loeschen(root._loeschenProjektId)
+                        root._loeschenProjektId   = -1
+                        root._loeschenProjektName = ""
+                        dlgLoeschen.close()
+                    }
+                    background: Rectangle { color: parent.hovered ? "#cc2222" : theme.inputBg; radius: 4; border.color: "#ff4444" }
+                    contentItem: Text { text: parent.text; color: parent.hovered ? "white" : "#ff4444"; font.pixelSize: 11;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
             }
         }

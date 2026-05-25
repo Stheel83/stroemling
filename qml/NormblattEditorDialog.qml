@@ -328,6 +328,8 @@ Item {
                     color: "white"; font.pixelSize: 13; font.weight: Font.Medium }
                 MouseArea { id: speichernMA; anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor; onClicked: root._speichern() }
+                ToolTip.visible: speichernMA.containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("Normblatt-Vorlage speichern")
             }
         }
     }

@@ -342,6 +342,8 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.feldLoeschen(root.feldIdx)
                 }
+                ToolTip.visible: loeschMA.containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("Dieses Normblatt-Feld entfernen")
             }
         }
     }

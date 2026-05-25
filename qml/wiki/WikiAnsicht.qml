@@ -741,7 +741,9 @@ Item {
                         Rectangle {
                             visible:  !root._editModus && root._hatArtikel
                             width:    80; height: 26; radius: 3
-                            color:    editBtnHover.containsMouse ? root.theme.accent : root.theme.border
+                            color:    editBtnHover.hovered ? root.theme.accent : root.theme.border
+                            ToolTip.visible: editBtnHover.hovered; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Artikel bearbeiten")
                             Text {
                                 anchors.centerIn: parent
                                 text:           qsTr("✏ Bearbeiten")
@@ -754,7 +756,9 @@ Item {
                         Rectangle {
                             visible:  root._editModus
                             width:    70; height: 26; radius: 3
-                            color:    saveBtnHover.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.15)
+                            color:    saveBtnHover.hovered ? root.theme.accent : Qt.darker(root.theme.accent, 1.15)
+                            ToolTip.visible: saveBtnHover.hovered; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Änderungen speichern")
                             Text {
                                 anchors.centerIn: parent
                                 text:           qsTr("✔ Speichern")
@@ -767,8 +771,10 @@ Item {
                         Rectangle {
                             visible:  root._editModus
                             width:    62; height: 26; radius: 3
-                            color:    cancelBtnHover.containsMouse ? root.theme.hover : "transparent"
+                            color:    cancelBtnHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
+                            ToolTip.visible: cancelBtnHover.hovered; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Bearbeitung abbrechen ohne zu speichern")
                             Text {
                                 anchors.centerIn: parent
                                 text:           qsTr("✕ Abbrechen")
@@ -783,8 +789,10 @@ Item {
                         Rectangle {
                             visible:  !root._editModus && root._hatArtikel && !(root._aktArtikel.istSystem == 1)
                             width:    22; height: 22; radius: 3
-                            color:    delBtnHover.containsMouse ? "#c0392b33" : "transparent"
+                            color:    delBtnHover.hovered ? "#c0392b33" : "transparent"
                             border.color: root.theme.border
+                            ToolTip.visible: delBtnHover.hovered; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Artikel unwiderruflich löschen")
                             Text {
                                 anchors.centerIn: parent
                                 text: "🗑"

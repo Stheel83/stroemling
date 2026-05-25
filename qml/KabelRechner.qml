@@ -54,15 +54,19 @@ Item {
                         Rectangle {
                             width: 93; height: parent.height; radius: 5
                             color: root.modus === "schnell" ? theme.accent : "transparent"
+                            ToolTip.visible: schnellMa.containsMouse; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Schnell: Querschnitt aus Strom + Länge (Daumenregel)")
                             Text { anchors.centerIn: parent; text: qsTr("⚡ Schnell"); font.pixelSize: 12; color: root.modus === "schnell" ? "white" : theme.textMuted }
-                            MouseArea { anchors.fill: parent; onClicked: root.modus = "schnell"; cursorShape: Qt.PointingHandCursor }
+                            MouseArea { id: schnellMa; anchors.fill: parent; hoverEnabled: true; onClicked: root.modus = "schnell"; cursorShape: Qt.PointingHandCursor }
                         }
                         Rectangle { width: 1; height: parent.height; color: theme.border }
                         Rectangle {
                             width: 94; height: parent.height; radius: 5
                             color: root.modus === "genau" ? theme.accent : "transparent"
+                            ToolTip.visible: genauMa.containsMouse; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Genau: Vollständige Berechnung nach VDE 0298 / IEC 60364 (Verlegeart, Häufung, Schutzorgan)")
                             Text { anchors.centerIn: parent; text: qsTr("🔬 Genau"); font.pixelSize: 12; color: root.modus === "genau" ? "white" : theme.textMuted }
-                            MouseArea { anchors.fill: parent; onClicked: root.modus = "genau"; cursorShape: Qt.PointingHandCursor }
+                            MouseArea { id: genauMa; anchors.fill: parent; hoverEnabled: true; onClicked: root.modus = "genau"; cursorShape: Qt.PointingHandCursor }
                         }
                     }
                 }

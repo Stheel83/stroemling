@@ -90,8 +90,12 @@ Rectangle {
             enabled: !editor.istBuiltin
             implicitHeight: 28; implicitWidth: 90
             onClicked: editor.speichern()
-            background: Rectangle { color: parent.enabled ? (parent.hovered ? Qt.lighter(editor.theme.accent) : editor.theme.accent) : editor.theme.btnDisabled; radius: 4 }
-            contentItem: Text { text: parent.text; color: "white"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle {
+                color: parent.enabled ? (parent.hovered ? editor.theme.accent : editor.theme.inputBg) : editor.theme.inputBg
+                radius: 4; border.color: parent.enabled ? editor.theme.accent : editor.theme.border
+            }
+            contentItem: Text { text: parent.text; color: parent.enabled ? editor.theme.textPrimary : editor.theme.textMuted;
+                                font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
 
         Button {
@@ -104,12 +108,12 @@ Rectangle {
                 sqlKopiertTimer.restart()
             }
             background: Rectangle {
-                color: parent.hovered ? editor.theme.badge : "transparent"
-                radius: 4; border.color: editor.theme.accent; border.width: 1
+                color: parent.hovered ? editor.theme.accent : editor.theme.inputBg
+                radius: 4; border.color: editor.theme.accent
             }
             contentItem: Text {
                 text: sqlKopiertTimer.running ? qsTr("✓ OK") : parent.text
-                color: editor.theme.accent; font.pixelSize: 12
+                color: editor.theme.textPrimary; font.pixelSize: 12
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             }
             Timer { id: sqlKopiertTimer; interval: 1500 }
@@ -122,8 +126,8 @@ Rectangle {
             implicitHeight: 28; implicitWidth: 90
             flat: true
             onClicked: editor.abgebrochen()
-            background: Rectangle { color: parent.hovered ? editor.theme.badge : "transparent"; radius: 4 }
-            contentItem: Text { text: parent.text; color: editor.theme.textMuted; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: parent.hovered ? editor.theme.hover : editor.theme.inputBg; radius: 4; border.color: editor.theme.border }
+            contentItem: Text { text: parent.text; color: editor.theme.textSecondary; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
     }
 }

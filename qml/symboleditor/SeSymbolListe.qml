@@ -42,11 +42,11 @@ Rectangle {
                     implicitHeight: 28; implicitWidth: 62
                     onClicked:     root.editor.neuesSymbol()
                     background: Rectangle {
-                        color: parent.hovered ? Qt.lighter(root.editor.theme.accent) : root.editor.theme.accent
-                        radius: 4
+                        color: parent.hovered ? root.editor.theme.accent : root.editor.theme.inputBg
+                        radius: 4; border.color: root.editor.theme.accent
                     }
                     contentItem: Text {
-                        text: parent.text; color: "white"; font.pixelSize: 11
+                        text: parent.text; color: root.editor.theme.textPrimary; font.pixelSize: 11
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                 }

@@ -64,11 +64,19 @@ Item {
 
     property var gefilterteSymbole: {
         var f = listeFilter.toLowerCase()
-        if (!f) return listenSymbole
-        return listenSymbole.filter(function(s) {
+        var result = f ? listenSymbole.filter(function(s) {
             return s.name.toLowerCase().indexOf(f) >= 0 ||
                    (s.kategorie || "").toLowerCase().indexOf(f) >= 0
+        }) : listenSymbole.slice()
+        var ordnung = ["kontakte","schutz","antriebe","passive","signalgeraete",
+                       "klemmen","sps_pls","kfz","arduino","sensoren"]
+        result.sort(function(a, b) {
+            var ia = ordnung.indexOf(a.kategorie || ""); if (ia < 0) ia = 999
+            var ib = ordnung.indexOf(b.kategorie || ""); if (ib < 0) ib = 999
+            if (ia !== ib) return ia - ib
+            return (a.name || "").localeCompare(b.name || "")
         })
+        return result
     }
 
     function normToMmX(v) { return v * root.breiteMm }

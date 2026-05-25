@@ -8,6 +8,14 @@ Rectangle {
 
     signal loeschenAngefordert(string symbolId, string symbolName)
 
+    function kategorieName(k) {
+        var n = { "kontakte": "Kontakte", "schutz": "Schutzgeräte", "antriebe": "Antriebe",
+                  "passive": "Passive", "signalgeraete": "Signalgeräte", "klemmen": "Klemmen",
+                  "sps_pls": "SPS / PLS", "kfz": "KFZ-Elektrik", "arduino": "Arduino",
+                  "sensoren": "Sensoren" }
+        return n[k] || (k || qsTr("Ohne Kategorie"))
+    }
+
     width: 256
     color: editor.theme.sidebar
     clip:  true
@@ -66,7 +74,7 @@ Rectangle {
                 model: root.editor.gefilterteSymbole
                 clip:  true
 
-                section.property:  "ist_builtin"
+                section.property:  "kategorie"
                 section.criteria:  ViewSection.FullString
                 section.delegate: Rectangle {
                     width:  ListView.view.width
@@ -75,7 +83,7 @@ Rectangle {
 
                     Text {
                         anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                        text:  section === "true" ? qsTr("EINGEBAUT") : qsTr("EIGENE")
+                        text:  root.kategorieName(section).toUpperCase()
                         font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: 1.5
                         color: root.editor.theme.textMuted
                     }

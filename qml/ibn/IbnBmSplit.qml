@@ -28,6 +28,7 @@ SplitView {
         ListView {
             id: bmListe
             anchors.fill: parent; clip: true
+            Rectangle { anchors.fill: parent; color: theme.sidebar; z: -1 }
 
             property var _gelistet: panel._gefilterteListe()
             model: _gelistet
@@ -90,6 +91,7 @@ SplitView {
     ScrollView {
         SplitView.fillWidth: true; SplitView.minimumWidth: 200
         contentWidth: availableWidth; clip: true
+        background: Rectangle { color: theme.sidebar }
 
         ColumnLayout {
             width: parent.width; spacing: 0

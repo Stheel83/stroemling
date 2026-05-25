@@ -45,6 +45,7 @@ ColumnLayout {
         Layout.fillWidth: true; Layout.fillHeight: true
         model: panel._klemmenplanModel; clip: true
         ScrollBar.vertical: ScrollBar {}
+        Rectangle { anchors.fill: parent; color: theme.surface; z: -1 }
 
         delegate: Rectangle {
             width: kpView.width

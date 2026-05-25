@@ -45,6 +45,7 @@ ColumnLayout {
         Layout.fillWidth: true; Layout.fillHeight: true
         model: panel._stuecklisteModel; clip: true
         ScrollBar.vertical: ScrollBar {}
+        Rectangle { anchors.fill: parent; color: theme.surface; z: -1 }
         delegate: Rectangle {
             width: slView.width; height: 30
             color: index % 2 === 0 ? theme.tableEven : theme.tableOdd

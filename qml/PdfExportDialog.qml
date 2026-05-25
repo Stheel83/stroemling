@@ -38,15 +38,6 @@ Dialog {
     contentItem: ColumnLayout {
         spacing: 12
 
-        Text {
-            text:            root.title
-            color:           root.theme.textPrimary
-            font.pixelSize:  14
-            font.weight:     Font.Medium
-        }
-
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
         // Seiten-Auswahl
         Text {
             text:           qsTr("Seiten")

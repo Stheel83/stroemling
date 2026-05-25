@@ -93,10 +93,20 @@ ColumnLayout {
             }
         }
     }
-    Text {
+    Column {
         visible: panel.klemmenplanZaehler === 0
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        text: panel.projektId >= 0 ? qsTr("Keine Klemmenleisten im Projekt") : qsTr("Kein Projekt ausgewählt")
-        font.pixelSize: 14; color: theme.borderDark
+        spacing: 6
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: panel.projektId >= 0 ? qsTr("Keine Klemmenleisten im Projekt") : qsTr("Kein Projekt ausgewählt")
+            font.pixelSize: 14; color: theme.borderDark
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: panel.projektId >= 0
+            text: qsTr("Klemmenleisten unter Bauteile → Klemmenreihen anlegen.")
+            font.pixelSize: 11; font.italic: true; color: theme.textMuted
+        }
     }
 }

@@ -718,6 +718,17 @@ Item {
                             model: root._racks
                             clip: true
 
+                            Label {
+                                anchors.centerIn: parent
+                                visible: rackListView.count === 0
+                                text: root.projektId < 0
+                                      ? qsTr("Kein Projekt geöffnet")
+                                      : qsTr("Noch keine Racks –\n[+] zum Anlegen")
+                                horizontalAlignment: Text.AlignHCenter
+                                color: root.theme.textMuted
+                                font.pixelSize: 12
+                            }
+
                             delegate: Rectangle {
                                 id: rackDelegate
                                 required property var modelData

@@ -60,10 +60,20 @@ ColumnLayout {
             }
         }
     }
-    Text {
+    Column {
         visible: panel._querverweisModel.count === 0
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
-        font.pixelSize: 14; color: theme.borderDark
+        spacing: 6
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
+            font.pixelSize: 14; color: theme.borderDark
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: panel.projektId >= 0
+            text: qsTr("Querverweis-Linien im Canvas zeichnen (Werkzeug: ∿), um Querverweise zu erzeugen.")
+            font.pixelSize: 11; font.italic: true; color: theme.textMuted
+        }
     }
 }

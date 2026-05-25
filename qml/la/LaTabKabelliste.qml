@@ -169,6 +169,13 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 font.pixelSize: 14; color: theme.borderDark
             }
+            Text {
+                visible: panel._kabelDaten.length === 0 && panel.projektId >= 0
+                width: parent.width; height: 24
+                text: qsTr("Kabeldefinitionslinie im Canvas zeichnen (Werkzeug: ┄) und Kabel im Bauteilkatalog verknüpfen.")
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 11; font.italic: true; color: theme.textMuted
+            }
         }
     }
 }

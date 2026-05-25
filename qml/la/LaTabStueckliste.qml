@@ -63,10 +63,20 @@ ColumnLayout {
             }
         }
     }
-    Text {
+    Column {
         visible: panel._stuecklisteModel.count === 0
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        text: panel.projektId >= 0 ? qsTr("Keine Symbole im Projekt") : qsTr("Kein Projekt ausgewählt")
-        font.pixelSize: 14; color: theme.borderDark
+        spacing: 6
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: panel.projektId >= 0 ? qsTr("Keine Symbole im Projekt") : qsTr("Kein Projekt ausgewählt")
+            font.pixelSize: 14; color: theme.borderDark
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: panel.projektId >= 0
+            text: qsTr("Symbole auf dem Schaltplan platzieren, um die Stückliste zu befüllen.")
+            font.pixelSize: 11; font.italic: true; color: theme.textMuted
+        }
     }
 }

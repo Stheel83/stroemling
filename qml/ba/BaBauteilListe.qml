@@ -175,7 +175,9 @@ Item {
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text:           qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
+                        text: suchfeld.text.length > 0
+                              ? qsTr("Keine Ergebnisse für \"%1\"").arg(suchfeld.text)
+                              : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
                         color:          theme.textMuted
                         font.pixelSize: 13
                     }

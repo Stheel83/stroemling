@@ -1170,6 +1170,12 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         enabled: root._kanaele.length > 0
                         onClicked: exportDialog.open()
+                        background: Rectangle {
+                            color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border
+                        }
+                        contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted;
+                                            font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
 
                     Label {

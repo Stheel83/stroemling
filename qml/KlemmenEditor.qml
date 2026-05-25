@@ -199,6 +199,9 @@ Item {
                                 else
                                     klemmeModel.anlegen(root.bauteilId)
                             }
+                            background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
+                            contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 11;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                     }
                 }
@@ -367,11 +370,17 @@ Item {
                             Layout.fillWidth: true
                             text: qsTr("Speichern")
                             onClicked: klemmeModel.speichern(klemmeMapSammeln())
+                            background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
+                            contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         Button {
                             text: qsTr("Platzieren …")
                             enabled: klemmeModel.hatKlemme
                             onClicked: platzierDialog.open()
+                            background: Rectangle { color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg; radius: 4; border.color: parent.enabled ? theme.accent : theme.border }
+                            contentItem: Text { text: parent.text; color: parent.enabled ? theme.textPrimary : theme.textMuted; font.pixelSize: 12;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                     }
 
@@ -443,12 +452,18 @@ Item {
                                 font.pixelSize: 10
                                 onClicked: klemmeModel.querschnittSetzen(
                                     adertyp, parseFloat(tfMin.text) || 0, parseFloat(tfMax.text) || 0)
+                                background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent }
+                                contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 10;
+                                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                             Button {
                                 text: "✕"
                                 font.pixelSize: 10
                                 enabled: eintrag !== null
                                 onClicked: klemmeModel.querschnittLoeschen(adertyp)
+                                background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 3; border.color: "#aa4444" }
+                                contentItem: Text { text: parent.text; color: "#aa4444"; font.pixelSize: 10;
+                                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                         }
                     }
@@ -470,6 +485,9 @@ Item {
                                 text: "✕"
                                 font.pixelSize: 10
                                 onClicked: klemmeModel.brueckeLoeschen(modelData.id)
+                                background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 3; border.color: "#aa4444" }
+                                contentItem: Text { text: parent.text; color: "#aa4444"; font.pixelSize: 10;
+                                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                         }
                     }
@@ -497,6 +515,9 @@ Item {
                             text: qsTr("Brücke")
                             font.pixelSize: 11
                             onClicked: klemmeModel.brueckeAnlegen(sbVon.value, sbNach.value)
+                            background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
+                            contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 11;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                     }
                 }

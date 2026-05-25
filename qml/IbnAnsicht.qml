@@ -196,7 +196,7 @@ Item {
                     flat: true; implicitWidth: 70; implicitHeight: 26
                     contentItem: Text { text: qsTr("⚙ Felder"); color: theme.textSecondary; font.pixelSize: 11;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : theme.activeItem; radius: 4;
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4;
                         border.color: theme.border }
                     onClicked: bmSplit.openFeldEditor()
                     ToolTip.visible: hovered; ToolTip.text: qsTr("Benutzerdefinierte IBN-Felder bearbeiten")

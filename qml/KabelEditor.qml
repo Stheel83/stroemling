@@ -176,6 +176,9 @@ Item {
                                     kabelModel.stammdatenSpeichern({ geschirmt: false, paarweise_verdrillt: false })
                                 }
                             }
+                            background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent }
+                            contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 11;
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                     }
                 }
@@ -394,12 +397,13 @@ Item {
                             enabled: kabelModel.adern.length >= 2
                             contentItem: Text {
                                 text: parent.text
-                                color: parent.enabled ? theme.accent : theme.textMuted
+                                color: parent.enabled ? theme.textPrimary : theme.textMuted
                                 font.pixelSize: 12
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                             }
                             background: Rectangle {
-                                color: parent.hovered ? theme.activeItemAlt : theme.activeItem; radius: 4
+                                color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                                radius: 4; border.color: parent.enabled ? theme.accent : theme.border
                             }
                             onClicked: {
                                 var usedIds = []
@@ -568,9 +572,12 @@ Item {
                         Button {
                             text: qsTr("+ Ader"); implicitHeight: 30
                             enabled: kabelModel.hatKabel
-                            contentItem: Text { text: parent.text; color: parent.enabled ? theme.accent : theme.textMuted; font.pixelSize: 12;
+                            contentItem: Text { text: parent.text; color: parent.enabled ? theme.textPrimary : theme.textMuted; font.pixelSize: 12;
                                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            background: Rectangle { color: parent.hovered ? theme.activeItemAlt : theme.activeItem; radius: 4 }
+                            background: Rectangle {
+                                color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                                radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                            }
                             onClicked: kabelModel.aderAnlegen()
                         }
                     }

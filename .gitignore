@@ -1,4 +1,7 @@
 build/
+build-release/
+appimage/AppDir/
+appimage/*.AppImage
 *.db
 *.db-shm
 *.db-wal

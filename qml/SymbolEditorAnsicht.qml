@@ -36,6 +36,7 @@ Item {
     property string rolleText:     "durchleiter"
     property bool   istBuiltin:    false
     property string vorlageId:     ""   // wenn gesetzt: Geometrie aus diesem Symbol als Vorlage laden
+    property bool   _kopierModus:  false
 
     property var    primitive:          []   // array of QVariantMap
     property var    pins:               []   // array of {name, x, y, offenX, offenY, signaltyp, kontext}
@@ -85,6 +86,7 @@ Item {
     onVorlageIdChanged:     ladeDaten()
 
     function ladeDaten() {
+        if (_kopierModus) return
         undoStack          = []
         ausgewaehltPrimIdx = -1
         ausgewaehltPinIdx  = -1
@@ -166,6 +168,16 @@ Item {
         aktiveListenId = ""
         vorlageId      = ""
         if (editSymbolId !== "") { editSymbolId = "" } else { ladeDaten() }
+    }
+
+    function kopieErstellen() {
+        _kopierModus   = true
+        aktiveListenId = ""
+        vorlageId      = ""
+        editSymbolId   = ""
+        istBuiltin     = false
+        nameText       = qsTr("Kopie von ") + nameText
+        _kopierModus   = false
     }
 
     function fmtN(v) {

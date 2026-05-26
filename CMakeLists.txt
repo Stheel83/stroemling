@@ -54,6 +54,8 @@ qt_add_qml_module(stroemling_app
         qml/Main.qml
         qml/ProjectTree.qml
         qml/SeitenBaum.qml
+        qml/SeitenBaumNormblattPanel.qml
+        qml/SeitenBaumBauteilePanel.qml
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
         qml/PokestroemPlaceholder.qml
@@ -151,8 +153,15 @@ qt_add_qml_module(stroemling_app
         qml/nb/NormblattFeldPalette.qml
         qml/nb/NormblattFeldProperties.qml
         qml/wiki/WikiAnsicht.qml
+        qml/wiki/WikiFormatierungsToolbar.qml
+        qml/wiki/WikiBildGalerie.qml
+        qml/wiki/WikiBundleDialog.qml
         qml/einstellungen/EinstellungenAnsicht.qml
         qml/sps/SpsAnsicht.qml
+        qml/sps/SpsRackDialog.qml
+        qml/sps/SpsBaugruppeDialog.qml
+        qml/sps/SpsAutoAnlegenDialog.qml
+        qml/sps/SpsKanalDialog.qml
         qml/ProjektStartAnsicht.qml
         qml/fun/FunModusOverlay.qml
         qml/fun/FunSprite.qml
@@ -265,6 +274,8 @@ qt_add_translations(stroemling_app
         qml/Main.qml
         qml/ProjectTree.qml
         qml/SeitenBaum.qml
+        qml/SeitenBaumNormblattPanel.qml
+        qml/SeitenBaumBauteilePanel.qml
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
         qml/PokestroemPlaceholder.qml

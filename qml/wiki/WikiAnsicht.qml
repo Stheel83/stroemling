@@ -93,64 +93,6 @@ Item {
         _editModus  = true
     }
 
-    // ── Toolbar-Hilfsfunktionen ───────────────────────────────
-    function _fmtWrap(vor, nach) {
-        var sel = inhaltEdit.selectedText
-        if (sel.length > 0) {
-            var start = inhaltEdit.selectionStart
-            var end   = inhaltEdit.selectionEnd
-            inhaltEdit.remove(start, end)
-            inhaltEdit.insert(start, vor + sel + nach)
-            inhaltEdit.select(start + vor.length, start + vor.length + sel.length)
-        } else {
-            var pos = inhaltEdit.cursorPosition
-            inhaltEdit.insert(pos, vor + nach)
-            inhaltEdit.cursorPosition = pos + vor.length
-        }
-        inhaltEdit.forceActiveFocus()
-    }
-
-    function _fmtZeile(praefix) {
-        var pos   = inhaltEdit.cursorPosition
-        var txt   = inhaltEdit.text
-        var start = pos
-        while (start > 0 && txt[start - 1] !== '\n') start--
-        if (txt.substring(start, start + praefix.length) === praefix)
-            inhaltEdit.remove(start, start + praefix.length)
-        else {
-            inhaltEdit.insert(start, praefix)
-            inhaltEdit.cursorPosition = pos + praefix.length
-        }
-        inhaltEdit.forceActiveFocus()
-    }
-
-    function _fmtEinfuegen(text) {
-        inhaltEdit.insert(inhaltEdit.cursorPosition, text)
-        inhaltEdit.forceActiveFocus()
-    }
-
-    function _fmtLink() {
-        var sel   = inhaltEdit.selectedText
-        var ltext = sel.length > 0 ? sel : "Linktext"
-        var start = sel.length > 0 ? inhaltEdit.selectionStart : inhaltEdit.cursorPosition
-        if (sel.length > 0)
-            inhaltEdit.remove(inhaltEdit.selectionStart, inhaltEdit.selectionEnd)
-        inhaltEdit.insert(start, "[" + ltext + "](https://)")
-        // Cursor direkt hinter "https://" positionieren
-        inhaltEdit.cursorPosition = start + ltext.length + 11
-        inhaltEdit.forceActiveFocus()
-    }
-
-    // Ersetzt wiki://bild/ID durch den aktuellen Temp-Pfad des jeweiligen Bildes
-    function _preprocessMarkdown(md) {
-        var result = md
-        for (var i = 0; i < root._bilder.length; i++) {
-            var b = root._bilder[i]
-            if (b.tempPfad && b.id)
-                result = result.split("wiki://bild/" + b.id).join("file://" + b.tempPfad)
-        }
-        return result
-    }
 
     function _speichern() {
         if (_aktArtId < 0) return
@@ -268,7 +210,7 @@ Item {
                             ToolTip.text:    qsTr("Bundle-Menü")
                             ToolTip.delay:   700
                             HoverHandler { id: bundleBtnHover }
-                            TapHandler { onTapped: bundleMenuPopup.open() }
+                            TapHandler { onTapped: wikiBundle.open() }
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
@@ -918,155 +860,12 @@ Item {
                 }
 
                 // ── Formatierungs-Toolbar (Edit-Modus) ───────────────
-                Rectangle {
-                    Layout.fillWidth: true
-                    height:           visible ? 36 : 0
-                    visible:          root._editModus
-                    color:            root.theme.surfaceDeep
-
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        width: parent.width; height: 1; color: root.theme.border
-                    }
-
-                    Row {
-                        anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                        spacing: 3
-
-                        // ── Inline-Formatierung ───────────────
-                        Rectangle {
-                            width: 26; height: 24; radius: 3
-                            color: tbBMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbBMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Fett (Ctrl+B)"
-                            Text { anchors.centerIn: parent; text: "B"; font.bold: true; font.pixelSize: 12; color: root.theme.textPrimary }
-                            MouseArea { id: tbBMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("**", "**") }
-                        }
-                        Rectangle {
-                            width: 26; height: 24; radius: 3
-                            color: tbIMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbIMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Kursiv (Ctrl+I)"
-                            Text { anchors.centerIn: parent; text: "I"; font.italic: true; font.pixelSize: 12; color: root.theme.textPrimary }
-                            MouseArea { id: tbIMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("*", "*") }
-                        }
-                        Rectangle {
-                            width: 26; height: 24; radius: 3
-                            color: tbSMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbSMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Durchgestrichen"
-                            Text { anchors.centerIn: parent; text: "S"; font.strikeout: true; font.pixelSize: 12; color: root.theme.textPrimary }
-                            MouseArea { id: tbSMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("~~", "~~") }
-                        }
-                        Rectangle {
-                            width: 26; height: 24; radius: 3
-                            color: tbCodeMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbCodeMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Code (inline)"
-                            Text { anchors.centerIn: parent; text: "`"; font.family: "monospace"; font.pixelSize: 13; color: root.theme.textPrimary }
-                            MouseArea { id: tbCodeMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtWrap("`", "`") }
-                        }
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbLinkMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbLinkMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Link einfügen"
-                            Text { anchors.centerIn: parent; text: "🔗"; font.pixelSize: 11 }
-                            MouseArea { id: tbLinkMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtLink() }
-                        }
-
-                        // Separator
-                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
-
-                        // ── Überschriften ─────────────────────
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbH1Mouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbH1Mouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 1"
-                            Text { anchors.centerIn: parent; text: "H1"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
-                            MouseArea { id: tbH1Mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("# ") }
-                        }
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbH2Mouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbH2Mouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 2"
-                            Text { anchors.centerIn: parent; text: "H2"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
-                            MouseArea { id: tbH2Mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("## ") }
-                        }
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbH3Mouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbH3Mouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Überschrift 3"
-                            Text { anchors.centerIn: parent; text: "H3"; font.bold: true; font.pixelSize: 10; color: root.theme.textPrimary }
-                            MouseArea { id: tbH3Mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("### ") }
-                        }
-
-                        // Separator
-                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
-
-                        // ── Listen & Struktur ─────────────────
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbUlMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbUlMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Aufzählungsliste"
-                            Text { anchors.centerIn: parent; text: "• —"; font.pixelSize: 10; color: root.theme.textPrimary }
-                            MouseArea { id: tbUlMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("- ") }
-                        }
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbOlMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbOlMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Nummerierte Liste"
-                            Text { anchors.centerIn: parent; text: "1."; font.pixelSize: 10; color: root.theme.textPrimary }
-                            MouseArea { id: tbOlMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("1. ") }
-                        }
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbQMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbQMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zitat"
-                            Text { anchors.centerIn: parent; text: "❝"; font.pixelSize: 12; color: root.theme.textPrimary }
-                            MouseArea { id: tbQMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtZeile("> ") }
-                        }
-
-                        // Separator
-                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
-
-                        // ── Trennlinie ────────────────────────
-                        Rectangle {
-                            width: 36; height: 24; radius: 3
-                            color: tbHrMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbHrMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Trennlinie"
-                            Text { anchors.centerIn: parent; text: "───"; font.pixelSize: 10; color: root.theme.textPrimary }
-                            MouseArea { id: tbHrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("\n\n---\n\n") }
-                        }
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbBrMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbBrMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Zeilenumbruch (innerhalb Absatz)"
-                            Text { anchors.centerIn: parent; text: "↵"; font.pixelSize: 13; color: root.theme.textPrimary }
-                            MouseArea { id: tbBrMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root._fmtEinfuegen("\\\n") }
-                        }
-
-                        // Separator
-                        Rectangle { width: 1; height: 20; color: root.theme.border; anchors.verticalCenter: parent.verticalCenter }
-
-                        // ── Bild einfügen ─────────────────────
-                        Rectangle {
-                            width: 28; height: 24; radius: 3
-                            color: tbImgMouse.containsMouse ? root.theme.hover : "transparent"
-                            border.color: root.theme.border
-                            ToolTip.visible: tbImgMouse.containsMouse; ToolTip.delay: 700; ToolTip.text: "Bild in Text einfügen"
-                            Text { anchors.centerIn: parent; text: "🖼"; font.pixelSize: 12 }
-                            MouseArea { id: tbImgMouse; anchors.fill: parent; hoverEnabled: true; onClicked: bildEinfuegenPopup.open() }
-                        }
-                    }
+                WikiFormatierungsToolbar {
+                    id: formatierungsToolbar
+                    theme: root.theme
+                    textArea: inhaltEdit
+                    visible: root._editModus
+                    onBildEinfuegenAngefordert: bildEinfuegenPopup.open()
                 }
 
                 // ── Textbereich ───────────────────────────────
@@ -1127,126 +926,27 @@ Item {
                         Keys.onPressed: function(e) {
                             if (e.modifiers & Qt.ControlModifier) {
                                 if      (e.key === Qt.Key_S) { root._speichern();               e.accepted = true }
-                                else if (e.key === Qt.Key_B) { root._fmtWrap("**", "**");       e.accepted = true }
-                                else if (e.key === Qt.Key_I) { root._fmtWrap("*", "*");         e.accepted = true }
+                                else if (e.key === Qt.Key_B) { formatierungsToolbar._fmtWrap("**", "**"); e.accepted = true }
+                                else if (e.key === Qt.Key_I) { formatierungsToolbar._fmtWrap("*", "*");  e.accepted = true }
                             }
                         }
                     }
                 }
 
                 // ── Bildgalerie ───────────────────────────────
-                Rectangle {
-                    Layout.fillWidth: true
-                    height:           visible ? 116 : 0
-                    visible:          root._hatArtikel
-                    color:            root.theme.surfaceDeep
-                    clip:             true
-
-                    Rectangle {
-                        anchors.top: parent.top
-                        width: parent.width; height: 1; color: root.theme.border
+                WikiBildGalerie {
+                    bilder:  root._bilder
+                    theme:   root.theme
+                    visible: root._hatArtikel
+                    onBildHinzufuegenAngefordert: bildFileDialog.open()
+                    onVollbildAnzeigen: function(pfad, beschr) {
+                        root._vollbildPfad   = pfad
+                        root._vollbildBeschr = beschr
+                        vollbildPopup.open()
                     }
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 0
-
-                        // Galerie-Header
-                        RowLayout {
-                            Layout.fillWidth: true
-                            height: 28
-                            Layout.leftMargin:  16
-                            Layout.rightMargin: 8
-
-                            Text {
-                                text: root._bilder.length > 0
-                                      ? "📷 " + qsTr("Bilder (%1)").arg(root._bilder.length)
-                                      : "📷 " + qsTr("Bilder")
-                                font.pixelSize: 10
-                                color:          root.theme.textMuted
-                                Layout.fillWidth: true
-                            }
-                            Rectangle {
-                                width: 110; height: 20; radius: 3
-                                color: addBildHover.containsMouse ? root.theme.accent : root.theme.border
-                                Text {
-                                    anchors.centerIn: parent
-                                    text:           qsTr("+ Bild hinzufügen")
-                                    font.pixelSize: 10
-                                    color:          root.theme.textPrimary
-                                }
-                                HoverHandler { id: addBildHover }
-                                TapHandler   { onTapped: bildFileDialog.open() }
-                            }
-                        }
-
-                        // Thumbnail-Reihe
-                        ListView {
-                            id:               thumbListe
-                            Layout.fillWidth: true
-                            height:           84
-                            Layout.leftMargin: 8
-                            orientation:      ListView.Horizontal
-                            spacing:          6
-                            clip:             true
-                            model:            root._bilder
-
-                            delegate: Rectangle {
-                                width:  80
-                                height: 80
-                                radius: 4
-                                color:  root.theme.border
-                                clip:   true
-
-                                Image {
-                                    anchors.fill: parent
-                                    source:       modelData.tempPfad ? "file://" + modelData.tempPfad : ""
-                                    fillMode:     Image.PreserveAspectCrop
-                                    smooth:       true
-                                    asynchronous: true
-                                }
-
-                                // Löschen-Button oben rechts (bei Hover)
-                                Rectangle {
-                                    anchors { top: parent.top; right: parent.right; margins: 3 }
-                                    width: 18; height: 18; radius: 9
-                                    color:   thumbHover.containsMouse ? "#cc000000" : "#88000000"
-                                    visible: thumbHover.containsMouse || delThumbHover.containsMouse
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "✕"
-                                        font.pixelSize: 9
-                                        color: "white"
-                                    }
-                                    HoverHandler { id: delThumbHover }
-                                    TapHandler {
-                                        onTapped: {
-                                            db.wikiBildLoeschen(modelData.id)
-                                            root._bilderLaden(root._aktArtId)
-                                        }
-                                    }
-                                }
-
-                                // Vollbild per Klick (nur wenn kein Löschen-Hover)
-                                HoverHandler { id: thumbHover }
-                                TapHandler {
-                                    onTapped: {
-                                        root._vollbildPfad   = modelData.tempPfad ? "file://" + modelData.tempPfad : ""
-                                        root._vollbildBeschr = modelData.beschreibung || modelData.dateiname
-                                        vollbildPopup.open()
-                                    }
-                                }
-                            }
-
-                            // Platzhalter wenn noch keine Bilder
-                            Text {
-                                anchors.centerIn: parent
-                                visible:   thumbListe.count === 0
-                                text:      qsTr("Noch keine Bilder")
-                                color:     root.theme.textMuted
-                                font.pixelSize: 10
-                            }
-                        }
+                    onBildLoeschen: function(bildId) {
+                        db.wikiBildLoeschen(bildId)
+                        root._bilderLaden(root._aktArtId)
                     }
                 }
 
@@ -1356,7 +1056,7 @@ Item {
                     TapHandler {
                         onTapped: {
                             var descr = modelData.beschreibung || modelData.dateiname || ""
-                            root._fmtEinfuegen("![" + descr + "](wiki://bild/" + modelData.id + ")")
+                            formatierungsToolbar._fmtEinfuegen("![" + descr + "](wiki://bild/" + modelData.id + ")")
                             bildEinfuegenPopup.close()
                         }
                     }
@@ -1580,264 +1280,17 @@ Item {
 
     DebugLabel { panelName: qsTr("Wiki-Ansicht"); visible: root.debug }
 
-    // ── Bundle-Menü-Popup ─────────────────────────────────────
-    Popup {
-        id:           bundleMenuPopup
-        anchors.centerIn: parent
-        width:        280
-        height:       contentCol.implicitHeight + 32
-        modal:        true
-        padding:      0
-        closePolicy:  Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-        background: Rectangle {
-            color: root.theme.surface; radius: 6; border.color: root.theme.border
-        }
-
-        Column {
-            id:      contentCol
-            anchors { fill: parent; margins: 16 }
-            spacing: 10
-
-            Text {
-                text:           qsTr("Bundle-Aktionen")
-                font.pixelSize: 13; font.weight: Font.Medium
-                color:          root.theme.textPrimary
-            }
-            Rectangle { width: parent.width; height: 1; color: root.theme.divider }
-
-            Rectangle {
-                width: parent.width; height: 32; radius: 3
-                color: bndImportHover.containsMouse ? root.theme.hover : "transparent"
-                border.color: root.theme.border
-                Text {
-                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                    text: qsTr("↓  Bundle importieren (.json)")
-                    font.pixelSize: 11; color: root.theme.textPrimary
-                }
-                HoverHandler { id: bndImportHover }
-                TapHandler {
-                    onTapped: { bundleMenuPopup.close(); bundleImportDialog.open() }
-                }
-            }
-            Rectangle {
-                width: parent.width; height: 32; radius: 3
-                color: bndExportHover.containsMouse ? root.theme.hover : "transparent"
-                border.color: root.theme.border
-                Text {
-                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                    text: qsTr("↑  Bundle exportieren …")
-                    font.pixelSize: 11; color: root.theme.textPrimary
-                }
-                HoverHandler { id: bndExportHover }
-                TapHandler {
-                    onTapped: {
-                        bundleMenuPopup.close()
-                        // Bundle-Version vorschlagen: letzte bekannte + 1
-                        const aktiveListe = db.wikiBundleAktiveListe()
-                        root._bundleVersion = 1
-                        root._bundleKennung = ""
-                        root._bundleTitel   = ""
-                        root._bundleKatIds  = []
-                        bundleExportPopup.open()
-                    }
-                }
-            }
-        }
-    }
-
-    // ── Bundle-Import FileDialog ──────────────────────────────
-    FileDialog {
-        id:          bundleImportDialog
-        title:       qsTr("Bundle importieren")
-        fileMode:    FileDialog.OpenFile
-        nameFilters: [qsTr("Bundle-JSON (*.json)"), qsTr("Alle Dateien (*)")]
-        onAccepted: {
-            const res = db.wikiBundleAnwenden(selectedFile.toString())
+    // ── Bundle-Menü, Import & Export ─────────────────────────
+    WikiBundleDialog {
+        id: wikiBundle
+        theme: root.theme
+        kategorien: root._kategorien
+        onStatusMeldung: function(text, ok) { root._zeigeStatus(text, ok) }
+        onBundleImportiert: {
             root._kategorienLaden()
-            root._artIdx     = -1
+            root._artIdx = -1
             root._aktArtikel = ({})
-            root._bilder     = []
-            root._zeigeStatus(
-                res.erfolg
-                    ? qsTr("Bundle eingespielt: %1").arg(res.meldung)
-                    : qsTr("Bundle-Fehler: %1").arg(res.meldung),
-                res.erfolg
-            )
-        }
-    }
-
-    // ── Bundle-Export-Dialog ──────────────────────────────────
-    Popup {
-        id:           bundleExportPopup
-        anchors.centerIn: parent
-        width:        420
-        modal:        true
-        padding:      0
-        closePolicy:  Popup.CloseOnEscape
-
-        background: Rectangle {
-            color: root.theme.surface; radius: 6; border.color: root.theme.border
-        }
-
-        ColumnLayout {
-            anchors { fill: parent; margins: 20 }
-            spacing: 12
-
-            Text {
-                text: qsTr("Bundle exportieren")
-                font.pixelSize: 14; font.weight: Font.Medium
-                color: root.theme.textPrimary
-            }
-            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.divider }
-
-            // Kennung
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Text {
-                    text: qsTr("Kennung:"); font.pixelSize: 11; color: root.theme.textMuted
-                    width: 70
-                }
-                TextField {
-                    id: bndKennungFeld
-                    Layout.fillWidth: true; height: 28; font.pixelSize: 11
-                    placeholderText: "z.B. meine_tutorials"
-                    color: root.theme.textPrimary
-                    text: root._bundleKennung
-                    onTextChanged: root._bundleKennung = text
-                    background: Rectangle {
-                        radius: 3; color: root.theme.inputBg
-                        border.color: bndKennungFeld.activeFocus ? root.theme.accent : root.theme.border
-                    }
-                }
-            }
-
-            // Titel
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Text {
-                    text: qsTr("Titel:"); font.pixelSize: 11; color: root.theme.textMuted
-                    width: 70
-                }
-                TextField {
-                    id: bndTitelFeld
-                    Layout.fillWidth: true; height: 28; font.pixelSize: 11
-                    placeholderText: qsTr("Lesbarer Name")
-                    color: root.theme.textPrimary
-                    text: root._bundleTitel
-                    onTextChanged: root._bundleTitel = text
-                    background: Rectangle {
-                        radius: 3; color: root.theme.inputBg
-                        border.color: bndTitelFeld.activeFocus ? root.theme.accent : root.theme.border
-                    }
-                }
-            }
-
-            // Version
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Text {
-                    text: qsTr("Version:"); font.pixelSize: 11; color: root.theme.textMuted
-                    width: 70
-                }
-                SpinBox {
-                    id: bndVersionSpin
-                    from: 1; to: 9999; value: root._bundleVersion
-                    onValueChanged: root._bundleVersion = value
-                    font.pixelSize: 11
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 11;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-            }
-
-            // Kategorien
-            Text {
-                text: qsTr("Kategorien:"); font.pixelSize: 11; color: root.theme.textMuted
-            }
-            Rectangle {
-                Layout.fillWidth: true
-                height: Math.min(bndKatCol.implicitHeight + 8, 160)
-                color: root.theme.inputBg; radius: 3; border.color: root.theme.border
-                clip: true
-                Flickable {
-                    anchors { fill: parent; margins: 4 }
-                    contentHeight: bndKatCol.implicitHeight
-                    Column {
-                        id: bndKatCol
-                        width: parent.width; spacing: 2
-                        Repeater {
-                            model: root._kategorien
-                            delegate: RowLayout {
-                                width: parent.width; spacing: 6; height: 24
-                                CheckBox {
-                                    id: bndKatChk
-                                    checked: root._bundleKatIds.indexOf(modelData.id) >= 0
-                                    onCheckedChanged: {
-                                        var ids = root._bundleKatIds.slice()
-                                        if (checked) { if (ids.indexOf(modelData.id) < 0) ids.push(modelData.id) }
-                                        else { ids = ids.filter(function(i) { return i !== modelData.id }) }
-                                        root._bundleKatIds = ids
-                                    }
-                                }
-                                Text {
-                                    text: modelData.name; font.pixelSize: 11
-                                    color: root.theme.textPrimary
-                                    Layout.fillWidth: true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Buttons
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Item { Layout.fillWidth: true }
-                Rectangle {
-                    width: 80; height: 30; radius: 3
-                    color: bndExpSaveHover.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.15)
-                    enabled: root._bundleKennung.trim() !== "" && root._bundleKatIds.length > 0
-                    opacity: enabled ? 1.0 : 0.5
-                    Text { anchors.centerIn: parent; text: qsTr("Speichern"); font.pixelSize: 11; color: "white" }
-                    HoverHandler { id: bndExpSaveHover }
-                    TapHandler {
-                        onTapped: {
-                            bundleExportPopup.close()
-                            bundleExportSaveDialog.open()
-                        }
-                    }
-                }
-                Rectangle {
-                    width: 70; height: 30; radius: 3
-                    color: bndExpAbbrHover.containsMouse ? root.theme.hover : "transparent"
-                    border.color: root.theme.border
-                    Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); font.pixelSize: 11; color: root.theme.textMuted }
-                    HoverHandler { id: bndExpAbbrHover }
-                    TapHandler { onTapped: bundleExportPopup.close() }
-                }
-            }
-        }
-    }
-
-    // ── Bundle-Export SaveFileDialog ──────────────────────────
-    FileDialog {
-        id:          bundleExportSaveDialog
-        title:       qsTr("Bundle speichern")
-        fileMode:    FileDialog.SaveFile
-        nameFilters: [qsTr("Bundle-JSON (*.json)"), qsTr("Alle Dateien (*)")]
-        onAccepted: {
-            const ok = db.wikiBundleExportieren(
-                selectedFile.toString(),
-                root._bundleKennung.trim(),
-                root._bundleTitel.trim(),
-                root._bundleVersion,
-                root._bundleKatIds
-            )
-            root._zeigeStatus(
-                ok ? qsTr("Bundle exportiert") : qsTr("Bundle-Export fehlgeschlagen"), ok
-            )
+            root._bilder = []
         }
     }
 }

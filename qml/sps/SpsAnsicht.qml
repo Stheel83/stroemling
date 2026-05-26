@@ -133,468 +133,53 @@ Item {
     Component.onCompleted: _ladeRacks()
 
     // ── Rack-Dialog ───────────────────────────────────────────────
-    Dialog {
+    SpsRackDialog {
         id: rackDialog
-        property bool  istNeu: true
-        property int   editId: -1
-
-        title: istNeu ? qsTr("Rack anlegen") : qsTr("Rack bearbeiten")
-        modal: true
-        anchors.centerIn: parent
-        width: 380
-
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        ColumnLayout {
-            width: parent.width
-            spacing: 8
-
-            Label { text: qsTr("Rack-Nummer"); color: root.theme.textPrimary }
-            SpinBox {
-                id: rackNrSpin
-                from: 0; to: 99
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            }
-            Label { text: qsTr("System-Typ"); color: root.theme.textPrimary }
-            ComboBox {
-                id: systemTypCombo
-                model: ["SPS", "PLS"]
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-            }
-            Label { text: qsTr("Bezeichnung"); color: root.theme.textPrimary }
-            TextField {
-                id: rackBezField
-                placeholderText: "Rack 0"
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                color: root.theme.textPrimary
-            }
-            Label { text: qsTr("Hersteller"); color: root.theme.textPrimary }
-            TextField {
-                id: rackHerstellerField
-                placeholderText: "Siemens"
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                color: root.theme.textPrimary
+        theme: root.theme
+        projektId: root.projektId
+        onGespeichert: function(newId) {
+            _ladeRacks()
+            if (newId > 0) {
+                for (var i = 0; i < _racks.length; i++)
+                    if (_racks[i].id === newId) { _waehleRack(_racks[i]); break }
             }
         }
-
-        function oeffnenNeu() {
-            istNeu = true; editId = -1
-            rackNrSpin.value = 0
-            systemTypCombo.currentIndex = 0
-            rackBezField.text = ""
-            rackHerstellerField.text = ""
-            open()
-        }
-        function oeffnenEdit(rack) {
-            istNeu = false; editId = rack.id
-            rackNrSpin.value = rack.rack_nr
-            systemTypCombo.currentIndex = rack.system_typ === "PLS" ? 1 : 0
-            rackBezField.text = rack.bezeichnung
-            rackHerstellerField.text = rack.hersteller
-            open()
-        }
-
-        onAccepted: {
-            var bez = rackBezField.text.trim() || ("Rack " + rackNrSpin.value)
-            if (istNeu) {
-                var newId = db.spsRackAnlegen(root.projektId,
-                                               rackNrSpin.value,
-                                               systemTypCombo.currentText,
-                                               bez,
-                                               rackHerstellerField.text.trim())
-                if (newId > 0) {
-                    _ladeRacks()
-                    // Neu erstelltes Rack auswählen
-                    for (var i = 0; i < _racks.length; i++)
-                        if (_racks[i].id === newId) { _waehleRack(_racks[i]); break }
-                } else {
-                    _zeigeStatus(qsTr("Rack konnte nicht angelegt werden (Rack-Nr. bereits vergeben?)"), false)
-                }
-            } else {
-                var ok = db.spsRackAktualisieren(editId, rackNrSpin.value,
-                                                  systemTypCombo.currentText,
-                                                  bez, "", rackHerstellerField.text.trim())
-                if (ok) { _ladeRacks() } else { _zeigeStatus(qsTr("Rack konnte nicht gespeichert werden"), false) }
-            }
-        }
+        onFehler: function(meldung) { _zeigeStatus(meldung, false) }
     }
 
     // ── Baugruppe-Dialog ──────────────────────────────────────────
-    Dialog {
+    SpsBaugruppeDialog {
         id: bgDialog
-        property bool istNeu: true
-        property int  editId: -1
-
-        title: istNeu ? qsTr("Baugruppe anlegen") : qsTr("Baugruppe bearbeiten")
-        modal: true
-        anchors.centerIn: parent
-        width: 400
-
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        ColumnLayout {
-            width: parent.width
-            spacing: 8
-
-            Label { text: qsTr("Slot"); color: root.theme.textPrimary }
-            SpinBox {
-                id: bgSlotSpin; from: 0; to: 31; Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            }
-
-            Label { text: qsTr("Typ"); color: root.theme.textPrimary }
-            ComboBox {
-                id: bgTypCombo
-                model: ["CPU","PS","DI","DO","DIO","AI","AO","AIO","CP","FM","andere"]
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-            }
-            Label { text: qsTr("Bezeichnung"); color: root.theme.textPrimary }
-            TextField {
-                id: bgBezField; placeholderText: "SM 321"
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                color: root.theme.textPrimary
-            }
-            Label { text: qsTr("Artikel-Nr."); color: root.theme.textPrimary }
-            TextField {
-                id: bgArtNrField; placeholderText: "6ES7 321-..."
-                Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                color: root.theme.textPrimary
-            }
-            Label { text: qsTr("Kanäle"); color: root.theme.textPrimary }
-            SpinBox {
-                id: bgKanaeleSpin; from: 1; to: 128; value: 8; Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            }
-
-            Label { text: qsTr("Startbyte (SPS)"); color: root.theme.textPrimary }
-            SpinBox {
-                id: bgStartbyteSpin; from: 0; to: 9999; value: 0; Layout.fillWidth: true
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            }
+        theme: root.theme
+        rackId: root._ausgewaehlterRackId
+        onGespeichert: function(newId) {
+            if (newId > 0) root._ausgewaehlterBaugruppeId = newId
+            _ladeBaugruppen()
         }
-
-        function oeffnenNeu() {
-            istNeu = true; editId = -1
-            bgSlotSpin.value = 0; bgTypCombo.currentIndex = 2
-            bgBezField.text = ""; bgArtNrField.text = ""
-            bgKanaeleSpin.value = 8; bgStartbyteSpin.value = 0
-            open()
-        }
-        function oeffnenEdit(bg) {
-            istNeu = false; editId = bg.id
-            bgSlotSpin.value = bg.slot
-            bgTypCombo.currentIndex = Math.max(0, bgTypCombo.model.indexOf(bg.typ))
-            bgBezField.text = bg.bezeichnung
-            bgArtNrField.text = bg.artikel_nr
-            bgKanaeleSpin.value = bg.kanaele
-            bgStartbyteSpin.value = bg.adress_byte_start
-            open()
-        }
-
-        onAccepted: {
-            if (istNeu) {
-                var newId = db.spsBaugruppeAnlegen(root._ausgewaehlterRackId,
-                                                    bgSlotSpin.value,
-                                                    bgTypCombo.currentText,
-                                                    bgBezField.text.trim(),
-                                                    bgKanaeleSpin.value,
-                                                    bgStartbyteSpin.value)
-                if (newId < 0) _zeigeStatus(qsTr("Baugruppe konnte nicht angelegt werden (Slot bereits belegt?)"), false)
-                else { _ausgewaehlterBaugruppeId = newId; _ladeBaugruppen() }
-            } else {
-                var ok = db.spsBaugruppeAktualisieren(editId,
-                                                       bgSlotSpin.value, bgTypCombo.currentText,
-                                                       bgBezField.text.trim(), bgArtNrField.text.trim(),
-                                                       bgKanaeleSpin.value, "BOOL",
-                                                       bgStartbyteSpin.value, "")
-                if (!ok) _zeigeStatus(qsTr("Baugruppe konnte nicht gespeichert werden"), false)
-                else _ladeBaugruppen()
-            }
-        }
+        onFehler: function(meldung) { _zeigeStatus(meldung, false) }
     }
 
     // ── Auto-Anlegen Bestätigung ──────────────────────────────────
-    Dialog {
+    SpsAutoAnlegenDialog {
         id: autoAnlegenDialog
-        title: qsTr("Kanäle automatisch anlegen")
-        modal: true
-        anchors.centerIn: parent
-        width: 360
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        Label {
-            width: parent.width
-            wrapMode: Text.WordWrap
-            color: root.theme.textPrimary
-            text: {
-                var bg = root._pendingAutoAnlegenBg
-                if (!bg) return ""
-                var vorh = db.spsKanalListeFuerBaugruppe(bg.id).length
-                return qsTr("Die Baugruppe \"%1\" hat bereits %2 Kanal(e).\nNeu anlegen überspringt Adresskonflikte.\nFortfahren?").arg(bg.bezeichnung || bg.typ).arg(vorh)
-            }
-        }
-
-        onAccepted: root._kanaeleAutoAnlegen(root._pendingAutoAnlegenBg)
+        theme: root.theme
+        bg: root._pendingAutoAnlegenBg
+        onBestaetigt: root._kanaeleAutoAnlegen(root._pendingAutoAnlegenBg)
     }
 
     // ── Kanal-Dialog ──────────────────────────────────────────────
-    Dialog {
+    SpsKanalDialog {
         id: kanalDialog
-        property bool istNeu: true
-        property int  editId: -1
-        property bool istPls: root._ausgewaehlterSystemTyp === "PLS"
-
-        title: istNeu ? qsTr("Kanal anlegen") : qsTr("Kanal bearbeiten")
-        modal: true
-        anchors.centerIn: parent
-        width: 440
-
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        ScrollView {
-            width: parent.width
-            height: Math.min(500, contentHeight + 20)
-            clip: true
-
-            ColumnLayout {
-                width: kanalDialog.width - 40
-                spacing: 8
-
-                // SPS-Felder
-                Label { text: qsTr("Adress-Typ (SPS)"); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
-                ComboBox {
-                    id: kanalAdressTypCombo
-                    visible: !kanalDialog.istPls
-                    model: ["E","A","M","T","Z"]
-                    Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                }
-                Label { text: qsTr("Byte-Nr."); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
-                SpinBox {
-                    id: kanalByteNrSpin; visible: !kanalDialog.istPls; from: 0; to: 99999; Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-                Label { text: qsTr("Bit-Nr. (−1 für WORD/BYTE/DWORD)"); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
-                SpinBox {
-                    id: kanalBitNrSpin; visible: !kanalDialog.istPls; from: 0; to: 7; Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-                Label { text: qsTr("Datentyp"); visible: !kanalDialog.istPls; color: root.theme.textPrimary }
-                ComboBox {
-                    id: kanalDatentypCombo
-                    visible: !kanalDialog.istPls
-                    model: ["BOOL","BYTE","WORD","DWORD","REAL","INT","DINT"]
-                    Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                }
-
-                // PLS-Felder
-                Label { text: qsTr("Kanal-Nr. (innerhalb Baugruppe, 0-basiert)"); visible: kanalDialog.istPls; color: root.theme.textPrimary }
-                SpinBox {
-                    id: kanalNrSpin; visible: kanalDialog.istPls; from: 0; to: 127; Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-
-                // Gemeinsam
-                Label { text: qsTr("Variable / Tag (ISA: TIC-001)"); color: root.theme.textPrimary }
-                TextField {
-                    id: kanalVarField; placeholderText: kanalDialog.istPls ? "TIC-001" : "Motor_Start"
-                    Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                    color: root.theme.textPrimary
-                }
-                Label { text: qsTr("Kommentar"); color: root.theme.textPrimary }
-                TextField {
-                    id: kanalKomField; placeholderText: kanalDialog.istPls ? "Reaktor Temp. Eingang" : "Taster grün S7"
-                    Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                    color: root.theme.textPrimary
-                }
-                Label { text: qsTr("Baugruppe"); color: root.theme.textPrimary }
-                ComboBox {
-                    id: kanalBaugruppeCombo
-                    Layout.fillWidth: true
-                    model: root._baugruppen.map(function(b) {
-                        return "Slot " + b.slot + " – " + b.typ + " " + b.bezeichnung
-                    })
-                    property int ausgewaehlteId: root._baugruppen.length > 0
-                                                  ? root._baugruppen[currentIndex].id : -1
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                }
-
-                // PLS-Metadaten
-                Label { text: qsTr("Einheit"); visible: kanalDialog.istPls; color: root.theme.textPrimary }
-                TextField {
-                    id: plsEinheitField; visible: kanalDialog.istPls
-                    placeholderText: "°C / bar / m³/h / %"
-                    Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                    color: root.theme.textPrimary
-                }
-                Label { text: qsTr("Bereich Min / Max"); visible: kanalDialog.istPls; color: root.theme.textPrimary }
-                RowLayout {
-                    visible: kanalDialog.istPls
-                    Layout.fillWidth: true
-                    TextField {
-                        id: plsMinField; placeholderText: "0.0"; Layout.fillWidth: true
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        color: root.theme.textPrimary
-                    }
-                    Label { text: "–"; color: root.theme.textMuted }
-                    TextField {
-                        id: plsMaxField; placeholderText: "100.0"; Layout.fillWidth: true
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        color: root.theme.textPrimary
-                    }
-                }
-                Label { text: qsTr("Alarme LL / LO / HI / HH"); visible: kanalDialog.istPls; color: root.theme.textPrimary }
-                GridLayout {
-                    visible: kanalDialog.istPls
-                    Layout.fillWidth: true
-                    columns: 4; columnSpacing: 6
-                    TextField { id: plsAlllField; placeholderText: "LL"; Layout.fillWidth: true
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        color: root.theme.textPrimary }
-                    TextField { id: plsAlloField; placeholderText: "LO"; Layout.fillWidth: true
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        color: root.theme.textPrimary }
-                    TextField { id: plsAlhiField; placeholderText: "HI"; Layout.fillWidth: true
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        color: root.theme.textPrimary }
-                    TextField { id: plsAlhhField; placeholderText: "HH"; Layout.fillWidth: true
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        color: root.theme.textPrimary }
-                }
-                Label { text: qsTr("Protokoll"); visible: kanalDialog.istPls; color: root.theme.textPrimary }
-                ComboBox {
-                    id: plsProtokollCombo
-                    visible: kanalDialog.istPls
-                    model: ["analog","HART","PROFIBUS_PA","FOUNDATION_FF"]
-                    Layout.fillWidth: true
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                }
-            }
-        }
-
-        function oeffnenNeu() {
-            istNeu = true; editId = -1
-            kanalAdressTypCombo.currentIndex = 0
-            kanalByteNrSpin.value = 0; kanalBitNrSpin.value = 0
-            kanalDatentypCombo.currentIndex = 0
-            kanalNrSpin.value = 0
-            kanalVarField.text = ""; kanalKomField.text = ""
-            plsEinheitField.text = ""; plsMinField.text = ""; plsMaxField.text = ""
-            plsAlllField.text = ""; plsAlloField.text = ""
-            plsAlhiField.text = ""; plsAlhhField.text = ""
-            plsProtokollCombo.currentIndex = 0
-            // Aktive Baugruppe vorauswählen
-            if (root._ausgewaehlterBaugruppeId > 0) {
-                for (var i = 0; i < root._baugruppen.length; i++)
-                    if (root._baugruppen[i].id === root._ausgewaehlterBaugruppeId) {
-                        kanalBaugruppeCombo.currentIndex = i; break
-                    }
-            }
-            open()
-        }
-        function oeffnenEdit(k) {
-            istNeu = false; editId = k.id
-            kanalAdressTypCombo.currentIndex = Math.max(0, kanalAdressTypCombo.model.indexOf(k.adress_typ))
-            kanalByteNrSpin.value = k.byte_nr || 0
-            kanalBitNrSpin.value  = k.bit_nr  || 0
-            kanalDatentypCombo.currentIndex = Math.max(0, kanalDatentypCombo.model.indexOf(k.datentyp))
-            kanalNrSpin.value     = k.kanal_nr != null ? k.kanal_nr : 0
-            kanalVarField.text    = k.variablenname || ""
-            kanalKomField.text    = k.kommentar    || ""
-            plsEinheitField.text  = k.pls_einheit  || ""
-            plsMinField.text      = k.pls_bereich_min != null ? String(k.pls_bereich_min) : ""
-            plsMaxField.text      = k.pls_bereich_max != null ? String(k.pls_bereich_max) : ""
-            plsAlllField.text     = k.pls_alarm_ll != null ? String(k.pls_alarm_ll) : ""
-            plsAlloField.text     = k.pls_alarm_lo != null ? String(k.pls_alarm_lo) : ""
-            plsAlhiField.text     = k.pls_alarm_hi != null ? String(k.pls_alarm_hi) : ""
-            plsAlhhField.text     = k.pls_alarm_hh != null ? String(k.pls_alarm_hh) : ""
-            var pidx = plsProtokollCombo.model.indexOf(k.pls_protokoll)
-            plsProtokollCombo.currentIndex = pidx >= 0 ? pidx : 0
-            for (var i = 0; i < root._baugruppen.length; i++)
-                if (root._baugruppen[i].id === k.baugruppe_id) { kanalBaugruppeCombo.currentIndex = i; break }
-            open()
-        }
-
-        onAccepted: {
-            var bgId = kanalBaugruppeCombo.ausgewaehlteId
-            var isPls = kanalDialog.istPls
-            var byteNr = isPls ? 0 : kanalByteNrSpin.value
-            var bitNr  = isPls ? 0 : kanalBitNrSpin.value
-            var kNr    = isPls ? kanalNrSpin.value : -1
-            var typ    = isPls ? "E" : kanalAdressTypCombo.currentText
-            var dtype  = isPls ? "REAL" : kanalDatentypCombo.currentText
-
-            if (istNeu) {
-                var newId = db.spsKanalAnlegen(root.projektId, bgId, kNr,
-                                                typ, byteNr, bitNr, dtype,
-                                                kanalVarField.text.trim(),
-                                                kanalKomField.text.trim())
-                if (newId < 0) { _zeigeStatus(qsTr("Kanal konnte nicht angelegt werden (Adresse bereits vergeben?)"), false); return }
-                root._ausgewaehlterKanalId = newId
-            } else {
-                var felder = {
-                    "adress_typ":    typ,
-                    "byte_nr":       byteNr,
-                    "bit_nr":        bitNr,
-                    "datentyp":      dtype,
-                    "variablenname": kanalVarField.text.trim(),
-                    "kommentar":     kanalKomField.text.trim()
-                }
-                if (isPls) {
-                    felder["kanal_nr"]       = kNr
-                    felder["pls_einheit"]    = plsEinheitField.text.trim() || null
-                    felder["pls_protokoll"]  = plsProtokollCombo.currentText
-                    if (plsMinField.text.trim()) felder["pls_bereich_min"] = parseFloat(plsMinField.text)
-                    if (plsMaxField.text.trim()) felder["pls_bereich_max"] = parseFloat(plsMaxField.text)
-                    if (plsAlllField.text.trim()) felder["pls_alarm_ll"] = parseFloat(plsAlllField.text)
-                    if (plsAlloField.text.trim()) felder["pls_alarm_lo"] = parseFloat(plsAlloField.text)
-                    if (plsAlhiField.text.trim()) felder["pls_alarm_hi"] = parseFloat(plsAlhiField.text)
-                    if (plsAlhhField.text.trim()) felder["pls_alarm_hh"] = parseFloat(plsAlhhField.text)
-                }
-                if (!db.spsKanalAktualisieren(editId, felder)) {
-                    _zeigeStatus(qsTr("Kanal konnte nicht gespeichert werden"), false)
-                    return
-                }
-            }
+        theme: root.theme
+        projektId: root.projektId
+        systemTyp: root._ausgewaehlterSystemTyp
+        baugruppen: root._baugruppen
+        aktBaugruppeId: root._ausgewaehlterBaugruppeId
+        onGespeichert: function(newId) {
+            if (newId > 0) root._ausgewaehlterKanalId = newId
             _ladeKanaele()
         }
+        onFehler: function(meldung) { _zeigeStatus(meldung, false) }
     }
 
     // ── Export-Dialoge ────────────────────────────────────────────

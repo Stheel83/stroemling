@@ -34,13 +34,6 @@ Item {
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
 
-    // ── BAUTEILE-Bereich: Zustand + Caches ──────────────────
-    property bool bauteilBereichOffen:   false
-    property var  leistenAufgeklappt:    ({})   // {leisteId: bool}
-    property var  klemmenAufgeklappt:    ({})   // {klemmeId: bool}
-    property var  klemmenCache:          ({})   // {leisteId: [{id,nummer,bauteilId,bauteilKlemmeId,bezeichnung,leisteBmk}]}
-    property var  anschluesseCache:      ({})   // {bauteilId: [{bezeichnung,seite,ebene}]}
-
     // Hilfsfunktion: Listenindex für bekannte DIN-Formate ermitteln
     function formatIndex(b, h) {
         var fmts = [
@@ -56,11 +49,7 @@ Item {
     onProjektIdChanged: {
         if (projektId >= 0)
             seitenModel.laden(projektId)
-        root.leistenAufgeklappt  = {}
-        root.klemmenAufgeklappt  = {}
-        root.klemmenCache        = {}
-        root.anschluesseCache    = {}
-        root.bauteilBereichOffen = false
+        bauteilePanel.reset()
     }
 
     // --------------------------------------------------------
@@ -523,12 +512,6 @@ Item {
         property real   altRandRechts:       10
         property real   altRandOben:         10
         property real   altRandUnten:        10
-        property string altHintergrundFarbe: ""
-        property bool   altAussenOverlay:    false
-        property string altTitelblattVorlage: "din6771"
-        property var    _normblattVorlagen:   []
-        property string altRevisionStatus:   ""
-        property string altRevisionKennung:  ""
 
         height: Math.min(implicitHeight, 680)
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
@@ -544,27 +527,7 @@ Item {
             editRandRechts.value = dlgSeiteBearbeiten.altRandRechts
             editRandOben.value   = dlgSeiteBearbeiten.altRandOben
             editRandUnten.value  = dlgSeiteBearbeiten.altRandUnten
-            dlgSeiteBearbeiten._normblattVorlagen = db.normblattVorlagenListe()
-            var nd = db.normblattDatenLaden(dlgSeiteBearbeiten.itemId)
-            if (nd) {
-                chkNormblatt.checked       = nd.normblattAnzeigen !== false
-                tfHintergrundFarbe.text    = nd.hintergrundFarbe  || ""
-                chkAussenOverlay.checked   = nd.aussenOverlay === 1 || nd.aussenOverlay === true
-                if (nd.normblattVorlageId) {
-                    cmbVorlage.currentIndex = 3  // "benutzerdefiniert"
-                    for (var j = 0; j < dlgSeiteBearbeiten._normblattVorlagen.length; j++) {
-                        if (dlgSeiteBearbeiten._normblattVorlagen[j].id === nd.normblattVorlageId) {
-                            cmbVorlageAuswahl.currentIndex = j; break
-                        }
-                    }
-                } else {
-                    var vi = cmbVorlage.model.indexOf(nd.titelblattVorlage || "din6771")
-                    cmbVorlage.currentIndex = vi >= 0 ? vi : 0
-                }
-                var ri = cmbRevisionStatus.model.indexOf(nd.revisionStatus || "")
-                cmbRevisionStatus.currentIndex = ri >= 0 ? ri : 0
-                tfRevisionKennung.text = nd.revisionKennung || ""
-            }
+            normblattPanel.laden(dlgSeiteBearbeiten.itemId)
         }
 
         contentItem: ColumnLayout {
@@ -642,229 +605,10 @@ Item {
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter } }
             }
 
-            // ── Normblatt-Einstellungen ──────────────────────────────────
-            RowLayout {
-                Layout.fillWidth: true; Layout.topMargin: 2
-                CheckBox {
-                    id: chkNormblatt
-                    checked: true
-                    indicator: Rectangle {
-                        width: 16; height: 16; radius: 3
-                        border.color: chkNormblatt.checked ? theme.accent : theme.border
-                        color: chkNormblatt.checked ? theme.accent : theme.inputBg
-                        Text {
-                            anchors.centerIn: parent
-                            text: "✓"; color: theme.textPrimary
-                            font.pixelSize: 11; visible: chkNormblatt.checked
-                        }
-                    }
-                    contentItem: Text {
-                        text: qsTr("Normblatt anzeigen")
-                        color: theme.textPrimary; font.pixelSize: 13
-                        leftPadding: chkNormblatt.indicator.width + chkNormblatt.spacing
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
+            SeitenBaumNormblattPanel {
+                id: normblattPanel
+                theme: root.theme
             }
-
-            // Titelblatt-Vorlage (nur wenn Normblatt aktiv)
-            Text {
-                text: qsTr("Titelblatt-Vorlage")
-                color: theme.textMuted; font.pixelSize: 12
-                visible: chkNormblatt.checked
-            }
-            ComboBox {
-                id: cmbVorlage
-                Layout.fillWidth: true
-                visible: chkNormblatt.checked
-                model: ["din6771", "kompakt", "rahmen", "benutzerdefiniert"]
-                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
-                contentItem: Text {
-                    leftPadding: 8; text: {
-                        switch(cmbVorlage.currentText) {
-                            case "din6771":  return qsTr("DIN 6771 (vollständiges Schriftfeld)")
-                            case "kompakt":  return qsTr("Kompakt (2-zeiliges Schriftfeld)")
-                            case "rahmen":          return qsTr("Nur Rahmen (kein Schriftfeld)")
-                            case "benutzerdefiniert": return qsTr("Benutzerdefiniert …")
-                            default:                  return cmbVorlage.currentText
-                        }
-                    }
-                    color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
-                }
-                delegate: ItemDelegate {
-                    width: cmbVorlage.width; implicitHeight: 32
-                    highlighted: cmbVorlage.highlightedIndex === index
-                    contentItem: Text {
-                        leftPadding: 8
-                        text: {
-                            switch(modelData) {
-                                case "din6771": return qsTr("DIN 6771 (vollständiges Schriftfeld)")
-                                case "kompakt": return qsTr("Kompakt (2-zeiliges Schriftfeld)")
-                                case "rahmen":          return qsTr("Nur Rahmen (kein Schriftfeld)")
-                                case "benutzerdefiniert": return qsTr("Benutzerdefiniert …")
-                                default:                  return modelData
-                            }
-                        }
-                        color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle { color: highlighted ? theme.hover : "transparent" }
-                }
-            }
-
-            // Benutzerdefinierte Vorlage auswählen
-            Text {
-                text: qsTr("Vorlage auswählen")
-                color: theme.textMuted; font.pixelSize: 12
-                visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
-                height: visible ? implicitHeight : 0
-            }
-            ComboBox {
-                id: cmbVorlageAuswahl
-                Layout.fillWidth: true
-                visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
-                         && dlgSeiteBearbeiten._normblattVorlagen.length > 0
-                model: dlgSeiteBearbeiten._normblattVorlagen.map(function(v) { return v.name })
-                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
-                contentItem: Text {
-                    leftPadding: 8; text: cmbVorlageAuswahl.displayText
-                    color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
-                }
-                delegate: ItemDelegate {
-                    required property var modelData
-                    required property int index
-                    width: cmbVorlageAuswahl.width; implicitHeight: 32
-                    highlighted: cmbVorlageAuswahl.highlightedIndex === index
-                    contentItem: Text {
-                        leftPadding: 8; text: modelData
-                        color: theme.textPrimary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle { color: highlighted ? theme.hover : "transparent" }
-                }
-            }
-            Text {
-                text: qsTr("Keine Vorlagen vorhanden. Über 'Normblatt' in der Seitenleiste anlegen.")
-                visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
-                         && dlgSeiteBearbeiten._normblattVorlagen.length === 0
-                color: theme.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap
-                Layout.fillWidth: true
-            }
-
-            // Außen-Overlay Checkbox (nur wenn Normblatt aktiv)
-            RowLayout {
-                Layout.fillWidth: true
-                visible: chkNormblatt.checked
-                CheckBox {
-                    id: chkAussenOverlay
-                    checked: false
-                    indicator: Rectangle {
-                        width: 16; height: 16; radius: 3
-                        border.color: chkAussenOverlay.checked ? theme.accent : theme.border
-                        color: chkAussenOverlay.checked ? theme.accent : theme.inputBg
-                        Text {
-                            anchors.centerIn: parent
-                            text: "✓"; color: theme.textPrimary
-                            font.pixelSize: 11; visible: chkAussenOverlay.checked
-                        }
-                    }
-                    contentItem: Text {
-                        text: qsTr("Bereich außerhalb abdunkeln")
-                        color: theme.textPrimary; font.pixelSize: 13
-                        leftPadding: chkAussenOverlay.indicator.width + chkAussenOverlay.spacing
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-            }
-
-            // Seitenhintergrundfarbe
-            Text { text: qsTr("Seitenhintergrund (Farbe)"); color: theme.textMuted; font.pixelSize: 12 }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                TextField {
-                    id: tfHintergrundFarbe
-                    Layout.fillWidth: true
-                    placeholderText: qsTr("leer = transparent, z.B. #ffffff")
-                    background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
-                    color: theme.textPrimary; font.pixelSize: 13
-                }
-                Rectangle {
-                    width: 28; height: 28; radius: 4
-                    color: tfHintergrundFarbe.text.trim() || "transparent"
-                    border.color: theme.border
-                }
-            }
-
-            // ── Revisionsstatus ──────────────────────────────────────────
-            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 2 }
-            Text { text: qsTr("Revisionsstatus"); color: theme.textMuted; font.pixelSize: 12 }
-            ComboBox {
-                id: cmbRevisionStatus
-                Layout.fillWidth: true
-                model: ["", "entwurf", "freigegeben", "veraltet"]
-                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
-                contentItem: Text {
-                    leftPadding: 8
-                    text: {
-                        switch(cmbRevisionStatus.currentText) {
-                            case "entwurf":     return qsTr("Entwurf")
-                            case "freigegeben": return qsTr("Freigegeben")
-                            case "veraltet":    return qsTr("Veraltet")
-                            default:            return qsTr("Kein Status")
-                        }
-                    }
-                    color: {
-                        switch(cmbRevisionStatus.currentText) {
-                            case "entwurf":     return "#d97706"
-                            case "freigegeben": return "#16a34a"
-                            case "veraltet":    return "#dc2626"
-                            default:            return theme.textMuted
-                        }
-                    }
-                    font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
-                }
-                delegate: ItemDelegate {
-                    required property var modelData
-                    required property int index
-                    width: cmbRevisionStatus.width; implicitHeight: 32
-                    highlighted: cmbRevisionStatus.highlightedIndex === index
-                    contentItem: Text {
-                        leftPadding: 8
-                        text: {
-                            switch(modelData) {
-                                case "entwurf":     return qsTr("Entwurf")
-                                case "freigegeben": return qsTr("Freigegeben")
-                                case "veraltet":    return qsTr("Veraltet")
-                                default:            return qsTr("Kein Status")
-                            }
-                        }
-                        color: {
-                            switch(modelData) {
-                                case "entwurf":     return "#d97706"
-                                case "freigegeben": return "#16a34a"
-                                case "veraltet":    return "#dc2626"
-                                default:            return theme.textMuted
-                            }
-                        }
-                        font.pixelSize: 13; verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle { color: highlighted ? theme.hover : "transparent" }
-                }
-            }
-            Text {
-                text: qsTr("Revisionskennzeichen (z. B. A, B, 1.0)")
-                color: theme.textMuted; font.pixelSize: 12
-                visible: cmbRevisionStatus.currentText !== ""
-                height: visible ? implicitHeight : 0
-            }
-            TextField {
-                id: tfRevisionKennung
-                Layout.fillWidth: true
-                visible: cmbRevisionStatus.currentText !== ""
-                height: visible ? implicitHeight : 0
-                placeholderText: qsTr("leer lassen wenn nicht relevant")
-                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
-                color: theme.textPrimary; font.pixelSize: 13
-            }
-            Item { height: 4 }
             } // ColumnLayout (ScrollView content)
             } // ScrollView
 
@@ -895,20 +639,7 @@ Item {
                             fmt.breite, fmt.hoehe,
                             editRandLinks.value, editRandRechts.value,
                             editRandOben.value,  editRandUnten.value)
-                        db.normblattEinstellungenSetzen(
-                            dlgSeiteBearbeiten.itemId,
-                            chkNormblatt.checked,
-                            tfHintergrundFarbe.text.trim(),
-                            chkAussenOverlay.checked,
-                            cmbVorlage.currentText,
-                            (cmbVorlage.currentText === "benutzerdefiniert"
-                             && cmbVorlageAuswahl.currentIndex >= 0
-                             && dlgSeiteBearbeiten._normblattVorlagen.length > 0)
-                                ? dlgSeiteBearbeiten._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
-                        db.seiteRevisionSetzen(
-                            dlgSeiteBearbeiten.itemId,
-                            cmbRevisionStatus.currentText,
-                            tfRevisionKennung.text.trim())
+                        normblattPanel.speichern(dlgSeiteBearbeiten.itemId)
                         root.seiteFormatGeaendert(dlgSeiteBearbeiten.itemId)
                         dlgSeiteBearbeiten.close()
                     }
@@ -1134,7 +865,7 @@ Item {
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: root.bauteilBereichOffen ? undefined : -1
+            Layout.preferredHeight: bauteilePanel.offen ? undefined : -1
             clip: true
 
             TreeView {
@@ -1326,231 +1057,13 @@ Item {
             }
         }
 
-        // ── Trennlinie ──────────────────────────────────────────
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.borderDark }
-
-        // ── BAUTEILE Header (immer sichtbar) ────────────────────
-        Rectangle {
-            Layout.fillWidth: true; height: 36
-            color: bauteilHeaderArea.containsMouse ? theme.hover : "transparent"
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
-                spacing: 6
-                Text {
-                    text: qsTr("BAUTEILE"); font.pixelSize: 10; font.weight: Font.Medium
-                    color: theme.textMuted; Layout.fillWidth: true
-                }
-                Text { text: root.bauteilBereichOffen ? "▲" : "▼"; font.pixelSize: 9; color: theme.textMuted }
-            }
-            MouseArea {
-                id: bauteilHeaderArea; anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (!root.bauteilBereichOffen) {
-                        // Caches leeren damit beim nächsten Aufklappen frische Daten geladen werden
-                        root.klemmenCache      = {}
-                        root.anschluesseCache  = {}
-                        root.leistenAufgeklappt = {}
-                        root.klemmenAufgeklappt = {}
-                    }
-                    root.bauteilBereichOffen = !root.bauteilBereichOffen
-                }
-            }
-            DebugLabel { panelName: qsTr("BAUTEILE-Bereich (Seitenbaum)"); visible: root.debug }
-        }
-
-        // ── BAUTEILE: Warnung wenn keine Seite aktiv ────────────
-        Rectangle {
-            Layout.fillWidth: true
-            height: 30
-            color: "#1a1a0a"
-            visible: root.bauteilBereichOffen && root.aktivSeiteId < 0
-            RowLayout {
-                anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
-                spacing: 6
-                Text { text: "⚠"; font.pixelSize: 12; color: "#aaaa44" }
-                Text {
-                    text: qsTr("Zuerst eine Seite im Baum auswählen ↑")
-                    font.pixelSize: 11; color: "#aaaa44"
-                    Layout.fillWidth: true
-                }
-            }
-        }
-
-        // ── BAUTEILE Inhalt (aufklappbar) ────────────────────────
-        ScrollView {
-            Layout.fillWidth: true; Layout.preferredHeight: 220
-            visible: root.bauteilBereichOffen; clip: true
-            Column {
-                width: parent.width
-
-                // ─── Klemmenleisten ───────────────────────────────
-                Repeater {
-                    model: klemmenleistenModel
-                    delegate: Column {
-                        id: leisteItem
-                        width: parent.width
-                        property int    leisteId:    model.leisteId
-                        property string bmkKurz:     model.bmkKurz
-                        property string bezeichnung: model.bezeichnung
-                        property bool   offen:       root.leistenAufgeklappt[leisteId] === true
-
-                        // Leisten-Zeile
-                        Rectangle {
-                            width: parent.width; height: 32
-                            color: leisteMA.containsMouse ? theme.hover : "transparent"
-                            RowLayout {
-                                anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
-                                spacing: 5
-                                Text { text: leisteItem.offen ? "▾" : "▸"; font.pixelSize: 9; color: theme.textMuted }
-                                Text { text: "🔌"; font.pixelSize: 12 }
-                                Text {
-                                    text: leisteItem.bmkKurz + "  " + leisteItem.bezeichnung
-                                    font.pixelSize: 12; color: theme.textPrimary
-                                    Layout.fillWidth: true; elide: Text.ElideRight
-                                }
-                            }
-                            MouseArea {
-                                id: leisteMA; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    var lid = leisteItem.leisteId
-                                    var auf = Object.assign({}, root.leistenAufgeklappt)
-                                    auf[lid] = !auf[lid]
-                                    if (auf[lid] && root.klemmenCache[lid] === undefined) {
-                                        var c = Object.assign({}, root.klemmenCache)
-                                        c[lid] = db.klemmenFuerLeiste(lid)
-                                        root.klemmenCache = c
-                                    }
-                                    root.leistenAufgeklappt = auf
-                                }
-                            }
-                        }
-
-                        // Klemmen-Liste (lazy geladen)
-                        Column {
-                            width: parent.width
-                            visible: leisteItem.offen
-                            property var klemmen: root.klemmenCache[leisteItem.leisteId] || []
-
-                            Repeater {
-                                model: parent.klemmen
-                                delegate: Column {
-                                    id: klemmeItem
-                                    width: parent.width
-                                    property var  kl:          modelData
-                                    property int  kId:         modelData ? (modelData.id        || -1) : -1
-                                    property int  bauteilId:   modelData ? (modelData.bauteilId || -1) : -1
-                                    property bool hatBauteil:  bauteilId > 0
-                                    property bool klemmeOffen: root.klemmenAufgeklappt[kId] === true
-
-                                    // Klemmen-Zeile
-                                    Rectangle {
-                                        width: parent.width; height: 30
-                                        color: klemmeMA.containsMouse && klemmeItem.hatBauteil ? theme.hover : "transparent"
-                                        RowLayout {
-                                            anchors { fill: parent; leftMargin: 22; rightMargin: 6 }
-                                            spacing: 4
-                                            Text {
-                                                text: klemmeItem.hatBauteil ? (klemmeItem.klemmeOffen ? "▾" : "▸") : " "
-                                                font.pixelSize: 9; color: theme.textMuted
-                                            }
-                                            Text {
-                                                text: klemmeItem.kl
-                                                    ? (klemmeItem.kl.nummer + (klemmeItem.kl.bezeichnung ? "  " + klemmeItem.kl.bezeichnung : ""))
-                                                    : ""
-                                                font.pixelSize: 12
-                                                color: klemmeItem.hatBauteil ? theme.textSecondary : theme.borderDark
-                                                Layout.fillWidth: true; elide: Text.ElideRight
-                                            }
-                                        }
-                                        MouseArea {
-                                            id: klemmeMA; anchors.fill: parent; hoverEnabled: true
-                                            cursorShape: klemmeItem.hatBauteil ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                            enabled: klemmeItem.hatBauteil
-                                            onClicked: {
-                                                var kid = klemmeItem.kId
-                                                var bid = klemmeItem.bauteilId
-                                                var auf = Object.assign({}, root.klemmenAufgeklappt)
-                                                auf[kid] = !auf[kid]
-                                                if (auf[kid] && root.anschluesseCache[bid] === undefined) {
-                                                    var c = Object.assign({}, root.anschluesseCache)
-                                                    c[bid] = db.anschluesseFuerKlemme(bid)
-                                                    root.anschluesseCache = c
-                                                }
-                                                root.klemmenAufgeklappt = auf
-                                            }
-                                        }
-                                    }
-
-                                    // Anschlüsse (lazy geladen)
-                                    Column {
-                                        width: parent.width
-                                        visible: klemmeItem.hatBauteil && klemmeItem.klemmeOffen
-                                        property var anschluesse: klemmeItem.bauteilId > 0
-                                            ? (root.anschluesseCache[klemmeItem.bauteilId] || [])
-                                            : []
-                                        property var klemmenDaten: klemmeItem.kl
-
-                                        Repeater {
-                                            model: parent.anschluesse
-                                            delegate: Rectangle {
-                                                width: parent.width; height: 28
-                                                color: anschlussMA.containsMouse ? theme.activeItem : "transparent"
-                                                property var ans: modelData
-                                                property var kd:  parent.klemmenDaten
-
-                                                RowLayout {
-                                                    anchors { fill: parent; leftMargin: 34; rightMargin: 6 }
-                                                    spacing: 4
-                                                    Text {
-                                                        text: "[" + (ans ? ans.bezeichnung : "") + "]"
-                                                        font.pixelSize: 11; color: theme.accent
-                                                    }
-                                                    Text {
-                                                        text: ans ? (qsTr("Seite ") + ans.seite + "  Eb." + ans.ebene) : ""
-                                                        font.pixelSize: 11; color: theme.textMuted
-                                                        Layout.fillWidth: true
-                                                    }
-                                                }
-                                                MouseArea {
-                                                    id: anschlussMA; anchors.fill: parent; hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        if (!parent.kd || !parent.ans) return
-                                                        var bmk = parent.kd.leisteBmk + ":"
-                                                                  + parent.kd.nummer   + ":"
-                                                                  + parent.ans.bezeichnung
-                                                        root.klemmenAnschlussPlatzieren(
-                                                            parent.kd.id,
-                                                            parent.kd.bauteilKlemmeId,
-                                                            parent.ans.bezeichnung,
-                                                            bmk
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Kabel-Platzhalter ──────────────────────────
-                Rectangle {
-                    width: parent.width; height: 32; color: "transparent"
-                    RowLayout {
-                        anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
-                        spacing: 6
-                        Text { text: "🔗"; font.pixelSize: 12; opacity: 0.4 }
-                        Text {
-                            text: qsTr("Kabel  (noch nicht verfügbar)")
-                            font.pixelSize: 12; color: theme.borderDark; Layout.fillWidth: true
-                        }
-                    }
-                }
+        SeitenBaumBauteilePanel {
+            id: bauteilePanel
+            theme: root.theme
+            aktivSeiteId: root.aktivSeiteId
+            debug: root.debug
+            onKlemmenAnschlussPlatzieren: function(kId, bkId, bez, bmk) {
+                root.klemmenAnschlussPlatzieren(kId, bkId, bez, bmk)
             }
         }
     }

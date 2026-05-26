@@ -140,7 +140,12 @@ SplitView {
                     font.pixelSize: 11; color: theme.textMuted; Layout.fillWidth: true
                 }
 
-                Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
+                // ── PRÜFSTATUS ────────────────────────────────────
+                RowLayout {
+                    Layout.fillWidth: true; Layout.topMargin: 4; spacing: 6
+                    Text { text: qsTr("PRÜFSTATUS"); font.pixelSize: 10; font.weight: Font.Medium; color: theme.textMuted }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.alignment: Qt.AlignVCenter }
+                }
 
                 Text { text: qsTr("Status"); color: theme.textMuted; font.pixelSize: 11 }
                 ComboBox {
@@ -194,20 +199,14 @@ SplitView {
                     color: theme.textPrimary; font.pixelSize: 12
                 }
 
-                Text { text: qsTr("Notiz"); color: theme.textMuted; font.pixelSize: 11 }
-                Rectangle {
-                    Layout.fillWidth: true; height: 70
-                    color: theme.inputBg; radius: 4; border.color: theme.border
-                    TextArea {
-                        id: taNotiz
-                        anchors { fill: parent; margins: 4 }
-                        wrapMode: TextArea.Wrap; background: null
-                        color: theme.textPrimary; font.pixelSize: 12
-                        placeholderText: qsTr("Bemerkungen …")
-                    }
+                // ── MESSWERTE ─────────────────────────────────────
+                RowLayout {
+                    visible: panel._dynFelder.length > 0
+                    Layout.fillWidth: true; Layout.topMargin: 4; spacing: 6
+                    Text { text: qsTr("MESSWERTE"); font.pixelSize: 10; font.weight: Font.Medium; color: theme.textMuted }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.alignment: Qt.AlignVCenter }
                 }
 
-                // ── Dynamische Messfelder ─────────────────────────
                 Repeater {
                     model: panel._dynFelder
                     delegate: ColumnLayout {
@@ -290,9 +289,24 @@ SplitView {
                     }
                 }
 
+                // ── PRÜFPROTOKOLL ─────────────────────────────────
+                RowLayout {
+                    Layout.fillWidth: true; Layout.topMargin: 4; spacing: 6
+                    Text { text: qsTr("PRÜFPROTOKOLL"); font.pixelSize: 10; font.weight: Font.Medium; color: theme.textMuted }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.alignment: Qt.AlignVCenter }
+                }
+
+                Text { text: qsTr("Notiz"); color: theme.textMuted; font.pixelSize: 11 }
                 Rectangle {
-                    visible: panel._dynFelder.length > 0
-                    Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4
+                    Layout.fillWidth: true; height: 70
+                    color: theme.inputBg; radius: 4; border.color: theme.border
+                    TextArea {
+                        id: taNotiz
+                        anchors { fill: parent; margins: 4 }
+                        wrapMode: TextArea.Wrap; background: null
+                        color: theme.textPrimary; font.pixelSize: 12
+                        placeholderText: qsTr("Bemerkungen …")
+                    }
                 }
 
                 GridLayout {

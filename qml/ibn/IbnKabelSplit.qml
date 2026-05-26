@@ -158,7 +158,12 @@ SplitView {
                     visible: text !== ""
                 }
 
-                Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
+                // ── PRÜFSTATUS ────────────────────────────────────
+                RowLayout {
+                    Layout.fillWidth: true; Layout.topMargin: 4; spacing: 6
+                    Text { text: qsTr("PRÜFSTATUS"); font.pixelSize: 10; font.weight: Font.Medium; color: theme.textMuted }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.alignment: Qt.AlignVCenter }
+                }
 
                 // Status
                 Text { text: qsTr("Status"); color: theme.textMuted; font.pixelSize: 11 }
@@ -243,6 +248,13 @@ SplitView {
                             }
                         }
                     }
+                }
+
+                // ── PRÜFPROTOKOLL ─────────────────────────────────
+                RowLayout {
+                    Layout.fillWidth: true; Layout.topMargin: 4; spacing: 6
+                    Text { text: qsTr("PRÜFPROTOKOLL"); font.pixelSize: 10; font.weight: Font.Medium; color: theme.textMuted }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.alignment: Qt.AlignVCenter }
                 }
 
                 // Notiz

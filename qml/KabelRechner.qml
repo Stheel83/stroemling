@@ -112,6 +112,10 @@ Item {
                                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                                 contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
                                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                                onCurrentIndexChanged: {
+                                    if      (currentIndex === 0) spannungZeile.feldText = "230"
+                                    else if (currentIndex === 1) spannungZeile.feldText = "400"
+                                }
                             }
                             Item { Layout.preferredWidth: 28 }
                         }
@@ -179,6 +183,31 @@ Item {
                                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             }
                             Item { Layout.preferredWidth: 28 }
+                        }
+                        // Verlegeart-Erklärung
+                        Text {
+                            visible: root.istGenau
+                            width: parent.width
+                            leftPadding: 88
+                            rightPadding: 28
+                            font.pixelSize: 10
+                            color: theme.textMuted
+                            wrapMode: Text.Wrap
+                            text: {
+                                var idx = verlegeartBox.currentIndex
+                                var bez = [
+                                    qsTr("Einzelader in wärmegedämmter Wand"),
+                                    qsTr("Mehradriges Kabel in wärmegedämmter Wand"),
+                                    qsTr("Einzelader auf Holzwand / in Rohr auf Holzwand"),
+                                    qsTr("Mehradriges Kabel auf Holzwand / in Rohr"),
+                                    qsTr("Direkt auf Wand oder Decke"),
+                                    qsTr("Einzelkabel direkt in Erde"),
+                                    qsTr("Mehrere Kabel in Erde oder im Rohr"),
+                                    qsTr("Freie Verlegung (Kabelrinne, Luftraum)"),
+                                    qsTr("Freie Verlegung horizontal auf Oberfläche")
+                                ]
+                                return bez[idx] || ""
+                            }
                         }
 
                         Item { height: 8; visible: root.istGenau }

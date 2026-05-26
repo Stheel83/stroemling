@@ -286,7 +286,7 @@ Item {
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 16;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 4 }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
                                 onClicked: bauteilModel.loeschen(model.bauteilId)
                             }
                         }

@@ -182,7 +182,7 @@ Dialog {
                                 flat: true; implicitWidth: 22; implicitHeight: 22
                                 contentItem: Text { text: "✕"; color: "#cc4444"; font.pixelSize: 11
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? "#331111" : "transparent"; radius: 3 }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
                                 onClicked: root._loeschen(modelData.id)
                             }
                         }

@@ -386,7 +386,7 @@ Item {
                                     width: 24; height: 24; flat: true
                                     contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 14;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                    background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 3 }
+                                    background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
                                     onClicked: kabelModel.paarLoeschen(paarDaten.id)
                                     ToolTip.visible: hovered; ToolTip.delay: 500
                                     ToolTip.text: qsTr("Paar entfernen")
@@ -557,7 +557,7 @@ Item {
                                     width: 22; height: 22; flat: true
                                     contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 16;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                    background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 3 }
+                                    background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
                                     onClicked: kabelModel.aderLoeschen(modelData.id)
                                     ToolTip.visible: hovered; ToolTip.delay: 500
                                     ToolTip.text: qsTr("Ader löschen")

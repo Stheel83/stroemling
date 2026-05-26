@@ -165,7 +165,7 @@ Item {
                             rightMargin:    2
                             verticalCenter: parent.verticalCenter
                         }
-                        ToolTip.visible: hovered
+                        ToolTip.visible: hovered; ToolTip.delay: 700
                         ToolTip.text:    qsTr("Kopie exportieren (.stroemling)")
                         onClicked: projektExportDialog.open()
                     }
@@ -185,6 +185,8 @@ Item {
                             rightMargin:    2
                             verticalCenter: parent.verticalCenter
                         }
+                        ToolTip.visible: hovered; ToolTip.delay: 700
+                        ToolTip.text:    qsTr("Projekt bearbeiten")
                         onClicked: {
                             dlgProjektEigenschaften.projektId      = model.projektId
                             dlgProjektEigenschaften.altName        = model.name
@@ -211,6 +213,8 @@ Item {
                             rightMargin:    6
                             verticalCenter: parent.verticalCenter
                         }
+                        ToolTip.visible: hovered; ToolTip.delay: 700
+                        ToolTip.text:    qsTr("Projekt löschen")
                         onClicked: {
                             root._loeschenProjektId   = model.projektId
                             root._loeschenProjektName = model.name

@@ -1021,7 +1021,7 @@ Item {
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: qsTr("\u2192"); color: "#44aa66"; font.pixelSize: 14;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? "#1a3a2a" : "transparent"; radius: 4 }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
                                 ToolTip.visible: hovered
                                 ToolTip.text:    model.knotenTyp === 1 ? qsTr("Ort verschieben") : qsTr("Seite verschieben")
                                 ToolTip.delay:   700
@@ -1039,7 +1039,7 @@ Item {
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: qsTr("\u00D7"); color: "#aa4444"; font.pixelSize: 16;
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 4 }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
                                 ToolTip.visible: hovered; ToolTip.text: qsTr("Löschen"); ToolTip.delay: 700
                                 onClicked: {
                                     if (model.knotenTyp === 2) {

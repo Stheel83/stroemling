@@ -625,7 +625,7 @@ Rectangle {
                                 width: 22; height: 22; flat: true
                                 contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 16;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? "#3a1a1a" : "transparent"; radius: 3 }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
                                 onClicked: kategorieModel.loeschen(model.kategorieId)
                             }
                         }

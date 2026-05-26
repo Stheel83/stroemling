@@ -154,7 +154,7 @@ Rectangle {
                                 width: 22; height: 22; radius: 3
                                 visible: !modelData.ist_builtin &&
                                          (listeItemHover.hovered || root.editor.aktiveListenId === modelData.id)
-                                color: listeDelHover.hovered ? "#3a1a1a" : "transparent"
+                                color: listeDelHover.hovered ? theme.activeItemAlt : "transparent"
                                 ToolTip.visible: listeDelHover.hovered; ToolTip.delay: 600
                                 ToolTip.text: qsTr("Symbol löschen")
                                 Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 13; color: "#ff4444" }

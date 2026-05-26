@@ -55,6 +55,33 @@ Item {
     // ── Hintergrund ──────────────────────────────────────────────
     Rectangle { anchors.fill: parent; color: root.theme.surfaceDeep }
 
+    // ── Wasserzeichen ────────────────────────────────────────────
+    Column {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom:           parent.bottom
+        anchors.bottomMargin:     32
+        spacing:                  4
+        opacity:                  0.15
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text:             "Strömling Design"
+            font.pixelSize:   36
+            font.weight:      Font.Light
+            font.letterSpacing: 4
+            font.family:      "monospace"
+            color:            root.theme.textPrimary
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text:             "CAE · OPEN SOURCE · NORDDEUTSCH"
+            font.pixelSize:   11
+            font.letterSpacing: 3
+            font.family:      "monospace"
+            color:            root.theme.textPrimary
+        }
+    }
+
     // ── Inhalt (zentriert) ───────────────────────────────────────
     ColumnLayout {
         anchors.centerIn: parent
@@ -146,14 +173,16 @@ Item {
         Item { height: 28; visible: recentList.count === 0 }
         Rectangle {
             Layout.fillWidth: true
-            visible: recentList.count === 0
-            color:   root.theme.surface
-            radius:  8
-            border.color: root.theme.accent
-            border.width: 1
+            visible:          recentList.count === 0
+            implicitHeight:   ersteSchritteLayout.implicitHeight + 32
+            color:            root.theme.surface
+            radius:           8
+            border.color:     root.theme.accent
+            border.width:     1
 
             ColumnLayout {
-                anchors { fill: parent; margins: 16 }
+                id: ersteSchritteLayout
+                anchors { top: parent.top; left: parent.left; right: parent.right; margins: 16 }
                 spacing: 10
 
                 Text {

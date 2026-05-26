@@ -115,6 +115,7 @@ Item {
                                 onCurrentIndexChanged: {
                                     if      (currentIndex === 0) spannungZeile.feldText = "230"
                                     else if (currentIndex === 1) spannungZeile.feldText = "400"
+                                    else                         spannungZeile.feldText = ""
                                 }
                             }
                             Item { Layout.preferredWidth: 28 }
@@ -130,7 +131,7 @@ Item {
 
                         KrZeile {
                             id: cosPhiZeile
-                            visible: root.istGenau
+                            visible: root.istGenau && betriebsartBox.currentIndex !== 2
                             label: "cos φ"; wert: "1,00"; einheit: ""; theme: root.theme
                         }
 

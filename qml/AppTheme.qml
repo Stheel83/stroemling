@@ -7,10 +7,10 @@ Item {
 
     Settings {
         id: settings
-        property string activeName: "dunkel"
+        property string activeName: "hell"
     }
 
-    property string activeName: settings.activeName || "dunkel"
+    property string activeName: settings.activeName || "hell"
 
     function setTheme(name) {
         settings.activeName = name

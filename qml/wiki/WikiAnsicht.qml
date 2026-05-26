@@ -86,6 +86,16 @@ Item {
         _bilder = result
     }
 
+    function _preprocessMarkdown(md) {
+        var result = md
+        for (var i = 0; i < root._bilder.length; i++) {
+            var b = root._bilder[i]
+            if (b.tempPfad && b.id)
+                result = result.split("wiki://bild/" + b.id).join("file://" + b.tempPfad)
+        }
+        return result
+    }
+
     function _editStarten() {
         _editTitel  = _aktArtikel.titel  || ""
         _editInhalt = _aktArtikel.inhalt || ""

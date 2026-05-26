@@ -17,6 +17,7 @@ ApplicationWindow {
     visible:    true
     width:      1200
     height:     800
+    visibility: Window.Maximized
     title:      qsTr("Strömling Design")
     color:      appTheme.surface
 
@@ -40,7 +41,7 @@ ApplicationWindow {
     property var aktiverCanvas: fokussiertesPanel === 1 ? panel1.canvas : panel2.canvas
 
     property string aktivProjektNorm:        "IEC"
-    property string aktivProjektHintergrund: "#080f1c"
+    property string aktivProjektHintergrund: "#fdf8e8"
 
     property bool   debugModeAktiv:         false
     property bool   drcPanelOffen:          false

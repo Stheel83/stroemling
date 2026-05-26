@@ -50,15 +50,19 @@ Item {
             }
 
             Text {
-                text:  root.icon
-                font.pixelSize: 16
-                color: root.active ? theme.accent : theme.textMuted
+                text:              root.icon
+                font.pixelSize:    16
+                height:            24
+                verticalAlignment: Text.AlignVCenter
+                color:             root.active ? theme.accent : theme.textMuted
             }
             Text {
-                text:  root.label
-                font.pixelSize: 13
-                font.weight: root.active ? Font.Medium : Font.Normal
-                color: root.active ? theme.textPrimary : theme.textMuted
+                text:              root.label
+                font.pixelSize:    13
+                height:            24
+                verticalAlignment: Text.AlignVCenter
+                font.weight:       root.active ? Font.Medium : Font.Normal
+                color:             root.active ? theme.textPrimary : theme.textMuted
             }
         }
 

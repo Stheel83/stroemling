@@ -292,6 +292,7 @@ Item {
             id: bmSplit
             panel: root
             theme: theme
+            debug: root.debug
             visible:           root._kategorie === "bm"
             Layout.fillWidth:  true
             Layout.fillHeight: root._kategorie === "bm"
@@ -301,6 +302,7 @@ Item {
         IbnKabelSplit {
             panel: root
             theme: theme
+            debug: root.debug
             visible:           root._kategorie === "kabel"
             Layout.fillWidth:  true
             Layout.fillHeight: root._kategorie === "kabel"

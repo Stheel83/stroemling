@@ -2,11 +2,13 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import stroemling
+import "../components"
 
 SplitView {
     id: root
     required property var panel
     required property var theme
+    property bool debug: false
 
     signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1)
 
@@ -24,6 +26,8 @@ SplitView {
     Item {
         SplitView.preferredWidth: 220
         SplitView.minimumWidth:   150
+
+        DebugLabel { panelName: qsTr("IBN-BmSplit"); visible: root.debug }
 
         ScrollView {
             anchors.fill: parent; clip: true
@@ -433,4 +437,5 @@ SplitView {
             panel._dynFelder = kat !== "" ? db.ibnFeldvorlagenLaden(kat) : []
         }
     }
+
 }

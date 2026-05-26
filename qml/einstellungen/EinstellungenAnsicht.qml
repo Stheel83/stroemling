@@ -1096,7 +1096,7 @@ Item {
 
                         Text {
                             Layout.fillWidth: true
-                            text:           qsTr("Strömling Design entstand am 08.04.2026 aus einem persönlichen Bedürfnis: Im Berufsalltag arbeite ich mit EPLAN P8 Electric, privat hatte ich QElectroTech genutzt — beides nicht das, was ich wollte. Also habe ich angefangen, selbst etwas zu bauen.")
+                            text:           qsTr("Die Idee zu Strömling Design entstand am 08.04.2026 aus einem persönlichen Bedürfnis: Im Berufsalltag arbeite ich mit EPLAN P8 Electric, privat nutze ich QElectroTech — für mich privat konnte ich beides nicht sinnvoll nutzen. Ich wollte ein Tool nach meinen Vorgaben, das unter Linux läuft. Also, KI machts möglich, habe ich angefangen, mir mein eigenes Programm zu bauen. Obwohl ich von Programmierung nicht wirklich Ahnung habe. Aber für mich war klar: die Datenbank sollte SQLite sein, damit habe ich Erfahrung und die Oberfläche sollte QT sein. Denn ich als Linuxer nutze OpenSuse mit KDE schon jahrelang. ")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap
@@ -1124,7 +1124,8 @@ Item {
                             Repeater {
                                 model: [
                                     qsTr("⚙  Claude Code (Anthropic) — Code & Konzepte"),
-                                    qsTr("🖼  ChatGPT / DALL-E (OpenAI) — Strömlinge-Bilder")
+                                    qsTr("🖼  ChatGPT / DALL-E (OpenAI) — Strömlinge-Bilder"),
+                                    qsTr("🖼  Gemini / (Google) — Strömlinge-Bilder")
                                 ]
                                 Text {
                                     Layout.fillWidth: true

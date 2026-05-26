@@ -14,6 +14,7 @@ Dialog {
     padding: 0
 
     required property var theme
+    property bool debug:       false
     property bool _debugLokal: false
 
     signal felderGeaendert()
@@ -147,6 +148,11 @@ Dialog {
                         width: listeView.width; height: 36
                         color: listeHover.containsMouse ? root.theme.hover : root.theme.sidebar
                         HoverHandler { id: listeHover }
+
+                        Rectangle {
+                            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                            height: 1; color: root.theme.border; z: 1
+                        }
 
                         RowLayout {
                             anchors { fill: parent; leftMargin: 12; rightMargin: 6 }
@@ -515,5 +521,5 @@ Dialog {
         }
     }
 
-    DebugLabel { panelName: qsTr("IBN-FeldEditor"); visible: root._debugLokal; parent: root.background }
+    DebugLabel { panelName: qsTr("IBN-Felder bearbeiten"); visible: root.debug || root._debugLokal; parent: root.contentItem }
 }

@@ -443,6 +443,7 @@ SplitView {
     IbnFeldEditorDialog {
         id: feldEditorDialog
         theme: root.theme
+        debug: root.debug
         onFelderGeaendert: {
             var fl = bmListe._gelistet
             if (!fl || panel.ausgewaehlterIndex < 0 || panel.ausgewaehlterIndex >= fl.length) return

@@ -22,10 +22,12 @@ SplitView {
         SplitView.preferredWidth: 220
         SplitView.minimumWidth:   150
 
-        ListView {
-            id: kabelListe
+        ScrollView {
             anchors.fill: parent; clip: true
-            Rectangle { anchors.fill: parent; color: theme.sidebar; z: -1 }
+
+            ListView {
+                id: kabelListe
+                width: parent.width; clip: true
 
             property var _gelistet: panel._gefilterteKabelListe()
             model: _gelistet
@@ -88,6 +90,7 @@ SplitView {
                     }
                 }
             }
+        }
         }
     }
 

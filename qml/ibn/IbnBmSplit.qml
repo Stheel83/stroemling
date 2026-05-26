@@ -25,10 +25,12 @@ SplitView {
         SplitView.preferredWidth: 220
         SplitView.minimumWidth:   150
 
-        ListView {
-            id: bmListe
+        ScrollView {
             anchors.fill: parent; clip: true
-            Rectangle { anchors.fill: parent; color: theme.sidebar; z: -1 }
+
+            ListView {
+                id: bmListe
+                width: parent.width; clip: true
 
             property var _gelistet: panel._gefilterteListe()
             model: _gelistet
@@ -84,6 +86,7 @@ SplitView {
                     }
                 }
             }
+        }
         }
     }
 

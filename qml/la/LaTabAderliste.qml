@@ -41,12 +41,14 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    ListView {
-        id: alView
-        Layout.fillWidth: true; Layout.fillHeight: true
-        model: panel._aderlisteModel; clip: true
-        ScrollBar.vertical: ScrollBar {}
-        Rectangle { anchors.fill: parent; color: theme.surface; z: -1 }
+    ScrollView {
+        Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+        background: Rectangle { color: "transparent" }
+
+        ListView {
+            id: alView
+            width: parent.width
+            model: panel._aderlisteModel; clip: true
         delegate: Rectangle {
             width: alView.width; height: 30
             color: index % 2 === 0 ? theme.tableEven : theme.tableOdd
@@ -93,5 +95,6 @@ ColumnLayout {
             text: qsTr("Kabel im Bauteilkatalog anlegen und dort Adern mit Querschnitt definieren.")
             font.pixelSize: 11; font.italic: true; color: theme.textMuted
         }
+    }
     }
 }

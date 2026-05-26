@@ -40,12 +40,14 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    ListView {
-        id: kpView
-        Layout.fillWidth: true; Layout.fillHeight: true
-        model: panel._klemmenplanModel; clip: true
-        ScrollBar.vertical: ScrollBar {}
-        Rectangle { anchors.fill: parent; color: theme.surface; z: -1 }
+    ScrollView {
+        Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+        background: Rectangle { color: "transparent" }
+
+        ListView {
+            id: kpView
+            width: parent.width
+            model: panel._klemmenplanModel; clip: true
 
         delegate: Rectangle {
             width: kpView.width
@@ -109,5 +111,6 @@ ColumnLayout {
             text: qsTr("Klemmenleisten unter Bauteile → Klemmenreihen anlegen.")
             font.pixelSize: 11; font.italic: true; color: theme.textMuted
         }
+    }
     }
 }

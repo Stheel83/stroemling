@@ -40,12 +40,14 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    ListView {
-        id: slView
-        Layout.fillWidth: true; Layout.fillHeight: true
-        model: panel._stuecklisteModel; clip: true
-        ScrollBar.vertical: ScrollBar {}
-        Rectangle { anchors.fill: parent; color: theme.surface; z: -1 }
+    ScrollView {
+        Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+        background: Rectangle { color: "transparent" }
+
+        ListView {
+            id: slView
+            width: parent.width
+            model: panel._stuecklisteModel; clip: true
         delegate: Rectangle {
             width: slView.width; height: 30
             color: index % 2 === 0 ? theme.tableEven : theme.tableOdd
@@ -79,5 +81,6 @@ ColumnLayout {
             text: qsTr("Symbole auf dem Schaltplan platzieren, um die Stückliste zu befüllen.")
             font.pixelSize: 11; font.italic: true; color: theme.textMuted
         }
+    }
     }
 }

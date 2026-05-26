@@ -1168,7 +1168,7 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
             // Namenskonflikt auflösen
             if (QFile::exists(zielPfad)) {
                 QString stem = QFileInfo(dateiName).baseName();
-                dateiName = stem + "_" + QString::number(projekteAnzahl + 1) + ".stroemling";
+                dateiName = stem + "_" + QString::number(projekteAnzahl + 1) + ".strl";
                 zielPfad  = projOrdner + "/" + dateiName;
             }
             if (QFile::copy(pfad, zielPfad)) {

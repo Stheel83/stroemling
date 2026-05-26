@@ -13,8 +13,8 @@ Item {
     FileDialog {
         id: neuesProjektDialog
         fileMode:       FileDialog.SaveFile
-        nameFilters:    ["Strömling Projekte (*.stroemling)"]
-        defaultSuffix:  "stroemling"
+        nameFilters:    ["Strömling Projekte (*.strl)"]
+        defaultSuffix:  "strl"
         onAccepted: {
             var pfad = selectedFile.toString().replace(/^file:\/\//, "")
             if (!db.createProjekt(pfad, ""))
@@ -25,7 +25,7 @@ Item {
     FileDialog {
         id: projektOeffnenDialog
         fileMode:    FileDialog.OpenFile
-        nameFilters: ["Strömling Projekte (*.stroemling)", "Alle Dateien (*)"]
+        nameFilters: ["Strömling Projekte (*.strl)", "Alle Dateien (*)"]
         onAccepted: {
             var pfad = selectedFile.toString().replace(/^file:\/\//, "")
             if (!db.openProjekt(pfad))
@@ -134,7 +134,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: 2
                             Text { text: qsTr("Neues Projekt"); font.pixelSize: 13; font.weight: Font.Medium; color: root.theme.textPrimary }
-                            Text { text: qsTr("Leere Projektdatei (.stroemling) anlegen"); font.pixelSize: 10; color: root.theme.textMuted }
+                            Text { text: qsTr("Leere Projektdatei (.strl) anlegen"); font.pixelSize: 10; color: root.theme.textMuted }
                         }
                         Text { text: "›"; font.pixelSize: 16; color: root.theme.textMuted }
                     }
@@ -160,7 +160,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: 2
                             Text { text: qsTr("Projekt öffnen"); font.pixelSize: 13; font.weight: Font.Medium; color: root.theme.textPrimary }
-                            Text { text: qsTr("Existierende .stroemling-Datei laden"); font.pixelSize: 10; color: root.theme.textMuted }
+                            Text { text: qsTr("Existierende .strl-Datei laden"); font.pixelSize: 10; color: root.theme.textMuted }
                         }
                         Text { text: "›"; font.pixelSize: 16; color: root.theme.textMuted }
                     }

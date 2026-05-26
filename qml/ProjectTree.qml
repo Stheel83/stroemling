@@ -61,7 +61,7 @@ Item {
                 palette.buttonText: theme.textPrimary
 
                 ToolTip.visible: hovered
-                ToolTip.text:    qsTr("Projekt importieren (.stroemling öffnen)")
+                ToolTip.text:    qsTr("Projekt importieren (.strl öffnen)")
 
                 onClicked: projektImportDialog.open()
             }
@@ -166,7 +166,7 @@ Item {
                             verticalCenter: parent.verticalCenter
                         }
                         ToolTip.visible: hovered; ToolTip.delay: 700
-                        ToolTip.text:    qsTr("Kopie exportieren (.stroemling)")
+                        ToolTip.text:    qsTr("Kopie exportieren (.strl)")
                         onClicked: projektExportDialog.open()
                     }
 
@@ -479,7 +479,7 @@ Item {
         id:           projektImportDialog
         title:        qsTr("Projekt importieren")
         fileMode:     FileDialog.OpenFile
-        nameFilters:  ["Strömling Projekte (*.stroemling)", qsTr("Alle Dateien (*)")]
+        nameFilters:  ["Strömling Projekte (*.strl)", qsTr("Alle Dateien (*)")]
         onAccepted: {
             var pfad = selectedFile.toString().replace(/^file:\/\//, "")
             if (!db.openProjekt(pfad))
@@ -492,8 +492,8 @@ Item {
         id:           projektExportDialog
         title:        qsTr("Projekt exportieren (Kopie erstellen)")
         fileMode:     FileDialog.SaveFile
-        nameFilters:  ["Strömling Projekte (*.stroemling)", qsTr("Alle Dateien (*)")]
-        defaultSuffix: "stroemling"
+        nameFilters:  ["Strömling Projekte (*.strl)", qsTr("Alle Dateien (*)")]
+        defaultSuffix: "strl"
         onAccepted: {
             var pfad = selectedFile.toString().replace(/^file:\/\//, "")
             const ok = db.projektExportieren(pfad)

@@ -1239,9 +1239,12 @@ wurden gemeinsam mit KI erarbeitet.
 
 ## Warum Open Source?
 
-Weil ich selbst von Open-Source-Projekten profitiere — und weil ein
-Werkzeug für Elektrotechnik der Gemeinschaft gehören sollte, nicht einem
-Konzern.
+Ich wollte testen, wie weit ich mit KI-Unterstützung ein Programm nach
+meinen eigenen Vorstellungen bauen kann. Open Source deshalb, damit
+andere das Projekt leicht aufgreifen, forken oder weiterführen können —
+ohne auf mich angewiesen zu sein.
+
+Ob es für E-Techniker fachlich taugt, wird sich im Test mit Kollegen zeigen.
 )",
                     "entstehung projekt KI claude chatgpt open source geschichte"
                 }

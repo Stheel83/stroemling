@@ -1097,7 +1097,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text:           qsTr("Die Idee zu Strömling Design entstand am 08.04.2026 aus einem persönlichen Bedürfnis: Im Berufsalltag arbeite ich mit EPLAN P8 Electric, privat nutze ich QElectroTech — für mich privat konnte ich beides nicht sinnvoll nutzen. Ich wollte ein Tool nach meinen Vorgaben, das unter Linux läuft. Also, KI machts möglich, habe ich angefangen, mir mein eigenes Programm zu bauen. Obwohl ich von Programmierung nicht wirklich Ahnung habe. Aber für mich war klar: die Datenbank sollte SQLite sein, damit habe ich Erfahrung und die Oberfläche sollte QT sein. Denn ich als Linuxer nutze OpenSuse mit KDE schon jahrelang.
-                            Kurz zu mir: Aufgewachsen auf der schönsten Insel Deutschlands: Insel Usedom, ausgebildet wurde ich über verschiedene Stationen im Vorpommern, jetzt schon lange Hamburger. Aber ich stehe, wie der Koloss von Rhodos, fest in Ost und West!")
+                            Kurz zu mir: Ich komme von Usedom, wurde in Pommern ausgebildet und lebe heute in Hamburg - mit einem Bein im Osten, einem im Westen.")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap
@@ -1196,7 +1196,7 @@ Item {
                                     qsTr("✓  Bildungseinrichtungen – kostenlos"),
                                     qsTr("✓  Quellcode öffentlich einsehbar"),
                                     qsTr("✓  Zukünftige Versionen bleiben Open Source"),
-                                    qsTr("✓  Beiträge und Verbesserungen willkommen")
+                                    qsTr("✓  Fehlermeldungen und Verbesserungsvorschläge willkommen")
                                 ]
                                 delegate: Text {
                                     Layout.fillWidth: true

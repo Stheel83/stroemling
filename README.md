@@ -3,13 +3,21 @@
 Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste nach DIN EN 81346 / DIN 6771 / IEC 60617.
 
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
-**Schema:** v38 · **Stand:** Mai 2026
+**Schema:** v49 · **Stand:** Mai 2026
+
+---
+
+## Entstehung
+
+Das Projekt ist aus persönlichem Interesse entstanden — ich wollte testen, wie weit ich mit KI-Unterstützung ein Programm nach meinen eigenen Vorstellungen bauen kann. Im Beruf arbeite ich mit EPLAN P8 Electric, privat hatte ich QElectroTech genutzt. Beides war nicht das, was ich mir vorgestellt hatte — also habe ich angefangen, selbst etwas zu bauen.
+
+Open Source deshalb, damit andere das Projekt leicht aufgreifen, forken oder weiterführen können — ohne auf mich angewiesen zu sein. Ob es für E-Techniker fachlich taugt, wird sich im Test mit Kollegen zeigen.
 
 ---
 
 ## Zielgruppe
 
-Ambitionierte Hobbyisten und Fachleute, die ein einfaches, zuverlässiges Werkzeug für Hausinstallation und Maschinenverdrahtung suchen — ohne den Konfigurationsaufwand professioneller Tools wie EPLAN.
+Hobbyisten und Fachleute, die ein einfaches Werkzeug für Hausinstallation und Maschinenverdrahtung suchen — ohne den Konfigurationsaufwand professioneller Tools wie EPLAN.
 
 ---
 
@@ -28,7 +36,7 @@ cmake --build build -j$(nproc)
 ./build/stroemling_app
 ```
 
-Die Datenbankdatei (`stroemling.db`) liegt im Build-Ordner und wird beim ersten Start automatisch angelegt. Das Schema wird bei jedem Start neu aufgebaut (Entwicklungsphase — kein Migrationsbedarf).
+Die Datenbankdatei liegt unter `~/.local/share/Strömling Design/stroemling.db` und wird beim ersten Start automatisch angelegt. Schemaänderungen werden als inkrementelle Migrationen eingespielt.
 
 ---
 

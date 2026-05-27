@@ -12,6 +12,7 @@ Programmversionen/
 *.kate-swp
 *.swp
 *.swo
+*.env
 .qtcreator/
 konzept
 konzept/

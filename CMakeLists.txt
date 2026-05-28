@@ -162,6 +162,11 @@ qt_add_qml_module(stroemling_app
         qml/wiki/WikiBildGalerie.qml
         qml/wiki/WikiBundleDialog.qml
         qml/einstellungen/EinstellungenAnsicht.qml
+        qml/einstellungen/EinDatenbankpfadeBlock.qml
+        qml/einstellungen/EinDatensicherungBlock.qml
+        qml/einstellungen/EinFunModusBlock.qml
+        qml/einstellungen/EinMitwirkendeBlock.qml
+        qml/einstellungen/EinEntstehungBlock.qml
         qml/sps/SpsAnsicht.qml
         qml/sps/SpsRackDialog.qml
         qml/sps/SpsBaugruppeDialog.qml

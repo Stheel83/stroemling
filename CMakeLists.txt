@@ -148,6 +148,8 @@ qt_add_qml_module(stroemling_app
 
         qml/KlemmenVorschau.qml
         qml/KlemmenEditor.qml
+        qml/KlemmenEditorLinksBlock.qml
+        qml/KlemmenEditorAnschlussTabelle.qml
         qml/KlemmePlatzierDialog.qml
         qml/KlemmenreihenAnsicht.qml
         qml/SymbolEditorAnsicht.qml

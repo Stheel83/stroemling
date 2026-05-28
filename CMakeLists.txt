@@ -107,6 +107,10 @@ qt_add_qml_module(stroemling_app
 
         qml/ba/BaFormContent.qml
         qml/ba/BaKategorieSidebar.qml
+        qml/ba/BaKategorieNeuDialog.qml
+        qml/ba/BaKategorieBearbeitenDialog.qml
+        qml/ba/BaBauteilNeuDialog.qml
+        qml/ba/BaCsvImportDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaMakroAnsicht.qml
 

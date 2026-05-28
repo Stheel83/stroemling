@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtCore
 
 // Sektion "Fun-Modus": Aktivierung, Wartezeit, eigene Gesprächstexte.
 // Signale: jetztTesten(), gespraechTexteGeaendert(json)

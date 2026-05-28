@@ -152,6 +152,8 @@ qt_add_qml_module(stroemling_app
         qml/KlemmenreihenAnsicht.qml
         qml/SymbolEditorAnsicht.qml
         qml/KabelEditor.qml
+        qml/KabelEditorLinksBlock.qml
+        qml/KabelEditorAdernTabelle.qml
         qml/KabelRechner.qml
         qml/KabellinieDialog.qml
         qml/BauteilKabelPickerDialog.qml

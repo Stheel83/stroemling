@@ -80,6 +80,10 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpKlemmenAnschlussSection.qml
         qml/ep/EpKabelDefinitionSection.qml
         qml/ep/EpBetriebsmittelSection.qml
+        qml/ep/EpBmVerknuepfenDialog.qml
+        qml/ep/EpBmVerknuepfungBlock.qml
+        qml/ep/EpBmKontaktBlock.qml
+        qml/ep/EpBmBeschriftungBlock.qml
         qml/ep/EpQuerverweisSection.qml
         qml/ep/EpGeraeteanschlussSection.qml
         qml/ep/EpVerbindungSection.qml

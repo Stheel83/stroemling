@@ -79,6 +79,9 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpMakrokastenSection.qml
         qml/ep/EpKlemmenAnschlussSection.qml
         qml/ep/EpKabelDefinitionSection.qml
+        qml/ep/EpKabelStammdatenBlock.qml
+        qml/ep/EpKabelLinienBlock.qml
+        qml/ep/EpKabelAdernBlock.qml
         qml/ep/EpBetriebsmittelSection.qml
         qml/ep/EpBmVerknuepfenDialog.qml
         qml/ep/EpBmVerknuepfungBlock.qml

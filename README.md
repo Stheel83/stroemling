@@ -9,7 +9,7 @@ Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste 
 
 ## Entstehung
 
-Das Projekt ist aus persönlichem Interesse entstanden — ich wollte testen, wie weit ich mit KI-Unterstützung ein Programm nach meinen eigenen Vorstellungen bauen kann. Im Beruf arbeite ich mit EPLAN P8 Electric, privat hatte ich QElectroTech genutzt. Beides war nicht das, was ich mir vorgestellt hatte — also habe ich angefangen, selbst etwas zu bauen.
+Das Projekt entstand aus einem konkreten Bedürfnis: Im Beruf arbeite ich täglich mit EPLAN P8 Electric — einem professionellen E-CAD-Tool, das keine Linux-Version hat und für den Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich Linux (openSUSE mit KDE), und ich wollte ein E-CAD-Tool, das meinen persönlichen Anforderungen entspricht. QElectroTech kannte ich, aber auch das war nicht das, was ich mir vorgestellt hatte. Also habe ich angefangen, selbst etwas zu bauen — mit KI-Unterstützung, obwohl ich kein Programmierer bin.
 
 Open Source deshalb, damit andere das Projekt leicht aufgreifen, forken oder weiterführen können — ohne auf mich angewiesen zu sein. Ob es für E-Techniker fachlich taugt, wird sich im Test mit Kollegen zeigen.
 

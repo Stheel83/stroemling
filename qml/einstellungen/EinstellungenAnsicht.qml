@@ -1096,8 +1096,14 @@ Item {
 
                         Text {
                             Layout.fillWidth: true
-                            text:           qsTr("Die Idee zu Strömling Design entstand am 08.04.2026 aus einem persönlichen Bedürfnis: Im Berufsalltag arbeite ich mit EPLAN P8 Electric, privat nutze ich QElectroTech — für mich privat konnte ich beides nicht sinnvoll nutzen. Ich wollte ein Tool nach meinen Vorgaben, das unter Linux läuft. Also, KI machts möglich, habe ich angefangen, mir mein eigenes Programm zu bauen. Obwohl ich von Programmierung nicht wirklich Ahnung habe. Aber für mich war klar: die Datenbank sollte SQLite sein, damit habe ich Erfahrung und die Oberfläche sollte QT sein. Denn ich als Linuxer nutze OpenSuse mit KDE schon jahrelang.
-                            Kurz zu mir: Ich komme von Usedom, wurde in Pommern ausgebildet und lebe heute in Hamburg - mit einem Bein im Osten, einem im Westen.")
+                            text:           qsTr("Die Idee zu Strömling Design entstand am 08.04.2026 aus einem konkreten Bedürfnis: Im Berufsalltag arbeite ich täglich mit EPLAN P8 Electric — einem professionellen E-CAD-Tool, das keine Linux-Version hat und für den Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich Linux (openSUSE mit KDE), und ich wollte ein Tool, das unter Linux läuft und meinen persönlichen Anforderungen entspricht. QElectroTech kannte ich, aber auch das war nicht das, was ich mir vorgestellt hatte. Also habe ich angefangen, mir selbst eins zu bauen — mit KI-Unterstützung, obwohl ich kein Programmierer bin. Für mich war von Anfang an klar: die Datenbank sollte SQLite sein (damit habe ich Erfahrung), und die Oberfläche sollte Qt sein — denn ich als Linuxer nutze openSUSE mit KDE schon seit Jahren.")
+                            font.pixelSize: 12
+                            color:          root.theme.textPrimary
+                            wrapMode:       Text.WordWrap
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text:           qsTr("Kurz zu mir: Ich komme von Usedom, wurde in Pommern ausgebildet und lebe heute in Hamburg — mit einem Bein im Osten, einem im Westen.")
                             font.pixelSize: 12
                             color:          root.theme.textPrimary
                             wrapMode:       Text.WordWrap

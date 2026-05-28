@@ -1212,10 +1212,13 @@ sicherheitsrelevanten Anlagen liegt die Verantwortung beim Anwender.
 
 Strömling Design wurde am **08.04.2026** gestartet.
 
-Im Berufsalltag arbeite ich mit **EPLAN P8 Electric**, privat hatte ich
-**QElectroTech** genutzt. Beides war nicht das, was ich mir für den
-Privatgebrauch vorgestellt hatte — also habe ich angefangen, selbst etwas
-zu bauen.
+Im Berufsalltag arbeite ich täglich mit **EPLAN P8 Electric** — einem
+professionellen E-CAD-Tool, das keine Linux-Version hat und für den
+Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich
+Linux (openSUSE mit KDE), und ich wollte ein Tool, das unter Linux läuft
+und meinen persönlichen Anforderungen entspricht. **QElectroTech** kannte
+ich, aber auch das entsprach nicht meinen Vorstellungen — also habe ich
+angefangen, selbst etwas zu bauen.
 
 ## Der Name
 

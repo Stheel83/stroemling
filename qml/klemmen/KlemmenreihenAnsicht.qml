@@ -1,8 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "components"
-import "klemmenreihen"
+import "../components"
 
 Item {
     id: panel

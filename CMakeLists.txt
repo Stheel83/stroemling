@@ -110,6 +110,8 @@ qt_add_qml_module(stroemling_app
 
         qml/ibn/IbnBmSplit.qml
         qml/ibn/IbnKabelSplit.qml
+        qml/ibn/IbnAnsicht.qml
+        qml/ibn/IbnFeldEditorDialog.qml
 
         qml/ba/BaFormContent.qml
         qml/ba/BaKategorieSidebar.qml
@@ -127,9 +129,6 @@ qt_add_qml_module(stroemling_app
         qml/la/LaTabKlemmenplan.qml
         qml/la/LaTabKabelliste.qml
 
-        qml/klemmenreihen/KrVorschauPanel.qml
-        qml/klemmenreihen/KrEigenschaftenPanel.qml
-
         qml/canvas/WerkzeugButton.qml
         qml/canvas/CanvasHeaderBar.qml
         qml/canvas/CanvasFooterBar.qml
@@ -146,25 +145,25 @@ qt_add_qml_module(stroemling_app
         qml/symboleditor/SeEigenschaftenPanel.qml
         qml/symboleditor/SePinListe.qml
 
-        qml/KlemmenVorschau.qml
-        qml/KlemmenEditor.qml
-        qml/KlemmenEditorLinksBlock.qml
-        qml/KlemmenEditorAnschlussTabelle.qml
-        qml/KlemmePlatzierDialog.qml
-        qml/KlemmenreihenAnsicht.qml
+        qml/klemmen/KlemmenVorschau.qml
+        qml/klemmen/KlemmenEditor.qml
+        qml/klemmen/KlemmenEditorLinksBlock.qml
+        qml/klemmen/KlemmenEditorAnschlussTabelle.qml
+        qml/klemmen/KlemmePlatzierDialog.qml
+        qml/klemmen/KlemmenreihenAnsicht.qml
+        qml/klemmen/KrVorschauPanel.qml
+        qml/klemmen/KrEigenschaftenPanel.qml
         qml/SymbolEditorAnsicht.qml
-        qml/KabelEditor.qml
-        qml/KabelEditorLinksBlock.qml
-        qml/KabelEditorAdernTabelle.qml
-        qml/KabelRechner.qml
-        qml/KabellinieDialog.qml
-        qml/BauteilKabelPickerDialog.qml
-        qml/AderzuordnungDialog.qml
+        qml/kabel/KabelEditor.qml
+        qml/kabel/KabelEditorLinksBlock.qml
+        qml/kabel/KabelEditorAdernTabelle.qml
+        qml/kabel/KabelRechner.qml
+        qml/kabel/KabellinieDialog.qml
+        qml/kabel/BauteilKabelPickerDialog.qml
+        qml/kabel/AderzuordnungDialog.qml
         qml/MakrobenennDialog.qml
-        qml/IbnAnsicht.qml
         qml/DrcPanel.qml
         qml/PdfExportDialog.qml
-        qml/IbnFeldEditorDialog.qml
         qml/CanvasPanel.qml
         qml/KommandoPalette.qml
         qml/NormblattEditorDialog.qml

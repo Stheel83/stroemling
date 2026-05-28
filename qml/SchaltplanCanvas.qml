@@ -203,8 +203,7 @@ Item {
         root.textEditElIdx    = -1
         root.textEditSnapshot = elementeModel.snapshot()
         root.textEditAktiv    = true
-        textEditor.text       = ""
-        textEditor.forceActiveFocus()
+        textEditorKomp.oeffnen("", false)
     }
     function textEditorBestehendesOeffnen(idx) {
         var el = elementeModel.element(idx)
@@ -215,9 +214,7 @@ Item {
         root.textEditElIdx    = idx
         root.textEditSnapshot = elementeModel.snapshot()
         root.textEditAktiv    = true
-        textEditor.text       = el.textInhalt || ""
-        textEditor.forceActiveFocus()
-        textEditor.selectAll()
+        textEditorKomp.oeffnen(el.textInhalt || "", true)
     }
     function kabellinieDialogFuerNeuOeffnen(elIdx) { dialogLayer.kabellinieNeuOeffnen(elIdx) }
     function makrobenennDialogFuerNeuOeffnen(elIdx) { dialogLayer.makrobenennNeuOeffnen(elIdx) }
@@ -2628,46 +2625,10 @@ Item {
     // --------------------------------------------------------
     // Text-Editor-Overlay
     // --------------------------------------------------------
-    Rectangle {
-        id: textEditorOverlay
-        visible:  root.textEditAktiv && root.seiteId >= 0
-        x:        root.textEditVpX - 4
-        y:        root.textEditVpY - 4
-        z:        200
-        color:    theme.sidebar
-        border.color: theme.accent; border.width: 1
-        radius:   2
-
-        // Breite und Höhe passen sich dem Inhalt an (Mindestbreite 120px)
-        width:  Math.max(120, textEditor.implicitWidth + 16)
-        height: textEditor.implicitHeight + 10
-
-        TextEdit {
-            id: textEditor
-            anchors { fill: parent; margins: 5 }
-            color:        theme.textSecondary
-            font.pixelSize: Math.max(10, (root.stilVorlage.strichBreite || 3.5) * root.mmToPx * root.zoom)
-            font.bold:    true
-            selectionColor:    theme.activeItemAlt
-            selectedTextColor: "#ffffff"
-            wrapMode:     TextEdit.NoWrap
-            focus:        root.textEditAktiv
-
-            // Enter = bestätigen | Shift+Enter = Zeilenumbruch
-            Keys.onReturnPressed: function(event) {
-                if (event.modifiers & Qt.ShiftModifier) {
-                    event.accepted = false   // TextEdit fügt \n ein
-                } else {
-                    root.textEditorBestaetigen()
-                    event.accepted = true
-                }
-            }
-            Keys.onEscapePressed: root.textEditorAbbrechen()
-            onActiveFocusChanged: {
-                if (!activeFocus && root.textEditAktiv) root.textEditorBestaetigen()
-            }
-            onTextChanged: root.textBboxAktualisieren()
-        }
+    CanvasTextEditor {
+        id: textEditorKomp
+        canvas: root
+        theme:  root.theme
     }
 
     // --------------------------------------------------------
@@ -3587,130 +3548,6 @@ Item {
     }
 
     // Hilfsfunktion: Bbox aus aktuellem Editorinhalt berechnen
-    function textBboxBerechnen(inhalt, strichBreite) {
-        var lines = inhalt.split("\n")
-        var longestLen = 1
-        for (var li = 0; li < lines.length; li++)
-            if (lines[li].length > longestLen) longestLen = lines[li].length
-        var fsPx = (strichBreite || 3.5) * root.mmToPx
-        return { w: longestLen * fsPx * 0.62, h: lines.length * fsPx * 1.3 }
-    }
-
-    // Live-Aktualisierung der Bbox während der Texteingabe
-    function textBboxAktualisieren() {
-        if (!root.textEditAktiv) return
-        var inhalt = textEditor.text.replace(/^\n+|\n+$/g, "").trim()
-
-        if (root.textEditElIdx >= 0) {
-            // Vorhandenes Element live aktualisieren (kein Undo-Schritt)
-            var idx = root.textEditElIdx
-            var el  = elementeModel.element(idx)
-            if (el.textEinpassen) return   // Einpassen-Modus: Bbox bleibt fest
-            if (el.typ === "notiz")    return   // Notiz: feste Größe, kein Auto-Resize
-
-            var updEl = {}; for (var k in el) updEl[k] = el[k]
-            if (inhalt !== "") {
-                var bb = root.textBboxBerechnen(inhalt, el.strichBreite)
-                updEl.x2 = updEl.x1 + bb.w
-                updEl.y2 = updEl.y1 + bb.h
-            }
-            updEl.textInhalt = inhalt
-            elementeModel.elementAktualisieren(idx, updEl)
-            drawCanvas.requestPaint()
-        } else {
-            // Neues Element: Vorschau setzen
-            if (inhalt === "") {
-                root.vorschau = null
-            } else {
-                var bb2 = root.textBboxBerechnen(inhalt, root.stilVorlage.strichBreite)
-                root.vorschau = {
-                    typ:             "text",
-                    x1:              root.textEditWeltX,
-                    y1:              root.textEditWeltY,
-                    x2:              root.textEditWeltX + bb2.w,
-                    y2:              root.textEditWeltY + bb2.h,
-                    textInhalt:      inhalt,
-                    textAusrichtung: "links",
-                    textEinpassen:   false,
-                    rotation:        0,
-                    strichFarbe:     root.stilVorlage.strichFarbe,
-                    strichBreite:    root.stilVorlage.strichBreite,
-                    strichArt:       "solid",
-                    fuell:           false,
-                    fuellFarbe:      root.stilVorlage.fuellFarbe,
-                    fuellOpazitaet:  root.stilVorlage.fuellOpazitaet,
-                    opazitaet:       root.stilVorlage.opazitaet,
-                    eckenRadius:     0
-                }
-            }
-            drawCanvas.requestPaint()
-        }
-    }
-
-    function textEditorBestaetigen() {
-        if (!root.textEditAktiv) return
-        var inhalt = textEditor.text.replace(/^\n+|\n+$/g, "").trim()
-        root.textEditAktiv = false
-        root.vorschau      = null
-
-        if (inhalt === "") {
-            // Abbruch: live Änderungen am bestehenden Element zurückrollen
-            if (root.textEditElIdx >= 0 && root.textEditSnapshot)
-                elementeModel.fromVariantList(root.textEditSnapshot)
-            drawCanvas.requestPaint()
-            return
-        }
-
-        if (root.textEditElIdx >= 0) {
-            // Vorhandenes Element: Snapshot als Undo-Basis, live-aktualisiertes
-            // Element ist bereits in elementeModel drin → einfach speichern
-            var idx = root.textEditElIdx
-            // Snapshot als Undo-Eintrag (nicht den live-modifizierten Zustand)
-            elementeModel.undoCheckpointFromSnapshot(root.textEditSnapshot)
-            elementeModel.eigenschaftSetzen(idx, "textInhalt", inhalt)
-            root.auswahl   = [idx]
-            root.grafikSpeichernJetzt()
-        } else {
-            // Neues Text-Element anlegen
-            var bb = root.textBboxBerechnen(inhalt, root.stilVorlage.strichBreite)
-            var textEl = {
-                typ:             "text",
-                x1:              root.textEditWeltX,
-                y1:              root.textEditWeltY,
-                x2:              root.textEditWeltX + bb.w,
-                y2:              root.textEditWeltY + bb.h,
-                textInhalt:      inhalt,
-                textAusrichtung: "links",
-                textEinpassen:   false,
-                rotation:        0,
-                strichFarbe:     root.stilVorlage.strichFarbe,
-                strichBreite:    root.stilVorlage.strichBreite,
-                strichArt:       "solid",
-                fuell:           false,
-                fuellFarbe:      root.stilVorlage.fuellFarbe,
-                fuellOpazitaet:  root.stilVorlage.fuellOpazitaet,
-                opazitaet:       root.stilVorlage.opazitaet,
-                eckenRadius:     0
-            }
-            // Snapshot als Undo-Basis (statt aktionAusfuehren, das den aktuellen Stand nimmt)
-            elementeModel.undoCheckpointFromSnapshot(root.textEditSnapshot)
-            elementeModel.fromVariantList(elementeModel.snapshot().concat([textEl]))
-            root.auswahl   = [elementeModel.anzahl - 1]
-            root.aktivesWerkzeug = "zeiger"
-            root.grafikSpeichernJetzt()
-        }
-        drawCanvas.requestPaint()
-    }
-
-    function textEditorAbbrechen() {
-        // Live-Änderungen zurückrollen
-        if (root.textEditElIdx >= 0 && root.textEditSnapshot)
-            elementeModel.fromVariantList(root.textEditSnapshot)
-        root.vorschau      = null
-        root.textEditAktiv = false
-        drawCanvas.requestPaint()
-    }
-
     // --------------------------------------------------------
     // Koordinaten-Hilfsfunktionen
     // --------------------------------------------------------

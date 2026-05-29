@@ -48,19 +48,24 @@ Item {
         id: kontextMenu
 
         MenuItem {
-            text:    "Kopieren\t(Ctrl+C)"
+            text:    "Kopieren\t(Strg+C)"
             enabled: canvas.auswahl.length > 0
             onTriggered: canvas.kopieren(0)
         }
         MenuItem {
-            text:    "Ausschneiden\t(Ctrl+X)"
+            text:    "Ausschneiden\t(Strg+X)"
             enabled: canvas.auswahl.length > 0
             onTriggered: { canvas.kopieren(0); canvas.loeschen() }
         }
         MenuItem {
-            text:    "Einfuegen\t(Ctrl+V)"
+            text:    "Einfuegen\t(Strg+V)"
             enabled: canvas.zwischenablage.length > 0 && canvas.seiteId >= 0
             onTriggered: canvas.einfuegen(0)
+        }
+        MenuItem {
+            text:    "Duplizieren\t(Strg+D)"
+            enabled: canvas.auswahl.length > 0 && canvas.seiteId >= 0
+            onTriggered: canvas.duplizieren()
         }
         MenuSeparator {}
         MenuItem {
@@ -82,13 +87,13 @@ Item {
         }
         MenuSeparator {}
         MenuItem {
-            text:    "Loeschen\t(Del)"
+            text:    "Loeschen\t(Entf)"
             enabled: canvas.auswahl.length > 0
             onTriggered: canvas.loeschen()
         }
         MenuSeparator {}
         MenuItem {
-            text:      "Alles auswaehlen\t(Ctrl+A)"
+            text:      "Alles auswaehlen\t(Strg+A)"
             onTriggered: canvas.alleAuswaehlen()
         }
         MenuItem {

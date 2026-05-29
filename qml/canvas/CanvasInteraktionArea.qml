@@ -372,22 +372,7 @@ MouseArea {
                 if (elsDup[di].x2 > mxX) mxX = elsDup[di].x2
                 if (elsDup[di].y2 > mxY) mxY = elsDup[di].y2
             }
-            var dDx = wDup.x - (mnX + mxX) / 2
-            var dDy = wDup.y - (mnY + mxY) / 2
-            var neueElDup = elsDup.map(function(el) {
-                var upd = {}; for (var k in el) upd[k] = el[k]
-                upd.x1 += dDx; upd.y1 += dDy; upd.x2 += dDx; upd.y2 += dDy
-                return upd
-            })
-            var anzDup = neueElDup.length
-            canvas.aktionAusfuehren(canvas.elementeModel.snapshot().concat(neueElDup))
-            var stDup = canvas.elementeModel.anzahl - anzDup
-            var selDup = []; for (var dj = 0; dj < anzDup; dj++) selDup.push(stDup + dj)
-            canvas.auswahl         = selDup
-            canvas.aktivesWerkzeug = "zeiger"
-            canvas.duplizierVorlage  = null
-            canvas.duplizierVorschau = null
-            canvas.neuZeichnen()
+            canvas._duplizierAnzahlAnfordern(wDup.x - (mnX + mxX) / 2, wDup.y - (mnY + mxY) / 2)
 
         } else if (canvas.aktivesWerkzeug === "makroEinfuegen" && canvas.makroEinfuegenId > 0) {
             var wMk = toWelt(mouse.x, mouse.y)

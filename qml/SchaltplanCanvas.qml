@@ -92,8 +92,10 @@ Item {
     property string makroEinfuegenName: ""
 
     // Duplizieren-Modus (Ctrl+D)
-    property var duplizierVorlage:  null   // Quell-Elemente der Auswahl
-    property var duplizierVorschau: null   // verschobene Kopien für die Vorschau
+    property var  duplizierVorlage:  null   // Quell-Elemente der Auswahl
+    property var  duplizierVorschau: null   // verschobene Kopien für die Vorschau
+    property real duplizierOffsetX:  0      // Versatz beim ersten Klick
+    property real duplizierOffsetY:  0
 
     onAktivesWerkzeugChanged: {
         if (aktivesWerkzeug !== "bild") root.paletteImageData = ""
@@ -3548,6 +3550,38 @@ Item {
         root.neuZeichnen()
     }
 
+    function _duplizierAnzahlAnfordern(dx, dy) {
+        root.duplizierOffsetX = dx
+        root.duplizierOffsetY = dy
+        root.duplizierVorschau = null
+        root.neuZeichnen()
+        duplizierAnzahlDialog.open()
+    }
+
+    function _duplizierAnzahlPlatzieren(n) {
+        var els = root.duplizierVorlage
+        if (!els || n < 1) { root.abbruch(); return }
+        var neueEl = []
+        for (var c = 1; c <= n; c++) {
+            var dx = root.duplizierOffsetX * c
+            var dy = root.duplizierOffsetY * c
+            for (var j = 0; j < els.length; j++) {
+                var upd = {}; for (var k in els[j]) upd[k] = els[j][k]
+                upd.x1 += dx; upd.y1 += dy; upd.x2 += dx; upd.y2 += dy
+                neueEl.push(upd)
+            }
+        }
+        var anzahl = neueEl.length
+        root.aktionAusfuehren(elementeModel.snapshot().concat(neueEl))
+        var start = elementeModel.anzahl - anzahl
+        var sel = []; for (var s = 0; s < anzahl; s++) sel.push(start + s)
+        root.auswahl          = sel
+        root.aktivesWerkzeug  = "zeiger"
+        root.duplizierVorlage  = null
+        root.duplizierVorschau = null
+        root.neuZeichnen()
+    }
+
     function abbruch() {
         root.amZeichnen       = false; root.vorschau = null
         root.aktiverGriff     = -1
@@ -3857,4 +3891,68 @@ Item {
     onHeightChanged: root.repaintAll()
 
     DebugLabel { panelName: qsTr("Schaltplan-Canvas"); visible: root.debug }
+
+    Dialog {
+        id: duplizierAnzahlDialog
+        modal: true; parent: Overlay.overlay; anchors.centerIn: parent
+        width: 260; padding: 20
+        standardButtons: Dialog.NoButton
+
+        background: Rectangle {
+            color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 8
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+
+            Text {
+                text: qsTr("Wie viele Dublikate?")
+                font.pixelSize: 14; font.weight: Font.Medium; color: root.theme.textPrimary
+            }
+
+            Rectangle {
+                Layout.fillWidth: true; height: 32; radius: 4
+                color: root.theme.inputBg
+                border.color: anzahlField.activeFocus ? root.theme.accent : root.theme.border
+
+                TextInput {
+                    id: anzahlField
+                    anchors { fill: parent; leftMargin: 8; rightMargin: 8; topMargin: 4; bottomMargin: 4 }
+                    font.pixelSize: 13; color: root.theme.textPrimary
+                    text: "1"; selectByMouse: true; clip: true
+                    validator: IntValidator { bottom: 1; top: 999 }
+                    Keys.onReturnPressed: { duplizierAnzahlDialog.close(); root._duplizierAnzahlPlatzieren(parseInt(anzahlField.text) || 1) }
+                    Keys.onEscapePressed: { duplizierAnzahlDialog.close(); root.abbruch() }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+
+                Rectangle {
+                    implicitWidth: 90; implicitHeight: 30; radius: 4
+                    color: abbMaus.containsMouse ? root.theme.hover : root.theme.inputBg
+                    border.color: root.theme.border
+                    Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); font.pixelSize: 11; color: root.theme.textPrimary }
+                    MouseArea { id: abbMaus; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: { duplizierAnzahlDialog.close(); root.abbruch() } }
+                }
+
+                Rectangle {
+                    implicitWidth: 100; implicitHeight: 30; radius: 4
+                    color: okMaus.containsMouse ? root.theme.accent : root.theme.inputBg
+                    border.color: root.theme.accent
+                    Text { anchors.centerIn: parent; text: qsTr("Platzieren"); font.pixelSize: 11; font.weight: Font.Medium
+                           color: okMaus.containsMouse ? "white" : root.theme.accent }
+                    MouseArea { id: okMaus; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: { var n = parseInt(anzahlField.text) || 1; duplizierAnzahlDialog.close(); root._duplizierAnzahlPlatzieren(n) } }
+                }
+            }
+        }
+
+        onOpened: { anzahlField.text = "1"; anzahlField.selectAll(); anzahlField.forceActiveFocus() }
+    }
 }

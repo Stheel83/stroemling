@@ -170,6 +170,11 @@ MouseArea {
             "X " + Math.round(w.x / canvas.mmToPx) + " mm "
             + "Y " + Math.round(w.y / canvas.mmToPx) + " mm")
 
+        if (canvas.aktivesWerkzeug === "duplizieren" && canvas.duplizierVorlage) {
+            canvas._duplizierVorschauAktualisieren(w.x, w.y)
+            return
+        }
+
         if (canvas.aktivesWerkzeug === "symbol" && canvas.paletteSymbolId !== "") {
             canvas.letzteMausWeltX = w.x; canvas.letzteMausWeltY = w.y
             canvas.vorschau = canvas.symbolVorschauErstellen(w.x, w.y)
@@ -216,6 +221,8 @@ MouseArea {
         if (canvas.aktivesWerkzeug !== "zeiger") canvas.koordinatenTextSetzen("")
         if (canvas.aktivesWerkzeug === "symbol" || canvas.aktivesWerkzeug === "bild")
             { canvas.vorschau = null; canvas.neuZeichnen() }
+        if (canvas.aktivesWerkzeug === "duplizieren")
+            { canvas.duplizierVorschau = null; canvas.neuZeichnen() }
     }
 
     onPressed: function(mouse) {
@@ -353,6 +360,33 @@ MouseArea {
                                             x2: newElBild.x2, y2: newElBild.y2 }]
             canvas.schnapshotVorMove   = em.snapshot()
             canvas.vorschau = null
+            canvas.neuZeichnen()
+
+        } else if (canvas.aktivesWerkzeug === "duplizieren" && canvas.duplizierVorlage) {
+            var wDup = toWelt(mouse.x, mouse.y)
+            var elsDup = canvas.duplizierVorlage
+            var mnX = elsDup[0].x1, mnY = elsDup[0].y1, mxX = elsDup[0].x2, mxY = elsDup[0].y2
+            for (var di = 1; di < elsDup.length; di++) {
+                if (elsDup[di].x1 < mnX) mnX = elsDup[di].x1
+                if (elsDup[di].y1 < mnY) mnY = elsDup[di].y1
+                if (elsDup[di].x2 > mxX) mxX = elsDup[di].x2
+                if (elsDup[di].y2 > mxY) mxY = elsDup[di].y2
+            }
+            var dDx = wDup.x - (mnX + mxX) / 2
+            var dDy = wDup.y - (mnY + mxY) / 2
+            var neueElDup = elsDup.map(function(el) {
+                var upd = {}; for (var k in el) upd[k] = el[k]
+                upd.x1 += dDx; upd.y1 += dDy; upd.x2 += dDx; upd.y2 += dDy
+                return upd
+            })
+            var anzDup = neueElDup.length
+            canvas.aktionAusfuehren(canvas.elementeModel.snapshot().concat(neueElDup))
+            var stDup = canvas.elementeModel.anzahl - anzDup
+            var selDup = []; for (var dj = 0; dj < anzDup; dj++) selDup.push(stDup + dj)
+            canvas.auswahl         = selDup
+            canvas.aktivesWerkzeug = "zeiger"
+            canvas.duplizierVorlage  = null
+            canvas.duplizierVorschau = null
             canvas.neuZeichnen()
 
         } else if (canvas.aktivesWerkzeug === "makroEinfuegen" && canvas.makroEinfuegenId > 0) {

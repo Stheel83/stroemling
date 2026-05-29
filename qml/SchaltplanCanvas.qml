@@ -91,6 +91,10 @@ Item {
     property int    makroEinfuegenId:   0
     property string makroEinfuegenName: ""
 
+    // Duplizieren-Modus (Ctrl+D)
+    property var duplizierVorlage:  null   // Quell-Elemente der Auswahl
+    property var duplizierVorschau: null   // verschobene Kopien für die Vorschau
+
     onAktivesWerkzeugChanged: {
         if (aktivesWerkzeug !== "bild") root.paletteImageData = ""
     }
@@ -2366,6 +2370,10 @@ Item {
                 drawCanvas.maleElement(ctx, elemente[i], i)
             if (root.vorschau !== null)
                 drawCanvas.maleElement(ctx, root.vorschau, -1)
+            if (root.duplizierVorschau) {
+                for (var dvi = 0; dvi < root.duplizierVorschau.length; dvi++)
+                    drawCanvas.maleElement(ctx, root.duplizierVorschau[dvi], -1)
+            }
             // Polygonlinie Live-Vorschau (bereits gezeichnete Segmente + offenes Segment zum Cursor)
             if (root.amPolyZeichnen && root.polyPunkte.length > 0) {
                 ctx.save()
@@ -3514,30 +3522,43 @@ Item {
 
     function duplizieren() {
         if (root.auswahl.length === 0 || root.seiteId < 0) return
-        var off = root.gridPx
-        var neueEl = root.auswahl.map(function(i) {
-            var el = elementeModel.element(i)
+        root.duplizierVorlage = root.auswahl.map(function(i) { return elementeModel.element(i) })
+        root.aktivesWerkzeug  = "duplizieren"
+        root._duplizierVorschauAktualisieren(root.letzteMausWeltX, root.letzteMausWeltY)
+    }
+
+    function _duplizierVorschauAktualisieren(wx, wy) {
+        var els = root.duplizierVorlage
+        if (!els || els.length === 0) return
+        var minX = els[0].x1, minY = els[0].y1, maxX = els[0].x2, maxY = els[0].y2
+        for (var i = 1; i < els.length; i++) {
+            if (els[i].x1 < minX) minX = els[i].x1
+            if (els[i].y1 < minY) minY = els[i].y1
+            if (els[i].x2 > maxX) maxX = els[i].x2
+            if (els[i].y2 > maxY) maxY = els[i].y2
+        }
+        var dx = wx - (minX + maxX) / 2
+        var dy = wy - (minY + maxY) / 2
+        root.duplizierVorschau = els.map(function(el) {
             var upd = {}; for (var k in el) upd[k] = el[k]
-            upd.x1 += off; upd.y1 += off; upd.x2 += off; upd.y2 += off
+            upd.x1 += dx; upd.y1 += dy; upd.x2 += dx; upd.y2 += dy
+            upd.id = -1
             return upd
         })
-        var anzahl = neueEl.length
-        root.aktionAusfuehren(elementeModel.snapshot().concat(neueEl))
-        var start = elementeModel.anzahl - anzahl
-        var sel = []; for (var j = 0; j < anzahl; j++) sel.push(start + j)
-        root.auswahl = sel
-        drawCanvas.requestPaint()
+        root.neuZeichnen()
     }
 
     function abbruch() {
-        root.amZeichnen      = false; root.vorschau = null
-        root.aktiverGriff    = -1
-        root.amRubberband    = false; root.rubberbandRect = null
-        root.textEditAktiv   = false
+        root.amZeichnen       = false; root.vorschau = null
+        root.aktiverGriff     = -1
+        root.amRubberband     = false; root.rubberbandRect = null
+        root.textEditAktiv    = false
         root.paletteImageData = ""
-        root.amPolyZeichnen  = false
-        root.polyPunkte      = []
-        root.polyCursorWelt  = null
+        root.amPolyZeichnen   = false
+        root.polyPunkte       = []
+        root.polyCursorWelt   = null
+        root.duplizierVorlage  = null
+        root.duplizierVorschau = null
         drawCanvas.requestPaint()
     }
 

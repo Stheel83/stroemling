@@ -61,6 +61,13 @@ public:
     // Metadaten des ersten (einzigen) Projekts in der aktuellen DB
     Q_INVOKABLE QVariantMap ersteProjektInfo() const;
 
+    // Projektmetadaten speichern (Name, Nummer, AG, AN, Bearbeiter)
+    Q_INVOKABLE bool projektMetaDatenSpeichern(const QString &name,
+                                               const QString &nummer,
+                                               const QString &auftraggeber,
+                                               const QString &auftragnehmer,
+                                               const QString &bearbeiter);
+
     // Hauptdatenbank öffnen oder neu anlegen (legacy – ruft openProjekt auf)
     bool open(const QString &path);
 

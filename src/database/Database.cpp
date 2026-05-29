@@ -1140,6 +1140,35 @@ QVariantMap Database::ersteProjektInfo() const
 }
 
 // ============================================================
+// projektMetaDatenSpeichern
+// ============================================================
+bool Database::projektMetaDatenSpeichern(const QString &name,
+                                          const QString &nummer,
+                                          const QString &auftraggeber,
+                                          const QString &auftragnehmer,
+                                          const QString &bearbeiter)
+{
+    if (!m_projektOffen) return false;
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE projekt SET name=:n, projektnummer=:nr, "
+              "auftraggeber=:ag, auftragnehmer=:an, bearbeiter=:b, "
+              "geaendert_am=datetime('now') "
+              "WHERE id=(SELECT MAX(id) FROM projekt)");
+    q.bindValue(":n",  name.trimmed());
+    q.bindValue(":nr", nummer.trimmed());
+    q.bindValue(":ag", auftraggeber.trimmed());
+    q.bindValue(":an", auftragnehmer.trimmed());
+    q.bindValue(":b",  bearbeiter.trimmed());
+    if (!q.exec()) {
+        qWarning() << "projektMetaDatenSpeichern:" << q.lastError().text();
+        return false;
+    }
+    bekannteProjecteEintragen(m_db.databaseName(), name.trimmed(), nummer.trimmed());
+    emit projektOffenChanged();
+    return true;
+}
+
+// ============================================================
 // zuletzGeoeffnetEintragen (privat)
 // ============================================================
 void Database::zuletzGeoeffnetEintragen(const QString &path, const QString &name)

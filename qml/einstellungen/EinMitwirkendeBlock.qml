@@ -36,7 +36,7 @@ ColumnLayout {
         // ── Namen hier eintragen ──────────────────────
         property var _fehlersuche: []
         property var _tests:       ["Big B. hat fleißig das Programm missbraucht", "P.S. war sehr gründlich"]
-        property var _design:      ["S.Z. hat des Strömling Design grundlegend definiert", "S.Z., M.M., J.T., M.T., A.R., K.K., Big B., K.M., A.K., P.S. haben mich grundlegend bei der rotierenden Logo Auswahl beeinflusst"]
+        property var _design:      ["S.Z. hat des Strömling Design grundlegend definiert", "H.C. hat den **Schluss Jetzt** Button entwickelt", "S.Z., M.M., J.T., M.T., A.R., K.K., Big B., K.M., A.K., P.S. haben mich grundlegend bei der rotierenden Logo Auswahl beeinflusst"]
         property var _sonstiges:   []
         // Beispiel: property var _fehlersuche: ["Max Muster", "Anna Beispiel"]
 

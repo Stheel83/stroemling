@@ -237,6 +237,38 @@ qt_add_resources(stroemling_app "database_seeds"
         src/database/symbole.sql
 )
 
+qt_add_resources(stroemling_app "wiki_seed_res"
+    PREFIX "/wiki_seed"
+    BASE "src/wiki_seed"
+    FILES
+        src/wiki_seed/manifest.json
+        src/wiki_seed/bedienhinweise/programmuebersicht.md
+        src/wiki_seed/bedienhinweise/schaltplan_erste_schritte.md
+        src/wiki_seed/bedienhinweise/symbole_platzieren.md
+        src/wiki_seed/bedienhinweise/kabelrechner.md
+        src/wiki_seed/bedienhinweise/ibn_inbetriebnahme.md
+        src/wiki_seed/bedienhinweise/versionierung_git.md
+        src/wiki_seed/bedienhinweise/lizenz_open_source.md
+        src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
+        src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
+        src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
+        src/wiki_seed/altbestand_west/klassische_nullung_kuriosum.md
+        src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
+        src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
+        src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
+        src/wiki_seed/stromlinge/ueberblick.md
+        src/wiki_seed/stromlinge/schwaerzchen.md
+        src/wiki_seed/stromlinge/impulsino.md
+        src/wiki_seed/stromlinge/isolus.md
+        src/wiki_seed/stromlinge/brauno.md
+        src/wiki_seed/stromlinge/blaubertha.md
+        src/wiki_seed/stromlinge/grausel.md
+        src/wiki_seed/stromlinge/erdikus.md
+        src/wiki_seed/stromlinge/datinchen.md
+        src/wiki_seed/stromlinge/pokestroem.md
+        src/wiki_seed/tester/testanleitung.md
+)
+
 target_link_libraries(stroemling_app PRIVATE
     Qt6::Core
     Qt6::Quick
@@ -273,6 +305,38 @@ qt_add_resources(stroemling_test "database_seeds_test"
     BASE "src/database"
     FILES
         src/database/symbole.sql
+)
+
+qt_add_resources(stroemling_test "wiki_seed_res_test"
+    PREFIX "/wiki_seed"
+    BASE "src/wiki_seed"
+    FILES
+        src/wiki_seed/manifest.json
+        src/wiki_seed/bedienhinweise/programmuebersicht.md
+        src/wiki_seed/bedienhinweise/schaltplan_erste_schritte.md
+        src/wiki_seed/bedienhinweise/symbole_platzieren.md
+        src/wiki_seed/bedienhinweise/kabelrechner.md
+        src/wiki_seed/bedienhinweise/ibn_inbetriebnahme.md
+        src/wiki_seed/bedienhinweise/versionierung_git.md
+        src/wiki_seed/bedienhinweise/lizenz_open_source.md
+        src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
+        src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
+        src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
+        src/wiki_seed/altbestand_west/klassische_nullung_kuriosum.md
+        src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
+        src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
+        src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
+        src/wiki_seed/stromlinge/ueberblick.md
+        src/wiki_seed/stromlinge/schwaerzchen.md
+        src/wiki_seed/stromlinge/impulsino.md
+        src/wiki_seed/stromlinge/isolus.md
+        src/wiki_seed/stromlinge/brauno.md
+        src/wiki_seed/stromlinge/blaubertha.md
+        src/wiki_seed/stromlinge/grausel.md
+        src/wiki_seed/stromlinge/erdikus.md
+        src/wiki_seed/stromlinge/datinchen.md
+        src/wiki_seed/stromlinge/pokestroem.md
+        src/wiki_seed/tester/testanleitung.md
 )
 
 target_include_directories(stroemling_test PRIVATE src)

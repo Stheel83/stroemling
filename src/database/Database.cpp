@@ -1232,6 +1232,9 @@ bool Database::projektAusRegistryEntfernen(const QString &pfad)
 
 bool Database::openWiki(const QString &path)
 {
+    m_wikiBlobDir = QFileInfo(path).absolutePath() + "/wiki_blobs";
+    QDir().mkpath(m_wikiBlobDir);
+
     m_wikiDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_wiki");
     m_wikiDb.setDatabaseName(path);
     if (!m_wikiDb.open()) {
@@ -1336,6 +1339,56 @@ bool Database::checkAndApplyWikiSchema()
         }
     }
 
+    // v11: wiki_bild.daten (BLOB) → externe Dateien in wiki_blobs/
+    if (storedVersion >= 1 && storedVersion < 11) {
+        bool hasBlobPfad = false, hasDaten = false;
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA table_info(wiki_bild)");
+        while (pragma.next()) {
+            const QString col = pragma.value(1).toString();
+            if (col == "blob_pfad") hasBlobPfad = true;
+            if (col == "daten")     hasDaten    = true;
+        }
+        if (!hasBlobPfad) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_bild ADD COLUMN blob_pfad TEXT NOT NULL DEFAULT ''")) {
+                qWarning() << "ALTER wiki_bild ADD blob_pfad:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+        if (hasDaten) {
+            // Bestehende BLOBs in Dateien auslagern
+            QSqlQuery sel(m_wikiDb);
+            sel.exec("SELECT id, mime_typ, daten FROM wiki_bild WHERE blob_pfad = ''");
+            while (sel.next()) {
+                const int        blobId = sel.value(0).toInt();
+                const QString    mime   = sel.value(1).toString();
+                const QByteArray daten  = sel.value(2).toByteArray();
+                if (daten.isEmpty()) continue;
+                const QString ext = mime.contains("png") ? ".png" : ".jpg";
+                const QString fn  = QString::number(blobId) + ext;
+                QFile f(m_wikiBlobDir + "/" + fn);
+                if (f.open(QIODevice::WriteOnly)) {
+                    f.write(daten);
+                    QSqlQuery upd(m_wikiDb);
+                    upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                    upd.bindValue(":p",  fn);
+                    upd.bindValue(":id", blobId);
+                    upd.exec();
+                } else {
+                    qWarning() << "wiki_bild Migration: Datei nicht schreibbar:" << fn;
+                }
+            }
+            QSqlQuery drop(m_wikiDb);
+            if (!drop.exec("ALTER TABLE wiki_bild DROP COLUMN daten")) {
+                qWarning() << "ALTER wiki_bild DROP COLUMN daten:" << drop.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+    }
+
     if (!createWikiSchema() || !seedWikiStarterInhalte()) {
         m_wikiDb.rollback();
         return false;
@@ -1412,7 +1465,7 @@ bool Database::createWikiSchema()
             artikel_id   INTEGER NOT NULL REFERENCES wiki_artikel(id) ON DELETE CASCADE,
             dateiname    TEXT    NOT NULL,
             mime_typ     TEXT    NOT NULL DEFAULT 'image/jpeg',
-            daten        BLOB    NOT NULL,
+            blob_pfad    TEXT    NOT NULL DEFAULT '',
             beschreibung TEXT    NOT NULL DEFAULT '',
             sortierung   INTEGER NOT NULL DEFAULT 0
         )

@@ -34,6 +34,15 @@ public:
     // Gibt die Rolle des Symbols zurück (z.B. "durchleiter", "verbraucher").
     Q_INVOKABLE QString rolleForSymbol(const QString &symbolId) const;
 
+    // Berechnet Auto-Verbindungen zwischen Symbol-Pins auf gleicher H-/V-Lane.
+    // snapshot   : elementeModel.snapshot()
+    // gridPx     : root.gridPx  (canvas-Einheiten pro Rasterfeld)
+    // normblatt  : root.normblattDaten || {}  (für anlageKuerzel/ortKuerzel)
+    // Gibt [{x1,y1,x2,y2, elIdxA/B, rolleA/B, quellSigA/B, signaltyp, logisch?}] zurück.
+    Q_INVOKABLE QVariantList autoVerbindungenBerechnen(const QVariantList &snapshot,
+                                                       double gridPx,
+                                                       const QVariantMap &normblatt) const;
+
     // Gibt Basisdaten eines Symbols zurück: {name, kategorie, breiteMm, hoeheMm, rolle, ist_builtin}
     Q_INVOKABLE QVariantMap symbolInfo(const QString &symbolId) const;
 

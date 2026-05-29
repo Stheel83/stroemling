@@ -23,7 +23,7 @@ public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
     // als inkrementelle Migration in alleMigrationen() – diese Konstante bleibt fest.
     static const int BASELINE_VERSION    = 40;
-    static const int WIKI_SCHEMA_VERSION = 10;
+    static const int WIKI_SCHEMA_VERSION = 12;
 
     explicit Database(QObject *parent = nullptr);
 
@@ -613,8 +613,14 @@ private:
     // Projekt in bekannte_projekte registrieren / aktualisieren
     void bekannteProjecteEintragen(const QString &pfad, const QString &name, const QString &nummer);
 
+    // Blob-Dateien eines Artikels löschen (vor CASCADE-DELETE aufrufen)
+    void wikiBlobDateienLoeschenFuerArtikel(int artikelId);
+    // Blob-Dateien aller Nutzer-Artikel löschen (vor Replace-Import)
+    void wikiBlobDateienAlleNutzerArtikelLoeschen();
+
     QSqlDatabase m_db;
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_launcherDb;
     bool         m_projektOffen = false;
+    QString      m_wikiBlobDir;
 };

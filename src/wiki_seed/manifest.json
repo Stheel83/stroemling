@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "kategorien": [
+    {
+      "name": "Bedienhinweise",
+      "beschreibung": "Grundlegende Bedienung von Strömling Design",
+      "sortierung": 1,
+      "ist_system": true,
+      "artikel": [
+        {
+          "titel": "Programmübersicht",
+          "tags": "übersicht navigation sidebar",
+          "datei": "bedienhinweise/programmuebersicht.md"
+        },
+        {
+          "titel": "Schaltplan – Erste Schritte",
+          "tags": "schaltplan seite projekt zeichenfläche verbindung",
+          "datei": "bedienhinweise/schaltplan_erste_schritte.md"
+        },
+        {
+          "titel": "Symbole platzieren und bearbeiten",
+          "tags": "symbol platzieren bibliothek pin rotation BMK",
+          "datei": "bedienhinweise/symbole_platzieren.md"
+        },
+        {
+          "titel": "Kabelrechner",
+          "tags": "kabel querschnitt VDE berechnung strom",
+          "datei": "bedienhinweise/kabelrechner.md"
+        },
+        {
+          "titel": "IBN – Inbetriebnahme",
+          "tags": "inbetriebnahme prüfung messwert protokoll IBN",
+          "datei": "bedienhinweise/ibn_inbetriebnahme.md"
+        },
+        {
+          "titel": "Versionierung mit Git",
+          "tags": "git versionierung backup revision history",
+          "datei": "bedienhinweise/versionierung_git.md"
+        },
+        {
+          "titel": "Lizenz & Open Source",
+          "tags": "lizenz open source GPL frei kostenlos spende",
+          "datei": "bedienhinweise/lizenz_open_source.md"
+        },
+        {
+          "titel": "Über dieses Projekt",
+          "tags": "entstehung projekt KI claude chatgpt open source geschichte",
+          "datei": "bedienhinweise/ueber_dieses_projekt.md"
+        }
+      ]
+    },
+    {
+      "name": "Altbestand – West",
+      "beschreibung": "Installationen nach westdeutscher Norm (VDE), Übergangsperioden, Klassische Nullung",
+      "sortierung": 10,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Klassische Nullung – Grundlagen",
+          "tags": "klassische nullung VDE altbestand",
+          "datei": "altbestand_west/klassische_nullung_grundlagen.md"
+        },
+        {
+          "titel": "Klassische Nullung – Verbotsdaten nach VDE",
+          "tags": "klassische nullung verbot datum",
+          "datei": "altbestand_west/klassische_nullung_verbotsdaten.md"
+        },
+        {
+          "titel": "Kuriositäten: 3-adrig verdrahtet, aber KN angeklemmt",
+          "tags": "klassische nullung kuriosum",
+          "datei": "altbestand_west/klassische_nullung_kuriosum.md"
+        }
+      ]
+    },
+    {
+      "name": "Altbestand – Ost",
+      "beschreibung": "Installationen nach DDR-Norm TGL, Besonderheiten, Aluminium-Leitungen",
+      "sortierung": 20,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Aluminium-Leitungen nach DDR-Norm TGL",
+          "tags": "aluminium TGL DDR altbestand",
+          "datei": "altbestand_ost/aluminium_leitungen_tgl.md"
+        },
+        {
+          "titel": "DDR-Farbnormen und TGL-Querschnitte",
+          "tags": "farbnorm TGL DDR querschnitt",
+          "datei": "altbestand_ost/ddr_farbnormen_tgl.md"
+        }
+      ]
+    },
+    {
+      "name": "Aderendhülsen",
+      "beschreibung": "Typen, Farbtabellen, Crimp-Technik, häufige Fehler",
+      "sortierung": 30,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Querschnitt–Farb–Größentabelle",
+          "tags": "aderendhülse querschnitt farbe tabelle",
+          "datei": "aderendhuelsen/querschnitt_farb_groesstabelle.md"
+        }
+      ]
+    },
+    {
+      "name": "Kuriositäten",
+      "beschreibung": "Ungewöhnliche Fundsachen aus der Praxis",
+      "sortierung": 40,
+      "ist_system": false,
+      "artikel": []
+    },
+    {
+      "name": "Strömlinge",
+      "beschreibung": "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
+      "sortierung": 50,
+      "ist_system": true,
+      "artikel": [
+        {
+          "titel": "Strömlinge – Überblick",
+          "tags": "strömling maskottchen übersicht charakter",
+          "datei": "stromlinge/ueberblick.md"
+        },
+        {
+          "titel": "Schwärzchen – Systemfisch L2",
+          "tags": "schwärzchen L2 außenleiter netzleiter IEC schwarz",
+          "datei": "stromlinge/schwaerzchen.md",
+          "bild_qrc": ":/assets/schwaerzchen_sheet.png",
+          "bild_dateiname": "schwaerzchen_sheet.png"
+        },
+        {
+          "titel": "Impulsino – Signal",
+          "tags": "impulsino signal impuls digital orange funmodus",
+          "datei": "stromlinge/impulsino.md",
+          "bild_qrc": ":/assets/impulsino_uebersicht.png",
+          "bild_dateiname": "impulsino_uebersicht.png"
+        },
+        {
+          "titel": "Isolus – Schutz & Isolierung",
+          "tags": "isolus isolation schutz dunkleosteus panzer IEC klasse II",
+          "datei": "stromlinge/isolus.md",
+          "bild_qrc": ":/assets/isolus.png",
+          "bild_dateiname": "isolus.png"
+        },
+        {
+          "titel": "Brauno – Außenleiter L1",
+          "tags": "brauno L1 außenleiter netzleiter IEC braun",
+          "datei": "stromlinge/brauno.md",
+          "bild_qrc": ":/assets/brauno_uebersicht.png",
+          "bild_dateiname": "brauno_uebersicht.png"
+        },
+        {
+          "titel": "Blaubertha – Neutralleiter N",
+          "tags": "blaubertha N neutralleiter netzleiter IEC blau rückleiter",
+          "datei": "stromlinge/blaubertha.md",
+          "bild_qrc": ":/assets/blaubertha_uebersicht.png",
+          "bild_dateiname": "blaubertha_uebersicht.png"
+        },
+        {
+          "titel": "Grausel – Außenleiter L3",
+          "tags": "grausel L3 außenleiter netzleiter IEC grau",
+          "datei": "stromlinge/grausel.md",
+          "bild_qrc": ":/assets/grausel_uebersicht.png",
+          "bild_dateiname": "grausel_uebersicht.png"
+        },
+        {
+          "titel": "Erdikus – Schutzleiter PE",
+          "tags": "erdikus PE schutzleiter netzleiter IEC grün gelb erde",
+          "datei": "stromlinge/erdikus.md",
+          "bild_qrc": ":/assets/erdikus_uebersicht.png",
+          "bild_dateiname": "erdikus_uebersicht.png"
+        },
+        {
+          "titel": "Datinchen – Kommunikation",
+          "tags": "datinchen kommunikation bus signal CAN RS485 lila violett",
+          "datei": "stromlinge/datinchen.md",
+          "bild_qrc": ":/assets/datinchen_uebersicht.png",
+          "bild_dateiname": "datinchen_uebersicht.png"
+        },
+        {
+          "titel": "Pokeström",
+          "tags": "pokeström maskottchen startbildschirm fisch charakter",
+          "datei": "stromlinge/pokestroem.md",
+          "bild_qrc": ":/assets/pokestroem_cee.png",
+          "bild_dateiname": "pokestroem_cee.png"
+        }
+      ]
+    },
+    {
+      "name": "Tester",
+      "beschreibung": "Testanleitungen und Rückmeldungen von Programmtestern",
+      "sortierung": 60,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Testanleitung – Strömling Design",
+          "tags": "tester testanleitung feedback checkliste",
+          "datei": "tester/testanleitung.md"
+        }
+      ]
+    }
+  ]
+}

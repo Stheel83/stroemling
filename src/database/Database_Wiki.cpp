@@ -171,6 +171,7 @@ bool Database::wikiArtikelSpeichern(int id, const QString &titel,
 
 bool Database::wikiArtikelLoeschen(int id)
 {
+    wikiBlobDateienLoeschenFuerArtikel(id);
     QSqlQuery q(m_wikiDb);
     q.prepare("DELETE FROM wiki_artikel WHERE id = :id");
     q.bindValue(":id", id);
@@ -182,8 +183,33 @@ bool Database::wikiArtikelLoeschen(int id)
 }
 
 // ============================================================
-// Wiki – Bilder
+// Wiki – Bilder  (Blobs liegen als Dateien in m_wikiBlobDir)
 // ============================================================
+
+void Database::wikiBlobDateienLoeschenFuerArtikel(int artikelId)
+{
+    QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT blob_pfad FROM wiki_bild WHERE artikel_id = :aid");
+    q.bindValue(":aid", artikelId);
+    if (!q.exec()) return;
+    while (q.next()) {
+        const QString fn = q.value(0).toString();
+        if (!fn.isEmpty())
+            QFile::remove(m_wikiBlobDir + "/" + fn);
+    }
+}
+
+void Database::wikiBlobDateienAlleNutzerArtikelLoeschen()
+{
+    QSqlQuery q(m_wikiDb);
+    q.exec("SELECT wb.blob_pfad FROM wiki_bild wb JOIN wiki_artikel wa ON wa.id = wb.artikel_id WHERE wa.ist_system = 0");
+    while (q.next()) {
+        const QString fn = q.value(0).toString();
+        if (!fn.isEmpty())
+            QFile::remove(m_wikiBlobDir + "/" + fn);
+    }
+}
+
 QVariantList Database::wikiBilderFuerArtikel(int artikelId)
 {
     QSqlQuery q(m_wikiDb);
@@ -225,27 +251,55 @@ int Database::wikiBildHinzufuegen(int artikelId, const QString &pfad)
     const QString mimeTyp   = (ext == "png") ? "image/png" : "image/jpeg";
     const QString dateiname = QFileInfo(localPfad).fileName();
 
+    // Zuerst Zeile einfügen, um die ID zu bekommen
     QSqlQuery q(m_wikiDb);
     q.prepare(R"(
-        INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, sortierung)
-        VALUES (:aid, :fn, :mime, :daten,
+        INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung)
+        VALUES (:aid, :fn, :mime, '',
                 (SELECT COALESCE(MAX(sortierung), 0) + 1 FROM wiki_bild WHERE artikel_id = :aid2))
     )");
-    q.bindValue(":aid",   artikelId);
-    q.bindValue(":fn",    dateiname);
-    q.bindValue(":mime",  mimeTyp);
-    q.bindValue(":daten", daten);
-    q.bindValue(":aid2",  artikelId);
+    q.bindValue(":aid",  artikelId);
+    q.bindValue(":fn",   dateiname);
+    q.bindValue(":mime", mimeTyp);
+    q.bindValue(":aid2", artikelId);
     if (!q.exec()) {
         qWarning() << "wikiBildHinzufuegen INSERT:" << q.lastError().text();
         return -1;
     }
-    return q.lastInsertId().toInt();
+    const int newId = q.lastInsertId().toInt();
+
+    // Bilddatei schreiben
+    const QString fn = QString::number(newId) + (ext == "png" ? ".png" : ".jpg");
+    QFile f(m_wikiBlobDir + "/" + fn);
+    if (!f.open(QIODevice::WriteOnly)) {
+        qWarning() << "wikiBildHinzufuegen: Datei nicht schreibbar:" << fn;
+        QSqlQuery del(m_wikiDb);
+        del.prepare("DELETE FROM wiki_bild WHERE id = :id");
+        del.bindValue(":id", newId);
+        del.exec();
+        return -1;
+    }
+    f.write(daten);
+
+    QSqlQuery upd(m_wikiDb);
+    upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+    upd.bindValue(":p",  fn);
+    upd.bindValue(":id", newId);
+    upd.exec();
+
+    return newId;
 }
 
 bool Database::wikiBildLoeschen(int id)
 {
     QSqlQuery q(m_wikiDb);
+    q.prepare("SELECT blob_pfad FROM wiki_bild WHERE id = :id");
+    q.bindValue(":id", id);
+    if (q.exec() && q.next()) {
+        const QString fn = q.value(0).toString();
+        if (!fn.isEmpty())
+            QFile::remove(m_wikiBlobDir + "/" + fn);
+    }
     q.prepare("DELETE FROM wiki_bild WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
@@ -258,22 +312,12 @@ bool Database::wikiBildLoeschen(int id)
 QString Database::wikiBildAlsTempDatei(int id)
 {
     QSqlQuery q(m_wikiDb);
-    q.prepare("SELECT daten, mime_typ FROM wiki_bild WHERE id = :id");
+    q.prepare("SELECT blob_pfad FROM wiki_bild WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec() || !q.next()) return {};
-
-    const QByteArray daten = q.value(0).toByteArray();
-    const QString mimeTyp  = q.value(1).toString();
-    const QString ext      = mimeTyp.contains("png") ? ".png" : ".jpg";
-    const QString tmpPfad  = QDir::tempPath() + "/stroemling_wiki_" + QString::number(id) + ext;
-
-    QFile f(tmpPfad);
-    if (!f.open(QIODevice::WriteOnly)) {
-        qWarning() << "wikiBildAlsTempDatei: Datei nicht schreibbar:" << tmpPfad;
-        return {};
-    }
-    f.write(daten);
-    return tmpPfad;
+    const QString fn = q.value(0).toString();
+    if (fn.isEmpty()) return {};
+    return m_wikiBlobDir + "/" + fn;
 }
 
 // ============================================================
@@ -362,7 +406,7 @@ bool Database::wikiExportJson(const QString &pfad)
     QJsonArray bilderArr;
     QSqlQuery qBild(m_wikiDb);
     if (!qBild.exec(R"(
-        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.daten, wb.beschreibung, wb.sortierung
+        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.blob_pfad, wb.beschreibung, wb.sortierung
         FROM wiki_bild wb
         JOIN wiki_artikel wa ON wa.id = wb.artikel_id
         WHERE wa.ist_system = 0
@@ -372,12 +416,15 @@ bool Database::wikiExportJson(const QString &pfad)
         return false;
     }
     while (qBild.next()) {
+        const QString fn = qBild.value(4).toString();
+        QFile bf(m_wikiBlobDir + "/" + fn);
+        if (!bf.open(QIODevice::ReadOnly)) continue;
         QJsonObject o;
         o["id"]           = qBild.value(0).toInt();
         o["artikel_id"]   = qBild.value(1).toInt();
         o["dateiname"]    = qBild.value(2).toString();
         o["mime_typ"]     = qBild.value(3).toString();
-        o["daten_base64"] = QString::fromLatin1(qBild.value(4).toByteArray().toBase64());
+        o["daten_base64"] = QString::fromLatin1(bf.readAll().toBase64());
         o["beschreibung"] = qBild.value(5).toString();
         o["sortierung"]   = qBild.value(6).toInt();
         bilderArr.append(o);
@@ -428,6 +475,7 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
 
     // Replace-Modus: alle Nutzer-Artikel löschen (Bilder cascaden automatisch)
     if (!mergeMode) {
+        wikiBlobDateienAlleNutzerArtikelLoeschen();
         QSqlQuery del(m_wikiDb);
         if (!del.exec("DELETE FROM wiki_artikel WHERE ist_system = 0")) {
             qWarning() << "wikiImportJson replace:" << del.lastError().text();
@@ -516,21 +564,35 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
         const int newArtId  = artIdMap.value(o["artikel_id"].toInt(), -1);
         if (newArtId < 0) continue;
 
+        const QString mime  = o["mime_typ"].toString();
+        const QString ext   = mime.contains("png") ? ".png" : ".jpg";
         QSqlQuery ins(m_wikiDb);
         ins.prepare(R"(
-            INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, beschreibung, sortierung)
-            VALUES (:aid, :fn, :mime, :daten, :beschr, :sort)
+            INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, beschreibung, sortierung)
+            VALUES (:aid, :fn, :mime, '', :beschr, :sort)
         )");
         ins.bindValue(":aid",   newArtId);
         ins.bindValue(":fn",    o["dateiname"].toString());
-        ins.bindValue(":mime",  o["mime_typ"].toString());
-        ins.bindValue(":daten", QByteArray::fromBase64(o["daten_base64"].toString().toLatin1()));
+        ins.bindValue(":mime",  mime);
         ins.bindValue(":beschr", o["beschreibung"].toString());
         ins.bindValue(":sort",  o["sortierung"].toInt());
         if (!ins.exec()) {
             qWarning() << "wikiImportJson Bild einfügen:" << ins.lastError().text();
             m_wikiDb.rollback();
             return false;
+        }
+        const int newBildId = ins.lastInsertId().toInt();
+        const QString fn    = QString::number(newBildId) + ext;
+        QFile bf(m_wikiBlobDir + "/" + fn);
+        if (bf.open(QIODevice::WriteOnly)) {
+            bf.write(QByteArray::fromBase64(o["daten_base64"].toString().toLatin1()));
+            QSqlQuery upd(m_wikiDb);
+            upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+            upd.bindValue(":p",  fn);
+            upd.bindValue(":id", newBildId);
+            upd.exec();
+        } else {
+            qWarning() << "wikiImportJson: Bilddatei nicht schreibbar:" << fn;
         }
     }
 
@@ -681,19 +743,31 @@ QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
         auto _bilderEinfuegen = [&](int artDbId, const QString &inhaltVorlage) -> QString {
             QMap<int, int> bildIdMap;
             for (const QJsonObject &b : bilderNachArtId.value(oldArtId)) {
+                const QString mime = b["mime_typ"].toString();
+                const QString ext  = mime.contains("png") ? ".png" : ".jpg";
                 QSqlQuery bIns(m_wikiDb);
                 bIns.prepare(R"(
-                    INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, beschreibung, sortierung)
-                    VALUES (:aid, :fn, :mime, :daten, :beschr, :sort)
+                    INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, beschreibung, sortierung)
+                    VALUES (:aid, :fn, :mime, '', :beschr, :sort)
                 )");
                 bIns.bindValue(":aid",   artDbId);
                 bIns.bindValue(":fn",    b["dateiname"].toString());
-                bIns.bindValue(":mime",  b["mime_typ"].toString());
-                bIns.bindValue(":daten", QByteArray::fromBase64(b["daten_base64"].toString().toLatin1()));
+                bIns.bindValue(":mime",  mime);
                 bIns.bindValue(":beschr", b["beschreibung"].toString());
                 bIns.bindValue(":sort",  b["sortierung"].toInt());
-                if (bIns.exec())
-                    bildIdMap[b["id"].toInt()] = bIns.lastInsertId().toInt();
+                if (!bIns.exec()) continue;
+                const int newBildId = bIns.lastInsertId().toInt();
+                bildIdMap[b["id"].toInt()] = newBildId;
+                const QString fn = QString::number(newBildId) + ext;
+                QFile bf(m_wikiBlobDir + "/" + fn);
+                if (bf.open(QIODevice::WriteOnly)) {
+                    bf.write(QByteArray::fromBase64(b["daten_base64"].toString().toLatin1()));
+                    QSqlQuery upd(m_wikiDb);
+                    upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                    upd.bindValue(":p",  fn);
+                    upd.bindValue(":id", newBildId);
+                    upd.exec();
+                }
             }
             // wiki://bild/{bundle-lokal} → wiki://bild/{db-id}
             QString inhaltRemap = inhaltVorlage;
@@ -711,7 +785,8 @@ QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
             if (vonNutzerGeaendert == 1) {
                 skipCount++;
             } else {
-                // Bilder löschen (cascaden würde nicht, da kein ON DELETE CASCADE für UPDATE)
+                // Bilder löschen – zuerst Dateien, dann DB-Zeilen
+                wikiBlobDateienLoeschenFuerArtikel(existingId);
                 QSqlQuery delBilder(m_wikiDb);
                 delBilder.prepare("DELETE FROM wiki_bild WHERE artikel_id = :aid");
                 delBilder.bindValue(":aid", existingId);
@@ -855,19 +930,22 @@ bool Database::wikiBundleExportieren(const QString &pfad, const QString &kennung
     QJsonArray bilderArr;
     QSqlQuery qBild(m_wikiDb);
     if (!qBild.exec(R"(
-        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.daten, wb.beschreibung, wb.sortierung
+        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.blob_pfad, wb.beschreibung, wb.sortierung
         FROM wiki_bild wb JOIN wiki_artikel wa ON wa.id = wb.artikel_id
         WHERE wa.ist_system = 0
         ORDER BY wb.artikel_id, wb.sortierung, wb.id
     )")) return false;
     while (qBild.next()) {
         if (!exportArtIds.contains(qBild.value(1).toInt())) continue;
+        const QString fn = qBild.value(4).toString();
+        QFile bf(m_wikiBlobDir + "/" + fn);
+        if (!bf.open(QIODevice::ReadOnly)) continue;
         QJsonObject o;
         o["id"]           = qBild.value(0).toInt();
         o["artikel_id"]   = qBild.value(1).toInt();
         o["dateiname"]    = qBild.value(2).toString();
         o["mime_typ"]     = qBild.value(3).toString();
-        o["daten_base64"] = QString::fromLatin1(qBild.value(4).toByteArray().toBase64());
+        o["daten_base64"] = QString::fromLatin1(bf.readAll().toBase64());
         o["beschreibung"] = qBild.value(5).toString();
         o["sortierung"]   = qBild.value(6).toInt();
         bilderArr.append(o);
@@ -921,913 +999,27 @@ QVariantList Database::wikiBundleAktiveListe()
 
 // ============================================================
 // seedWikiStarterInhalte
-// Legt System-Kategorien und -Artikel an (INSERT OR IGNORE –
-// idempotent, bestehende Nutzer-Inhalte bleiben unberührt).
+// Liest src/wiki_seed/manifest.json + .md-Dateien aus QRC-Ressourcen.
+// Kategorien/Artikel werden angelegt bzw. für ist_system=true aktualisiert.
 // ============================================================
 bool Database::seedWikiStarterInhalte()
 {
-    struct Artikel {
-        QString titel;
-        QString inhalt;
-        QString tags;
-    };
-    struct Kategorie {
-        QString name;
-        QString beschreibung;
-        int sortierung;
-        bool istSystem;          // true → Artikel werden mit ist_system=1 gepflegt
-        QList<Artikel> artikel;
-    };
-
-    const QList<Kategorie> kategorien = {
-        {
-            "Bedienhinweise",
-            "Grundlegende Bedienung von Strömling Design",
-            1,
-            true,
-            {
-                {
-                    "Programmübersicht",
-                    R"(# Programmübersicht
-
-Strömling Design ist in mehrere Arbeitsbereiche aufgeteilt, zwischen denen
-du über die **Seitenleiste links** wechselst.
-
-## Arbeitsbereiche
-
-| Symbol | Bereich | Funktion |
-|--------|---------|----------|
-| 📐 | Schaltplan | Schaltpläne zeichnen, Verbindungen ziehen |
-| 🔧 | Symbole | Eigene Schaltsymbole erstellen und bearbeiten |
-| 📋 | Normblatt | Schriftfeld-Vorlagen gestalten |
-| ✅ | IBN | Inbetriebnahme-Prüfprotokoll |
-| ⚡ | Kabelrechner | Leitungsquerschnitt nach VDE berechnen |
-| 📊 | Listen | Kabel-, Klemmen- und Stücklisten |
-| 📖 | Wiki | Persönliche Erfahrungen und Notizen |
-
-## Grundprinzip
-
-- **Links:** Seitenbaum (Projektseiten) oder Navigationsleiste
-- **Mitte:** Arbeitsbereich / Zeichenfläche
-- **Rechts:** Eigenschaftenpanel – zeigt die Eigenschaften des gewählten Elements
-)",
-                    "übersicht navigation sidebar"
-                },
-                {
-                    "Schaltplan – Erste Schritte",
-                    R"(# Schaltplan – Erste Schritte
-
-## Projekt anlegen
-
-1. Beim Programmstart wird automatisch ein leeres Projekt geöffnet.
-2. Im **Seitenbaum links** siehst du alle Seiten des Projekts.
-3. Über das **+**-Symbol im Seitenbaum fügst du neue Seiten hinzu.
-
-## Zeichenfläche
-
-Die Zeichenfläche arbeitet mit einem **Raster** (Standardeinheit: Werkeeinheiten, WE).
-
-- **Zoomen:** Mausrad
-- **Verschieben:** Mittlere Maustaste gedrückt halten und ziehen
-- **Auswählen:** Linksklick auf ein Element
-
-## Elemente platzieren
-
-1. Im **Eigenschaftenpanel rechts** (oder über Tastenkürzel) Werkzeug wählen.
-2. Linksklick auf die Zeichenfläche → Element wird platziert.
-3. Element anklicken → Eigenschaften erscheinen im Panel rechts.
-
-## Verbindungen ziehen
-
-1. Verbindungswerkzeug aktivieren.
-2. Klick auf den Startpunkt (Pin eines Symbols oder freier Punkt).
-3. Klick auf den Endpunkt – die Verbindung wird automatisch geroutet.
-4. Kreuzungen mit Leitungen aus **anderen Netzen** werden automatisch
-   als Lücke dargestellt.
-)",
-                    "schaltplan seite projekt zeichenfläche verbindung"
-                },
-                {
-                    "Symbole platzieren und bearbeiten",
-                    R"(# Symbole platzieren und bearbeiten
-
-## Symbol aus der Bibliothek platzieren
-
-1. Im **Schaltplan-Werkzeugbereich** das Symbol-Werkzeug wählen.
-2. Aus der Symbol-Palette das gewünschte Symbol anklicken.
-3. Auf die Zeichenfläche klicken → Symbol wird platziert.
-4. Im **Eigenschaftenpanel** kannst du Betriebsmittelkennzeichen (BMK),
-   Beschriftung und weitere Eigenschaften setzen.
-
-## Symbol drehen
-
-- Platziertes Symbol anklicken → im Eigenschaftenpanel die **Rotation** ändern
-  (0°, 90°, 180°, 270°).
-
-## Eigene Symbole erstellen
-
-1. Seitenleiste → **Symbole** (🔧).
-2. **Neues Symbol** anlegen, Namen und Größe festlegen.
-3. Mit den Zeichenwerkzeugen (Linien, Kreise, Bögen, Text) das Symbol zeichnen.
-4. **Pins** definieren: Position und Bezeichnung für jeden Anschlusspunkt.
-5. Speichern – das Symbol steht danach im Schaltplan zur Verfügung.
-)",
-                    "symbol platzieren bibliothek pin rotation BMK"
-                },
-                {
-                    "Kabelrechner",
-                    R"(# Kabelrechner
-
-Der Kabelrechner berechnet den **Mindestquerschnitt** einer Leitung nach VDE.
-
-## Eingaben
-
-| Feld | Bedeutung |
-|------|-----------|
-| Strom (A) | Betriebsstrom der Leitung |
-| Länge (m) | einfache Leitungslänge |
-| Spannung (V) | Nennspannung (typisch 230 V oder 400 V) |
-| cos φ | Leistungsfaktor (1,0 für ohmsche Last) |
-| Verlegeart | Freie Luft, Rohr, Wand usw. |
-| Häufung | Anzahl gebündelter Leitungen |
-
-## Ergebnis
-
-Der Rechner gibt den **empfohlenen Querschnitt** in mm² aus und zeigt
-den berechneten Spannungsfall.
-
-> **Hinweis:** Das Ergebnis ersetzt keine normgerechte Planung nach
-> DIN VDE 0100. Bei sicherheitsrelevanten Anlagen immer einen
-> Fachplaner hinzuziehen.
-)",
-                    "kabel querschnitt VDE berechnung strom"
-                },
-                {
-                    "IBN – Inbetriebnahme",
-                    R"(# IBN – Inbetriebnahme
-
-Der IBN-Modus dient zur **strukturierten Prüfung und Dokumentation**
-von Schaltanlagen vor der Inbetriebnahme.
-
-## Ablauf
-
-1. Seitenleiste → **IBN** (✅).
-2. Die platzierten **Betriebsmittel** aus dem Schaltplan werden automatisch
-   als Prüfpositionen aufgelistet.
-3. Für jedes Betriebsmittel können **Messwerte** (Spannung, Strom,
-   Widerstand usw.) eingetragen werden.
-4. Felder mit **Soll-Werten** zeigen farblich an, ob der Messwert
-   im zulässigen Bereich liegt.
-
-## Feldvorlagen
-
-Über **Feldvorlagen** lässt sich definieren, welche Messwerte für
-welchen Betriebsmitteltyp erfasst werden. So hat z. B. ein Motor
-andere Prüffelder als eine Leuchte.
-
-## Prüfprotokoll
-
-Das ausgefüllte IBN-Protokoll kann als Liste exportiert werden
-(Listen-Ansicht → IBN-Tab).
-)",
-                    "inbetriebnahme prüfung messwert protokoll IBN"
-                },
-                {
-                    "Versionierung mit Git",
-                    R"(# Versionierung mit Git
-
-Strömling-Projekte sind eigenständige **SQLite-Dateien** (`.strl`).
-Da alle Daten in einer einzigen Datei stecken, funktioniert Git als
-Versionsverwaltung ohne jede Konfiguration in der App.
-
-## Einrichten (einmalig)
-
-```bash
-# Projektordner anlegen und als Git-Repo initialisieren
-mkdir ~/Projekte/Schaltschrank-A
-cd ~/Projekte/Schaltschrank-A
-git init
-
-# .gitignore anlegen (optional, aber empfohlen)
-echo "*.db-wal" >  .gitignore
-echo "*.db-shm" >> .gitignore
-git add .gitignore
-git commit -m "Repo initialisiert"
-```
-
-Danach das Projekt in diesem Ordner anlegen oder die `.strl`-Datei
-dorthin kopieren (📂 → **Projekt öffnen**).
-
-## Täglicher Workflow
-
-```bash
-# Nach einer Arbeitssitzung
-git add schaltschrank_a.strl
-git commit -m "Hauptstromkreis: Schütze K1–K3 verdrahtet"
-
-# Verlauf anzeigen
-git log --oneline
-
-# Auf Stand vor 3 Commits zurückgehen (nur lesen, nicht überschreiben)
-git show HEAD~3:schaltschrank_a.strl > alt.strl
-```
-
-## Was Git kann und was nicht
-
-| ✅ Funktioniert | ❌ Funktioniert nicht |
-|---|---|
-| Vollständige Versionshistorie | Lesbares `git diff` (Binärdatei) |
-| Wiederherstellung beliebiger Stände | Zeilenweises Mergen zweier Versionen |
-| Branching (z. B. Varianten A/B) | Automatische Konfliktauflösung |
-| Backup auf GitHub/Gitea/lokalem Server | |
-
-## Tipps
-
-- **Sinnvolle Commit-Nachrichten** helfen später: lieber
-  *„Steuerstromkreis Schütz K2 korrigiert"* als *„Update"*.
-- **Vor größeren Umstrukturierungen** einen Commit machen – so kann
-  man jederzeit zum Ausgangszustand zurück.
-- **Projekt exportieren** (⬆-Button in der Projektliste) erzeugt eine
-  kompakte, saubere Kopie – ideal für Archivierung oder Weitergabe.
-- Mehrere Varianten eines Projekts: einfach **Branches** nutzen:
-  ```bash
-  git checkout -b variante-drehstrom
-  # ... Änderungen ...
-  git checkout main   # zurück zur Hauptvariante
-  ```
-)",
-                    "git versionierung backup revision history"
-                },
-                {
-                    "Lizenz & Open Source",
-                    R"(# Lizenz & Open Source
-
-Strömling Design ist **freie Software** – der Quellcode ist öffentlich
-einsehbar und das Programm darf frei genutzt, geteilt und verbessert werden.
-
-## Lizenz: GNU GPL v3
-
-Das Programm steht unter der **GNU General Public License Version 3** (GPL-3.0-or-later).
-
-Das bedeutet in Kurzform:
-
-- Du darfst das Programm **kostenlos nutzen** – privat, in Bildungseinrichtungen,
-  in Vereinen, in Forschung und Lehre.
-- Du darfst das Programm **weitergeben** und **verändern** –
-  unter denselben Lizenzbedingungen.
-- Der **Quellcode** muss immer zugänglich bleiben.
-- **Zukünftige Versionen** von Strömling Design werden ebenfalls Open Source bleiben.
-
-Den vollständigen Lizenztext findest du unter:
-https://www.gnu.org/licenses/gpl-3.0.txt
-
-## Spenden
-
-Strömling Design wird in der Freizeit entwickelt.
-Wenn dir das Programm nützt und du die Weiterentwicklung unterstützen möchtest,
-freue ich mich über eine freiwillige Spende.
-
-## Mitmachen
-
-Fehler gefunden? Verbesserungsidee? Eigene Symbole oder Inhalte beigesteuert?
-Beiträge sind herzlich willkommen – schau auf die Projektseite.
-
-## Was ist Open Source – und was nicht?
-
-Der **Quellcode** von Strömling Design steht unter GPL-3.0 und ist öffentlich einsehbar.
-
-Die **Konzeptdateien** (Designentscheidungen, Roadmap, Debugging-Notizen im
-Verzeichnis `konzept/`) sind persönliche Arbeitsunterlagen des Projektinhabers
-und werden **nicht** veröffentlicht. Das sind seine kleinen Schätze.
-
-## Keine Garantie
-
-Das Programm wird so bereitgestellt, wie es ist, **ohne Garantie** –
-so wie es die GPL vorschreibt. Für den produktiven Einsatz in
-sicherheitsrelevanten Anlagen liegt die Verantwortung beim Anwender.
-)",
-                    "lizenz open source GPL frei kostenlos spende"
-                },
-                {
-                    "Über dieses Projekt",
-                    R"(# Über dieses Projekt
-
-## Projektinhaber
-
-**Stephan Theelke**
-
-## Entstehung
-
-Strömling Design wurde am **08.04.2026** gestartet.
-
-Im Berufsalltag arbeite ich täglich mit **EPLAN P8 Electric** — einem
-professionellen E-CAD-Tool, das keine Linux-Version hat und für den
-Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich
-Linux (openSUSE mit KDE), und ich wollte ein Tool, das unter Linux läuft
-und meinen persönlichen Anforderungen entspricht. **QElectroTech** kannte
-ich, aber auch das entsprach nicht meinen Vorstellungen — also habe ich
-angefangen, selbst etwas zu bauen.
-
-## Der Name
-
-Den Begriff **„Strömlinge"** kenne ich noch aus meiner Lehrzeit, irgendwo
-um die Jahrtausendwende herum. In der Elektrowelt kennt jeder das Bild:
-der kleine Strom, der durch die Leitung fließt. Jetzt konnte ich den
-Begriff endlich mal in einem eigenen Projekt verwenden.
-
-## KI-Unterstützung
-
-Dieses Projekt wurde offen und transparent mit Unterstützung von
-KI-Werkzeugen entwickelt:
-
-| Werkzeug | Aufgabe |
-|---|---|
-| **Claude Code** (Anthropic) | Code, Architektur, Konzepte |
-| **ChatGPT / DALL-E** (OpenAI) | Strömlinge-Charakterbilder |
-
-Die Projektidee stammt vom Projektinhaber — Konzepte und Quellcode
-wurden gemeinsam mit KI erarbeitet.
-
-## Warum Open Source?
-
-Ich wollte testen, wie weit ich mit KI-Unterstützung ein Programm nach
-meinen eigenen Vorstellungen bauen kann. Open Source deshalb, damit
-andere das Projekt leicht aufgreifen, forken oder weiterführen können —
-ohne auf mich angewiesen zu sein.
-
-Ob es für E-Techniker fachlich taugt, wird sich im Test mit Kollegen zeigen.
-
-## Was ist öffentlich – was bleibt privat?
-
-Der **Quellcode** ist Open Source (GPL-3.0).
-Die **Konzeptdateien** – Designentscheidungen, Roadmap, Debugging-Notizen –
-sind persönliche Arbeitsunterlagen und werden nicht veröffentlicht.
-)",
-                    "entstehung projekt KI claude chatgpt open source geschichte"
-                }
-            }
-        },
-        {
-            "Altbestand – West",
-            "Installationen nach westdeutscher Norm (VDE), Übergangsperioden, Klassische Nullung",
-            10,
-            false,
-            {
-                { "Klassische Nullung – Grundlagen", "", "klassische nullung VDE altbestand" },
-                { "Klassische Nullung – Verbotsdaten nach VDE", "", "klassische nullung verbot datum" },
-                { "Kuriositäten: 3-adrig verdrahtet, aber KN angeklemmt", "", "klassische nullung kuriosum" }
-            }
-        },
-        {
-            "Altbestand – Ost",
-            "Installationen nach DDR-Norm TGL, Besonderheiten, Aluminium-Leitungen",
-            20,
-            false,
-            {
-                { "Aluminium-Leitungen nach DDR-Norm TGL", "", "aluminium TGL DDR altbestand" },
-                { "DDR-Farbnormen und TGL-Querschnitte", "", "farbnorm TGL DDR querschnitt" }
-            }
-        },
-        {
-            "Aderendhülsen",
-            "Typen, Farbtabellen, Crimp-Technik, häufige Fehler",
-            30,
-            false,
-            {
-                { "Querschnitt–Farb–Größentabelle", "", "aderendhülse querschnitt farbe tabelle" }
-            }
-        },
-        {
-            "Kuriositäten",
-            "Ungewöhnliche Fundsachen aus der Praxis",
-            40,
-            false,
-            {}
-        },
-        {
-            "Strömlinge",
-            "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
-            50,
-            true,
-            {
-                {
-                    "Strömlinge – Überblick",
-                    R"(# Die Strömlinge
-
-Die Strömlinge sind das lebendige Maskottchen-System von Strömling Design.
-Jeder Strömling repräsentiert einen **elektrischen Leitertyp**, ein **Signal**
-oder einen **Systemzustand** – erkennbar an Farbe, Körpermerkmalen und Persönlichkeit.
-
-## Grundformen
-
-### Form A – Runder Fisch (Standard-Strömling)
-- Runder, leicht plumper Fischkörper
-- **Glühbirnen als Ohren** (leuchtend, charakterspezifisch eingefärbt)
-- **Fluoreszierende Leiterbahnen** auf dem Körper (PCB-Stil)
-- Schielende oder eigenartige Augen – jeder hat seinen eigenen Blick
-
-### Form B – Aalförmig (Leitungs-Strömling)
-- Langer, schlanker, gewundener Körper (Sinuswelle)
-- **Stecker-/Buchsenenden** an Kopf und Schwanz
-- **Aderstreifen** in Normfarben längs am Körper
-
-## Familien
-
-| Familie | Charaktere | Norm |
-|---|---|---|
-| Netzleiter | Brauno (L1), Schwärzchen (L2), Grausel (L3), Blaubertha (N), Erdikus (PE) | IEC 60446 |
-| Leitung & Kabelbrücke | Linus (Kabelbrücke) + Farbvarianten | DIN VDE 0293 |
-| Signale & Bus | Impulsino (Signal), Datinchen (Bus) | – |
-| Schutz & Isolierung | Isolus (Dunkleosteus-Panzerfish) | IEC Klasse II |
-| Fehlerzustände | Krizzo (Kurzschluss), Errinka (Fehler), Fusia (Überlast), Stoppius (Not-Aus) | – |
-)",
-                    "strömling maskottchen übersicht charakter"
-                },
-                {
-                    "Schwärzchen – Systemfisch L2",
-                    R"(# Schwärzchen – Systemfisch // Phase 2
-
-Schwärzchen ist der **coole** unter den drei Außenleitern.
-Er repräsentiert den **Außenleiter L2** (schwarz) nach IEC 60446 / DIN VDE 0293.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Aderfarbe** | Schwarz |
-| **Körperfarbe** | Tiefes Anthrazit / Schwarz mit leichtem Blauschimmer |
-| **Leiterbahnen** | Neongrün, scharf kontraststark |
-| **Glühbirnen** | Kaltweißes LED-Licht, minimal |
-| **Augen** | Leicht schmale Augen, cooler Blick |
-
-## Persönlichkeit
-
-Ruhig, cool, etwas mysteriös. *Läuft einfach.*
-Macht keine großen Worte. Sein Blick sagt: er hat das schon tausendmal gemacht.
-
-## Norm-Referenz
-
-- **Farbe:** Schwarz (L2) nach IEC 60446 und DIN VDE 0293
-- **Einsatz:** Außenleiter in Drehstromnetzen (400 V / 50 Hz)
-- **Körper-Hex:** `#1A1A2E` · **Leiterbahnen-Hex:** `#39FF14`
-)",
-                    "schwärzchen L2 außenleiter netzleiter IEC schwarz"
-                },
-                {
-                    "Impulsino – Signal",
-                    R"(# Impulsino – der hyperaktive Signalströmling
-
-Impulsino repräsentiert das **digitale Steuersignal** – er *ist* der Impuls.
-Orange wie die DIN-Signalfarbe, nie still.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Farbe** | Signal-Orange |
-| **Leiterbahnen** | Rechteckwellen-Puls-Trace (nur rechte Winkel) |
-| **Glühbirnen** | Blinkt rhythmisch – eine an, eine aus |
-| **Augen** | Aufmerksam, wach, leicht zappelig |
-
-## Persönlichkeit
-
-Quirlig, immer in Bewegung, hyperaktiv. Liebt hohe Frequenzen.
-*„ON! OFF! ON! OFF! Das ist mein Leben!"*
-
-## Im Programm
-
-Impulsino begleitet den **Fun-Modus** als Bonus-Charakter –
-er bounced als hyperaktiver Botschafter über den Canvas, pulsiert periodisch.
-
-- **Körper-Hex:** `#FF6B00` · **Leiterbahnen-Hex:** `#FF9E40`
-)",
-                    "impulsino signal impuls digital orange funmodus"
-                },
-                {
-                    "Isolus – Schutz & Isolierung",
-                    R"(# Isolus – der Uralte Wächter
-
-> *„Seit dem Devon bewacht er die Grenze. Sein Knochenkiefer hat noch jeden
-> Lichtbogen weggeknappt."*
-
-Isolus ist der **Wächter der Isolierung**. Inspiriert vom **Dunkleosteus** –
-dem gepanzerten Urhai des Devon-Zeitalters. Er steht zwischen den
-spannungsführenden Leitern und allem, was sie nicht berühren soll.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Grundform** | Dunkleosteus: breiter Panzerkopf, massiver Körper |
-| **Körperfarbe** | Tiefschwarz mit mattgelbem Sicherheitsstreifen |
-| **Panzer** | Überlappende Knochenplatten mit **☐☐**-Symbol (IEC Klasse II) |
-| **Ohren** | Keine Glühbirnen – Isolator-Porzellanglocken |
-| **Augen** | Tief versenkt, schmal, uralt blickend |
-
-## Zustände
-
-| Zustand | Aussehen | Bedeutung |
-|---|---|---|
-| **Intakt** | Glatte Platten, Kiefer geschlossen | Isolation in Ordnung |
-| **Beansprucht** | Feine Risse, schmalere Augen | Isolationswiderstand sinkt |
-| **Beschädigt** | Platten gesprungen, Kiefer halb offen | Isolationsfehler – Eingriff nötig |
-| **Gefallen** | Am Boden, Platten aufgebrochen | Isolationsversagen |
-
-## Beziehungen
-
-- **Feind:** Krizzo (Kurzschluss) – versucht die Panzerplatten zu durchbrechen
-- **Verbündeter:** Erdikus (PE) – steht still hinter Isolus, sagt nichts, ist einfach da
-- **Verbündeter:** Stoppius (Not-Aus) – gemeinsam die letzte Verteidigungslinie
-
-## Im Programm
-
-Isolus erscheint in der **Wiki-Artikelliste** als Wächter, wenn noch keine Artikel angelegt sind.
-)",
-                    "isolus isolation schutz dunkleosteus panzer IEC klasse II"
-                },
-                {
-                    "Brauno – Außenleiter L1",
-                    R"(# Brauno – Außenleiter L1
-
-Brauno repräsentiert den **Außenleiter L1** (braun) nach IEC 60446 / DIN VDE 0293.
-Er ist der Erste unter den Netzleitern – solide, zuverlässig, trägt die Last.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Aderfarbe** | Braun |
-| **Körperfarbe** | Warmes Schokoladenbraun `#7B3F1E` |
-| **Leiterbahnen** | Kupferfarbig-golden `#D4A520`, Sinuswelle |
-| **Glühbirnen** | Bernstein-orange, warm leuchtend |
-| **Augen** | Selbstbewusst geradeaus – der Erste, der Anführer |
-
-## Persönlichkeit
-
-Solide, etwas ernst. *Trägt die Last – kein Drama, einfach da.*
-Brust raus, leicht stolz. Hat den Anführer-Anspruch verinnerlicht.
-
-## Norm-Referenz
-
-- **Farbe:** Braun (L1) nach IEC 60446 und DIN VDE 0293
-- **Einsatz:** Erster Außenleiter in Drehstromnetzen (400 V / 50 Hz)
-)",
-                    "brauno L1 außenleiter netzleiter IEC braun"
-                },
-                {
-                    "Blaubertha – Neutralleiter N",
-                    R"(# Blaubertha – Neutralleiter N
-
-Blaubertha repräsentiert den **Neutralleiter N** (blau) nach IEC 60446.
-Sie hofft inständig, nie wirklich gebraucht zu werden – und ist
-dennoch absolut zuverlässig, wenn es darauf ankommt.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Aderfarbe** | Blau |
-| **Körperfarbe** | IEC-Blau `#0057A8` |
-| **Leiterbahnen** | Dunkelblau `#003580`, geschlossene Schleifen (Rückstromweg) |
-| **Glühbirnen** | Blasses Blau, kaum leuchtend – im Fehlerfall: leuchtet rot |
-| **Augen** | Weit geöffnet, leicht ängstlich – immer bereit |
-
-## Persönlichkeit
-
-Ruhig, ausgeglichen. *Der Rückgeber.* Mag Ordnung. Etwas ängstlich –
-hofft, nie wirklich belastet zu werden, doch wenn doch, dann perfekt.
-
-## Norm-Referenz
-
-- **Farbe:** Blau (N) nach IEC 60446 und DIN VDE 0293
-- **Besonderheit:** Im Normalbetrieb kein Strom → Glühbirnen fast dunkel
-)",
-                    "blaubertha N neutralleiter netzleiter IEC blau rückleiter"
-                },
-                {
-                    "Grausel – Außenleiter L3",
-                    R"(# Grausel – Außenleiter L3
-
-Grausel repräsentiert den **Außenleiter L3** (grau) nach IEC 60446.
-Pragmatisch, unauffällig – macht einfach ihren Job, ohne Aufhebens.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Aderfarbe** | Grau |
-| **Körperfarbe** | Metallisches Neutralgrau `#6B6B6B` |
-| **Leiterbahnen** | Hellblau-silbern `#A8D8EA`, diagonal-ungeordnet |
-| **Glühbirnen** | Silbrig-weiß, diskret leuchtend |
-| **Augen** | Leicht müde – den Dritten-Platz kennt man, akzeptiert ihn |
-
-## Persönlichkeit
-
-Die Erfahrene. *Hat alles schon gesehen.* Entspannte Pose, leicht hängend –
-macht ihren Job ruhig und fehlerfrei, ohne je die Aufmerksamkeit zu suchen.
-
-## Norm-Referenz
-
-- **Farbe:** Grau (L3) nach IEC 60446 und DIN VDE 0293
-- **Einsatz:** Dritter Außenleiter in Drehstromnetzen (400 V / 50 Hz)
-)",
-                    "grausel L3 außenleiter netzleiter IEC grau"
-                },
-                {
-                    "Erdikus – Schutzleiter PE",
-                    R"(# Erdikus – Schutzleiter PE
-
-Erdikus repräsentiert den **Schutzleiter PE** (grün-gelb) nach IEC 60446.
-Der ewige Bodyguard. Stoisch, wortlos, geht nirgendwo hin.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Aderfarbe** | Grün-Gelb (zweifarbig, alternierend) |
-| **Körperfarbe** | Diagonale Streifen: Grün `#4CAF50` / Gelb `#FFD700` |
-| **Leiterbahnen** | Grün `#2E7D32` mit gelben Via-Punkten |
-| **Glühbirnen** | Eine grün, eine gelb – zweifarbig |
-| **Augen** | Entspannt, geerdet, schläfrig – der Ruhepol |
-| **Besonderheit** | Erdungssymbol ⏚ als Tattoo auf dem Bauch |
-
-## Persönlichkeit
-
-*Stoisch. Absolut zuverlässig. Spricht wenig.* Breit aufgestellt, solide,
-geht nirgendwo hin. Der Stille, der alles auffängt, wenn es wirklich drauf ankommt.
-
-## Norm-Referenz
-
-- **Farbe:** Grün-Gelb (PE) nach IEC 60446 und DIN VDE 0293
-- **Einsatz:** Schutzleiter – fängt Fehlerströme auf, schützt vor Berührungsspannung
-- **Verbündeter:** Isolus – beide schützen das System, ohne viele Worte
-)",
-                    "erdikus PE schutzleiter netzleiter IEC grün gelb erde"
-                },
-                {
-                    "Datinchen – Kommunikation",
-                    R"(# Datinchen – Kommunikation & Bus
-
-Datinchen repräsentiert das **Kommunikationssignal** – Bus, Feldbus,
-Differenzsignal (RS-485, CAN, Ethernet). Sie weiß mehr als alle anderen
-und hält alles zusammen.
-
-## Merkmale
-
-| Merkmal | Ausprägung |
-|---|---|
-| **Farbe** | Tiefviolett `#7B2FBE` |
-| **Leiterbahnen** | Doppelte Traces `#C084FC` – Differenzpaar-Symbol |
-| **Ohren** | Keine Glühbirnen – stattdessen zwei kleine Antennen |
-| **Augen** | Klug, leicht verschmitzt – weiß mehr als alle anderen |
-
-## Persönlichkeit
-
-Kommunikativ, redselig, verbindet alle.
-*„Ich sage immer das erste und das letzte Wort."*
-Der soziale Knotenpunkt – ohne Datinchen weiß die linke Hand nicht,
-was die rechte tut.
-
-## Norm-Referenz
-
-- Differenzpaar-Signalübertragung (RS-485, CAN, Profibus, EtherCAT)
-- Zwei parallele Traces = differenzielles Signal
-- **Antennen** statt Glühbirnen: drahtlose Variante möglich
-)",
-                    "datinchen kommunikation bus signal CAN RS485 lila violett"
-                },
-                {
-                    "Pokeström",
-                    R"(# Pokeström – das Maskottchen
-
-Pokeström ist der erste Strömling – die Urform des Charakter-Systems.
-Er ist nicht an einen bestimmten Leitertyp gebunden, sondern steht für
-**Strömling Design** als Ganzes.
-
-## Erkennungsmerkmale
-
-- Runder, pausbackiger Fischkörper
-- **Zwei leuchtende Glühbirnen** als Ohren (gelb, warm)
-- **Fluoreszierende Leiterbahnen** – PCB-Stil
-- **Schielende Augen** – der typische Pokeström-Blick
-
-## Im Programm
-
-- **Startbildschirm:** Pokeström schwimmt von links nach rechts, wenn kein Projekt offen ist
-- **Bauteilbibliothek:** erscheint als Platzhalter, wenn noch keine Bauteile angelegt sind
-
-## Ursprung
-
-Die erste Skizze entstand auf einem Whiteboard: ein Fisch, der ein ET-Symbol
-(Kondensator) in der Flosse hält – und der Gedanke war: *„Was wäre, wenn jedes
-elektrische Bauteil seinen eigenen Fisch-Charakter hätte?"*
-)",
-                    "pokeström maskottchen startbildschirm fisch charakter"
-                }
-            }
-        },
-        {
-            "Tester",
-            "Testanleitungen und Rückmeldungen von Programmtestern",
-            60,
-            false,
-            {
-                {
-                    "Testanleitung – Strömling Design",
-                    R"(# Testanleitung – Strömling Design
-
-Danke fürs Testen! Diese Seite beschreibt, welche Bereiche geprüft werden sollen
-und wie du deine Beobachtungen festhalten kannst.
-
-**Ziel:** Fehler finden, Unklarheiten melden, Verbesserungsvorschläge einbringen.
-Du kannst diese Seite direkt bearbeiten – deine Einträge bleiben beim nächsten
-Programmstart erhalten.
-
----
-
-## 1. Projekt anlegen und öffnen
-
-- [ ] Neues Projekt anlegen (Startbildschirm → „Neu")
-- [ ] Projekt benennen und speichern
-- [ ] Projekt schließen und wieder öffnen
-- [ ] Projekt exportieren (Menü → Exportieren)
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 2. Schaltplan-Canvas
-
-- [ ] Neue Seite anlegen
-- [ ] Symbol aus der Symbolpalette auf den Canvas ziehen
-- [ ] Symbol verschieben, löschen (Entf-Taste)
-- [ ] Zoom mit Mausrad, Pan mit mittlerer Maustaste oder Leertaste + Ziehen
-- [ ] Verbindungslinie zwischen zwei Symbolen ziehen
-- [ ] Kabelbrücke anlegen
-- [ ] Beschriftung / BMK im Eigenschaftenpanel eingeben
-- [ ] Rückgängig / Wiederholen (Strg+Z / Strg+Y)
-- [ ] Mehrfachauswahl mit Strg+Klick oder Gummiband-Selektion
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 3. Eigenschaftenpanel (rechts)
-
-- [ ] Bauteil anklicken → Eigenschaften erscheinen rechts
-- [ ] Betriebsmittelkennzeichen (BMK) eingeben
-- [ ] Farbe ändern (falls verfügbar)
-- [ ] Mehrfachauswahl → Mehfachauswahl-Sektion erscheint
-- [ ] Kabelverbindung auswählen → Leitungseigenschaften erscheinen
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 4. Symboleditor
-
-- [ ] Symboleditor öffnen (Sidebar)
-- [ ] Bestehendes Symbol auswählen und bearbeiten
-- [ ] Neues Symbol anlegen
-- [ ] Pin hinzufügen, beschriften
-- [ ] Symbol speichern, im Canvas verwenden
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 5. Bauteilbibliothek
-
-- [ ] Bauteilbibliothek öffnen
-- [ ] Neues Bauteil anlegen
-- [ ] Kabeldefinition für ein Bauteil anlegen
-- [ ] Bauteil im Schaltplan platzieren
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 6. Klemmen und Klemmenreihen
-
-- [ ] Klemmenreihe anlegen
-- [ ] Klemme hinzufügen
-- [ ] Klemme auf Schaltplanseite platzieren
-- [ ] Klemmenplan in den Listen prüfen
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 7. Inbetriebnahme (IBN)
-
-- [ ] IBN-Ansicht öffnen
-- [ ] Betriebsmittel prüfen (Haken setzen)
-- [ ] Messwert erfassen
-- [ ] Prüfprotokoll exportieren (PDF)
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 8. Kabelrechner
-
-- [ ] Kabelrechner öffnen
-- [ ] Werte eingeben (Spannung, Strom, Länge)
-- [ ] Querschnitt berechnen lassen
-- [ ] Ergebnis prüfen (plausibel?)
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 9. Listen (Stückliste, Kabelliste, Querverweise)
-
-- [ ] Stückliste öffnen und prüfen
-- [ ] Kabelliste prüfen
-- [ ] Aderliste prüfen
-- [ ] Klemmenplan prüfen
-- [ ] CSV-Export testen
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 10. Wiki
-
-- [ ] Wiki öffnen
-- [ ] Artikel lesen
-- [ ] Neuen Artikel anlegen
-- [ ] Bild hochladen
-- [ ] Volltextsuche verwenden
-- [ ] Artikel exportieren / importieren
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 11. Einstellungen
-
-- [ ] Einstellungen öffnen
-- [ ] Theme wechseln (Hell / Dunkel / System)
-- [ ] Sprache prüfen
-- [ ] Strömlinge-Sektion anschauen 😊
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## 12. Fun-Modus
-
-- [ ] Fun-Modus aktivieren (Tastenkombination, falls bekannt)
-- [ ] Verschiedene Szenarien abwarten
-- [ ] Impulsino beobachten
-- [ ] Fun-Modus deaktivieren
-
-**Beobachtungen / Fehler:**
-*(hier eintragen)*
-
----
-
-## Allgemeine Beobachtungen
-
-### Was funktioniert besonders gut?
-*(hier eintragen)*
-
-### Was ist verwirrend oder unklar?
-*(hier eintragen)*
-
-### Wünsche / Ideen für Verbesserungen?
-*(hier eintragen)*
-
-### Systeminfo
-- Betriebssystem: *(z.B. Ubuntu 24.04 / Windows 11 / macOS 14)*
-- Qt-Version: *(falls bekannt)*
-- Datum des Tests: *(TT.MM.JJJJ)*
-- Tester: *(Name oder Pseudonym)*
-)",
-                    "tester testanleitung feedback checkliste"
-                }
-            }
-        }
-    };
-
-    QSqlQuery qKat(m_wikiDb), qKatId(m_wikiDb), qArtIns(m_wikiDb), qArtUpd(m_wikiDb);
-    qKat.prepare(R"(
-        INSERT OR IGNORE INTO wiki_kategorie (name, beschreibung, sortierung)
-        VALUES (:name, :beschr, :sort)
-    )");
-    // Artikel neu anlegen, falls noch nicht vorhanden
+    // Manifest laden
+    QFile mf(":/wiki_seed/manifest.json");
+    if (!mf.open(QIODevice::ReadOnly)) {
+        qWarning() << "seedWikiStarterInhalte: manifest.json nicht gefunden";
+        return false;
+    }
+    QJsonParseError parseErr;
+    const QJsonDocument doc = QJsonDocument::fromJson(mf.readAll(), &parseErr);
+    if (doc.isNull()) {
+        qWarning() << "seedWikiStarterInhalte: JSON-Fehler:" << parseErr.errorString();
+        return false;
+    }
+
+    QSqlQuery qKat(m_wikiDb);
+    qKat.prepare("INSERT OR IGNORE INTO wiki_kategorie (name, beschreibung, sortierung) VALUES (:name, :beschr, :sort)");
+    QSqlQuery qArtIns(m_wikiDb);
     qArtIns.prepare(R"(
         INSERT OR IGNORE INTO wiki_artikel (kategorie_id, titel, inhalt, tags, ist_system)
         SELECT :kid, :titel, :inhalt, :tags, :sys
@@ -1835,100 +1027,123 @@ Programmstart erhalten.
             SELECT 1 FROM wiki_artikel WHERE kategorie_id = :kid2 AND titel = :titel2
         )
     )");
-    // System-Artikel: Inhalt bei jeder Migration aktualisieren
+    QSqlQuery qArtUpd(m_wikiDb);
     qArtUpd.prepare(R"(
         UPDATE wiki_artikel SET inhalt = :inhalt, tags = :tags
         WHERE kategorie_id = :kid AND titel = :titel AND ist_system = 1
     )");
 
-    for (const Kategorie &kat : kategorien) {
-        qKat.bindValue(":name",  kat.name);
-        qKat.bindValue(":beschr", kat.beschreibung);
-        qKat.bindValue(":sort",  kat.sortierung);
+    for (const QJsonValue &katVal : doc["kategorien"].toArray()) {
+        const QJsonObject kat     = katVal.toObject();
+        const QString     katName = kat["name"].toString();
+        const bool        istSys  = kat["ist_system"].toBool();
+
+        qKat.bindValue(":name",  katName);
+        qKat.bindValue(":beschr", kat["beschreibung"].toString());
+        qKat.bindValue(":sort",  kat["sortierung"].toInt());
         if (!qKat.exec()) {
             qWarning() << "seedWikiStarterInhalte Kategorie:" << qKat.lastError().text();
             return false;
         }
 
+        QSqlQuery qKatId(m_wikiDb);
         qKatId.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
-        qKatId.bindValue(":n", kat.name);
+        qKatId.bindValue(":n", katName);
         qKatId.exec();
         if (!qKatId.next()) continue;
         const int katId = qKatId.value(0).toInt();
 
-        for (const Artikel &art : kat.artikel) {
+        for (const QJsonValue &artVal : kat["artikel"].toArray()) {
+            const QJsonObject art   = artVal.toObject();
+            const QString     titel = art["titel"].toString();
+            const QString     tags  = art["tags"].toString();
+            const QString     datei = art["datei"].toString();
+
+            QString inhalt;
+            if (!datei.isEmpty()) {
+                QFile f(":/wiki_seed/" + datei);
+                if (f.open(QIODevice::ReadOnly))
+                    inhalt = QString::fromUtf8(f.readAll());
+                else
+                    qWarning() << "seedWikiStarterInhalte: Datei nicht gefunden:" << datei;
+            }
+
             qArtIns.bindValue(":kid",    katId);
             qArtIns.bindValue(":kid2",   katId);
-            qArtIns.bindValue(":titel",  art.titel);
-            qArtIns.bindValue(":titel2", art.titel);
-            qArtIns.bindValue(":inhalt", art.inhalt);
-            qArtIns.bindValue(":tags",   art.tags);
-            qArtIns.bindValue(":sys",    kat.istSystem ? 1 : 0);
+            qArtIns.bindValue(":titel",  titel);
+            qArtIns.bindValue(":titel2", titel);
+            qArtIns.bindValue(":inhalt", inhalt);
+            qArtIns.bindValue(":tags",   tags);
+            qArtIns.bindValue(":sys",    istSys ? 1 : 0);
             if (!qArtIns.exec()) {
                 qWarning() << "seedWikiStarterInhalte Artikel insert:" << qArtIns.lastError().text();
                 return false;
             }
-            if (kat.istSystem) {
+            if (istSys) {
                 qArtUpd.bindValue(":kid",    katId);
-                qArtUpd.bindValue(":titel",  art.titel);
-                qArtUpd.bindValue(":inhalt", art.inhalt);
-                qArtUpd.bindValue(":tags",   art.tags);
+                qArtUpd.bindValue(":titel",  titel);
+                qArtUpd.bindValue(":inhalt", inhalt);
+                qArtUpd.bindValue(":tags",   tags);
                 if (!qArtUpd.exec()) {
                     qWarning() << "seedWikiStarterInhalte Artikel update:" << qArtUpd.lastError().text();
                     return false;
                 }
             }
+
+            // Bild einsäen (einmalig, nur wenn kein Bild vorhanden)
+            const QString bildQrc = art["bild_qrc"].toString();
+            const QString bildFn  = art["bild_dateiname"].toString();
+            if (bildQrc.isEmpty() || bildFn.isEmpty()) continue;
+
+            QSqlQuery qId(m_wikiDb);
+            qId.prepare("SELECT id FROM wiki_artikel WHERE kategorie_id = :kid AND titel = :t");
+            qId.bindValue(":kid", katId);
+            qId.bindValue(":t",   titel);
+            if (!qId.exec() || !qId.next()) continue;
+            const int artId = qId.value(0).toInt();
+
+            QSqlQuery qCount(m_wikiDb);
+            qCount.prepare("SELECT COUNT(*) FROM wiki_bild WHERE artikel_id = :aid");
+            qCount.bindValue(":aid", artId);
+            if (!qCount.exec() || !qCount.next() || qCount.value(0).toInt() > 0) continue;
+
+            QFile bf(bildQrc);
+            if (!bf.open(QIODevice::ReadOnly)) {
+                qWarning() << "seedWikiStarterInhalte: Bild nicht gefunden:" << bildQrc;
+                continue;
+            }
+            const QByteArray daten = bf.readAll();
+            bf.close();
+            if (daten.isEmpty()) continue;
+
+            const QString ext = bildFn.endsWith(".png") ? ".png" : ".jpg";
+            QSqlQuery qIns(m_wikiDb);
+            qIns.prepare(R"(
+                INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung)
+                VALUES (:aid, :fn, 'image/png', '', 1)
+            )");
+            qIns.bindValue(":aid", artId);
+            qIns.bindValue(":fn",  bildFn);
+            if (!qIns.exec()) {
+                qWarning() << "seedWikiStarterInhalte Bild INSERT:" << qIns.lastError().text();
+                continue;
+            }
+            const int newId = qIns.lastInsertId().toInt();
+            const QString fn = QString::number(newId) + ext;
+            QFile out(m_wikiBlobDir + "/" + fn);
+            if (out.open(QIODevice::WriteOnly)) {
+                out.write(daten);
+                QSqlQuery upd(m_wikiDb);
+                upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                upd.bindValue(":p",  fn);
+                upd.bindValue(":id", newId);
+                upd.exec();
+            }
         }
     }
 
-    // ── Strömlinge: Bilder aus QRC-Ressourcen einmalig einsamen ──────────
-    auto seedBild = [&](const QString &artikelTitel, const QString &qrcPfad,
-                        const QString &dateiname) {
-        QSqlQuery qId(m_wikiDb);
-        qId.prepare("SELECT id FROM wiki_artikel WHERE titel = :t");
-        qId.bindValue(":t", artikelTitel);
-        if (!qId.exec() || !qId.next()) return;
-        const int artId = qId.value(0).toInt();
-
-        QSqlQuery qCount(m_wikiDb);
-        qCount.prepare("SELECT COUNT(*) FROM wiki_bild WHERE artikel_id = :aid");
-        qCount.bindValue(":aid", artId);
-        if (!qCount.exec() || !qCount.next() || qCount.value(0).toInt() > 0) return;
-
-        QFile f(qrcPfad);
-        if (!f.open(QIODevice::ReadOnly)) {
-            qWarning() << "seedBild: Datei nicht gefunden:" << qrcPfad;
-            return;
-        }
-        const QByteArray daten = f.readAll();
-        f.close();
-        if (daten.isEmpty()) return;
-
-        QSqlQuery qIns(m_wikiDb);
-        qIns.prepare(R"(
-            INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, daten, sortierung)
-            VALUES (:aid, :fn, 'image/png', :d, 1)
-        )");
-        qIns.bindValue(":aid", artId);
-        qIns.bindValue(":fn",  dateiname);
-        qIns.bindValue(":d",   daten);
-        if (!qIns.exec())
-            qWarning() << "seedBild INSERT:" << qIns.lastError().text();
-    };
-
-    seedBild("Schwärzchen – Systemfisch L2",  ":/assets/schwaerzchen_sheet.png",    "schwaerzchen_sheet.png");
-    seedBild("Impulsino – Signal",             ":/assets/impulsino_uebersicht.png", "impulsino_uebersicht.png");
-    seedBild("Isolus – Schutz & Isolierung",   ":/assets/isolus.png",               "isolus.png");
-    seedBild("Pokeström",                       ":/assets/pokestroem_cee.png",       "pokestroem_cee.png");
-    seedBild("Brauno – Außenleiter L1",         ":/assets/brauno_uebersicht.png",    "brauno_uebersicht.png");
-    seedBild("Blaubertha – Neutralleiter N",    ":/assets/blaubertha_uebersicht.png","blaubertha_uebersicht.png");
-    seedBild("Grausel – Außenleiter L3",        ":/assets/grausel_uebersicht.png",   "grausel_uebersicht.png");
-    seedBild("Erdikus – Schutzleiter PE",       ":/assets/erdikus_uebersicht.png",   "erdikus_uebersicht.png");
-    seedBild("Datinchen – Kommunikation",       ":/assets/datinchen_uebersicht.png", "datinchen_uebersicht.png");
-
     return true;
 }
-
 // ============================================================
 // SPS/PLS-Integration
 // ============================================================

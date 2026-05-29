@@ -3512,6 +3512,23 @@ Item {
         drawCanvas.requestPaint()
     }
 
+    function duplizieren() {
+        if (root.auswahl.length === 0 || root.seiteId < 0) return
+        var off = root.gridPx
+        var neueEl = root.auswahl.map(function(i) {
+            var el = elementeModel.element(i)
+            var upd = {}; for (var k in el) upd[k] = el[k]
+            upd.x1 += off; upd.y1 += off; upd.x2 += off; upd.y2 += off
+            return upd
+        })
+        var anzahl = neueEl.length
+        root.aktionAusfuehren(elementeModel.snapshot().concat(neueEl))
+        var start = elementeModel.anzahl - anzahl
+        var sel = []; for (var j = 0; j < anzahl; j++) sel.push(start + j)
+        root.auswahl = sel
+        drawCanvas.requestPaint()
+    }
+
     function abbruch() {
         root.amZeichnen      = false; root.vorschau = null
         root.aktiverGriff    = -1

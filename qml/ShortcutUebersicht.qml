@@ -124,6 +124,7 @@ Item {
                     ShortcutZeile { kuerzel: "Ctrl+C";         aktion: "Kopieren" }
                     ShortcutZeile { kuerzel: "Ctrl+X";         aktion: "Ausschneiden" }
                     ShortcutZeile { kuerzel: "Ctrl+V";         aktion: "Einfuegen" }
+                    ShortcutZeile { kuerzel: "Ctrl+D";         aktion: "Duplizieren" }
 
                     Item { width: 1; height: 8 }
 

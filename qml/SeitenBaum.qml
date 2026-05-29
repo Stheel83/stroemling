@@ -912,6 +912,14 @@ Item {
                                              seiteKontextMenu._blattnummer,
                                              seiteKontextMenu._bezeichnung)
                         }
+                        MenuSeparator {}
+                        MenuItem {
+                            text: qsTr("Duplizieren")
+                            onTriggered: {
+                                var neueId = db.seiteDuplizieren(seiteKontextMenu._seiteId)
+                                if (neueId > 0) seitenModel.laden(root.projektId)
+                            }
+                        }
                     }
 
                     TapHandler {

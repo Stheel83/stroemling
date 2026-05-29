@@ -1532,6 +1532,7 @@ ApplicationWindow {
     // Zoom
     Shortcut { sequence: "Ctrl+Shift+H"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.zoomAllesEinpassen() } }
     Shortcut { sequence: "Ctrl+Shift+N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0&&c.normblattDaten!==null) c.zoomNormblattEinpassen() } }
+    Shortcut { sequence: "Ctrl+Shift+F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&root.aktivSeiteId>=0) c.zoomAuswahlEinpassen() } }
 
     // Seitennavigation
     Shortcut {

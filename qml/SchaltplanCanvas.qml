@@ -3652,6 +3652,40 @@ Item {
         root.repaintAll()
     }
 
+    function zoomAuswahlEinpassen() {
+        if (root.auswahl.length === 0) { zoomAllesEinpassen(); return }
+        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity
+        for (var i = 0; i < root.auswahl.length; i++) {
+            var el = elementeModel.element(root.auswahl[i])
+            if (!el) continue
+            minX = Math.min(minX, el.x1, el.x2)
+            minY = Math.min(minY, el.y1, el.y2)
+            maxX = Math.max(maxX, el.x1, el.x2)
+            maxY = Math.max(maxY, el.y1, el.y2)
+        }
+        if (!isFinite(minX)) return
+        var topH = headerBar.visible ? headerBar.height : 0
+        var botH = footerBar.visible ? footerBar.height : 0
+        var tlW  = werkzeugLeiste.visible ? werkzeugLeiste.width : 0
+        var vpW  = width - tlW
+        var vpH  = height - topH - botH
+        var bboxW = maxX - minX
+        var bboxH = maxY - minY
+        var pad = 60
+        var newZoom
+        if (bboxW < 2 && bboxH < 2) {
+            newZoom = 2.0
+        } else {
+            newZoom = Math.min((vpW - 2*pad) / Math.max(bboxW, 1),
+                               (vpH - 2*pad) / Math.max(bboxH, 1), 4.0)
+            newZoom = Math.max(newZoom, 0.1)
+        }
+        root.zoom   = newZoom
+        root.worldX = tlW + vpW/2 - (minX + maxX)/2 * newZoom
+        root.worldY = topH + vpH/2 - (minY + maxY)/2 * newZoom
+        root.repaintAll()
+    }
+
     function seiteNeuLaden() {
         if (seiteId >= 0) {
             elementeModel.laden(seiteId)

@@ -11,12 +11,14 @@ Item {
     required property var theme
     required property bool debug
 
+    property int _letzterBauteilKabelId: 0   // CE-12: letzter verwendeter Kabeltyp
+
     // ── Kabellinie-Dialog öffnen (Aufruf via canvas.kabellinieDialogFuerNeuOeffnen) ──
     function kabellinieNeuOeffnen(elIdx) {
         kabellinieDialog.elementIndex       = elIdx
         kabellinieDialog.bezeichnung        = "";  kabellinieDialog.kabeltyp       = ""
         kabellinieDialog.aderzahl           = 0;   kabellinieDialog.querschnittMm2 = 0
-        kabellinieDialog.bauteilKabelId     = 0
+        kabellinieDialog.bauteilKabelId     = root._letzterBauteilKabelId
         kabellinieDialog.vonOrt             = "";  kabellinieDialog.nachOrt        = ""
         kabellinieDialog.bestehendesKabelId = 0
         kabellinieDialog.vorhandeneKabel    = (canvas.projektId >= 0) ? db.kabelListe(canvas.projektId) : []
@@ -53,6 +55,8 @@ Item {
         projektId: root.canvas.projektId
 
         onAccepted: {
+            if (kabellinieDialog.bauteilKabelId > 0)
+                root._letzterBauteilKabelId = kabellinieDialog.bauteilKabelId
             var idx = elementIndex
             if (idx < 0 || idx >= elementeModel.anzahl) return
             var el = Object.assign({}, elementeModel.element(idx))

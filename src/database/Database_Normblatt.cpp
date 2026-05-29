@@ -408,3 +408,87 @@ bool Database::projektLogoLoeschen(int projektId)
     return true;
 }
 
+// ============================================================
+// seiteDuplizieren
+// Kopiert eine Seite inkl. aller Grafik-Elemente.
+// Gibt die neue seiteId zurück (-1 bei Fehler).
+// ============================================================
+int Database::seiteDuplizieren(int seiteId)
+{
+    if (!m_projektOffen) return -1;
+
+    // Quelldaten der Seite lesen
+    QSqlQuery qs(m_db);
+    qs.prepare("SELECT ort_id, blattnummer, bezeichnung, seitentyp, "
+               "       normblatt_anzeigen, normblatt_id, "
+               "       rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, "
+               "       breite_mm, hoehe_mm, ausrichtung "
+               "FROM seite WHERE id = :sid");
+    qs.bindValue(":sid", seiteId);
+    if (!qs.exec() || !qs.next()) {
+        qWarning() << "seiteDuplizieren: Seite nicht gefunden:" << seiteId;
+        return -1;
+    }
+
+    QString neueBlattnummer = qs.value(1).toString() + "-K";
+    QString neueBezeichnung = qs.value(2).toString() + " (Kopie)";
+
+    if (!m_db.transaction()) return -1;
+
+    // Neue Seite anlegen
+    QSqlQuery qi(m_db);
+    qi.prepare(R"(
+        INSERT INTO seite (ort_id, blattnummer, bezeichnung, seitentyp,
+                           normblatt_anzeigen, normblatt_id,
+                           rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm,
+                           breite_mm, hoehe_mm, ausrichtung)
+        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus)
+    )");
+    qi.bindValue(":oid",  qs.value(0));
+    qi.bindValue(":bn",   neueBlattnummer);
+    qi.bindValue(":bez",  neueBezeichnung);
+    qi.bindValue(":st",   qs.value(3));
+    qi.bindValue(":na",   qs.value(4));
+    qi.bindValue(":nv",   qs.value(5));
+    qi.bindValue(":rl",   qs.value(6));
+    qi.bindValue(":rr",   qs.value(7));
+    qi.bindValue(":ro",   qs.value(8));
+    qi.bindValue(":ru",   qs.value(9));
+    qi.bindValue(":bw",   qs.value(10));
+    qi.bindValue(":bh",   qs.value(11));
+    qi.bindValue(":aus",  qs.value(12));
+    if (!qi.exec()) {
+        qWarning() << "seiteDuplizieren: neue Seite anlegen:" << qi.lastError().text();
+        m_db.rollback();
+        return -1;
+    }
+    int neueSeiteId = qi.lastInsertId().toInt();
+
+    // Alle Grafik-Elemente kopieren
+    QSqlQuery qe(m_db);
+    qe.prepare(R"(
+        INSERT INTO grafik_element
+            (seite_id, typ, x1, y1, x2, y2,
+             strich_farbe, strich_breite, strich_art,
+             fuell, fuell_farbe, fuell_opazitaet, opazitaet, ecken_radius,
+             sortierung, symbol_id, rotation, spiegel_x, spiegel_y,
+             extra_daten, gruppe_id)
+        SELECT :nsid, typ, x1, y1, x2, y2,
+               strich_farbe, strich_breite, strich_art,
+               fuell, fuell_farbe, fuell_opazitaet, opazitaet, ecken_radius,
+               sortierung, symbol_id, rotation, spiegel_x, spiegel_y,
+               extra_daten, NULL
+        FROM grafik_element WHERE seite_id = :osid
+    )");
+    qe.bindValue(":nsid", neueSeiteId);
+    qe.bindValue(":osid", seiteId);
+    if (!qe.exec()) {
+        qWarning() << "seiteDuplizieren: Elemente kopieren:" << qe.lastError().text();
+        m_db.rollback();
+        return -1;
+    }
+
+    if (!m_db.commit()) { m_db.rollback(); return -1; }
+    return neueSeiteId;
+}
+

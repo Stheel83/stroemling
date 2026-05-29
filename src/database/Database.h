@@ -216,6 +216,9 @@ public:
     // Revisionsstatus einer Seite setzen (status: '', 'entwurf', 'freigegeben', 'veraltet')
     Q_INVOKABLE bool seiteRevisionSetzen(int seiteId, const QString &status, const QString &kennung);
 
+    // Seite mit allen Grafik-Elementen duplizieren; gibt neue seiteId zurück (-1 bei Fehler)
+    Q_INVOKABLE int seiteDuplizieren(int seiteId);
+
     // Normblatt-Vorlagen (projektübergreifend)
     Q_INVOKABLE QVariantList normblattVorlagenListe();
     Q_INVOKABLE int          normblattVorlageSpeichern(const QVariantMap &vorlage);

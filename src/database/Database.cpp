@@ -765,6 +765,10 @@ static QList<SchemaMigration> alleMigrationen()
             "UPDATE symbol_pin SET y=0.882353 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K14'",
             "UPDATE symbol_pin SET y=0.941176 WHERE symbol_id IN ('sps_di_16','sps_do_16') AND name='K15'",
         }},
+        { 50, "CE-01: Elemente-Gruppen (gruppe_id auf grafik_element)", {
+            "ALTER TABLE grafik_element ADD COLUMN gruppe_id INTEGER DEFAULT NULL",
+            "CREATE INDEX IF NOT EXISTS idx_grafik_element_gruppe ON grafik_element(gruppe_id) WHERE gruppe_id IS NOT NULL",
+        }},
     };
 }
 

@@ -39,7 +39,7 @@ Item {
             var vpY = eventPoint.position.y
             var hitIdx = canvas.elementBeiPosition(vpX, vpY)
             if (hitIdx >= 0 && canvas.auswahl.indexOf(hitIdx) < 0)
-                canvas.auswahl = [hitIdx]
+                canvas.auswahl = canvas.auswahlFuerElement(hitIdx)
             kontextMenu.popup(vpX, vpY)
         }
     }
@@ -90,6 +90,18 @@ Item {
             text:    "Loeschen\t(Entf)"
             enabled: canvas.auswahl.length > 0
             onTriggered: canvas.loeschen()
+        }
+        MenuSeparator {}
+        MenuItem {
+            text:    "Gruppieren\t(Strg+G)"
+            enabled: canvas.auswahl.length >= 2
+            onTriggered: canvas.gruppeErstellen()
+        }
+        MenuItem {
+            text:    "Gruppe aufloesen\t(Strg+Umsch+G)"
+            enabled: canvas.auswahl.length > 0 &&
+                     canvas.elementeModel.gruppeVonElement(canvas.auswahl[0]) >= 0
+            onTriggered: canvas.gruppeAufloesen()
         }
         MenuSeparator {}
         MenuItem {

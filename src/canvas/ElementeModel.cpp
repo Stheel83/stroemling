@@ -45,6 +45,8 @@ QVariantMap GrafikElement::toVariantMap() const
         el[QStringLiteral("extraDaten")] = extraDaten;
     if (betriebsmittelId != 0)
         el[QStringLiteral("betriebsmittelId")] = betriebsmittelId;
+    if (gruppeId >= 0)
+        el[QStringLiteral("gruppeId")] = gruppeId;
     return el;
 }
 
@@ -66,7 +68,8 @@ void ElementeModel::laden(int seiteId)
                opazitaet, ecken_radius,
                symbol_id, rotation, spiegel_x, spiegel_y,
                punkte, text_inhalt, text_ausrichtung, text_einpassen,
-               bild_daten, bild_mime, extra_daten, betriebsmittel_id
+               bild_daten, bild_mime, extra_daten, betriebsmittel_id,
+               gruppe_id
         FROM grafik_element
         WHERE seite_id = :sid
         ORDER BY sortierung
@@ -123,6 +126,8 @@ void ElementeModel::laden(int seiteId)
         if (!q.value(25).isNull())
             el.betriebsmittelId = q.value(25).toInt();
 
+        el.gruppeId = q.value(26).isNull() ? -1 : q.value(26).toInt();
+
         QString punkteStr = q.value(18).toString();
         if (!punkteStr.isEmpty()) {
             QJsonParseError err;
@@ -177,6 +182,7 @@ std::vector<GrafikElement> ElementeModel::parseVariantList(const QVariantList &l
         el.bildDaten       = m.value(QStringLiteral("bildDaten")).toString();
         el.extraDaten      = m.value(QStringLiteral("extraDaten")).toMap();
         el.betriebsmittelId = m.value(QStringLiteral("betriebsmittelId")).toInt();
+        el.gruppeId         = m.value(QStringLiteral("gruppeId"), -1).toInt();
         result.push_back(std::move(el));
     }
     return result;
@@ -244,6 +250,7 @@ static void applyField(GrafikElement &el, const QString &key, const QVariant &va
     else if (key == QLatin1String("bildDaten"))        el.bildDaten        = value.toString();
     else if (key == QLatin1String("extraDaten"))       el.extraDaten       = value.toMap();
     else if (key == QLatin1String("betriebsmittelId")) el.betriebsmittelId = value.toInt();
+    else if (key == QLatin1String("gruppeId"))         el.gruppeId         = value.toInt();
 }
 
 void ElementeModel::eigenschaftSetzen(int idx, const QString &key, const QVariant &value)
@@ -298,6 +305,47 @@ bool ElementeModel::undoMoeglich() const { return !m_undoStack.empty(); }
 bool ElementeModel::redoMoeglich() const { return !m_redoStack.empty(); }
 int  ElementeModel::undoAnzahl()  const { return static_cast<int>(m_undoStack.size()); }
 int  ElementeModel::redoAnzahl()  const { return static_cast<int>(m_redoStack.size()); }
+
+// ── Gruppen ──────────────────────────────────────────────────────────────────
+
+int ElementeModel::gruppeErstellen(const QVariantList &indizes)
+{
+    if (indizes.isEmpty()) return -1;
+    int maxId = 0;
+    for (const auto &el : m_elemente)
+        if (el.gruppeId > maxId) maxId = el.gruppeId;
+    int neueId = maxId + 1;
+    for (const QVariant &v : indizes) {
+        int idx = v.toInt();
+        if (idx >= 0 && idx < static_cast<int>(m_elemente.size()))
+            m_elemente[idx].gruppeId = neueId;
+    }
+    emit geaendert();
+    return neueId;
+}
+
+void ElementeModel::gruppeAufloesen(int gruppeId)
+{
+    if (gruppeId < 0) return;
+    for (auto &el : m_elemente)
+        if (el.gruppeId == gruppeId) el.gruppeId = -1;
+    emit geaendert();
+}
+
+QVariantList ElementeModel::gruppenMitglieder(int gruppeId) const
+{
+    QVariantList result;
+    for (int i = 0; i < static_cast<int>(m_elemente.size()); i++)
+        if (m_elemente[i].gruppeId == gruppeId)
+            result.append(i);
+    return result;
+}
+
+int ElementeModel::gruppeVonElement(int idx) const
+{
+    if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) return -1;
+    return m_elemente[idx].gruppeId;
+}
 
 // ── Hit-Testing ──────────────────────────────────────────────────────────────
 

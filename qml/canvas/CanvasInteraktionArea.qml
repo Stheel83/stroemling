@@ -286,7 +286,7 @@ MouseArea {
                 canvas.schnapshotVorMove  = em.snapshot()
             } else {
                 canvas.ausgewaehltVerbindung = null
-                canvas.auswahl            = [idx]
+                canvas.auswahl            = canvas.auswahlFuerElement(idx)
                 canvas.verschiebenErlaubt = false
             }
             canvas.neuZeichnen()

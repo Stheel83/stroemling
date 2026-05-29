@@ -31,6 +31,7 @@ struct GrafikElement {
     QString bildDaten;
     QVariantMap extraDaten;
     int     betriebsmittelId = 0;
+    int     gruppeId         = -1;
 
     QVariantMap toVariantMap() const;
 };
@@ -52,6 +53,12 @@ public:
 
     Q_INVOKABLE void eigenschaftSetzen(int idx, const QString &key, const QVariant &value);
     Q_INVOKABLE void elementAktualisieren(int idx, const QVariantMap &felder);
+
+    // ── Gruppen ───────────────────────────────────────────────
+    Q_INVOKABLE int          gruppeErstellen(const QVariantList &indizes);
+    Q_INVOKABLE void         gruppeAufloesen(int gruppeId);
+    Q_INVOKABLE QVariantList gruppenMitglieder(int gruppeId) const;
+    Q_INVOKABLE int          gruppeVonElement(int idx) const;
 
     Q_PROPERTY(bool undoMoeglich READ undoMoeglich NOTIFY geaendert)
     Q_PROPERTY(bool redoMoeglich READ redoMoeglich NOTIFY geaendert)

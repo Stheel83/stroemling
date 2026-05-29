@@ -2428,6 +2428,41 @@ Item {
                 ctx.strokeRect(rx, ry, rw, rh)
                 ctx.restore()
             }
+            // Gruppenindikator: gestricheltes Rechteck um Gruppen in der Auswahl
+            if (root.auswahl.length > 0) {
+                var gruppenSet = {}
+                for (var gai = 0; gai < root.auswahl.length; gai++) {
+                    var gaEl = elementeModel.element(root.auswahl[gai])
+                    if (gaEl && gaEl.gruppeId !== undefined && gaEl.gruppeId >= 0)
+                        gruppenSet[gaEl.gruppeId] = true
+                }
+                for (var gKey in gruppenSet) {
+                    var gId = parseInt(gKey)
+                    var mitgl = elementeModel.gruppenMitglieder(gId)
+                    if (mitgl.length === 0) continue
+                    var gMinX = Infinity, gMinY = Infinity, gMaxX = -Infinity, gMaxY = -Infinity
+                    for (var gmi = 0; gmi < mitgl.length; gmi++) {
+                        var gmEl = elementeModel.element(parseInt(mitgl[gmi]))
+                        if (!gmEl) continue
+                        gMinX = Math.min(gMinX, Math.min(gmEl.x1, gmEl.x2))
+                        gMinY = Math.min(gMinY, Math.min(gmEl.y1, gmEl.y2))
+                        gMaxX = Math.max(gMaxX, Math.max(gmEl.x1, gmEl.x2))
+                        gMaxY = Math.max(gMaxY, Math.max(gmEl.y1, gmEl.y2))
+                    }
+                    var gPad = 6
+                    ctx.save()
+                    ctx.strokeStyle = "#60c8ff"
+                    ctx.lineWidth   = 1.5
+                    ctx.setLineDash([6, 4])
+                    ctx.strokeRect(
+                        gMinX * root.zoom + root.worldX - gPad,
+                        gMinY * root.zoom + root.worldY - gPad,
+                        (gMaxX - gMinX) * root.zoom + 2 * gPad,
+                        (gMaxY - gMinY) * root.zoom + 2 * gPad
+                    )
+                    ctx.restore()
+                }
+            }
             drawCanvas.drawNormblattAussenoverlay(ctx)
             // Revisionsmarker-Wasserzeichen
             if (root.revisionStatus !== "") {
@@ -3494,7 +3529,12 @@ Item {
 
     function kopieren(slot) {
         if (root.auswahl.length === 0) return
-        var inhalt = root.auswahl.map(function(i) { return elementeModel.element(i) })
+        var inhalt = root.auswahl.map(function(i) {
+            var el = elementeModel.element(i)
+            var copy = Object.assign({}, el)
+            delete copy.gruppeId
+            return copy
+        })
         var s = (slot === undefined) ? 0 : slot
         if (s === 0) {
             root.zwischenablage = inhalt
@@ -3517,10 +3557,47 @@ Item {
 
     function duplizieren() {
         if (root.auswahl.length === 0 || root.seiteId < 0) return
-        root.duplizierVorlage   = root.auswahl.map(function(i) { return elementeModel.element(i) })
+        root.duplizierVorlage = root.auswahl.map(function(i) {
+            var el   = elementeModel.element(i)
+            var copy = Object.assign({}, el)
+            delete copy.gruppeId   // Gruppe nicht auf Kopie übertragen
+            return copy
+        })
         root.duplizierMitDialog = true
         root.aktivesWerkzeug    = "duplizieren"
         root._duplizierVorschauAktualisieren(root.letzteMausWeltX, root.letzteMausWeltY)
+    }
+
+    // Gibt die vollständige Gruppenauswahl zurück wenn idx zu einer Gruppe gehört,
+    // sonst [idx].
+    function auswahlFuerElement(idx) {
+        if (idx < 0) return []
+        var gId = elementeModel.gruppeVonElement(idx)
+        if (gId >= 0) {
+            var mitgl = elementeModel.gruppenMitglieder(gId)
+            return mitgl.map(function(v) { return parseInt(v) })
+        }
+        return [idx]
+    }
+
+    function gruppeErstellen() {
+        if (root.auswahl.length < 2 || root.seiteId < 0) return
+        elementeModel.undoCheckpoint()
+        elementeModel.gruppeErstellen(root.auswahl)
+        root.grafikSpeichernJetzt()
+        root.neuZeichnen()
+    }
+
+    function gruppeAufloesen() {
+        if (root.auswahl.length === 0 || root.seiteId < 0) return
+        var gId = elementeModel.gruppeVonElement(root.auswahl[0])
+        if (gId < 0) return
+        elementeModel.undoCheckpoint()
+        var mitgl = elementeModel.gruppenMitglieder(gId)
+        elementeModel.gruppeAufloesen(gId)
+        root.auswahl = mitgl.map(function(v) { return parseInt(v) })
+        root.grafikSpeichernJetzt()
+        root.neuZeichnen()
     }
 
     function _duplizierVorschauAktualisieren(wx, wy) {

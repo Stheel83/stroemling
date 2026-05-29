@@ -28,7 +28,8 @@ QVariantList Database::grafikLaden(int seiteId)
                opazitaet, ecken_radius,
                symbol_id, rotation, spiegel_x, spiegel_y,
                punkte, text_inhalt, text_ausrichtung, text_einpassen,
-               bild_daten, bild_mime, extra_daten, betriebsmittel_id
+               bild_daten, bild_mime, extra_daten, betriebsmittel_id,
+               gruppe_id
         FROM grafik_element
         WHERE seite_id = :sid
         ORDER BY sortierung
@@ -91,6 +92,10 @@ QVariantList Database::grafikLaden(int seiteId)
         // betriebsmittel_id (Spalte 25) – nullable FK
         if (!q.value(25).isNull())
             el[QStringLiteral("betriebsmittelId")] = q.value(25).toInt();
+
+        // gruppe_id (Spalte 26) – nullable
+        if (!q.value(26).isNull())
+            el[QStringLiteral("gruppeId")] = q.value(26).toInt();
 
         // punkte (für Leitung-Elemente als JSON gespeichert)
         QString punkteStr = q.value(18).toString();
@@ -167,13 +172,15 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
              opazitaet, ecken_radius, sortierung,
              symbol_id, rotation, spiegel_x, spiegel_y,
              punkte, text_inhalt, text_ausrichtung, text_einpassen,
-             bild_daten, bild_mime, extra_daten, betriebsmittel_id)
+             bild_daten, bild_mime, extra_daten, betriebsmittel_id,
+             gruppe_id)
         VALUES
             (:sid, :typ, :x1, :y1, :x2, :y2,
              :sf, :sb, :sa, :fu, :ff, :fo, :op, :er, :sort,
              :symid, :rot, :spx, :spy,
              :punkte, :textinhalt, :textausrichtung, :texteinpassen,
-             :bilddaten, :bildmime, :extradaten, :bmid)
+             :bilddaten, :bildmime, :extradaten, :bmid,
+             :gid)
     )");
 
     for (int i = 0; i < elemente.size(); i++) {
@@ -276,6 +283,13 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             qIns.bindValue(":bmid", bmidVar.toInt());
         else
             qIns.bindValue(":bmid", QVariant(QMetaType::fromType<int>()));
+
+        // gruppe_id (nullable)
+        int gid = el.value(QStringLiteral("gruppeId"), -1).toInt();
+        if (gid >= 0)
+            qIns.bindValue(":gid", gid);
+        else
+            qIns.bindValue(":gid", QVariant(QMetaType::fromType<int>()));
 
         if (!qIns.exec()) {
             qWarning() << "grafikSpeichern insert:" << qIns.lastError().text();

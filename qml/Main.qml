@@ -20,6 +20,7 @@ ApplicationWindow {
     visibility: Window.Maximized
     title:      qsTr("Strömling Design")
     color:      appTheme.surface
+    flags:      Qt.Window | Qt.FramelessWindowHint
 
     // Globale Palette: sorgt dafür dass TextField-Hintergründe im Theme-Farbton erscheinen
     palette.base: appTheme.inputBg
@@ -322,9 +323,135 @@ ApplicationWindow {
         }
     }
 
+    // ── Eigene Titelleiste ───────────────────────────────────────
+    Rectangle {
+        id:      appTitelleiste
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height:  36
+        color:   appTheme.sidebar
+
+        // Fenster verschieben per Drag (X11 + Wayland)
+        DragHandler {
+            target:          null
+            onActiveChanged: if (active) root.startSystemMove()
+        }
+
+        TapHandler {
+            onDoubleTapped: root.visibility === Window.Maximized
+                            ? root.showNormal() : root.showMaximized()
+        }
+
+        // Trennlinie unten
+        Rectangle {
+            anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+            height: 1
+            color:  appTheme.border
+        }
+
+        // App-Titel (zentriert)
+        Text {
+            anchors.centerIn: parent
+            text:             root.aktivProjektName !== ""
+                              ? "Strömling Design – " + root.aktivProjektName
+                              : "Strömling Design"
+            color:            appTheme.textMuted
+            font.pixelSize:   13
+            font.weight:      Font.Medium
+            elide:            Text.ElideRight
+            width:            parent.width - 220
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        // Fenster-Schaltflächen (rechts) – gezeichnete Icons, fontunabhängig
+        Row {
+            anchors { right: parent.right; rightMargin: 4; verticalCenter: parent.verticalCenter }
+            spacing: 2
+
+            // Minimieren (—)
+            Rectangle {
+                width: 28; height: 28; radius: 4
+                color: miniMa.containsMouse ? appTheme.hover : "transparent"
+                Rectangle {
+                    width: 12; height: 2; radius: 1
+                    anchors.centerIn: parent
+                    color: miniMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
+                }
+                MouseArea {
+                    id: miniMa; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.showMinimized()
+                }
+            }
+
+            // Maximieren / Wiederherstellen (□ / ❐)
+            Rectangle {
+                width: 28; height: 28; radius: 4
+                color: maxMa.containsMouse ? appTheme.hover : "transparent"
+                Item {
+                    width: 12; height: 12
+                    anchors.centerIn: parent
+                    // Normal: einfaches Quadrat
+                    Rectangle {
+                        visible:      root.visibility !== Window.Maximized
+                        anchors.fill: parent
+                        color:   "transparent"
+                        border.color: maxMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
+                        border.width: 1.5
+                    }
+                    // Maximiert: zwei versetzte Quadrate (Restore-Icon)
+                    Rectangle {
+                        visible:      root.visibility === Window.Maximized
+                        x: 2; y: 0; width: 10; height: 10
+                        color:        "transparent"
+                        border.color: maxMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
+                        border.width: 1.5
+                    }
+                    Rectangle {
+                        visible:      root.visibility === Window.Maximized
+                        x: 0; y: 2; width: 10; height: 10
+                        color:        appTheme.sidebar
+                        border.color: maxMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
+                        border.width: 1.5
+                    }
+                }
+                MouseArea {
+                    id: maxMa; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.visibility === Window.Maximized
+                               ? root.showNormal() : root.showMaximized()
+                }
+            }
+
+            // Schließen (×)
+            Rectangle {
+                width: 28; height: 28; radius: 4
+                color: closeMa.containsMouse ? "#c0392b" : "transparent"
+                Item {
+                    width: 12; height: 12
+                    anchors.centerIn: parent
+                    Rectangle {
+                        anchors.centerIn: parent; width: 14; height: 2; radius: 1
+                        color:    closeMa.containsMouse ? "#ffffff" : appTheme.textMuted
+                        rotation: 45
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent; width: 14; height: 2; radius: 1
+                        color:    closeMa.containsMouse ? "#ffffff" : appTheme.textMuted
+                        rotation: -45
+                    }
+                }
+                MouseArea {
+                    id: closeMa; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.close()
+                }
+            }
+        }
+    }
+
     // ── Layout ───────────────────────────────────────────────────
     RowLayout {
-        anchors.fill: parent
+        anchors { top: appTitelleiste.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
         spacing:      0
 
         // --------------------------------------------------------
@@ -1366,7 +1493,9 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+C"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.kopieren(0) } }
     Shortcut { sequence: "Ctrl+X"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.kopieren(0);c.loeschen()} } }
     Shortcut { sequence: "Ctrl+V"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.einfuegen(0) } }
-    Shortcut { sequence: "Ctrl+D"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.duplizieren() } }
+    Shortcut { sequence: "Ctrl+D";       onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.duplizieren() } }
+    Shortcut { sequence: "Ctrl+G";       onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.gruppeErstellen() } }
+    Shortcut { sequence: "Ctrl+Shift+G"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.gruppeAufloesen() } }
 
     // Zwischenablage-Slots
     Shortcut { sequence: "Ctrl+Shift+1"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.kopieren(1) } }

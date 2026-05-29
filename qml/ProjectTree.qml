@@ -119,7 +119,7 @@ Item {
                 width:  ListView.view.width
                 height: 56
 
-                readonly property bool istAktiv: model.dateiPfad === db.projektPfad
+                readonly property bool istAktiv: (modelData ? modelData.dateiPfad : "") === db.projektPfad
 
                 HoverHandler { id: itemHover }
 
@@ -140,16 +140,17 @@ Item {
 
                     TapHandler {
                         onTapped: {
+                            if (!modelData) return
                             if (!delegateRoot.istAktiv) {
-                                if (db.openProjekt(model.dateiPfad)) {
+                                if (db.openProjekt(modelData.dateiPfad)) {
                                     var info = db.ersteProjektInfo()
-                                    root.projektGewaehlt(info.id || 0, info.name || model.projektName)
+                                    root.projektGewaehlt(info.id || 0, info.name || modelData.projektName)
                                 } else {
                                     root._zeigeStatus(qsTr("Projekt konnte nicht geöffnet werden"), false)
                                 }
                             } else {
                                 var info2 = db.ersteProjektInfo()
-                                root.projektGewaehlt(info2.id || 0, info2.name || model.projektName)
+                                root.projektGewaehlt(info2.id || 0, info2.name || modelData.projektName)
                             }
                             projektListe.currentIndex = index
                         }
@@ -165,21 +166,21 @@ Item {
                         spacing: 2
 
                         Text {
-                            text: model.projektName || qsTr("(Ohne Namen)")
+                            text: (modelData && modelData.projektName) || qsTr("(Ohne Namen)")
                             font.pixelSize: 13; font.weight: Font.Medium
-                            color: model.dateiExistiert ? theme.textPrimary : theme.textMuted
+                            color: (modelData && modelData.dateiExistiert) ? theme.textPrimary : theme.textMuted
                             elide: Text.ElideRight; Layout.fillWidth: true
                         }
                         Text {
                             text: {
-                                if (!model.dateiExistiert)
+                                if (!modelData || !modelData.dateiExistiert)
                                     return qsTr("Datei nicht gefunden")
-                                return model.projektNummer
-                                       ? model.projektNummer
-                                       : model.dateiPfad.split("/").pop()
+                                return modelData.projektNummer
+                                       ? modelData.projektNummer
+                                       : (modelData.dateiPfad || "").split("/").pop()
                             }
                             font.pixelSize: 10
-                            color: model.dateiExistiert ? theme.panelMid : "#cc4444"
+                            color: (modelData && modelData.dateiExistiert) ? theme.panelMid : "#cc4444"
                             elide: Text.ElideRight; Layout.fillWidth: true
                         }
                     }
@@ -204,10 +205,11 @@ Item {
                         ToolTip.visible: hovered; ToolTip.delay: 700
                         ToolTip.text: qsTr("Projekt bearbeiten")
                         onClicked: {
+                            if (!modelData) return
                             var info = db.ersteProjektInfo()
                             dlgProjektEigenschaften.projektId      = info.id || 0
-                            dlgProjektEigenschaften.altName        = info.name        || model.projektName
-                            dlgProjektEigenschaften.altNummer      = info.projektnummer || model.projektNummer || ""
+                            dlgProjektEigenschaften.altName        = info.name        || modelData.projektName
+                            dlgProjektEigenschaften.altNummer      = info.projektnummer || modelData.projektNummer || ""
                             dlgProjektEigenschaften.altAuftragg    = info.auftraggeber  || ""
                             dlgProjektEigenschaften.altAuftragnehm = info.auftragnehmer || ""
                             dlgProjektEigenschaften.altBearbeiter  = info.bearbeiter    || ""
@@ -224,11 +226,12 @@ Item {
                         ToolTip.visible: hovered; ToolTip.delay: 700
                         ToolTip.text: qsTr("Aus Projektliste entfernen")
                         onClicked: {
+                            if (!modelData || !modelData.dateiPfad) return
                             var aktivId = delegateRoot.istAktiv
                                           ? (db.ersteProjektInfo().id || -1)
                                           : -1
-                            dlgLoeschen.dateiPfad      = model.dateiPfad
-                            dlgLoeschen.projektName    = model.projektName || model.dateiPfad.split("/").pop()
+                            dlgLoeschen.dateiPfad      = modelData.dateiPfad
+                            dlgLoeschen.projektName    = modelData.projektName || modelData.dateiPfad.split("/").pop()
                             dlgLoeschen.aktivProjektId = aktivId
                             dlgLoeschen.open()
                         }

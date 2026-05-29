@@ -39,6 +39,11 @@ Aktueller Stand:  konzept/AKTUELL.md  ← hier immer zuerst lesen
 
 ## Konzeptdokumentation
 
+> `konzept/` ist ein Symlink auf ein **separates, privates Repository** (`stroemling-konzept`).
+> Die Konzeptdateien sind persönliche Arbeitsunterlagen des Projektinhabers und
+> **nicht** Teil des Open-Source-Releases. Commits in `konzept/` müssen im
+> Konzept-Repo durchgeführt werden, nicht im Hauptrepo.
+
 Lies zu Sitzungsbeginn immer `konzept/AKTUELL.md` (max. 30 Zeilen).
 Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 

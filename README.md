@@ -74,19 +74,9 @@ QML hat keinen direkten Datenbankzugriff — ausschließlich über C++-Klassen.
 
 ---
 
-## Dokumentation
+## Konzeptdateien
 
-Alle Konzept- und Designentscheidungen liegen in `konzept/`:
-
-| Datei | Inhalt |
-|---|---|
-| `konzept/AKTUELL.md` | Aktueller Stand, offene Punkte, Konventionen |
-| `konzept/projekt/08_roadmap.md` | Feature-Übersicht und Backlog |
-| `konzept/architektur/01_vision_architektur.md` | Projektziele, Stack, Schichtenmodell |
-| `konzept/architektur/02_datenbankschema.md` | Alle Tabellen, Schema-Versionen |
-| `konzept/architektur/17_qml_struktur.md` | QML-Dateistruktur und Konventionen |
-| `konzept/technik/18_debugging.md` | Qt 6-Fallstricke, Build-Workflow |
-| `konzept/features/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor (Phase 2) |
+Das Verzeichnis `konzept/` enthält die persönlichen Arbeitsunterlagen des Projektinhabers (Designentscheidungen, Roadmap, Debugging-Notizen). Diese Dateien sind **nicht** Teil des Open-Source-Releases und werden nicht veröffentlicht.
 
 ---
 

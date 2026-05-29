@@ -1192,6 +1192,14 @@ freue ich mich über eine freiwillige Spende.
 Fehler gefunden? Verbesserungsidee? Eigene Symbole oder Inhalte beigesteuert?
 Beiträge sind herzlich willkommen – schau auf die Projektseite.
 
+## Was ist Open Source – und was nicht?
+
+Der **Quellcode** von Strömling Design steht unter GPL-3.0 und ist öffentlich einsehbar.
+
+Die **Konzeptdateien** (Designentscheidungen, Roadmap, Debugging-Notizen im
+Verzeichnis `konzept/`) sind persönliche Arbeitsunterlagen des Projektinhabers
+und werden **nicht** veröffentlicht. Das sind seine kleinen Schätze.
+
 ## Keine Garantie
 
 Das Programm wird so bereitgestellt, wie es ist, **ohne Garantie** –
@@ -1248,6 +1256,12 @@ andere das Projekt leicht aufgreifen, forken oder weiterführen können —
 ohne auf mich angewiesen zu sein.
 
 Ob es für E-Techniker fachlich taugt, wird sich im Test mit Kollegen zeigen.
+
+## Was ist öffentlich – was bleibt privat?
+
+Der **Quellcode** ist Open Source (GPL-3.0).
+Die **Konzeptdateien** – Designentscheidungen, Roadmap, Debugging-Notizen –
+sind persönliche Arbeitsunterlagen und werden nicht veröffentlicht.
 )",
                     "entstehung projekt KI claude chatgpt open source geschichte"
                 }

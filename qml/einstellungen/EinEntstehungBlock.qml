@@ -98,6 +98,11 @@ ColumnLayout {
                 text:           qsTr("Die Projektidee stammt von mir — Konzepte und Quellcode habe ich gemeinsam mit KI erarbeitet.")
                 font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
             }
+            Text {
+                Layout.fillWidth: true
+                text:           qsTr("Der Quellcode ist Open Source (GPL-3.0). Die Konzeptdateien sind meine persönlichen Arbeitsunterlagen und werden nicht veröffentlicht.")
+                font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
+            }
             Item { implicitHeight: 2 }
         }
     }

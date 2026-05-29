@@ -193,10 +193,18 @@ Canvas {
         // ── PE-Fusskontakt ───────────────────────────────────────────────
         if (hatPe) {
             var peMarkiert = (marked === "PE")
-            var peX  = startX + totalW / 2
+            // PE sitzt unter Ebene 1 (e=0), nicht mittig über alle Ebenen
+            var peX  = startX + (colW / 2) * scale
             var peY1 = bEndY + kreisR + 4
             var peY2 = peY1 + 18
             var peFarbe = peMarkiert ? akzent : "#4caf50"
+            // Verbindungslinie: Ebene-1-Spalte → Oberkante PE-Symbol
+            ctx.beginPath()
+            ctx.moveTo(peX, bEndY)
+            ctx.lineTo(peX, peY1)
+            ctx.strokeStyle = peFarbe
+            ctx.lineWidth   = 1.5
+            ctx.stroke()
             ctx.beginPath()
             ctx.moveTo(peX, peY1)
             ctx.lineTo(peX, peY2)

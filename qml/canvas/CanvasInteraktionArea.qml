@@ -311,20 +311,9 @@ MouseArea {
                 eckenRadius:    0
             }
             canvas.aktionAusfuehren(em.snapshot().concat([elSym]))
-            canvas.aktivesWerkzeug = "zeiger"
-            var newIdxSym = em.anzahl - 1
-            canvas.auswahl         = [newIdxSym]
-            var vprSym = toViewport(mouse.x, mouse.y)
-            var newElSym = em.element(newIdxSym)
-            canvas.amVerschieben       = false
-            canvas.verschiebenMausVpX  = vprSym.x
-            canvas.verschiebenMausVpY  = vprSym.y
-            canvas.verschiebenStartX1  = newElSym.x1; canvas.verschiebenStartY1 = newElSym.y1
-            canvas.verschiebenStartX2  = newElSym.x2; canvas.verschiebenStartY2 = newElSym.y2
-            canvas.verschiebenStartPos = [{ x1: newElSym.x1, y1: newElSym.y1,
-                                            x2: newElSym.x2, y2: newElSym.y2 }]
-            canvas.schnapshotVorMove   = em.snapshot()
-            canvas.vorschau = null
+            // CE-03: Symbol-Modus bleibt aktiv – Vorschau für nächste Platzierung neu aufbauen.
+            // Abbrechen: Escape oder anderes Werkzeug wählen.
+            canvas.vorschau = canvas.symbolVorschauErstellen(wSym.x, wSym.y)
             canvas.neuZeichnen()
 
         } else if (canvas.aktivesWerkzeug === "bild" && canvas.paletteImageData !== "") {

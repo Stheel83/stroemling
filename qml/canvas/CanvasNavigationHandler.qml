@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 // Pan / Zoom / Pinch und Rechtsklick-Kontextmenü des SchaltplanCanvas.
 // Kommuniziert ausschließlich über `canvas` (SchaltplanCanvas-Referenz).
@@ -85,6 +86,29 @@ Item {
                 }
             }
         }
+        MenuItem {
+            text: "BMKs nummerieren..."
+            enabled: {
+                var cnt = 0
+                for (var i = 0; i < canvas.auswahl.length; i++)
+                    if (canvas.elementeModel.element(canvas.auswahl[i]).typ === "symbol") cnt++
+                return cnt >= 2
+            }
+            onTriggered: {
+                var praefix = "-"
+                for (var i = 0; i < canvas.auswahl.length; i++) {
+                    var el = canvas.elementeModel.element(canvas.auswahl[i])
+                    if (el && el.typ === "symbol" && el.extraDaten && el.extraDaten.bmk) {
+                        praefix = el.extraDaten.bmk.replace(/\d+$/, "")
+                        break
+                    }
+                }
+                var nextFull = db.naechsteBmkNummer(canvas.projektId, praefix)
+                bmkNummerierungDialog.praefixFeld = praefix
+                bmkNummerierungDialog.startNrFeld = parseInt(nextFull.substring(praefix.length)) || 1
+                bmkNummerierungDialog.open()
+            }
+        }
         MenuSeparator {}
         MenuItem {
             text:    "Loeschen\t(Entf)"
@@ -113,6 +137,52 @@ Item {
             enabled: canvas.auswahl.length > 0
             onTriggered: { canvas.auswahl = []; canvas.neuZeichnen() }
         }
+    }
+
+    // --------------------------------------------------------
+    // CE-11: Batch-BMK-Nummerierungsdialog
+    // --------------------------------------------------------
+    Dialog {
+        id: bmkNummerierungDialog
+        title: "BMKs nummerieren"
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        property string praefixFeld: "-"
+        property int    startNrFeld: 1
+
+        onAboutToShow: {
+            praefixInput.text  = praefixFeld
+            startNrInput.value = startNrFeld
+        }
+
+        ColumnLayout {
+            spacing: 8
+            width: 260
+
+            RowLayout {
+                spacing: 8
+                Label { text: "Praefix:"; Layout.preferredWidth: 90 }
+                TextField {
+                    id: praefixInput
+                    Layout.fillWidth: true
+                    placeholderText: "-K"
+                }
+            }
+            RowLayout {
+                spacing: 8
+                Label { text: "Startnummer:"; Layout.preferredWidth: 90 }
+                SpinBox {
+                    id: startNrInput
+                    from: 1; to: 9999
+                    editable: true
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        onAccepted: canvas.batchBmkNummerieren(praefixInput.text.trim(), startNrInput.value)
     }
 
     // --------------------------------------------------------

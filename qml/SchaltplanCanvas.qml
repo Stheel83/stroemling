@@ -3058,6 +3058,31 @@ Item {
             freshGeid, _pinNummernFuerNetze(netze))
     }
 
+    // CE-11: Batch-Nummerierung – setzt BMKs auf ausgewählte Symbole in Links→Rechts-Reihenfolge
+    function batchBmkNummerieren(praefix, startNr) {
+        var symbole = []
+        for (var i = 0; i < root.auswahl.length; i++) {
+            var el = elementeModel.element(root.auswahl[i])
+            if (el && el.typ === "symbol")
+                symbole.push({ idx: root.auswahl[i], x: el.x1, y: el.y1 })
+        }
+        if (symbole.length === 0) return
+        symbole.sort(function(a, b) { return a.x !== b.x ? a.x - b.x : a.y - b.y })
+
+        elementeModel.undoCheckpoint()
+        var selSnapshot = root.auswahl.slice()
+        var num = startNr
+        symbole.forEach(function(s) {
+            var cur = elementeModel.element(s.idx)
+            var ed  = cur.extraDaten ? JSON.parse(JSON.stringify(cur.extraDaten)) : {}
+            ed.bmk  = praefix + num++
+            elementeModel.eigenschaftSetzen(s.idx, "extraDaten", ed)
+        })
+        root.auswahl = selSnapshot
+        root.grafikSpeichernJetzt()
+        root.neuZeichnen()
+    }
+
     function aktionAusfuehren(neueElemente) {
         elementeModel.undoCheckpoint()
         elementeModel.fromVariantList(neueElemente)

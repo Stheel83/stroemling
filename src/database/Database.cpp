@@ -812,6 +812,29 @@ bool Database::openLauncher(const QString &path)
         )")) {
             qWarning() << "zuletzt_geoeffnet Tabelle:" << q.lastError().text();
         }
+        if (!q.exec(R"(
+            CREATE TABLE IF NOT EXISTS bekannte_projekte (
+                id                INTEGER PRIMARY KEY,
+                datei_pfad        TEXT NOT NULL UNIQUE,
+                projekt_name      TEXT,
+                projekt_nummer    TEXT,
+                erstellt          TEXT NOT NULL DEFAULT (date('now')),
+                zuletzt_geoeffnet TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        )")) {
+            qWarning() << "bekannte_projekte Tabelle:" << q.lastError().text();
+        }
+        // Einmalige Befüllung aus zuletzt_geoeffnet wenn bekannte_projekte noch leer
+        {
+            QSqlQuery cnt(m_launcherDb);
+            if (cnt.exec("SELECT COUNT(*) FROM bekannte_projekte") && cnt.next()
+                    && cnt.value(0).toInt() == 0) {
+                QSqlQuery copy(m_launcherDb);
+                copy.exec("INSERT OR IGNORE INTO bekannte_projekte "
+                           "(datei_pfad, projekt_name, zuletzt_geoeffnet) "
+                           "SELECT pfad, name, geoeffnet_am FROM zuletzt_geoeffnet");
+            }
+        }
     }
     qInfo() << "Launcher-DB geöffnet:" << path;
 
@@ -877,15 +900,19 @@ bool Database::openProjekt(const QString &path)
     m_projektOffen = true;
 
     QString projektName;
+    QString projektNummer;
     {
         QSqlQuery q(m_db);
-        if (q.exec("SELECT name FROM projekt LIMIT 1") && q.next())
-            projektName = q.value(0).toString();
+        if (q.exec("SELECT name, projektnummer FROM projekt LIMIT 1") && q.next()) {
+            projektName   = q.value(0).toString();
+            projektNummer = q.value(1).toString();
+        }
     }
     if (projektName.isEmpty())
         projektName = QFileInfo(path).baseName();
 
     zuletzGeoeffnetEintragen(path, projektName);
+    bekannteProjecteEintragen(path, projektName, projektNummer);
     qInfo() << "Projekt geöffnet:" << path;
     emit projektOffenChanged();
     return true;
@@ -981,6 +1008,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     m_projektOffen = true;
     QString name = projektName.isEmpty() ? QFileInfo(path).baseName() : projektName;
     zuletzGeoeffnetEintragen(path, name);
+    bekannteProjecteEintragen(path, name, "");
     qInfo() << "Neues Projekt erstellt:" << path;
     emit projektOffenChanged();
     return true;
@@ -1075,22 +1103,32 @@ bool Database::projektLoeschen(const QString &pfad)
         q.prepare("DELETE FROM zuletzt_geoeffnet WHERE pfad = :p");
         q.bindValue(":p", pfad);
         q.exec();
+        QSqlQuery q2(m_launcherDb);
+        q2.prepare("DELETE FROM bekannte_projekte WHERE datei_pfad = :p");
+        q2.bindValue(":p", pfad);
+        q2.exec();
+        emit registryGeaendert();
     }
     return true;
 }
 
 // ============================================================
 // ersteProjektInfo
-// Gibt id + name des ersten Projekts der geöffneten DB zurück.
+// Gibt alle Meta-Daten des ersten Projekts der geöffneten DB zurück.
 // ============================================================
 QVariantMap Database::ersteProjektInfo() const
 {
     QVariantMap m;
     if (!m_projektOffen) return m;
     QSqlQuery q(m_db);
-    if (q.exec("SELECT id, name FROM projekt LIMIT 1") && q.next()) {
-        m["id"]   = q.value(0).toInt();
-        m["name"] = q.value(1).toString();
+    if (q.exec("SELECT id, name, projektnummer, auftraggeber, auftragnehmer, bearbeiter "
+               "FROM projekt LIMIT 1") && q.next()) {
+        m["id"]            = q.value(0).toInt();
+        m["name"]          = q.value(1).toString();
+        m["projektnummer"] = q.value(2).toString();
+        m["auftraggeber"]  = q.value(3).toString();
+        m["auftragnehmer"] = q.value(4).toString();
+        m["bearbeiter"]    = q.value(5).toString();
     }
     return m;
 }
@@ -1110,6 +1148,78 @@ void Database::zuletzGeoeffnetEintragen(const QString &path, const QString &name
     q.bindValue(":p", path);
     q.bindValue(":n", name);
     q.exec();
+}
+
+// ============================================================
+// bekannteProjecteEintragen (privat)
+// Trägt ein Projekt in bekannte_projekte ein oder aktualisiert es.
+// ============================================================
+void Database::bekannteProjecteEintragen(const QString &pfad, const QString &name, const QString &nummer)
+{
+    if (!m_launcherDb.isOpen()) return;
+    QSqlQuery q(m_launcherDb);
+    q.prepare(R"(
+        INSERT INTO bekannte_projekte (datei_pfad, projekt_name, projekt_nummer, zuletzt_geoeffnet)
+        VALUES (:p, :n, :nr, datetime('now'))
+        ON CONFLICT(datei_pfad) DO UPDATE SET
+            projekt_name      = :n,
+            projekt_nummer    = :nr,
+            zuletzt_geoeffnet = datetime('now')
+    )");
+    q.bindValue(":p",  pfad);
+    q.bindValue(":n",  name);
+    q.bindValue(":nr", nummer);
+    if (!q.exec())
+        qWarning() << "bekannteProjecteEintragen:" << q.lastError().text();
+    emit registryGeaendert();
+}
+
+// ============================================================
+// bekannteProjecteLaden
+// Gibt alle bekannten Projekte aus der Launcher-Registry zurück.
+// ============================================================
+QVariantList Database::bekannteProjecteLaden() const
+{
+    QVariantList list;
+    if (!m_launcherDb.isOpen()) return list;
+    QSqlQuery q(m_launcherDb);
+    if (!q.exec("SELECT datei_pfad, projekt_name, projekt_nummer, erstellt, zuletzt_geoeffnet "
+                "FROM bekannte_projekte ORDER BY zuletzt_geoeffnet DESC"))
+        return list;
+    while (q.next()) {
+        QString pfad = q.value(0).toString();
+        list.append(QVariantMap{
+            { "dateiPfad",        pfad },
+            { "projektName",      q.value(1).toString() },
+            { "projektNummer",    q.value(2).toString() },
+            { "erstellt",         q.value(3).toString() },
+            { "zuletztGeoeffnet", q.value(4).toString() },
+            { "dateiExistiert",   QFile::exists(pfad) },
+        });
+    }
+    return list;
+}
+
+// ============================================================
+// projektAusRegistryEntfernen
+// Entfernt ein Projekt aus bekannte_projekte (löscht die Datei NICHT).
+// ============================================================
+bool Database::projektAusRegistryEntfernen(const QString &pfad)
+{
+    if (!m_launcherDb.isOpen()) return false;
+    QSqlQuery q(m_launcherDb);
+    q.prepare("DELETE FROM bekannte_projekte WHERE datei_pfad = :p");
+    q.bindValue(":p", pfad);
+    if (!q.exec()) {
+        qWarning() << "projektAusRegistryEntfernen:" << q.lastError().text();
+        return false;
+    }
+    QSqlQuery q2(m_launcherDb);
+    q2.prepare("DELETE FROM zuletzt_geoeffnet WHERE pfad = :p");
+    q2.bindValue(":p", pfad);
+    q2.exec();
+    emit registryGeaendert();
+    return true;
 }
 
 bool Database::openWiki(const QString &path)

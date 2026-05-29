@@ -15,8 +15,9 @@ class Database : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(bool    projektOffen READ projektOffen NOTIFY projektOffenChanged)
-    Q_PROPERTY(QString projektPfad  READ projektPfad  NOTIFY projektOffenChanged)
+    Q_PROPERTY(bool         projektOffen    READ projektOffen       NOTIFY projektOffenChanged)
+    Q_PROPERTY(QString      projektPfad     READ projektPfad        NOTIFY projektOffenChanged)
+    Q_PROPERTY(QVariantList bekannteProjecte READ bekannteProjecteLaden NOTIFY registryGeaendert)
 
 public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
@@ -48,6 +49,12 @@ public:
     // Zuletzt geöffnete Projekte (max. 10, nur existierende Dateien)
     Q_INVOKABLE QVariantList zuletzGeoeffnete() const;
 
+    // Alle bekannten Projekte aus der Registry (für ProjectTree)
+    Q_INVOKABLE QVariantList bekannteProjecteLaden() const;
+
+    // Projekt aus Registry entfernen (löscht NICHT die Datei)
+    Q_INVOKABLE bool projektAusRegistryEntfernen(const QString &pfad);
+
     // Projektdatei löschen + Launcher-Eintrag entfernen
     Q_INVOKABLE bool projektLoeschen(const QString &pfad);
 
@@ -71,6 +78,7 @@ public:
 
 Q_SIGNALS:
     void projektOffenChanged();
+    void registryGeaendert();
     void dbFehler(const QString &meldung);
 
 public:
@@ -601,6 +609,9 @@ private:
 
     // Pfad + Name eines geöffneten Projekts in die zuletzt_geoeffnet-Tabelle eintragen
     void zuletzGeoeffnetEintragen(const QString &path, const QString &name);
+
+    // Projekt in bekannte_projekte registrieren / aktualisieren
+    void bekannteProjecteEintragen(const QString &pfad, const QString &name, const QString &nummer);
 
     QSqlDatabase m_db;
     QSqlDatabase m_wikiDb;

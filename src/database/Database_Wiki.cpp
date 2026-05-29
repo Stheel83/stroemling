@@ -1096,7 +1096,7 @@ Das ausgefüllte IBN-Protokoll kann als Liste exportiert werden
                     "Versionierung mit Git",
                     R"(# Versionierung mit Git
 
-Strömling-Projekte sind eigenständige **SQLite-Dateien** (`.stroemling`).
+Strömling-Projekte sind eigenständige **SQLite-Dateien** (`.strl`).
 Da alle Daten in einer einzigen Datei stecken, funktioniert Git als
 Versionsverwaltung ohne jede Konfiguration in der App.
 
@@ -1115,21 +1115,21 @@ git add .gitignore
 git commit -m "Repo initialisiert"
 ```
 
-Danach das Projekt in diesem Ordner anlegen oder die `.stroemling`-Datei
-dorthin kopieren (📂 → **Projekt importieren**).
+Danach das Projekt in diesem Ordner anlegen oder die `.strl`-Datei
+dorthin kopieren (📂 → **Projekt öffnen**).
 
 ## Täglicher Workflow
 
 ```bash
 # Nach einer Arbeitssitzung
-git add schaltschrank_a.stroemling
+git add schaltschrank_a.strl
 git commit -m "Hauptstromkreis: Schütze K1–K3 verdrahtet"
 
 # Verlauf anzeigen
 git log --oneline
 
 # Auf Stand vor 3 Commits zurückgehen (nur lesen, nicht überschreiben)
-git show HEAD~3:schaltschrank_a.stroemling > alt.stroemling
+git show HEAD~3:schaltschrank_a.strl > alt.strl
 ```
 
 ## Was Git kann und was nicht

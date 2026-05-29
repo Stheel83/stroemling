@@ -6,6 +6,22 @@
 
 ---
 
+## Umgang mit langen Sessions
+
+Wenn der Kontext voll wird: **`/compact`** eintippen – fasst die bisherige
+Unterhaltung zusammen und gibt Context frei, ohne die aktuelle Arbeit zu
+unterbrechen.
+
+Kontinuität zwischen Sessions ist gesichert über:
+- `konzept/AKTUELL.md` – immer zuerst lesen, gibt den Stand in 30 Sekunden
+- Memory-Dateien in `~/.claude/projects/.../memory/` – Schema-Version, offene Bugs, Konventionen
+
+**Session-Disziplin:** Ein Thema pro Session hält den Kontext schlank.
+Bei Folge-Sessions einfach neu starten – `konzept/AKTUELL.md` + Memory
+reichen für sofortigen Einstieg.
+
+---
+
 ## Fehlerreport-Vorlage (für den Nutzer)
 
 Wenn etwas nicht funktioniert, diese 4 Punkte mitgeben:

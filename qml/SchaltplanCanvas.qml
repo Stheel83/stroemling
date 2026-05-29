@@ -1628,6 +1628,21 @@ Item {
         }
 
 
+        // Gibt Farbe für einen Signaltyp zurück
+        function signaltypFarbe(sig) {
+            if (sig === "power")           return "#cc3300"
+            if (sig === "pe")              return "#88cc00"
+            if (sig === "n")               return "#4488ff"
+            if (sig === "input_digital")   return "#44aaff"
+            if (sig === "output_digital")  return "#44cc66"
+            if (sig === "input_analog")    return "#88bbff"
+            if (sig === "output_analog")   return "#66ddaa"
+            if (sig === "kommunikation")   return "#aa44cc"
+            if (sig === "konflikt")        return "#ff2200"
+            if (sig === "unversorgt")      return "#ffaa00"
+            return "#4a9eff"   // neutral
+        }
+
         // ── Auto-Verbindungen ─────────────────────────────────
         // Delegiert an SymbolDefinitionModel::autoVerbindungenBerechnen() (C++).
         function autoVerbindungenBerechnen() {

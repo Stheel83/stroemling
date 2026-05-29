@@ -91,11 +91,12 @@ Item {
     property int    makroEinfuegenId:   0
     property string makroEinfuegenName: ""
 
-    // Duplizieren-Modus (Ctrl+D)
-    property var  duplizierVorlage:  null   // Quell-Elemente der Auswahl
-    property var  duplizierVorschau: null   // verschobene Kopien für die Vorschau
-    property real duplizierOffsetX:  0      // Versatz beim ersten Klick
-    property real duplizierOffsetY:  0
+    // Duplizieren-Modus (Ctrl+D) und Einfügen-Modus (Ctrl+V)
+    property var  duplizierVorlage:   null  // Quell-Elemente
+    property var  duplizierVorschau:  null  // verschobene Kopien für die Vorschau
+    property real duplizierOffsetX:   0     // Versatz beim ersten Klick
+    property real duplizierOffsetY:   0
+    property bool duplizierMitDialog: true  // false = Einfügen (kein Anzahl-Dialog)
 
     onAktivesWerkzeugChanged: {
         if (aktivesWerkzeug !== "bild") root.paletteImageData = ""
@@ -3508,24 +3509,17 @@ Item {
         var s = (slot === undefined) ? 0 : slot
         var quelle = (s === 0) ? root.zwischenablage : root.zwischenablagen[s]
         if (!quelle || quelle.length === 0 || root.seiteId < 0) return
-        var off = root.gridPx
-        var neueEl = quelle.map(function(el) {
-            var upd = {}; for (var k in el) upd[k] = el[k]
-            upd.x1 += off; upd.y1 += off; upd.x2 += off; upd.y2 += off
-            return upd
-        })
-        var anzahl = neueEl.length
-        root.aktionAusfuehren(elementeModel.snapshot().concat(neueEl))
-        var start = elementeModel.anzahl - anzahl
-        var sel = []; for (var j = 0; j < anzahl; j++) sel.push(start + j)
-        root.auswahl = sel
-        drawCanvas.requestPaint()
+        root.duplizierVorlage   = quelle
+        root.duplizierMitDialog = false
+        root.aktivesWerkzeug    = "duplizieren"
+        root._duplizierVorschauAktualisieren(root.letzteMausWeltX, root.letzteMausWeltY)
     }
 
     function duplizieren() {
         if (root.auswahl.length === 0 || root.seiteId < 0) return
-        root.duplizierVorlage = root.auswahl.map(function(i) { return elementeModel.element(i) })
-        root.aktivesWerkzeug  = "duplizieren"
+        root.duplizierVorlage   = root.auswahl.map(function(i) { return elementeModel.element(i) })
+        root.duplizierMitDialog = true
+        root.aktivesWerkzeug    = "duplizieren"
         root._duplizierVorschauAktualisieren(root.letzteMausWeltX, root.letzteMausWeltY)
     }
 
@@ -3551,11 +3545,14 @@ Item {
     }
 
     function _duplizierAnzahlAnfordern(dx, dy) {
-        root.duplizierOffsetX = dx
-        root.duplizierOffsetY = dy
+        root.duplizierOffsetX  = dx
+        root.duplizierOffsetY  = dy
         root.duplizierVorschau = null
         root.neuZeichnen()
-        duplizierAnzahlDialog.open()
+        if (root.duplizierMitDialog)
+            duplizierAnzahlDialog.open()
+        else
+            root._duplizierAnzahlPlatzieren(1)
     }
 
     function _duplizierAnzahlPlatzieren(n) {
@@ -3591,8 +3588,9 @@ Item {
         root.amPolyZeichnen   = false
         root.polyPunkte       = []
         root.polyCursorWelt   = null
-        root.duplizierVorlage  = null
-        root.duplizierVorschau = null
+        root.duplizierVorlage   = null
+        root.duplizierVorschau  = null
+        root.duplizierMitDialog = true
         drawCanvas.requestPaint()
     }
 

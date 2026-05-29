@@ -909,7 +909,7 @@ bool Database::openProjekt(const QString &path)
     QString projektNummer;
     {
         QSqlQuery q(m_db);
-        if (q.exec("SELECT name, projektnummer FROM projekt LIMIT 1") && q.next()) {
+        if (q.exec("SELECT name, projektnummer FROM projekt ORDER BY id DESC LIMIT 1") && q.next()) {
             projektName   = q.value(0).toString();
             projektNummer = q.value(1).toString();
         }
@@ -979,12 +979,10 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         return false;
     }
 
-    // Schema + Seeds (inkl. Beispielprojekt für Einsteiger)
     bool ok = createSchema()
            && seedSymbolKatalog()
            && seedBuiltinSymbolDefinitionen()
-           && seedIbnFeldvorlagen()
-           && seedExampleData();
+           && seedIbnFeldvorlagen();
 
     if (ok) {
         // Projektzeile mit Nutzernamen anlegen
@@ -1130,7 +1128,7 @@ QVariantMap Database::ersteProjektInfo() const
     if (!m_projektOffen) return m;
     QSqlQuery q(m_db);
     if (q.exec("SELECT id, name, projektnummer, auftraggeber, auftragnehmer, bearbeiter "
-               "FROM projekt LIMIT 1") && q.next()) {
+               "FROM projekt ORDER BY id DESC LIMIT 1") && q.next()) {
         m["id"]            = q.value(0).toInt();
         m["name"]          = q.value(1).toString();
         m["projektnummer"] = q.value(2).toString();
@@ -1192,7 +1190,7 @@ QVariantList Database::bekannteProjecteLaden() const
     if (!m_launcherDb.isOpen()) return list;
     QSqlQuery q(m_launcherDb);
     if (!q.exec("SELECT datei_pfad, projekt_name, projekt_nummer, erstellt, zuletzt_geoeffnet "
-                "FROM bekannte_projekte ORDER BY zuletzt_geoeffnet DESC"))
+                "FROM bekannte_projekte ORDER BY id DESC"))
         return list;
     while (q.next()) {
         QString pfad = q.value(0).toString();
@@ -1625,7 +1623,7 @@ bool Database::checkAndApplySchema()
             // Baseline: vollständiger Neuaufbau
             ok = dropAllTables() && createSchema()
                  && seedSymbolKatalog() && seedBuiltinSymbolDefinitionen()
-                 && seedIbnFeldvorlagen() && seedExampleData();
+                 && seedIbnFeldvorlagen();
         } else {
             ok = applyMigrationStatements(mig.statements);
         }
@@ -2665,323 +2663,6 @@ bool Database::createSchema()
         return false;
     }
 
-    return true;
-}
-
-// ============================================================
-// seedExampleData
-// Füllt die frisch angelegte Datenbank mit einem Beispielprojekt,
-// damit die Anwendung beim ersten Start nicht leer ist.
-// Wird nur nach dropAllTables + createSchema aufgerufen.
-// ============================================================
-bool Database::seedExampleData()
-{
-    // gridPx = gridMm(4) * mmToPx(4) = 16 px
-    // Standardsymbol: 8*16 = 128 breit, 4*16 = 64 hoch
-    // Verbindungselement (QV): 2*16 = 32 × 32
-    constexpr double G = 16.0;   // gridPx
-    constexpr double SW = 8*G;   // Symbol-Breite  128
-    constexpr double SH = 4*G;   // Symbol-Höhe     64
-    constexpr double VW = 2*G;   // Verbindungs-Symbol 32
-
-    auto insertGrafik = [&](int seiteId, int sort,
-                             const QString &typ, const QString &symId,
-                             double x1, double y1, double x2, double y2,
-                             const QString &strichFarbe, double strichBreite,
-                             bool fuell, const QString &fuellFarbe, double fuellOp,
-                             const QString &extraJson) -> bool
-    {
-        QSqlQuery qi;
-        qi.prepare(R"(
-            INSERT INTO grafik_element
-                (seite_id, typ, x1, y1, x2, y2,
-                 strich_farbe, strich_breite, strich_art,
-                 fuell, fuell_farbe, fuell_opazitaet, opazitaet, ecken_radius,
-                 sortierung, symbol_id, rotation, spiegel_x, spiegel_y,
-                 extra_daten)
-            VALUES
-                (:sid, :typ, :x1, :y1, :x2, :y2,
-                 :sf, :sb, 'solid',
-                 :fu, :ff, :fo, 1.0, 0,
-                 :sort, :symid, 0, 0, 0,
-                 :ed)
-        )");
-        qi.bindValue(":sid",   seiteId);
-        qi.bindValue(":typ",   typ);
-        qi.bindValue(":x1",    x1);   qi.bindValue(":y1", y1);
-        qi.bindValue(":x2",    x2);   qi.bindValue(":y2", y2);
-        qi.bindValue(":sf",    strichFarbe);
-        qi.bindValue(":sb",    strichBreite);
-        qi.bindValue(":fu",    fuell ? 1 : 0);
-        qi.bindValue(":ff",    fuellFarbe);
-        qi.bindValue(":fo",    fuellOp);
-        qi.bindValue(":sort",  sort);
-        qi.bindValue(":symid", symId);
-        qi.bindValue(":ed",    extraJson.isEmpty()
-                               ? QVariant(QMetaType::fromType<QString>())
-                               : QVariant(extraJson));
-        if (!qi.exec()) {
-            qWarning() << "Seed grafik_element:" << qi.lastError().text();
-            return false;
-        }
-        return true;
-    };
-
-    // Helper: BMK + Freitexte als JSON
-    auto bmkJson = [](const QString &bmk, const QString &ft1 = {},
-                      const QString &ft2 = {}) -> QString {
-        return QString(R"({"bmk":"%1","freitext1":"%2","freitext2":"%3"})")
-               .arg(bmk, ft1, ft2);
-    };
-
-    QSqlQuery q(m_db);
-
-    // ----------------------------------------------------------
-    // Projekt
-    // ----------------------------------------------------------
-    q.prepare("INSERT INTO projekt (name, projektnummer, status) "
-              "VALUES (:name, :nr, 'in_bearbeitung')");
-    q.bindValue(":name", "Beispielprojekt – Stallbeleuchtung");
-    q.bindValue(":nr",   "2026-001");
-    if (!q.exec()) { qWarning() << "Seed projekt:" << q.lastError().text(); return false; }
-    const int projektId = q.lastInsertId().toInt();
-
-    // ----------------------------------------------------------
-    // Anlage
-    // ----------------------------------------------------------
-    q.prepare("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung, sortierung) "
-              "VALUES (:pid, 'EG', 'Erdgeschoss', 0)");
-    q.bindValue(":pid", projektId);
-    if (!q.exec()) { qWarning() << "Seed anlage:" << q.lastError().text(); return false; }
-    const int anlageId = q.lastInsertId().toInt();
-
-    // ----------------------------------------------------------
-    // Ort + Seiten
-    // ----------------------------------------------------------
-    q.prepare("INSERT INTO ort (anlage_id, kuerzel, bezeichnung, sortierung) "
-              "VALUES (:aid, 'KS', 'Kuhstall', 0)");
-    q.bindValue(":aid", anlageId);
-    if (!q.exec()) { qWarning() << "Seed ort:" << q.lastError().text(); return false; }
-    const int ortId = q.lastInsertId().toInt();
-
-    auto insertSeite = [&](const QString &nr, const QString &bez, int sort) -> int {
-        QSqlQuery qs;
-        qs.prepare("INSERT INTO seite (ort_id, anlage_kuerzel, ort_kuerzel, "
-                   "blattnummer, bezeichnung, seitentyp, sortierung) "
-                   "VALUES (:oid, 'EG', 'KS', :nr, :bez, 'schaltplan', :sort)");
-        qs.bindValue(":oid",  ortId);
-        qs.bindValue(":nr",   nr);
-        qs.bindValue(":bez",  bez);
-        qs.bindValue(":sort", sort);
-        if (!qs.exec()) { qWarning() << "Seed seite:" << qs.lastError().text(); return -1; }
-        return qs.lastInsertId().toInt();
-    };
-
-    const int s1 = insertSeite("001", "Hauptstromkreis", 0);
-    const int s2 = insertSeite("002", "Steuerstromkreis", 1);
-    const int s3 = insertSeite("003", "Klemmenplan", 2);
-    if (s1 < 0 || s2 < 0 || s3 < 0) return false;
-
-    // ----------------------------------------------------------
-    // Seite 001 – Hauptstromkreis
-    //   Gerätekasten -X1, LSS -Q1, Sicherung -F1, Motor -M1
-    //   Querverweis "230V_L1" → Seite 002
-    // ----------------------------------------------------------
-    // Gerätekasten -X1  (6 × SW breit, 4 × SH hoch)
-    if (!insertGrafik(s1, 0, "geraetekasten", {},
-                      5*G, 5*G, 5*G + 6*SW, 5*G + 4*SH,
-                      "#cc7700", 1.5, true, "#331a00", 0.15,
-                      R"({"bmk":"-X1","bezeichnung":"Schaltschrank"})")) return false;
-
-    // LSS -Q1  (oben links im Kasten)
-    if (!insertGrafik(s1, 1, "symbol", "lss",
-                      6*G, 6*G, 6*G + SW, 6*G + SH,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      bmkJson("-Q1", "Leitungsschutzschalter", "B16A"))) return false;
-
-    // Sicherung -F1  (rechts neben LSS)
-    if (!insertGrafik(s1, 2, "symbol", "sicherung",
-                      6*G + SW + 2*G, 6*G, 6*G + 2*SW + 2*G, 6*G + SH,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      bmkJson("-F1", "Motorschutzschalter", "1,6-2,5 A"))) return false;
-
-    // Motor -M1  (darunter, mittig)
-    if (!insertGrafik(s1, 3, "symbol", "motor",
-                      6*G + SW/2, 6*G + SH + 4*G, 6*G + SW/2 + SW, 6*G + 2*SH + 4*G,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      bmkJson("-M1", "Kreiselpumpe P1", "0,75 kW / 230V"))) return false;
-
-    // Querverweis "230V_L1" ausgang → Seite 002
-    const QString qvAusgangJson =
-        QString(R"({"signalname":"230V_L1","richtung":"ausgang","zielSeiteId":%1})").arg(s2);
-    if (!insertGrafik(s1, 4, "symbol", "querverweis",
-                      5*G, 5*G + 4*SH + 3*G, 5*G + VW, 5*G + 4*SH + 3*G + VW,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      qvAusgangJson)) return false;
-
-    // ----------------------------------------------------------
-    // Seite 002 – Steuerstromkreis
-    //   Schliesser -K1.1, Spule -K1, Lampe -H1
-    //   Querverweis "230V_L1" eingang ← Seite 001
-    // ----------------------------------------------------------
-    // Schliesser -K1.1
-    if (!insertGrafik(s2, 0, "symbol", "schliesser",
-                      10*G, 10*G, 10*G + SW, 10*G + SH,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      bmkJson("-K1.1", "Hilfskontakt Schütz"))) return false;
-
-    // Schütz-Spule -K1  (rechts neben Schliesser)
-    if (!insertGrafik(s2, 1, "symbol", "spule",
-                      10*G + SW + 2*G, 10*G, 10*G + 2*SW + 2*G, 10*G + SH,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      bmkJson("-K1", "Schütz Pumpe P1"))) return false;
-
-    // Meldelampe -H1  (in zweiter Reihe)
-    if (!insertGrafik(s2, 2, "symbol", "lampe",
-                      10*G, 10*G + SH + 4*G, 10*G + SW, 10*G + 2*SH + 4*G,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      bmkJson("-H1", "Betriebsanzeige", "grün"))) return false;
-
-    // Querverweis "230V_L1" eingang ← Seite 001
-    const QString qvEingangJson =
-        QString(R"({"signalname":"230V_L1","richtung":"eingang","zielSeiteId":%1})").arg(s1);
-    if (!insertGrafik(s2, 3, "symbol", "querverweis",
-                      10*G, 10*G + 2*SH + 8*G, 10*G + VW, 10*G + 2*SH + 8*G + VW,
-                      "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                      qvEingangJson)) return false;
-
-    // ----------------------------------------------------------
-    // Seite 003 – Klemmenplan (nur Gerätekasten als Rahmen)
-    // ----------------------------------------------------------
-    if (!insertGrafik(s3, 0, "geraetekasten", {},
-                      5*G, 5*G, 5*G + 10*SW, 5*G + 3*SH,
-                      "#cc7700", 1.5, true, "#331a00", 0.15,
-                      R"({"bmk":"-X1","bezeichnung":"Klemmenleiste"})")) return false;
-
-    // Klemmen X1:1 … X1:4
-    const QStringList kmmBez = { ":1", ":2", ":3", ":4" };
-    for (int ki = 0; ki < kmmBez.size(); ++ki) {
-        if (!insertGrafik(s3, ki + 1, "symbol", "klemme",
-                          6*G + ki * (SW + G), 6*G, 6*G + ki * (SW + G) + SW, 6*G + SH,
-                          "#4a9eff", 1.5, false, "#1a3a6a", 0.3,
-                          bmkJson("-X1" + kmmBez[ki]))) return false;
-    }
-
-    // ----------------------------------------------------------
-    // Bauteil-Katalog (Beispieleinträge)
-    // ----------------------------------------------------------
-    q.prepare("INSERT INTO bauteil_kategorie (name, parent_id, sortierung) "
-              "VALUES (:n, NULL, :s)");
-    q.bindValue(":n", "Schutzgeräte"); q.bindValue(":s", 0);
-    if (!q.exec()) { qWarning() << "Seed kat:" << q.lastError().text(); return false; }
-    const int katSchutz = q.lastInsertId().toInt();
-
-    q.bindValue(":n", "Antriebe"); q.bindValue(":s", 1);
-    if (!q.exec()) { qWarning() << "Seed kat2:" << q.lastError().text(); return false; }
-    const int katAntriebe = q.lastInsertId().toInt();
-
-    q.bindValue(":n", "Schaltgeräte"); q.bindValue(":s", 2);
-    if (!q.exec()) { qWarning() << "Seed kat3:" << q.lastError().text(); return false; }
-    const int katSchalt = q.lastInsertId().toInt();
-
-    struct BauteilDef {
-        int kat; QString bez; QString hersteller; QString artNr;
-    };
-    const QList<BauteilDef> bauteile = {
-        { katSchutz,  "Leitungsschutzschalter B16A", "ABB",       "S201-B16"      },
-        { katSchutz,  "Motorschutzschalter 1,6-2,5A","Siemens",   "3RV2011-1CA10" },
-        { katAntriebe,"Kreiselpumpe 0,75 kW",         "Grundfos",  "CM3-5 A-R-I"  },
-        { katSchalt,  "Schütz 9A 230VAC",             "Siemens",   "3RT2015-1AP01" },
-    };
-    for (const BauteilDef &b : bauteile) {
-        q.prepare("INSERT INTO bauteil (kategorie_id, bezeichnung, hersteller, artikelnummer) "
-                  "VALUES (:kid, :bez, :her, :art)");
-        q.bindValue(":kid", b.kat);
-        q.bindValue(":bez", b.bez);
-        q.bindValue(":her", b.hersteller);
-        q.bindValue(":art", b.artNr);
-        if (!q.exec()) { qWarning() << "Seed bauteil:" << q.lastError().text(); return false; }
-    }
-
-    // ----------------------------------------------------------
-    // Kabel-Bibliothek (Beispieleinträge)
-    // ----------------------------------------------------------
-    q.prepare("INSERT INTO bauteil_kategorie (name, parent_id, sortierung) "
-              "VALUES (:n, NULL, :s)");
-    q.bindValue(":n", "Kabel"); q.bindValue(":s", 3);
-    if (!q.exec()) { qWarning() << "Seed kat Kabel:" << q.lastError().text(); return false; }
-    const int katKabel = q.lastInsertId().toInt();
-
-    struct KabelDef {
-        QString bezeichnung; QString hersteller; QString artNr;
-        QString kabeltyp; int geschirmt;
-        struct Ader { int nr; QString farbe; QString bez; double quer; };
-        QList<Ader> adern;
-    };
-    const QList<KabelDef> kabelDefs = {
-        {
-            "NYM-J 3×1,5", "diverse", "NYM-J 3x1,5",
-            "NYM-J 3×1,5 mm²", 0,
-            { {1,"BN","L",1.5}, {2,"BU","N",1.5}, {3,"GNYE","PE",1.5} }
-        },
-        {
-            "NYM-J 5×1,5", "diverse", "NYM-J 5x1,5",
-            "NYM-J 5×1,5 mm²", 0,
-            { {1,"BN","L1",1.5}, {2,"BK","L2",1.5}, {3,"GY","L3",1.5},
-              {4,"BU","N",1.5},  {5,"GNYE","PE",1.5} }
-        },
-        {
-            "H05VV-F 3G1,5", "diverse", "H05VV-F 3G1,5",
-            "H05VV-F 3G1,5 mm²", 0,
-            { {1,"BN","L",1.5}, {2,"BU","N",1.5}, {3,"GNYE","PE",1.5} }
-        },
-        {
-            "LIYY 4×0,5", "diverse", "LIYY 4x0,5",
-            "LIYY 4×0,5 mm²", 0,
-            { {1,"BN","1",0.5}, {2,"WH","2",0.5}, {3,"BU","3",0.5}, {4,"BK","4",0.5} }
-        },
-        {
-            "ÖLFLEX CLASSIC 110 4G1,5", "Lapp", "1119304",
-            "ÖLFLEX 110 4G1,5 mm²", 0,
-            { {1,"BN","L",1.5}, {2,"BK","L2",1.5}, {3,"GY","L3",1.5}, {4,"GNYE","PE",1.5} }
-        },
-    };
-
-    for (const KabelDef &kd : kabelDefs) {
-        // bauteil anlegen
-        q.prepare("INSERT INTO bauteil (kategorie_id, bezeichnung, hersteller, artikelnummer) "
-                  "VALUES (:kid, :bez, :her, :art)");
-        q.bindValue(":kid", katKabel);
-        q.bindValue(":bez", kd.bezeichnung);
-        q.bindValue(":her", kd.hersteller);
-        q.bindValue(":art", kd.artNr);
-        if (!q.exec()) { qWarning() << "Seed bauteil Kabel:" << q.lastError().text(); return false; }
-        const int bauteilId = q.lastInsertId().toInt();
-
-        // bauteil_kabel anlegen
-        q.prepare("INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt) "
-                  "VALUES (:bid, :typ, :gs)");
-        q.bindValue(":bid", bauteilId);
-        q.bindValue(":typ", kd.kabeltyp);
-        q.bindValue(":gs",  kd.geschirmt);
-        if (!q.exec()) { qWarning() << "Seed bauteil_kabel:" << q.lastError().text(); return false; }
-        const int bkId = q.lastInsertId().toInt();
-
-        // Adern anlegen
-        for (const KabelDef::Ader &a : kd.adern) {
-            q.prepare("INSERT INTO bauteil_kabel_ader "
-                      "(kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2) "
-                      "VALUES (:kid, :nr, :f, :bez, :quer)");
-            q.bindValue(":kid",  bkId);
-            q.bindValue(":nr",   a.nr);
-            q.bindValue(":f",    a.farbe);
-            q.bindValue(":bez",  a.bez);
-            q.bindValue(":quer", a.quer);
-            if (!q.exec()) { qWarning() << "Seed bauteil_kabel_ader:" << q.lastError().text(); return false; }
-        }
-    }
-
-    qInfo() << "Beispieldaten eingefügt (Projekt 'Beispielprojekt – Stallbeleuchtung').";
     return true;
 }
 

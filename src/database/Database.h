@@ -592,9 +592,6 @@ private:
     // Eingebaute Symbole als Primitiv-Daten in symbol_definition/symbol_primitiv/symbol_pin eintragen
     bool seedBuiltinSymbolDefinitionen();
 
-    // Beispieldaten einfügen (einmalig nach frischem Schema-Aufbau)
-    bool seedExampleData();
-
     // IBN-Feldvorlagen (Systemfelder) nach Schema-Aufbau befüllen
     bool seedIbnFeldvorlagen();
 

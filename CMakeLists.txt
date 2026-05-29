@@ -53,7 +53,6 @@ qt_add_qml_module(stroemling_app
         qml/AppTheme.qml
         qml/Main.qml
         qml/ProjectTree.qml
-        qml/PtNeuesProjektDialog.qml
         qml/PtEigenschaftenDialog.qml
         qml/PtLoeschenDialog.qml
         qml/SeitenBaum.qml

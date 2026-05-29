@@ -26,7 +26,16 @@ Item {
     signal projektMetaGeaendert(int id)
     signal projektGeloescht(int id)
 
-    PtNeuesProjektDialog { id: neuesProjektDialog; theme: root.theme }
+    FileDialog {
+        id: neuesProjektDialog
+        fileMode:      FileDialog.SaveFile
+        nameFilters:   ["Strömling Projekte (*.strl)"]
+        defaultSuffix: "strl"
+        onAccepted: {
+            if (!db.createProjekt(selectedFile.toString(), ""))
+                root._zeigeStatus(qsTr("Projekt konnte nicht angelegt werden."), false)
+        }
+    }
 
     PtEigenschaftenDialog {
         id: dlgProjektEigenschaften

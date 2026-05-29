@@ -46,8 +46,7 @@ Item {
         fileMode:    FileDialog.OpenFile
         nameFilters: ["Strömling Projekte (*.strl)", qsTr("Alle Dateien (*)")]
         onAccepted: {
-            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
-            if (!db.openProjekt(pfad))
+            if (!db.openProjekt(selectedFile.toString()))
                 root._zeigeStatus(qsTr("Projekt konnte nicht geöffnet werden"), false)
         }
     }
@@ -59,10 +58,9 @@ Item {
         nameFilters:   ["Strömling Projekte (*.strl)", qsTr("Alle Dateien (*)")]
         defaultSuffix: "strl"
         onAccepted: {
-            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
-            var ok   = db.projektExportieren(pfad)
+            var ok = db.projektExportieren(selectedFile.toString())
             root._zeigeStatus(
-                ok ? qsTr("Exportiert: ") + pfad.split("/").pop()
+                ok ? qsTr("Exportiert: ") + selectedFile.toString().split("/").pop()
                    : qsTr("Export fehlgeschlagen"),
                 ok
             )

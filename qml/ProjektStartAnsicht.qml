@@ -16,8 +16,7 @@ Item {
         nameFilters:    ["Strömling Projekte (*.strl)"]
         defaultSuffix:  "strl"
         onAccepted: {
-            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
-            if (!db.createProjekt(pfad, ""))
+            if (!db.createProjekt(selectedFile.toString(), ""))
                 fehlerPopup.open()
         }
     }
@@ -27,8 +26,7 @@ Item {
         fileMode:    FileDialog.OpenFile
         nameFilters: ["Strömling Projekte (*.strl)", "Alle Dateien (*)"]
         onAccepted: {
-            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
-            if (!db.openProjekt(pfad))
+            if (!db.openProjekt(selectedFile.toString()))
                 fehlerPopup.open()
         }
     }

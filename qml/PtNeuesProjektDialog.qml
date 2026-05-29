@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 Dialog {
     id: root
     required property var theme
+    property string _tmpName: ""
 
     title:  qsTr("Neues Projekt anlegen")
     width:  380
@@ -23,9 +24,8 @@ Dialog {
         nameFilters:   ["Strömling Projekte (*.strl)"]
         defaultSuffix: "strl"
         onAccepted: {
-            var pfad = selectedFile.toString().replace(/^file:\/\//, "")
-            var name = nameField.text.trim()
-            db.createProjekt(pfad, name)
+            db.createProjekt(selectedFile.toString(), root._tmpName)
+            root._tmpName    = ""
             nameField.text   = ""
             nummerField.text = ""
             root.close()
@@ -125,7 +125,10 @@ Dialog {
                 MouseArea {
                     id: erstellenMaus; anchors.fill: parent
                     enabled: parent.bereit; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                    onClicked: saveDialog.open()
+                    onClicked: {
+                        root._tmpName = nameField.text.trim()
+                        saveDialog.open()
+                    }
                 }
             }
         }

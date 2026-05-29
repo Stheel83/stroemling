@@ -15,11 +15,16 @@ Item {
     clip:    true
 
     readonly property string zielRichtung: {
-        var r = panel.s("rotation", 0)
-        if      (r === 0)   return "↓  Unten"
-        else if (r === 90)  return "←  Links"
-        else if (r === 180) return "↑  Oben"
-        else                return "→  Rechts"
+        var r   = panel.s("rotation", 0)
+        var sy  = panel.s("spiegelY", false)
+        var oy  = sy ? -1 : 1
+        var rad = r * Math.PI / 180
+        var nx  = Math.round(-oy * Math.sin(rad))
+        var ny  = Math.round( oy * Math.cos(rad))
+        if (ny > 0) return "↓  Unten"
+        if (ny < 0) return "↑  Oben"
+        if (nx > 0) return "→  Rechts"
+                    return "←  Links"
     }
 
     component Trennlinie: Rectangle {

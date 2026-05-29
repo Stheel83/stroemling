@@ -867,6 +867,8 @@ bool Database::openLauncher(const QString &path)
 // ============================================================
 bool Database::openProjekt(const QString &path)
 {
+    const QString localPath = QUrl(path).isLocalFile() ? QUrl(path).toLocalFile() : path;
+
     // Bestehende Projektverbindung trennen
     if (m_projektOffen || m_db.isOpen()) {
         m_db.close();
@@ -876,7 +878,7 @@ bool Database::openProjekt(const QString &path)
     }
 
     m_db = QSqlDatabase::addDatabase("QSQLITE");
-    m_db.setDatabaseName(path);
+    m_db.setDatabaseName(localPath);
     if (!m_db.open()) {
         qWarning() << "Projekt konnte nicht geöffnet werden:" << m_db.lastError().text();
         emit projektOffenChanged();
@@ -909,11 +911,11 @@ bool Database::openProjekt(const QString &path)
         }
     }
     if (projektName.isEmpty())
-        projektName = QFileInfo(path).baseName();
+        projektName = QFileInfo(localPath).baseName();
 
-    zuletzGeoeffnetEintragen(path, projektName);
-    bekannteProjecteEintragen(path, projektName, projektNummer);
-    qInfo() << "Projekt geöffnet:" << path;
+    zuletzGeoeffnetEintragen(localPath, projektName);
+    bekannteProjecteEintragen(localPath, projektName, projektNummer);
+    qInfo() << "Projekt geöffnet:" << localPath;
     emit projektOffenChanged();
     return true;
 }
@@ -924,8 +926,10 @@ bool Database::openProjekt(const QString &path)
 // ============================================================
 bool Database::createProjekt(const QString &path, const QString &projektName)
 {
-    if (QFile::exists(path)) {
-        qWarning() << "Projektdatei existiert bereits:" << path;
+    const QString localPath = QUrl(path).isLocalFile() ? QUrl(path).toLocalFile() : path;
+
+    if (QFile::exists(localPath)) {
+        qWarning() << "Projektdatei existiert bereits:" << localPath;
         return false;
     }
 
@@ -938,7 +942,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     }
 
     m_db = QSqlDatabase::addDatabase("QSQLITE");
-    m_db.setDatabaseName(path);
+    m_db.setDatabaseName(localPath);
     if (!m_db.open()) {
         qWarning() << "Projektdatei konnte nicht erstellt werden:" << m_db.lastError().text();
         return false;
@@ -958,7 +962,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
             qWarning() << "schema_migration für neues Projekt:" << q.lastError().text();
             m_db.close(); m_db = QSqlDatabase();
             QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-            QFile::remove(path);
+            QFile::remove(localPath);
             return false;
         }
     }
@@ -967,7 +971,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         qWarning() << "Transaktion für neues Projekt fehlgeschlagen";
         m_db.close(); m_db = QSqlDatabase();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-        QFile::remove(path);
+        QFile::remove(localPath);
         return false;
     }
 
@@ -982,7 +986,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         // Projektzeile mit Nutzernamen anlegen
         QSqlQuery qp;
         qp.prepare("INSERT INTO projekt (name) VALUES (:n)");
-        qp.bindValue(":n", projektName.isEmpty() ? QFileInfo(path).baseName() : projektName);
+        qp.bindValue(":n", projektName.isEmpty() ? QFileInfo(localPath).baseName() : projektName);
         ok = qp.exec();
         if (!ok)
             qWarning() << "Projekt-Eintrag anlegen:" << qp.lastError().text();
@@ -1001,15 +1005,15 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         m_db.rollback();
         m_db.close(); m_db = QSqlDatabase();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-        QFile::remove(path);
+        QFile::remove(localPath);
         return false;
     }
 
     m_projektOffen = true;
-    QString name = projektName.isEmpty() ? QFileInfo(path).baseName() : projektName;
-    zuletzGeoeffnetEintragen(path, name);
-    bekannteProjecteEintragen(path, name, "");
-    qInfo() << "Neues Projekt erstellt:" << path;
+    QString name = projektName.isEmpty() ? QFileInfo(localPath).baseName() : projektName;
+    zuletzGeoeffnetEintragen(localPath, name);
+    bekannteProjecteEintragen(localPath, name, "");
+    qInfo() << "Neues Projekt erstellt:" << localPath;
     emit projektOffenChanged();
     return true;
 }

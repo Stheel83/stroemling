@@ -44,10 +44,8 @@ Item {
         nameFilters:   ["Strömling Projekte (*.strl)"]
         defaultSuffix: "strl"
         onAccepted: {
-            var n = neuNameField.text.trim()
-            if (!db.createProjekt(selectedFile.toString(), n))
+            if (!db.createProjekt(selectedFile.toString(), ""))
                 fehlerPopup.open()
-            neuNameField.text = ""
         }
     }
 
@@ -74,48 +72,6 @@ Item {
                 text: qsTr("OK"); onClicked: fehlerPopup.close()
                 background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
                 contentItem: Text { text: parent.text; color: root.theme.textPrimary; horizontalAlignment: Text.AlignHCenter }
-            }
-        }
-    }
-
-    // ── Neues-Projekt-Popup ───────────────────────────────────────────
-    Popup {
-        id: neuProjektPopup
-        modal: true; anchors.centerIn: parent; padding: 24; width: 340
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 8 }
-        contentItem: Column {
-            spacing: 14
-            Text { text: qsTr("Neues Projekt"); font.pixelSize: 15; font.weight: Font.Medium; color: root.theme.textPrimary }
-            Text {
-                text: qsTr("Projektname (optional – kann später geändert werden):")
-                font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap; width: 292
-            }
-            TextField {
-                id: neuNameField
-                width: 292
-                placeholderText: qsTr("z.B. Stallbeleuchtung 2026")
-                color: root.theme.textPrimary; font.pixelSize: 13
-                background: Rectangle { color: root.theme.inputBg; border.color: neuNameField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
-                Keys.onReturnPressed: { neuProjektPopup.close(); neuesProjektDialog.open() }
-            }
-            RowLayout {
-                width: 292; spacing: 8
-                Item { Layout.fillWidth: true }
-                Rectangle {
-                    width: 90; height: 30; radius: 4
-                    color: abbHov.containsMouse ? root.theme.hover : root.theme.inputBg
-                    border.color: root.theme.border
-                    Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); font.pixelSize: 12; color: root.theme.textPrimary }
-                    MouseArea { id: abbHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: { neuNameField.text = ""; neuProjektPopup.close() } }
-                }
-                Rectangle {
-                    width: 90; height: 30; radius: 4
-                    color: weiterHov.containsMouse ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent
-                    Text { anchors.centerIn: parent; text: qsTr("Weiter ›"); font.pixelSize: 12; color: "white" }
-                    MouseArea { id: weiterHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: { neuProjektPopup.close(); neuesProjektDialog.open() } }
-                }
             }
         }
     }
@@ -174,7 +130,7 @@ Item {
                             Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 18; font.weight: Font.Bold; color: root.theme.textPrimary }
                             MouseArea {
                                 id: neuBtnHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                onClicked: neuProjektPopup.open()
+                                onClicked: neuesProjektDialog.open()
                                 ToolTip.visible: containsMouse; ToolTip.delay: 600; ToolTip.text: qsTr("Neues Projekt")
                             }
                         }

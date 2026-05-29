@@ -321,6 +321,47 @@ bool KabelModel::paarLoeschen(int paarId)
     return true;
 }
 
+bool KabelModel::aderMehrfachAktualisieren(const QVariantList &ids, const QVariantMap &daten)
+{
+    if (ids.isEmpty() || m_kabelId < 0) return false;
+
+    QString farbe = daten.value("farbe").toString().trimmed();
+    QString bez   = daten.value("bezeichnung").toString().trimmed();
+    QString qsStr = daten.value("querschnitt_mm2").toString().trimmed();
+
+    QStringList setClauses;
+    if (!farbe.isEmpty()) setClauses << QStringLiteral("farbe = :farbe");
+    if (!bez.isEmpty())   setClauses << QStringLiteral("bezeichnung = :bez");
+    if (!qsStr.isEmpty()) setClauses << QStringLiteral("querschnitt_mm2 = :qs");
+    if (setClauses.isEmpty()) return true;
+
+    QStringList ph;
+    for (int i = 0; i < ids.size(); ++i)
+        ph << QString(":id%1").arg(i);
+
+    QString sql = QString(
+        "UPDATE bauteil_kabel_ader SET %1 "
+        "WHERE id IN (%2) AND kabel_id = :kid")
+        .arg(setClauses.join(QStringLiteral(", ")), ph.join(QStringLiteral(", ")));
+
+    QSqlQuery q;
+    q.prepare(sql);
+    if (!farbe.isEmpty()) q.bindValue(":farbe", farbe);
+    if (!bez.isEmpty())   q.bindValue(":bez",   bez);
+    if (!qsStr.isEmpty()) q.bindValue(":qs",    qsStr.toDouble());
+    for (int i = 0; i < ids.size(); ++i)
+        q.bindValue(QString(":id%1").arg(i), ids[i].toInt());
+    q.bindValue(":kid", m_kabelId);
+
+    if (!q.exec()) {
+        qWarning() << "KabelModel::aderMehrfachAktualisieren:" << q.lastError().text();
+        return false;
+    }
+    ladeAdern();
+    emit geladen();
+    return true;
+}
+
 bool KabelModel::paarAktualisieren(int paarId, int aderA, int aderB)
 {
     QSqlQuery q;

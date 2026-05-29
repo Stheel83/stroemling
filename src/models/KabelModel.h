@@ -54,6 +54,10 @@ public:
     // Ader verschieben (richtung: -1 = hoch / +1 = runter).
     Q_INVOKABLE bool aderSchieben(int aderId, int richtung);
 
+    // Mehrere Adern auf einmal aktualisieren.
+    // Nur nicht-leere Felder in daten werden gesetzt: "farbe", "bezeichnung", "querschnitt_mm2".
+    Q_INVOKABLE bool aderMehrfachAktualisieren(const QVariantList &ids, const QVariantMap &daten);
+
     // Paar anlegen (nur sinnvoll wenn paarweise_verdrillt = true).
     // paar_nr wird automatisch als MAX+1 vergeben.
     Q_INVOKABLE int  paarAnlegen(int aderA, int aderB);

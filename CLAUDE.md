@@ -97,7 +97,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | **`konzept/technik/`** | **Wie entwickle ich daran?** |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten |
-| `konzept/technik/31_optimierungen.md` | Optimierungspotenziale (C-01/C-02/D-02 langfristig offen) |
+| `konzept/technik/31_optimierungen.md` | Optimierungspotenziale (aktuell alle erledigt → `konzept/archiv/erledigt.md`) |
 | `konzept/technik/33_rotation_multi_debug.md` | Debugging-Protokoll: ROTATION-MULTI-01 (Mehrfachauswahl-EP, offen) |
 | **`konzept/projekt/`** | **Wer ist das Projekt?** |
 | `konzept/projekt/08_roadmap.md` | Implementierungsstand, nächste Schritte, offene Punkte |

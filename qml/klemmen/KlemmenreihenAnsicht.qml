@@ -24,6 +24,19 @@ Item {
     property int aktivLeistenId: -1
     property int aktivKlemmeIdx: -1   // Index in klemmenreiheModel.klemmen
 
+    // CE-05: Mehrfachauswahl (klemmeIds)
+    property var _ausgewaehlt: []
+
+    Connections {
+        target: klemmenreiheModel
+        function onLeisteGeladen() {
+            // Auswahl leeren wenn eine andere Leiste geladen wird
+            var ids = klemmenreiheModel.klemmen.map(function(k) { return k.klemmeId })
+            var ungueltig = panel._ausgewaehlt.some(function(id) { return ids.indexOf(id) < 0 })
+            if (ungueltig) panel._ausgewaehlt = []
+        }
+    }
+
     readonly property var aktivKlemme:
         (aktivKlemmeIdx >= 0 && aktivKlemmeIdx < klemmenreiheModel.klemmen.length)
         ? klemmenreiheModel.klemmen[aktivKlemmeIdx]
@@ -242,7 +255,12 @@ Item {
                         hoverEnabled: true
                         cursorShape:  Qt.PointingHandCursor
                         onClicked: {
-                            klemmenreiheModel.klemmeBauteilSetzen(bauteilWaehlDlg.klemmeId, modelData.bauteilId)
+                            if (panel._ausgewaehlt.length >= 2) {
+                                klemmenreiheModel.klemmeMehrfachBauteilSetzen(panel._ausgewaehlt, modelData.bauteilId)
+                                panel._ausgewaehlt = []
+                            } else {
+                                klemmenreiheModel.klemmeBauteilSetzen(bauteilWaehlDlg.klemmeId, modelData.bauteilId)
+                            }
                             bauteilWaehlDlg.close()
                         }
                     }

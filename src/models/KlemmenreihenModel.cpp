@@ -461,6 +461,40 @@ bool KlemmenreiheModel::klemmeBauteilSetzen(int klemmeId, int bauteilId)
     return true;
 }
 
+bool KlemmenreiheModel::klemmeMehrfachBauteilSetzen(const QVariantList &ids, int bauteilId)
+{
+    if (ids.isEmpty() || m_leisteId < 0) return false;
+    QVariant bid = bauteilId > 0 ? QVariant(bauteilId) : QVariant();
+    bool ok = true;
+    for (const QVariant &v : ids) {
+        QSqlQuery q;
+        q.prepare("UPDATE klemme SET bauteil_id = :bid WHERE id = :id");
+        q.bindValue(":bid", bid);
+        q.bindValue(":id",  v.toInt());
+        if (!q.exec()) { qWarning() << "klemmeMehrfachBauteilSetzen:" << q.lastError().text(); ok = false; }
+    }
+    ladeKlemmen();
+    emit leisteGeladen();
+    return ok;
+}
+
+bool KlemmenreiheModel::klemmeMehrfachNummerieren(const QVariantList &ids, int start)
+{
+    if (ids.isEmpty() || m_leisteId < 0) return false;
+    bool ok = true;
+    int  num = start;
+    for (const QVariant &v : ids) {
+        QSqlQuery q;
+        q.prepare("UPDATE klemme SET nummer = :nr WHERE id = :id");
+        q.bindValue(":nr", QString::number(num++));
+        q.bindValue(":id", v.toInt());
+        if (!q.exec()) { qWarning() << "klemmeMehrfachNummerieren:" << q.lastError().text(); ok = false; }
+    }
+    ladeKlemmen();
+    emit leisteGeladen();
+    return ok;
+}
+
 QVariantList KlemmenreiheModel::klemmeBauteileHolen(const QString &suchtext) const
 {
     QVariantList liste;

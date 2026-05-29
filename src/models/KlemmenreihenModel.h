@@ -89,6 +89,12 @@ public:
     // Bauteil zuweisen oder entfernen (bauteilId=0 → NULL)
     Q_INVOKABLE bool klemmeBauteilSetzen(int klemmeId, int bauteilId);
 
+    // Mehrere Klemmen auf dasselbe Bauteil setzen (bauteilId=0 → NULL).
+    Q_INVOKABLE bool klemmeMehrfachBauteilSetzen(const QVariantList &ids, int bauteilId);
+
+    // Mehrere Klemmen fortlaufend nummerieren (Reihenfolge wie ids, beginnend bei start).
+    Q_INVOKABLE bool klemmeMehrfachNummerieren(const QVariantList &ids, int start);
+
     // Klemmen-Bauteile für Suchdialog (nur Bauteile mit bauteil_klemme-Eintrag)
     Q_INVOKABLE QVariantList klemmeBauteileHolen(const QString &suchtext) const;
 

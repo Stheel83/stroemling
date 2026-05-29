@@ -80,11 +80,13 @@ Item {
                             width:   Math.max(48, modelData.breiteMm > 0 ? modelData.breiteMm * 4 : 48)
                             height:  80
                             radius:  3
-                            color:   panel.aktivKlemmeIdx === index
-                                     ? theme.activeItemAlt
-                                     : (klemmeMa.containsMouse ? theme.hover : theme.surface)
-                            border.color: panel.aktivKlemmeIdx === index ? theme.accent : theme.border
-                            border.width: panel.aktivKlemmeIdx === index ? 2 : 1
+                            readonly property bool _multiSel: panel._ausgewaehlt.indexOf(modelData.klemmeId) >= 0
+                            readonly property bool _aktiv:    panel.aktivKlemmeIdx === index && panel._ausgewaehlt.length < 2
+
+                            color:        _multiSel || _aktiv ? theme.activeItemAlt
+                                          : (klemmeMa.containsMouse ? theme.hover : theme.surface)
+                            border.color: _multiSel || _aktiv ? theme.accent : theme.border
+                            border.width: _multiSel || _aktiv ? 2 : 1
 
                             Column {
                                 anchors.centerIn: parent
@@ -119,7 +121,21 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape:  Qt.PointingHandCursor
-                                onClicked:    panel.aktivKlemmeIdx = (panel.aktivKlemmeIdx === index ? -1 : index)
+                                onClicked: function(mouse) {
+                                    if (mouse.modifiers & Qt.ControlModifier) {
+                                        // CE-05: Ctrl+Klick → Multi-Auswahl togglen
+                                        var kid = modelData.klemmeId
+                                        var pos = panel._ausgewaehlt.indexOf(kid)
+                                        var sel = panel._ausgewaehlt.slice()
+                                        if (pos >= 0) sel.splice(pos, 1)
+                                        else          sel.push(kid)
+                                        panel._ausgewaehlt  = sel
+                                        panel.aktivKlemmeIdx = sel.length === 1 ? index : -1
+                                    } else {
+                                        panel._ausgewaehlt  = []
+                                        panel.aktivKlemmeIdx = panel.aktivKlemmeIdx === index ? -1 : index
+                                    }
+                                }
                             }
                         }
                     }

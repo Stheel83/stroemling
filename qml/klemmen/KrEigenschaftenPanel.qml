@@ -290,6 +290,106 @@ Rectangle {
                 font.pixelSize: 10; color: theme.textMuted
             }
 
+            // ── CE-05: Mehrfachauswahl ───────────────────────
+            Item { height: 8; visible: panel._ausgewaehlt.length >= 2 }
+            Text {
+                visible: panel._ausgewaehlt.length >= 2
+                text: qsTr("MEHRFACHAUSWAHL")
+                font.pixelSize: 9; font.weight: Font.Bold
+                color: theme.accent; font.letterSpacing: 1
+            }
+            Rectangle {
+                visible: panel._ausgewaehlt.length >= 2
+                height: 1; Layout.fillWidth: true; color: theme.divider
+            }
+            Text {
+                visible: panel._ausgewaehlt.length >= 2
+                text: qsTr("%1 Klemmen ausgewaehlt").arg(panel._ausgewaehlt.length)
+                font.pixelSize: 11; color: theme.textSecondary; Layout.fillWidth: true
+            }
+
+            // Bauteil zuweisen (Multi)
+            Button {
+                visible: panel._ausgewaehlt.length >= 2
+                text: qsTr("Bauteil zuweisen...")
+                Layout.fillWidth: true; implicitHeight: 26
+                contentItem: Text {
+                    text: parent.text; font.pixelSize: 11; color: theme.textPrimary
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
+                }
+                ToolTip.visible: hovered; ToolTip.delay: 500
+                ToolTip.text: qsTr("Dasselbe Bauteil allen markierten Klemmen zuweisen")
+                onClicked: root.bauteilWaehlenAngefordert(-1)
+            }
+
+            // Auto-Nummerieren (Multi)
+            RowLayout {
+                visible: panel._ausgewaehlt.length >= 2
+                Layout.fillWidth: true; spacing: 6
+
+                Text {
+                    text: qsTr("Ab Nr.:")
+                    font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 55
+                }
+                SpinBox {
+                    id: multiStartNr
+                    from: 1; to: 9999; value: 1; editable: true
+                    implicitWidth: 80; implicitHeight: 26
+                    font.pixelSize: 11
+                    contentItem: TextInput {
+                        text: parent.textFromValue(parent.value, parent.locale)
+                        font: parent.font; color: theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                        readOnly: !parent.editable; validator: parent.validator
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    }
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
+                }
+                Button {
+                    text: qsTr("Nummerieren")
+                    implicitHeight: 26; Layout.fillWidth: true
+                    contentItem: Text {
+                        text: parent.text; font.pixelSize: 11; color: theme.textPrimary
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
+                    }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Markierte Klemmen von links nach rechts fortlaufend nummerieren")
+                    onClicked: {
+                        var kl = klemmenreiheModel.klemmen
+                        var sorted = panel._ausgewaehlt.slice().sort(function(a, b) {
+                            var ia = -1, ib = -1
+                            for (var j = 0; j < kl.length; j++) {
+                                if (kl[j].klemmeId === a) ia = j
+                                if (kl[j].klemmeId === b) ib = j
+                            }
+                            return ia - ib
+                        })
+                        klemmenreiheModel.klemmeMehrfachNummerieren(sorted, multiStartNr.value)
+                    }
+                }
+            }
+
+            // Auswahl aufheben
+            Button {
+                visible: panel._ausgewaehlt.length >= 2
+                text: qsTr("Auswahl aufheben")
+                Layout.fillWidth: true; implicitHeight: 24
+                contentItem: Text {
+                    text: parent.text; font.pixelSize: 11; color: theme.textMuted
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.hovered ? theme.hover : "transparent"; border.color: theme.border; border.width: 1; radius: 3
+                }
+                onClicked: panel._ausgewaehlt = []
+            }
+
             // ── Klemme ausgewählt ────────────────────────────
             Item { height: 8; visible: panel.aktivKlemme !== null }
             Text {

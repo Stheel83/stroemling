@@ -250,22 +250,14 @@ Item {
 
                 // Info-Hinweis: Mehrere Projekte / Makros
                 Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.divider }
-                Item {
+                Text {
                     Layout.fillWidth: true
-                    height: infoHinweis.implicitHeight + 16
-                    Column {
-                        id: infoHinweis
-                        anchors { left: parent.left; right: parent.right; top: parent.top
-                                  margins: 10; topMargin: 8 }
-                        spacing: 3
-                        Text {
-                            width: parent.width
-                            text: qsTr("Jedes Projekt läuft in einer eigenen Programminstanz (↗). "
-                                     + "Das Kopieren zwischen Projekten ist bewusst nicht vorgesehen — "
-                                     + "für wiederverwendbare Schaltungsteile bitte die Makro-Funktion nutzen.")
-                            font.pixelSize: 9; color: root.theme.textMuted; wrapMode: Text.WordWrap
-                        }
-                    }
+                    Layout.leftMargin: 10; Layout.rightMargin: 10
+                    Layout.topMargin: 8;   Layout.bottomMargin: 8
+                    text: qsTr("Jedes Projekt läuft in einer eigenen Programminstanz (↗). "
+                             + "Das Kopieren zwischen Projekten ist bewusst nicht vorgesehen — "
+                             + "für wiederverwendbare Schaltungsteile bitte die Makro-Funktion nutzen.")
+                    font.pixelSize: 9; color: root.theme.textMuted; wrapMode: Text.WordWrap
                 }
             }
         }

@@ -25,7 +25,7 @@ Item {
     }
 
     width:   parent ? parent.width : 0
-    height:  (panel.auswahlLaenge > 1 && _hatSymbole) ? multiCol.implicitHeight : 0
+    height:  panel.auswahlLaenge >= 2 ? multiCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 
@@ -58,36 +58,93 @@ Item {
         width: parent.width; spacing: 0
 
         Trennlinie {}
-        AbschnittTitel { text: qsTr("ROTATION") }
 
-        FeldLabel { text: qsTr("Alle Symbole auf:") }
-        Row {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 4
-            Repeater {
-                model: [
-                    { anzeige: "0°",   wert: 0   },
-                    { anzeige: "90°",  wert: 90  },
-                    { anzeige: "180°", wert: 180 },
-                    { anzeige: "270°", wert: 270 }
-                ]
-                MiniButton { theme: theme;
-                    label:   modelData.anzeige
-                    breite:  40
-                    onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.wert)
+        // ── Rotation (nur wenn mind. ein Symbol ausgewählt) ──────────────
+        Item {
+            width: parent.width
+            height: root._hatSymbole ? rotCol.implicitHeight : 0
+            visible: root._hatSymbole
+            clip: true
+
+            Column {
+                id: rotCol
+                width: parent.width; spacing: 0
+
+                AbschnittTitel { text: qsTr("ROTATION") }
+
+                FeldLabel { text: qsTr("Alle Symbole auf:") }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 4
+                    Repeater {
+                        model: [
+                            { anzeige: "0°",   wert: 0   },
+                            { anzeige: "90°",  wert: 90  },
+                            { anzeige: "180°", wert: 180 },
+                            { anzeige: "270°", wert: 270 }
+                        ]
+                        MiniButton { theme: theme;
+                            label:   modelData.anzeige
+                            breite:  40
+                            onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.wert)
+                        }
+                    }
                 }
+
+                Item { height: 4 }
+                FeldLabel { text: qsTr("Um Pivot drehen:") }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 4
+                    MiniButton { theme: theme; label: qsTr("↺ 90°");  breite: 56; tooltip: qsTr("90° gegen Uhrzeigersinn um linken Pin"); onKlick: panel.canvas.multiRotationUmPivot(270) }
+                    MiniButton { theme: theme; label: qsTr("180°");   breite: 40; tooltip: qsTr("180° um linken Pin");                    onKlick: panel.canvas.multiRotationUmPivot(180) }
+                    MiniButton { theme: theme; label: qsTr("90° ↻");  breite: 56; tooltip: qsTr("90° im Uhrzeigersinn um linken Pin");    onKlick: panel.canvas.multiRotationUmPivot(90)  }
+                }
+                Item { height: 6 }
             }
         }
 
-        Item { height: 4 }
-        FeldLabel { text: qsTr("Um Pivot drehen:") }
+        // ── Ausrichten & Verteilen (alle Elementtypen) ───────────────────
+        AbschnittTitel { text: qsTr("AUSRICHTEN") }
+
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme; label: qsTr("↺ 90°");  breite: 56; tooltip: qsTr("90° gegen Uhrzeigersinn um linken Pin"); onKlick: panel.canvas.multiRotationUmPivot(270) }
-            MiniButton { theme: theme; label: qsTr("180°");   breite: 40; tooltip: qsTr("180° um linken Pin");                    onKlick: panel.canvas.multiRotationUmPivot(180) }
-            MiniButton { theme: theme; label: qsTr("90° ↻");  breite: 56; tooltip: qsTr("90° im Uhrzeigersinn um linken Pin");    onKlick: panel.canvas.multiRotationUmPivot(90)  }
+            MiniButton { theme: theme; label: qsTr("← L"); breite: 44
+                tooltip: qsTr("Linksbündig ausrichten")
+                onKlick: panel.canvas.elementeAusrichten("links") }
+            MiniButton { theme: theme; label: qsTr("R →"); breite: 44
+                tooltip: qsTr("Rechtsbündig ausrichten")
+                onKlick: panel.canvas.elementeAusrichten("rechts") }
+            MiniButton { theme: theme; label: qsTr("↑ O"); breite: 44
+                tooltip: qsTr("Oben ausrichten")
+                onKlick: panel.canvas.elementeAusrichten("oben") }
+            MiniButton { theme: theme; label: qsTr("U ↓"); breite: 44
+                tooltip: qsTr("Unten ausrichten")
+                onKlick: panel.canvas.elementeAusrichten("unten") }
         }
+
+        Item { height: 4 }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4
+            MiniButton { theme: theme; label: qsTr("⊙ H"); breite: 44
+                tooltip: qsTr("Horizontal zentrieren")
+                onKlick: panel.canvas.elementeAusrichten("mitte_h") }
+            MiniButton { theme: theme; label: qsTr("⊙ V"); breite: 44
+                tooltip: qsTr("Vertikal zentrieren")
+                onKlick: panel.canvas.elementeAusrichten("mitte_v") }
+            MiniButton { theme: theme; label: qsTr("↔ V."); breite: 44
+                tooltip: qsTr("Horizontal verteilen (mind. 3 Elemente)")
+                opacity: panel.auswahlLaenge >= 3 ? 1.0 : 0.4
+                onKlick: panel.canvas.elementeAusrichten("verteilen_h") }
+            MiniButton { theme: theme; label: qsTr("↕ V."); breite: 44
+                tooltip: qsTr("Vertikal verteilen (mind. 3 Elemente)")
+                opacity: panel.auswahlLaenge >= 3 ? 1.0 : 0.4
+                onKlick: panel.canvas.elementeAusrichten("verteilen_v") }
+        }
+
         Item { height: 8 }
     }
 }

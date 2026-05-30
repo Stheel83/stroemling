@@ -3083,6 +3083,75 @@ Item {
         root.neuZeichnen()
     }
 
+    // CE-06: Ausrichten & Verteilen
+    // richtung: "links"|"rechts"|"oben"|"unten"|"mitte_h"|"mitte_v"|"verteilen_h"|"verteilen_v"
+    function elementeAusrichten(richtung) {
+        if (root.auswahl.length < 2) return
+        var verteilen = (richtung === "verteilen_h" || richtung === "verteilen_v")
+        if (verteilen && root.auswahl.length < 3) return
+
+        var els = root.auswahl.map(function(idx) {
+            var el = elementeModel.element(idx)
+            return { idx: idx, x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 }
+        })
+        var minX1 = els[0].x1, maxX2 = els[0].x2
+        var minY1 = els[0].y1, maxY2 = els[0].y2
+        for (var i = 1; i < els.length; i++) {
+            if (els[i].x1 < minX1) minX1 = els[i].x1
+            if (els[i].x2 > maxX2) maxX2 = els[i].x2
+            if (els[i].y1 < minY1) minY1 = els[i].y1
+            if (els[i].y2 > maxY2) maxY2 = els[i].y2
+        }
+        var centerX = (minX1 + maxX2) / 2
+        var centerY = (minY1 + maxY2) / 2
+
+        elementeModel.undoCheckpoint()
+        var selSnapshot = root.auswahl.slice()
+
+        if (verteilen) {
+            var sorted, firstC, lastC, vstep, n, j, ev, vw, vh, newV1
+            n = els.length
+            if (richtung === "verteilen_h") {
+                sorted = els.slice().sort(function(a, b) { return (a.x1 + a.x2) - (b.x1 + b.x2) })
+                firstC = (sorted[0].x1     + sorted[0].x2)     / 2
+                lastC  = (sorted[n-1].x1   + sorted[n-1].x2)   / 2
+                vstep  = (lastC - firstC) / (n - 1)
+                for (j = 1; j < n - 1; j++) {
+                    ev = sorted[j]; vw = ev.x2 - ev.x1
+                    newV1 = firstC + j * vstep - vw / 2
+                    elementeModel.elementAktualisieren(ev.idx, { x1: newV1, y1: ev.y1, x2: newV1 + vw, y2: ev.y2 })
+                }
+            } else {
+                sorted = els.slice().sort(function(a, b) { return (a.y1 + a.y2) - (b.y1 + b.y2) })
+                firstC = (sorted[0].y1     + sorted[0].y2)     / 2
+                lastC  = (sorted[n-1].y1   + sorted[n-1].y2)   / 2
+                vstep  = (lastC - firstC) / (n - 1)
+                for (j = 1; j < n - 1; j++) {
+                    ev = sorted[j]; vh = ev.y2 - ev.y1
+                    newV1 = firstC + j * vstep - vh / 2
+                    elementeModel.elementAktualisieren(ev.idx, { x1: ev.x1, y1: newV1, x2: ev.x2, y2: newV1 + vh })
+                }
+            }
+        } else {
+            for (var m = 0; m < els.length; m++) {
+                var em = els[m]
+                var ew = em.x2 - em.x1, eh = em.y2 - em.y1
+                var nx1 = em.x1, ny1 = em.y1
+                if      (richtung === "links")   nx1 = minX1
+                else if (richtung === "rechts")  nx1 = maxX2 - ew
+                else if (richtung === "mitte_h") nx1 = centerX - ew / 2
+                if      (richtung === "oben")    ny1 = minY1
+                else if (richtung === "unten")   ny1 = maxY2 - eh
+                else if (richtung === "mitte_v") ny1 = centerY - eh / 2
+                elementeModel.elementAktualisieren(em.idx, { x1: nx1, y1: ny1, x2: nx1 + ew, y2: ny1 + eh })
+            }
+        }
+
+        root.auswahl = selSnapshot
+        root.grafikSpeichernJetzt()
+        root.neuZeichnen()
+    }
+
     function aktionAusfuehren(neueElemente) {
         elementeModel.undoCheckpoint()
         elementeModel.fromVariantList(neueElemente)

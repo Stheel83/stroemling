@@ -128,6 +128,29 @@ Item {
             onTriggered: canvas.gruppeAufloesen()
         }
         MenuSeparator {}
+        Menu {
+            title: "Ausrichten"
+            enabled: canvas.auswahl.length >= 2
+            MenuItem { text: "Linksbuendig";          onTriggered: canvas.elementeAusrichten("links")      }
+            MenuItem { text: "Rechtsbuendig";         onTriggered: canvas.elementeAusrichten("rechts")     }
+            MenuItem { text: "Oben ausrichten";       onTriggered: canvas.elementeAusrichten("oben")       }
+            MenuItem { text: "Unten ausrichten";      onTriggered: canvas.elementeAusrichten("unten")      }
+            MenuSeparator {}
+            MenuItem { text: "Horizontal zentrieren"; onTriggered: canvas.elementeAusrichten("mitte_h")   }
+            MenuItem { text: "Vertikal zentrieren";   onTriggered: canvas.elementeAusrichten("mitte_v")   }
+            MenuSeparator {}
+            MenuItem {
+                text:    "Horizontal verteilen"
+                enabled: canvas.auswahl.length >= 3
+                onTriggered: canvas.elementeAusrichten("verteilen_h")
+            }
+            MenuItem {
+                text:    "Vertikal verteilen"
+                enabled: canvas.auswahl.length >= 3
+                onTriggered: canvas.elementeAusrichten("verteilen_v")
+            }
+        }
+        MenuSeparator {}
         MenuItem {
             text:      "Alles auswaehlen\t(Strg+A)"
             onTriggered: canvas.alleAuswaehlen()

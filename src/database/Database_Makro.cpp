@@ -14,6 +14,52 @@
 #include <QSet>
 #include <QTextStream>
 #include <QUrl>
+
+bool Database::openMakro(const QString &path)
+{
+    m_makroPfad = path;
+    m_makroDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_makro");
+    m_makroDb.setDatabaseName(path);
+    if (!m_makroDb.open()) {
+        qWarning() << "Makro-DB konnte nicht geöffnet werden:" << m_makroDb.lastError().text();
+        return false;
+    }
+    QSqlQuery q(m_makroDb);
+    q.exec("PRAGMA journal_mode = WAL");
+    q.exec("PRAGMA busy_timeout = 5000");
+    q.exec("PRAGMA foreign_keys = ON");
+
+    if (!q.exec(R"(CREATE TABLE IF NOT EXISTS makro (
+        id            INTEGER PRIMARY KEY,
+        name          TEXT    NOT NULL,
+        beschreibung  TEXT    DEFAULT '',
+        kategorie     TEXT    DEFAULT '',
+        kasten_breite REAL    NOT NULL DEFAULT 100,
+        kasten_hoehe  REAL    NOT NULL DEFAULT 100,
+        erstellt_am   TEXT    DEFAULT (datetime('now'))
+    ))")) {
+        qWarning() << "Makro-DB makro-Tabelle:" << q.lastError().text();
+        return false;
+    }
+    if (!q.exec(R"(CREATE TABLE IF NOT EXISTS makro_element (
+        id          INTEGER PRIMARY KEY,
+        makro_id    INTEGER NOT NULL REFERENCES makro(id) ON DELETE CASCADE,
+        typ         TEXT    NOT NULL,
+        rel_x1      REAL    NOT NULL,
+        rel_y1      REAL    NOT NULL,
+        rel_x2      REAL    NOT NULL DEFAULT 0,
+        rel_y2      REAL    NOT NULL DEFAULT 0,
+        extra_daten TEXT    DEFAULT '{}',
+        symbol_key  TEXT    DEFAULT '',
+        sortierung  INTEGER DEFAULT 0
+    ))")) {
+        qWarning() << "Makro-DB makro_element-Tabelle:" << q.lastError().text();
+        return false;
+    }
+    qInfo() << "Makro-DB geöffnet:" << path;
+    return true;
+}
+
 #include <QDateTime>
 #include <algorithm>
 

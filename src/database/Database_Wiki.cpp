@@ -15,7 +15,290 @@
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
-#include <algorithm>
+#include <QPrinter>
+
+bool Database::openWiki(const QString &path)
+{
+    m_wikiPfad = path;
+    m_wikiBlobDir = QFileInfo(path).absolutePath() + "/wiki_blobs";
+    QDir().mkpath(m_wikiBlobDir);
+
+    m_wikiDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_wiki");
+    m_wikiDb.setDatabaseName(path);
+    if (!m_wikiDb.open()) {
+        qWarning() << "Wiki-Datenbank konnte nicht geöffnet werden:" << m_wikiDb.lastError().text();
+        return false;
+    }
+    {
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA foreign_keys = ON");
+        pragma.exec("PRAGMA journal_mode = WAL");
+    }
+    qInfo() << "Wiki-Datenbank geöffnet:" << path;
+    if (!checkAndApplyWikiSchema())
+        return false;
+    // Eingebettete Bundles (Qt-Ressourcen) automatisch einspielen
+    const QStringList eingebetteteBundles = {};  // hier :/bundles/xxx.json eintragen sobald vorhanden
+    for (const QString &res : eingebetteteBundles) {
+        if (QFile::exists(res))
+            wikiBundleAnwenden(res);
+    }
+    return true;
+}
+
+bool Database::checkAndApplyWikiSchema()
+{
+    int storedVersion = -1;
+    {
+        QSqlQuery q(m_wikiDb);
+        if (!q.exec("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")) {
+            qWarning() << "wiki schema_version anlegen:" << q.lastError().text();
+            return false;
+        }
+        if (q.exec("SELECT version FROM schema_version LIMIT 1") && q.next())
+            storedVersion = q.value(0).toInt();
+    }
+
+    if (storedVersion == WIKI_SCHEMA_VERSION) {
+        qInfo() << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– keine Änderung.";
+        return true;
+    }
+
+    qInfo() << "Wiki-Schema:" << storedVersion << "→" << WIKI_SCHEMA_VERSION;
+
+    // Backup vor Wiki-Migration (nur wenn DB bereits Daten hat)
+    if (storedVersion >= 0)
+        erstelleBackup("stroemling_wiki", "wiki", storedVersion);
+
+    if (!m_wikiDb.transaction()) {
+        qWarning() << "Wiki-Transaktion konnte nicht gestartet werden:" << m_wikiDb.lastError().text();
+        return false;
+    }
+
+    // Inkrementelle Spalten-Migrationen (einmalig je Version)
+    if (storedVersion >= 1 && storedVersion < 3) {
+        bool hatIstSystem = false;
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA table_info(wiki_artikel)");
+        while (pragma.next()) {
+            if (pragma.value(1).toString() == "ist_system") { hatIstSystem = true; break; }
+        }
+        if (!hatIstSystem) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN ist_system INTEGER NOT NULL DEFAULT 0")) {
+                qWarning() << "ALTER TABLE wiki_artikel ADD ist_system:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+    }
+
+    // v10: bundle_kennung + von_nutzer_geaendert in wiki_artikel; wiki_meta-Tabelle
+    if (storedVersion >= 1 && storedVersion < 10) {
+        bool hatBundleKennung = false, hatVonNutzerGeaendert = false;
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA table_info(wiki_artikel)");
+        while (pragma.next()) {
+            const QString col = pragma.value(1).toString();
+            if (col == "bundle_kennung")       hatBundleKennung = true;
+            if (col == "von_nutzer_geaendert") hatVonNutzerGeaendert = true;
+        }
+        if (!hatBundleKennung) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN bundle_kennung TEXT DEFAULT NULL")) {
+                qWarning() << "ALTER wiki_artikel ADD bundle_kennung:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+        if (!hatVonNutzerGeaendert) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN von_nutzer_geaendert INTEGER NOT NULL DEFAULT 0")) {
+                qWarning() << "ALTER wiki_artikel ADD von_nutzer_geaendert:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+        QSqlQuery q(m_wikiDb);
+        if (!q.exec("CREATE TABLE IF NOT EXISTS wiki_meta (schluessel TEXT PRIMARY KEY, wert TEXT NOT NULL)")) {
+            qWarning() << "CREATE wiki_meta:" << q.lastError().text();
+            m_wikiDb.rollback();
+            return false;
+        }
+    }
+
+    // v11: wiki_bild.daten (BLOB) → externe Dateien in wiki_blobs/
+    if (storedVersion >= 1 && storedVersion < 11) {
+        bool hasBlobPfad = false, hasDaten = false;
+        QSqlQuery pragma(m_wikiDb);
+        pragma.exec("PRAGMA table_info(wiki_bild)");
+        while (pragma.next()) {
+            const QString col = pragma.value(1).toString();
+            if (col == "blob_pfad") hasBlobPfad = true;
+            if (col == "daten")     hasDaten    = true;
+        }
+        if (!hasBlobPfad) {
+            QSqlQuery alter(m_wikiDb);
+            if (!alter.exec("ALTER TABLE wiki_bild ADD COLUMN blob_pfad TEXT NOT NULL DEFAULT ''")) {
+                qWarning() << "ALTER wiki_bild ADD blob_pfad:" << alter.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+        if (hasDaten) {
+            // Bestehende BLOBs in Dateien auslagern
+            QSqlQuery sel(m_wikiDb);
+            sel.exec("SELECT id, mime_typ, daten FROM wiki_bild WHERE blob_pfad = ''");
+            while (sel.next()) {
+                const int        blobId = sel.value(0).toInt();
+                const QString    mime   = sel.value(1).toString();
+                const QByteArray daten  = sel.value(2).toByteArray();
+                if (daten.isEmpty()) continue;
+                const QString ext = mime.contains("png") ? ".png" : ".jpg";
+                const QString fn  = QString::number(blobId) + ext;
+                QFile f(m_wikiBlobDir + "/" + fn);
+                if (f.open(QIODevice::WriteOnly)) {
+                    f.write(daten);
+                    QSqlQuery upd(m_wikiDb);
+                    upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                    upd.bindValue(":p",  fn);
+                    upd.bindValue(":id", blobId);
+                    upd.exec();
+                } else {
+                    qWarning() << "wiki_bild Migration: Datei nicht schreibbar:" << fn;
+                }
+            }
+            QSqlQuery drop(m_wikiDb);
+            if (!drop.exec("ALTER TABLE wiki_bild DROP COLUMN daten")) {
+                qWarning() << "ALTER wiki_bild DROP COLUMN daten:" << drop.lastError().text();
+                m_wikiDb.rollback();
+                return false;
+            }
+        }
+    }
+
+    if (!createWikiSchema() || !seedWikiStarterInhalte()) {
+        m_wikiDb.rollback();
+        return false;
+    }
+
+    // Alte Zeile löschen, damit LIMIT-1-Abfrage beim nächsten Start korrekt ist
+    QSqlQuery del(m_wikiDb);
+    del.exec("DELETE FROM schema_version");
+    QSqlQuery ins(m_wikiDb);
+    ins.prepare("INSERT INTO schema_version (version) VALUES (:v)");
+    ins.bindValue(":v", WIKI_SCHEMA_VERSION);
+    if (!ins.exec()) {
+        qWarning() << "wiki schema_version schreiben:" << ins.lastError().text();
+        m_wikiDb.rollback();
+        return false;
+    }
+
+    if (!m_wikiDb.commit()) {
+        m_wikiDb.rollback();
+        return false;
+    }
+
+    qInfo() << "Wiki-Schema v" << WIKI_SCHEMA_VERSION << "erfolgreich angelegt.";
+    return true;
+}
+
+bool Database::createWikiSchema()
+{
+    QSqlQuery q(m_wikiDb);
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_kategorie (
+            id           INTEGER PRIMARY KEY,
+            name         TEXT    NOT NULL UNIQUE,
+            beschreibung TEXT    NOT NULL DEFAULT '',
+            sortierung   INTEGER NOT NULL DEFAULT 0
+        )
+    )")) {
+        qWarning() << "Fehler wiki_kategorie:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_artikel (
+            id                   INTEGER PRIMARY KEY,
+            kategorie_id         INTEGER NOT NULL REFERENCES wiki_kategorie(id) ON DELETE RESTRICT,
+            titel                TEXT    NOT NULL,
+            inhalt               TEXT    NOT NULL DEFAULT '',
+            tags                 TEXT    NOT NULL DEFAULT '',
+            ist_system           INTEGER NOT NULL DEFAULT 0,
+            bundle_kennung       TEXT    DEFAULT NULL,
+            von_nutzer_geaendert INTEGER NOT NULL DEFAULT 0,
+            erstellt_am          TEXT    NOT NULL DEFAULT (datetime('now')),
+            geaendert_am         TEXT    NOT NULL DEFAULT (datetime('now'))
+        )
+    )")) {
+        qWarning() << "Fehler wiki_artikel:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_meta (
+            schluessel TEXT PRIMARY KEY,
+            wert       TEXT NOT NULL
+        )
+    )")) {
+        qWarning() << "Fehler wiki_meta:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE IF NOT EXISTS wiki_bild (
+            id           INTEGER PRIMARY KEY,
+            artikel_id   INTEGER NOT NULL REFERENCES wiki_artikel(id) ON DELETE CASCADE,
+            dateiname    TEXT    NOT NULL,
+            mime_typ     TEXT    NOT NULL DEFAULT 'image/jpeg',
+            blob_pfad    TEXT    NOT NULL DEFAULT '',
+            beschreibung TEXT    NOT NULL DEFAULT '',
+            sortierung   INTEGER NOT NULL DEFAULT 0
+        )
+    )")) {
+        qWarning() << "Fehler wiki_bild:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE VIRTUAL TABLE IF NOT EXISTS wiki_suche USING fts5(
+            titel, inhalt, tags,
+            content='wiki_artikel',
+            content_rowid='id'
+        )
+    )")) {
+        qWarning() << "Fehler wiki_suche (FTS5):" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TRIGGER IF NOT EXISTS wiki_artikel_ai AFTER INSERT ON wiki_artikel BEGIN
+            INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
+            VALUES (new.id, new.titel, new.inhalt, new.tags);
+        END
+    )")) { qWarning() << "Trigger wiki_artikel_ai:" << q.lastError().text(); return false; }
+
+    if (!q.exec(R"(
+        CREATE TRIGGER IF NOT EXISTS wiki_artikel_ad AFTER DELETE ON wiki_artikel BEGIN
+            INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
+            VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
+        END
+    )")) { qWarning() << "Trigger wiki_artikel_ad:" << q.lastError().text(); return false; }
+
+    if (!q.exec(R"(
+        CREATE TRIGGER IF NOT EXISTS wiki_artikel_au AFTER UPDATE ON wiki_artikel BEGIN
+            INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
+            VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
+            INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
+            VALUES (new.id, new.titel, new.inhalt, new.tags);
+        END
+    )")) { qWarning() << "Trigger wiki_artikel_au:" << q.lastError().text(); return false; }
+
+    return true;
+}
+
 
 QVariantList Database::wikiAlleKategorien()
 {

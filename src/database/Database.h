@@ -23,8 +23,11 @@ class Database : public QObject
 
 public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
-    // als inkrementelle Migration in alleMigrationen() – diese Konstante bleibt fest.
-    static const int BASELINE_VERSION    = 40;
+    // als inkrementelle Migration in alleMigrationen(). Bei einem Migrations-
+    // Squash (keine Produktivdatenbanken) wird diese Konstante auf die nächste
+    // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
+    // Eintrag zurückgesetzt.
+    static const int BASELINE_VERSION    = 52;
     static const int WIKI_SCHEMA_VERSION = 12;
 
     explicit Database(QObject *parent = nullptr);

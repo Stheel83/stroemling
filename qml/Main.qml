@@ -30,8 +30,6 @@ ApplicationWindow {
     property string aktivProjektName: ""
     property string aktiveAnsicht:    "projekte"
 
-    property bool   projektManagerSichtbar: false
-
     property int    aktivSeiteId:   -1
     property string aktivSeiteName: ""
 
@@ -348,31 +346,6 @@ ApplicationWindow {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: 1
             color:  appTheme.border
-        }
-
-        // Projekte-Button (links, nur wenn Projekt offen)
-        Rectangle {
-            visible: db.projektOffen
-            anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-            width: 90; height: 26; radius: 4
-            color: projBtnHov.containsMouse ? appTheme.hover : appTheme.inputBg
-            border.color: appTheme.border
-            RowLayout {
-                anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-                spacing: 5
-                Text { text: "📁"; font.pixelSize: 12 }
-                Text {
-                    text: qsTr("Projekte")
-                    font.pixelSize: 11; color: appTheme.textPrimary
-                    Layout.fillWidth: true
-                }
-            }
-            MouseArea {
-                id: projBtnHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                onClicked: root.projektManagerSichtbar = true
-                ToolTip.visible: containsMouse; ToolTip.delay: 600
-                ToolTip.text: qsTr("Projektmanager öffnen (Strg+P)")
-            }
         }
 
         // App-Titel (zentriert)
@@ -804,38 +777,17 @@ ApplicationWindow {
             Layout.fillWidth:  true
             Layout.fillHeight: true
 
-            // Projektliste
-            ProjectTree {
+            // Projektverwaltung
+            ProjektStartAnsicht {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "projekte"
                 theme:        appTheme
                 debug:        root.debugModeAktiv
-
-                onProjektGewaehlt: function(id, name) {
-                    root.aktivProjektId          = id
-                    root.aktivProjektName        = name
-                    root.aktivProjektNorm        = db.projektNormLaden(id)
-                    root.aktivProjektHintergrund = db.projektHintergrundLaden(id)
-                    root.aktivSeiteId            = -1
-                    root.aktivSeiteName          = ""
-                    seitenModel.laden(id)
-                    klemmenleistenModel.laden(id)
-                }
+                onZurueck: root.aktiveAnsicht = "seiten"
                 onProjektMetaGeaendert: function(id) {
                     if (id === root.aktivProjektId) {
                         panel1.normblattNeuLaden()
                         panel2.normblattNeuLaden()
-                    }
-                }
-                onProjektGeloescht: function(id) {
-                    if (id === root.aktivProjektId) {
-                        root.aktivProjektId   = -1
-                        root.aktivProjektName = ""
-                        root.aktivSeiteId     = -1
-                        root.aktivSeiteName   = ""
-                        seitenModel.laden(-1)
-                        klemmenleistenModel.laden(-1)
-                        root.aktiveAnsicht    = "projekte"
                     }
                 }
             }
@@ -1428,16 +1380,6 @@ ApplicationWindow {
         }
     }
 
-    // ── Projekt-Start-Overlay (kein Projekt geöffnet oder Manager aktiv) ──
-    ProjektStartAnsicht {
-        anchors.fill: parent
-        visible:      !db.projektOffen || root.projektManagerSichtbar
-        theme:        appTheme
-        z:            200
-        debug:        root.debugModeAktiv
-        onZurueck:    root.projektManagerSichtbar = false
-    }
-
     // ── Fun-Modus-Overlay ─────────────────────────────────────────
     FunModusOverlay {
         id:              funOverlay
@@ -1576,7 +1518,7 @@ ApplicationWindow {
 
     // Shortcut-Übersicht
     Shortcut { sequence: "F1"; context: Shortcut.ApplicationShortcut; onActivated: shortcutUebersicht.visible = !shortcutUebersicht.visible }
-    Shortcut { sequence: "Ctrl+P"; context: Shortcut.ApplicationShortcut; onActivated: root.projektManagerSichtbar = !root.projektManagerSichtbar }
+    Shortcut { sequence: "Ctrl+P"; context: Shortcut.ApplicationShortcut; onActivated: root.aktiveAnsicht = "projekte" }
 
     // ── Datenbank-Fehler-Dialog ───────────────────────────────────
     Dialog {

@@ -10,6 +10,7 @@ Item {
     property bool debug: false
 
     signal zurueck()
+    signal projektMetaGeaendert(int projektId)
 
     property bool _geaendert:    false
     property bool _ladevorgang:  false
@@ -561,9 +562,12 @@ Item {
                             id: speichernHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (!root._geaendert) return
+                                var info = db.ersteProjektInfo()
                                 if (db.projektMetaDatenSpeichern(nameField.text, nummerField.text,
-                                                                  agField.text, anField.text, bearField.text))
+                                                                  agField.text, anField.text, bearField.text)) {
                                     root._geaendert = false
+                                    root.projektMetaGeaendert(info.id || 0)
+                                }
                             }
                         }
                     }

@@ -56,61 +56,10 @@ static QList<SchemaMigration> alleMigrationen()
         // Dev-DBs < v52 werden beim ersten Start neu aufgebaut (dropAllTables + createSchema).
         { 52, "Baseline v52 – Schema konsolidiert (v40-v51 gefaltet)", {} },
 
-        // v53: Fehlende Spalten und SPS-Tabellen nachgezogen (waren im Baseline-Squash nicht enthalten)
-        { 53, "Nachzug: gruppe_id, revision_spalten, SPS-Tabellen", {
-            // grafik_element: Gruppierfunktion
-            "ALTER TABLE grafik_element ADD COLUMN gruppe_id INTEGER DEFAULT NULL",
-            // seite: Revisionsspalten
-            "ALTER TABLE seite ADD COLUMN revision_status  TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE seite ADD COLUMN revision_kennung TEXT NOT NULL DEFAULT ''",
-            // SPS-Rack
-            R"(CREATE TABLE sps_rack (
-                id           INTEGER PRIMARY KEY,
-                projekt_id   INTEGER NOT NULL REFERENCES projekt(id) ON DELETE CASCADE,
-                rack_nr      INTEGER NOT NULL DEFAULT 0,
-                system_typ   TEXT    NOT NULL DEFAULT 'SPS',
-                bezeichnung  TEXT    NOT NULL DEFAULT '',
-                beschreibung TEXT,
-                hersteller   TEXT,
-                sortierung   INTEGER NOT NULL DEFAULT 0
-            ))",
-            // SPS-Baugruppe
-            R"(CREATE TABLE sps_baugruppe (
-                id                INTEGER PRIMARY KEY,
-                rack_id           INTEGER NOT NULL REFERENCES sps_rack(id) ON DELETE CASCADE,
-                slot              INTEGER NOT NULL DEFAULT 0,
-                typ               TEXT    NOT NULL DEFAULT '',
-                bezeichnung       TEXT,
-                artikel_nr        TEXT,
-                kanaele           INTEGER NOT NULL DEFAULT 8,
-                datentyp_standard TEXT    NOT NULL DEFAULT 'BOOL',
-                adress_byte_start INTEGER NOT NULL DEFAULT 0,
-                kommentar         TEXT
-            ))",
-            // SPS-Kanal
-            R"(CREATE TABLE sps_kanal (
-                id                INTEGER PRIMARY KEY,
-                projekt_id        INTEGER NOT NULL REFERENCES projekt(id)       ON DELETE CASCADE,
-                baugruppe_id      INTEGER          REFERENCES sps_baugruppe(id) ON DELETE SET NULL,
-                kanal_nr          INTEGER,
-                adress_typ        TEXT    NOT NULL DEFAULT 'I',
-                byte_nr           INTEGER NOT NULL DEFAULT 0,
-                bit_nr            INTEGER NOT NULL DEFAULT 0,
-                datentyp          TEXT    NOT NULL DEFAULT 'BOOL',
-                variablenname     TEXT,
-                kommentar         TEXT,
-                grafik_element_id INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL,
-                pls_einheit       TEXT,
-                pls_bereich_min   REAL,
-                pls_bereich_max   REAL,
-                pls_alarm_ll      REAL,
-                pls_alarm_lo      REAL,
-                pls_alarm_hi      REAL,
-                pls_alarm_hh      REAL,
-                pls_hart_adresse  INTEGER,
-                pls_protokoll     TEXT
-            ))",
-        }},
+        // Baseline v53: createSchema() liest jetzt schema.sql (statt Inline-C++).
+        // schema.sql enthält vollständiges Schema inkl. gruppe_id, revision-Spalten, SPS-Tabellen.
+        // Dev-DBs bei v52 werden neu aufgebaut (dropAllTables + createSchema aus schema.sql).
+        { 53, "Baseline v53 – Schema in schema.sql, SPS/Revision/Gruppe vollständig", {} },
     };
 }
 

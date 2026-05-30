@@ -141,6 +141,7 @@ Item {
                     ShortcutZeile { kuerzel: "Ctrl+Shift+N"; aktion: "Normblatt einpassen" }
                     ShortcutZeile { kuerzel: "Bild-auf";     aktion: "Vorherige Seite" }
                     ShortcutZeile { kuerzel: "Bild-ab";      aktion: "Naechste Seite" }
+                    ShortcutZeile { kuerzel: "Ctrl+J";       aktion: "Seite schnell anspringen" }
 
                     Item { width: 1; height: 8 }
 

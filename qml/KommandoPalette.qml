@@ -9,11 +9,14 @@ Popup {
     property int    projektId:  -1
     required property var theme
     property bool   debug: false
+    property bool   nurSeiten: false
 
     // Werkzeug-Aktivierung
     signal werkzeugAktiviert(string werkzeug)
     // Seite öffnen
     signal seiteOeffnen(int id, string blattnummer, string bezeichnung)
+
+    onClosed: root.nurSeiten = false
 
     modal:  false
     focus:  true
@@ -57,11 +60,13 @@ Popup {
 
     function _eintraegeLaden() {
         var liste = []
-        // Werkzeuge
-        for (var i = 0; i < _werkzeuge.length; i++) {
-            var w = _werkzeuge[i]
-            liste.push({ kategorie: "Werkzeug", label: w.label,
-                         info: "[" + w.kuerzel + "]", werkzeug: w.werkzeug, seiteId: -1 })
+        // Werkzeuge – nur im Vollmodus
+        if (!root.nurSeiten) {
+            for (var i = 0; i < _werkzeuge.length; i++) {
+                var w = _werkzeuge[i]
+                liste.push({ kategorie: "Werkzeug", label: w.label,
+                             info: "[" + w.kuerzel + "]", werkzeug: w.werkzeug, seiteId: -1 })
+            }
         }
         // Seiten
         if (root.projektId >= 0) {
@@ -124,7 +129,7 @@ Popup {
                 TextField {
                     id: suchfeld
                     Layout.fillWidth: true
-                    placeholderText: qsTr("Werkzeug oder Seite suchen …")
+                    placeholderText: root.nurSeiten ? qsTr("Seite suchen …") : qsTr("Werkzeug oder Seite suchen …")
                     font.pixelSize: 14
                     color:               root.theme.textPrimary
                     background:          Rectangle { color: "transparent" }

@@ -260,12 +260,9 @@ Item {
                         spacing: 3
                         Text {
                             width: parent.width
-                            text: qsTr("ℹ  Mehrere Projekte gleichzeitig: Programm zweimal starten (↗).")
-                            font.pixelSize: 9; color: root.theme.textMuted; wrapMode: Text.WordWrap
-                        }
-                        Text {
-                            width: parent.width
-                            text: qsTr("Elemente zwischen Projekten: Makro-Funktion verwenden.")
+                            text: qsTr("Jedes Projekt läuft in einer eigenen Programminstanz (↗). "
+                                     + "Das Kopieren zwischen Projekten ist bewusst nicht vorgesehen — "
+                                     + "für wiederverwendbare Schaltungsteile bitte die Makro-Funktion nutzen.")
                             font.pixelSize: 9; color: root.theme.textMuted; wrapMode: Text.WordWrap
                         }
                     }

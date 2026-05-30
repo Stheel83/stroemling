@@ -79,6 +79,74 @@ public:
 
 #include "main.moc"
 
+// Einmalige Datenmigration: stroemling/Strömling Design → Strömling Design
+// Notwendig weil setOrganizationName("stroemling") entfernt wurde.
+static void datenVerzeichnisMigrieren()
+{
+    QString home    = QDir::homePath();
+    QString altPfad = home + "/.local/share/stroemling/Strömling Design";
+    QString neuPfad = home + "/.local/share/Strömling Design";
+
+    if (!QDir(altPfad).exists()) return;
+
+    // Nur migrieren wenn die neue Launcher-DB leer / noch nicht vorhanden ist
+    QString neuDb = neuPfad + "/stroemling.db";
+    if (QFile::exists(neuDb) && QFileInfo(neuDb).size() > 0) return;
+
+    qInfo() << "Einmalige Datenmigration:" << altPfad << "->" << neuPfad;
+    QDir().mkpath(neuPfad);
+
+    // Datenbank-Dateien inkl. WAL
+    for (const QString &name : {
+             "stroemling.db", "stroemling.db-shm", "stroemling.db-wal",
+             "wiki.db",       "wiki.db-shm",       "wiki.db-wal",
+             "makros.db",     "makros.db-shm",     "makros.db-wal"}) {
+        QString src = altPfad + "/" + name;
+        if (!QFile::exists(src)) continue;
+        QFile::remove(neuPfad + "/" + name);
+        if (QFile::copy(src, neuPfad + "/" + name))
+            qInfo() << "  kopiert:" << name;
+        else
+            qWarning() << "  Fehler beim Kopieren:" << name;
+    }
+
+    // Wiki-Blobs
+    QDir blobSrc(altPfad + "/wiki_blobs");
+    if (blobSrc.exists()) {
+        QString blobDest = neuPfad + "/wiki_blobs";
+        QDir().mkpath(blobDest);
+        for (const QString &f : blobSrc.entryList(QDir::Files)) {
+            QFile::remove(blobDest + "/" + f);
+            QFile::copy(blobSrc.absoluteFilePath(f), blobDest + "/" + f);
+        }
+        qInfo() << "  wiki_blobs kopiert:" << blobSrc.entryList(QDir::Files).size() << "Dateien";
+    }
+
+    // Backups
+    QDir backupSrc(altPfad + "/backups");
+    if (backupSrc.exists()) {
+        QString backupDest = neuPfad + "/backups";
+        QDir().mkpath(backupDest);
+        for (const QString &f : backupSrc.entryList(QDir::Files)) {
+            QFile::remove(backupDest + "/" + f);
+            QFile::copy(backupSrc.absoluteFilePath(f), backupDest + "/" + f);
+        }
+        qInfo() << "  backups kopiert:" << backupSrc.entryList(QDir::Files).size() << "Dateien";
+    }
+
+    qInfo() << "Migration abgeschlossen. Altes Verzeichnis kann manuell geloescht werden:" << altPfad;
+
+    // QSettings-Config migrieren: ~/.config/stroemling/ → ~/.config/
+    QString altConf = QDir::homePath() + "/.config/stroemling/Strömling Design.conf";
+    QString neuConf = QDir::homePath() + "/.config/Strömling Design.conf";
+    if (QFile::exists(altConf) && !QFile::exists(neuConf)) {
+        if (QFile::copy(altConf, neuConf))
+            qInfo() << "  QSettings migriert:" << neuConf;
+        else
+            qWarning() << "  QSettings-Migration fehlgeschlagen";
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // Log-Datei öffnen bevor QGuiApplication läuft (Qt-eigene Frühwarnungen landen sonst nicht rein)
@@ -92,8 +160,11 @@ int main(int argc, char *argv[])
 
     qInfo() << "=== Strömling gestartet" << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "===";
 
+    // Einmalige Migration: war früher unter ~/.local/share/stroemling/Strömling Design/
+    // Jetzt: ~/.local/share/Strömling Design/ (kein OrganizationName mehr)
+    datenVerzeichnisMigrieren();
+
     QGuiApplication app(argc, argv);
-    app.setOrganizationName("stroemling");
     app.setApplicationName("Strömling Design");
 
     // Gespeicherte Sprache laden (gesetzt vom QML-Sprachpicker)
@@ -114,7 +185,7 @@ int main(int argc, char *argv[])
     }
     // savedLanguage == "de": kein Translator nötig, Quellsprache ist Deutsch
 
-    // App-Datenverzeichnis: ~/.local/share/Strömling Design/ (Linux)
+    // App-Datenverzeichnis: ~/.local/share/Strömling Design/ (Linux, kein OrganizationName gesetzt)
     // Log-Datei bleibt neben dem Binary (Debug-Output, kein Nutzerdaten-Ordner).
     QString dataDir      = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir().mkpath(dataDir);

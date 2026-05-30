@@ -2235,6 +2235,34 @@ Item {
                     ctx.restore()
                 }
             }
+            // Stapel-Indikator: oranges Badge wenn ≥2 Elemente am gleichen Ort liegen
+            var stapelMap = {}
+            for (var si = 0; si < elemente.length; si++) {
+                var sel = elemente[si]
+                var sKey = Math.round((sel.x1 + sel.x2) / 2) + "_" + Math.round((sel.y1 + sel.y2) / 2)
+                if (!stapelMap[sKey]) stapelMap[sKey] = { anzahl: 0, x2: sel.x2, y1: sel.y1 }
+                stapelMap[sKey].anzahl++
+                if (sel.x2 > stapelMap[sKey].x2) stapelMap[sKey].x2 = sel.x2
+                if (sel.y1 < stapelMap[sKey].y1) stapelMap[sKey].y1 = sel.y1
+            }
+            ctx.save()
+            ctx.setLineDash([])
+            for (var sK in stapelMap) {
+                var st = stapelMap[sK]
+                if (st.anzahl < 2) continue
+                var br  = 9
+                var bvx = st.x2 * root.zoom + root.worldX + br * 0.5
+                var bvy = st.y1 * root.zoom + root.worldY - br * 0.5
+                ctx.globalAlpha = 1.0
+                ctx.fillStyle   = "#f97316"
+                ctx.beginPath(); ctx.arc(bvx, bvy, br, 0, 2 * Math.PI); ctx.fill()
+                ctx.fillStyle    = "#ffffff"
+                ctx.font         = "bold 10px sans-serif"
+                ctx.textAlign    = "center"
+                ctx.textBaseline = "middle"
+                ctx.fillText(st.anzahl, bvx, bvy)
+            }
+            ctx.restore()
             drawCanvas.drawNormblattAussenoverlay(ctx)
             // Revisionsmarker-Wasserzeichen
             if (root.revisionStatus !== "") {

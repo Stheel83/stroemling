@@ -91,6 +91,9 @@ ColumnLayout {
                         border.color: root.theme.border
                     }
                     onClicked: exportDialog.open()
+                    ToolTip.visible: hovered
+                    ToolTip.text:    qsTr("Alle Projekte + Wiki in einen Ordner sichern – Zielordner wählen")
+                    ToolTip.delay:   500
                 }
 
                 Button {
@@ -110,6 +113,9 @@ ColumnLayout {
                         border.color: root.theme.border
                     }
                     onClicked: importDialog.open()
+                    ToolTip.visible: hovered
+                    ToolTip.text:    qsTr("Sicherung wiederherstellen – Archivordner wählen (überschreibt bestehende Daten)")
+                    ToolTip.delay:   500
                 }
             }
 

@@ -215,7 +215,7 @@ Item {
                         }
                         background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 3 }
                         ToolTip.visible: hovered; ToolTip.delay: 600
-                        ToolTip.text: qsTr("Rechts teilen")
+                        ToolTip.text: qsTr("Arbeitsbereich rechts teilen – beide Panels sind unabhängig (eigene Tabs, eigene Seite)")
                         onClicked: root.teilenRechts()
                     }
 
@@ -229,7 +229,7 @@ Item {
                         }
                         background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 3 }
                         ToolTip.visible: hovered; ToolTip.delay: 600
-                        ToolTip.text: qsTr("Unten teilen")
+                        ToolTip.text: qsTr("Arbeitsbereich unten teilen – beide Panels sind unabhängig (eigene Tabs, eigene Seite)")
                         onClicked: root.teilenUnten()
                     }
 

@@ -162,7 +162,7 @@ Item {
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: numPopup.open()
                     }
-                    ToolTip.visible: numMa.containsMouse; ToolTip.text: qsTr("Netze nummerieren"); ToolTip.delay: 400
+                    ToolTip.visible: numMa.containsMouse; ToolTip.text: qsTr("Verbindungen nummerieren – allen unbeschrifteten Leitungen automatisch fortlaufende Nummern zuweisen"); ToolTip.delay: 400
 
                     Popup {
                         id: numPopup

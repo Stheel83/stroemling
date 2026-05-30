@@ -226,7 +226,7 @@ Rectangle {
                         }
                         // Tooltip wenn Projekt aktiv
                         ToolTip.visible: maTt.containsMouse && root.projektId >= 0
-                        ToolTip.text: qsTr("Norm für aktives Projekt")
+                        ToolTip.text: qsTr("Symbolnorm des aktiven Projekts – filtert die Palette auf IEC- oder DIN-Symbole")
                         ToolTip.delay: 600
                         MouseArea { id: maTt; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
                     }

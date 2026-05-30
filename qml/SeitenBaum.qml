@@ -969,6 +969,9 @@ Item {
                                 drag.minimumY: -9999
                                 drag.maximumY:  9999
                                 cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                ToolTip.visible: containsMouse && !drag.active
+                                ToolTip.text:    qsTr("Seite innerhalb dieses Orts per Ziehen umsortieren")
+                                ToolTip.delay:   700
 
                                 onPressed: {
                                     delegateItem._savedY = delegateItem.y
@@ -1057,7 +1060,9 @@ Item {
                                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
                                 ToolTip.visible: hovered
-                                ToolTip.text:    model.knotenTyp === 1 ? qsTr("Ort verschieben") : qsTr("Seite verschieben")
+                                ToolTip.text:    model.knotenTyp === 1
+                                    ? qsTr("Ort in eine andere Anlage verschieben – öffnet Auswahl-Dialog")
+                                    : qsTr("Seite in einen anderen Ort oder eine andere Anlage verschieben – öffnet Auswahl-Dialog")
                                 ToolTip.delay:   700
                                 onClicked: {
                                     if (model.knotenTyp === 1) {

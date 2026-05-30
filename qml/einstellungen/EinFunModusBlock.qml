@@ -182,6 +182,11 @@ ColumnLayout {
                     hoverEnabled: true
                     cursorShape:  Qt.PointingHandCursor
                     onClicked:    root.jetztTesten()
+                    ToolTip.visible: containsMouse
+                    ToolTip.text:    root.seiteOffen
+                        ? qsTr("Fun-Modus sofort starten – Elemente auf dem Canvas erwachen zum Leben")
+                        : qsTr("Erst eine Seite im Schaltplan öffnen, dann kann der Fun-Modus starten")
+                    ToolTip.delay:   500
                 }
             }
 

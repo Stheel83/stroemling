@@ -217,7 +217,7 @@ Item {
                                 font.pixelSize: 11
                             }
                             ToolTip.visible: bundleBtnHover.hovered
-                            ToolTip.text:    qsTr("Bundle-Menü")
+                            ToolTip.text:    qsTr("Bundle-Menü – vorgefertigte Artikel-Sammlungen laden oder installieren")
                             ToolTip.delay:   700
                             HoverHandler { id: bundleBtnHover }
                             TapHandler { onTapped: wikiBundle.open() }

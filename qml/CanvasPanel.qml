@@ -43,6 +43,9 @@ Item {
     signal teilenUnten()
     signal panelLeer()
     signal splitSchliessen()
+    signal drcKlick()
+
+    property bool drcAktiv: false
 
     // Wenn true → Split-Schließen-Button erscheint in der Tab-Leiste
     property bool splitSchliessbar: false
@@ -278,6 +281,8 @@ Item {
                 root.querverweisNavigieren(seiteId)
             }
             onMakroListeGeaendert: root.makroListeGeaendert()
+            onDrcKlick: root.drcKlick()
+            drcAktiv: root.drcAktiv
         }
     }
 

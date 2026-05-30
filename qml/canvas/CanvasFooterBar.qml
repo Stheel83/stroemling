@@ -9,6 +9,8 @@ Rectangle {
     required property var canvas
 
     property string koordinatenText: ""
+    property bool   drcAktiv:       false
+    signal drcKlick()
 
     height: 34
     color: AppTheme.surfaceDeep
@@ -98,6 +100,27 @@ Rectangle {
         }
 
         Item { Layout.fillWidth: true }
+
+        Rectangle {
+            implicitWidth: 52; implicitHeight: 24; radius: 4
+            color:        root.drcAktiv ? AppTheme.activeItemAlt : AppTheme.inputBg
+            border.color: root.drcAktiv ? AppTheme.accent        : AppTheme.border
+            ToolTip.visible: drcHover.hovered
+            ToolTip.text:    qsTr("Design Rule Check – Schaltplan auf häufige Fehler prüfen")
+            ToolTip.delay:   500
+            HoverHandler { id: drcHover }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                spacing: 4
+                Text { text: "⚠"; font.pixelSize: 11
+                       color: root.drcAktiv ? AppTheme.accent : AppTheme.panelMid }
+                Text { text: "DRC";   font.pixelSize: 11
+                       color: root.drcAktiv ? AppTheme.accent : AppTheme.panelMid }
+            }
+            TapHandler { onTapped: root.drcKlick() }
+        }
+
+        Rectangle { width: 1; height: 18; color: AppTheme.border }
         Text { text: root.koordinatenText; color: AppTheme.borderLight; font.pixelSize: 10; font.family: "monospace" }
     }
 

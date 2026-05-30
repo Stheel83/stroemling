@@ -187,6 +187,7 @@ qt_add_qml_module(stroemling_app
         qml/sps/SpsBaugruppeDialog.qml
         qml/sps/SpsAutoAnlegenDialog.qml
         qml/sps/SpsKanalDialog.qml
+        qml/FehlersuchAnsicht.qml
         qml/ProjektStartAnsicht.qml
         qml/fun/FunModusOverlay.qml
         qml/fun/FunSprite.qml

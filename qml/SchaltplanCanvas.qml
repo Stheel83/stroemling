@@ -35,10 +35,11 @@ Item {
     required property var elementeModel
 
     signal hintergrundGeaendert(string farbe)
-    // Wird ausgelöst wenn der Nutzer auf ein Querverweis-Symbol doppelklickt.
     signal querverweisNavigieren(int seiteId)
-    // Wird ausgelöst wenn ein Makro gespeichert oder gelöscht wurde.
     signal makroListeGeaendert()
+    signal drcKlick()
+
+    property bool drcAktiv: false
 
     property real zoom:    1.0
     property real minZoom: 0.1
@@ -2347,6 +2348,8 @@ Item {
         canvas: root
         visible: root.seiteId >= 0
         anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+        drcAktiv: root.drcAktiv
+        onDrcKlick: root.drcKlick()
     }
 
     // --------------------------------------------------------

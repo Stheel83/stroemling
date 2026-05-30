@@ -116,8 +116,6 @@ Item {
                     }
                 }
 
-                EinDatensicherungBlock { theme: root.theme }
-
                 EinFunModusBlock {
                     id:          funBlock
                     theme:       root.theme

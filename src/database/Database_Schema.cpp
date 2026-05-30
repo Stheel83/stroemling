@@ -55,6 +55,62 @@ static QList<SchemaMigration> alleMigrationen()
         // Squash v40-v51: alle Tabellen + Spalten sind in createSchema() enthalten.
         // Dev-DBs < v52 werden beim ersten Start neu aufgebaut (dropAllTables + createSchema).
         { 52, "Baseline v52 – Schema konsolidiert (v40-v51 gefaltet)", {} },
+
+        // v53: Fehlende Spalten und SPS-Tabellen nachgezogen (waren im Baseline-Squash nicht enthalten)
+        { 53, "Nachzug: gruppe_id, revision_spalten, SPS-Tabellen", {
+            // grafik_element: Gruppierfunktion
+            "ALTER TABLE grafik_element ADD COLUMN gruppe_id INTEGER DEFAULT NULL",
+            // seite: Revisionsspalten
+            "ALTER TABLE seite ADD COLUMN revision_status  TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE seite ADD COLUMN revision_kennung TEXT NOT NULL DEFAULT ''",
+            // SPS-Rack
+            R"(CREATE TABLE sps_rack (
+                id           INTEGER PRIMARY KEY,
+                projekt_id   INTEGER NOT NULL REFERENCES projekt(id) ON DELETE CASCADE,
+                rack_nr      INTEGER NOT NULL DEFAULT 0,
+                system_typ   TEXT    NOT NULL DEFAULT 'SPS',
+                bezeichnung  TEXT    NOT NULL DEFAULT '',
+                beschreibung TEXT,
+                hersteller   TEXT,
+                sortierung   INTEGER NOT NULL DEFAULT 0
+            ))",
+            // SPS-Baugruppe
+            R"(CREATE TABLE sps_baugruppe (
+                id                INTEGER PRIMARY KEY,
+                rack_id           INTEGER NOT NULL REFERENCES sps_rack(id) ON DELETE CASCADE,
+                slot              INTEGER NOT NULL DEFAULT 0,
+                typ               TEXT    NOT NULL DEFAULT '',
+                bezeichnung       TEXT,
+                artikel_nr        TEXT,
+                kanaele           INTEGER NOT NULL DEFAULT 8,
+                datentyp_standard TEXT    NOT NULL DEFAULT 'BOOL',
+                adress_byte_start INTEGER NOT NULL DEFAULT 0,
+                kommentar         TEXT
+            ))",
+            // SPS-Kanal
+            R"(CREATE TABLE sps_kanal (
+                id                INTEGER PRIMARY KEY,
+                projekt_id        INTEGER NOT NULL REFERENCES projekt(id)       ON DELETE CASCADE,
+                baugruppe_id      INTEGER          REFERENCES sps_baugruppe(id) ON DELETE SET NULL,
+                kanal_nr          INTEGER,
+                adress_typ        TEXT    NOT NULL DEFAULT 'I',
+                byte_nr           INTEGER NOT NULL DEFAULT 0,
+                bit_nr            INTEGER NOT NULL DEFAULT 0,
+                datentyp          TEXT    NOT NULL DEFAULT 'BOOL',
+                variablenname     TEXT,
+                kommentar         TEXT,
+                grafik_element_id INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL,
+                pls_einheit       TEXT,
+                pls_bereich_min   REAL,
+                pls_bereich_max   REAL,
+                pls_alarm_ll      REAL,
+                pls_alarm_lo      REAL,
+                pls_alarm_hi      REAL,
+                pls_alarm_hh      REAL,
+                pls_hart_adresse  INTEGER,
+                pls_protokoll     TEXT
+            ))",
+        }},
     };
 }
 
@@ -261,6 +317,9 @@ bool Database::dropAllTables()
     };
     const QStringList tables = {
         // abhängige Tabellen zuerst
+        "sps_kanal",
+        "sps_baugruppe",
+        "sps_rack",
         "ibn_feldwert",
         "ibn_feldvorlage",
         "inbetriebnahme",
@@ -484,7 +543,9 @@ bool Database::createSchema()
             gesperrt          INTEGER DEFAULT 0,
             bemerkung         TEXT,
             raster_mm         REAL NOT NULL DEFAULT 4.0,
-            rastend           INTEGER NOT NULL DEFAULT 1
+            rastend           INTEGER NOT NULL DEFAULT 1,
+            revision_status   TEXT NOT NULL DEFAULT '',
+            revision_kennung  TEXT NOT NULL DEFAULT ''
         )
     )")) {
         qWarning() << "Fehler seite:" << q.lastError().text();
@@ -523,7 +584,8 @@ bool Database::createSchema()
             bild_daten          BLOB DEFAULT NULL,
             bild_mime           TEXT DEFAULT NULL,
             extra_daten         TEXT DEFAULT NULL,
-            betriebsmittel_id   INTEGER REFERENCES betriebsmittel(id)
+            betriebsmittel_id   INTEGER REFERENCES betriebsmittel(id),
+            gruppe_id           INTEGER DEFAULT NULL
         )
     )")) {
         qWarning() << "Fehler grafik_element:" << q.lastError().text();
@@ -1136,6 +1198,71 @@ bool Database::createSchema()
         )
     )")) {
         qWarning() << "Fehler ibn_kabel:" << q.lastError().text();
+        return false;
+    }
+
+    // ----------------------------------------------------------
+    // SPS / PLS-Integration
+    // ----------------------------------------------------------
+    if (!q.exec(R"(
+        CREATE TABLE sps_rack (
+            id           INTEGER PRIMARY KEY,
+            projekt_id   INTEGER NOT NULL REFERENCES projekt(id) ON DELETE CASCADE,
+            rack_nr      INTEGER NOT NULL DEFAULT 0,
+            system_typ   TEXT    NOT NULL DEFAULT 'SPS',
+            bezeichnung  TEXT    NOT NULL DEFAULT '',
+            beschreibung TEXT,
+            hersteller   TEXT,
+            sortierung   INTEGER NOT NULL DEFAULT 0
+        )
+    )")) {
+        qWarning() << "Fehler sps_rack:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE sps_baugruppe (
+            id                INTEGER PRIMARY KEY,
+            rack_id           INTEGER NOT NULL REFERENCES sps_rack(id) ON DELETE CASCADE,
+            slot              INTEGER NOT NULL DEFAULT 0,
+            typ               TEXT    NOT NULL DEFAULT '',
+            bezeichnung       TEXT,
+            artikel_nr        TEXT,
+            kanaele           INTEGER NOT NULL DEFAULT 8,
+            datentyp_standard TEXT    NOT NULL DEFAULT 'BOOL',
+            adress_byte_start INTEGER NOT NULL DEFAULT 0,
+            kommentar         TEXT
+        )
+    )")) {
+        qWarning() << "Fehler sps_baugruppe:" << q.lastError().text();
+        return false;
+    }
+
+    if (!q.exec(R"(
+        CREATE TABLE sps_kanal (
+            id                INTEGER PRIMARY KEY,
+            projekt_id        INTEGER NOT NULL REFERENCES projekt(id)       ON DELETE CASCADE,
+            baugruppe_id      INTEGER          REFERENCES sps_baugruppe(id) ON DELETE SET NULL,
+            kanal_nr          INTEGER,
+            adress_typ        TEXT    NOT NULL DEFAULT 'I',
+            byte_nr           INTEGER NOT NULL DEFAULT 0,
+            bit_nr            INTEGER NOT NULL DEFAULT 0,
+            datentyp          TEXT    NOT NULL DEFAULT 'BOOL',
+            variablenname     TEXT,
+            kommentar         TEXT,
+            grafik_element_id INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL,
+            pls_einheit       TEXT,
+            pls_bereich_min   REAL,
+            pls_bereich_max   REAL,
+            pls_alarm_ll      REAL,
+            pls_alarm_lo      REAL,
+            pls_alarm_hi      REAL,
+            pls_alarm_hh      REAL,
+            pls_hart_adresse  INTEGER,
+            pls_protokoll     TEXT
+        )
+    )")) {
+        qWarning() << "Fehler sps_kanal:" << q.lastError().text();
         return false;
     }
 

@@ -826,7 +826,7 @@ Item {
             } else if (el.typ === "rechteck") {
                 var rr = er * root.mmToPx * root.zoom
                 if (fu && !vorschau) {
-                    ctx.fillStyle = ff; ctx.globalAlpha = op * fo
+                    ctx.fillStyle = ff; ctx.globalAlpha = fo
                     if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.fill() }
                     else          ctx.fillRect(vx1,vy1,vx2-vx1,vy2-vy1)
                     ctx.globalAlpha = op
@@ -839,7 +839,7 @@ Item {
                 if (r > 0.5) {
                     ctx.beginPath(); ctx.arc(vx1,vy1,r,0,2*Math.PI)
                     if (fu && !vorschau) {
-                        ctx.fillStyle=ff; ctx.globalAlpha=op*fo; ctx.fill()
+                        ctx.fillStyle=ff; ctx.globalAlpha=fo; ctx.fill()
                         ctx.globalAlpha=op; ctx.beginPath(); ctx.arc(vx1,vy1,r,0,2*Math.PI)
                     }
                     ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)

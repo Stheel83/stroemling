@@ -183,7 +183,7 @@ Item {
             width: root.width; height: 22
             Text {
                 anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                text: qsTr("Deckkraft"); color: theme.panelMid; font.pixelSize: 10
+                text: qsTr("Linien-Deckkraft"); color: theme.panelMid; font.pixelSize: 10
             }
             Row {
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
@@ -213,6 +213,7 @@ Item {
             }
         }
         StilSlider { theme: theme;
+            height: 36
             width: root.width - 16
             anchors.horizontalCenter: parent.horizontalCenter
             von: 0.05; bis: 1.0; schritt: 0.05

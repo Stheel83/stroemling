@@ -60,6 +60,8 @@ Item {
     property var    normblattDaten:   null
     property string normblattLogoUrl: ""
 
+    property bool minimapSichtbar: false
+
     onNormblattLogoUrlChanged: {
         if (normblattLogoUrl)
             drawCanvas.loadImage(normblattLogoUrl)
@@ -2488,6 +2490,27 @@ Item {
         id: textEditorKomp
         canvas: root
         theme:  root.theme
+    }
+
+    // --------------------------------------------------------
+    // Minimap-Overlay
+    // --------------------------------------------------------
+    CanvasMinimap {
+        anchors { right: parent.right; bottom: parent.bottom; margins: 12 }
+        visible:      root.minimapSichtbar && root.seiteId >= 0
+        zoom:         root.zoom
+        worldX:       root.worldX
+        worldY:       root.worldY
+        canvasWidth:  root.width
+        canvasHeight: root.height
+        normblattDaten: root.normblattDaten
+        mmToPx:       root.mmToPx
+        theme:        root.theme
+        onPanRequest: function(wx, wy) {
+            root.worldX = wx
+            root.worldY = wy
+            root.repaintAll()
+        }
     }
 
     // --------------------------------------------------------

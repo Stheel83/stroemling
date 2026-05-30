@@ -104,6 +104,46 @@ Item {
             }
         }
 
+        // ── Aktionen (alle Elementtypen) ─────────────────────────────────
+        AbschnittTitel { text: qsTr("AKTIONEN") }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4
+            MiniButton { theme: theme; label: qsTr("Kopieren");      breite: 86
+                tooltip: qsTr("Auswahl in Zwischenablage kopieren (Strg+C)")
+                onKlick: panel.canvas.kopieren() }
+            MiniButton { theme: theme; label: qsTr("Ausschneiden");  breite: 86
+                tooltip: qsTr("Auswahl ausschneiden (kopieren + loeschen)")
+                onKlick: panel.canvas.ausschneiden() }
+        }
+
+        Item { height: 4 }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            MiniButton { theme: theme; label: qsTr("Duplizieren");  breite: 176
+                tooltip: qsTr("Auswahl duplizieren – Kopie an Mauszeiger platzieren (Strg+D)")
+                onKlick: panel.canvas.duplizieren() }
+        }
+
+        Item { height: 4 }
+
+        Item {
+            width: parent.width
+            height: panel.symbolAuswahlAnzahl >= 2 ? bmkRow.implicitHeight + 4 : 0
+            visible: height > 0; clip: true
+            Row {
+                id: bmkRow
+                anchors.horizontalCenter: parent.horizontalCenter
+                MiniButton { theme: theme; label: qsTr("BMK nummerieren...");  breite: 176
+                    tooltip: qsTr("Automatische BMK-Vergabe fuer selektierte Symbole")
+                    onKlick: panel.canvas.batchBmkDialogOeffnen() }
+            }
+        }
+
+        Item { height: 4 }
+
         // ── Ausrichten & Verteilen (alle Elementtypen) ───────────────────
         AbschnittTitel { text: qsTr("AUSRICHTEN") }
 

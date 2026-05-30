@@ -51,7 +51,8 @@ Rectangle {
     // definiert, damit EpMehrfachauswahlSection über panel.auswahlLaenge binden kann.
     // canvas.auswahlLaenge direkt aus der Section zu binden funktioniert im AOT-Modus
     // nicht zuverlässig (required property var canvas als Holder).
-    readonly property int auswahlLaenge: canvas ? canvas.auswahlLaenge : 0
+    readonly property int auswahlLaenge:       canvas ? canvas.auswahlLaenge       : 0
+    readonly property int symbolAuswahlAnzahl: canvas ? canvas.symbolAuswahlAnzahl : 0
 
     // Format-Pinsel-Zähler: hochzählen in formatKopieren() → reaktiver Proxy für Sections
     readonly property int formatZaehler: canvas ? canvas.formatZaehler : 0

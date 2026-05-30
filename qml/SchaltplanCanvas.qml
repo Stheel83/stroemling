@@ -110,8 +110,16 @@ Item {
             Qt.callLater(function() { root.forceActiveFocus() })
     }
     // Compat-Alias: -1 wenn Mehrfachauswahl, sonst der einzelne Index
-    readonly property int ausgewaehlt:   auswahl.length === 1 ? auswahl[0] : -1
-    readonly property int auswahlLaenge: auswahl.length
+    readonly property int ausgewaehlt:        auswahl.length === 1 ? auswahl[0] : -1
+    readonly property int auswahlLaenge:      auswahl.length
+    readonly property int symbolAuswahlAnzahl: {
+        var sel = auswahl; var cnt = 0
+        for (var i = 0; i < sel.length; i++) {
+            var el = elementeModel.element(sel[i])
+            if (el && el.typ === "symbol") cnt++
+        }
+        return cnt
+    }
     onAusgewaehltChanged: Qt.callLater(autoPanFuerAuswahl)
     property bool amVerschieben:       false
     property real verschiebenMausVpX:  0
@@ -3500,6 +3508,16 @@ Item {
         root.aktivesWerkzeug    = "duplizieren"
         root._duplizierVorschauAktualisieren(root.letzteMausWeltX, root.letzteMausWeltY)
     }
+
+    function ausschneiden() {
+        if (root.auswahl.length === 0) return
+        root.kopieren()
+        root.loeschen()
+    }
+
+    // Signal: EigenschaftenPanel-Button soll BMK-Nummerierungsdialog öffnen.
+    // CanvasNavigationHandler hört darauf und öffnet den Dialog (hat db-Zugriff).
+    signal batchBmkDialogOeffnen()
 
     // Gibt die vollständige Gruppenauswahl zurück wenn idx zu einer Gruppe gehört,
     // sonst [idx].

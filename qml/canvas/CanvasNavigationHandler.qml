@@ -162,6 +162,25 @@ Item {
         }
     }
 
+    // CE-17: EigenschaftenPanel-Button löst BMK-Dialog aus
+    Connections {
+        target: canvas
+        function onBatchBmkDialogOeffnen() {
+            var praefix = "-"
+            for (var i = 0; i < canvas.auswahl.length; i++) {
+                var el = canvas.elementeModel.element(canvas.auswahl[i])
+                if (el && el.typ === "symbol" && el.extraDaten && el.extraDaten.bmk) {
+                    praefix = el.extraDaten.bmk.replace(/\d+$/, "")
+                    break
+                }
+            }
+            var nextFull = db.naechsteBmkNummer(canvas.projektId, praefix)
+            bmkNummerierungDialog.praefixFeld = praefix
+            bmkNummerierungDialog.startNrFeld = parseInt(nextFull.substring(praefix.length)) || 1
+            bmkNummerierungDialog.open()
+        }
+    }
+
     // --------------------------------------------------------
     // CE-11: Batch-BMK-Nummerierungsdialog
     // --------------------------------------------------------

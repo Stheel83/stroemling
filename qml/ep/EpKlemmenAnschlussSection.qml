@@ -107,6 +107,34 @@ Item {
             onCommit: function(t) { root.extraSetzen("bmk", t) }
         }
 
+        // BMK-Sichtbarkeit
+        Row {
+            leftPadding: 12; height: 32; spacing: 8
+            property bool bmkAn: panel.el ? ((panel.el.extraDaten || {}).bmkSichtbar !== false) : true
+            Rectangle {
+                width: 20; height: 20; radius: 4; anchors.verticalCenter: parent.verticalCenter
+                color: parent.bmkAn ? theme.accent : theme.inputBg
+                border.color: theme.border
+                Text { anchors.centerIn: parent; text: qsTr("✓"); color: "#ffffff"
+                       font.pixelSize: 12; visible: parent.parent.bmkAn }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                    onClicked: {
+                        var cur = panel.el ? ((panel.el.extraDaten || {}).bmkSichtbar !== false) : true
+                        root.extraSetzen("bmkSichtbar", !cur)
+                    }
+                    ToolTip.visible: containsMouse
+                    ToolTip.text:    qsTr("BMK im Canvas anzeigen oder ausblenden")
+                    ToolTip.delay:   500
+                }
+            }
+            Text {
+                text: qsTr("BMK anzeigen")
+                color: theme.textMuted; font.pixelSize: 11
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+
         // Klemme (aus Bauteil-DB)
         Item {
             width: parent.width

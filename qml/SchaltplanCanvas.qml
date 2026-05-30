@@ -1329,6 +1329,7 @@ Item {
                         var kaed   = el.extraDaten || {}
                         var kaAnz  = kaed.anschlussBezeichnung || ""
                         var kaBmk  = kaed.bmk || ""
+                        var kaBmkVis = kaBmk !== "" && kaed.bmkSichtbar !== false
                         var kaFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
                         var kaBmkFs = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
                         var kaRot  = ((el.rotation || 0) % 360 + 360) % 360
@@ -1343,12 +1344,12 @@ Item {
                             if (kaAnz !== "") {
                                 ctx.font = "bold " + kaFs + "px sans-serif"
                                 ctx.textAlign = "left"; ctx.textBaseline = "middle"
-                                var kaAy = kaBmk !== "" ? kaCy - kaBmkFs * 0.6 : kaCy
+                                var kaAy = kaBmkVis ? kaCy - kaBmkFs * 0.6 : kaCy
                                 ctx.strokeText(kaAnz, kaX, kaAy)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
                                 ctx.fillText(kaAnz, kaX, kaAy)
                             }
-                            if (kaBmk !== "") {
+                            if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
                                 ctx.textAlign = "left"; ctx.textBaseline = "middle"
                                 var kaBmkY = kaAnz !== "" ? kaCy + kaBmkFs * 0.8 : kaCy
@@ -1365,7 +1366,7 @@ Item {
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
                                 ctx.fillText(kaAnz, kaCx, kaY)
                             }
-                            if (kaBmk !== "") {
+                            if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
                                 ctx.textAlign = "center"; ctx.textBaseline = "bottom"
                                 var kaBmkYh = kaY - kaFs - 1

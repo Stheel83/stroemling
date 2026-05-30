@@ -547,6 +547,7 @@ QVariantMap Database::datenbankInfos() const
 
     m["hauptDb"]           = projektDatei;
     m["wikiDb"]            = wikiPfad;
+    m["makrosDb"]          = m_makroPfad;
     m["backupDir"]         = backupDir;
     m["schemaVersion"]     = schemaVersion;
     m["wikiSchemaVersion"] = WIKI_SCHEMA_VERSION;

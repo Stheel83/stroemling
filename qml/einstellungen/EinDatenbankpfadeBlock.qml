@@ -38,8 +38,8 @@ ColumnLayout {
 
             Repeater {
                 model: [
-                    { label: qsTr("Projektdatei"),       key: "hauptDb",   icon: "🗄" },
                     { label: qsTr("Wiki-Datenbank"),     key: "wikiDb",    icon: "📚" },
+                    { label: qsTr("Makro-Bibliothek"),   key: "makrosDb",  icon: "⚙" },
                     { label: qsTr("Backup-Verzeichnis"), key: "backupDir", icon: "💾" }
                 ]
 

@@ -1,7 +1,7 @@
 # Brauno – Außenleiter L1
 
 Brauno repräsentiert den **Außenleiter L1** (braun) nach IEC 60446 / DIN VDE 0293.
-Er ist der Erste unter den Netzleitern – solide, zuverlässig, trägt die Last.
+Einer von drei gleichberechtigten Außenleitern – solide, zuverlässig, trägt seinen Teil.
 
 ## Merkmale
 
@@ -11,12 +11,12 @@ Er ist der Erste unter den Netzleitern – solide, zuverlässig, trägt die Last
 | **Körperfarbe** | Warmes Schokoladenbraun `#7B3F1E` |
 | **Leiterbahnen** | Kupferfarbig-golden `#D4A520`, Sinuswelle |
 | **Glühbirnen** | Bernstein-orange, warm leuchtend |
-| **Augen** | Selbstbewusst geradeaus – der Erste, der Anführer |
+| **Augen** | Ruhig, fokussiert geradeaus – weiß was er zu tun hat. Einer von Dreien. |
 
 ## Persönlichkeit
 
-Solide, etwas ernst. *Trägt die Last – kein Drama, einfach da.*
-Brust raus, leicht stolz. Hat den Anführer-Anspruch verinnerlicht.
+Solide, etwas ernst. *Trägt seinen Teil – kein Drama, einfach da.*
+Aufrecht, ruhig. Kein Held – einfach verlässlich.
 
 ## Norm-Referenz
 

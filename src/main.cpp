@@ -71,6 +71,10 @@ public:
                                 QCoreApplication::arguments());
         QCoreApplication::quit();
     }
+
+    Q_INVOKABLE void neueInstanzMitProjekt(const QString &pfad) {
+        QProcess::startDetached(QCoreApplication::applicationFilePath(), {pfad});
+    }
 };
 
 #include "main.moc"
@@ -128,14 +132,19 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Zuletzt geöffnetes Projekt automatisch laden (falls vorhanden)
+    // Startprojekt: per Kommandozeilenargument (neue Instanz) oder zuletzt geöffnet
     {
-        QVariantList recent = db.zuletzGeoeffnete();
-        if (!recent.isEmpty()) {
-            QString lastPath = recent.first().toMap().value("pfad").toString();
-            if (!lastPath.isEmpty())
-                db.openProjekt(lastPath);
+        QString startPfad;
+        const QStringList args = app.arguments();
+        if (args.size() > 1 && QFile::exists(args.at(1)))
+            startPfad = args.at(1);
+        else {
+            QVariantList recent = db.zuletzGeoeffnete();
+            if (!recent.isEmpty())
+                startPfad = recent.first().toMap().value("pfad").toString();
         }
+        if (!startPfad.isEmpty())
+            db.openProjekt(startPfad);
     }
 
     // Models anlegen

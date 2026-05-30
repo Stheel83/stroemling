@@ -221,6 +221,53 @@ Item {
                                 db.openProjekt(modelData.dateiPfad)
                             }
                         }
+
+                        // "In neuer Instanz öffnen" – nach itemMa, liegt darüber
+                        Rectangle {
+                            visible: itemMa.containsMouse && !projektItem.fehlt
+                            width: 24; height: 24; radius: 4
+                            anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            color: niMa.containsMouse ? root.theme.accent : root.theme.inputBg
+                            border.color: root.theme.accent
+                            Text {
+                                anchors.centerIn: parent; text: "↗"; font.pixelSize: 13
+                                color: niMa.containsMouse ? "#ffffff" : root.theme.accent
+                            }
+                            MouseArea {
+                                id: niMa; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: function(mouse) {
+                                    appHelper.neueInstanzMitProjekt(modelData.dateiPfad)
+                                    mouse.accepted = true
+                                }
+                                ToolTip.visible: containsMouse
+                                ToolTip.text: qsTr("In neuer Instanz öffnen")
+                                ToolTip.delay: 400
+                            }
+                        }
+                    }
+                }
+
+                // Info-Hinweis: Mehrere Projekte / Makros
+                Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.divider }
+                Item {
+                    Layout.fillWidth: true
+                    height: infoHinweis.implicitHeight + 16
+                    Column {
+                        id: infoHinweis
+                        anchors { left: parent.left; right: parent.right; top: parent.top
+                                  margins: 10; topMargin: 8 }
+                        spacing: 3
+                        Text {
+                            width: parent.width
+                            text: qsTr("ℹ  Mehrere Projekte gleichzeitig: Programm zweimal starten (↗).")
+                            font.pixelSize: 9; color: root.theme.textMuted; wrapMode: Text.WordWrap
+                        }
+                        Text {
+                            width: parent.width
+                            text: qsTr("Elemente zwischen Projekten: Makro-Funktion verwenden.")
+                            font.pixelSize: 9; color: root.theme.textMuted; wrapMode: Text.WordWrap
+                        }
                     }
                 }
             }

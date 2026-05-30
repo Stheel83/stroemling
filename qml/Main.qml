@@ -354,18 +354,24 @@ ApplicationWindow {
         Rectangle {
             visible: db.projektOffen
             anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-            width: 80; height: 24; radius: 4
-            color: projBtnHov.containsMouse ? appTheme.hover : "transparent"
-            border.color: projBtnHov.containsMouse ? appTheme.border : "transparent"
-            Text {
-                anchors.centerIn: parent
-                text: qsTr("Projekte")
-                font.pixelSize: 11; color: appTheme.textMuted
+            width: 90; height: 26; radius: 4
+            color: projBtnHov.containsMouse ? appTheme.hover : appTheme.inputBg
+            border.color: appTheme.border
+            RowLayout {
+                anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
+                spacing: 5
+                Text { text: "📁"; font.pixelSize: 12 }
+                Text {
+                    text: qsTr("Projekte")
+                    font.pixelSize: 11; color: appTheme.textPrimary
+                    Layout.fillWidth: true
+                }
             }
             MouseArea {
                 id: projBtnHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                 onClicked: root.projektManagerSichtbar = true
-                ToolTip.visible: containsMouse; ToolTip.delay: 600; ToolTip.text: qsTr("Projektmanager öffnen")
+                ToolTip.visible: containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("Projektmanager öffnen (Strg+P)")
             }
         }
 
@@ -1570,6 +1576,7 @@ ApplicationWindow {
 
     // Shortcut-Übersicht
     Shortcut { sequence: "F1"; context: Shortcut.ApplicationShortcut; onActivated: shortcutUebersicht.visible = !shortcutUebersicht.visible }
+    Shortcut { sequence: "Ctrl+P"; context: Shortcut.ApplicationShortcut; onActivated: root.projektManagerSichtbar = !root.projektManagerSichtbar }
 
     // ── Datenbank-Fehler-Dialog ───────────────────────────────────
     Dialog {

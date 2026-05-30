@@ -37,7 +37,7 @@ Rectangle {
     signal vorlageFuerEditor(string quellId)
 
     // ── Interner State ────────────────────────────────────────
-    // "kategorien" | "symbole" | "favoriten"
+    // "kategorien" | "symbole" | "favoriten" | "zuletzt"
     property string ansicht: "kategorien"
     property string aktiveKategorie: ""
 
@@ -110,6 +110,38 @@ Rectangle {
         for (var i = 0; i < alleSymbole.length; i++)
             if (alleSymbole[i].favorit) return true
         return false
+    }
+
+    // ── Zuletzt verwendet (session-only, max. 8 Einträge) ────────
+    property var zuletzt: []
+
+    function zuletztHinzufuegen(code) {
+        var neu = [code]
+        for (var i = 0; i < zuletzt.length && neu.length < 8; i++) {
+            if (zuletzt[i] !== code) neu.push(zuletzt[i])
+        }
+        zuletzt = neu
+    }
+
+    function symbolFinden(code) {
+        var i
+        for (i = 0; i < alleSymbole.length; i++)
+            if (alleSymbole[i].code === code) return alleSymbole[i]
+        for (i = 0; i < eigeneSymboleList.length; i++)
+            if (eigeneSymboleList[i].code === code) return eigeneSymboleList[i]
+        var verb = symboleInKategorie("verbindungen")
+        for (i = 0; i < verb.length; i++)
+            if (verb[i].code === code) return verb[i]
+        return null
+    }
+
+    function zuletztListe() {
+        var r = []
+        for (var i = 0; i < zuletzt.length; i++) {
+            var sym = symbolFinden(zuletzt[i])
+            if (sym) r.push(sym)
+        }
+        return r
     }
 
     function kategorieName(id) {
@@ -231,9 +263,9 @@ Rectangle {
 
                 Text {
                     Layout.fillWidth: true
-                    text: root.ansicht === "favoriten"
-                          ? "\u2605 Favoriten"
-                          : root.kategorieName(root.aktiveKategorie)
+                    text: root.ansicht === "favoriten" ? "\u2605 Favoriten"
+                        : root.ansicht === "zuletzt"   ? "\u23f3 Zuletzt verwendet"
+                        : root.kategorieName(root.aktiveKategorie)
                     font.pixelSize: 10; font.weight: Font.Medium
                     color: theme.textSecondary; elide: Text.ElideRight
                 }
@@ -261,6 +293,13 @@ Rectangle {
                 Column {
                     width: parent.width
                     visible: root.ansicht === "kategorien"
+
+                    // Zuletzt verwendet (nur wenn vorhanden, ganz oben)
+                    KategorieZeile {
+                        visible: root.zuletzt.length > 0
+                        label: qsTr("\u23f3  Zuletzt verwendet")
+                        onKlick: root.ansicht = "zuletzt"
+                    }
 
                     // Favoriten-Zeile (nur wenn vorhanden)
                     KategorieZeile {
@@ -305,15 +344,16 @@ Rectangle {
                 }
 
                 // ------------------------------------------------
-                // SYMBOL-ANSICHT (Kategorie oder Favoriten)
+                // SYMBOL-ANSICHT (Kategorie, Favoriten oder Zuletzt)
                 // ------------------------------------------------
                 Column {
                     width: parent.width
-                    visible: root.ansicht === "symbole" || root.ansicht === "favoriten"
+                    visible: root.ansicht === "symbole" || root.ansicht === "favoriten" || root.ansicht === "zuletzt"
 
                     Repeater {
                         model: {
                             if (root.ansicht === "favoriten") return root.favoritenListe()
+                            if (root.ansicht === "zuletzt")   return root.zuletztListe()
                             if (root.ansicht === "symbole")   return root.symboleInKategorie(root.aktiveKategorie)
                             return []
                         }
@@ -323,8 +363,10 @@ Rectangle {
                             aktiv:  root.aktivesSymbol === modelData.code
                             onSymbolKlick: {
                                 root.aktivesSymbol = (root.aktivesSymbol === modelData.code) ? "" : modelData.code
-                                if (root.aktivesSymbol !== "")
+                                if (root.aktivesSymbol !== "") {
                                     root.symbolGewaehlt(root.aktivesSymbol)
+                                    root.zuletztHinzufuegen(root.aktivesSymbol)
+                                }
                             }
                             onFavKlick:       root.favoritToggle(modelData)
                             onVorlageKopieren: root.vorlageFuerEditor(modelData.code)

@@ -3,14 +3,15 @@ import QtQuick 2.15
 Item {
     id: root
 
-    required property var  theme
-    required property real zoom
-    required property real worldX
-    required property real worldY
-    required property real canvasWidth
-    required property real canvasHeight
-    required property var  normblattDaten
-    required property real mmToPx
+    required property var    theme
+    required property string hintergrundFarbe
+    required property real   zoom
+    required property real   worldX
+    required property real   worldY
+    required property real   canvasWidth
+    required property real   canvasHeight
+    required property var    normblattDaten
+    required property real   mmToPx
 
     signal panRequest(real newWorldX, real newWorldY)
 
@@ -36,17 +37,17 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color:        Qt.rgba(0.04, 0.07, 0.14, 0.88)
+        color:        root.theme.sidebar
         border.color: root.theme.border
         border.width: 1
         radius:       4
 
-        // Seitenrahmen
+        // Seitenrahmen – gefüllt mit tatsächlicher Canvas-Hintergrundfarbe
         Rectangle {
             x: 1; y: 1
             width:  root.mapW
             height: root.mapH
-            color:        "transparent"
+            color:        root.hintergrundFarbe
             border.color: root.theme.textMuted
             border.width: 1
         }

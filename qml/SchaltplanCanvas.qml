@@ -2497,15 +2497,16 @@ Item {
     // --------------------------------------------------------
     CanvasMinimap {
         anchors { right: parent.right; bottom: parent.bottom; margins: 12 }
-        visible:      root.minimapSichtbar && root.seiteId >= 0
-        zoom:         root.zoom
-        worldX:       root.worldX
-        worldY:       root.worldY
-        canvasWidth:  root.width
-        canvasHeight: root.height
-        normblattDaten: root.normblattDaten
-        mmToPx:       root.mmToPx
-        theme:        root.theme
+        visible:          root.minimapSichtbar && root.seiteId >= 0
+        zoom:             root.zoom
+        worldX:           root.worldX
+        worldY:           root.worldY
+        canvasWidth:      root.width
+        canvasHeight:     root.height
+        normblattDaten:   root.normblattDaten
+        mmToPx:           root.mmToPx
+        theme:            root.theme
+        hintergrundFarbe: root.hintergrundFarbe
         onPanRequest: function(wx, wy) {
             root.worldX = wx
             root.worldY = wy

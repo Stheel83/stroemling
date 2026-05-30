@@ -104,7 +104,9 @@ public:
         RandLinksMmRole,
         RandRechtsMmRole,
         RandObenMmRole,
-        RandUntenMmRole
+        RandUntenMmRole,
+        OrtIdRole,
+        SortierungRole
     };
 
     explicit SeitenModel(QObject *parent = nullptr);
@@ -168,6 +170,7 @@ public:
     // Manuelle Reihenfolge innerhalb des Orts
     Q_INVOKABLE bool seiteHoch(int seiteId);
     Q_INVOKABLE bool seiteRunter(int seiteId);
+    Q_INVOKABLE bool seiteUmordnen(int seiteId, int neuerIndex);
 
     // Raster-Einstellungen pro Seite
     Q_INVOKABLE double seiteRasterMm(int seiteId) const;

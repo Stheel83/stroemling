@@ -18,6 +18,8 @@ Item {
     property string projektName: ""
     property int    aktivSeiteId: -1   // von außen gesetzt; -1 = keine Seite aktiv
 
+    property int _dragSeiteId: -1
+
     // Wird ausgelöst wenn der Benutzer eine Seite anklickt
     signal seiteGewaehlt(int id, string blattnummer, string bezeichnung)
 
@@ -884,6 +886,10 @@ Item {
                     implicitHeight: 36
                     implicitWidth: treeView.width
 
+                    property real _savedY: 0
+                    z: dragHandle.drag.active ? 10 : 0
+                    opacity: dragHandle.drag.active ? 0.75 : 1.0
+
                     onClicked: {
                         if (model.knotenTyp === 2)
                             root.seiteGewaehlt(model.itemId,
@@ -938,8 +944,46 @@ Item {
                     }
 
                     contentItem: RowLayout {
-                        spacing: 6
+                        spacing: 4
                         anchors.verticalCenter: parent.verticalCenter
+
+                        // Drag-Handle für Seiten (ersetzt ▲/▼ Buttons)
+                        Item {
+                            width:   model.knotenTyp === 2 ? 18 : 0
+                            height:  parent.height
+                            visible: model.knotenTyp === 2
+
+                            Text {
+                                anchors.centerIn: parent
+                                text:           "☰"
+                                font.pixelSize: 12
+                                color:          dragHandle.drag.active ? theme.accent : theme.textMuted
+                                opacity:        delegateItem.hovered || dragHandle.drag.active ? 1.0 : 0.25
+                            }
+
+                            MouseArea {
+                                id:           dragHandle
+                                anchors.fill: parent
+                                drag.target:  delegateItem
+                                drag.axis:    Drag.YAxis
+                                drag.minimumY: -9999
+                                drag.maximumY:  9999
+                                cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+                                onPressed: {
+                                    delegateItem._savedY = delegateItem.y
+                                    root._dragSeiteId    = model.itemId
+                                }
+                                onReleased: {
+                                    if (drag.active) {
+                                        var delta      = delegateItem.y - delegateItem._savedY
+                                        var neuerIndex = Math.max(0, model.sortierung + Math.round(delta / 36))
+                                        seitenModel.seiteUmordnen(model.itemId, neuerIndex)
+                                    }
+                                    root._dragSeiteId = -1
+                                }
+                            }
+                        }
 
                         Text {
                             text: { var t = model.knotenTyp; if (t===0) return "\u2699"; if (t===1) return "\uD83C\uDFE0"; return "\uD83D\uDCC4" }
@@ -959,25 +1003,7 @@ Item {
                             Text { id: typText; anchors.centerIn: parent; text: model.seitentyp ?? ""; font.pixelSize: 10; color: theme.accent }
                         }
                         Row {
-                            spacing: 4; visible: delegateItem.hovered
-                            Button {
-                                visible: model.knotenTyp === 2
-                                width: 24; height: 24; flat: true
-                                contentItem: Text { text: "▲"; color: theme.textMuted; font.pixelSize: 11;
-                                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
-                                ToolTip.visible: hovered; ToolTip.text: qsTr("Seite nach oben"); ToolTip.delay: 700
-                                onClicked: seitenModel.seiteHoch(model.itemId)
-                            }
-                            Button {
-                                visible: model.knotenTyp === 2
-                                width: 24; height: 24; flat: true
-                                contentItem: Text { text: "▼"; color: theme.textMuted; font.pixelSize: 11;
-                                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
-                                ToolTip.visible: hovered; ToolTip.text: qsTr("Seite nach unten"); ToolTip.delay: 700
-                                onClicked: seitenModel.seiteRunter(model.itemId)
-                            }
+                            spacing: 4; visible: delegateItem.hovered && !dragHandle.drag.active
                             Button {
                                 visible: model.knotenTyp === 0 || model.knotenTyp === 1
                                 width: 24; height: 24; flat: true

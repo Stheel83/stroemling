@@ -278,6 +278,16 @@ QVariant SeitenModel::data(const QModelIndex &index, int role) const
     case RandUntenMmRole:
         if (knoten->typ == BaumKnoten::Seite) return knoten->seite->randUntenMm;
         return {};
+
+    case OrtIdRole:
+        if (knoten->typ == BaumKnoten::Seite) return knoten->seite->ortId;
+        return {};
+
+    case SortierungRole:
+        if (knoten->typ == BaumKnoten::Anlage) return knoten->anlage->sortierung;
+        if (knoten->typ == BaumKnoten::Ort)    return knoten->ort->sortierung;
+        if (knoten->typ == BaumKnoten::Seite)  return knoten->seite->sortierung;
+        return {};
     }
     return {};
 }
@@ -298,6 +308,8 @@ QHash<int, QByteArray> SeitenModel::roleNames() const
         { RandRechtsMmRole,   "randRechtsMm"   },
         { RandObenMmRole,     "randObenMm"     },
         { RandUntenMmRole,    "randUntenMm"    },
+        { OrtIdRole,          "ortId"          },
+        { SortierungRole,     "sortierung"     },
     };
 }
 
@@ -538,6 +550,35 @@ bool SeitenModel::seiteRunter(int seiteId)
                     int newSort = (j == i) ? i + 1 : (j == i + 1) ? i : j;
                     upd.bindValue(":s",  newSort);
                     upd.bindValue(":id", o.seiten[j].id);
+                    upd.exec();
+                }
+                laden(m_projektId);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool SeitenModel::seiteUmordnen(int seiteId, int neuerIndex)
+{
+    for (const auto &a : m_anlagen) {
+        for (const auto &o : a.orte) {
+            for (int i = 0; i < o.seiten.size(); ++i) {
+                if (o.seiten[i].id != seiteId) continue;
+                neuerIndex = qBound(0, neuerIndex, o.seiten.size() - 1);
+                if (i == neuerIndex) return false;
+
+                QList<int> ids;
+                for (const auto &s : o.seiten) ids.append(s.id);
+                ids.removeAt(i);
+                ids.insert(neuerIndex, seiteId);
+
+                QSqlQuery upd;
+                upd.prepare("UPDATE seite SET sortierung = :s WHERE id = :id");
+                for (int j = 0; j < ids.size(); ++j) {
+                    upd.bindValue(":s",  j);
+                    upd.bindValue(":id", ids[j]);
                     upd.exec();
                 }
                 laden(m_projektId);

@@ -53,6 +53,9 @@ Rectangle {
     // nicht zuverlässig (required property var canvas als Holder).
     readonly property int auswahlLaenge: canvas ? canvas.auswahlLaenge : 0
 
+    // Format-Pinsel-Zähler: hochzählen in formatKopieren() → reaktiver Proxy für Sections
+    readonly property int formatZaehler: canvas ? canvas.formatZaehler : 0
+
     // Ausgewählte Auto-Verbindung (null wenn keine)
     readonly property var verbindung: canvas.ausgewaehltVerbindung
 
@@ -262,6 +265,9 @@ Rectangle {
 
             // ABSCHNITT: FORM → EpFormSection.qml
             EpFormSection { canvas: canvas; panel: panel; theme: theme }
+
+            // ABSCHNITT: FORMAT-PINSEL → EpFormatPinselSection.qml
+            EpFormatPinselSection { canvas: canvas; panel: panel; theme: theme }
 
             // ABSCHNITT: MEHRFACHAUSWAHL → EpMehrfachauswahlSection.qml
             EpMehrfachauswahlSection { canvas: canvas; panel: panel; theme: theme }

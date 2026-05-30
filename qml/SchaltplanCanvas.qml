@@ -186,6 +186,10 @@ Item {
         eckenRadius:    0
     })
 
+    // Format-Pinsel: gespeichertes Stilformat (null = noch nichts kopiert)
+    property var _formatVorlage: null
+    property int formatZaehler:  0    // zählt jedes formatKopieren(); als Proxy in EigenschaftenPanel reaktiv
+
     // ── Inbetriebnahme-Modus ─────────────────────────────────
     property bool ibnModus:    false
     property var  ibnStatusMap:    ({})   // bmk → "offen"|"in_arbeit"|"abgeschlossen"
@@ -3243,6 +3247,41 @@ Item {
                 }
             }
         }
+        drawCanvas.requestPaint()
+    }
+
+    // Format-Pinsel: Stileigenschaften des ausgewählten Elements speichern
+    function formatKopieren() {
+        if (root.auswahl.length !== 1) return
+        var el = elementeModel.element(root.auswahl[0])
+        if (!el) return
+        var stilKeys = ["strichFarbe","strichBreite","strichArt","fuell",
+                        "fuellFarbe","fuellOpazitaet","opazitaet","eckenRadius"]
+        var vl = {}
+        for (var i = 0; i < stilKeys.length; i++) {
+            var k = stilKeys[i]
+            if (el[k] !== undefined) vl[k] = el[k]
+        }
+        root._formatVorlage = vl
+        root.formatZaehler  = root.formatZaehler + 1
+    }
+
+    // Format-Pinsel: gespeichertes Stilformat auf alle selektierten Elemente anwenden
+    function formatZuweisen() {
+        if (!root._formatVorlage || root.auswahl.length === 0) return
+        var selSnapshot = root.auswahl.slice()
+        elementeModel.undoCheckpoint()
+        var stilKeys = ["strichFarbe","strichBreite","strichArt","fuell",
+                        "fuellFarbe","fuellOpazitaet","opazitaet","eckenRadius"]
+        for (var i = 0; i < selSnapshot.length; i++) {
+            for (var j = 0; j < stilKeys.length; j++) {
+                var k = stilKeys[j]
+                if (root._formatVorlage[k] !== undefined)
+                    elementeModel.eigenschaftSetzen(selSnapshot[i], k, root._formatVorlage[k])
+            }
+        }
+        root.auswahl = selSnapshot
+        root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
     }
 

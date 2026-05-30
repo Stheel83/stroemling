@@ -95,6 +95,7 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpStilSection.qml
         qml/ep/EpFuellungSection.qml
         qml/ep/EpFormSection.qml
+        qml/ep/EpFormatPinselSection.qml
         qml/ep/EpMehrfachauswahlSection.qml
         qml/ep/EpSymbolSection.qml
         qml/ep/EpAderdefinitionSection.qml

@@ -236,6 +236,7 @@ qt_add_resources(stroemling_app "database_seeds"
     PREFIX "/database"
     BASE "src/database"
     FILES
+        src/database/schema.sql
         src/database/symbole.sql
 )
 

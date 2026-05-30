@@ -168,7 +168,7 @@ Item {
                     ColumnLayout {
                         anchors {
                             left: parent.left; leftMargin: 14
-                            right: exportBtn.visible ? exportBtn.left : (editBtn.visible ? editBtn.left : deleteBtn.left)
+                            right: exportBtn.visible ? exportBtn.left : (editBtn.visible ? editBtn.left : neuInstanzBtn.left)
                             rightMargin: 4
                             verticalCenter: parent.verticalCenter
                         }
@@ -206,11 +206,22 @@ Item {
                     }
 
                     RoundButton {
+                        id: neuInstanzBtn
+                        text: "↗"; width: 24; height: 24; font.pixelSize: 13
+                        visible: itemHover.hovered && !delegateRoot.istAktiv && (modelData ? modelData.dateiExistiert : false)
+                        palette.button: "transparent"; palette.buttonText: theme.accent
+                        anchors { right: deleteBtn.left; rightMargin: 2; verticalCenter: parent.verticalCenter }
+                        ToolTip.visible: hovered; ToolTip.delay: 700
+                        ToolTip.text: qsTr("In neuer Instanz öffnen")
+                        onClicked: appHelper.neueInstanzMitProjekt(modelData.dateiPfad)
+                    }
+
+                    RoundButton {
                         id: editBtn
                         text: "✎"; width: 24; height: 24; font.pixelSize: 13
                         visible: itemHover.hovered && delegateRoot.istAktiv
                         palette.button: "transparent"; palette.buttonText: theme.accent
-                        anchors { right: deleteBtn.left; rightMargin: 2; verticalCenter: parent.verticalCenter }
+                        anchors { right: neuInstanzBtn.visible ? neuInstanzBtn.left : deleteBtn.left; rightMargin: 2; verticalCenter: parent.verticalCenter }
                         ToolTip.visible: hovered; ToolTip.delay: 700
                         ToolTip.text: qsTr("Projekt bearbeiten")
                         onClicked: {

@@ -18,6 +18,8 @@ class Database : public QObject
     Q_PROPERTY(bool         projektOffen    READ projektOffen       NOTIFY projektOffenChanged)
     Q_PROPERTY(QString      projektPfad     READ projektPfad        NOTIFY projektOffenChanged)
     Q_PROPERTY(QVariantList bekannteProjecte READ bekannteProjecteLaden NOTIFY registryGeaendert)
+    Q_PROPERTY(QString      makroPfad       READ makroPfad          CONSTANT)
+    Q_PROPERTY(QString      wikiPfad        READ wikiPfad           CONSTANT)
 
 public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
@@ -73,6 +75,13 @@ public:
 
     // Wiki-Datenbank öffnen (separate Datei, überlebt Schema-Upgrades)
     bool openWiki(const QString &path);
+
+    // Makro-Datenbank öffnen (projektübergreifend, separate Datei)
+    bool openMakro(const QString &path);
+
+    // Pfade der Hilfsdatenbanken (für UI-Anzeige)
+    QString makroPfad() const { return m_makroPfad; }
+    QString wikiPfad()  const { return m_wikiPfad; }
 
     // Verbindungen schließen
     void close();
@@ -627,7 +636,10 @@ private:
 
     QSqlDatabase m_db;
     QSqlDatabase m_wikiDb;
+    QSqlDatabase m_makroDb;
     QSqlDatabase m_launcherDb;
     bool         m_projektOffen = false;
     QString      m_wikiBlobDir;
+    QString      m_wikiPfad;
+    QString      m_makroPfad;
 };

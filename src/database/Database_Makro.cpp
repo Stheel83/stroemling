@@ -19,8 +19,13 @@
 
 int Database::makroSpeichern(int grafikElementId, int seiteId)
 {
-    // Makrokasten-Geometrie laden
-    QSqlQuery qk;
+    if (!m_makroDb.isOpen()) {
+        qWarning() << "makroSpeichern: Makro-DB nicht geöffnet";
+        return -1;
+    }
+
+    // Makrokasten-Geometrie aus Projekt-DB laden
+    QSqlQuery qk(m_db);
     qk.prepare("SELECT x1, y1, x2, y2, extra_daten FROM grafik_element WHERE id = :id");
     qk.bindValue(":id", grafikElementId);
     if (!qk.exec() || !qk.next()) {
@@ -45,50 +50,8 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     const double maxX = std::max(kx1, kx2);
     const double maxY = std::max(ky1, ky2);
 
-    if (!m_db.transaction()) {
-        qWarning() << "makroSpeichern: transaction fehlgeschlagen";
-        return -1;
-    }
-
-    int makroId = existId;
-    QSqlQuery qm;
-
-    if (makroId > 0) {
-        qm.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k, "
-                   "kasten_breite=:w, kasten_hoehe=:h WHERE id=:id");
-        qm.bindValue(":n",  name);
-        qm.bindValue(":b",  beschr);
-        qm.bindValue(":k",  kat);
-        qm.bindValue(":w",  maxX - minX);
-        qm.bindValue(":h",  maxY - minY);
-        qm.bindValue(":id", makroId);
-        if (!qm.exec()) {
-            qWarning() << "makroSpeichern UPDATE makro:" << qm.lastError().text();
-            m_db.rollback(); return -1;
-        }
-        QSqlQuery qdel;
-        qdel.prepare("DELETE FROM makro_element WHERE makro_id = :id");
-        qdel.bindValue(":id", makroId);
-        if (!qdel.exec()) {
-            qWarning() << "makroSpeichern DELETE makro_element:" << qdel.lastError().text();
-            m_db.rollback(); return -1;
-        }
-    } else {
-        qm.prepare("INSERT INTO makro (name, beschreibung, kategorie, kasten_breite, kasten_hoehe) "
-                   "VALUES (:n, :b, :k, :w, :h)");
-        qm.bindValue(":n",  name);
-        qm.bindValue(":b",  beschr);
-        qm.bindValue(":k",  kat);
-        qm.bindValue(":w",  maxX - minX);
-        qm.bindValue(":h",  maxY - minY);
-        if (!qm.exec()) {
-            qWarning() << "makroSpeichern INSERT makro:" << qm.lastError().text();
-            m_db.rollback(); return -1;
-        }
-        makroId = qm.lastInsertId().toInt();
-    }
-
-    QSqlQuery qe;
+    // Elemente aus Projekt-DB sammeln
+    QSqlQuery qe(m_db);
     qe.prepare(R"(
         SELECT typ, x1, y1, x2, y2, extra_daten, symbol_id, sortierung
         FROM grafik_element
@@ -107,10 +70,54 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     qe.bindValue(":maxy", maxY);
     if (!qe.exec()) {
         qWarning() << "makroSpeichern SELECT elemente:" << qe.lastError().text();
-        m_db.rollback(); return -1;
+        return -1;
     }
 
-    QSqlQuery qi;
+    // Makro in Makro-DB schreiben (eigene Transaktion)
+    if (!m_makroDb.transaction()) {
+        qWarning() << "makroSpeichern: makroDb transaction fehlgeschlagen";
+        return -1;
+    }
+
+    int makroId = existId;
+    QSqlQuery qm(m_makroDb);
+
+    if (makroId > 0) {
+        qm.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k, "
+                   "kasten_breite=:w, kasten_hoehe=:h WHERE id=:id");
+        qm.bindValue(":n",  name);
+        qm.bindValue(":b",  beschr);
+        qm.bindValue(":k",  kat);
+        qm.bindValue(":w",  maxX - minX);
+        qm.bindValue(":h",  maxY - minY);
+        qm.bindValue(":id", makroId);
+        if (!qm.exec()) {
+            qWarning() << "makroSpeichern UPDATE makro:" << qm.lastError().text();
+            m_makroDb.rollback(); return -1;
+        }
+        QSqlQuery qdel(m_makroDb);
+        qdel.prepare("DELETE FROM makro_element WHERE makro_id = :id");
+        qdel.bindValue(":id", makroId);
+        if (!qdel.exec()) {
+            qWarning() << "makroSpeichern DELETE makro_element:" << qdel.lastError().text();
+            m_makroDb.rollback(); return -1;
+        }
+    } else {
+        qm.prepare("INSERT INTO makro (name, beschreibung, kategorie, kasten_breite, kasten_hoehe) "
+                   "VALUES (:n, :b, :k, :w, :h)");
+        qm.bindValue(":n",  name);
+        qm.bindValue(":b",  beschr);
+        qm.bindValue(":k",  kat);
+        qm.bindValue(":w",  maxX - minX);
+        qm.bindValue(":h",  maxY - minY);
+        if (!qm.exec()) {
+            qWarning() << "makroSpeichern INSERT makro:" << qm.lastError().text();
+            m_makroDb.rollback(); return -1;
+        }
+        makroId = qm.lastInsertId().toInt();
+    }
+
+    QSqlQuery qi(m_makroDb);
     qi.prepare(R"(
         INSERT INTO makro_element (makro_id, typ, rel_x1, rel_y1, rel_x2, rel_y2,
                                    extra_daten, symbol_key, sortierung)
@@ -129,25 +136,26 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qi.bindValue(":sort", qe.value(7));
         if (!qi.exec()) {
             qWarning() << "makroSpeichern INSERT makro_element:" << qi.lastError().text();
-            m_db.rollback(); return -1;
+            m_makroDb.rollback(); return -1;
         }
     }
 
-    // makroId in extra_daten des Kastens zurückschreiben
+    if (!m_makroDb.commit()) {
+        qWarning() << "makroSpeichern: commit fehlgeschlagen";
+        return -1;
+    }
+
+    // makroId in extra_daten des Kastens zurückschreiben (Projekt-DB)
     ed["makroId"] = makroId;
-    QSqlQuery qu;
+    QSqlQuery qu(m_db);
     qu.prepare("UPDATE grafik_element SET extra_daten = :ed WHERE id = :id");
     qu.bindValue(":ed", QString::fromUtf8(QJsonDocument(ed).toJson(QJsonDocument::Compact)));
     qu.bindValue(":id", grafikElementId);
     if (!qu.exec()) {
         qWarning() << "makroSpeichern UPDATE extra_daten:" << qu.lastError().text();
-        m_db.rollback(); return -1;
-    }
-
-    if (!m_db.commit()) {
-        qWarning() << "makroSpeichern: commit fehlgeschlagen";
         return -1;
     }
+
     return makroId;
 }
 
@@ -157,7 +165,9 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
 QVariantList Database::makroListe()
 {
     QVariantList result;
-    QSqlQuery q(R"(
+    if (!m_makroDb.isOpen()) return result;
+    QSqlQuery q(m_makroDb);
+    q.exec(R"(
         SELECT m.id, m.name, m.beschreibung, m.kategorie,
                COUNT(me.id) AS element_anzahl
         FROM makro m
@@ -184,7 +194,12 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
                                                double offsetX, double offsetY)
 {
     QVariantList newIds;
-    QSqlQuery qe;
+    if (!m_makroDb.isOpen()) {
+        qWarning() << "makroElementeEinfuegen: Makro-DB nicht geöffnet";
+        return newIds;
+    }
+
+    QSqlQuery qe(m_makroDb);
     qe.prepare(R"(
         SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2, extra_daten, symbol_key, sortierung
         FROM makro_element WHERE makro_id = :mid ORDER BY sortierung
@@ -195,13 +210,9 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         return newIds;
     }
 
-    // Stich- und Füllwerte aus erstem Element ableiten wäre ideal, aber grafik_element
-    // speichert diese im extra_daten nicht zuverlässig. Wir lesen sie aus dem Original.
-    // Für eine saubere Implementierung: in makro_element auch strich_farbe etc. speichern.
-    // Aktuell: Standard-Werte, werden nach Speichern vom grafikSpeichern-Roundtrip überschrieben.
     if (!m_db.transaction()) { qWarning() << "makroElementeEinfuegen: transaction"; return newIds; }
 
-    QSqlQuery qi;
+    QSqlQuery qi(m_db);
     qi.prepare(R"(
         INSERT INTO grafik_element
             (seite_id, typ, x1, y1, x2, y2,
@@ -241,7 +252,8 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
 // ============================================================
 bool Database::makroLoeschen(int makroId)
 {
-    QSqlQuery q(m_db);
+    if (!m_makroDb.isOpen()) return false;
+    QSqlQuery q(m_makroDb);
     q.prepare("DELETE FROM makro WHERE id = :id");
     q.bindValue(":id", makroId);
     if (!q.exec()) {
@@ -258,7 +270,8 @@ bool Database::makroMetaAktualisieren(int makroId, const QString &name,
                                        const QString &beschreibung,
                                        const QString &kategorie)
 {
-    QSqlQuery q(m_db);
+    if (!m_makroDb.isOpen()) return false;
+    QSqlQuery q(m_makroDb);
     q.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k WHERE id=:id");
     q.bindValue(":n",  name);
     q.bindValue(":b",  beschreibung);

@@ -769,6 +769,10 @@ static QList<SchemaMigration> alleMigrationen()
             "ALTER TABLE grafik_element ADD COLUMN gruppe_id INTEGER DEFAULT NULL",
             "CREATE INDEX IF NOT EXISTS idx_grafik_element_gruppe ON grafik_element(gruppe_id) WHERE gruppe_id IS NOT NULL",
         }},
+        { 51, "MAKRO-DB-01: makro/makro_element aus Projekt-DB entfernen (jetzt in makros.db)", {
+            "DROP TABLE IF EXISTS makro_element",
+            "DROP TABLE IF EXISTS makro",
+        }},
     };
 }
 
@@ -786,6 +790,7 @@ void Database::close()
 {
     m_db.close();
     if (m_wikiDb.isValid())    m_wikiDb.close();
+    if (m_makroDb.isValid())   m_makroDb.close();
     if (m_launcherDb.isValid()) m_launcherDb.close();
 }
 
@@ -1257,8 +1262,54 @@ bool Database::projektAusRegistryEntfernen(const QString &pfad)
     return true;
 }
 
+bool Database::openMakro(const QString &path)
+{
+    m_makroPfad = path;
+    m_makroDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_makro");
+    m_makroDb.setDatabaseName(path);
+    if (!m_makroDb.open()) {
+        qWarning() << "Makro-DB konnte nicht geöffnet werden:" << m_makroDb.lastError().text();
+        return false;
+    }
+    QSqlQuery q(m_makroDb);
+    q.exec("PRAGMA journal_mode = WAL");
+    q.exec("PRAGMA busy_timeout = 5000");
+    q.exec("PRAGMA foreign_keys = ON");
+
+    if (!q.exec(R"(CREATE TABLE IF NOT EXISTS makro (
+        id            INTEGER PRIMARY KEY,
+        name          TEXT    NOT NULL,
+        beschreibung  TEXT    DEFAULT '',
+        kategorie     TEXT    DEFAULT '',
+        kasten_breite REAL    NOT NULL DEFAULT 100,
+        kasten_hoehe  REAL    NOT NULL DEFAULT 100,
+        erstellt_am   TEXT    DEFAULT (datetime('now'))
+    ))")) {
+        qWarning() << "Makro-DB makro-Tabelle:" << q.lastError().text();
+        return false;
+    }
+    if (!q.exec(R"(CREATE TABLE IF NOT EXISTS makro_element (
+        id          INTEGER PRIMARY KEY,
+        makro_id    INTEGER NOT NULL REFERENCES makro(id) ON DELETE CASCADE,
+        typ         TEXT    NOT NULL,
+        rel_x1      REAL    NOT NULL,
+        rel_y1      REAL    NOT NULL,
+        rel_x2      REAL    NOT NULL DEFAULT 0,
+        rel_y2      REAL    NOT NULL DEFAULT 0,
+        extra_daten TEXT    DEFAULT '{}',
+        symbol_key  TEXT    DEFAULT '',
+        sortierung  INTEGER DEFAULT 0
+    ))")) {
+        qWarning() << "Makro-DB makro_element-Tabelle:" << q.lastError().text();
+        return false;
+    }
+    qInfo() << "Makro-DB geöffnet:" << path;
+    return true;
+}
+
 bool Database::openWiki(const QString &path)
 {
+    m_wikiPfad = path;
     m_wikiBlobDir = QFileInfo(path).absolutePath() + "/wiki_blobs";
     QDir().mkpath(m_wikiBlobDir);
 
@@ -1784,8 +1835,6 @@ bool Database::dropAllTables()
         "klemme_stegbruecke",
         "klemme",
         "klemmenleiste",
-        "makro_element",
-        "makro",
         "bauteil_kabel_paar",
         "bauteil_kabel_ader",
         "bauteil_kabel",
@@ -2580,42 +2629,6 @@ bool Database::createSchema()
         "LEFT JOIN anlage a ON a.id = o.anlage_id"
     )) {
         qWarning() << "Fehler View klemmenleiste_bmk:" << q.lastError().text();
-        return false;
-    }
-
-    // ----------------------------------------------------------
-    // Makro-Bibliothek (Schema v31)
-    // ----------------------------------------------------------
-    if (!q.exec(R"(
-        CREATE TABLE makro (
-            id            INTEGER PRIMARY KEY,
-            name          TEXT    NOT NULL,
-            beschreibung  TEXT    DEFAULT '',
-            kategorie     TEXT    DEFAULT '',
-            kasten_breite REAL    NOT NULL DEFAULT 100,
-            kasten_hoehe  REAL    NOT NULL DEFAULT 100,
-            erstellt_am   TEXT    DEFAULT (datetime('now'))
-        )
-    )")) {
-        qWarning() << "Fehler makro:" << q.lastError().text();
-        return false;
-    }
-
-    if (!q.exec(R"(
-        CREATE TABLE makro_element (
-            id          INTEGER PRIMARY KEY,
-            makro_id    INTEGER NOT NULL REFERENCES makro(id) ON DELETE CASCADE,
-            typ         TEXT    NOT NULL,
-            rel_x1      REAL    NOT NULL,
-            rel_y1      REAL    NOT NULL,
-            rel_x2      REAL    NOT NULL DEFAULT 0,
-            rel_y2      REAL    NOT NULL DEFAULT 0,
-            extra_daten TEXT    DEFAULT '{}',
-            symbol_key  TEXT    DEFAULT '',
-            sortierung  INTEGER DEFAULT 0
-        )
-    )")) {
-        qWarning() << "Fehler makro_element:" << q.lastError().text();
         return false;
     }
 

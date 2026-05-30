@@ -719,9 +719,3 @@ QVariantList Database::kabelAderFuerLinieLaden(int kabellinieGrafikElementId)
     return result;
 }
 
-// ============================================================
-// makroSpeichern
-// Sammelt alle grafik_element innerhalb des Makrokastens
-// (Mittelpunkt-Einschlussregel) und schreibt makro + makro_element.
-// Gibt makro.id zurück (>0) oder -1 bei Fehler.
-// ============================================================

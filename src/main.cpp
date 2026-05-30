@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
     QDir().mkpath(dataDir);
     QString launcherPath = dataDir + "/stroemling.db";  // Launcher-DB (nur zuletzt_geoeffnet)
     QString wikiPath     = dataDir + "/wiki.db";
+    QString makroPath    = dataDir + "/makros.db";       // Makro-Bibliothek (projektübergreifend)
 
     // Datenbankverbindungen aufbauen
     Database db;
@@ -129,6 +130,10 @@ int main(int argc, char *argv[])
     }
     if (!db.openWiki(wikiPath)) {
         qCritical() << "Wiki-Datenbank konnte nicht geöffnet werden:" << db.lastError();
+        return 1;
+    }
+    if (!db.openMakro(makroPath)) {
+        qCritical() << "Makro-DB konnte nicht geöffnet werden:" << db.lastError();
         return 1;
     }
 

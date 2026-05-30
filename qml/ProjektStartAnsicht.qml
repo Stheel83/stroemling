@@ -351,14 +351,37 @@ Item {
 
                 Item { height: 24 }
 
-                // Dateipfad
-                Text { text: qsTr("DATEI"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted }
-                Item { height: 6 }
-                Text {
+                // Datenpfade
+                Text { text: qsTr("DATENPFADE"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted }
+                Item { height: 8 }
+
+                GridLayout {
                     Layout.fillWidth: true
-                    text: db.projektPfad
-                    font.pixelSize: 11; font.family: "monospace"
-                    color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                    columns: 2; rowSpacing: 10; columnSpacing: 16
+
+                    Text { text: qsTr("Projektdatei"); font.pixelSize: 11; color: root.theme.textMuted }
+                    Text {
+                        Layout.fillWidth: true
+                        text: db.projektPfad || qsTr("(kein Projekt offen)")
+                        font.pixelSize: 11; font.family: "monospace"
+                        color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                    }
+
+                    Text { text: qsTr("Makrobibliothek"); font.pixelSize: 11; color: root.theme.textMuted }
+                    Text {
+                        Layout.fillWidth: true
+                        text: db.makroPfad
+                        font.pixelSize: 11; font.family: "monospace"
+                        color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                    }
+
+                    Text { text: qsTr("Wiki"); font.pixelSize: 11; color: root.theme.textMuted }
+                    Text {
+                        Layout.fillWidth: true
+                        text: db.wikiPfad
+                        font.pixelSize: 11; font.family: "monospace"
+                        color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                    }
                 }
 
                 Item { Layout.fillHeight: true }

@@ -13,6 +13,20 @@ Item {
 
     property bool _geaendert:    false
     property bool _ladevorgang:  false
+    property string _exportStatus: ""
+    property bool   _exportOk:     true
+
+    function _kurzPfad(pfad) {
+        return pfad.replace(/^\/home\/[^/]+/, "~")
+    }
+    function _dateiName(pfad) {
+        return pfad.split("/").pop()
+    }
+    function _verzeichnis(pfad) {
+        var parts = pfad.split("/")
+        parts.pop()
+        return _kurzPfad(parts.join("/"))
+    }
 
     function _ladenMetaDaten() {
         _ladevorgang = true
@@ -57,6 +71,27 @@ Item {
             if (!db.openProjekt(selectedFile.toString()))
                 fehlerPopup.open()
         }
+    }
+
+    FileDialog {
+        id: exportDialog
+        title:         qsTr("Projektkopie speichern")
+        fileMode:      FileDialog.SaveFile
+        nameFilters:   ["Strömling Projekte (*.strl)"]
+        defaultSuffix: "strl"
+        onAccepted: {
+            var ok = db.projektExportieren(selectedFile.toString())
+            root._exportOk    = ok
+            root._exportStatus = ok
+                ? qsTr("Exportiert: ") + selectedFile.toString().split("/").pop()
+                : qsTr("Export fehlgeschlagen")
+            exportStatusTimer.restart()
+        }
+    }
+
+    Timer {
+        id: exportStatusTimer; interval: 4000
+        onTriggered: root._exportStatus = ""
     }
 
     // ── Fehler-Popup ──────────────────────────────────────────────────
@@ -294,19 +329,20 @@ Item {
             // Metadaten-Formular wenn Projekt offen
             ColumnLayout {
                 visible: db.projektOffen
-                anchors { fill: parent; topMargin: 32; bottomMargin: 24; leftMargin: 40; rightMargin: 40 }
+                anchors { fill: parent; topMargin: 28; bottomMargin: 20; leftMargin: 40; rightMargin: 40 }
                 spacing: 0
 
                 Text {
                     text: qsTr("Projektdetails")
                     font.pixelSize: 20; font.weight: Font.Light
                     color: root.theme.textPrimary
-                    Layout.bottomMargin: 28
+                    Layout.bottomMargin: 20
                 }
 
+                // ── Stammdaten ────────────────────────────────────────────────
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: 2; rowSpacing: 14; columnSpacing: 20
+                    columns: 2; rowSpacing: 12; columnSpacing: 20
 
                     Text { text: qsTr("Name"); font.pixelSize: 12; color: root.theme.textMuted }
                     TextField {
@@ -349,73 +385,177 @@ Item {
                     }
                 }
 
-                Item { height: 24 }
+                // ── Trennlinie ────────────────────────────────────────────────
+                Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 20; Layout.bottomMargin: 16 }
 
-                // Datenpfade
-                Text { text: qsTr("DATENPFADE"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted }
-                Item { height: 8 }
+                // ── Datenpfade ────────────────────────────────────────────────
+                Text { text: qsTr("DATENPFADE"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.bottomMargin: 12 }
 
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: 2; rowSpacing: 10; columnSpacing: 16
+                    columns: 3; rowSpacing: 10; columnSpacing: 12
 
+                    // Projektdatei
                     Text { text: qsTr("Projektdatei"); font.pixelSize: 11; color: root.theme.textMuted }
-                    Text {
-                        Layout.fillWidth: true
-                        text: db.projektPfad || qsTr("(kein Projekt offen)")
-                        font.pixelSize: 11; font.family: "monospace"
-                        color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                    Column {
+                        Layout.fillWidth: true; spacing: 2
+                        Text {
+                            width: parent.width
+                            text: root._dateiName(db.projektPfad)
+                            font.pixelSize: 12; color: root.theme.textPrimary
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: root._verzeichnis(db.projektPfad)
+                            font.pixelSize: 10; font.family: "monospace"
+                            color: root.theme.textMuted; elide: Text.ElideLeft; opacity: 0.7
+                        }
+                    }
+                    Rectangle {
+                        width: 24; height: 24; radius: 4
+                        color: pfad1Ma.containsMouse ? root.theme.hover : "transparent"
+                        Text { anchors.centerIn: parent; text: "📁"; font.pixelSize: 13 }
+                        MouseArea {
+                            id: pfad1Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: Qt.openUrlExternally("file://" + db.projektPfad.substring(0, db.projektPfad.lastIndexOf("/")))
+                            ToolTip.visible: containsMouse; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Verzeichnis öffnen")
+                        }
                     }
 
+                    // Makrobibliothek
                     Text { text: qsTr("Makrobibliothek"); font.pixelSize: 11; color: root.theme.textMuted }
-                    Text {
-                        Layout.fillWidth: true
-                        text: db.makroPfad
-                        font.pixelSize: 11; font.family: "monospace"
-                        color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                    Column {
+                        Layout.fillWidth: true; spacing: 2
+                        Text {
+                            width: parent.width
+                            text: root._dateiName(db.makroPfad)
+                            font.pixelSize: 12; color: root.theme.textPrimary
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: root._verzeichnis(db.makroPfad)
+                            font.pixelSize: 10; font.family: "monospace"
+                            color: root.theme.textMuted; elide: Text.ElideLeft; opacity: 0.7
+                        }
+                    }
+                    Rectangle {
+                        width: 24; height: 24; radius: 4
+                        color: pfad2Ma.containsMouse ? root.theme.hover : "transparent"
+                        Text { anchors.centerIn: parent; text: "📁"; font.pixelSize: 13 }
+                        MouseArea {
+                            id: pfad2Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: Qt.openUrlExternally("file://" + db.makroPfad.substring(0, db.makroPfad.lastIndexOf("/")))
+                            ToolTip.visible: containsMouse; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Verzeichnis öffnen")
+                        }
                     }
 
+                    // Wiki
                     Text { text: qsTr("Wiki"); font.pixelSize: 11; color: root.theme.textMuted }
+                    Column {
+                        Layout.fillWidth: true; spacing: 2
+                        Text {
+                            width: parent.width
+                            text: root._dateiName(db.wikiPfad)
+                            font.pixelSize: 12; color: root.theme.textPrimary
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: root._verzeichnis(db.wikiPfad)
+                            font.pixelSize: 10; font.family: "monospace"
+                            color: root.theme.textMuted; elide: Text.ElideLeft; opacity: 0.7
+                        }
+                    }
+                    Rectangle {
+                        width: 24; height: 24; radius: 4
+                        color: pfad3Ma.containsMouse ? root.theme.hover : "transparent"
+                        Text { anchors.centerIn: parent; text: "📁"; font.pixelSize: 13 }
+                        MouseArea {
+                            id: pfad3Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: Qt.openUrlExternally("file://" + db.wikiPfad.substring(0, db.wikiPfad.lastIndexOf("/")))
+                            ToolTip.visible: containsMouse; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Verzeichnis öffnen")
+                        }
+                    }
+                }
+
+                // ── Trennlinie ────────────────────────────────────────────────
+                Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 20; Layout.bottomMargin: 16 }
+
+                // ── Aktionen ──────────────────────────────────────────────────
+                Text { text: qsTr("AKTIONEN"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.bottomMargin: 12 }
+
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 10
+
+                    // Kopie exportieren
+                    Rectangle {
+                        implicitWidth: 190; height: 34; radius: 4
+                        color: exportHov.containsMouse ? root.theme.inputBg : "transparent"
+                        border.color: root.theme.border
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
+                            spacing: 6
+                            Text { text: "⬆"; font.pixelSize: 13; color: root.theme.textMuted }
+                            Text { text: qsTr("Kopie exportieren (.strl)"); font.pixelSize: 11; color: root.theme.textMuted }
+                        }
+                        MouseArea {
+                            id: exportHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: exportDialog.open()
+                            ToolTip.visible: containsMouse; ToolTip.delay: 700
+                            ToolTip.text: qsTr("Kompakte Kopie der Projektdatei erstellen (alle Daten, kein Undo-Verlauf)")
+                        }
+                    }
+
+                    // Aus Liste entfernen
+                    Rectangle {
+                        implicitWidth: 170; height: 34; radius: 4
+                        color: entfHov.containsMouse ? root.theme.hover : "transparent"
+                        border.color: root.theme.border
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
+                            spacing: 6
+                            Text { text: "×"; font.pixelSize: 16; color: "#cc6600" }
+                            Text { text: qsTr("Aus Liste entfernen"); font.pixelSize: 11; color: root.theme.textMuted }
+                        }
+                        MouseArea {
+                            id: entfHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { db.projektAusRegistryEntfernen(db.projektPfad); db.closeProjekt() }
+                            ToolTip.visible: containsMouse; ToolTip.delay: 800
+                            ToolTip.text: qsTr("Aus Projektliste entfernen — Datei bleibt auf der Festplatte erhalten")
+                        }
+                    }
+
+                    // Export-Status
                     Text {
-                        Layout.fillWidth: true
-                        text: db.wikiPfad
-                        font.pixelSize: 11; font.family: "monospace"
-                        color: root.theme.textMuted; wrapMode: Text.WrapAnywhere; opacity: 0.8
+                        visible: root._exportStatus !== ""
+                        text: root._exportStatus
+                        font.pixelSize: 11
+                        color: root._exportOk ? root.theme.accent : "#cc4444"
+                        Layout.fillWidth: true; elide: Text.ElideRight
                     }
                 }
 
                 Item { Layout.fillHeight: true }
 
-                // Button-Leiste
+                // ── Footer: Speichern + Zum Schaltplan ───────────────────────
                 RowLayout {
                     Layout.fillWidth: true; spacing: 10
 
-                    // Aus Liste entfernen
-                    Rectangle {
-                        implicitWidth: 150; height: 34; radius: 4
-                        color: entfHov.containsMouse ? root.theme.hover : "transparent"
-                        border.color: root.theme.border
-                        Text { anchors.centerIn: parent; text: qsTr("Aus Liste entfernen"); font.pixelSize: 11; color: root.theme.textMuted }
-                        MouseArea {
-                            id: entfHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: { db.projektAusRegistryEntfernen(db.projektPfad); db.closeProjekt() }
-                            ToolTip.visible: containsMouse; ToolTip.delay: 800
-                            ToolTip.text: qsTr("Aus Projektliste entfernen (Datei bleibt erhalten)")
-                        }
-                    }
-
                     Item { Layout.fillWidth: true }
 
-                    // Speichern-Button (nur leuchtend wenn Änderungen)
                     Rectangle {
                         implicitWidth: 110; height: 34; radius: 4
-                        color: root._geaendert
-                               ? (speichernHov.containsMouse ? Qt.lighter(root.theme.accent, 1.12) : root.theme.accent)
-                               : root.theme.inputBg
+                        color: root._geaendert && speichernHov.containsMouse
+                               ? root.theme.accent : root.theme.inputBg
                         border.color: root._geaendert ? root.theme.accent : root.theme.border
                         Text {
                             anchors.centerIn: parent; text: qsTr("Speichern"); font.pixelSize: 12
-                            color: root._geaendert ? "white" : root.theme.textMuted
+                            color: root._geaendert ? root.theme.textPrimary : root.theme.textMuted
                         }
                         MouseArea {
                             id: speichernHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -428,7 +568,6 @@ Item {
                         }
                     }
 
-                    // Zum Schaltplan
                     Rectangle {
                         implicitWidth: 150; height: 34; radius: 4
                         color: schaltplanHov.containsMouse ? root.theme.accent : root.theme.inputBg

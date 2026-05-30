@@ -3911,6 +3911,16 @@ Item {
     }
 
     onSeiteIdChanged: {
+        if (seiteId < 0) {
+            root._zoomPanCache  = {}
+            root._vorherSeiteId = -1
+            root.auswahl        = []
+            root.vorschau       = null
+            root.normblattDaten = null
+            elementeModel.laden(-1)
+            root.repaintAll()
+            return
+        }
         if (seiteId >= 0) {
             // Zoom/Pan der verlassenen Seite sichern
             if (root._vorherSeiteId >= 0) {

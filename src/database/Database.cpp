@@ -137,6 +137,7 @@ bool Database::openProjekt(const QString &path)
         m_db = QSqlDatabase();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         m_projektOffen = false;
+        emit projektOffenChanged();  // QML bekommt false → räumt Canvas/Tabs/SeiteId auf
     }
 
     m_db = QSqlDatabase::addDatabase("QSQLITE");
@@ -201,6 +202,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         m_db = QSqlDatabase();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         m_projektOffen = false;
+        emit projektOffenChanged();  // QML bekommt false → räumt Canvas/Tabs/SeiteId auf
     }
 
     m_db = QSqlDatabase::addDatabase("QSQLITE");

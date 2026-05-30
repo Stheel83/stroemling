@@ -86,6 +86,8 @@ Item {
         tabs = []; aktivTabIdx = -1
     }
 
+    onProjektIdChanged: alleTabsSchliessen()
+
     function normblattNeuLaden() { innerCanvas.normblattNeuLaden() }
 
     function _tabHinzufuegen(seiteId, blattnummer, bezeichnung) {

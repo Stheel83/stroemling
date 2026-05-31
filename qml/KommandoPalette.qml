@@ -9,14 +9,10 @@ Popup {
     property int    projektId:  -1
     required property var theme
     property bool   debug: false
-    property bool   nurSeiten: false
 
-    // Werkzeug-Aktivierung
     signal werkzeugAktiviert(string werkzeug)
-    // Seite öffnen
     signal seiteOeffnen(int id, string blattnummer, string bezeichnung)
-
-    onClosed: root.nurSeiten = false
+    signal elementSprung(int seiteId, string blattnummer, string seiteBez, real cx, real cy)
 
     modal:  false
     focus:  true
@@ -35,7 +31,6 @@ Popup {
         radius: 6
     }
 
-    // Beim Öffnen: Feld leeren, Ergebnisse aufbauen
     onOpened: {
         suchfeld.text = ""
         suchfeld.forceActiveFocus()
@@ -60,24 +55,28 @@ Popup {
 
     function _eintraegeLaden() {
         var liste = []
-        // Werkzeuge – nur im Vollmodus
-        if (!root.nurSeiten) {
-            for (var i = 0; i < _werkzeuge.length; i++) {
-                var w = _werkzeuge[i]
-                liste.push({ kategorie: "Werkzeug", label: w.label,
-                             info: "[" + w.kuerzel + "]", werkzeug: w.werkzeug, seiteId: -1 })
-            }
+        for (var i = 0; i < _werkzeuge.length; i++) {
+            var w = _werkzeuge[i]
+            liste.push({ kategorie: "Werkzeug", label: w.label,
+                         info: "[" + w.kuerzel + "]", werkzeug: w.werkzeug,
+                         seiteId: -1, blattnummer: "", bezeichnung: "", cx: 0, cy: 0 })
         }
-        // Seiten
         if (root.projektId >= 0) {
             var seiten = db.alleSeitenFlach(root.projektId)
             for (var j = 0; j < seiten.length; j++) {
                 var s = seiten[j]
                 var bez = s.bezeichnung ? s.bezeichnung + " – " + s.blattnummer : s.blattnummer
-                liste.push({ kategorie: "Seite", label: bez,
-                             info: s.blattnummer, seiteId: s.id,
-                             blattnummer: s.blattnummer, bezeichnung: s.bezeichnung || "",
-                             werkzeug: "" })
+                liste.push({ kategorie: "Seite", label: bez, info: s.blattnummer,
+                             seiteId: s.id, blattnummer: s.blattnummer,
+                             bezeichnung: s.bezeichnung || "", werkzeug: "", cx: 0, cy: 0 })
+            }
+            var elems = db.spotlightEintraege(root.projektId)
+            for (var k = 0; k < elems.length; k++) {
+                var e = elems[k]
+                liste.push({ kategorie: e.kategorie, label: e.label,
+                             info: e.blattnummer, seiteId: e.seiteId,
+                             blattnummer: e.blattnummer, bezeichnung: e.seiteBez,
+                             werkzeug: "", cx: e.cx, cy: e.cy })
             }
         }
         root._alleEintraege = liste
@@ -98,10 +97,12 @@ Popup {
         if (idx < 0 || idx >= _gefiltert.length) return
         var e = _gefiltert[idx]
         root.close()
-        if (e.werkzeug !== "") {
+        if (e.kategorie === "Werkzeug") {
             root.werkzeugAktiviert(e.werkzeug)
-        } else if (e.seiteId >= 0) {
+        } else if (e.kategorie === "Seite") {
             root.seiteOeffnen(e.seiteId, e.blattnummer, e.bezeichnung)
+        } else {
+            root.elementSprung(e.seiteId, e.blattnummer, e.bezeichnung, e.cx, e.cy)
         }
     }
 
@@ -109,7 +110,6 @@ Popup {
         spacing: 0
         implicitHeight: suchZeile.height + trenn.height + listView.contentHeight + 8
 
-        // Suchzeile
         Rectangle {
             id: suchZeile
             Layout.fillWidth: true
@@ -129,7 +129,7 @@ Popup {
                 TextField {
                     id: suchfeld
                     Layout.fillWidth: true
-                    placeholderText: root.nurSeiten ? qsTr("Seite suchen …") : qsTr("Werkzeug oder Seite suchen …")
+                    placeholderText: qsTr("Werkzeug, Seite, BMK oder Kabel suchen …")
                     font.pixelSize: 14
                     color:               root.theme.textPrimary
                     background:          Rectangle { color: "transparent" }
@@ -137,8 +137,8 @@ Popup {
 
                     onTextChanged: root._auswahl = root._gefiltert.length > 0 ? 0 : -1
 
-                    Keys.onUpPressed:   { if (root._auswahl > 0) root._auswahl-- }
-                    Keys.onDownPressed: { if (root._auswahl < root._gefiltert.length - 1) root._auswahl++ }
+                    Keys.onUpPressed:     { if (root._auswahl > 0) root._auswahl-- }
+                    Keys.onDownPressed:   { if (root._auswahl < root._gefiltert.length - 1) root._auswahl++ }
                     Keys.onReturnPressed: root._aktivieren(root._auswahl)
                     Keys.onEscapePressed: root.close()
                 }
@@ -159,7 +159,6 @@ Popup {
             color: root.theme.border
         }
 
-        // Ergebnisliste
         ListView {
             id: listView
             Layout.fillWidth:  true
@@ -178,12 +177,12 @@ Popup {
                     anchors { fill: parent; leftMargin: 14; rightMargin: 12 }
                     spacing: 10
 
-                    // Kategorie-Badge
                     Rectangle {
-                        width: 48; height: 16; radius: 3
-                        color: modelData.kategorie === "Werkzeug"
-                               ? root.theme.badge
-                               : Qt.rgba(0.1, 0.5, 0.3, 0.3)
+                        width: 54; height: 16; radius: 3
+                        color: modelData.kategorie === "Werkzeug" ? root.theme.badge
+                             : modelData.kategorie === "Seite"    ? Qt.rgba(0.1, 0.5, 0.3, 0.3)
+                             : modelData.kategorie === "BMK"      ? Qt.rgba(0.1, 0.3, 0.7, 0.3)
+                             :                                      Qt.rgba(0.5, 0.3, 0.1, 0.3)
                         Text {
                             anchors.centerIn: parent
                             text:  modelData.kategorie
@@ -210,7 +209,7 @@ Popup {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked:        { root._auswahl = index; root._aktivieren(index) }
+                    onClicked:              { root._auswahl = index; root._aktivieren(index) }
                     onContainsMouseChanged: if (containsMouse) root._auswahl = index
                     hoverEnabled: true
                 }
@@ -218,7 +217,6 @@ Popup {
         }
     }
 
-    // Klick außerhalb schließt
     Overlay.modal: Rectangle { color: "transparent" }
 
     DebugLabel { parent: root.contentItem; panelName: qsTr("Kommando-Palette"); visible: root.debug && root.visible }

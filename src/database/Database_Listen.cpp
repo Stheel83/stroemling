@@ -45,6 +45,71 @@ QVariantList Database::alleSeitenFlach(int projektId)
 }
 
 // ============================================================
+// spotlightEintraege
+// BMKs + platzierte Kabel für die Kommando-Palette.
+// Gibt [{kategorie, label, info, seiteId, blattnummer, seiteBez, cx, cy}] zurück.
+// ============================================================
+QVariantList Database::spotlightEintraege(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT 'BMK'   AS kategorie,
+               json_extract(ge.extra_daten, '$.bmk') AS label,
+               s.blattnummer AS info,
+               ge.seite_id,
+               s.blattnummer,
+               COALESCE(s.bezeichnung, '') AS seite_bez,
+               (ge.x1 + ge.x2) / 2.0     AS cx,
+               (ge.y1 + ge.y2) / 2.0     AS cy
+        FROM grafik_element ge
+        JOIN seite  s ON s.id  = ge.seite_id
+        JOIN ort    o ON o.id  = s.ort_id
+        JOIN anlage a ON a.id  = o.anlage_id
+        WHERE a.projekt_id = :pid
+          AND ge.symbol_id IS NOT NULL
+          AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
+          AND json_extract(ge.extra_daten, '$.bmk') != ''
+
+        UNION ALL
+
+        SELECT 'Kabel' AS kategorie,
+               k.bezeichnung             AS label,
+               s.blattnummer             AS info,
+               ge.seite_id,
+               s.blattnummer,
+               COALESCE(s.bezeichnung, '') AS seite_bez,
+               (ge.x1 + ge.x2) / 2.0     AS cx,
+               (ge.y1 + ge.y2) / 2.0     AS cy
+        FROM kabel k
+        JOIN grafik_element ge ON ge.id = k.grafik_element_id
+        JOIN seite  s ON s.id  = ge.seite_id
+        WHERE k.projekt_id = :pid
+          AND k.bezeichnung != ''
+
+        ORDER BY label
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "spotlightEintraege:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("kategorie")]   = q.value(0).toString();
+        m[QStringLiteral("label")]       = q.value(1).toString();
+        m[QStringLiteral("info")]        = q.value(2).toString();
+        m[QStringLiteral("seiteId")]     = q.value(3).toInt();
+        m[QStringLiteral("blattnummer")] = q.value(4).toString();
+        m[QStringLiteral("seiteBez")]    = q.value(5).toString();
+        m[QStringLiteral("cx")]          = q.value(6).toDouble();
+        m[QStringLiteral("cy")]          = q.value(7).toDouble();
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
 // querverweiseLadenProjekt
 // Alle Querverweis-Elemente eines Projekts seitenübergreifend.
 // Gibt [{seiteId, blattnummer, seitenBezeichnung,

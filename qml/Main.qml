@@ -279,6 +279,11 @@ ApplicationWindow {
             var p = root.fokussiertesPanel === 1 ? panel1 : panel2
             p.seiteOeffnen(id, blattnummer, bezeichnung)
         }
+        onElementSprung: function(seiteId, blattnummer, seiteBez, cx, cy) {
+            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+            var p = root.fokussiertesPanel === 1 ? panel1 : panel2
+            p.seiteOeffnenUndZentrieren(seiteId, blattnummer, seiteBez, cx, cy)
+        }
     }
 
     // ── Hilfsdialog: keine Seite aktiv ──────────────────────────
@@ -1512,7 +1517,7 @@ ApplicationWindow {
     Shortcut { sequence: "S"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv&&c.paletteSymbolId!==""){c.abbruch();c.aktivesWerkzeug="symbol"} } }
     Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
     Shortcut { sequence: "Ctrl+M"; context: Shortcut.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
-    Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: { kommandoPalette.nurSeiten = true; kommandoPalette.open() } }
+    Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: kommandoPalette.open() }
     Shortcut { sequence: "Escape"; onActivated: {
         var c = root.aktiverCanvas
         if (root.aktiveAnsicht === "seiten" && c) c.handleEscape()

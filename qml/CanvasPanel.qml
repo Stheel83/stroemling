@@ -93,6 +93,21 @@ Item {
 
     function normblattNeuLaden() { innerCanvas.normblattNeuLaden() }
 
+    // Seite öffnen und Canvas auf Weltkoordinaten (wx, wy) zentrieren.
+    property real _zentriereX: 0
+    property real _zentriereY: 0
+    Timer {
+        id: zentriereTimer
+        interval: 80
+        onTriggered: innerCanvas.zentriereAuf(root._zentriereX, root._zentriereY)
+    }
+    function seiteOeffnenUndZentrieren(seiteId, blattnummer, bezeichnung, wx, wy) {
+        seiteOeffnen(seiteId, blattnummer, bezeichnung)
+        root._zentriereX = wx
+        root._zentriereY = wy
+        zentriereTimer.restart()
+    }
+
     function _tabHinzufuegen(seiteId, blattnummer, bezeichnung) {
         var tmp = tabs.slice()
         tmp.push({ seiteId: seiteId, blattnummer: blattnummer, bezeichnung: bezeichnung })

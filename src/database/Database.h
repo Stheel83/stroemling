@@ -134,6 +134,10 @@ public:
     // Gibt [{id, blattnummer, bezeichnung}] zurück – für den Querverweis-Seitenpicker.
     Q_INVOKABLE QVariantList alleSeitenFlach(int projektId);
 
+    // Spotlight-Einträge: BMKs + platzierte Kabel für die Kommando-Palette.
+    // Gibt [{kategorie, label, info, seiteId, blattnummer, seiteBez, cx, cy}] zurück.
+    Q_INVOKABLE QVariantList spotlightEintraege(int projektId);
+
     // Alle Querverweis-Elemente eines Projekts liefern (seitenübergreifend).
     // Gibt [{seiteId, blattnummer, seitenBezeichnung, signalname, richtung, x1, y1}] zurück.
     Q_INVOKABLE QVariantList querverweiseLadenProjekt(int projektId);

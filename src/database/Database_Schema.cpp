@@ -85,6 +85,34 @@ static QList<SchemaMigration> alleMigrationen()
         { 56, "Winkel: 16x16mm auf 8x8mm verkleinert", {
             R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='winkel' AND ist_builtin=1)",
         }},
+
+        // Standard-Klemmen-Bibliothek: 6 repräsentative Typen (Seed-Daten).
+        // INSERT ... SELECT ... WHERE NOT EXISTS: idempotent, lässt vorhandene Einträge unberührt.
+        { 57, "Standard-Klemmen-Bibliothek seeden (6 Typen)", {
+            // ── bauteil ──────────────────────────────────────────────────────────
+            R"(INSERT INTO bauteil (bezeichnung,norm,bemerkung) SELECT 'Durchgangsklemme 2,5mm²','IEC 60947-7-1','Standard-Klemme' WHERE NOT EXISTS(SELECT 1 FROM bauteil WHERE bezeichnung='Durchgangsklemme 2,5mm²'))",
+            R"(INSERT INTO bauteil (bezeichnung,norm,bemerkung) SELECT 'Durchgangsklemme 4mm²','IEC 60947-7-1','Standard-Klemme' WHERE NOT EXISTS(SELECT 1 FROM bauteil WHERE bezeichnung='Durchgangsklemme 4mm²'))",
+            R"(INSERT INTO bauteil (bezeichnung,norm,bemerkung) SELECT 'PE-Klemme 2,5mm²','IEC 60947-7-1','Standard-Klemme' WHERE NOT EXISTS(SELECT 1 FROM bauteil WHERE bezeichnung='PE-Klemme 2,5mm²'))",
+            R"(INSERT INTO bauteil (bezeichnung,norm,bemerkung) SELECT 'N-Klemme 2,5mm²','IEC 60947-7-1','Standard-Klemme' WHERE NOT EXISTS(SELECT 1 FROM bauteil WHERE bezeichnung='N-Klemme 2,5mm²'))",
+            R"(INSERT INTO bauteil (bezeichnung,norm,bemerkung) SELECT 'Doppelstockklemme 2,5mm²','IEC 60947-7-1','Standard-Klemme' WHERE NOT EXISTS(SELECT 1 FROM bauteil WHERE bezeichnung='Doppelstockklemme 2,5mm²'))",
+            R"(INSERT INTO bauteil (bezeichnung,norm,bemerkung) SELECT 'Trennklemme 2,5mm²','IEC 60947-7-1','Standard-Klemme' WHERE NOT EXISTS(SELECT 1 FROM bauteil WHERE bezeichnung='Trennklemme 2,5mm²'))",
+            // ── bauteil_klemme ───────────────────────────────────────────────────
+            R"(INSERT INTO bauteil_klemme(bauteil_id,norm,anschluss_typ,ebenen_anzahl,punkte_seite_a,punkte_seite_b,fuss_kontakt_pe,stegbruecke_faehig,breite_mm,gehaeuse_farbe_id) SELECT b.id,'IEC 60947-7-1','schraube',1,1,1,0,1,5.2,(SELECT id FROM farb_definition WHERE hex_wert='#808080' AND ist_standard=1 LIMIT 1) FROM bauteil b WHERE b.bezeichnung='Durchgangsklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id))",
+            R"(INSERT INTO bauteil_klemme(bauteil_id,norm,anschluss_typ,ebenen_anzahl,punkte_seite_a,punkte_seite_b,fuss_kontakt_pe,stegbruecke_faehig,breite_mm,gehaeuse_farbe_id) SELECT b.id,'IEC 60947-7-1','feder',1,1,1,0,1,6.0,(SELECT id FROM farb_definition WHERE hex_wert='#808080' AND ist_standard=1 LIMIT 1) FROM bauteil b WHERE b.bezeichnung='Durchgangsklemme 4mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id))",
+            R"(INSERT INTO bauteil_klemme(bauteil_id,norm,anschluss_typ,ebenen_anzahl,punkte_seite_a,punkte_seite_b,fuss_kontakt_pe,stegbruecke_faehig,breite_mm,gehaeuse_farbe_id) SELECT b.id,'IEC 60947-7-1','schraube',1,1,1,1,0,5.2,(SELECT id FROM farb_definition WHERE hex_wert='#88AA00' AND ist_standard=1 LIMIT 1) FROM bauteil b WHERE b.bezeichnung='PE-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id))",
+            R"(INSERT INTO bauteil_klemme(bauteil_id,norm,anschluss_typ,ebenen_anzahl,punkte_seite_a,punkte_seite_b,fuss_kontakt_pe,stegbruecke_faehig,breite_mm,gehaeuse_farbe_id) SELECT b.id,'IEC 60947-7-1','schraube',1,1,1,0,1,5.2,(SELECT id FROM farb_definition WHERE hex_wert='#0000CC' AND ist_standard=1 LIMIT 1) FROM bauteil b WHERE b.bezeichnung='N-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id))",
+            R"(INSERT INTO bauteil_klemme(bauteil_id,norm,anschluss_typ,ebenen_anzahl,punkte_seite_a,punkte_seite_b,fuss_kontakt_pe,stegbruecke_faehig,breite_mm,gehaeuse_farbe_id) SELECT b.id,'IEC 60947-7-1','schraube',2,1,1,0,1,5.5,(SELECT id FROM farb_definition WHERE hex_wert='#808080' AND ist_standard=1 LIMIT 1) FROM bauteil b WHERE b.bezeichnung='Doppelstockklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id))",
+            R"(INSERT INTO bauteil_klemme(bauteil_id,norm,anschluss_typ,ebenen_anzahl,punkte_seite_a,punkte_seite_b,fuss_kontakt_pe,stegbruecke_faehig,breite_mm,gehaeuse_farbe_id) SELECT b.id,'IEC 60947-7-1','schraube',1,1,1,0,0,5.8,(SELECT id FROM farb_definition WHERE hex_wert='#FF8800' AND ist_standard=1 LIMIT 1) FROM bauteil b WHERE b.bezeichnung='Trennklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id))",
+            // ── bauteil_klemme_querschnitt (alle 4 Adertypen pro Klemme, 1 Statement) ──
+            R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='Durchgangsklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
+            R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.5 mn,4.0 mx UNION ALL SELECT 'flexibel',0.5,4.0 UNION ALL SELECT 'aenh_blank',0.5,4.0 UNION ALL SELECT 'aenh_isoliert',0.5,2.5) q WHERE b.bezeichnung='Durchgangsklemme 4mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
+            R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='PE-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
+            R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='N-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
+            R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='Doppelstockklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
+            R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='Trennklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
+            // ── PE-Klemme: Fußkontakt-Brücke ────────────────────────────────────
+            R"(INSERT INTO bauteil_klemme_bruecke(klemme_id,von_ebene,nach_ebene,ist_pe_fuss) SELECT bk.id,1,1,1 FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='PE-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_bruecke WHERE klemme_id=bk.id AND ist_pe_fuss=1))",
+        }},
     };
 }
 
@@ -167,7 +195,7 @@ bool Database::checkAndApplySchema()
             // Baseline: vollständiger Neuaufbau
             ok = dropAllTables() && createSchema()
                  && seedSymbolKatalog() && seedBuiltinSymbolDefinitionen()
-                 && seedIbnFeldvorlagen();
+                 && seedIbnFeldvorlagen() && seedStandardKlemmen();
         } else {
             ok = applyMigrationStatements(mig.statements);
         }
@@ -532,6 +560,113 @@ bool Database::seedSymbolKatalog()
     }
     qInfo() << "Farb-Katalog befüllt:" << farben.size() << "Einträge.";
 
+    return true;
+}
+
+// ============================================================
+// seedStandardKlemmen
+// Legt 6 repräsentative Klemmen-Bauteile an (Durchgang, PE, N,
+// Doppelstock, Trenn). Läuft innerhalb der Baseline-Transaktion.
+// ============================================================
+bool Database::seedStandardKlemmen()
+{
+    // Farb-ID anhand Hex-Wert aus farb_definition holen
+    auto farbId = [](const QString &hex) -> QVariant {
+        QSqlQuery q;
+        q.prepare("SELECT id FROM farb_definition WHERE hex_wert = :hex AND ist_standard = 1 LIMIT 1");
+        q.bindValue(":hex", hex);
+        if (q.exec() && q.next()) return q.value(0);
+        return QVariant();
+    };
+
+    struct KlemmTyp {
+        QString bez;
+        QString anschlussTyp;
+        int     ebenen;
+        bool    peFuss;
+        bool    stegFaehig;
+        double  breiteMm;
+        QString farbHex;
+        // Querschnitte: starr, flex, blank, isoliert
+        double starrMin, starrMax;
+        double flexMin,  flexMax;
+        double blankMin, blankMax;
+        double isoMin,   isoMax;
+    };
+
+    const QList<KlemmTyp> typen = {
+        { "Durchgangsklemme 2,5mm²", "schraube", 1, false, true,  5.2, "#808080", 0.2,2.5, 0.2,2.5, 0.25,2.5, 0.25,1.5 },
+        { "Durchgangsklemme 4mm²",   "feder",    1, false, true,  6.0, "#808080", 0.5,4.0, 0.5,4.0, 0.5, 4.0, 0.5, 2.5 },
+        { "PE-Klemme 2,5mm²",        "schraube", 1, true,  false, 5.2, "#88AA00", 0.2,2.5, 0.2,2.5, 0.25,2.5, 0.25,1.5 },
+        { "N-Klemme 2,5mm²",         "schraube", 1, false, true,  5.2, "#0000CC", 0.2,2.5, 0.2,2.5, 0.25,2.5, 0.25,1.5 },
+        { "Doppelstockklemme 2,5mm²","schraube", 2, false, true,  5.5, "#808080", 0.2,2.5, 0.2,2.5, 0.25,2.5, 0.25,1.5 },
+        { "Trennklemme 2,5mm²",      "schraube", 1, false, false, 5.8, "#FF8800", 0.2,2.5, 0.2,2.5, 0.25,2.5, 0.25,1.5 },
+    };
+
+    for (const KlemmTyp &t : typen) {
+        QSqlQuery qb;
+        qb.prepare("INSERT INTO bauteil (bezeichnung, norm, bemerkung) "
+                   "VALUES (:bez, :norm, :bem)");
+        qb.bindValue(":bez",  t.bez);
+        qb.bindValue(":norm", QString("IEC 60947-7-1"));
+        qb.bindValue(":bem",  QString("Standard-Klemme"));
+        if (!qb.exec()) {
+            qWarning() << "seedStandardKlemmen bauteil:" << t.bez << qb.lastError().text();
+            return false;
+        }
+        int bId = qb.lastInsertId().toInt();
+
+        QSqlQuery qk;
+        qk.prepare("INSERT INTO bauteil_klemme "
+                   "(bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, "
+                   " fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id) "
+                   "VALUES (:bid, :norm, :typ, :eb, 1, 1, :pe, :steg, :br, :fid)");
+        qk.bindValue(":bid",  bId);
+        qk.bindValue(":norm", QString("IEC 60947-7-1"));
+        qk.bindValue(":typ",  t.anschlussTyp);
+        qk.bindValue(":eb",   t.ebenen);
+        qk.bindValue(":pe",   t.peFuss ? 1 : 0);
+        qk.bindValue(":steg", t.stegFaehig ? 1 : 0);
+        qk.bindValue(":br",   t.breiteMm);
+        qk.bindValue(":fid",  farbId(t.farbHex));
+        if (!qk.exec()) {
+            qWarning() << "seedStandardKlemmen bauteil_klemme:" << t.bez << qk.lastError().text();
+            return false;
+        }
+        int kId = qk.lastInsertId().toInt();
+
+        struct QS { QString typ; double min; double max; };
+        const QList<QS> qs = {
+            { "starr",         t.starrMin, t.starrMax },
+            { "flexibel",      t.flexMin,  t.flexMax  },
+            { "aenh_blank",    t.blankMin, t.blankMax },
+            { "aenh_isoliert", t.isoMin,   t.isoMax   },
+        };
+        QSqlQuery qq;
+        qq.prepare("INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2) "
+                   "VALUES (:kid, :typ, :min, :max)");
+        for (const QS &s : qs) {
+            qq.bindValue(":kid", kId);
+            qq.bindValue(":typ", s.typ);
+            qq.bindValue(":min", s.min);
+            qq.bindValue(":max", s.max);
+            if (!qq.exec()) {
+                qWarning() << "seedStandardKlemmen querschnitt:" << t.bez << s.typ << qq.lastError().text();
+                return false;
+            }
+        }
+
+        if (t.peFuss) {
+            QSqlQuery qbr;
+            qbr.prepare("INSERT INTO bauteil_klemme_bruecke "
+                        "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, 1, 1, 1)");
+            qbr.bindValue(":kid", kId);
+            if (!qbr.exec())
+                qWarning() << "seedStandardKlemmen bruecke PE:" << t.bez << qbr.lastError().text();
+        }
+    }
+
+    qInfo() << "Standard-Klemmen geseedet: 6 Typen.";
     return true;
 }
 

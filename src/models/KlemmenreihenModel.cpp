@@ -77,6 +77,54 @@ int KlemmenleistenModel::anlegen(int projektId, const QString &bezeichnung)
     return newId;
 }
 
+void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
+{
+    auto bauteilIdFuer = [](const QString &bez) -> int {
+        QSqlQuery q;
+        q.prepare("SELECT id FROM bauteil WHERE bezeichnung = :bez LIMIT 1");
+        q.bindValue(":bez", bez);
+        if (q.exec() && q.next()) return q.value(0).toInt();
+        return -1;
+    };
+
+    int idDurch = bauteilIdFuer("Durchgangsklemme 2,5mm²");
+    int idPE    = bauteilIdFuer("PE-Klemme 2,5mm²");
+    if (idDurch < 0 || idPE < 0) {
+        qWarning() << "beispielLeistenAnlegen: Seed-Klemmen nicht gefunden";
+        return;
+    }
+
+    QSqlQuery q;
+    q.prepare("INSERT INTO klemmenleiste (projekt_id, bezeichnung) VALUES (:pid, :bez)");
+    q.bindValue(":pid", projektId);
+    q.bindValue(":bez", QString("X1"));
+    if (!q.exec()) {
+        qWarning() << "beispielLeistenAnlegen: klemmenleiste" << q.lastError().text();
+        return;
+    }
+    int leisteId = q.lastInsertId().toInt();
+
+    struct Eintrag { int bId; QString nr; };
+    const QList<Eintrag> eintraege = {
+        { idDurch, "1" }, { idDurch, "2" }, { idDurch, "3" },
+        { idDurch, "4" }, { idDurch, "5" }, { idPE,    "PE" }
+    };
+
+    QSqlQuery qi;
+    qi.prepare("INSERT INTO klemme (klemmenleiste_id, bauteil_id, nummer, sortierung) "
+               "VALUES (:lid, :bid, :nr, :sort)");
+    for (int i = 0; i < eintraege.size(); ++i) {
+        qi.bindValue(":lid",  leisteId);
+        qi.bindValue(":bid",  eintraege[i].bId);
+        qi.bindValue(":nr",   eintraege[i].nr);
+        qi.bindValue(":sort", i + 1);
+        if (!qi.exec())
+            qWarning() << "beispielLeistenAnlegen klemme" << eintraege[i].nr << qi.lastError().text();
+    }
+
+    laden(projektId);
+}
+
 bool KlemmenleistenModel::loeschen(int id)
 {
     // Klemmen-Instanzen zuerst löschen

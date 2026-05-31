@@ -648,6 +648,9 @@ private:
     // IBN-Feldvorlagen (Systemfelder) nach Schema-Aufbau befüllen
     bool seedIbnFeldvorlagen();
 
+    // 6 repräsentative Klemmen-Bauteile (Durchgang/PE/N/Doppelstock/Trenn)
+    bool seedStandardKlemmen();
+
     // Wiki-Starter-Kategorien anlegen (einmalig nach frischem Wiki-Schema-Aufbau)
     bool seedWikiStarterInhalte();
 

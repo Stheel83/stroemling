@@ -619,12 +619,43 @@ Item {
                         }
                     }
 
+                    Column {
+                        anchors.centerIn: parent
+                        visible: leisteListView.count === 0 && projektId >= 0
+                        spacing: 10
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Noch keine\nKlemmenleiste")
+                            horizontalAlignment: Text.AlignHCenter
+                            font.pixelSize: 11; color: theme.textMuted
+                        }
+                        Rectangle {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: 160; height: 28; radius: 4
+                            color: beispielBtn.containsMouse ? theme.accent : theme.inputBg
+                            border.color: theme.accent
+                            Text {
+                                anchors.centerIn: parent
+                                text: qsTr("Beispiel-Leiste anlegen")
+                                font.pixelSize: 11; color: theme.textPrimary
+                            }
+                            MouseArea {
+                                id: beispielBtn
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    klemmenleistenModel.beispielLeistenAnlegen(projektId)
+                                    aktivLeistenId = -1
+                                    aktivKlemmeIdx = -1
+                                }
+                            }
+                        }
+                    }
                     Text {
                         anchors.centerIn: parent
-                        visible: leisteListView.count === 0
-                        text: projektId < 0
-                              ? qsTr("Kein Projekt geöffnet")
-                              : qsTr("Noch keine\nKlemmenleiste")
+                        visible: leisteListView.count === 0 && projektId < 0
+                        text: qsTr("Kein Projekt geöffnet")
                         horizontalAlignment: Text.AlignHCenter
                         font.pixelSize: 11; color: theme.textMuted
                     }

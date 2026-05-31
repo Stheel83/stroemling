@@ -36,6 +36,7 @@ public:
     Q_INVOKABLE int  anlegen(int projektId, const QString &bezeichnung);
     Q_INVOKABLE bool loeschen(int id);
     Q_INVOKABLE bool umbenennen(int id, const QString &bezeichnung);
+    Q_INVOKABLE void beispielLeistenAnlegen(int projektId);
 
 signals:
     void geladen();

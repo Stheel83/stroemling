@@ -1525,6 +1525,18 @@ ApplicationWindow {
     Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
     Shortcut { sequence: "Ctrl+M"; context: Shortcut.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
     Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: kommandoPalette.open() }
+    // GIT-01: Explizites Speichern + Auto-Commit
+    Shortcut {
+        sequence: "Ctrl+S"
+        context:  Shortcut.ApplicationShortcut
+        enabled:  db.projektOffen
+        onActivated: {
+            var c = root.aktiverCanvas
+            if (root.aktiveAnsicht === "seiten" && c) c.grafikSpeichernJetzt()
+            db.gitAutoCommit(db.projektOrdner,
+                             Qt.formatDateTime(new Date(), "yyyy-MM-dd HH:mm"))
+        }
+    }
     Shortcut { sequence: "Escape"; onActivated: {
         var c = root.aktiverCanvas
         if (root.aktiveAnsicht === "seiten" && c) c.handleEscape()

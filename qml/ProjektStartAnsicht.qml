@@ -247,11 +247,14 @@ Item {
                             border.color: parent.enabled ? root.theme.accent : root.theme.border
                         }
                         onClicked: {
-                            var slug = root._slug(neuProjektPopup._name)
-                            var pfad = neuProjektPopup._ort + "/" + slug + "/projekt.strl"
-                            var name = neuProjektPopup._name
+                            var slug    = root._slug(neuProjektPopup._name)
+                            var ordner  = neuProjektPopup._ort + "/" + slug
+                            var pfad    = ordner + "/projekt.strl"
+                            var name    = neuProjektPopup._name
                             neuProjektPopup.close()
-                            if (!db.createProjekt(pfad, name))
+                            if (db.createProjekt(pfad, name))
+                                db.gitProjektInit(ordner)  // GIT-01: init + erster Commit
+                            else
                                 fehlerPopup.open()
                         }
                     }
@@ -739,6 +742,138 @@ Item {
                         font.pixelSize: 11
                         color: root._exportOk ? root.theme.accent : "#cc4444"
                         Layout.fillWidth: true; elide: Text.ElideRight
+                    }
+                }
+
+                // ── Versionshistorie (GIT-01) ─────────────────────────────────
+                Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 20; Layout.bottomMargin: 16 }
+
+                RowLayout {
+                    Layout.fillWidth: true; Layout.bottomMargin: 10
+                    Text { text: qsTr("VERSIONSHISTORIE"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.fillWidth: true }
+                    Rectangle {
+                        width: 22; height: 22; radius: 4
+                        color: reloadHov.containsMouse ? root.theme.hover : "transparent"
+                        Text { anchors.centerIn: parent; text: "↺"; font.pixelSize: 14; color: root.theme.textMuted }
+                        MouseArea {
+                            id: reloadHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: verlaufListe.model = db.gitLog(db.projektOrdner)
+                            ToolTip.visible: containsMouse; ToolTip.text: qsTr("Aktualisieren"); ToolTip.delay: 500
+                        }
+                    }
+                }
+
+                // Kein Git / Kein Repo
+                Text {
+                    Layout.fillWidth: true
+                    visible: verlaufListe.count === 0
+                    text: {
+                        if (!db.projektOffen) return ""
+                        if (!db.gitVerfuegbar()) return qsTr("Git nicht installiert – Versionshistorie nicht verfügbar.")
+                        if (!db.projektOrdner) return ""
+                        return qsTr("Keine Versionshistorie. Projekt wurde ohne Git angelegt oder git init fehlt.")
+                    }
+                    font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
+                }
+
+                // Commit-Liste (max. 200px, scrollbar wenn nötig)
+                ListView {
+                    id: verlaufListe
+                    Layout.fillWidth: true
+                    implicitHeight: Math.min(contentHeight, 220)
+                    clip: true
+                    visible: count > 0
+                    model: []
+
+                    // Laden wenn Projekt geöffnet / Ansicht sichtbar
+                    Connections {
+                        target: db
+                        function onProjektOffenChanged() {
+                            if (db.projektOffen)
+                                verlaufListe.model = db.gitLog(db.projektOrdner)
+                            else
+                                verlaufListe.model = []
+                        }
+                    }
+
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                    delegate: Item {
+                        id: verlaufItem
+                        width: verlaufListe.width
+                        height: 44
+
+                        property bool hov: verlaufMa.containsMouse
+                        property bool istErster: index === 0
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: verlaufItem.hov ? root.theme.hover : "transparent"
+                        }
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 4; rightMargin: 8 }
+                            spacing: 8
+
+                            // Aktuell-Indikator
+                            Rectangle {
+                                width: 6; height: 6; radius: 3
+                                color: verlaufItem.istErster ? root.theme.accent : root.theme.border
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            Column {
+                                Layout.fillWidth: true; spacing: 2
+                                Text {
+                                    width: parent.width
+                                    text: modelData.nachricht || "(kein Kommentar)"
+                                    font.pixelSize: 12; font.weight: verlaufItem.istErster ? Font.Medium : Font.Normal
+                                    color: root.theme.textPrimary; elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: {
+                                        var d = new Date(modelData.datum)
+                                        return isNaN(d.getTime())
+                                            ? modelData.datum
+                                            : Qt.formatDateTime(d, "dd.MM.yyyy HH:mm")
+                                              + "  #" + modelData.hash
+                                    }
+                                    font.pixelSize: 10; font.family: "monospace"
+                                    color: root.theme.textMuted
+                                }
+                            }
+
+                            // Wiederherstellen-Button (sichtbar bei Hover, nicht beim aktuellen)
+                            Rectangle {
+                                visible:       verlaufItem.hov && !verlaufItem.istErster
+                                width: 100; height: 26; radius: 4
+                                color:        wiederHov.containsMouse ? root.theme.accent : root.theme.inputBg
+                                border.color: root.theme.accent
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Wiederherstellen")
+                                    font.pixelSize: 10; color: root.theme.textPrimary
+                                }
+                                MouseArea {
+                                    id:           wiederHov; anchors.fill: parent
+                                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (db.gitCheckout(db.projektOrdner, modelData.hashFull))
+                                            verlaufListe.model = db.gitLog(db.projektOrdner)
+                                        else
+                                            fehlerPopup.open()
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            visible: index < verlaufListe.count - 1
+                            anchors { bottom: parent.bottom; left: parent.left; right: parent.right; leftMargin: 18 }
+                            height: 1; color: root.theme.divider
+                        }
+
+                        MouseArea { id: verlaufMa; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
                     }
                 }
 

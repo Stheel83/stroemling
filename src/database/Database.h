@@ -17,6 +17,7 @@ class Database : public QObject
 
     Q_PROPERTY(bool         projektOffen    READ projektOffen       NOTIFY projektOffenChanged)
     Q_PROPERTY(QString      projektPfad     READ projektPfad        NOTIFY projektOffenChanged)
+    Q_PROPERTY(QString      projektOrdner   READ projektOrdner      NOTIFY projektOffenChanged)
     Q_PROPERTY(QVariantList bekannteProjecte READ bekannteProjecteLaden NOTIFY registryGeaendert)
     Q_PROPERTY(QString      makroPfad       READ makroPfad          CONSTANT)
     Q_PROPERTY(QString      wikiPfad        READ wikiPfad           CONSTANT)
@@ -43,6 +44,14 @@ public:
     // GIT-00: Ordner-pro-Projekt
     Q_INVOKABLE QString standardProjektOrdner() const;
 
+    // GIT-01: Git-Integration
+    Q_INVOKABLE bool         gitVerfuegbar() const;
+    Q_INVOKABLE bool         snapshotErstellen(const QString &ordner);
+    Q_INVOKABLE void         gitProjektInit(const QString &ordner);
+    Q_INVOKABLE void         gitAutoCommit(const QString &ordner, const QString &nachricht);
+    Q_INVOKABLE QVariantList gitLog(const QString &ordner);
+    Q_INVOKABLE bool         gitCheckout(const QString &ordner, const QString &hash);
+
     // Aktuelles Projekt schließen
     Q_INVOKABLE void closeProjekt();
 
@@ -50,8 +59,9 @@ public:
     Q_INVOKABLE bool projektExportieren(const QString &destPfad);
 
     // Ist gerade eine Projektdatei geöffnet?
-    bool    projektOffen() const { return m_projektOffen; }
-    QString projektPfad()  const;
+    bool    projektOffen()  const { return m_projektOffen; }
+    QString projektPfad()   const;
+    QString projektOrdner() const;
 
     // Zuletzt geöffnete Projekte (max. 10, nur existierende Dateien)
     Q_INVOKABLE QVariantList zuletzGeoeffnete() const;

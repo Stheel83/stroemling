@@ -718,6 +718,99 @@ bool Database::verbindungenBulkBezeichnungSetzen(int projektId, const QVariantLi
 }
 
 // ============================================================
+// fehlersuchQuerverweisZiel
+// Sucht die Zielseite + Position für einen Querverweis-Sprung
+// im Fehlersuchmodus.
+// Ablauf:
+//   1. Mittelpunkt des Querverweis-Elements ermitteln
+//   2. Nächstes verbindung_segment-Endpunkt auf vonSeiteId finden
+//   3. nach_seite_id aus querverweis-Tabelle lesen
+//   4. Position des Querverweis-Elements auf Zielseite (gleicher signalname)
+// ============================================================
+QVariantMap Database::fehlersuchQuerverweisZiel(int vonSeiteId, int qvElementId)
+{
+    QVariantMap result;
+    result[QStringLiteral("nachSeiteId")] = -1;
+    result[QStringLiteral("zielX")]       = 0.0;
+    result[QStringLiteral("zielY")]       = 0.0;
+
+    // 1. Mittelpunkt des Querverweis-Elements
+    QSqlQuery elQ;
+    elQ.prepare("SELECT (x1 + x2) / 2.0, (y1 + y2) / 2.0 FROM grafik_element WHERE id = :id");
+    elQ.bindValue(":id", qvElementId);
+    if (!elQ.exec() || !elQ.next()) return result;
+    const double elX = elQ.value(0).toDouble();
+    const double elY = elQ.value(1).toDouble();
+
+    // 2. Nächstes verbindung_segment-Endpunkt auf der Quellseite
+    QSqlQuery segQ;
+    segQ.prepare("SELECT verbindung_id, punkte FROM verbindung_segment WHERE seite_id = :sid");
+    segQ.bindValue(":sid", vonSeiteId);
+    if (!segQ.exec()) return result;
+
+    int    bestVerbId = -1;
+    double bestDist2  = 16.0; // Toleranz: 4 WE
+    while (segQ.next()) {
+        const int     vid = segQ.value(0).toInt();
+        const QJsonArray pts = QJsonDocument::fromJson(
+            segQ.value(1).toByteArray()).array();
+        for (const QJsonValue &pv : pts) {
+            const QJsonObject p = pv.toObject();
+            const double dx = p[QStringLiteral("x")].toDouble() - elX;
+            const double dy = p[QStringLiteral("y")].toDouble() - elY;
+            const double d2 = dx * dx + dy * dy;
+            if (d2 < bestDist2) { bestDist2 = d2; bestVerbId = vid; }
+        }
+    }
+    if (bestVerbId < 0) return result;
+
+    // 3. nach_seite_id aus querverweis-Tabelle
+    QSqlQuery qvQ;
+    qvQ.prepare("SELECT nach_seite_id FROM querverweis "
+                "WHERE verbindung_id = :vid AND von_seite_id = :sid LIMIT 1");
+    qvQ.bindValue(":vid", bestVerbId);
+    qvQ.bindValue(":sid", vonSeiteId);
+    if (!qvQ.exec() || !qvQ.next()) return result;
+    const int nachSeiteId = qvQ.value(0).toInt();
+    result[QStringLiteral("nachSeiteId")] = nachSeiteId;
+
+    // 4. Position des Querverweis-Elements auf der Zielseite (gleicher signalname)
+    QSqlQuery snQ;
+    snQ.prepare("SELECT json_extract(extra_daten, '$.signalname') "
+                "FROM grafik_element WHERE id = :id");
+    snQ.bindValue(":id", qvElementId);
+    const QString signalname = (snQ.exec() && snQ.next())
+                               ? snQ.value(0).toString() : QString();
+
+    QSqlQuery targetQ;
+    if (!signalname.isEmpty()) {
+        targetQ.prepare(R"(
+            SELECT (x1 + x2) / 2.0, (y1 + y2) / 2.0
+            FROM grafik_element
+            WHERE seite_id = :sid AND symbol_id = 'querverweis'
+            AND json_extract(extra_daten, '$.signalname') = :sn
+            LIMIT 1
+        )");
+        targetQ.bindValue(":sid", nachSeiteId);
+        targetQ.bindValue(":sn",  signalname);
+    } else {
+        targetQ.prepare(R"(
+            SELECT (x1 + x2) / 2.0, (y1 + y2) / 2.0
+            FROM grafik_element
+            WHERE seite_id = :sid AND symbol_id = 'querverweis'
+            LIMIT 1
+        )");
+        targetQ.bindValue(":sid", nachSeiteId);
+    }
+    if (targetQ.exec() && targetQ.next()) {
+        result[QStringLiteral("zielX")] = targetQ.value(0).toDouble();
+        result[QStringLiteral("zielY")] = targetQ.value(1).toDouble();
+    }
+
+    return result;
+}
+
+// ============================================================
 // alleSeitenFlach
 // Gibt alle Seiten eines Projekts als flache Liste zurück.
 // Wird im EigenschaftenPanel für den Querverweis-Seitenpicker

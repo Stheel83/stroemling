@@ -290,9 +290,13 @@ Item {
                     var istQv = (nb.symbolId || "") === "querverweis"
                     if (istQv) {
                         var ed = nb.extraDaten || {}
+                        var ziel = db.fehlersuchQuerverweisZiel(root.seiteId, nb.id || -1)
                         querv.push({ x: (nb.x1 + nb.x2) / 2,
                                      y: (nb.y1 + nb.y2) / 2,
-                                     bezeichnung: ed.signalname || "" })
+                                     bezeichnung: ed.signalname || "",
+                                     nachSeiteId: ziel.nachSeiteId !== undefined ? ziel.nachSeiteId : -1,
+                                     zielX: ziel.zielX || 0,
+                                     zielY: ziel.zielY || 0 })
                     } else if (rolle === "durchleiter" || rolle === "quelle" ||
                                rolle === "variabel" || rolle === "") {
                         queue.push(nb)
@@ -4056,6 +4060,12 @@ Item {
     }
 
     onSeiteIdChanged: {
+        if (root.fehlersuchModus) {
+            root.fehlersuchPfadIds      = {}
+            root.fehlersuchStartId      = -1
+            root.fehlersuchQuerverweise = []
+            root.fehlersuchPfadGefunden([])
+        }
         if (seiteId < 0) {
             root._zoomPanCache  = {}
             root._vorherSeiteId = -1

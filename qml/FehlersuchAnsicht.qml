@@ -182,7 +182,7 @@ Item {
                                 text: qsTr("Springen →")
                                 font.pixelSize: 11
                                 color: theme.accent
-                                visible: qvMaus.containsMouse
+                                visible: qvMaus.containsMouse && (modelData.nachSeiteId || -1) >= 0
                             }
                         }
 
@@ -190,29 +190,40 @@ Item {
                             id: qvMaus
                             anchors.fill: parent
                             hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.querverweisNavigieren(
-                                           root.seiteId, modelData.x, modelData.y)
+                            cursorShape: (modelData.nachSeiteId || -1) >= 0
+                                         ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: {
+                                var nachId = modelData.nachSeiteId || -1
+                                if (nachId >= 0)
+                                    root.querverweisNavigieren(
+                                        nachId,
+                                        modelData.zielX || 0,
+                                        modelData.zielY || 0)
+                            }
                         }
                     }
                 }
 
-                // Hinweis Querverweis ohne bekannte Seite
-                Item {
-                    Layout.fillWidth: true
-                    Layout.topMargin: 16
-                    Layout.leftMargin: 14
-                    Layout.rightMargin: 14
-                    implicitHeight: qvHinweisText.implicitHeight
-                    visible: root.pfadAnzahl > 0 && root.querverweise.length > 0
+                // Hinweis wenn Querverweis-Zielseite nicht aufgelöst werden konnte
+                Repeater {
+                    model: root.querverweise.filter(function(q) {
+                        return (q.nachSeiteId || -1) < 0
+                    })
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 14
+                        Layout.rightMargin: 14
+                        implicitHeight: qvWarnText.implicitHeight + 4
 
-                    Text {
-                        id: qvHinweisText
-                        width: parent.width
-                        wrapMode: Text.WordWrap
-                        text: qsTr("Seitenwechsel noch nicht implementiert – Querverweis in einer späteren Version.")
-                        font.pixelSize: 10
-                        color: theme.borderLight
+                        Text {
+                            id: qvWarnText
+                            width: parent.width
+                            wrapMode: Text.WordWrap
+                            text: qsTr("Zielseite für \"%1\" nicht gefunden – Netz neu synchronisieren?")
+                                  .arg(modelData.bezeichnung || "?")
+                            font.pixelSize: 10
+                            color: theme.borderLight
+                        }
                     }
                 }
             }

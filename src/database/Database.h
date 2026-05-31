@@ -155,6 +155,11 @@ public:
     //           segmente:[{x1,y1,x2,y2}], querverweise:[{vonSeiteId,nachSeiteId,...}]}]
     Q_INVOKABLE bool verbindungenSynchronisieren(int seiteId, int projektId, const QVariantList &netze);
 
+    // Fehlersuchmodus: Zielseite + Position für einen Querverweis-Sprung.
+    // qvElementId: grafik_element.id des Querverweis-Symbols auf vonSeiteId.
+    // Gibt { nachSeiteId: int, zielX: real, zielY: real } zurück.
+    Q_INVOKABLE QVariantMap fehlersuchQuerverweisZiel(int vonSeiteId, int qvElementId);
+
     // Verbindungsannotation (Bezeichnung, Aderfarbe, Querschnitt) eines Netzes aktualisieren.
     Q_INVOKABLE bool verbindungAktualisieren(int verbindungId, const QString &bezeichnung,
                                              const QString &farbe, double querschnitt);

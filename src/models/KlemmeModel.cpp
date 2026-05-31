@@ -162,6 +162,27 @@ bool KlemmeModel::speichern(const QVariantMap &daten)
         qWarning() << "KlemmeModel::speichern:" << q.lastError().text();
         return false;
     }
+
+    // PE-Fußkontakt-Brücke automatisch verwalten:
+    // unterste Ebene (ebenen_anzahl) ↔ PE-Fußkontakt.
+    bool peFuss   = daten["fussKontaktPe"].toBool();
+    int  ebAnzahl = daten["ebenenAnzahl"].toInt();
+    if (peFuss) {
+        QSqlQuery qpe;
+        qpe.prepare("INSERT OR IGNORE INTO bauteil_klemme_bruecke "
+                    "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) "
+                    "VALUES (:kid, :eb, :eb, 1)");
+        qpe.bindValue(":kid", m_klemmeId);
+        qpe.bindValue(":eb",  ebAnzahl > 0 ? ebAnzahl : 1);
+        qpe.exec();
+    } else {
+        QSqlQuery qpe;
+        qpe.prepare("DELETE FROM bauteil_klemme_bruecke "
+                    "WHERE klemme_id = :kid AND ist_pe_fuss = 1");
+        qpe.bindValue(":kid", m_klemmeId);
+        qpe.exec();
+    }
+
     laden(m_bauteilId);
     return true;
 }

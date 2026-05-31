@@ -124,8 +124,15 @@ MouseArea {
                 var ldy = (vp.y - canvas.labelDragMausVpY) / canvas.zoom
                 var ldEl = em.element(canvas.labelDragIdx)
                 var ldEd = Object.assign({}, ldEl.extraDaten || {})
-                ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
-                ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
+                // Bei Rotation 90/270 steuert bmkOy die Screen-X-Achse und bmkOx die Screen-Y-Achse
+                var ldRot = ((ldEl.rotation || 0) % 360 + 360) % 360
+                if (ldRot === 90 || ldRot === 270) {
+                    ldEd.bmkOffsetX = canvas.labelDragStartOx + ldy
+                    ldEd.bmkOffsetY = canvas.labelDragStartOy + ldx
+                } else {
+                    ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
+                    ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
+                }
                 em.eigenschaftSetzen(canvas.labelDragIdx, "extraDaten", ldEd)
                 canvas.neuZeichnen()
                 return

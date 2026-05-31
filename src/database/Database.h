@@ -39,7 +39,10 @@ public:
     Q_INVOKABLE bool openProjekt(const QString &path);
 
     // Neue Projektdatei anlegen und öffnen
-    Q_INVOKABLE bool createProjekt(const QString &path, const QString &projektName);
+    Q_INVOKABLE bool    createProjekt(const QString &path, const QString &projektName);
+    // GIT-00: Ordner-pro-Projekt
+    Q_INVOKABLE QString standardProjektOrdner() const;
+    Q_INVOKABLE bool    projektMigrierenZuOrdner(const QString &strlPfad);
 
     // Aktuelles Projekt schließen
     Q_INVOKABLE void closeProjekt();

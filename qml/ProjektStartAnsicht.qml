@@ -28,6 +28,31 @@ Item {
         parts.pop()
         return _kurzPfad(parts.join("/"))
     }
+    // GIT-00: Ordner-pro-Projekt – zeigt Ordnername statt Dateiname für neue Struktur
+    function _projektAnzeigeNameFuerOrdner(pfad) {
+        var parts = pfad.split("/")
+        return (parts[parts.length - 1] === "projekt.strl")
+               ? parts[parts.length - 2]
+               : parts[parts.length - 1]
+    }
+    function _projektElternPfad(pfad) {
+        var parts = pfad.split("/")
+        if (parts[parts.length - 1] === "projekt.strl") parts.splice(parts.length - 2, 2)
+        else parts.pop()
+        return _kurzPfad(parts.join("/"))
+    }
+    function _istNeuesFormat(pfad) {
+        return pfad.split("/").pop() === "projekt.strl"
+    }
+    function _slug(name) {
+        return name.trim()
+                   .replace(/[\/\\:*?"<>|]/g, "_")
+                   .replace(/\s+/g, "-")
+                   .replace(/-+/g, "-")
+                   .replace(/^-+|-+$/g, "")
+                   .substring(0, 64)
+               || "Neues-Projekt"
+    }
 
     function _ladenMetaDaten() {
         _ladevorgang = true
@@ -52,15 +77,189 @@ Item {
         }
     }
 
-    // ── Datei-Dialoge ─────────────────────────────────────────────────
-    FileDialog {
-        id: neuesProjektDialog
-        fileMode:      FileDialog.SaveFile
-        nameFilters:   ["Strömling Projekte (*.strl)"]
-        defaultSuffix: "strl"
+    // ── Neues Projekt (GIT-00: Ordner-pro-Projekt) ────────────────────────────
+    FolderDialog {
+        id: projektOrtDialog
+        title: qsTr("Speicherort wählen")
         onAccepted: {
-            if (!db.createProjekt(selectedFile.toString(), ""))
-                fehlerPopup.open()
+            var p = selectedFolder.toString()
+            if (p.startsWith("file://")) p = p.substring(7)
+            neuProjektPopup._ort = p
+        }
+    }
+
+    Popup {
+        id: neuProjektPopup
+        modal: true
+        padding: 0
+        anchors.centerIn: Overlay.overlay
+
+        property string _name: ""
+        property string _ort:  ""
+
+        onOpened: {
+            if (_ort === "") _ort = db.standardProjektOrdner()
+            _name = ""
+            nameInputField.text = ""
+            nameInputField.forceActiveFocus()
+        }
+
+        background: Rectangle {
+            color:        root.theme.surface
+            border.color: root.theme.border
+            radius:       8
+        }
+
+        contentItem: ColumnLayout {
+            width: 400
+            spacing: 0
+
+            // Header
+            Item {
+                Layout.fillWidth: true
+                height: 48
+                Text {
+                    anchors { left: parent.left; leftMargin: 24; verticalCenter: parent.verticalCenter }
+                    text:           qsTr("Neues Projekt anlegen")
+                    font.pixelSize: 14; font.weight: Font.Medium
+                    color:          root.theme.textPrimary
+                }
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width; height: 1
+                    color: root.theme.border
+                }
+            }
+
+            // Felder
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.margins:   24
+                spacing:          20
+
+                // Projektname
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 6
+                    Text { text: qsTr("Projektname"); font.pixelSize: 11; color: root.theme.textMuted }
+                    TextField {
+                        id:               nameInputField
+                        Layout.fillWidth: true
+                        placeholderText:  qsTr("z. B. Schaltschrank Halle 3")
+                        color:            root.theme.textPrimary; font.pixelSize: 13
+                        background: Rectangle {
+                            color:        root.theme.inputBg
+                            border.color: nameInputField.activeFocus ? root.theme.accent : root.theme.border
+                            radius:       4
+                        }
+                        onTextChanged: neuProjektPopup._name = text
+                        Keys.onReturnPressed: { if (neuProjektPopup._name.trim()) anlegenBtn.clicked() }
+                        Keys.onEscapePressed: neuProjektPopup.close()
+                    }
+                }
+
+                // Speicherort
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 6
+                    Text { text: qsTr("Speicherort"); font.pixelSize: 11; color: root.theme.textMuted }
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 8
+                        Text {
+                            Layout.fillWidth: true
+                            text:           neuProjektPopup._ort.replace(/^\/home\/[^/]+/, "~")
+                            font.pixelSize: 11; font.family: "monospace"
+                            color:          root.theme.textPrimary; elide: Text.ElideLeft
+                        }
+                        Rectangle {
+                            width: 28; height: 28; radius: 4
+                            color:        ortBtnMa.containsMouse ? root.theme.hover : root.theme.inputBg
+                            border.color: root.theme.border
+                            Text { anchors.centerIn: parent; text: "📂"; font.pixelSize: 13 }
+                            MouseArea {
+                                id:           ortBtnMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: projektOrtDialog.open()
+                            }
+                        }
+                    }
+                }
+
+                // Pfad-Vorschau
+                Rectangle {
+                    Layout.fillWidth: true
+                    visible:          neuProjektPopup._name.trim() !== ""
+                    implicitHeight:   vorschauCol.implicitHeight + 16
+                    color:            root.theme.surfaceDeep
+                    radius:           4
+                    border.color:     root.theme.borderLight
+
+                    Column {
+                        id: vorschauCol
+                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }
+                        spacing: 2
+                        Text {
+                            width: parent.width
+                            text: neuProjektPopup._ort.replace(/^\/home\/[^/]+/, "~")
+                                  + "/" + root._slug(neuProjektPopup._name) + "/"
+                            font.pixelSize: 10; font.family: "monospace"
+                            color: root.theme.textMuted; wrapMode: Text.WrapAnywhere
+                        }
+                        Text {
+                            text:           "  projekt.strl"
+                            font.pixelSize: 10; font.family: "monospace"
+                            color:          root.theme.accent
+                        }
+                    }
+                }
+            }
+
+            // Footer-Buttons
+            Item {
+                Layout.fillWidth: true; height: 52
+                Rectangle {
+                    anchors.top: parent.top
+                    width: parent.width; height: 1; color: root.theme.border
+                }
+                RowLayout {
+                    anchors { fill: parent; leftMargin: 16; rightMargin: 16 }
+                    spacing: 8
+                    Item { Layout.fillWidth: true }
+                    Button {
+                        text: qsTr("Abbrechen"); implicitHeight: 32; implicitWidth: 95
+                        contentItem: Text {
+                            text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                            radius: 4; border.color: root.theme.border
+                        }
+                        onClicked: neuProjektPopup.close()
+                    }
+                    Button {
+                        id: anlegenBtn
+                        text: qsTr("Anlegen ›"); implicitHeight: 32; implicitWidth: 95
+                        enabled: neuProjektPopup._name.trim() !== ""
+                        contentItem: Text {
+                            text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            opacity: parent.enabled ? 1.0 : 0.45
+                        }
+                        background: Rectangle {
+                            color:        parent.hovered && parent.enabled ? root.theme.accent : root.theme.inputBg
+                            radius:       4
+                            border.color: parent.enabled ? root.theme.accent : root.theme.border
+                        }
+                        onClicked: {
+                            var slug = root._slug(neuProjektPopup._name)
+                            var pfad = neuProjektPopup._ort + "/" + slug + "/projekt.strl"
+                            var name = neuProjektPopup._name
+                            neuProjektPopup.close()
+                            if (!db.createProjekt(pfad, name))
+                                fehlerPopup.open()
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -166,7 +365,7 @@ Item {
                             Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 18; font.weight: Font.Bold; color: root.theme.textPrimary }
                             MouseArea {
                                 id: neuBtnHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                onClicked: neuesProjektDialog.open()
+                                onClicked: neuProjektPopup.open()
                                 ToolTip.visible: containsMouse; ToolTip.delay: 600; ToolTip.text: qsTr("Neues Projekt")
                             }
                         }
@@ -396,19 +595,23 @@ Item {
                     Layout.fillWidth: true
                     columns: 3; rowSpacing: 10; columnSpacing: 12
 
-                    // Projektdatei
-                    Text { text: qsTr("Projektdatei"); font.pixelSize: 11; color: root.theme.textMuted }
+                    // Projektordner/-datei (GIT-00: zeigt Ordner für neues Format)
+                    Text {
+                        text: root._istNeuesFormat(db.projektPfad)
+                              ? qsTr("Projektordner") : qsTr("Projektdatei")
+                        font.pixelSize: 11; color: root.theme.textMuted
+                    }
                     Column {
                         Layout.fillWidth: true; spacing: 2
                         Text {
                             width: parent.width
-                            text: root._dateiName(db.projektPfad)
+                            text: root._projektAnzeigeNameFuerOrdner(db.projektPfad)
                             font.pixelSize: 12; color: root.theme.textPrimary
                             elide: Text.ElideRight
                         }
                         Text {
                             width: parent.width
-                            text: root._verzeichnis(db.projektPfad)
+                            text: root._projektElternPfad(db.projektPfad)
                             font.pixelSize: 10; font.family: "monospace"
                             color: root.theme.textMuted; elide: Text.ElideLeft; opacity: 0.7
                         }
@@ -528,6 +731,30 @@ Item {
                             onClicked: { db.projektAusRegistryEntfernen(db.projektPfad); db.closeProjekt() }
                             ToolTip.visible: containsMouse; ToolTip.delay: 800
                             ToolTip.text: qsTr("Aus Projektliste entfernen — Datei bleibt auf der Festplatte erhalten")
+                        }
+                    }
+
+                    // In Ordner migrieren (nur sichtbar wenn altes Format)
+                    Rectangle {
+                        visible:       db.projektOffen && !root._istNeuesFormat(db.projektPfad)
+                        implicitWidth: 180; height: 34; radius: 4
+                        color:         migrHov.containsMouse ? root.theme.hover : "transparent"
+                        border.color:  root.theme.border
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
+                            spacing: 6
+                            Text { text: "📁"; font.pixelSize: 13; color: root.theme.textMuted }
+                            Text { text: qsTr("In Ordner migrieren"); font.pixelSize: 11; color: root.theme.textMuted }
+                        }
+                        MouseArea {
+                            id:           migrHov; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (!db.projektMigrierenZuOrdner(db.projektPfad))
+                                    fehlerPopup.open()
+                            }
+                            ToolTip.visible: containsMouse; ToolTip.delay: 600
+                            ToolTip.text: qsTr("Projektdatei in eigenen Unterordner verschieben (Ordner-pro-Projekt-Format)")
                         }
                     }
 

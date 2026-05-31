@@ -687,67 +687,6 @@ QString Database::standardProjektOrdner() const
 }
 
 // ============================================================
-// projektMigrierenZuOrdner (GIT-00)
-// Verschiebt eine flache .strl-Datei in einen eigenen Unterordner:
-//   ~/Projekte/MeinProjekt.strl  →  ~/Projekte/MeinProjekt/projekt.strl
-// Aktualisiert Registry + öffnet das Projekt vom neuen Pfad.
-// ============================================================
-bool Database::projektMigrierenZuOrdner(const QString &strlPfad)
-{
-    QString localPath = QUrl(strlPfad).isLocalFile() ? QUrl(strlPfad).toLocalFile() : strlPfad;
-
-    if (!QFile::exists(localPath)) return false;
-    // Bereits im neuen Format?
-    if (QFileInfo(localPath).fileName() == QStringLiteral("projekt.strl")) return true;
-
-    QString baseName    = QFileInfo(localPath).baseName();
-    QString parentDir   = QFileInfo(localPath).absolutePath();
-    QString neuerOrdner = parentDir + "/" + baseName;
-    QString neuerPfad   = neuerOrdner + QStringLiteral("/projekt.strl");
-
-    if (!QDir().mkpath(neuerOrdner)) {
-        qWarning() << "projektMigrierenZuOrdner: Ordner konnte nicht angelegt werden:" << neuerOrdner;
-        return false;
-    }
-    if (QFile::exists(neuerPfad)) {
-        qWarning() << "projektMigrierenZuOrdner: Zieldatei existiert bereits:" << neuerPfad;
-        return false;
-    }
-
-    // Offenes Projekt schließen bevor die Datei verschoben wird
-    bool warOffen = m_projektOffen && (m_db.databaseName() == localPath);
-    if (warOffen) {
-        m_db.close();
-        m_db = QSqlDatabase();
-        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
-        m_projektOffen = false;
-        emit projektOffenChanged();
-    }
-
-    if (!QFile::rename(localPath, neuerPfad)) {
-        qWarning() << "projektMigrierenZuOrdner: Verschieben fehlgeschlagen:" << localPath;
-        return false;
-    }
-    // WAL/SHM-Dateien mitverschieben
-    for (const QString &suffix : {"-wal", "-shm"}) {
-        QString src = localPath + suffix;
-        if (QFile::exists(src)) QFile::rename(src, neuerPfad + suffix);
-    }
-
-    // Registry aktualisieren
-    if (m_launcherDb.isOpen()) {
-        QSqlQuery q(m_launcherDb);
-        q.prepare("UPDATE zuletzt_geoeffnet SET pfad=:neu WHERE pfad=:alt");
-        q.bindValue(":neu", neuerPfad); q.bindValue(":alt", localPath); q.exec();
-        q.prepare("UPDATE bekannte_projekte SET datei_pfad=:neu WHERE datei_pfad=:alt");
-        q.bindValue(":neu", neuerPfad); q.bindValue(":alt", localPath); q.exec();
-    }
-
-    qInfo() << "GIT-00 Migration:" << localPath << "→" << neuerPfad;
-    return openProjekt(neuerPfad);
-}
-
-// ============================================================
 // symboleNachNorm
 // Gibt alle Symbole zurück deren norm-Feld die gesuchte Norm enthält.
 // ============================================================

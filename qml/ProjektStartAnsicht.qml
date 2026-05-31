@@ -41,9 +41,6 @@ Item {
         else parts.pop()
         return _kurzPfad(parts.join("/"))
     }
-    function _istNeuesFormat(pfad) {
-        return pfad.split("/").pop() === "projekt.strl"
-    }
     function _slug(name) {
         return name.trim()
                    .replace(/[\/\\:*?"<>|]/g, "_")
@@ -734,31 +731,8 @@ Item {
                         }
                     }
 
-                    // In Ordner migrieren (nur sichtbar wenn altes Format)
-                    Rectangle {
-                        visible:       db.projektOffen && !root._istNeuesFormat(db.projektPfad)
-                        implicitWidth: 180; height: 34; radius: 4
-                        color:         migrHov.containsMouse ? root.theme.hover : "transparent"
-                        border.color:  root.theme.border
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
-                            spacing: 6
-                            Text { text: "📁"; font.pixelSize: 13; color: root.theme.textMuted }
-                            Text { text: qsTr("In Ordner migrieren"); font.pixelSize: 11; color: root.theme.textMuted }
-                        }
-                        MouseArea {
-                            id:           migrHov; anchors.fill: parent
-                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (!db.projektMigrierenZuOrdner(db.projektPfad))
-                                    fehlerPopup.open()
-                            }
-                            ToolTip.visible: containsMouse; ToolTip.delay: 600
-                            ToolTip.text: qsTr("Projektdatei in eigenen Unterordner verschieben (Ordner-pro-Projekt-Format)")
-                        }
-                    }
 
-                    // Export-Status
+// Export-Status
                     Text {
                         visible: root._exportStatus !== ""
                         text: root._exportStatus

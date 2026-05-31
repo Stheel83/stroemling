@@ -10,6 +10,89 @@ Item {
 
     DebugLabel { panelName: qsTr("Klemmenreihen-Vorschau"); visible: panel.debug }
 
+    // ── Dialog: N Klemmen auf einmal hinzufügen ─────────────────────
+    Dialog {
+        id: mehrfachHinzufuegenDlg
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 240
+        padding: 16
+
+        property int anzahl: 5
+
+        background: Rectangle {
+            color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6
+        }
+        onAboutToShow: {
+            anzahl = 5
+            anzahlSpin.value = 5
+            anzahlSpin.forceActiveFocus()
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+            Text {
+                text: qsTr("Anzahl Klemmen:")
+                font.pixelSize: 11; color: theme.textMuted
+            }
+            SpinBox {
+                id: anzahlSpin
+                Layout.fillWidth: true
+                from: 1; to: 200; value: 5; editable: true
+                font.pixelSize: 13
+                contentItem: TextInput {
+                    text: parent.textFromValue(parent.value, parent.locale)
+                    font: parent.font; color: theme.textPrimary
+                    verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                    readOnly: !parent.editable; validator: parent.validator
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    Keys.onReturnPressed: mehrfachHinzufuegenDlg.accept()
+                }
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
+                onValueChanged: mehrfachHinzufuegenDlg.anzahl = value
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: qsTr("Abbrechen"); implicitWidth: 90; implicitHeight: 28
+                    contentItem: Text { text: parent.text; color: theme.textMuted; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; border.color: theme.border; border.width: 1; radius: 4 }
+                    onClicked: mehrfachHinzufuegenDlg.reject()
+                }
+                Button {
+                    text: qsTr("Hinzufügen"); implicitWidth: 100; implicitHeight: 28
+                    contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle {
+                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent
+                    }
+                    onClicked: mehrfachHinzufuegenDlg.accept()
+                }
+            }
+        }
+
+        onAccepted: {
+            var n = mehrfachHinzufuegenDlg.anzahl
+            var firstIdx = klemmenreiheModel.klemmen.length
+            for (var i = 0; i < n; i++)
+                klemmenreiheModel.klemmeAnlegen(-1)
+            var kl = klemmenreiheModel.klemmen
+            if (n === 1) {
+                panel.aktivKlemmeIdx = kl.length - 1
+                panel._ausgewaehlt   = []
+            } else {
+                var newIds = []
+                for (var j = firstIdx; j < kl.length; j++)
+                    newIds.push(kl[j].klemmeId)
+                panel._ausgewaehlt   = newIds
+                panel.aktivKlemmeIdx = -1
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -122,17 +205,26 @@ Item {
                                 hoverEnabled: true
                                 cursorShape:  Qt.PointingHandCursor
                                 onClicked: function(mouse) {
-                                    if (mouse.modifiers & Qt.ControlModifier) {
+                                    if (mouse.modifiers & Qt.ShiftModifier && panel.aktivKlemmeIdx >= 0) {
+                                        // Shift+Klick → Bereich ab Anker auswählen
+                                        var from = Math.min(panel.aktivKlemmeIdx, index)
+                                        var to   = Math.max(panel.aktivKlemmeIdx, index)
+                                        var sel = []
+                                        var kl = klemmenreiheModel.klemmen
+                                        for (var j = from; j <= to; j++)
+                                            sel.push(kl[j].klemmeId)
+                                        panel._ausgewaehlt = sel
+                                    } else if (mouse.modifiers & Qt.ControlModifier) {
                                         // CE-05: Ctrl+Klick → Multi-Auswahl togglen
                                         var kid = modelData.klemmeId
                                         var pos = panel._ausgewaehlt.indexOf(kid)
-                                        var sel = panel._ausgewaehlt.slice()
-                                        if (pos >= 0) sel.splice(pos, 1)
-                                        else          sel.push(kid)
-                                        panel._ausgewaehlt  = sel
-                                        panel.aktivKlemmeIdx = sel.length === 1 ? index : -1
+                                        var sel2 = panel._ausgewaehlt.slice()
+                                        if (pos >= 0) sel2.splice(pos, 1)
+                                        else          sel2.push(kid)
+                                        panel._ausgewaehlt   = sel2
+                                        panel.aktivKlemmeIdx = sel2.length === 1 ? index : -1
                                     } else {
-                                        panel._ausgewaehlt  = []
+                                        panel._ausgewaehlt   = []
                                         panel.aktivKlemmeIdx = panel.aktivKlemmeIdx === index ? -1 : index
                                     }
                                 }
@@ -220,6 +312,21 @@ Item {
                     }
                 }
 
+                Button {
+                    text: qsTr("+ N×")
+                    implicitHeight: 28
+                    contentItem: Text {
+                        text: parent.text; font.pixelSize: 12; color: theme.textPrimary
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 4; border.color: theme.accent
+                    }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Mehrere Klemmen auf einmal hinzufügen")
+                    onClicked: mehrfachHinzufuegenDlg.open()
+                }
+
                 // Pfeil hoch/runter (nur wenn Klemme ausgewählt)
                 Button {
                     visible: panel.aktivKlemmeIdx > 0
@@ -278,6 +385,28 @@ Item {
                             klemmenreiheModel.klemmeLoeschen(k.klemmeId)
                             panel.aktivKlemmeIdx = -1
                         }
+                    }
+                }
+
+                Button {
+                    visible: klemmenreiheModel.klemmen.length > 1
+                    text: qsTr("Alle")
+                    implicitHeight: 28
+                    contentItem: Text {
+                        text: parent.text; font.pixelSize: 12; color: theme.textPrimary
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? theme.hover : "transparent"; radius: 4; border.color: theme.border; border.width: 1
+                    }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Alle Klemmen auswählen  ·  Strg+Klick zum Togglen einzelner Klemmen  ·  Umschalt+Klick für Bereichsauswahl")
+                    onClicked: {
+                        var kl = klemmenreiheModel.klemmen
+                        var allIds = []
+                        for (var i = 0; i < kl.length; i++) allIds.push(kl[i].klemmeId)
+                        panel._ausgewaehlt   = allIds
+                        panel.aktivKlemmeIdx = -1
                     }
                 }
 

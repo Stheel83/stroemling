@@ -304,7 +304,7 @@ Rectangle {
             }
             Text {
                 visible: panel._ausgewaehlt.length >= 2
-                text: qsTr("%1 Klemmen ausgewaehlt").arg(panel._ausgewaehlt.length)
+                text: qsTr("%1 Klemmen ausgewählt").arg(panel._ausgewaehlt.length)
                 font.pixelSize: 11; color: theme.textSecondary; Layout.fillWidth: true
             }
 

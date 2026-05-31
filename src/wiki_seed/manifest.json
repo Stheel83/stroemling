@@ -193,6 +193,33 @@
           "datei": "stroemlinge/pokestroem.md",
           "bild_qrc": ":/assets/pokestroem_cee.png",
           "bild_dateiname": "pokestroem_cee.png"
+        },
+        {
+          "titel": "Linus – die Kabelbrücke",
+          "tags": "linus kabelbrücke ader leitung verbindung kupfer form-b",
+          "datei": "stroemlinge/linus.md",
+          "bild_qrc": ":/assets/linus_uebersicht.png",
+          "bild_dateiname": "linus_uebersicht.png"
+        },
+        {
+          "titel": "Krizzo – der Kurzschluss",
+          "tags": "krizzo kurzschluss fehler rot brandspuren chaos",
+          "datei": "stroemlinge/krizzo.md"
+        },
+        {
+          "titel": "Errinka – der allgemeine Fehler",
+          "tags": "errinka fehler warnung gelb nervös unbekannt",
+          "datei": "stroemlinge/errinka.md"
+        },
+        {
+          "titel": "Fusia – die Überlast",
+          "tags": "fusia überlast sicherung erschöpft orange rost",
+          "datei": "stroemlinge/fusia.md"
+        },
+        {
+          "titel": "Stoppius – der Not-Aus",
+          "tags": "stoppius not-aus notstop rot sicherheit held",
+          "datei": "stroemlinge/stoppius.md"
         }
       ]
     },

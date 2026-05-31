@@ -18,6 +18,16 @@ Item {
     readonly property int  fehlerAnzahl: ergebnisModel.count
     readonly property bool hatFehler:    ergebnisModel.count > 0
 
+    property bool hatGeprueft: false
+
+    readonly property string isolusZustand: {
+        if (!hatGeprueft)       return "idle"
+        if (fehlerAnzahl === 0) return "intakt"
+        if (fehlerAnzahl <= 3)  return "beansprucht"
+        if (fehlerAnzahl <= 9)  return "beschaedigt"
+        return "gefallen"
+    }
+
     height: 200
     clip: true
 
@@ -122,6 +132,7 @@ Item {
                 "elementId": -1
             })
         }
+        root.hatGeprueft = true
     }
 
     // Hintergrund
@@ -146,12 +157,36 @@ Item {
                 anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
                 spacing: 8
 
-                Text {
-                    text:           "⚠"
-                    font.pixelSize: 14
-                    color:          ergebnisModel.count > 0
-                                    ? "#E06000"
-                                    : root.theme.textMuted
+                // Mini-Isolus als Zustandsindikator
+                Item {
+                    width: 22; height: 22
+
+                    Image {
+                        anchors.fill: parent
+                        source:      "qrc:/assets/isolus.png"
+                        fillMode:    Image.PreserveAspectFit
+                        opacity:     root.hatGeprueft ? 1.0 : 0.45
+                        rotation:    root.isolusZustand === "gefallen" ? 90 : 0
+                        Behavior on rotation { NumberAnimation { duration: 500; easing.type: Easing.InOutCubic } }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent; radius: 11
+                        visible: root.hatGeprueft && root.isolusZustand !== "intakt" && root.isolusZustand !== "idle"
+                        color:   root.isolusZustand === "beansprucht" ? "#FFD700"
+                               : root.isolusZustand === "beschaedigt" ? "#FF7700"
+                               : "#FF2200"
+                        opacity: root.isolusZustand === "beansprucht" ? 0.30
+                               : root.isolusZustand === "beschaedigt" ? 0.42
+                               : 0.58
+                    }
+
+                    Rectangle {
+                        visible: root.isolusZustand === "intakt"
+                        anchors { right: parent.right; bottom: parent.bottom }
+                        width: 8; height: 8; radius: 4
+                        color: "#44BB55"
+                    }
                 }
                 Text {
                     text:           qsTr("DRC — Designprüfung")
@@ -227,24 +262,45 @@ Item {
 
             ScrollBar.vertical: ScrollBar {}
 
-            // Leer-Zustand
+            // Leer-Zustand — Isolus als Wächter
             Item {
-                anchors.centerIn: parent
+                anchors.fill: parent
                 visible: ergebnisModel.count === 0
+
                 Column {
                     anchors.centerIn: parent
                     spacing: 6
-                    Text {
+
+                    Item {
+                        width: 56; height: 56
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "✓"
-                        font.pixelSize: 20
-                        color: root.theme.textMuted
+
+                        Image {
+                            anchors.fill: parent
+                            source:      "qrc:/assets/isolus.png"
+                            fillMode:    Image.PreserveAspectFit
+                            opacity:     root.hatGeprueft ? 1.0 : 0.45
+                        }
+
+                        Rectangle {
+                            visible: root.isolusZustand === "intakt"
+                            anchors { right: parent.right; bottom: parent.bottom }
+                            width: 14; height: 14; radius: 7
+                            color: "#44BB55"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "✓"; font.pixelSize: 9; font.weight: Font.Bold; color: "white"
+                            }
+                        }
                     }
+
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: qsTr("Keine Befunde — Prüfen starten")
+                        text: root.isolusZustand === "intakt"
+                              ? qsTr("Kein Befund — Isolus hält die Stellung.")
+                              : qsTr("Prüfen starten")
                         font.pixelSize: 11
-                        color: root.theme.textMuted
+                        color: root.isolusZustand === "intakt" ? root.theme.textSecondary : root.theme.textMuted
                     }
                 }
             }

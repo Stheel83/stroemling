@@ -845,6 +845,7 @@ ApplicationWindow {
                         }
                         onKlemmenAnschlussPlatzieren: function(klemmeId, bauteilKlemmeId, anschlussBezeichnung, bmk) {
                             if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                             root.aktiverCanvas.paletteExtraDaten = {
                                 "bauteilKlemmeId":      bauteilKlemmeId,
                                 "anschlussBezeichnung": anschlussBezeichnung,
@@ -852,7 +853,6 @@ ApplicationWindow {
                                 "bmk":                  bmk,
                                 "klemmeId":             klemmeId
                             }
-                            root.aktiverCanvas.paletteSymbolId = "klemme_anschluss"
                             root.aktiverCanvas.aktivesWerkzeug = "symbol"
                             root.aktiverCanvas.forceActiveFocus()
                         }
@@ -1097,6 +1097,7 @@ ApplicationWindow {
                         return
                     }
                     root.aktiveAnsicht = "seiten"
+                    root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                     root.aktiverCanvas.paletteExtraDaten = {
                         "bauteilKlemmeId":      bauteilKlemmeId,
                         "anschlussBezeichnung": anschlussBezeichnung,
@@ -1104,7 +1105,6 @@ ApplicationWindow {
                         "bmk":                  bmk,
                         "klemmeId":             klemmeId
                     }
-                    root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                     root.aktiverCanvas.aktivesWerkzeug  = "symbol"
                     root.aktiverCanvas.forceActiveFocus()
                 }
@@ -1190,12 +1190,12 @@ ApplicationWindow {
                                 return
                             }
                             root.aktiveAnsicht = "seiten"
+                            root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                             root.aktiverCanvas.paletteExtraDaten = {
                                 "bauteilKlemmeId":      bkId,
                                 "anschlussBezeichnung": bez,
                                 "platziermodus":        modus
                             }
-                            root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                             root.aktiverCanvas.aktivesWerkzeug  = "symbol"
                             root.aktiverCanvas.forceActiveFocus()
                         }

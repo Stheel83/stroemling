@@ -88,6 +88,48 @@ Rectangle {
 
         Rectangle { width: 1; height: 20; color: AppTheme.border }
 
+        // GIT-01: Version anlegen
+        Rectangle {
+            id: versionBtn
+            property bool _feedback: false
+
+            Timer { id: versionTimer; interval: 2000; onTriggered: versionBtn._feedback = false }
+
+            implicitWidth: versionBtnLabel.implicitWidth + 20
+            height: 26; radius: 4
+            enabled: db.projektOffen
+            color: versionMa.containsMouse && enabled ? AppTheme.hover : "transparent"
+            border.color: enabled ? AppTheme.border : "transparent"
+
+            Text {
+                id: versionBtnLabel
+                anchors.centerIn: parent
+                text:           versionBtn._feedback ? qsTr("✓ angelegt") : qsTr("Version anlegen")
+                font.pixelSize: 11
+                color: versionBtn._feedback     ? AppTheme.accent
+                     : versionBtn.enabled       ? AppTheme.textSecondary
+                                                : AppTheme.border
+            }
+            MouseArea {
+                id: versionMa; anchors.fill: parent; hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor; enabled: parent.enabled
+                onClicked: {
+                    canvas.grafikSpeichernJetzt()
+                    db.gitAutoCommit(db.projektOrdner,
+                                     Qt.formatDateTime(new Date(), "yyyy-MM-dd HH:mm"))
+                    versionBtn._feedback = true
+                    versionTimer.restart()
+                }
+            }
+            ToolTip.visible: versionMa.containsMouse; ToolTip.delay: 400
+            ToolTip.text: qsTr("Legt einen Eintrag im Versionsverlauf an  (Ctrl+S)\n\n"
+                             + "Der Schaltplan wird ständig automatisch gespeichert.\n"
+                             + "Dieser Knopf erstellt einen benannten Stand,\n"
+                             + "zu dem du im Projektverlauf zurückkehren kannst.")
+        }
+
+        Rectangle { width: 1; height: 20; color: AppTheme.border }
+
         Rectangle {
             id: normblattToggle
             property bool aktiv: canvas.normblattDaten ? !!canvas.normblattDaten.normblattAnzeigen : false

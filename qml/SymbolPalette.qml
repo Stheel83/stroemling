@@ -5,16 +5,15 @@ import "components"
 
 // ============================================================
 // SymbolPalette
-// Kategorie-Navigation mit Drill-Down, Favoriten und Norm-Auswahl.
+// Kategorie-Navigation mit Drill-Down, Favoriten und Makro-Schnellzugriff.
 //
 // Eigenschaften die vom Elternelement gesetzt werden müssen:
 //   theme       – Theme-Objekt aus Main.qml
 //   projektId   – aktive Projekt-ID (-1 wenn keines)
-//   aktiveNorm  – "IEC" oder "ANSI"
 //
 // Signals:
 //   symbolGewaehlt(string symbolCode)
-//   normGeaendert(string neuNorm)
+//   makroEinfuegenAngefordert(int makroId, string name)
 // ============================================================
 
 Rectangle {
@@ -26,15 +25,19 @@ Rectangle {
     property var    theme
     property bool   debug:      false
     property int    projektId:  -1
-    property string aktiveNorm: "IEC"
+
+    // "symbole" | "makros"
+    property string paletteModus: "symbole"
 
     // Aktuell ausgewählter Symbol-Code (leer = keiner)
     property string aktivesSymbol: ""
 
     signal symbolGewaehlt(string symbolCode)
-    signal normGeaendert(string neuNorm)
+    signal makroEinfuegenAngefordert(int makroId, string name)
     signal editorOeffnen(string symbolId)
     signal vorlageFuerEditor(string quellId)
+
+    function makroListeAktualisieren() { makroPalette.aktualisieren() }
 
     // ── Interner State ────────────────────────────────────────
     // "kategorien" | "symbole" | "favoriten" | "zuletzt"
@@ -48,7 +51,7 @@ Rectangle {
 
     // ── Hilfsfunktionen ───────────────────────────────────────
     function laden() {
-        alleSymbole = db.symboleNachNorm(root.aktiveNorm)
+        alleSymbole = db.symboleNachNorm("IEC")
         var alle = symbolDefinitionModel.alleSymbole()
         var eigene = []
         for (var i = 0; i < alle.length; i++) {
@@ -181,16 +184,14 @@ Rectangle {
         alleSymbole = neu
     }
 
-    // Beim Start und bei Norm-Änderung Symbole laden
     Component.onCompleted: laden()
-    onAktiveNormChanged:   { laden(); ansicht = "kategorien" }
 
     // ── Gesamt-Layout ─────────────────────────────────────────
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        // ── Norm-Auswahl ──────────────────────────────────────
+        // ── Symbole / Makros Toggle ───────────────────────────
         Rectangle {
             Layout.fillWidth: true
             height: 32
@@ -201,34 +202,25 @@ Rectangle {
                 spacing: 3
 
                 Repeater {
-                    model: ["IEC", "ANSI"]
+                    model: ["symbole", "makros"]
                     delegate: Rectangle {
                         Layout.fillWidth: true
                         height: 22; radius: 3
-                        color:        root.aktiveNorm === modelData ? theme.activeItemAlt : theme.surface
-                        border.color: root.aktiveNorm === modelData ? theme.accent : theme.border
+                        color:        root.paletteModus === modelData ? theme.activeItemAlt : theme.surface
+                        border.color: root.paletteModus === modelData ? theme.accent : theme.border
 
                         Text {
                             anchors.centerIn: parent
-                            text: modelData; font.pixelSize: 10; font.weight: Font.Medium
-                            color: root.aktiveNorm === modelData ? theme.accent : theme.borderLight
+                            text: modelData === "symbole" ? qsTr("Symbole") : qsTr("Makros")
+                            font.pixelSize: 10; font.weight: Font.Medium
+                            color: root.paletteModus === modelData ? theme.accent : theme.borderLight
                         }
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            enabled: root.projektId < 0 || root.aktiveNorm !== modelData
-                            onClicked: {
-                                if (root.projektId >= 0)
-                                    db.projektNormSpeichern(root.projektId, modelData)
-                                root.aktiveNorm = modelData
-                                root.normGeaendert(modelData)
-                            }
+                            enabled: root.paletteModus !== modelData
+                            onClicked: root.paletteModus = modelData
                         }
-                        // Tooltip wenn Projekt aktiv
-                        ToolTip.visible: maTt.containsMouse && root.projektId >= 0
-                        ToolTip.text: qsTr("Symbolnorm des aktiven Projekts – filtert die Palette auf IEC- oder DIN-Symbole")
-                        ToolTip.delay: 600
-                        MouseArea { id: maTt; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
                     }
                 }
             }
@@ -236,11 +228,23 @@ Rectangle {
 
         Rectangle { height: 1; color: theme.border; Layout.fillWidth: true }
 
+        // ── Makro-Palette ─────────────────────────────────────
+        MakroPalette {
+            id: makroPalette
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            theme: root.theme
+            visible: root.paletteModus === "makros"
+            onMakroEinfuegenAngefordert: function(id, name) {
+                root.makroEinfuegenAngefordert(id, name)
+            }
+        }
+
         // ── Navigationszeile (Zurück / Titel) ─────────────────
         Rectangle {
             Layout.fillWidth: true
             height: visible ? 28 : 0
-            visible: root.ansicht !== "kategorien"
+            visible: root.paletteModus === "symbole" && root.ansicht !== "kategorien"
             color: "transparent"
 
             RowLayout {
@@ -273,14 +277,15 @@ Rectangle {
         }
 
         Rectangle {
-            height: root.ansicht !== "kategorien" ? 1 : 0
+            height: (root.paletteModus === "symbole" && root.ansicht !== "kategorien") ? 1 : 0
             color: theme.border; Layout.fillWidth: true
         }
 
-        // ── Scroll-Inhalt ─────────────────────────────────────
+        // ── Scroll-Inhalt (nur Symbole-Modus) ────────────────
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            visible: root.paletteModus === "symbole"
             contentWidth: root.width
             clip: true
 

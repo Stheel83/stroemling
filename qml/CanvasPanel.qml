@@ -8,7 +8,6 @@ Item {
 
     // ── Konfiguration ──────────────────────────────────────────────────────
     property int     projektId:        -1
-    property string  aktiveNorm:       "IEC"
     property string  hintergrundFarbe: "#080f1c"
     required property var theme
     required property var elementeModel

@@ -41,7 +41,6 @@ ApplicationWindow {
     // Zugriff auf den aktiven Canvas-Panel
     property var aktiverCanvas: fokussiertesPanel === 1 ? panel1.canvas : panel2.canvas
 
-    property string aktivProjektNorm:        "IEC"
     property string aktivProjektHintergrund: "#fdf8e8"
 
     property bool   debugModeAktiv:         false
@@ -896,15 +895,17 @@ ApplicationWindow {
                         theme:                 appTheme
                         debug:                 root.debugModeAktiv
                         projektId:             root.aktivProjektId
-                        aktiveNorm:            root.aktivProjektNorm
-
                         onSymbolGewaehlt: function(symCode) {
                             root.aktiverCanvas.paletteSymbolId = symCode
                             root.aktiverCanvas.aktivesWerkzeug = "symbol"
                             root.aktiverCanvas.forceActiveFocus()
                         }
-                        onNormGeaendert: function(neuNorm) {
-                            root.aktivProjektNorm = neuNorm
+                        onMakroEinfuegenAngefordert: function(makroId, name) {
+                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            root.aktiveAnsicht = "seiten"
+                            root.aktiverCanvas.makroEinfuegenId   = makroId
+                            root.aktiverCanvas.makroEinfuegenName = name
+                            root.aktiverCanvas.aktivesWerkzeug    = "makroEinfuegen"
                         }
                         onEditorOeffnen: function(symbolId) {
                             root.symbolEditorVorher    = root.aktiveAnsicht
@@ -942,7 +943,7 @@ ApplicationWindow {
                             theme:            appTheme
                             debug:            root.debugModeAktiv
                             projektId:        root.aktivProjektId
-                            aktiveNorm:       root.aktivProjektNorm
+
                             hintergrundFarbe: root.aktivProjektHintergrund
                             fokussiert:       root.fokussiertesPanel === 1 && root.splitAktiv
                             splitSchliessbar: root.splitAktiv
@@ -970,7 +971,10 @@ ApplicationWindow {
                                     root.aktivSeiteName = panel1.aktivSeiteName
                                 }
                             }
-                            onMakroListeGeaendert:     bauteilAnsicht.makroListeAktualisieren()
+                            onMakroListeGeaendert: {
+                                bauteilAnsicht.makroListeAktualisieren()
+                                symbolPalette.makroListeAktualisieren()
+                            }
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
                             }
@@ -992,7 +996,7 @@ ApplicationWindow {
                             theme:            appTheme
                             debug:            root.debugModeAktiv
                             projektId:        root.aktivProjektId
-                            aktiveNorm:       root.aktivProjektNorm
+
                             hintergrundFarbe: root.aktivProjektHintergrund
                             fokussiert:       root.fokussiertesPanel === 2
                             elementeModel:    elementeModel2
@@ -1020,7 +1024,10 @@ ApplicationWindow {
                                     root.aktivSeiteName = panel2.aktivSeiteName
                                 }
                             }
-                            onMakroListeGeaendert:     bauteilAnsicht.makroListeAktualisieren()
+                            onMakroListeGeaendert: {
+                                bauteilAnsicht.makroListeAktualisieren()
+                                symbolPalette.makroListeAktualisieren()
+                            }
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
                             }
@@ -1635,7 +1642,6 @@ ApplicationWindow {
             if (info.id > 0) {
                 root.aktivProjektId          = info.id
                 root.aktivProjektName        = info.name
-                root.aktivProjektNorm        = db.projektNormLaden(info.id)
                 root.aktivProjektHintergrund = db.projektHintergrundLaden(info.id)
                 root.aktiveAnsicht           = "projekte"
                 seitenModel.laden(info.id)

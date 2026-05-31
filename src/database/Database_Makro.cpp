@@ -234,6 +234,34 @@ QVariantList Database::makroListe()
 }
 
 // ============================================================
+// makroElementeVorschau
+// Liefert normierte Koordinaten (rel_x/y) aller Elemente eines
+// Makros – nur zum Rendern einer Vorschau, kein DB-Schreibzugriff.
+// ============================================================
+QVariantList Database::makroElementeVorschau(int makroId)
+{
+    QVariantList result;
+    if (!m_makroDb.isOpen()) return result;
+    QSqlQuery q(m_makroDb);
+    q.prepare(R"(
+        SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2
+        FROM makro_element WHERE makro_id = :mid ORDER BY sortierung
+    )");
+    q.bindValue(":mid", makroId);
+    if (!q.exec()) return result;
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("typ")] = q.value(0).toString();
+        m[QStringLiteral("x1")]  = q.value(1).toDouble();
+        m[QStringLiteral("y1")]  = q.value(2).toDouble();
+        m[QStringLiteral("x2")]  = q.value(3).toDouble();
+        m[QStringLiteral("y2")]  = q.value(4).toDouble();
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
 // makroElementeEinfuegen
 // ============================================================
 QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,

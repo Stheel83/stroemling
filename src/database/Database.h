@@ -427,6 +427,10 @@ public:
     // Gibt [{id, name, beschreibung, kategorie, elementAnzahl}] zurück.
     Q_INVOKABLE QVariantList makroListe();
 
+    // Makro-Elemente als normierte Koordinaten für die Vorschau (read-only).
+    // Gibt [{typ, x1, y1, x2, y2}] zurück.
+    Q_INVOKABLE QVariantList makroElementeVorschau(int makroId);
+
     // Makro auf einer Seite einfügen.
     // offsetX/Y: Einfügepunkt = obere linke Ecke des Makrokastens.
     // Gibt die IDs der neu angelegten grafik_element-Einträge zurück.

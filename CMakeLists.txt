@@ -164,6 +164,7 @@ qt_add_qml_module(stroemling_app
         qml/kabel/BauteilKabelPickerDialog.qml
         qml/kabel/AderzuordnungDialog.qml
         qml/MakrobenennDialog.qml
+        qml/MakroPalette.qml
         qml/DrcPanel.qml
         qml/PdfExportDialog.qml
         qml/CanvasPanel.qml

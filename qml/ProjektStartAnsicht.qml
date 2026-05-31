@@ -842,17 +842,42 @@ Item {
                     }
                 }
 
-                // Kein Git / Kein Repo
-                Text {
+                // Hinweis wenn Git fehlt oder kein Repo
+                Rectangle {
                     Layout.fillWidth: true
-                    visible: verlaufListe.count === 0
-                    text: {
-                        if (!db.projektOffen) return ""
-                        if (!db.gitVerfuegbar()) return qsTr("Git nicht installiert – Versionshistorie nicht verfügbar.")
-                        if (!db.projektOrdner) return ""
-                        return qsTr("Keine Versionshistorie. Projekt wurde ohne Git angelegt oder git init fehlt.")
+                    visible:          verlaufListe.count === 0 && db.projektOffen
+                    implicitHeight:   gitHinweisCol.implicitHeight + 16
+                    color:            root.theme.surfaceDeep
+                    radius:           4
+                    border.color:     root.theme.borderLight
+
+                    Column {
+                        id: gitHinweisCol
+                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
+                        spacing: 6
+
+                        Text {
+                            width: parent.width
+                            text: !db.gitVerfuegbar()
+                                ? qsTr("Git ist nicht installiert – keine automatische Versionierung.")
+                                : qsTr("Noch keine Versionshistorie – erste Version mit \"Version anlegen\" (Ctrl+S) erstellen.")
+                            font.pixelSize: 11; font.weight: Font.Medium
+                            color: root.theme.textPrimary; wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: !db.gitVerfuegbar()
+                            text: qsTr("Der Schaltplan wird weiterhin automatisch gespeichert. "
+                                     + "Ohne Git gibt es jedoch keinen Versionsverlauf und keine "
+                                     + "Möglichkeit, zu einem früheren Stand zurückzukehren.\n\n"
+                                     + "Alternativen: Git installieren (empfohlen) · "
+                                     + "Manuelle Kopien per \"Kopie exportieren\" · "
+                                     + "Vollsicherung unter Einstellungen → Datensicherung.\n\n"
+                                     + "Details und Installationsanleitung: Wiki → \"Versionierung mit Git\"")
+                            font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
+                        }
                     }
-                    font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
                 }
 
                 // Commit-Liste (max. 200px, scrollbar wenn nötig)

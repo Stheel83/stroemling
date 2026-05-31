@@ -88,31 +88,34 @@ Rectangle {
 
         Rectangle { width: 1; height: 20; color: AppTheme.border }
 
-        // GIT-01: Version anlegen
+        // GIT-01: Version anlegen (nur wenn Git verfügbar)
         Rectangle {
             id: versionBtn
-            property bool _feedback: false
+            property bool _feedback:  false
+            property bool _gitOk:     db.gitVerfuegbar()
+            property bool _aktiv:     db.projektOffen && _gitOk
 
             Timer { id: versionTimer; interval: 2000; onTriggered: versionBtn._feedback = false }
 
             implicitWidth: versionBtnLabel.implicitWidth + 20
             height: 26; radius: 4
-            enabled: db.projektOffen
+            enabled: _aktiv
             color: versionMa.containsMouse && enabled ? AppTheme.hover : "transparent"
-            border.color: enabled ? AppTheme.border : "transparent"
+            border.color: _aktiv ? AppTheme.border : "transparent"
 
             Text {
                 id: versionBtnLabel
                 anchors.centerIn: parent
                 text:           versionBtn._feedback ? qsTr("✓ angelegt") : qsTr("Version anlegen")
                 font.pixelSize: 11
-                color: versionBtn._feedback     ? AppTheme.accent
-                     : versionBtn.enabled       ? AppTheme.textSecondary
-                                                : AppTheme.border
+                color: versionBtn._feedback ? AppTheme.accent
+                     : versionBtn._aktiv    ? AppTheme.textSecondary
+                                            : AppTheme.border
             }
             MouseArea {
                 id: versionMa; anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor; enabled: parent.enabled
+                cursorShape: _aktiv ? Qt.PointingHandCursor : Qt.ArrowCursor
+                enabled: parent._aktiv
                 onClicked: {
                     canvas.grafikSpeichernJetzt()
                     db.gitAutoCommit(db.projektOrdner,
@@ -122,10 +125,15 @@ Rectangle {
                 }
             }
             ToolTip.visible: versionMa.containsMouse; ToolTip.delay: 400
-            ToolTip.text: qsTr("Legt einen Eintrag im Versionsverlauf an  (Ctrl+S)\n\n"
-                             + "Der Schaltplan wird ständig automatisch gespeichert.\n"
-                             + "Dieser Knopf erstellt einen benannten Stand,\n"
-                             + "zu dem du im Projektverlauf zurückkehren kannst.")
+            ToolTip.text: versionBtn._gitOk
+                ? qsTr("Legt einen Eintrag im Versionsverlauf an  (Ctrl+S)\n\n"
+                      + "Der Schaltplan wird ständig automatisch gespeichert.\n"
+                      + "Dieser Knopf erstellt einen benannten Stand,\n"
+                      + "zu dem du im Projektverlauf zurückkehren kannst.")
+                : qsTr("Git ist nicht installiert – keine Versionierung möglich.\n\n"
+                      + "Der Schaltplan wird weiterhin automatisch gespeichert,\n"
+                      + "aber es gibt keinen Versionsverlauf.\n\n"
+                      + "Wiki: \"Versionierung mit Git\" für Alternativen.")
         }
 
         Rectangle { width: 1; height: 20; color: AppTheme.border }

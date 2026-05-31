@@ -51,6 +51,9 @@ public:
     Q_INVOKABLE void         gitAutoCommit(const QString &ordner, const QString &nachricht);
     Q_INVOKABLE QVariantList gitLog(const QString &ordner);
     Q_INVOKABLE bool         gitCheckout(const QString &ordner, const QString &hash);
+    // GIT-02: Remote / Cloud
+    Q_INVOKABLE QString      gitRemoteUrl(const QString &ordner) const;
+    Q_INVOKABLE void         gitRemoteSetzen(const QString &ordner, const QString &url);
 
     // Aktuelles Projekt schließen
     Q_INVOKABLE void closeProjekt();

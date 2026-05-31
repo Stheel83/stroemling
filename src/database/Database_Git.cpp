@@ -158,11 +158,25 @@ void Database::gitAutoCommit(const QString &ordner, const QString &nachricht)
             auto commit = new QProcess();
             commit->setWorkingDirectory(ordner);
             QObject::connect(commit, &QProcess::finished, commit,
-                [commit](int code) {
+                [commit, ordner](int code) {
                     commit->deleteLater();
-                    if (code == 0)
-                        qInfo() << "GIT-01 Auto-Commit ok";
-                    // exit 1 = "nothing to commit" – kein Fehler
+                    if (code != 0) return; // "nothing to commit" oder Fehler
+                    qInfo() << "GIT-01 Auto-Commit ok";
+                    // GIT-02: Push wenn Remote konfiguriert (stiller Fehler)
+                    QProcess remoteCheck;
+                    remoteCheck.setWorkingDirectory(ordner);
+                    remoteCheck.start("git", {"remote", "get-url", "origin"});
+                    if (!remoteCheck.waitForFinished(1000) || remoteCheck.exitCode() != 0)
+                        return;
+                    auto push = new QProcess();
+                    push->setWorkingDirectory(ordner);
+                    QObject::connect(push, &QProcess::finished, push,
+                        [push](int pCode) {
+                            push->deleteLater();
+                            if (pCode == 0) qInfo() << "GIT-02 Push ok";
+                            else qWarning() << "GIT-02 Push fehlgeschlagen (ignoriert)";
+                        });
+                    push->start("git", {"push", "--set-upstream", "origin", "HEAD"});
                 });
             commit->start("git", {"commit", "--allow-empty-message", "-m", nachricht});
         });
@@ -220,4 +234,56 @@ bool Database::gitCheckout(const QString &ordner, const QString &hash)
 
     qInfo() << "GIT-01 Checkout:" << hash << "→" << ordner;
     return openProjekt(ordner + "/projekt.strl");
+}
+
+// ── gitRemoteUrl (GIT-02) ────────────────────────────────────────────────────
+// Liefert die aktuelle Remote-URL (origin) oder leeren String.
+QString Database::gitRemoteUrl(const QString &ordner) const
+{
+    if (ordner.isEmpty() || !QDir(ordner + "/.git").exists()) return {};
+    QProcess proc;
+    proc.setWorkingDirectory(ordner);
+    proc.start("git", {"remote", "get-url", "origin"});
+    if (!proc.waitForFinished(2000) || proc.exitCode() != 0) return {};
+    return QString(proc.readAllStandardOutput()).trimmed();
+}
+
+// ── gitRemoteSetzen (GIT-02) ─────────────────────────────────────────────────
+// Setzt oder aktualisiert die Remote-URL und löst einen initialen Push aus.
+void Database::gitRemoteSetzen(const QString &ordner, const QString &url)
+{
+    if (ordner.isEmpty() || url.trimmed().isEmpty()) return;
+
+    // remote add oder set-url je nachdem ob origin bereits existiert
+    QProcess check;
+    check.setWorkingDirectory(ordner);
+    check.start("git", {"remote", "get-url", "origin"});
+    check.waitForFinished(2000);
+
+    QStringList remoteArgs = (check.exitCode() == 0)
+        ? QStringList{"remote", "set-url", "origin", url}
+        : QStringList{"remote", "add", "origin", url};
+
+    auto remote = new QProcess();
+    remote->setWorkingDirectory(ordner);
+    QObject::connect(remote, &QProcess::finished, remote,
+        [remote, ordner](int code) {
+            remote->deleteLater();
+            if (code != 0) {
+                qWarning() << "GIT-02 gitRemoteSetzen: remote-Befehl fehlgeschlagen";
+                return;
+            }
+            // Initialer Push
+            auto push = new QProcess();
+            push->setWorkingDirectory(ordner);
+            QObject::connect(push, &QProcess::finished, push,
+                [push](int pCode) {
+                    push->deleteLater();
+                    if (pCode == 0) qInfo() << "GIT-02 Initialer Push ok";
+                    else qWarning() << "GIT-02 Initialer Push fehlgeschlagen (SSH-Key / Zugangsdaten prüfen)";
+                });
+            push->start("git", {"push", "--set-upstream", "origin", "HEAD"});
+        });
+    remote->start("git", remoteArgs);
+    qInfo() << "GIT-02 Remote gesetzt:" << url;
 }

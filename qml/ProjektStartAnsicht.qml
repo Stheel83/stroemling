@@ -41,6 +41,7 @@ Item {
         else parts.pop()
         return _kurzPfad(parts.join("/"))
     }
+    function _istNeuesFormat(pfad) { return pfad.split("/").pop() === "projekt.strl" }
     function _slug(name) {
         return name.trim()
                    .replace(/[\/\\:*?"<>|]/g, "_")
@@ -687,8 +688,86 @@ Item {
                     }
                 }
 
-                // ── Trennlinie ────────────────────────────────────────────────
+                // ── GIT-02: Remote / Cloud ────────────────────────────────────
                 Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 20; Layout.bottomMargin: 16 }
+                Text { text: qsTr("VERSIONSVERWALTUNG"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.bottomMargin: 10 }
+
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+
+                    property bool _gitRepo: db.projektOffen && db.projektOrdner !== ""
+                                            && db.gitVerfuegbar()
+
+                    Text {
+                        text: qsTr("Remote-URL")
+                        font.pixelSize: 11; color: root.theme.textMuted
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    TextField {
+                        id: remoteUrlField
+                        Layout.fillWidth: true
+                        placeholderText: parent._gitRepo
+                            ? qsTr("git@codeberg.org:nutzer/projekt.git")
+                            : qsTr("(kein Git-Repo)")
+                        enabled: parent._gitRepo
+                        font.pixelSize: 11; font.family: "monospace"
+                        color: root.theme.textPrimary
+                        background: Rectangle {
+                            color:        root.theme.inputBg
+                            border.color: remoteUrlField.activeFocus ? root.theme.accent : root.theme.border
+                            radius: 4
+                        }
+                        Component.onCompleted: {
+                            if (db.projektOffen) text = db.gitRemoteUrl(db.projektOrdner)
+                        }
+                        Connections {
+                            target: db
+                            function onProjektOffenChanged() {
+                                remoteUrlField.text = db.projektOffen
+                                    ? db.gitRemoteUrl(db.projektOrdner) : ""
+                            }
+                        }
+                        Keys.onReturnPressed: remoteUebernehmenBtn.clicked()
+                    }
+
+                    Rectangle {
+                        id: remoteUebernehmenBtn
+                        width: 80; height: 28; radius: 4
+                        enabled: parent._gitRepo && remoteUrlField.text.trim() !== ""
+                        color:        remoteUeberMa.containsMouse && enabled ? root.theme.accent : root.theme.inputBg
+                        border.color: enabled ? root.theme.accent : root.theme.border
+
+                        function clicked() {
+                            if (!enabled) return
+                            db.gitRemoteSetzen(db.projektOrdner, remoteUrlField.text.trim())
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text:           qsTr("Übernehmen")
+                            font.pixelSize: 11
+                            color:          parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                        }
+                        MouseArea {
+                            id:           remoteUeberMa; anchors.fill: parent
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked:    parent.clicked()
+                        }
+                        ToolTip.visible: remoteUeberMa.containsMouse; ToolTip.delay: 500
+                        ToolTip.text:    qsTr("Remote setzen + initialen Push starten.\n"
+                                            + "Zugangsdaten (SSH-Key / HTTPS-Credential) bitte einmalig im System einrichten.")
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true; Layout.topMargin: 4
+                    text: qsTr("Push nach jeder Version automatisch – Fehler werden still geloggt, lokales Speichern bleibt primär.")
+                    font.pixelSize: 10; color: root.theme.textMuted; wrapMode: Text.WordWrap
+                }
+
+                // ── Trennlinie ────────────────────────────────────────────────
+                Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 16; Layout.bottomMargin: 16 }
 
                 // ── Aktionen ──────────────────────────────────────────────────
                 Text { text: qsTr("AKTIONEN"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.bottomMargin: 12 }

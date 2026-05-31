@@ -164,16 +164,14 @@ bool KlemmeModel::speichern(const QVariantMap &daten)
     }
 
     // PE-Fußkontakt-Brücke automatisch verwalten:
-    // unterste Ebene (ebenen_anzahl) ↔ PE-Fußkontakt.
-    bool peFuss   = daten["fussKontaktPe"].toBool();
-    int  ebAnzahl = daten["ebenenAnzahl"].toInt();
+    // Ebene 1 (unterste Ebene, nächste zur Hutschiene) ↔ PE-Fußkontakt.
+    bool peFuss = daten["fussKontaktPe"].toBool();
     if (peFuss) {
         QSqlQuery qpe;
         qpe.prepare("INSERT OR IGNORE INTO bauteil_klemme_bruecke "
                     "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) "
-                    "VALUES (:kid, :eb, :eb, 1)");
+                    "VALUES (:kid, 1, 1, 1)");
         qpe.bindValue(":kid", m_klemmeId);
-        qpe.bindValue(":eb",  ebAnzahl > 0 ? ebAnzahl : 1);
         qpe.exec();
     } else {
         QSqlQuery qpe;

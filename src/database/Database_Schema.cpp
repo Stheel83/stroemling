@@ -111,7 +111,7 @@ static QList<SchemaMigration> alleMigrationen()
             R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='Doppelstockklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
             R"(INSERT INTO bauteil_klemme_querschnitt(klemme_id,adertyp,min_mm2,max_mm2) SELECT bk.id,q.t,q.mn,q.mx FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,(SELECT 'starr' t,0.2 mn,2.5 mx UNION ALL SELECT 'flexibel',0.2,2.5 UNION ALL SELECT 'aenh_blank',0.25,2.5 UNION ALL SELECT 'aenh_isoliert',0.25,1.5) q WHERE b.bezeichnung='Trennklemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id))",
             // ── PE-Klemme: Fußkontakt-Brücke ────────────────────────────────────
-            R"(INSERT INTO bauteil_klemme_bruecke(klemme_id,von_ebene,nach_ebene,ist_pe_fuss) SELECT bk.id,bk.ebenen_anzahl,bk.ebenen_anzahl,1 FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='PE-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_bruecke WHERE klemme_id=bk.id AND ist_pe_fuss=1))",
+            R"(INSERT INTO bauteil_klemme_bruecke(klemme_id,von_ebene,nach_ebene,ist_pe_fuss) SELECT bk.id,1,1,1 FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='PE-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_bruecke WHERE klemme_id=bk.id AND ist_pe_fuss=1))",
         }},
         // klemme_anschluss: 16x16mm → 8x8mm, Linie kürzer, Kreis größer (proportional)
         { 58, "klemme_anschluss: 16x16mm auf 8x8mm verkleinert", {
@@ -665,9 +665,8 @@ bool Database::seedStandardKlemmen()
         if (t.peFuss) {
             QSqlQuery qbr;
             qbr.prepare("INSERT INTO bauteil_klemme_bruecke "
-                        "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, :eb, :eb, 1)");
+                        "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, 1, 1, 1)");
             qbr.bindValue(":kid", kId);
-            qbr.bindValue(":eb",  t.ebenen);  // unterste Ebene = ebenen_anzahl
             if (!qbr.exec())
                 qWarning() << "seedStandardKlemmen bruecke PE:" << t.bez << qbr.lastError().text();
         }

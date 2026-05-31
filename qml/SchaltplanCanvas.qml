@@ -1490,27 +1490,30 @@ Item {
                         }
                     }
 
-                    // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol
+                    // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
                     if (!vorschau && el.symbolId === "klemme_anschluss") {
-                        var kaed   = el.extraDaten || {}
-                        var kaAnz  = kaed.anschlussBezeichnung || ""
-                        var kaBmk  = kaed.bmk || ""
+                        var kaed    = el.extraDaten || {}
+                        var kaAnz   = kaed.anschlussBezeichnung || ""
+                        var kaBmk   = kaed.bmk || ""
                         var kaBmkVis = kaBmk !== "" && kaed.bmkSichtbar !== false
-                        var kaFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var kaFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
                         var kaBmkFs = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
-                        var kaRot  = ((el.rotation || 0) % 360 + 360) % 360
-                        var kaSenk = (kaRot === 90 || kaRot === 270)
-                        var kaCx   = (vx1 + vx2) / 2
-                        var kaCy   = (vy1 + vy2) / 2
+                        var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
+                        var kaSenk  = (kaRot === 90 || kaRot === 270)
+                        var kaCx    = (vx1 + vx2) / 2
+                        var kaCy    = (vy1 + vy2) / 2
+                        var kaOx    = (kaed.bmkOffsetX !== undefined ? kaed.bmkOffsetX : 0) * root.zoom
+                        var kaOy    = (kaed.bmkOffsetY !== undefined ? kaed.bmkOffsetY : 0) * root.zoom
                         ctx.save()
                         ctx.globalAlpha = 1.0
                         ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
                         if (kaSenk) {
-                            var kaX = Math.max(vx1, vx2) + 4 * root.zoom
+                            var kaX  = Math.max(vx1, vx2) + 4 * root.zoom + kaOy
+                            var kaCyO = kaCy + kaOx
                             if (kaAnz !== "") {
                                 ctx.font = "bold " + kaFs + "px sans-serif"
                                 ctx.textAlign = "left"; ctx.textBaseline = "middle"
-                                var kaAy = kaBmkVis ? kaCy - kaBmkFs * 0.6 : kaCy
+                                var kaAy = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
                                 ctx.strokeText(kaAnz, kaX, kaAy)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
                                 ctx.fillText(kaAnz, kaX, kaAy)
@@ -1518,27 +1521,28 @@ Item {
                             if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
                                 ctx.textAlign = "left"; ctx.textBaseline = "middle"
-                                var kaBmkY = kaAnz !== "" ? kaCy + kaBmkFs * 0.8 : kaCy
+                                var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
                                 ctx.strokeText(kaBmk, kaX, kaBmkY)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
                                 ctx.fillText(kaBmk, kaX, kaBmkY)
                             }
                         } else {
-                            var kaY = Math.min(vy1, vy2) - 3 * root.zoom
+                            var kaY  = Math.min(vy1, vy2) - 3 * root.zoom + kaOy
+                            var kaCxO = kaCx + kaOx
                             if (kaAnz !== "") {
                                 ctx.font = "bold " + kaFs + "px sans-serif"
                                 ctx.textAlign = "center"; ctx.textBaseline = "bottom"
-                                ctx.strokeText(kaAnz, kaCx, kaY)
+                                ctx.strokeText(kaAnz, kaCxO, kaY)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
-                                ctx.fillText(kaAnz, kaCx, kaY)
+                                ctx.fillText(kaAnz, kaCxO, kaY)
                             }
                             if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
                                 ctx.textAlign = "center"; ctx.textBaseline = "bottom"
                                 var kaBmkYh = kaY - kaFs - 1
-                                ctx.strokeText(kaBmk, kaCx, kaBmkYh)
+                                ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
-                                ctx.fillText(kaBmk, kaCx, kaBmkYh)
+                                ctx.fillText(kaBmk, kaCxO, kaBmkYh)
                             }
                         }
                         ctx.restore()
@@ -3487,33 +3491,57 @@ Item {
             var el = elementeModel.element(i)
             if (el.typ !== "symbol") continue
             var bmkEd  = el.extraDaten || {}
-            var bmkStr = bmkEd.bmk || ""
-            if (bmkStr === "") continue
             var vx1 = el.x1 * root.zoom + root.worldX
             var vy1 = el.y1 * root.zoom + root.worldY
             var vx2 = el.x2 * root.zoom + root.worldX
             var vy2 = el.y2 * root.zoom + root.worldY
-            var bmkOx = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * root.zoom
-            var bmkOy = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * root.zoom
-            var schrift = bmkEd.schriftgroesse !== undefined ? bmkEd.schriftgroesse : 2.5
-            var bmkFs = Math.max(8, Math.round(schrift * root.mmToPx * root.zoom))
             var pad   = 8
             var symRot = ((el.rotation || 0) % 360 + 360) % 360
             var senkrecht = (symRot === 90 || symRot === 270)
             var hx1, hy1, hx2, hy2
-            if (senkrecht) {
-                var bkAx = Math.min(vx1, vx2) + bmkOy
-                var bkCy = (vy1 + vy2) / 2 + bmkOx
-                var hitW = Math.max(40, bmkFs * 4)
-                hx1 = bkAx - hitW; hx2 = bkAx + pad
-                hy1 = bkCy - Math.max(14, bmkFs) - pad; hy2 = bkCy + pad
+
+            if (el.symbolId === "klemme_anschluss") {
+                // Klemme-spezifische Hit-Box: Anschlussbezeichnung + BMK
+                var kaAnzH = bmkEd.anschlussBezeichnung || ""
+                var kaBmkH = bmkEd.bmk || ""
+                if (kaAnzH === "" && kaBmkH === "") continue
+                var kaFsH    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                var kaBmkFsH = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
+                var kaOxH = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0) * root.zoom
+                var kaOyH = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : 0) * root.zoom
+                if (senkrecht) {
+                    var kaHX  = Math.max(vx1, vx2) + 4 * root.zoom + kaOyH
+                    var kaHCY = (vy1 + vy2) / 2 + kaOxH
+                    hx1 = kaHX - pad; hx2 = kaHX + Math.max(40, kaFsH * 4)
+                    hy1 = kaHCY - kaBmkFsH - kaFsH - pad; hy2 = kaHCY + pad
+                } else {
+                    var kaHY  = Math.min(vy1, vy2) - 3 * root.zoom + kaOyH
+                    var kaHCX = (vx1 + vx2) / 2 + kaOxH
+                    hx1 = kaHCX - Math.max(30, kaFsH * 3); hx2 = kaHCX + Math.max(30, kaFsH * 3)
+                    hy1 = kaHY - kaBmkFsH - kaFsH - pad;  hy2 = kaHY + pad
+                }
             } else {
-                var bkCx = (vx1 + vx2) / 2 + bmkOx
-                var bkTy = Math.min(vy1, vy2) + bmkOy
-                var hitW2 = Math.max(40, bmkFs * 3)
-                hx1 = bkCx - hitW2; hx2 = bkCx + hitW2
-                hy1 = bkTy - Math.max(14, bmkFs) - pad; hy2 = bkTy + pad
+                var bmkStr = bmkEd.bmk || ""
+                if (bmkStr === "") continue
+                var bmkOx = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * root.zoom
+                var bmkOy = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * root.zoom
+                var schrift = bmkEd.schriftgroesse !== undefined ? bmkEd.schriftgroesse : 2.5
+                var bmkFs = Math.max(8, Math.round(schrift * root.mmToPx * root.zoom))
+                if (senkrecht) {
+                    var bkAx = Math.min(vx1, vx2) + bmkOy
+                    var bkCy = (vy1 + vy2) / 2 + bmkOx
+                    var hitW = Math.max(40, bmkFs * 4)
+                    hx1 = bkAx - hitW; hx2 = bkAx + pad
+                    hy1 = bkCy - Math.max(14, bmkFs) - pad; hy2 = bkCy + pad
+                } else {
+                    var bkCx = (vx1 + vx2) / 2 + bmkOx
+                    var bkTy = Math.min(vy1, vy2) + bmkOy
+                    var hitW2 = Math.max(40, bmkFs * 3)
+                    hx1 = bkCx - hitW2; hx2 = bkCx + hitW2
+                    hy1 = bkTy - Math.max(14, bmkFs) - pad; hy2 = bkTy + pad
+                }
             }
+
             if (vpX >= hx1 && vpX <= hx2 && vpY >= hy1 && vpY <= hy2)
                 return i
         }

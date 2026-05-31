@@ -379,9 +379,11 @@ MouseArea {
 
         } else if (canvas.aktivesWerkzeug === "makroEinfuegen" && canvas.makroEinfuegenId > 0) {
             var wMk = toWelt(mouse.x, mouse.y)
+            var vorMakro = canvas.elementeModel.snapshot()
             var newElIds = db.makroElementeEinfuegen(canvas.makroEinfuegenId, canvas.seiteId, wMk.x, wMk.y)
             if (newElIds.length > 0) {
                 canvas.elementeModel.laden(canvas.seiteId)
+                canvas.elementeModel.undoCheckpointFromSnapshot(vorMakro)
                 canvas.grafikSpeichernJetzt()
             }
             canvas.aktivesWerkzeug    = "zeiger"

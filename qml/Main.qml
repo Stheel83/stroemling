@@ -1366,10 +1366,63 @@ ApplicationWindow {
             }
 
             // ── Fehlersuchmodus ────────────────────────────────────────
-            FehlersuchAnsicht {
+            Item {
+                id:           fehlersuchBereich
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "fehlersuche"
-                theme:        appTheme
+
+                SplitView {
+                    anchors.fill: parent
+                    orientation:  Qt.Horizontal
+                    handle: Rectangle {
+                        implicitWidth: 5
+                        color: SplitHandle.pressed ? appTheme.accent
+                             : SplitHandle.hovered  ? appTheme.activeItem : appTheme.border
+                    }
+
+                    FehlersuchAnsicht {
+                        id:                       fehlersuchAnsicht
+                        SplitView.preferredWidth: 320
+                        SplitView.minimumWidth:   200
+                        theme:                    appTheme
+                        projektId:                root.aktivProjektId
+                        seiteId:                  root.aktivSeiteId
+                        canvas:                   fehlersuchCanvas
+
+                        onGeschlossen: root.aktiveAnsicht = "seiten"
+
+                        onQuerverweisNavigieren: function(sid, x, y) {
+                            if (sid !== root.aktivSeiteId) {
+                                fehlersuchCanvas._querverweisZielPos = { x: x, y: y }
+                                root.aktivSeiteId = sid
+                            } else {
+                                fehlersuchCanvas._zoomZuWeltPosition(x, y)
+                            }
+                        }
+                    }
+
+                    SchaltplanCanvas {
+                        id:                      fehlersuchCanvas
+                        SplitView.fillWidth:     true
+                        theme:                   appTheme
+                        debug:                   root.debugModeAktiv
+                        seiteId:                 root.aktivSeiteId
+                        projektId:               root.aktivProjektId
+                        seiteName:               root.aktivSeiteName
+                        hintergrundFarbe:        root.aktivProjektHintergrund
+                        elementeModel:           elementeModel4
+                        ibnModus:                true
+                        fehlersuchModus:         true
+
+                        onHintergrundGeaendert: function(farbe) {
+                            root.aktivProjektHintergrund = farbe
+                            db.projektHintergrundSpeichern(root.aktivProjektId, farbe)
+                        }
+                        onQuerverweisNavigieren: function(sid) {
+                            root.aktivSeiteId = sid
+                        }
+                    }
+                }
             }
 
             // ── Einstellungen ──────────────────────────────────────────

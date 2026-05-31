@@ -206,6 +206,112 @@ Item {
     property var  ibnStatusMap:    ({})   // bmk → "offen"|"in_arbeit"|"abgeschlossen"
     property var  _spsKonfliktSet: ({})   // elementId → true  (mehr als 1 Kanal zugewiesen)
 
+    // ── Fehlersuchmodus ──────────────────────────────────────
+    property bool fehlersuchModus:        false
+    property var  fehlersuchPfadIds:      ({})  // elementId → true (im Pfad)
+    property int  fehlersuchStartId:      -1
+    property var  fehlersuchQuerverweise: []    // [{x, y, bezeichnung}]
+
+    signal fehlersuchPfadGefunden(var querverweise)
+
+    function fehlersuchPfadZuruecksetzen() {
+        root.fehlersuchPfadIds      = {}
+        root.fehlersuchStartId      = -1
+        root.fehlersuchQuerverweise = []
+        root.fehlersuchPfadGefunden([])
+        drawCanvas.requestPaint()
+    }
+
+    function fehlersuchPfadBerechnen(startElementId) {
+        var TOLERANZ = 0.3
+        var elems = elementeModel.snapshot()
+
+        var byId = {}
+        for (var i = 0; i < elems.length; i++) {
+            var e = elems[i]
+            if ((e.id || 0) > 0) byId[e.id] = e
+        }
+
+        function pinPosListe(el) {
+            var pins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+            var pts = []
+            for (var pi = 0; pi < pins.length; pi++)
+                pts.push(root.pinWeltPos(el, pins[pi].x, pins[pi].y))
+            if (pts.length === 0) {
+                pts.push({ x: (el.x1 + el.x2) / 2, y: (el.y1 + el.y2) / 2 })
+            }
+            return pts
+        }
+
+        function endpunkte(el) {
+            if (el.typ === "linie" || el.typ === "kabellinie")
+                return [{ x: el.x1, y: el.y1 }, { x: el.x2, y: el.y2 }]
+            if (el.typ === "polygonlinie") {
+                var pkt = el.punkte || []
+                if (pkt.length >= 2) return [pkt[0], pkt[pkt.length - 1]]
+                if (pkt.length === 1) return [pkt[0]]
+            }
+            if (el.typ === "symbol") return pinPosListe(el)
+            return []
+        }
+
+        function nahe(p1, p2) {
+            var dx = p1.x - p2.x, dy = p1.y - p2.y
+            return dx * dx + dy * dy <= TOLERANZ * TOLERANZ
+        }
+
+        function verbunden(a, b) {
+            var ap = endpunkte(a), bp = endpunkte(b)
+            for (var ai = 0; ai < ap.length; ai++)
+                for (var bi = 0; bi < bp.length; bi++)
+                    if (nahe(ap[ai], bp[bi])) return true
+            return false
+        }
+
+        var startEl = byId[startElementId]
+        if (!startEl) { fehlersuchPfadZuruecksetzen(); return }
+
+        var pfadIds = {}
+        var queue   = [startEl]
+        var querv   = []
+        pfadIds[startEl.id] = true
+
+        while (queue.length > 0) {
+            var cur = queue.shift()
+            for (var id in byId) {
+                var nb = byId[id]
+                if (pfadIds[nb.id]) continue
+                if (!verbunden(cur, nb)) continue
+
+                pfadIds[nb.id] = true
+
+                if (nb.typ === "symbol") {
+                    var rolle = symbolDefinitionModel.rolleForSymbol(nb.symbolId || "")
+                    var istQv = (nb.symbolId || "") === "querverweis"
+                    if (istQv) {
+                        var ed = nb.extraDaten || {}
+                        querv.push({ x: (nb.x1 + nb.x2) / 2,
+                                     y: (nb.y1 + nb.y2) / 2,
+                                     bezeichnung: ed.signalname || "" })
+                    } else if (rolle === "durchleiter" || rolle === "quelle" ||
+                               rolle === "variabel" || rolle === "") {
+                        queue.push(nb)
+                    }
+                    // verbraucher / trenner: in Pfad aufnehmen, aber nicht weiterverfolgen
+                } else if (nb.typ === "linie" || nb.typ === "polygonlinie" ||
+                           nb.typ === "kabellinie") {
+                    queue.push(nb)
+                }
+            }
+        }
+
+        root.fehlersuchPfadIds      = pfadIds
+        root.fehlersuchStartId      = startElementId
+        root.fehlersuchQuerverweise = querv
+        root.fehlersuchPfadGefunden(querv)
+        drawCanvas.requestPaint()
+    }
+
     function zentriereAuf(wx, wy) {
         root.worldX = wx - (drawCanvas.width  / (2 * root.zoom * root.mmToPx))
         root.worldY = wy - (drawCanvas.height / (2 * root.zoom * root.mmToPx))
@@ -726,14 +832,34 @@ Item {
             var vorschau = (idx < 0)
             var gewaehlt = (!vorschau && root.auswahl.indexOf(idx) >= 0)
 
+            // ── Fehlersuchmodus: Dimm-Faktor ─────────────────────
+            var dimFaktor = 1.0
+            if (!vorschau && root.fehlersuchModus) {
+                var pfadKeys = Object.keys(root.fehlersuchPfadIds)
+                if (pfadKeys.length > 0) {
+                    if (root.fehlersuchPfadIds[(el.id || -1)]) {
+                        dimFaktor = 1.0
+                    } else {
+                        dimFaktor = 0.12
+                    }
+                }
+            }
+
             var sf  = el.strichFarbe     !== undefined ? el.strichFarbe     : "#4a9eff"
             var sb  = el.strichBreite    !== undefined ? el.strichBreite    : 1.5
             var sa  = el.strichArt       !== undefined ? el.strichArt       : "solid"
             var fu  = el.fuell           !== undefined ? el.fuell           : false
             var ff  = el.fuellFarbe      !== undefined ? el.fuellFarbe      : "#1a3a6a"
             var fo  = el.fuellOpazitaet  !== undefined ? el.fuellOpazitaet  : 0.3
-            var op  = el.opazitaet       !== undefined ? el.opazitaet       : 1.0
+            var op  = (el.opazitaet !== undefined ? el.opazitaet : 1.0) * dimFaktor
             var er  = el.eckenRadius      !== undefined ? el.eckenRadius      : 0
+
+            // Leitungen im Pfad: Akzentfarbe + dickere Linie
+            if (!vorschau && root.fehlersuchModus && root.fehlersuchPfadIds[(el.id || -1)] &&
+                    (el.typ === "linie" || el.typ === "polygonlinie")) {
+                sf = root.theme.accent
+                sb = sb + 0.8
+            }
 
             var vx1 = el.x1 * root.zoom + root.worldX
             var vy1 = el.y1 * root.zoom + root.worldY
@@ -1185,6 +1311,22 @@ Item {
                         ctx.textAlign    = "center"
                         ctx.textBaseline = "middle"
                         ctx.fillText("!", _spsCx, _spsCy)
+                        ctx.restore()
+                    }
+
+                    // ── Fehlersuch-Startpunkt-Marker ─────────────────────
+                    if (!vorschau && root.fehlersuchModus &&
+                            (el.id || -1) === root.fehlersuchStartId) {
+                        var _fsR  = Math.max(4, 4 * root.zoom)
+                        var _fsCx = (vx1 + vx2) / 2
+                        var _fsCy = (vy1 + vy2) / 2
+                        ctx.save()
+                        ctx.globalAlpha = 0.85
+                        ctx.beginPath()
+                        ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
+                        ctx.strokeStyle = root.theme.accent
+                        ctx.lineWidth   = 2.5
+                        ctx.stroke()
                         ctx.restore()
                     }
 

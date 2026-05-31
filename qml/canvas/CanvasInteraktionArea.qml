@@ -227,6 +227,20 @@ MouseArea {
 
     onPressed: function(mouse) {
         canvas.forceActiveFocus()
+
+        // ── Fehlersuchmodus: Klick wählt Startelement ────────
+        if (canvas.fehlersuchModus) {
+            var fsvp = toViewport(mouse.x, mouse.y)
+            var fsIdx = canvas.elementBeiPosition(fsvp.x, fsvp.y)
+            if (fsIdx >= 0) {
+                var fsEl = canvas.elementeModel.element(fsIdx)
+                canvas.fehlersuchPfadBerechnen(fsEl.id || -1)
+            } else {
+                canvas.fehlersuchPfadZuruecksetzen()
+            }
+            return
+        }
+
         var em = canvas.elementeModel
         if (canvas.aktivesWerkzeug === "zeiger") {
             var vp = toViewport(mouse.x, mouse.y)

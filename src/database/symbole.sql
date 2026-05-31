@@ -36,7 +36,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('unterbrechung',   'Unterbrechung',           'Verbindungen', 16, 16, 'trenner',     1),
 ('querverweis',     'Querverweis',             'Verbindungen', 16, 16, 'durchleiter', 1),
 ('aderdefinition',  'Aderdefinition',          'Verbindungen', 4, 4, 'durchleiter', 1),
-('klemme_anschluss','Klemmenanschluss',        'Verbindungen', 16, 16, 'durchleiter', 1),
+('klemme_anschluss','Klemmenanschluss',        'Verbindungen',  8,  8, 'durchleiter', 1),
 ('potenzial',       'Potenzialpunkt',          'Verbindungen',  8,  8, 'quelle',      1),
 ('taster_no',       'Taster (NO)',              'Kontakte',     32, 16, 'durchleiter', 1),
 ('taster_nc',       'Taster NC',               'Kontakte',     32, 16, 'durchleiter', 1),
@@ -327,8 +327,8 @@ VALUES
 ('querverweis', 1, 'dreieck_gefuellt', 0.5, 0.35, 1,    0.5,  0.5,  0.65, 0,   0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 -- ── Klemmenanschluss ──
-('klemme_anschluss', 0, 'linie',    0.5,     0,   0.5,  0.375,   0, 0, 0,  0,   360,   0, NULL, 0.15, 0, 'center', 'middle', 'solid'),
-('klemme_anschluss', 1, 'kreis_offen',    0.5,  0.5,   0,     0,   0, 0, 0,  0.125,   0,   360, NULL, 0.15, 0, 'center', 'middle', 'solid'),
+('klemme_anschluss', 0, 'linie',       0.5,  0,    0.5,  0.25,  0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'),
+('klemme_anschluss', 1, 'kreis_offen', 0.5,  0.5,  0,    0,     0, 0, 0.25, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'),
 
 -- ── Taster NO (Schließer + Drucktaste) ──
 ('taster_no', 0, 'linie',    0,    0.5,  0.3,   0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),

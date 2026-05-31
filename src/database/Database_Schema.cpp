@@ -113,6 +113,12 @@ static QList<SchemaMigration> alleMigrationen()
             // ── PE-Klemme: Fußkontakt-Brücke ────────────────────────────────────
             R"(INSERT INTO bauteil_klemme_bruecke(klemme_id,von_ebene,nach_ebene,ist_pe_fuss) SELECT bk.id,1,1,1 FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='PE-Klemme 2,5mm²' AND NOT EXISTS(SELECT 1 FROM bauteil_klemme_bruecke WHERE klemme_id=bk.id AND ist_pe_fuss=1))",
         }},
+        // klemme_anschluss: 16x16mm → 8x8mm, Linie kürzer, Kreis größer (proportional)
+        { 58, "klemme_anschluss: 16x16mm auf 8x8mm verkleinert", {
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='klemme_anschluss' AND ist_builtin=1)",
+            R"(UPDATE symbol_primitiv SET y2=0.25 WHERE symbol_id='klemme_anschluss' AND reihenfolge=0)",
+            R"(UPDATE symbol_primitiv SET radius=0.25 WHERE symbol_id='klemme_anschluss' AND reihenfolge=1)",
+        }},
     };
 }
 

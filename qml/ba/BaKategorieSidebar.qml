@@ -144,6 +144,31 @@ Rectangle {
             }}
         }
 
+        // Makros
+        Rectangle {
+            Layout.fillWidth: true; height: 36
+            property bool sel: panel.aktiveSpezialAnsicht === "makros"
+            color: sel ? theme.hover : (makrolibH.hovered ? theme.hover : "transparent")
+            HoverHandler { id: makrolibH }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
+                spacing: 6
+                Text { text: "🔷"; font.pixelSize: 12 }
+                Text {
+                    text: qsTr("Makros"); font.pixelSize: 13; Layout.fillWidth: true
+                    color: parent.parent.sel ? theme.textPrimary : theme.textSecondary
+                }
+                Text {
+                    text: panel.makroListe.length > 0 ? "(" + panel.makroListe.length + ")" : ""
+                    color: theme.textMuted; font.pixelSize: 10
+                }
+            }
+            MouseArea {
+                anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor
+                onClicked: { panel.makroListeAktualisieren(); panel.aktiveSpezialAnsicht = "makros" }
+            }
+        }
+
         // Geräte (Platzhalter)
         Rectangle {
             Layout.fillWidth: true; height: 36; color: "transparent"
@@ -153,6 +178,36 @@ Rectangle {
                 Text { text: "⚡"; font.pixelSize: 12; opacity: 0.4 }
                 Text { text: qsTr("Geräte"); font.pixelSize: 13; color: theme.textMuted; opacity: 0.6; Layout.fillWidth: true }
                 Text { text: qsTr("(später)"); font.pixelSize: 10; color: theme.textMuted; opacity: 0.5 }
+            }
+        }
+
+        // ── PROJEKT ─────────────────────────────────────────────
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 2 }
+        Text {
+            text: qsTr("PROJEKT")
+            font.pixelSize: 9; font.weight: Font.Medium; color: theme.textMuted
+            leftPadding: 16; Layout.fillWidth: true
+            Layout.topMargin: 5; Layout.bottomMargin: 2
+        }
+
+        Rectangle {
+            Layout.fillWidth: true; height: 36
+            color: panel.aktiveSpezialAnsicht === "klemmenreihen"
+                   ? theme.hover : (krHover.containsMouse ? theme.hover : "transparent")
+            HoverHandler { id: krHover }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
+                Text { text: "🔌"; font.pixelSize: 12 }
+                Text {
+                    text: qsTr("Klemmenreihen"); font.pixelSize: 13
+                    color: panel.aktiveSpezialAnsicht === "klemmenreihen"
+                           ? theme.textPrimary : theme.textSecondary
+                    Layout.fillWidth: true
+                }
+            }
+            MouseArea {
+                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                onClicked: panel.aktiveSpezialAnsicht = "klemmenreihen"
             }
         }
 
@@ -234,61 +289,6 @@ Rectangle {
                         onClicked: { bauteilModel.laden(model.kategorieId); panel.aktiveSpezialAnsicht = "" }
                     }
                 }
-            }
-        }
-
-        // ── ZUSAMMENSTELLUNGEN ──────────────────────────────────
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
-        Text {
-            text: qsTr("ZUSAMMENSTELLUNGEN")
-            font.pixelSize: 9; font.weight: Font.Medium; color: theme.textMuted
-            leftPadding: 16; Layout.fillWidth: true
-            Layout.topMargin: 5; Layout.bottomMargin: 2
-        }
-
-        Rectangle {
-            Layout.fillWidth: true; height: 36
-            color: panel.aktiveSpezialAnsicht === "klemmenreihen"
-                   ? theme.hover : (krHover.containsMouse ? theme.hover : "transparent")
-            HoverHandler { id: krHover }
-            RowLayout {
-                anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
-                Text { text: "🔌"; font.pixelSize: 12 }
-                Text {
-                    text: qsTr("Klemmenreihen"); font.pixelSize: 13
-                    color: panel.aktiveSpezialAnsicht === "klemmenreihen"
-                           ? theme.textPrimary : theme.textSecondary
-                    Layout.fillWidth: true
-                }
-            }
-            MouseArea {
-                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                onClicked: panel.aktiveSpezialAnsicht = "klemmenreihen"
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true; height: 36
-            color: panel.aktiveSpezialAnsicht === "makros"
-                   ? theme.hover : (mkHover.containsMouse ? theme.hover : "transparent")
-            HoverHandler { id: mkHover }
-            RowLayout {
-                anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
-                Text { text: "🔷"; font.pixelSize: 12 }
-                Text {
-                    text: qsTr("Makros"); font.pixelSize: 13
-                    color: panel.aktiveSpezialAnsicht === "makros"
-                           ? theme.textPrimary : theme.textSecondary
-                    Layout.fillWidth: true
-                }
-                Text {
-                    text: panel.makroListe.length > 0 ? "(" + panel.makroListe.length + ")" : ""
-                    color: theme.textMuted; font.pixelSize: 10
-                }
-            }
-            MouseArea {
-                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                onClicked: { panel.makroListeAktualisieren(); panel.aktiveSpezialAnsicht = "makros" }
             }
         }
     }

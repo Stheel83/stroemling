@@ -255,6 +255,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/bedienhinweise/lizenz_open_source.md
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
         src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
+        src/wiki_seed/bedienhinweise/fehlersuchmodus.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
         src/wiki_seed/altbestand_ost/klassische_nullung_kuriosum.md
@@ -327,6 +328,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/bedienhinweise/lizenz_open_source.md
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
         src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
+        src/wiki_seed/bedienhinweise/fehlersuchmodus.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
         src/wiki_seed/altbestand_ost/klassische_nullung_kuriosum.md

@@ -51,6 +51,11 @@
           "titel": "Seitenbaum – Seiten sortieren und verschieben",
           "tags": "seitenbaum sortieren verschieben ort anlage drag drop hierarchie",
           "datei": "bedienhinweise/seitenbaum_sortierung.md"
+        },
+        {
+          "titel": "Fehlersuchmodus",
+          "tags": "fehlersuchmodus strompfad traversierung unterbrechung querverweis dimming fehlersuche",
+          "datei": "bedienhinweise/fehlersuchmodus.md"
         }
       ]
     },

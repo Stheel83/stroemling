@@ -1227,6 +1227,7 @@ Item {
                         var verbHelper = bmkSid === "winkel" || bmkSid === "treffpunkt" || bmkSid === "treffpunkt_l"
                                       || bmkSid === "geraeteanschluss" || bmkSid === "unterbrechung"
                                       || bmkSid === "querverweis"     || bmkSid === "aderdefinition"
+                                      || bmkSid === "klemme_anschluss"
                         if (!verbHelper) {
                             var bmkEd  = el.extraDaten || {}
                             var bmkStr = bmkEd.bmk || ""

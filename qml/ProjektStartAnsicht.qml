@@ -12,6 +12,8 @@ Item {
     signal zurueck()
     signal projektMetaGeaendert(int projektId)
 
+    readonly property bool _gitOk: root._gitOk
+
     property bool _geaendert:    false
     property bool _ladevorgang:  false
     property string _exportStatus: ""
@@ -697,7 +699,7 @@ Item {
                     Layout.fillWidth: true; spacing: 8
 
                     property bool _gitRepo: db.projektOffen && db.projektOrdner !== ""
-                                            && db.gitVerfuegbar()
+                                            && root._gitOk
 
                     Text {
                         text: qsTr("Remote-URL")
@@ -859,7 +861,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: !db.gitVerfuegbar()
+                            text: !root._gitOk
                                 ? qsTr("Git ist nicht installiert – keine automatische Versionierung.")
                                 : qsTr("Noch keine Versionshistorie – erste Version mit \"Version anlegen\" (Ctrl+S) erstellen.")
                             font.pixelSize: 11; font.weight: Font.Medium
@@ -868,7 +870,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            visible: !db.gitVerfuegbar()
+                            visible: !root._gitOk
                             text: qsTr("Der Schaltplan wird weiterhin automatisch gespeichert. "
                                      + "Ohne Git gibt es jedoch keinen Versionsverlauf und keine "
                                      + "Möglichkeit, zu einem früheren Stand zurückzukehren.\n\n"

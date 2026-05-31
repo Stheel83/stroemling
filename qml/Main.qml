@@ -33,6 +33,9 @@ ApplicationWindow {
     property int    aktivSeiteId:   -1
     property string aktivSeiteName: ""
 
+    // gitVerfuegbar() ist ein blockierender Prozessaufruf – einmal cachen reicht
+    readonly property bool gitVerfuegbar: db.gitVerfuegbar()
+
     // ── Tab / Split-Zustand ──────────────────────────────────────────────
     property int  fokussiertesPanel: 1     // 1 oder 2
     property bool splitAktiv:        false
@@ -1636,6 +1639,25 @@ ApplicationWindow {
     }
 
     // ── Projekt öffnen/schließen reagieren ───────────────────────
+    function _projektInitialisieren() {
+        projektModel.laden()
+        var info = db.ersteProjektInfo()
+        if (info.id > 0) {
+            root.aktivProjektId          = info.id
+            root.aktivProjektName        = info.name
+            root.aktivProjektHintergrund = db.projektHintergrundLaden(info.id)
+            root.aktiveAnsicht           = "projekte"
+            seitenModel.laden(info.id)
+            klemmenleistenModel.laden(info.id)
+        }
+    }
+
+    // Beim Start: openProjekt() feuert bevor QML läuft – Signal kommt nie an.
+    // Component.onCompleted holt den Zustand nach.
+    Component.onCompleted: {
+        if (db.projektOffen) root._projektInitialisieren()
+    }
+
     Connections {
         target: db
         function onProjektOffenChanged() {
@@ -1647,18 +1669,7 @@ ApplicationWindow {
                 root.aktiveAnsicht    = "projekte"
                 return
             }
-            // Projekt-Modelle neu laden
-            projektModel.laden()
-            // Erstes (einziges) Projekt automatisch auswählen
-            var info = db.ersteProjektInfo()
-            if (info.id > 0) {
-                root.aktivProjektId          = info.id
-                root.aktivProjektName        = info.name
-                root.aktivProjektHintergrund = db.projektHintergrundLaden(info.id)
-                root.aktiveAnsicht           = "projekte"
-                seitenModel.laden(info.id)
-                klemmenleistenModel.laden(info.id)
-            }
+            root._projektInitialisieren()
         }
     }
 

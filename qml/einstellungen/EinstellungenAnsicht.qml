@@ -107,6 +107,7 @@ Item {
 
                     EinDatensicherungBlock {
                         theme: root.theme
+                        infos: root._infos
                     }
 
                     EinDatenbankpfadeBlock {

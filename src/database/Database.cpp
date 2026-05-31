@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QBuffer>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -55,6 +56,37 @@ void Database::close()
 // ============================================================
 bool Database::openLauncher(const QString &path)
 {
+    // Ausstehende Wiederherstellung aus komplettarchivImportieren() anwenden.
+    // DBs sind zu diesem Zeitpunkt noch nicht geöffnet – sicheres Überschreiben möglich.
+    QString pendingDir = QFileInfo(path).absolutePath() + "/_pendingrestore";
+    if (QDir(pendingDir).exists()) {
+        QString dataDir = QFileInfo(path).absolutePath();
+        for (const QString &dateiname : {"makros.db", "wiki.db"}) {
+            QString src = pendingDir + "/" + dateiname;
+            if (QFile::exists(src)) {
+                QFile::remove(dataDir + "/" + dateiname);
+                QFile::rename(src, dataDir + "/" + dateiname);
+            }
+        }
+        // wiki_blobs/ übertragen
+        QString blobsSrc = pendingDir + "/wiki_blobs";
+        if (QDir(blobsSrc).exists()) {
+            QString blobsDst = dataDir + "/wiki_blobs";
+            QDir().mkpath(blobsDst);
+            QDirIterator it(blobsSrc, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+            while (it.hasNext()) {
+                it.next();
+                QString rel = QDir(blobsSrc).relativeFilePath(it.filePath());
+                QString dst = blobsDst + "/" + rel;
+                QDir().mkpath(QFileInfo(dst).absolutePath());
+                QFile::remove(dst);
+                QFile::rename(it.filePath(), dst);
+            }
+        }
+        QDir(pendingDir).removeRecursively();
+        qInfo() << "BACKUP-01: Ausstehende Wiederherstellung angewendet aus" << pendingDir;
+    }
+
     m_launcherDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_launcher");
     m_launcherDb.setDatabaseName(path);
     if (!m_launcherDb.open()) {
@@ -548,14 +580,89 @@ QVariantMap Database::datenbankInfos() const
     m["hauptDb"]           = projektDatei;
     m["wikiDb"]            = wikiPfad;
     m["makrosDb"]          = m_makroPfad;
+    QStringList backupDateien = backupDir.isEmpty()
+        ? QStringList()
+        : QDir(backupDir).entryList({"makros_*.db"}, QDir::Files, QDir::Name);
+    QString letztesSicherung;
+    if (!backupDateien.isEmpty()) {
+        // Dateiname: "makros_YYYY-MM-DD.db" → ab Position 7 (nach "makros_"), 10 Zeichen
+        QString basename = backupDateien.last();
+        if (basename.size() >= 17) letztesSicherung = basename.mid(7, 10);
+    }
+
     m["backupDir"]         = backupDir;
     m["schemaVersion"]     = schemaVersion;
     m["wikiSchemaVersion"] = WIKI_SCHEMA_VERSION;
-    m["backupAnzahl"]      = backupDir.isEmpty() ? 0 : QDir(backupDir).entryList({"*.db"}, QDir::Files).size();
+    m["backupAnzahl"]      = backupDateien.size();
+    m["letztesSicherung"]  = letztesSicherung;
     return m;
 }
 
 
+
+// ============================================================
+// datenbankAutobackup (BACKUP-01 Ebene 1)
+// Einmal täglich: makros.db + wiki.db per VACUUM INTO nach backups/,
+// max. 7 rotierende Dateien pro Datenbank.
+// ============================================================
+QVariantMap Database::datenbankAutobackup()
+{
+    if (!m_launcherDb.isOpen()) return {{"erfolg", false}};
+
+    QString dataDir   = QFileInfo(m_launcherDb.databaseName()).absolutePath();
+    QString backupDir = dataDir + "/backups";
+    QDir().mkpath(backupDir);
+
+    QString heute = QDate::currentDate().toString("yyyy-MM-dd");
+
+    auto sichereDb = [&](QSqlDatabase &db, const QString &prefix) -> bool {
+        if (!db.isOpen()) return false;
+
+        // Bereits heute gesichert?
+        QStringList vorhanden = QDir(backupDir).entryList(
+            {prefix + "_*.db"}, QDir::Files, QDir::Name);
+        for (const QString &f : vorhanden)
+            if (f.contains(heute)) return true;
+
+        QString zielPfad = backupDir + "/" + prefix + "_" + heute + ".db";
+        QString zielEsc  = zielPfad;
+        zielEsc.replace("'", "''");
+        QSqlQuery q(db);
+        bool ok = q.exec(QString("VACUUM INTO '%1'").arg(zielEsc));
+        if (!ok) {
+            qWarning() << "BACKUP-01 Auto-Backup" << prefix << ":" << q.lastError().text();
+            return false;
+        }
+
+        // Rotation: älteste löschen wenn > 7
+        vorhanden = QDir(backupDir).entryList({prefix + "_*.db"}, QDir::Files, QDir::Name);
+        while (vorhanden.size() > 7)
+            QFile::remove(backupDir + "/" + vorhanden.takeFirst());
+
+        return true;
+    };
+
+    bool makroOk = sichereDb(m_makroDb, "makros");
+    bool wikiOk  = sichereDb(m_wikiDb,  "wiki");
+
+    QStringList alle = QDir(backupDir).entryList({"makros_*.db"}, QDir::Files, QDir::Name);
+    QString letztesSicherung;
+    if (!alle.isEmpty()) {
+        QString basename = alle.last();
+        if (basename.size() >= 17) letztesSicherung = basename.mid(7, 10);
+    }
+
+    qInfo() << "BACKUP-01 Auto-Backup: makros=" << makroOk << "wiki=" << wikiOk
+            << "→" << backupDir;
+    return {
+        {"erfolg",           true},
+        {"makroOk",          makroOk},
+        {"wikiOk",           wikiOk},
+        {"letztesSicherung", letztesSicherung},
+        {"anzahlBackups",    alle.size()},
+        {"backupDir",        backupDir}
+    };
+}
 
 // ============================================================
 // symboleNachNorm

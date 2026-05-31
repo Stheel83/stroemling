@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QBuffer>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -1132,11 +1133,29 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     return QFile::exists(localPath);
 }
 
-// ── Komplettarchiv-Export ────────────────────────────────────────────────────
+// ── Verzeichnis rekursiv kopieren (interner Helfer) ──────────────────────────
+static void kopierVerzeichnis(const QString &von, const QString &nach)
+{
+    QDir().mkpath(nach);
+    QDirIterator it(von, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        QString rel = QDir(von).relativeFilePath(it.filePath());
+        QString dst = nach + "/" + rel;
+        QDir().mkpath(QFileInfo(dst).absolutePath());
+        QFile::remove(dst);
+        QFile::copy(it.filePath(), dst);
+    }
+}
+
+// ── Komplettarchiv-Export (BACKUP-01 Ebene 2) ───────────────────────────────
 // Struktur im Zielordner:
 //   manifest.json       — Metadaten + Projektliste
-//   wiki_export.json    — vollständige Wiki-Sicherung (JSON)
-//   projekte/           — Kopien aller bekannten .stroemling-Projektdateien
+//   wiki_export.json    — Wiki-Sicherung (JSON, für menschenlesbaren Merge)
+//   makros.db           — Makro-Bibliothek (VACUUM INTO)
+//   wiki.db             — Wiki-Datenbank (VACUUM INTO)
+//   wiki_blobs/         — Wiki-Anhänge (rekursive Kopie)
+//   projekte/           — Kopien aller bekannten .strl-Projektdateien
 // ────────────────────────────────────────────────────────────────────────────
 QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
 {
@@ -1144,9 +1163,38 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
     if (!QDir().mkpath(ziel))
         return {{"erfolg", false}, {"meldung", QStringLiteral("Zielordner konnte nicht erstellt werden")}};
 
-    // 1. Wiki als JSON exportieren
+    // 1a. Wiki als JSON exportieren (menschenlesbarer Fallback)
     QString wikiJsonPfad = ziel + QStringLiteral("/wiki_export.json");
-    bool wikiOk = wikiExportJson(wikiJsonPfad);
+    bool wikiJsonOk = wikiExportJson(wikiJsonPfad);
+
+    // 1b. makros.db per VACUUM INTO sichern
+    bool makroDbOk = false;
+    if (m_makroDb.isOpen()) {
+        QString zielPfad = ziel + QStringLiteral("/makros.db");
+        QString esc = zielPfad; esc.replace("'", "''");
+        QSqlQuery q(m_makroDb);
+        makroDbOk = q.exec(QString("VACUUM INTO '%1'").arg(esc));
+        if (!makroDbOk)
+            qWarning() << "komplettarchivExportieren makros.db:" << q.lastError().text();
+    }
+
+    // 1c. wiki.db per VACUUM INTO sichern
+    bool wikiDbOk = false;
+    if (m_wikiDb.isOpen()) {
+        QString zielPfad = ziel + QStringLiteral("/wiki.db");
+        QString esc = zielPfad; esc.replace("'", "''");
+        QSqlQuery q(m_wikiDb);
+        wikiDbOk = q.exec(QString("VACUUM INTO '%1'").arg(esc));
+        if (!wikiDbOk)
+            qWarning() << "komplettarchivExportieren wiki.db:" << q.lastError().text();
+    }
+
+    // 1d. wiki_blobs/ rekursiv kopieren
+    if (m_launcherDb.isOpen()) {
+        QString blobsSrc = QFileInfo(m_launcherDb.databaseName()).absolutePath() + "/wiki_blobs";
+        if (QDir(blobsSrc).exists())
+            kopierVerzeichnis(blobsSrc, ziel + "/wiki_blobs");
+    }
 
     // 2. Bekannte Projektdateien kopieren
     QString projOrdner = ziel + QStringLiteral("/projekte");
@@ -1165,7 +1213,6 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
 
             QString dateiName = QFileInfo(pfad).fileName();
             QString zielPfad  = projOrdner + "/" + dateiName;
-            // Namenskonflikt auflösen
             if (QFile::exists(zielPfad)) {
                 QString stem = QFileInfo(dateiName).baseName();
                 dateiName = stem + "_" + QString::number(projekteAnzahl + 1) + ".strl";
@@ -1179,46 +1226,44 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
                     {QStringLiteral("originalPfad"), pfad}
                 });
             } else {
-                qWarning() << "komplettarchivExportieren: Kopie fehlgeschlagen:" << pfad;
+                qWarning() << "komplettarchivExportieren: Projektkopie fehlgeschlagen:" << pfad;
             }
         }
     }
 
-    // 3. Schema-Version ermitteln
-    int schemaVer = 0;
-    {
-        QSqlQuery sv;
-        if (sv.exec("SELECT COALESCE(MAX(version),0) FROM schema_migration") && sv.next())
-            schemaVer = sv.value(0).toInt();
-    }
-
-    // 4. manifest.json schreiben
+    // 3. manifest.json schreiben (Version 2)
     QJsonObject manifest{
-        {QStringLiteral("stroemling_backup_version"), 1},
-        {QStringLiteral("exportiert_am"),  QDateTime::currentDateTime().toString(Qt::ISODate)},
-        {QStringLiteral("schema_version"), schemaVer},
-        {QStringLiteral("wiki_exportiert"), wikiOk},
-        {QStringLiteral("projekte"),        projekteListe}
+        {QStringLiteral("stroemling_backup_version"), 2},
+        {QStringLiteral("exportiert_am"),   QDateTime::currentDateTime().toString(Qt::ISODate)},
+        {QStringLiteral("makros_db"),        makroDbOk},
+        {QStringLiteral("wiki_db"),          wikiDbOk},
+        {QStringLiteral("wiki_json"),        wikiJsonOk},
+        {QStringLiteral("projekte"),         projekteListe}
     };
     QFile mf(ziel + QStringLiteral("/manifest.json"));
     if (mf.open(QIODevice::WriteOnly | QIODevice::Text))
         mf.write(QJsonDocument(manifest).toJson(QJsonDocument::Indented));
 
+    QString meldung = QString("%1 Projekt(e)").arg(projekteAnzahl);
+    if (makroDbOk) meldung += ", Makros";
+    if (wikiDbOk)  meldung += ", Wiki";
+    meldung += QStringLiteral(" gesichert");
+
     qInfo() << "komplettarchivExportieren:" << projekteAnzahl << "Projekt(e),"
-            << "Wiki:" << wikiOk << "→" << ziel;
+            << "makros=" << makroDbOk << "wiki=" << wikiDbOk << "→" << ziel;
     return {
         {QStringLiteral("erfolg"),         true},
         {QStringLiteral("projekteAnzahl"), projekteAnzahl},
-        {QStringLiteral("wikiOk"),         wikiOk},
-        {QStringLiteral("meldung"),        QString("%1 Projekt(e) gesichert%2")
-                                               .arg(projekteAnzahl)
-                                               .arg(wikiOk ? ", Wiki exportiert" : "")}
+        {QStringLiteral("makroDbOk"),      makroDbOk},
+        {QStringLiteral("wikiDbOk"),       wikiDbOk},
+        {QStringLiteral("meldung"),        meldung}
     };
 }
 
-// ── Komplettarchiv-Import ────────────────────────────────────────────────────
-// Liest manifest.json aus quellOrdner, importiert Wiki (merge) und
-// registriert alle Projekte in zuletzt_geoeffnet.
+// ── Komplettarchiv-Import (BACKUP-01 Ebene 2) ───────────────────────────────
+// 1. makros.db + wiki.db + wiki_blobs/ → _pendingrestore/ (angewendet beim nächsten Start)
+// 2. Wiki-JSON merge (sofort, für schnellen Zugriff ohne Neustart)
+// 3. .strl-Projektdateien → dataDir/importierte_projekte/ + in zuletzt_geoeffnet eintragen
 // ────────────────────────────────────────────────────────────────────────────
 QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
 {
@@ -1235,52 +1280,94 @@ QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
         return {{"erfolg", false}, {"meldung", QStringLiteral("Ungültiges Archiv: ") + err.errorString()}};
 
     QJsonObject root = doc.object();
-    if (root.value(QStringLiteral("stroemling_backup_version")).toInt() != 1)
+    int backupVer = root.value(QStringLiteral("stroemling_backup_version")).toInt();
+    if (backupVer < 1 || backupVer > 2)
         return {{"erfolg", false}, {"meldung", QStringLiteral("Unbekannte Archiv-Version")}};
 
-    // 1. Wiki importieren (merge – bestehende Nutzerartikel bleiben erhalten)
-    bool wikiOk = false;
+    if (!m_launcherDb.isOpen())
+        return {{"erfolg", false}, {"meldung", QStringLiteral("Launcher-DB nicht geöffnet")}};
+
+    QString dataDir    = QFileInfo(m_launcherDb.databaseName()).absolutePath();
+    QString pendingDir = dataDir + QStringLiteral("/_pendingrestore");
+    QDir().mkpath(pendingDir);
+
+    // 1. DB-Dateien für Neustart-Wiederherstellung vorbereiten
+    bool makroDbGeplant = false, wikiDbGeplant = false;
+    for (const auto &[dateiname, geplant] :
+         std::initializer_list<std::pair<QString, bool*>>{
+             {"makros.db", &makroDbGeplant},
+             {"wiki.db",   &wikiDbGeplant}}) {
+        QString src = quelle + "/" + dateiname;
+        if (QFile::exists(src)) {
+            QString dst = pendingDir + "/" + dateiname;
+            QFile::remove(dst);
+            *geplant = QFile::copy(src, dst);
+        }
+    }
+
+    // wiki_blobs/ kopieren (in _pendingrestore, wird beim Start verschoben)
+    QString blobsSrc = quelle + "/wiki_blobs";
+    if (QDir(blobsSrc).exists())
+        kopierVerzeichnis(blobsSrc, pendingDir + "/wiki_blobs");
+
+    // 2. Wiki-JSON sofort mergen (Artikel bleiben ohne Neustart zugänglich)
+    bool wikiJsonOk = false;
     QString wikiJsonPfad = quelle + QStringLiteral("/wiki_export.json");
     if (QFile::exists(wikiJsonPfad))
-        wikiOk = wikiImportJson(wikiJsonPfad, true);
+        wikiJsonOk = wikiImportJson(wikiJsonPfad, true);
 
-    // 2. Projekte in zuletzt_geoeffnet eintragen
+    // 3. Projektdateien nach dataDir/importierte_projekte/ kopieren
     int projekteAnzahl = 0;
     QJsonArray projekteListe = root.value(QStringLiteral("projekte")).toArray();
-    QString projOrdner = quelle + QStringLiteral("/projekte");
+    QString projSrcOrdner   = quelle + QStringLiteral("/projekte");
+    QString projZielOrdner  = dataDir + QStringLiteral("/importierte_projekte");
+    QDir().mkpath(projZielOrdner);
 
     for (const QJsonValue &v : projekteListe) {
-        QJsonObject pj     = v.toObject();
-        QString dateiName  = pj.value(QStringLiteral("datei")).toString();
-        QString name       = pj.value(QStringLiteral("name")).toString();
-        QString pfad       = projOrdner + "/" + dateiName;
+        QJsonObject pj    = v.toObject();
+        QString dateiName = pj.value(QStringLiteral("datei")).toString();
+        QString name      = pj.value(QStringLiteral("name")).toString();
+        QString srcPfad   = projSrcOrdner + "/" + dateiName;
 
-        if (!QFile::exists(pfad)) {
-            qWarning() << "komplettarchivImportieren: Datei nicht gefunden:" << pfad;
+        if (!QFile::exists(srcPfad)) {
+            qWarning() << "komplettarchivImportieren: Projektdatei fehlt:" << srcPfad;
             continue;
         }
 
-        if (!m_launcherDb.isOpen()) continue;
+        // Zieldatei bestimmen, Konflikt auflösen
+        QString zielPfad = projZielOrdner + "/" + dateiName;
+        if (QFile::exists(zielPfad)) {
+            QString stem = QFileInfo(dateiName).baseName();
+            zielPfad = projZielOrdner + "/" + stem
+                       + "_importiert_" + QString::number(projekteAnzahl + 1) + ".strl";
+        }
+        if (!QFile::copy(srcPfad, zielPfad)) continue;
+
         QSqlQuery q(m_launcherDb);
         q.prepare(R"(
             INSERT INTO zuletzt_geoeffnet (pfad, name, geoeffnet_am)
             VALUES (:p, :n, datetime('now'))
             ON CONFLICT(pfad) DO UPDATE SET name=excluded.name, geoeffnet_am=excluded.geoeffnet_am
         )");
-        q.bindValue(":p", pfad);
+        q.bindValue(":p", zielPfad);
         q.bindValue(":n", name);
         if (q.exec()) projekteAnzahl++;
     }
 
-    qInfo() << "komplettarchivImportieren:" << projekteAnzahl << "Projekt(e),"
-            << "Wiki:" << wikiOk;
+    QString meldung = QString("%1 Projekt(e) importiert").arg(projekteAnzahl);
+    if (makroDbGeplant || wikiDbGeplant)
+        meldung += QStringLiteral(" · Makros/Wiki werden beim nächsten Start wiederhergestellt");
+
+    qInfo() << "komplettarchivImportieren:" << projekteAnzahl << "Projekt(e)"
+            << "makroPending=" << makroDbGeplant << "wikiPending=" << wikiDbGeplant;
     return {
-        {QStringLiteral("erfolg"),         true},
-        {QStringLiteral("projekteAnzahl"), projekteAnzahl},
-        {QStringLiteral("wikiOk"),         wikiOk},
-        {QStringLiteral("meldung"),        QString("%1 Projekt(e) registriert%2")
-                                               .arg(projekteAnzahl)
-                                               .arg(wikiOk ? ", Wiki importiert (merge)" : "")}
+        {QStringLiteral("erfolg"),          true},
+        {QStringLiteral("projekteAnzahl"),  projekteAnzahl},
+        {QStringLiteral("makroDbGeplant"),  makroDbGeplant},
+        {QStringLiteral("wikiDbGeplant"),   wikiDbGeplant},
+        {QStringLiteral("wikiJsonOk"),      wikiJsonOk},
+        {QStringLiteral("neustartNoetig"),  makroDbGeplant || wikiDbGeplant},
+        {QStringLiteral("meldung"),         meldung}
     };
 }
 

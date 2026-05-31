@@ -208,6 +208,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // BACKUP-01 Ebene 1: einmal täglich makros.db + wiki.db sichern
+    db.datenbankAutobackup();
+
     // Startprojekt: per Kommandozeilenargument (neue Instanz) oder zuletzt geöffnet
     {
         QString startPfad;

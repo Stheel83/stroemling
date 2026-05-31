@@ -10,6 +10,14 @@ Item {
     required property var panel
     required property var theme
 
+    property string _updateStatus: ""   // "" | "ok" | "fehler"
+
+    Timer {
+        id: _updateFeedbackTimer
+        interval: 1200
+        onTriggered: root._updateStatus = ""
+    }
+
     width:   parent ? parent.width : 0
     height:  (panel.el && panel.el.typ === "makrokasten") ? mkCol.implicitHeight : 0
     visible: height > 0
@@ -116,9 +124,12 @@ Item {
             spacing: 6
 
             Button {
-                text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.makroId > 0)
-                      ? qsTr("Makro aktualisieren ▸")
-                      : qsTr("Als Makro speichern ▸")
+                text: {
+                    if (root._updateStatus === "ok") return qsTr("✓ Gespeichert")
+                    return (panel.el && panel.el.extraDaten && panel.el.extraDaten.makroId > 0)
+                           ? qsTr("Makro aktualisieren ▸")
+                           : qsTr("Als Makro speichern ▸")
+                }
                 Layout.fillWidth: true
                 implicitHeight: 28
                 contentItem: Text {
@@ -134,10 +145,10 @@ Item {
                     if (!el || el.typ !== "makrokasten") return
                     // Position vor Flush sichern; nach DELETE+INSERT ändert sich die DB-ID
                     var savedX1 = el.x1, savedY1 = el.y1
-                    canvas.grafikSpeichernJetzt()
-                    canvas.elementeModel.laden(canvas.seiteId)
+                    panel.canvas.grafikSpeichernJetzt()
+                    panel.canvas.elementeModel.laden(panel.canvas.seiteId)
                     // Element per Position wiederfinden (Index nach Reload nicht mehr gültig)
-                    var reloaded = canvas.elementeModel.snapshot()
+                    var reloaded = panel.canvas.elementeModel.snapshot()
                     var freshEl = null
                     for (var i = 0; i < reloaded.length; i++) {
                         var r = reloaded[i]
@@ -147,12 +158,21 @@ Item {
                             freshEl = r; break
                         }
                     }
-                    if (!freshEl || !(freshEl.id > 0)) return
-                    var newId = db.makroSpeichern(freshEl.id, canvas.seiteId)
+                    if (!freshEl || !(freshEl.id > 0)) {
+                        root._updateStatus = "fehler"
+                        _updateFeedbackTimer.restart()
+                        return
+                    }
+                    var newId = db.makroSpeichern(freshEl.id, panel.canvas.seiteId)
                     if (newId > 0) {
-                        canvas.elementeModel.laden(canvas.seiteId)
-                        canvas.makroListeGeaendert()
-                        canvas.neuZeichnen()
+                        root._updateStatus = "ok"
+                        _updateFeedbackTimer.restart()
+                        panel.canvas.elementeModel.laden(panel.canvas.seiteId)
+                        panel.canvas.makroListeGeaendert()
+                        panel.canvas.neuZeichnen()
+                    } else {
+                        root._updateStatus = "fehler"
+                        _updateFeedbackTimer.restart()
                     }
                 }
             }

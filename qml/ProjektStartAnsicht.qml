@@ -264,12 +264,13 @@ Item {
         }
     }
 
-    FileDialog {
+    FolderDialog {
         id: projektOeffnenDialog
-        fileMode:    FileDialog.OpenFile
-        nameFilters: ["Strömling Projekte (*.strl)", "Alle Dateien (*)"]
+        title: qsTr("Projektordner wählen")
         onAccepted: {
-            if (!db.openProjekt(selectedFile.toString()))
+            var p = selectedFolder.toString()
+            if (p.startsWith("file://")) p = p.substring(7)
+            if (!db.openProjekt(p + "/projekt.strl"))
                 fehlerPopup.open()
         }
     }
@@ -355,7 +356,7 @@ Item {
                             MouseArea {
                                 id: oeffBtnHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: projektOeffnenDialog.open()
-                                ToolTip.visible: containsMouse; ToolTip.delay: 600; ToolTip.text: qsTr("Projekt öffnen…")
+                                ToolTip.visible: containsMouse; ToolTip.delay: 600; ToolTip.text: qsTr("Projektordner wählen…")
                             }
                         }
                         // Neu-Button

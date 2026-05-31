@@ -1527,19 +1527,20 @@ Item {
                                 ctx.fillText(kaBmk, kaX, kaBmkY)
                             }
                         } else {
-                            var kaY  = Math.min(vy1, vy2) - 3 * root.zoom + kaOy
+                            // Text unterhalb des Symbols (gegenüber Pin an der Oberseite)
+                            var kaY  = Math.max(vy1, vy2) + 3 * root.zoom + kaOy
                             var kaCxO = kaCx + kaOx
                             if (kaAnz !== "") {
                                 ctx.font = "bold " + kaFs + "px sans-serif"
-                                ctx.textAlign = "center"; ctx.textBaseline = "bottom"
+                                ctx.textAlign = "center"; ctx.textBaseline = "top"
                                 ctx.strokeText(kaAnz, kaCxO, kaY)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
                                 ctx.fillText(kaAnz, kaCxO, kaY)
                             }
                             if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
-                                ctx.textAlign = "center"; ctx.textBaseline = "bottom"
-                                var kaBmkYh = kaY - kaFs - 1
+                                ctx.textAlign = "center"; ctx.textBaseline = "top"
+                                var kaBmkYh = kaY + kaFs + 1
                                 ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
                                 ctx.fillText(kaBmk, kaCxO, kaBmkYh)
@@ -3515,10 +3516,10 @@ Item {
                     hx1 = kaHX - pad; hx2 = kaHX + Math.max(40, kaFsH * 4)
                     hy1 = kaHCY - kaBmkFsH - kaFsH - pad; hy2 = kaHCY + pad
                 } else {
-                    var kaHY  = Math.min(vy1, vy2) - 3 * root.zoom + kaOyH
+                    var kaHY  = Math.max(vy1, vy2) + 3 * root.zoom + kaOyH
                     var kaHCX = (vx1 + vx2) / 2 + kaOxH
                     hx1 = kaHCX - Math.max(30, kaFsH * 3); hx2 = kaHCX + Math.max(30, kaFsH * 3)
-                    hy1 = kaHY - kaBmkFsH - kaFsH - pad;  hy2 = kaHY + pad
+                    hy1 = kaHY - pad; hy2 = kaHY + kaFsH + kaBmkFsH + pad
                 }
             } else {
                 var bmkStr = bmkEd.bmk || ""

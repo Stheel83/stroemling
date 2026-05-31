@@ -82,6 +82,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_primitiv SET x1=0.25, radius=0.25 WHERE symbol_id='geraeteanschluss' AND reihenfolge=1)",
             R"(UPDATE symbol_primitiv SET x1=0.25, radius=0.25 WHERE symbol_id='potenzial'        AND reihenfolge=1)",
         }},
+        { 56, "Winkel: 16x16mm auf 8x8mm verkleinert", {
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='winkel' AND ist_builtin=1)",
+        }},
     };
 }
 

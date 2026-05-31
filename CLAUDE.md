@@ -108,6 +108,17 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 
 ---
 
+## Entwicklungsstatus
+
+Das Projekt befindet sich in aktiver Entwicklung – **keine Produktivnutzer,
+keine Altdaten, keine Migrationen notwendig.**
+
+- Kompatibilitäts-Shims und One-Time-Migrations-Code dürfen entfernt werden
+- „Unterstützung für altes Format XY" ist toter Code – löschen, nicht behalten
+- Neue Features brauchen keine Rückwärtskompatibilität
+
+---
+
 ## Arbeitsregeln für Claude
 
 ### Vor jeder Änderung

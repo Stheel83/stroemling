@@ -1281,8 +1281,8 @@ QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
 
     QJsonObject root = doc.object();
     int backupVer = root.value(QStringLiteral("stroemling_backup_version")).toInt();
-    if (backupVer < 1 || backupVer > 2)
-        return {{"erfolg", false}, {"meldung", QStringLiteral("Unbekannte Archiv-Version")}};
+    if (backupVer != 2)
+        return {{"erfolg", false}, {"meldung", QStringLiteral("Unbekannte Archiv-Version (erwartet v2)")}};
 
     if (!m_launcherDb.isOpen())
         return {{"erfolg", false}, {"meldung", QStringLiteral("Launcher-DB nicht geöffnet")}};

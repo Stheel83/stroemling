@@ -119,39 +119,8 @@ bool Database::openLauncher(const QString &path)
         )")) {
             qWarning() << "bekannte_projekte Tabelle:" << q.lastError().text();
         }
-        // Einmalige Befüllung aus zuletzt_geoeffnet wenn bekannte_projekte noch leer
-        {
-            QSqlQuery cnt(m_launcherDb);
-            if (cnt.exec("SELECT COUNT(*) FROM bekannte_projekte") && cnt.next()
-                    && cnt.value(0).toInt() == 0) {
-                QSqlQuery copy(m_launcherDb);
-                copy.exec("INSERT OR IGNORE INTO bekannte_projekte "
-                           "(datei_pfad, projekt_name, zuletzt_geoeffnet) "
-                           "SELECT pfad, name, geoeffnet_am FROM zuletzt_geoeffnet");
-            }
-        }
     }
     qInfo() << "Launcher-DB geöffnet:" << path;
-
-    // Alte stroemling.db-Pfade (vor R7) als Projekte anbieten.
-    // Vor R7: org="Strömling Design", jetzt org="stroemling" → anderer XDG-Pfad.
-    // Basis-Verzeichnis ableiten: ein Ebene über dem aktuellen dataDir.
-    QString basedir = QFileInfo(path).absolutePath(); // z.B. ~/.local/share/stroemling/Strömling Design
-    QDir parentDir(basedir);
-    parentDir.cdUp(); // ~/.local/share/stroemling
-    parentDir.cdUp(); // ~/.local/share
-    const QString altPfad = parentDir.filePath(
-        "Strömling Design/Strömling Design/stroemling.db");
-    if (QFile::exists(altPfad)) {
-        QSqlQuery qCheck(m_launcherDb);
-        qCheck.prepare("SELECT COUNT(*) FROM zuletzt_geoeffnet WHERE pfad = :p");
-        qCheck.bindValue(":p", altPfad);
-        if (qCheck.exec() && qCheck.next() && qCheck.value(0).toInt() == 0) {
-            zuletzGeoeffnetEintragen(altPfad, "Bisheriges Projekt (vor R7)");
-            qInfo() << "Altes Projekt in zuletzt_geoeffnet eingetragen:" << altPfad;
-        }
-    }
-
     return true;
 }
 

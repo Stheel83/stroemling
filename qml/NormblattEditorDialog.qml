@@ -271,6 +271,7 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
             theme:        root.theme
             felder:       root._felder
+            hatVorlage:   root._vorlage !== null
             selIdx:       root._selIdx
             breiteMm:     root._vorlage ? (root._vorlage.breiteMm || 297) : 297
             hoeheMm:      root._vorlage ? (root._vorlage.hoeheMm  || 210) : 210

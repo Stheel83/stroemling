@@ -8,6 +8,7 @@ Item {
 
     property var  felder:        []
     property int  selIdx:        -1
+    property bool hatVorlage:    false
     property real breiteMm:      297
     property real hoeheMm:       210
     property real randLinksMm:   20
@@ -225,7 +226,9 @@ Item {
     Text {
         anchors.centerIn: parent
         visible: root.felder.length === 0
-        text: qsTr("Palette links nutzen um\nFelder hinzuzufügen")
+        text: root.hatVorlage
+              ? qsTr("Palette links nutzen um\nFelder hinzuzufügen")
+              : qsTr("Zuerst eine Vorlage anlegen (oben links),\ndann können Felder aus der Palette hinzugefügt werden")
         color: root.theme.panelMid; font.pixelSize: 13
         horizontalAlignment: Text.AlignHCenter
     }

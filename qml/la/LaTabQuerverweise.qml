@@ -40,44 +40,45 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    ScrollView {
+    Item {
         Layout.fillWidth: true; Layout.fillHeight: true; clip: true
-        background: Rectangle { color: "transparent" }
 
         ListView {
             id: qvView
-            width: parent.width
+            anchors.fill: parent
             model: panel._querverweisModel; clip: true
-        delegate: Rectangle {
-            width: qvView.width; height: 30
-            color: index % 2 === 0 ? theme.tableEven : theme.tableOdd
-            Row {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                spacing: 0
-                Text { width: panel.qvCols[0].w; text: model.signalname || "–"; font.pixelSize: 12; color: theme.textSecondary; elide: Text.ElideRight }
-                Text { width: panel.qvCols[1].w; text: model.richtung   || ""; font.pixelSize: 12;
-                       color: model.richtung === "ausgang" ? theme.accent : "#66ddaa"; elide: Text.ElideRight }
-                Text { width: panel.qvCols[2].w; text: model.seite      || ""; font.pixelSize: 12; color: theme.accentLight; elide: Text.ElideRight }
-                Text { width: panel.qvCols[3].w; text: model.zielSeite  || "–"; font.pixelSize: 12;
-                       color: model.zielSeite ? theme.accentLight : theme.borderDark; elide: Text.ElideRight }
+            ScrollBar.vertical: ScrollBar {}
+            delegate: Rectangle {
+                width: qvView.width; height: 30
+                color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
+                Row {
+                    anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                    spacing: 0
+                    Text { width: panel.qvCols[0].w; text: model.signalname || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.qvCols[1].w; text: model.richtung   || ""; font.pixelSize: 12;
+                           color: model.richtung === "ausgang" ? root.theme.accent : "#66ddaa"; elide: Text.ElideRight }
+                    Text { width: panel.qvCols[2].w; text: model.seite      || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                    Text { width: panel.qvCols[3].w; text: model.zielSeite  || "–"; font.pixelSize: 12;
+                           color: model.zielSeite ? root.theme.accentLight : root.theme.borderDark; elide: Text.ElideRight }
+                }
             }
         }
-    }
-    Column {
-        visible: panel._querverweisModel.count === 0
-        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        spacing: 6
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
-            font.pixelSize: 14; color: theme.borderDark
+
+        Column {
+            visible: panel._querverweisModel.count === 0
+            anchors.centerIn: parent
+            spacing: 6
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
+                font.pixelSize: 14; color: theme.borderDark
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: panel.projektId >= 0
+                text: qsTr("Querverweis-Linien im Canvas zeichnen (Werkzeug: ∿), um Querverweise zu erzeugen.")
+                font.pixelSize: 11; font.italic: true; color: theme.textMuted
+            }
         }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            visible: panel.projektId >= 0
-            text: qsTr("Querverweis-Linien im Canvas zeichnen (Werkzeug: ∿), um Querverweise zu erzeugen.")
-            font.pixelSize: 11; font.italic: true; color: theme.textMuted
-        }
-    }
     }
 }

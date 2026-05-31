@@ -46,6 +46,11 @@
           "titel": "Über dieses Projekt",
           "tags": "entstehung projekt KI claude chatgpt open source geschichte",
           "datei": "bedienhinweise/ueber_dieses_projekt.md"
+        },
+        {
+          "titel": "Seitenbaum – Seiten sortieren und verschieben",
+          "tags": "seitenbaum sortieren verschieben ort anlage drag drop hierarchie",
+          "datei": "bedienhinweise/seitenbaum_sortierung.md"
         }
       ]
     },
@@ -64,11 +69,6 @@
           "titel": "Klassische Nullung – Verbotsdaten nach VDE",
           "tags": "klassische nullung verbot datum",
           "datei": "altbestand_west/klassische_nullung_verbotsdaten.md"
-        },
-        {
-          "titel": "Kuriositäten: 3-adrig verdrahtet, aber KN angeklemmt",
-          "tags": "klassische nullung kuriosum",
-          "datei": "altbestand_west/klassische_nullung_kuriosum.md"
         }
       ]
     },
@@ -87,6 +87,11 @@
           "titel": "DDR-Farbnormen und TGL-Querschnitte",
           "tags": "farbnorm TGL DDR querschnitt",
           "datei": "altbestand_ost/ddr_farbnormen_tgl.md"
+        },
+        {
+          "titel": "Kuriositäten: 3-adrig verdrahtet, aber KN angeklemmt",
+          "tags": "klassische nullung kuriosum",
+          "datei": "altbestand_ost/klassische_nullung_kuriosum.md"
         }
       ]
     },
@@ -119,68 +124,68 @@
         {
           "titel": "Strömlinge – Überblick",
           "tags": "strömling maskottchen übersicht charakter",
-          "datei": "stromlinge/ueberblick.md"
+          "datei": "stroemlinge/ueberblick.md"
         },
         {
           "titel": "Schwärzchen – Systemfisch L2",
           "tags": "schwärzchen L2 außenleiter netzleiter IEC schwarz",
-          "datei": "stromlinge/schwaerzchen.md",
+          "datei": "stroemlinge/schwaerzchen.md",
           "bild_qrc": ":/assets/schwaerzchen_sheet.png",
           "bild_dateiname": "schwaerzchen_sheet.png"
         },
         {
           "titel": "Impulsino – Signal",
           "tags": "impulsino signal impuls digital orange funmodus",
-          "datei": "stromlinge/impulsino.md",
+          "datei": "stroemlinge/impulsino.md",
           "bild_qrc": ":/assets/impulsino_uebersicht.png",
           "bild_dateiname": "impulsino_uebersicht.png"
         },
         {
           "titel": "Isolus – Schutz & Isolierung",
           "tags": "isolus isolation schutz dunkleosteus panzer IEC klasse II",
-          "datei": "stromlinge/isolus.md",
+          "datei": "stroemlinge/isolus.md",
           "bild_qrc": ":/assets/isolus.png",
           "bild_dateiname": "isolus.png"
         },
         {
           "titel": "Brauno – Außenleiter L1",
           "tags": "brauno L1 außenleiter netzleiter IEC braun",
-          "datei": "stromlinge/brauno.md",
+          "datei": "stroemlinge/brauno.md",
           "bild_qrc": ":/assets/brauno_uebersicht.png",
           "bild_dateiname": "brauno_uebersicht.png"
         },
         {
           "titel": "Blaubertha – Neutralleiter N",
           "tags": "blaubertha N neutralleiter netzleiter IEC blau rückleiter",
-          "datei": "stromlinge/blaubertha.md",
+          "datei": "stroemlinge/blaubertha.md",
           "bild_qrc": ":/assets/blaubertha_uebersicht.png",
           "bild_dateiname": "blaubertha_uebersicht.png"
         },
         {
           "titel": "Grausel – Außenleiter L3",
           "tags": "grausel L3 außenleiter netzleiter IEC grau",
-          "datei": "stromlinge/grausel.md",
+          "datei": "stroemlinge/grausel.md",
           "bild_qrc": ":/assets/grausel_uebersicht.png",
           "bild_dateiname": "grausel_uebersicht.png"
         },
         {
           "titel": "Erdikus – Schutzleiter PE",
           "tags": "erdikus PE schutzleiter netzleiter IEC grün gelb erde",
-          "datei": "stromlinge/erdikus.md",
+          "datei": "stroemlinge/erdikus.md",
           "bild_qrc": ":/assets/erdikus_uebersicht.png",
           "bild_dateiname": "erdikus_uebersicht.png"
         },
         {
           "titel": "Datinchen – Kommunikation",
           "tags": "datinchen kommunikation bus signal CAN RS485 lila violett",
-          "datei": "stromlinge/datinchen.md",
+          "datei": "stroemlinge/datinchen.md",
           "bild_qrc": ":/assets/datinchen_uebersicht.png",
           "bild_dateiname": "datinchen_uebersicht.png"
         },
         {
           "titel": "Pokeström",
           "tags": "pokeström maskottchen startbildschirm fisch charakter",
-          "datei": "stromlinge/pokestroem.md",
+          "datei": "stroemlinge/pokestroem.md",
           "bild_qrc": ":/assets/pokestroem_cee.png",
           "bild_dateiname": "pokestroem_cee.png"
         }

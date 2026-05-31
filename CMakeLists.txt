@@ -254,22 +254,23 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/bedienhinweise/versionierung_git.md
         src/wiki_seed/bedienhinweise/lizenz_open_source.md
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
+        src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
-        src/wiki_seed/altbestand_west/klassische_nullung_kuriosum.md
+        src/wiki_seed/altbestand_ost/klassische_nullung_kuriosum.md
         src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
         src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
-        src/wiki_seed/stromlinge/ueberblick.md
-        src/wiki_seed/stromlinge/schwaerzchen.md
-        src/wiki_seed/stromlinge/impulsino.md
-        src/wiki_seed/stromlinge/isolus.md
-        src/wiki_seed/stromlinge/brauno.md
-        src/wiki_seed/stromlinge/blaubertha.md
-        src/wiki_seed/stromlinge/grausel.md
-        src/wiki_seed/stromlinge/erdikus.md
-        src/wiki_seed/stromlinge/datinchen.md
-        src/wiki_seed/stromlinge/pokestroem.md
+        src/wiki_seed/stroemlinge/ueberblick.md
+        src/wiki_seed/stroemlinge/schwaerzchen.md
+        src/wiki_seed/stroemlinge/impulsino.md
+        src/wiki_seed/stroemlinge/isolus.md
+        src/wiki_seed/stroemlinge/brauno.md
+        src/wiki_seed/stroemlinge/blaubertha.md
+        src/wiki_seed/stroemlinge/grausel.md
+        src/wiki_seed/stroemlinge/erdikus.md
+        src/wiki_seed/stroemlinge/datinchen.md
+        src/wiki_seed/stroemlinge/pokestroem.md
         src/wiki_seed/tester/testanleitung.md
 )
 
@@ -325,22 +326,23 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/bedienhinweise/versionierung_git.md
         src/wiki_seed/bedienhinweise/lizenz_open_source.md
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
+        src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
-        src/wiki_seed/altbestand_west/klassische_nullung_kuriosum.md
+        src/wiki_seed/altbestand_ost/klassische_nullung_kuriosum.md
         src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
         src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
-        src/wiki_seed/stromlinge/ueberblick.md
-        src/wiki_seed/stromlinge/schwaerzchen.md
-        src/wiki_seed/stromlinge/impulsino.md
-        src/wiki_seed/stromlinge/isolus.md
-        src/wiki_seed/stromlinge/brauno.md
-        src/wiki_seed/stromlinge/blaubertha.md
-        src/wiki_seed/stromlinge/grausel.md
-        src/wiki_seed/stromlinge/erdikus.md
-        src/wiki_seed/stromlinge/datinchen.md
-        src/wiki_seed/stromlinge/pokestroem.md
+        src/wiki_seed/stroemlinge/ueberblick.md
+        src/wiki_seed/stroemlinge/schwaerzchen.md
+        src/wiki_seed/stroemlinge/impulsino.md
+        src/wiki_seed/stroemlinge/isolus.md
+        src/wiki_seed/stroemlinge/brauno.md
+        src/wiki_seed/stroemlinge/blaubertha.md
+        src/wiki_seed/stroemlinge/grausel.md
+        src/wiki_seed/stroemlinge/erdikus.md
+        src/wiki_seed/stroemlinge/datinchen.md
+        src/wiki_seed/stroemlinge/pokestroem.md
         src/wiki_seed/tester/testanleitung.md
 )
 

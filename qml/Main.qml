@@ -330,6 +330,46 @@ ApplicationWindow {
         }
     }
 
+    // ── Hilfsdialog: Klemmenanschluss bereits platziert ─────────
+    Dialog {
+        id:      bereitsPlatzierMeldung
+        title:   qsTr("Bereits platziert")
+        modal:   true
+        parent:  Overlay.overlay
+        anchors.centerIn: parent
+        width:   340
+        padding: 20
+        background: Rectangle {
+            color: appTheme.sidebar; border.color: appTheme.border; border.width: 1; radius: 6
+        }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Text {
+                text: qsTr("Dieser Klemmenanschluss ist bereits auf dem Canvas platziert.")
+                color: appTheme.textSecondary; font.pixelSize: 13
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Text {
+                text: qsTr("Jeder Anschluss kann nur einmal im Projekt vorkommen.")
+                color: appTheme.textMuted; font.pixelSize: 11
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: qsTr("OK"); implicitWidth: 80; implicitHeight: 32
+                    contentItem: Text {
+                        text: parent.text; color: appTheme.textPrimary; font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle { color: parent.hovered ? appTheme.accent : appTheme.inputBg; radius: 4; border.color: appTheme.accent }
+                    onClicked: bereitsPlatzierMeldung.close()
+                }
+            }
+        }
+    }
+
     // ── Eigene Titelleiste ───────────────────────────────────────
     Rectangle {
         id:      appTitelleiste
@@ -845,6 +885,7 @@ ApplicationWindow {
                         }
                         onKlemmenAnschlussPlatzieren: function(klemmeId, bauteilKlemmeId, anschlussBezeichnung, bmk) {
                             if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { bereitsPlatzierMeldung.open(); return }
                             root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                             root.aktiverCanvas.paletteExtraDaten = {
                                 "bauteilKlemmeId":      bauteilKlemmeId,
@@ -1096,6 +1137,7 @@ ApplicationWindow {
                         keineSeiteMeldung.open()
                         return
                     }
+                    if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { bereitsPlatzierMeldung.open(); return }
                     root.aktiveAnsicht = "seiten"
                     root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                     root.aktiverCanvas.paletteExtraDaten = {

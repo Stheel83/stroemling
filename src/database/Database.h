@@ -358,6 +358,10 @@ public:
     // Gibt [{bezeichnung, seite, ebene}] zurück – berechnet aus bauteil_klemme-Feldern.
     Q_INVOKABLE QVariantList anschluesseFuerKlemme(int bauteilId) const;
 
+    // Bereits platzierte klemme_anschluss-Elemente (projektübergreifend in dieser DB).
+    Q_INVOKABLE QVariantList platzierteKlemmenAnschluesse() const;
+    Q_INVOKABLE bool         klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlussBezeichnung) const;
+
     // Kabeldefinitionslinie – neues Kabel anlegen und grafik_element verknüpfen.
     // Gibt die neue kabel-ID zurück (>0) oder -1 bei Fehler.
     Q_INVOKABLE int kabelAnlegen(int projektId, const QString &bezeichnung,

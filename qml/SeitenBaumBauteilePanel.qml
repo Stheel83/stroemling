@@ -10,6 +10,7 @@ ColumnLayout {
 
     required property var theme
     required property int aktivSeiteId
+    property int  projektId: -1
     property bool debug: false
 
     property bool _bauteilBereichOffen: false
@@ -17,11 +18,26 @@ ColumnLayout {
     property var  _klemmenAufgeklappt:  ({})
     property var  _klemmenCache:        ({})
     property var  _anschluesseCache:    ({})
+    property var  _platziert:           ({})   // "klemmeId_bez" → true
 
     readonly property bool offen: _bauteilBereichOffen
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
+
+    function aktualisiereStatus() {
+        var liste = db.platzierteKlemmenAnschluesse()
+        var map = {}
+        for (var i = 0; i < liste.length; i++) {
+            var e = liste[i]
+            map[e.klemmeId + "_" + e.anschlussBezeichnung] = true
+        }
+        root._platziert = map
+    }
+
+    function istPlatziert(klemmeId, bezeichnung) {
+        return !!root._platziert[klemmeId + "_" + bezeichnung]
+    }
 
     function reset() {
         root._klemmenCache        = {}
@@ -29,6 +45,7 @@ ColumnLayout {
         root._leistenAufgeklappt  = {}
         root._klemmenAufgeklappt  = {}
         root._bauteilBereichOffen = false
+        root._platziert           = {}
     }
 
     Layout.fillWidth: true
@@ -59,6 +76,7 @@ ColumnLayout {
                     root._anschluesseCache    = {}
                     root._leistenAufgeklappt  = {}
                     root._klemmenAufgeklappt  = {}
+                    root.aktualisiereStatus()
                 }
                 root._bauteilBereichOffen = !root._bauteilBereichOffen
             }
@@ -203,26 +221,40 @@ ColumnLayout {
                                         model: parent.anschluesse
                                         delegate: Rectangle {
                                             width: parent.width; height: 28
-                                            color: anschlussMA.containsMouse ? root.theme.activeItem : "transparent"
-                                            property var ans: modelData
-                                            property var kd:  parent.klemmenDaten
+                                            property var  ans:       modelData
+                                            property var  kd:        parent.klemmenDaten
+                                            property bool platziert: kd && ans
+                                                ? root.istPlatziert(kd.id, ans.bezeichnung)
+                                                : false
+                                            color: platziert
+                                                ? "transparent"
+                                                : (anschlussMA.containsMouse ? root.theme.activeItem : "transparent")
 
                                             RowLayout {
                                                 anchors { fill: parent; leftMargin: 34; rightMargin: 6 }
                                                 spacing: 4
                                                 Text {
                                                     text: "[" + (ans ? ans.bezeichnung : "") + "]"
-                                                    font.pixelSize: 11; color: root.theme.accent
+                                                    font.pixelSize: 11
+                                                    color: platziert ? root.theme.textMuted : root.theme.accent
+                                                    opacity: platziert ? 0.6 : 1.0
                                                 }
                                                 Text {
                                                     text: ans ? (qsTr("Seite ") + ans.seite + "  Eb." + ans.ebene) : ""
                                                     font.pixelSize: 11; color: root.theme.textMuted
+                                                    opacity: platziert ? 0.5 : 1.0
                                                     Layout.fillWidth: true
+                                                }
+                                                Text {
+                                                    visible: platziert
+                                                    text: "✓"
+                                                    font.pixelSize: 11; color: "#60b060"
                                                 }
                                             }
                                             MouseArea {
                                                 id: anschlussMA; anchors.fill: parent; hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
+                                                cursorShape: parent.platziert ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                                                enabled: !parent.platziert
                                                 onClicked: {
                                                     if (!parent.kd || !parent.ans) return
                                                     var bmk = parent.kd.leisteBmk + ":"

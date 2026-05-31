@@ -425,12 +425,24 @@ Item {
         property int    bauteilKlemmeId: -1
         property string bmkPrefix:       ""
         property string selAnschluss:    ""
+        property var    _platziert:      ({})   // anschlussBezeichnung → true
+
+        function _ladeStatus() {
+            var alle = db.platzierteKlemmenAnschluesse()
+            var map  = {}
+            for (var i = 0; i < alle.length; i++) {
+                if (alle[i].klemmeId === klemmeId)
+                    map[alle[i].anschlussBezeichnung] = true
+            }
+            _platziert = map
+        }
 
         background: Rectangle {
             color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6
         }
 
         onAboutToShow: {
+            _ladeStatus()
             selAnschluss = klemmeModel.anschluesse.length > 0
                            ? klemmeModel.anschluesse[0].bezeichnung : ""
             if (anschlussComboA.count > 0) anschlussComboA.currentIndex = 0
@@ -464,9 +476,11 @@ Item {
                     popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
                     delegate: ItemDelegate {
                         width: anschlussComboA.width
+                        property bool istPlatziert: modusAPlatzierDlg._platziert[modelData.bezeichnung] === true
                         contentItem: Text {
-                            text: modelData.bezeichnung + "  Eb." + modelData.ebene
-                            color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
+                            text: (parent.istPlatziert ? "✓ " : "") + modelData.bezeichnung + "  Eb." + modelData.ebene
+                            color: parent.istPlatziert ? theme.textMuted : theme.textPrimary
+                            font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
                         }
                         background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
                     }
@@ -500,7 +514,9 @@ Item {
                 }
                 Button {
                     text: qsTr("Platzieren"); implicitWidth: 90; implicitHeight: 28
-                    enabled: modusAPlatzierDlg.selAnschluss !== "" && modusAPlatzierDlg.bauteilKlemmeId >= 0
+                    enabled: modusAPlatzierDlg.selAnschluss !== ""
+                             && modusAPlatzierDlg.bauteilKlemmeId >= 0
+                             && !modusAPlatzierDlg._platziert[modusAPlatzierDlg.selAnschluss]
                     contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     background: Rectangle {

@@ -1100,6 +1100,7 @@ Item {
             id: bauteilePanel
             theme: root.theme
             aktivSeiteId: root.aktivSeiteId
+            projektId: root.projektId
             debug: root.debug
             onKlemmenAnschlussPlatzieren: function(kId, bkId, bez, bmk) {
                 root.klemmenAnschlussPlatzieren(kId, bkId, bez, bmk)

@@ -93,6 +93,56 @@ QVariantList Database::anschluesseFuerKlemme(int bauteilId) const
 }
 
 // ============================================================
+// platzierteKlemmenAnschluesse
+// Gibt alle bereits platzierten klemme_anschluss-Elemente zurück:
+// [{klemmeId: int, anschlussBezeichnung: string}]
+// ============================================================
+QVariantList Database::platzierteKlemmenAnschluesse() const
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    if (!q.exec(
+            "SELECT CAST(json_extract(extra_daten,'$.klemmeId') AS INTEGER),"
+            "       json_extract(extra_daten,'$.anschlussBezeichnung')"
+            " FROM grafik_element"
+            " WHERE symbol_id='klemme_anschluss'"
+            "   AND extra_daten IS NOT NULL"
+            "   AND json_extract(extra_daten,'$.klemmeId') IS NOT NULL"
+            "   AND json_extract(extra_daten,'$.klemmeId') != 'null'")) {
+        qWarning() << "platzierteKlemmenAnschluesse:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        int kid = q.value(0).toInt();
+        if (kid <= 0) continue;
+        QVariantMap row;
+        row[QStringLiteral("klemmeId")]             = kid;
+        row[QStringLiteral("anschlussBezeichnung")] = q.value(1).toString();
+        result.append(row);
+    }
+    return result;
+}
+
+// ============================================================
+// klemmeAnschlussIstPlatziert
+// Prüft ob ein bestimmter Anschluss bereits irgendwo platziert ist.
+// ============================================================
+bool Database::klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlussBezeichnung) const
+{
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT COUNT(*) FROM grafik_element"
+        " WHERE symbol_id='klemme_anschluss'"
+        "   AND CAST(json_extract(extra_daten,'$.klemmeId') AS INTEGER) = :kid"
+        "   AND json_extract(extra_daten,'$.anschlussBezeichnung') = :bez");
+    q.bindValue(":kid", klemmeId);
+    q.bindValue(":bez", anschlussBezeichnung);
+    if (q.exec() && q.next())
+        return q.value(0).toInt() > 0;
+    return false;
+}
+
+// ============================================================
 // kabelAnlegen
 // Legt einen neuen kabel-Datensatz an und verknüpft ihn mit
 // dem grafik_element der Kabeldefinitionslinie.

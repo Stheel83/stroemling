@@ -367,9 +367,14 @@ MouseArea {
                 eckenRadius:    0
             }
             canvas.aktionAusfuehren(em.snapshot().concat([elSym]))
-            // CE-03: Symbol-Modus bleibt aktiv – Vorschau für nächste Platzierung neu aufbauen.
-            // Abbrechen: Escape oder anderes Werkzeug wählen.
-            canvas.vorschau = canvas.symbolVorschauErstellen(wSym.x, wSym.y)
+            if (canvas.paletteSymbolId === "klemme_anschluss") {
+                // Klemmenanschluss: nur einmal platzierbar → sofort zurück zum Zeiger
+                canvas.aktivesWerkzeug = "zeiger"
+                canvas.vorschau = null
+            } else {
+                // CE-03: Symbol-Modus bleibt aktiv – Vorschau für nächste Platzierung neu aufbauen.
+                canvas.vorschau = canvas.symbolVorschauErstellen(wSym.x, wSym.y)
+            }
             canvas.neuZeichnen()
 
         } else if (canvas.aktivesWerkzeug === "bild" && canvas.paletteImageData !== "") {

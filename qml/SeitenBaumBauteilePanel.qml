@@ -48,6 +48,13 @@ ColumnLayout {
         root._platziert           = {}
     }
 
+    Connections {
+        target: elementeModel
+        function onGeaendert() {
+            if (root._bauteilBereichOffen) root.aktualisiereStatus()
+        }
+    }
+
     Layout.fillWidth: true
     spacing: 0
 

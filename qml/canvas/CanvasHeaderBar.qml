@@ -147,7 +147,7 @@ Rectangle {
                          : (nbMa.containsMouse && enabled ? AppTheme.hover : "transparent")
             border.color: aktiv ? AppTheme.accent : "transparent"
             Text {
-                anchors.centerIn: parent; text: "☐"; font.pixelSize: 14
+                anchors.centerIn: parent; text: "≡"; font.pixelSize: 15
                 color: normblattToggle.aktiv ? AppTheme.accent : AppTheme.panelMid
             }
             MouseArea {
@@ -168,7 +168,7 @@ Rectangle {
         Button {
             flat: true; implicitWidth: 26; implicitHeight: 26
             enabled: canvas.seiteId >= 0 && canvas.normblattDaten !== null
-            contentItem: Text { text: "▭"
+            contentItem: Text { text: "⊟"
                 color: parent.enabled ? AppTheme.accent : AppTheme.border
                 font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { color: parent.hovered && parent.enabled ? AppTheme.activeItem : "transparent"; radius: 4 }

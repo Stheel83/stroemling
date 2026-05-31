@@ -1504,15 +1504,24 @@ Item {
                         var kaCy    = (vy1 + vy2) / 2
                         var kaOx    = (kaed.bmkOffsetX !== undefined ? kaed.bmkOffsetX : 0) * root.zoom
                         var kaOy    = (kaed.bmkOffsetY !== undefined ? kaed.bmkOffsetY : 0) * root.zoom
+                        // Textposition: immer gegenüber dem Pin
+                        // 0°  → Pin oben   → Text unten
+                        // 90° → Pin rechts → Text links
+                        // 180°→ Pin unten  → Text oben
+                        // 270°→ Pin links  → Text rechts
                         ctx.save()
                         ctx.globalAlpha = 1.0
                         ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
                         if (kaSenk) {
-                            var kaX  = Math.max(vx1, vx2) + 4 * root.zoom + kaOy
+                            var kaPinRechts = (kaRot === 90)
+                            var kaX   = kaPinRechts
+                                        ? Math.min(vx1, vx2) - 4 * root.zoom + kaOy
+                                        : Math.max(vx1, vx2) + 4 * root.zoom + kaOy
+                            var kaAlg = kaPinRechts ? "right" : "left"
                             var kaCyO = kaCy + kaOx
                             if (kaAnz !== "") {
                                 ctx.font = "bold " + kaFs + "px sans-serif"
-                                ctx.textAlign = "left"; ctx.textBaseline = "middle"
+                                ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
                                 var kaAy = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
                                 ctx.strokeText(kaAnz, kaX, kaAy)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
@@ -1520,27 +1529,30 @@ Item {
                             }
                             if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
-                                ctx.textAlign = "left"; ctx.textBaseline = "middle"
+                                ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
                                 var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
                                 ctx.strokeText(kaBmk, kaX, kaBmkY)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
                                 ctx.fillText(kaBmk, kaX, kaBmkY)
                             }
                         } else {
-                            // Text unterhalb des Symbols (gegenüber Pin an der Oberseite)
-                            var kaY  = Math.max(vy1, vy2) + 3 * root.zoom + kaOy
+                            var kaPinUnten = (kaRot === 180)
+                            var kaY   = kaPinUnten
+                                        ? Math.min(vy1, vy2) - 3 * root.zoom + kaOy
+                                        : Math.max(vy1, vy2) + 3 * root.zoom + kaOy
+                            var kaBl  = kaPinUnten ? "bottom" : "top"
                             var kaCxO = kaCx + kaOx
                             if (kaAnz !== "") {
                                 ctx.font = "bold " + kaFs + "px sans-serif"
-                                ctx.textAlign = "center"; ctx.textBaseline = "top"
+                                ctx.textAlign = "center"; ctx.textBaseline = kaBl
                                 ctx.strokeText(kaAnz, kaCxO, kaY)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
                                 ctx.fillText(kaAnz, kaCxO, kaY)
                             }
                             if (kaBmkVis) {
                                 ctx.font = kaBmkFs + "px sans-serif"
-                                ctx.textAlign = "center"; ctx.textBaseline = "top"
-                                var kaBmkYh = kaY + kaFs + 1
+                                ctx.textAlign = "center"; ctx.textBaseline = kaBl
+                                var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
                                 ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
                                 ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
                                 ctx.fillText(kaBmk, kaCxO, kaBmkYh)
@@ -3510,16 +3522,26 @@ Item {
                 var kaBmkFsH = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
                 var kaOxH = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0) * root.zoom
                 var kaOyH = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : 0) * root.zoom
+                var textH = kaFsH + kaBmkFsH + pad
                 if (senkrecht) {
-                    var kaHX  = Math.max(vx1, vx2) + 4 * root.zoom + kaOyH
+                    var kaPinRH = (symRot === 90)
+                    var kaHX  = kaPinRH
+                                 ? Math.min(vx1, vx2) - 4 * root.zoom + kaOyH
+                                 : Math.max(vx1, vx2) + 4 * root.zoom + kaOyH
                     var kaHCY = (vy1 + vy2) / 2 + kaOxH
-                    hx1 = kaHX - pad; hx2 = kaHX + Math.max(40, kaFsH * 4)
-                    hy1 = kaHCY - kaBmkFsH - kaFsH - pad; hy2 = kaHCY + pad
+                    var hitWH = Math.max(40, kaFsH * 4)
+                    hx1 = kaPinRH ? kaHX - hitWH : kaHX - pad
+                    hx2 = kaPinRH ? kaHX + pad   : kaHX + hitWH
+                    hy1 = kaHCY - kaFsH - pad; hy2 = kaHCY + kaBmkFsH + pad
                 } else {
-                    var kaHY  = Math.max(vy1, vy2) + 3 * root.zoom + kaOyH
+                    var kaPinUH = (symRot === 180)
+                    var kaHY  = kaPinUH
+                                 ? Math.min(vy1, vy2) - 3 * root.zoom + kaOyH
+                                 : Math.max(vy1, vy2) + 3 * root.zoom + kaOyH
                     var kaHCX = (vx1 + vx2) / 2 + kaOxH
                     hx1 = kaHCX - Math.max(30, kaFsH * 3); hx2 = kaHCX + Math.max(30, kaFsH * 3)
-                    hy1 = kaHY - pad; hy2 = kaHY + kaFsH + kaBmkFsH + pad
+                    hy1 = kaPinUH ? kaHY - textH : kaHY - pad
+                    hy2 = kaPinUH ? kaHY + pad   : kaHY + textH
                 }
             } else {
                 var bmkStr = bmkEd.bmk || ""

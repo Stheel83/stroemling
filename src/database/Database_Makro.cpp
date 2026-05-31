@@ -56,6 +56,18 @@ bool Database::openMakro(const QString &path)
         qWarning() << "Makro-DB makro_element-Tabelle:" << q.lastError().text();
         return false;
     }
+
+    // Rotation/Spiegel nachrüsten (silent falls schon vorhanden)
+    {
+        QSqlQuery qc(m_makroDb);
+        qc.exec("PRAGMA table_info(makro_element)");
+        QSet<QString> cols;
+        while (qc.next()) cols.insert(qc.value(1).toString());
+        if (!cols.contains("rotation"))  m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN rotation  REAL    DEFAULT 0");
+        if (!cols.contains("spiegel_x")) m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN spiegel_x INTEGER DEFAULT 0");
+        if (!cols.contains("spiegel_y")) m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN spiegel_y INTEGER DEFAULT 0");
+    }
+
     qInfo() << "Makro-DB geöffnet:" << path;
     return true;
 }
@@ -99,7 +111,8 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     // Elemente aus Projekt-DB sammeln
     QSqlQuery qe(m_db);
     qe.prepare(R"(
-        SELECT typ, x1, y1, x2, y2, extra_daten, symbol_id, sortierung
+        SELECT typ, x1, y1, x2, y2, extra_daten, symbol_id, sortierung,
+               rotation, spiegel_x, spiegel_y
         FROM grafik_element
         WHERE seite_id = :sid
           AND id != :kid
@@ -166,8 +179,10 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     QSqlQuery qi(m_makroDb);
     qi.prepare(R"(
         INSERT INTO makro_element (makro_id, typ, rel_x1, rel_y1, rel_x2, rel_y2,
-                                   extra_daten, symbol_key, sortierung)
-        VALUES (:mid, :typ, :rx1, :ry1, :rx2, :ry2, :ed, :sk, :sort)
+                                   extra_daten, symbol_key, sortierung,
+                                   rotation, spiegel_x, spiegel_y)
+        VALUES (:mid, :typ, :rx1, :ry1, :rx2, :ry2, :ed, :sk, :sort,
+                :rot, :spx, :spy)
     )");
 
     while (qe.next()) {
@@ -180,6 +195,9 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qi.bindValue(":ed",   qe.value(5));
         qi.bindValue(":sk",   qe.value(6));
         qi.bindValue(":sort", qe.value(7));
+        qi.bindValue(":rot",  qe.value(8));
+        qi.bindValue(":spx",  qe.value(9));
+        qi.bindValue(":spy",  qe.value(10));
         if (!qi.exec()) {
             qWarning() << "makroSpeichern INSERT makro_element:" << qi.lastError().text();
             m_makroDb.rollback(); return -1;
@@ -215,7 +233,8 @@ QVariantList Database::makroListe()
     QSqlQuery q(m_makroDb);
     q.exec(R"(
         SELECT m.id, m.name, m.beschreibung, m.kategorie,
-               COUNT(me.id) AS element_anzahl
+               COUNT(me.id) AS element_anzahl,
+               m.kasten_breite, m.kasten_hoehe
         FROM makro m
         LEFT JOIN makro_element me ON me.makro_id = m.id
         GROUP BY m.id
@@ -228,6 +247,8 @@ QVariantList Database::makroListe()
         row["beschreibung"]  = q.value(2).toString();
         row["kategorie"]     = q.value(3).toString();
         row["elementAnzahl"] = q.value(4).toInt();
+        row["kastenBreite"]  = q.value(5).toDouble();
+        row["kastenHoehe"]   = q.value(6).toDouble();
         result.append(row);
     }
     return result;
@@ -275,7 +296,8 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
 
     QSqlQuery qe(m_makroDb);
     qe.prepare(R"(
-        SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2, extra_daten, symbol_key, sortierung
+        SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2, extra_daten, symbol_key, sortierung,
+               rotation, spiegel_x, spiegel_y
         FROM makro_element WHERE makro_id = :mid ORDER BY sortierung
     )");
     qe.bindValue(":mid", makroId);
@@ -297,7 +319,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
             (:sid, :typ, :x1, :y1, :x2, :y2,
              '#4a9eff', 1.5, 'solid',
              0, '#000000', 0.0, 1.0, 0,
-             :sort, :sk, 0, 0, 0, :ed)
+             :sort, :sk, :rot, :spx, :spy, :ed)
     )");
 
     while (qe.next()) {
@@ -310,6 +332,9 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         qi.bindValue(":ed",   qe.value(5));
         qi.bindValue(":sk",   qe.value(6));
         qi.bindValue(":sort", qe.value(7));
+        qi.bindValue(":rot",  qe.value(8));
+        qi.bindValue(":spx",  qe.value(9));
+        qi.bindValue(":spy",  qe.value(10));
         if (!qi.exec()) {
             qWarning() << "makroElementeEinfuegen INSERT:" << qi.lastError().text();
             m_db.rollback(); return QVariantList();

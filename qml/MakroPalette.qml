@@ -79,6 +79,11 @@ Item {
 
                 onElemsChanged: requestPaint()
 
+                Connections {
+                    target: vorschauPopup
+                    function onVisibleChanged() { if (vorschauPopup.visible) vorschauCanvas.requestPaint() }
+                }
+
                 onPaint: {
                     var ctx = getContext("2d")
                     ctx.clearRect(0, 0, width, height)

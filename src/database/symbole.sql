@@ -32,12 +32,12 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('winkel',          'Winkel',                  'Verbindungen', 16, 16, 'durchleiter', 1),
 ('treffpunkt',      'Treffpunkt T',            'Verbindungen', 16, 16, 'durchleiter', 1),
 ('treffpunkt_l',    'Treffpunkt L',            'Verbindungen', 16, 16, 'durchleiter', 1),
-('geraeteanschluss','Geräteanschluss',         'Verbindungen', 16, 16, 'variabel',    1),
+('geraeteanschluss','Geräteanschluss',         'Verbindungen',  8,  8, 'variabel',    1),
 ('unterbrechung',   'Unterbrechung',           'Verbindungen', 16, 16, 'trenner',     1),
 ('querverweis',     'Querverweis',             'Verbindungen', 16, 16, 'durchleiter', 1),
 ('aderdefinition',  'Aderdefinition',          'Verbindungen', 4, 4, 'durchleiter', 1),
 ('klemme_anschluss','Klemmenanschluss',        'Verbindungen', 16, 16, 'durchleiter', 1),
-('potenzial',       'Potenzialpunkt',          'Verbindungen', 16, 16, 'quelle',      1),
+('potenzial',       'Potenzialpunkt',          'Verbindungen',  8,  8, 'quelle',      1),
 ('taster_no',       'Taster (NO)',              'Kontakte',     32, 16, 'durchleiter', 1),
 ('taster_nc',       'Taster NC',               'Kontakte',     32, 16, 'durchleiter', 1),
 ('not_halt',        'Not-Halt (NC)',            'Kontakte',     32, 16, 'durchleiter', 1),
@@ -306,13 +306,13 @@ VALUES
 ('treffpunkt_l', 1, 'linie',        0.25,  0.5,  0.5,   0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('treffpunkt_l', 2, 'linie',        0.5,   0,    0.5,   1,    0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
--- ── Geräteanschluss ──
-('geraeteanschluss', 0, 'linie',    0.5,   0.5,  1,     0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('geraeteanschluss', 1, 'kreis_offen', 0.28, 0.5, 0,    0,    0, 0, 0.22, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── Geräteanschluss (8x8mm) ──
+('geraeteanschluss', 0, 'linie',       0.5,  0.5,  1,    0.5,  0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('geraeteanschluss', 1, 'kreis_offen', 0.25, 0.5,  0,    0,    0, 0, 0.25, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
--- ── Potenzialpunkt ──
-('potenzial',  0, 'linie',          0.5,   0.5,  1,     0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('potenzial',  1, 'kreis_gefuellt', 0.28,  0.5,  0,     0,    0, 0, 0.22, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── Potenzialpunkt (8x8mm) ──
+('potenzial',  0, 'linie',          0.5,  0.5,  1,    0.5,  0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('potenzial',  1, 'kreis_gefuellt', 0.25, 0.5,  0,    0,    0, 0, 0.25, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 -- ── Aderdefinition ──
 ('aderdefinition', 0, 'linie',      1,     1,    0,     0,    0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),

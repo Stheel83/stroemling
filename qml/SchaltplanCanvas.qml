@@ -208,6 +208,15 @@ Item {
     property var _formatVorlage: null
     property int formatZaehler:  0    // zählt jedes formatKopieren(); als Proxy in EigenschaftenPanel reaktiv
 
+    // Label-Drag: Beschriftung eines Symbols verschieben
+    property bool labelDragAktiv:    false
+    property int  labelDragIdx:      -1
+    property real labelDragMausVpX:  0.0
+    property real labelDragMausVpY:  0.0
+    property real labelDragStartOx:  0.0
+    property real labelDragStartOy:  0.0
+    property bool mausUeberLabel:    false
+
     // ── Inbetriebnahme-Modus ─────────────────────────────────
     property bool ibnModus:    false
     property var  ibnStatusMap:    ({})   // bmk → "offen"|"in_arbeit"|"abgeschlossen"
@@ -2095,9 +2104,10 @@ Item {
 
                 ctx.font = kLabelFs + "px sans-serif"
                 ctx.textAlign    = nx >= 0 ? "left" : "right"
-                ctx.textBaseline = "middle"
-                var lx = vx + nx * (kTickLen + 3)
-                var ly = vy + ny * (kTickLen + 3)
+                ctx.textBaseline = "bottom"
+                var labelAbstand = kTickLen + Math.max(5, kLabelFs * 0.4)
+                var lx = vx + nx * labelAbstand
+                var ly = vy + ny * labelAbstand
                 ctx.strokeStyle = "#000000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"
                 ctx.strokeText(labelText, lx, ly)
                 ctx.fillStyle = klColor
@@ -3468,6 +3478,47 @@ Item {
     }
 
     // Format-Pinsel: Stileigenschaften des ausgewählten Elements speichern
+    // Viewport-Hit-Test auf BMK-Beschriftung eines Symbols.
+    // Gibt Element-Index zurück oder -1 wenn kein Label getroffen.
+    function labelTreffenTest(vpX, vpY) {
+        var n = elementeModel.anzahl
+        for (var i = n - 1; i >= 0; i--) {
+            var el = elementeModel.element(i)
+            if (el.typ !== "symbol") continue
+            var bmkEd  = el.extraDaten || {}
+            var bmkStr = bmkEd.bmk || ""
+            if (bmkStr === "") continue
+            var vx1 = el.x1 * root.zoom + root.worldX
+            var vy1 = el.y1 * root.zoom + root.worldY
+            var vx2 = el.x2 * root.zoom + root.worldX
+            var vy2 = el.y2 * root.zoom + root.worldY
+            var bmkOx = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * root.zoom
+            var bmkOy = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * root.zoom
+            var schrift = bmkEd.schriftgroesse !== undefined ? bmkEd.schriftgroesse : 2.5
+            var bmkFs = Math.max(8, Math.round(schrift * root.mmToPx * root.zoom))
+            var pad   = 8
+            var symRot = ((el.rotation || 0) % 360 + 360) % 360
+            var senkrecht = (symRot === 90 || symRot === 270)
+            var hx1, hy1, hx2, hy2
+            if (senkrecht) {
+                var bkAx = Math.min(vx1, vx2) + bmkOy
+                var bkCy = (vy1 + vy2) / 2 + bmkOx
+                var hitW = Math.max(40, bmkFs * 4)
+                hx1 = bkAx - hitW; hx2 = bkAx + pad
+                hy1 = bkCy - Math.max(14, bmkFs) - pad; hy2 = bkCy + pad
+            } else {
+                var bkCx = (vx1 + vx2) / 2 + bmkOx
+                var bkTy = Math.min(vy1, vy2) + bmkOy
+                var hitW2 = Math.max(40, bmkFs * 3)
+                hx1 = bkCx - hitW2; hx2 = bkCx + hitW2
+                hy1 = bkTy - Math.max(14, bmkFs) - pad; hy2 = bkTy + pad
+            }
+            if (vpX >= hx1 && vpX <= hx2 && vpY >= hy1 && vpY <= hy2)
+                return i
+        }
+        return -1
+    }
+
     function formatKopieren() {
         if (root.auswahl.length !== 1) return
         var el = elementeModel.element(root.auswahl[0])
@@ -3478,6 +3529,11 @@ Item {
         for (var i = 0; i < stilKeys.length; i++) {
             var k = stilKeys[i]
             if (el[k] !== undefined) vl[k] = el[k]
+        }
+        if (el.typ === "symbol") {
+            var ed = el.extraDaten || {}
+            vl._bmkOffsetX = ed.bmkOffsetX !== undefined ? ed.bmkOffsetX : 0
+            vl._bmkOffsetY = ed.bmkOffsetY !== undefined ? ed.bmkOffsetY : -14
         }
         root._formatVorlage = vl
         root.formatZaehler  = root.formatZaehler + 1
@@ -3490,11 +3546,21 @@ Item {
         elementeModel.undoCheckpoint()
         var stilKeys = ["strichFarbe","strichBreite","strichArt","fuell",
                         "fuellFarbe","fuellOpazitaet","opazitaet","eckenRadius"]
+        var hatLabelOffset = root._formatVorlage._bmkOffsetX !== undefined
         for (var i = 0; i < selSnapshot.length; i++) {
             for (var j = 0; j < stilKeys.length; j++) {
                 var k = stilKeys[j]
                 if (root._formatVorlage[k] !== undefined)
                     elementeModel.eigenschaftSetzen(selSnapshot[i], k, root._formatVorlage[k])
+            }
+            if (hatLabelOffset) {
+                var tEl = elementeModel.element(selSnapshot[i])
+                if (tEl && tEl.typ === "symbol") {
+                    var ted = Object.assign({}, tEl.extraDaten || {})
+                    ted.bmkOffsetX = root._formatVorlage._bmkOffsetX
+                    ted.bmkOffsetY = root._formatVorlage._bmkOffsetY
+                    elementeModel.eigenschaftSetzen(selSnapshot[i], "extraDaten", ted)
+                }
             }
         }
         root.auswahl = selSnapshot

@@ -16,7 +16,9 @@ MouseArea {
         if (canvas.aktivesWerkzeug !== "zeiger")  return Qt.CrossCursor
         if (canvas.aktiverGriff >= 0)             return Qt.SizeAllCursor
         if (canvas.amVerschieben)                 return Qt.SizeAllCursor
+        if (canvas.labelDragAktiv)                return Qt.SizeAllCursor
         if (canvas.mausUeberGriff)                return Qt.SizeAllCursor
+        if (canvas.mausUeberLabel)                return Qt.SizeAllCursor
         if (canvas.mausUeberElement)              return Qt.SizeAllCursor
         return Qt.ArrowCursor
     }
@@ -109,10 +111,24 @@ MouseArea {
                 return
             }
 
-            // Hover-Cursor: Griff oder Element unter Maus?
-            if (!canvas.amVerschieben) {
+            // Hover-Cursor: Griff, Label oder Element unter Maus?
+            if (!canvas.amVerschieben && !canvas.amRubberband) {
                 canvas.mausUeberGriff   = (canvas.griffBeiPosition(vp.x, vp.y) >= 0)
-                canvas.mausUeberElement = (canvas.elementBeiPosition(vp.x, vp.y) >= 0)
+                canvas.mausUeberLabel   = !canvas.mausUeberGriff && (canvas.labelTreffenTest(vp.x, vp.y) >= 0)
+                canvas.mausUeberElement = !canvas.mausUeberGriff && (canvas.elementBeiPosition(vp.x, vp.y) >= 0)
+            }
+
+            // Label-Drag: Beschriftung live verschieben
+            if (canvas.labelDragAktiv && canvas.labelDragIdx >= 0) {
+                var ldx = (vp.x - canvas.labelDragMausVpX) / canvas.zoom
+                var ldy = (vp.y - canvas.labelDragMausVpY) / canvas.zoom
+                var ldEl = em.element(canvas.labelDragIdx)
+                var ldEd = Object.assign({}, ldEl.extraDaten || {})
+                ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
+                ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
+                em.eigenschaftSetzen(canvas.labelDragIdx, "extraDaten", ldEd)
+                canvas.neuZeichnen()
+                return
             }
 
             // Element(e) verschieben (nur wenn bereits selektiert + Drag-Schwelle)
@@ -251,6 +267,25 @@ MouseArea {
                 if (griff >= 0) {
                     canvas.aktiverGriff      = griff
                     canvas.schnapshotVorMove = em.snapshot()
+                    return
+                }
+            }
+
+            // Label-Drag: Klick direkt auf BMK-Beschriftung?
+            if ((mouse.modifiers & Qt.ControlModifier) === 0) {
+                var labelIdx = canvas.labelTreffenTest(vp.x, vp.y)
+                if (labelIdx >= 0) {
+                    var lEl = em.element(labelIdx)
+                    var lEd = lEl.extraDaten || {}
+                    canvas.labelDragAktiv    = true
+                    canvas.labelDragIdx      = labelIdx
+                    canvas.labelDragMausVpX  = vp.x
+                    canvas.labelDragMausVpY  = vp.y
+                    canvas.labelDragStartOx  = lEd.bmkOffsetX !== undefined ? lEd.bmkOffsetX : 0
+                    canvas.labelDragStartOy  = lEd.bmkOffsetY !== undefined ? lEd.bmkOffsetY : -14
+                    canvas.schnapshotVorMove = em.snapshot()
+                    canvas.auswahl = canvas.auswahlFuerElement(labelIdx)
+                    canvas.neuZeichnen()
                     return
                 }
             }
@@ -419,6 +454,17 @@ MouseArea {
     onReleased: function(mouse) {
         var em = canvas.elementeModel
         if (canvas.aktivesWerkzeug === "zeiger") {
+
+            // Label-Drag abschließen
+            if (canvas.labelDragAktiv) {
+                canvas.labelDragAktiv = false
+                if (canvas.labelDragIdx >= 0) {
+                    em.undoCheckpointFromSnapshot(canvas.schnapshotVorMove)
+                    canvas.grafikSpeichernJetzt()
+                    canvas.labelDragIdx = -1
+                }
+                return
+            }
 
             // Rubber-Band abschließen
             if (canvas.amRubberband) {

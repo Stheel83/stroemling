@@ -60,6 +60,19 @@ static QList<SchemaMigration> alleMigrationen()
         // schema.sql enthält vollständiges Schema inkl. gruppe_id, revision-Spalten, SPS-Tabellen.
         // Dev-DBs bei v52 werden neu aufgebaut (dropAllTables + createSchema aus schema.sql).
         { 53, "Baseline v53 – Schema in schema.sql, SPS/Revision/Gruppe vollständig", {} },
+
+        // B9: Brückengleichrichter (passive, IEC-Raute 32x32mm) + sensor_temp-Absicherung.
+        // INSERT OR IGNORE: sicher falls symbol_definition/pin/primitiv schon vorhanden.
+        { 54, "B9 – Brückengleichrichter-Symbol + sensor_temp-Absicherung", {
+            // sensor_temp (PT100) – falls DB vor dessen Aufnahme in symbole.sql angelegt wurde
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sensor_temp', 'Temperatursensor (PT100)', 'Sensoren', 16, 16, 'variabel', 1))",
+            R"(INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sensor_temp', '1', 0, 0.5, -1, 0, 'neutral'), ('sensor_temp', '2', 1, 0.5, 1, 0, 'neutral'))",
+            R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('sensor_temp', 0, 'rechteck', 0.1, 0.1, 0.9, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_temp', 1, 'linie', 0, 0.5, 0.1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_temp', 2, 'linie', 0.9, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_temp', 3, 'text', 0.5, 0.35, 0, 0, 0, 0, 0, 0, 0, 0, 'PT', 0.22, 1, 'center', 'middle', 'solid'), ('sensor_temp', 4, 'text', 0.5, 0.65, 0, 0, 0, 0, 0, 0, 0, 0, '100', 0.18, 0, 'center', 'middle', 'solid'))",
+            // Brückengleichrichter
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('brueckengleichrichter', 'Brückengleichrichter', 'Passive', 32, 32, 'verbraucher', 1))",
+            R"(INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('brueckengleichrichter', '~1', 0, 0.5, -1, 0, 'power'), ('brueckengleichrichter', '~2', 1, 0.5, 1, 0, 'power'), ('brueckengleichrichter', '+', 0.5, 0, 0, -1, 'power'), ('brueckengleichrichter', '-', 0.5, 1, 0, 1, 'power'))",
+            R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('brueckengleichrichter', 0, 'linie', 0.15, 0.5, 0.5, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 1, 'linie', 0.5, 0.15, 0.85, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 2, 'linie', 0.85, 0.5, 0.5, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 3, 'linie', 0.5, 0.85, 0.15, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 4, 'linie', 0, 0.5, 0.15, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 5, 'linie', 0.85, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 6, 'linie', 0.5, 0, 0.5, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 7, 'linie', 0.5, 0.85, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('brueckengleichrichter', 8, 'text', 0.5, 0.3, 0, 0, 0, 0, 0, 0, 0, 0, '+', 0.18, 1, 'center', 'middle', 'solid'), ('brueckengleichrichter', 9, 'text', 0.5, 0.7, 0, 0, 0, 0, 0, 0, 0, 0, '-', 0.18, 1, 'center', 'middle', 'solid'))",
+        }},
     };
 }
 

@@ -1090,3 +1090,39 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('sensor_temp', 2, 'linie',    0.9,  0.5,  1.0,  0.5,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
 ('sensor_temp', 3, 'text',     0.5,  0.35, 0,    0,    0, 0, 0, 0, 0, 0, 'PT',  0.22, 1, 'center', 'middle', 'solid'),
 ('sensor_temp', 4, 'text',     0.5,  0.65, 0,    0,    0, 0, 0, 0, 0, 0, '100', 0.18, 0, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- Passive Bauelemente – Ergänzungen (B9)
+-- brueckengleichrichter: 32x32mm, Rauten-IEC-Symbol
+--   AC-Eingänge links/rechts (~1/~2), DC-Ausgänge oben(+)/unten(-)
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('brueckengleichrichter', 'Brückengleichrichter', 'Passive', 32, 32, 'verbraucher', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('brueckengleichrichter', '~1', 0,   0.5,  -1,  0, 'power'),
+('brueckengleichrichter', '~2', 1,   0.5,   1,  0, 'power'),
+('brueckengleichrichter', '+',  0.5, 0,     0, -1, 'power'),
+('brueckengleichrichter', '-',  0.5, 1,     0,  1, 'power');
+
+INSERT INTO symbol_primitiv
+    (symbol_id, reihenfolge, typ,
+     x1, y1, x2, y2, x3, y3,
+     radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+     text_inhalt, schrift_relativ, schrift_fett,
+     text_align, text_baseline, linienart)
+VALUES
+-- Rauten-Seiten (IEC-Brückengleichrichter: Quadrat 45° gedreht)
+('brueckengleichrichter', 0, 'linie', 0.15, 0.5,  0.5,  0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 1, 'linie', 0.5,  0.15, 0.85, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 2, 'linie', 0.85, 0.5,  0.5,  0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 3, 'linie', 0.5,  0.85, 0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- Pin-Stubs (Anschlusslinien zu den Symbolrändern)
+('brueckengleichrichter', 4, 'linie', 0,    0.5,  0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 5, 'linie', 0.85, 0.5,  1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 6, 'linie', 0.5,  0,    0.5,  0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 7, 'linie', 0.5,  0.85, 0.5,  1,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- Polungsmarkierungen (+ oben, - unten)
+('brueckengleichrichter', 8, 'text',  0.5,  0.3,  0,    0,    0, 0, 0, 0, 0, 0, '+',  0.18, 1, 'center', 'middle', 'solid'),
+('brueckengleichrichter', 9, 'text',  0.5,  0.7,  0,    0,    0, 0, 0, 0, 0, 0, '-',  0.18, 1, 'center', 'middle', 'solid');

@@ -277,8 +277,8 @@ QVariantList Database::makroListe()
 
 // ============================================================
 // makroElementeVorschau
-// Liefert normierte Koordinaten (rel_x/y) aller Elemente eines
-// Makros – nur zum Rendern einer Vorschau, kein DB-Schreibzugriff.
+// Liefert alle Renderfelder aller Elemente eines Makros mit relativen
+// Koordinaten – nur zum Rendern einer Platzier-Vorschau.
 // ============================================================
 QVariantList Database::makroElementeVorschau(int makroId)
 {
@@ -286,18 +286,37 @@ QVariantList Database::makroElementeVorschau(int makroId)
     if (!m_makroDb.isOpen()) return result;
     QSqlQuery q(m_makroDb);
     q.prepare(R"(
-        SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2
+        SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2,
+               strich_farbe, strich_breite, strich_art,
+               fuell, fuell_farbe, fuell_opazitaet,
+               opazitaet, ecken_radius,
+               rotation, spiegel_x, spiegel_y,
+               symbol_key, extra_daten
         FROM makro_element WHERE makro_id = :mid ORDER BY sortierung
     )");
     q.bindValue(":mid", makroId);
     if (!q.exec()) return result;
     while (q.next()) {
         QVariantMap m;
-        m[QStringLiteral("typ")] = q.value(0).toString();
-        m[QStringLiteral("x1")]  = q.value(1).toDouble();
-        m[QStringLiteral("y1")]  = q.value(2).toDouble();
-        m[QStringLiteral("x2")]  = q.value(3).toDouble();
-        m[QStringLiteral("y2")]  = q.value(4).toDouble();
+        m[QStringLiteral("typ")]            = q.value(0).toString();
+        m[QStringLiteral("x1")]             = q.value(1).toDouble();
+        m[QStringLiteral("y1")]             = q.value(2).toDouble();
+        m[QStringLiteral("x2")]             = q.value(3).toDouble();
+        m[QStringLiteral("y2")]             = q.value(4).toDouble();
+        m[QStringLiteral("strichFarbe")]    = q.value(5).toString();
+        m[QStringLiteral("strichBreite")]   = q.value(6).toDouble();
+        m[QStringLiteral("strichArt")]      = q.value(7).toString();
+        m[QStringLiteral("fuell")]          = q.value(8).toBool();
+        m[QStringLiteral("fuellFarbe")]     = q.value(9).toString();
+        m[QStringLiteral("fuellOpazitaet")] = q.value(10).toDouble();
+        m[QStringLiteral("opazitaet")]      = q.value(11).toDouble();
+        m[QStringLiteral("eckenRadius")]    = q.value(12).toDouble();
+        m[QStringLiteral("rotation")]       = q.value(13).toDouble();
+        m[QStringLiteral("spiegelX")]       = q.value(14).toBool();
+        m[QStringLiteral("spiegelY")]       = q.value(15).toBool();
+        m[QStringLiteral("symbolId")]       = q.value(16).toString();
+        QJsonDocument edDoc = QJsonDocument::fromJson(q.value(17).toString().toUtf8());
+        m[QStringLiteral("extraDaten")]     = edDoc.object().toVariantMap();
         result.append(m);
     }
     return result;

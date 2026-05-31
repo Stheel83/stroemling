@@ -91,8 +91,15 @@ Item {
     property string paletteImageData: ""
 
     // Makro-Einfügen-Modus
-    property int    makroEinfuegenId:   0
-    property string makroEinfuegenName: ""
+    property int    makroEinfuegenId:       0
+    property string makroEinfuegenName:     ""
+    property var    makroVorschauElemente:  []
+
+    onMakroEinfuegenIdChanged: {
+        makroVorschauElemente = (makroEinfuegenId > 0)
+            ? db.makroElementeVorschau(makroEinfuegenId)
+            : []
+    }
 
     // Duplizieren-Modus (Ctrl+D) und Einfügen-Modus (Ctrl+V)
     property var  duplizierVorlage:   null  // Quell-Elemente
@@ -2307,6 +2314,34 @@ Item {
                 drawCanvas.maleElement(ctx, elemente[i], i)
             if (root.vorschau !== null)
                 drawCanvas.maleElement(ctx, root.vorschau, -1)
+            if (root.vorschau !== null && root.vorschau.typ === "makrokasten"
+                    && root.makroVorschauElemente.length > 0) {
+                var ox = root.vorschau.x1
+                var oy = root.vorschau.y1
+                for (var mpi = 0; mpi < root.makroVorschauElemente.length; mpi++) {
+                    var mpe = root.makroVorschauElemente[mpi]
+                    drawCanvas.maleElement(ctx, {
+                        typ:            mpe.typ,
+                        x1:             mpe.x1 + ox,
+                        y1:             mpe.y1 + oy,
+                        x2:             mpe.x2 + ox,
+                        y2:             mpe.y2 + oy,
+                        strichFarbe:    mpe.strichFarbe,
+                        strichBreite:   mpe.strichBreite,
+                        strichArt:      mpe.strichArt,
+                        fuell:          mpe.fuell,
+                        fuellFarbe:     mpe.fuellFarbe,
+                        fuellOpazitaet: mpe.fuellOpazitaet,
+                        opazitaet:      mpe.opazitaet,
+                        eckenRadius:    mpe.eckenRadius,
+                        rotation:       mpe.rotation,
+                        spiegelX:       mpe.spiegelX,
+                        spiegelY:       mpe.spiegelY,
+                        symbolId:       mpe.symbolId,
+                        extraDaten:     mpe.extraDaten
+                    }, -1)
+                }
+            }
             if (root.duplizierVorschau) {
                 for (var dvi = 0; dvi < root.duplizierVorschau.length; dvi++)
                     drawCanvas.maleElement(ctx, root.duplizierVorschau[dvi], -1)

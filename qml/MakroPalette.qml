@@ -35,6 +35,8 @@ Item {
     property string _hoverName: ""
     property string _hoverKat:  ""
     property int    _hoverAnz:  0
+    property real   _hoverKastenBreite: 100
+    property real   _hoverKastenHoehe:  100
 
     Popup {
         id: vorschauPopup
@@ -87,13 +89,24 @@ Item {
                 onPaint: {
                     var ctx = getContext("2d")
                     ctx.clearRect(0, 0, width, height)
-                    ctx.strokeStyle = root.theme.textMuted || "#aaa"
-                    ctx.lineWidth   = 1.2
                     var es = root._hoverElems
+                    if (es.length === 0) return
+                    var makroW = root._hoverKastenBreite
+                    var makroH = root._hoverKastenHoehe
+                    var pad    = 8
+                    var scaleX = (width  - 2 * pad) / makroW
+                    var scaleY = (height - 2 * pad) / makroH
+                    var scale  = Math.min(scaleX, scaleY)
+                    var offX   = pad + ((width  - 2 * pad) - makroW * scale) / 2
+                    var offY   = pad + ((height - 2 * pad) - makroH * scale) / 2
+                    ctx.strokeStyle = root.theme.textMuted || "#aaa"
+                    ctx.lineWidth   = 1.0
                     for (var i = 0; i < es.length; i++) {
                         var e  = es[i]
-                        var x1 = e.x1 * width,  y1 = e.y1 * height
-                        var x2 = e.x2 * width,  y2 = e.y2 * height
+                        var x1 = offX + e.x1 * scale
+                        var y1 = offY + e.y1 * scale
+                        var x2 = offX + e.x2 * scale
+                        var y2 = offY + e.y2 * scale
                         var t  = e.typ
                         if (t === "linie" || t === "kabellinie" || t === "polygonlinie") {
                             ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
@@ -102,8 +115,9 @@ Item {
                             ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
                         } else if (t === "symbol" || t === "querverweis"
                                 || t === "potenzial" || t === "aderdefinition") {
+                            var sw = Math.abs(x2 - x1), sh = Math.abs(y2 - y1)
                             var cx = (x1 + x2) / 2, cy = (y1 + y2) / 2
-                            ctx.strokeRect(cx - 3, cy - 3, 6, 6)
+                            ctx.strokeRect(cx - sw / 2, cy - sh / 2, sw, sh)
                         }
                     }
                 }
@@ -176,12 +190,14 @@ Item {
                         cursorShape: Qt.PointingHandCursor
 
                         onEntered: {
-                            root._hoverElems   = db.makroElementeVorschau(modelData.id)
-                            root._hoverId      = modelData.id
-                            root._hoverName    = modelData.name
-                            root._hoverKat     = modelData.kategorie
-                            root._hoverAnz     = modelData.elementAnzahl
-                            root._hoverGlobalY = kachel.mapToItem(null, 0, kachel.height / 2).y
+                            root._hoverElems          = db.makroElementeVorschau(modelData.id)
+                            root._hoverId             = modelData.id
+                            root._hoverName           = modelData.name
+                            root._hoverKat            = modelData.kategorie
+                            root._hoverAnz            = modelData.elementAnzahl
+                            root._hoverKastenBreite   = modelData.kastenBreite || 100
+                            root._hoverKastenHoehe    = modelData.kastenHoehe  || 100
+                            root._hoverGlobalY        = kachel.mapToItem(null, 0, kachel.height / 2).y
                             vorschauCanvas.requestPaint()
                         }
                         onExited: root._hoverId = -1

@@ -94,6 +94,8 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System |
 | `konzept/features/35_drc.md` | Design Rule Check: 8 Checks (D-01 bis D-08) |
 | `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit (Phase 1 ✅ / Phase 2 📋), Leere-Zustände, Onboarding |
+| `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow, offene Fragen G-1…G-5 |
+| `konzept/features/41_sprungfunktion.md` | Sprungfunktion (querschneidend): Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten |

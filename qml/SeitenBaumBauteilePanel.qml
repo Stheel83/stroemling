@@ -111,7 +111,7 @@ ColumnLayout {
 
     // ── BAUTEILE Inhalt (aufklappbar) ────────────────────────
     ScrollView {
-        Layout.fillWidth: true; Layout.preferredHeight: 220
+        Layout.fillWidth: true; Layout.fillHeight: true
         visible: root._bauteilBereichOffen; clip: true
         Column {
             width: parent.width

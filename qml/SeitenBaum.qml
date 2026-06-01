@@ -867,7 +867,6 @@ Item {
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: bauteilePanel.offen ? undefined : -1
             clip: true
 
             TreeView {
@@ -1098,6 +1097,8 @@ Item {
 
         SeitenBaumBauteilePanel {
             id: bauteilePanel
+            Layout.fillHeight: bauteilePanel.offen
+            Layout.maximumHeight: bauteilePanel.offen ? Math.floor((root.height - 53) / 2) : -1
             theme: root.theme
             aktivSeiteId: root.aktivSeiteId
             projektId: root.projektId

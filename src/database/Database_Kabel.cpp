@@ -202,6 +202,87 @@ QVariantList Database::kabelListe(int projektId)
 }
 
 // ============================================================
+// kabelListeMitPos
+// Wie kabelListe, aber mit Seite und Mittelpunktposition der primären Kabellinie.
+// ============================================================
+QVariantList Database::kabelListeMitPos(int projektId) const
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT k.id, k.bezeichnung, k.kabeltyp, k.aderzahl, k.querschnitt_mm2,
+               COALESCE(ge.seite_id, 0),
+               COALESCE(s.blattnummer, ''),
+               COALESCE(s.bezeichnung, ''),
+               COALESCE((ge.x1 + ge.x2) / 2.0, 0.0),
+               COALESCE((ge.y1 + ge.y2) / 2.0, 0.0)
+        FROM kabel k
+        LEFT JOIN grafik_element ge ON ge.id = k.grafik_element_id
+        LEFT JOIN seite s ON s.id = ge.seite_id
+        WHERE k.projekt_id = :pid
+        ORDER BY k.bezeichnung
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qWarning() << "kabelListeMitPos:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("id")]             = q.value(0).toInt();
+        m[QStringLiteral("bezeichnung")]    = q.value(1).toString();
+        m[QStringLiteral("kabeltyp")]       = q.value(2).toString();
+        m[QStringLiteral("aderzahl")]       = q.value(3).toInt();
+        m[QStringLiteral("querschnittMm2")] = q.value(4).toDouble();
+        m[QStringLiteral("seiteId")]        = q.value(5).toInt();
+        m[QStringLiteral("blattnr")]        = q.value(6).toString();
+        m[QStringLiteral("seiteBez")]       = q.value(7).toString();
+        m[QStringLiteral("weltX")]          = q.value(8).toDouble();
+        m[QStringLiteral("weltY")]          = q.value(9).toDouble();
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
+// kabellinienMitPos
+// Alle kabellinie-Grafik-Elemente eines Kabels mit Seite und Mittelpunkt.
+// ============================================================
+QVariantList Database::kabellinienMitPos(int kabelId) const
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT ge.id, ge.seite_id,
+               COALESCE(s.blattnummer, ''),
+               COALESCE(s.bezeichnung, ''),
+               (ge.x1 + ge.x2) / 2.0,
+               (ge.y1 + ge.y2) / 2.0
+        FROM grafik_element ge
+        JOIN seite s ON s.id = ge.seite_id
+        WHERE ge.typ = 'kabellinie'
+          AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = :kid
+        ORDER BY s.blattnummer, ge.id
+    )");
+    q.bindValue(":kid", kabelId);
+    if (!q.exec()) {
+        qWarning() << "kabellinienMitPos:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("grafikElementId")] = q.value(0).toInt();
+        m[QStringLiteral("seiteId")]         = q.value(1).toInt();
+        m[QStringLiteral("blattnr")]         = q.value(2).toString();
+        m[QStringLiteral("seiteBez")]        = q.value(3).toString();
+        m[QStringLiteral("weltX")]           = q.value(4).toDouble();
+        m[QStringLiteral("weltY")]           = q.value(5).toDouble();
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
 // kabelListeAufgeschluesselt
 // Alle Kabel eines Projekts mit ihren Ader-Unterzeilen.
 // Zwei Queries: (1) Kabel + Linienanzahl, (2) alle Adern mit Seite + Netz.

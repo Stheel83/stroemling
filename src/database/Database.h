@@ -411,6 +411,12 @@ public:
     //        vonOrt, nachOrt, grafik_element_id}] zurück.
     Q_INVOKABLE QVariantList kabelListe(int projektId);
 
+    // Wie kabelListe, aber mit seiteId, blattnr, seiteBez, weltX, weltY der primären Kabellinie.
+    Q_INVOKABLE QVariantList kabelListeMitPos(int projektId) const;
+
+    // Alle Kabellinien eines Kabels mit Seite und Mittelpunktposition.
+    Q_INVOKABLE QVariantList kabellinienMitPos(int kabelId) const;
+
     // Alle Kabel eines Projekts mit Ader-Unterzeilen für die zweistufige Kabelliste.
     // Gibt [{id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, laengeM, vonOrt, nachOrt,
     //        linienAnzahl, adern:[{nr, farbe, bezeichnung, blattnummer, seitenBezeichnung, netz}]}] zurück.

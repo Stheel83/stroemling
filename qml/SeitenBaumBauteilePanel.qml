@@ -23,6 +23,9 @@ ColumnLayout {
     property var  _geraeteAufgeklappt:  ({})
     property var  _mitgliederCache:     ({})   // betriebsmittelId → [{...}]
 
+    property var  _kabelAufgeklappt:   ({})
+    property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
+
     readonly property bool offen: _bauteilBereichOffen
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
@@ -53,6 +56,8 @@ ColumnLayout {
         root._platziert           = {}
         root._geraeteAufgeklappt  = {}
         root._mitgliederCache     = {}
+        root._kabelAufgeklappt    = {}
+        root._kabellinienCache    = {}
     }
 
     Connections {
@@ -385,6 +390,12 @@ ColumnLayout {
                                 color: mitgliedMA.containsMouse ? root.theme.hover : "transparent"
                                 property var md: modelData
 
+                                // Hover-MA zuerst → Sprung-Button liegt darüber
+                                MouseArea {
+                                    id: mitgliedMA; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.ArrowCursor
+                                }
+
                                 RowLayout {
                                     anchors { fill: parent; leftMargin: 22; rightMargin: 6 }
                                     spacing: 4
@@ -413,7 +424,7 @@ ColumnLayout {
                                             id: sprungGMA; anchors.fill: parent; hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                var d = parent.parent.parent.md
+                                                var d = md
                                                 if (d && d.seiteId > 0)
                                                     root.sprungAngefordert(d.seiteId, d.blattnr,
                                                                            d.seiteBez, d.weltX, d.weltY)
@@ -421,26 +432,139 @@ ColumnLayout {
                                         }
                                     }
                                 }
-                                MouseArea {
-                                    id: mitgliedMA; anchors.fill: parent; hoverEnabled: true
-                                    cursorShape: Qt.ArrowCursor
-                                }
                             }
                         }
                     }
                 }
             }
 
-            // ── Kabel-Platzhalter ──────────────────────────
+            // ── KABEL ────────────────────────────────────
+            property var _kabelListe: root._bauteilBereichOffen && root.projektId >= 0
+                ? db.kabelListeMitPos(root.projektId)
+                : []
+
             Rectangle {
-                width: parent.width; height: 32; color: "transparent"
+                width: parent.width; height: 1; color: root.theme.divider
+                visible: root._bauteilBereichOffen
+            }
+
+            Rectangle {
+                width: parent.width; height: 28; color: "transparent"
+                visible: root._bauteilBereichOffen && parent._kabelListe.length === 0
                 RowLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
                     spacing: 6
-                    Text { text: "🔗"; font.pixelSize: 12; opacity: 0.4 }
+                    Text { text: "⚡"; font.pixelSize: 11; opacity: 0.35; color: root.theme.textMuted }
                     Text {
-                        text: qsTr("Kabel  (noch nicht verfügbar)")
-                        font.pixelSize: 12; color: root.theme.borderDark; Layout.fillWidth: true
+                        text: qsTr("Kabel – mit C zeichnen")
+                        font.pixelSize: 11; color: root.theme.textMuted; opacity: 0.6
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            Repeater {
+                model: parent._kabelListe
+                delegate: Column {
+                    id: kabelItem
+                    width: parent.width
+                    property int    kId:          modelData.id
+                    property string kBez:         modelData.bezeichnung || "–"
+                    property string kTyp:         modelData.kabeltyp || ""
+                    property bool   aufgeklappt:  root._kabelAufgeklappt[kId] === true
+
+                    // Kabel-Kopfzeile
+                    Rectangle {
+                        width: parent.width; height: 32
+                        color: kabelKopfMA.containsMouse ? root.theme.hover : "transparent"
+
+                        // kabelKopfMA zuerst → RowLayout-Kinder liegen darüber
+                        MouseArea {
+                            id: kabelKopfMA; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var kid = kabelItem.kId
+                                var auf = Object.assign({}, root._kabelAufgeklappt)
+                                auf[kid] = !auf[kid]
+                                if (auf[kid] && root._kabellinienCache[kid] === undefined) {
+                                    var c = Object.assign({}, root._kabellinienCache)
+                                    c[kid] = db.kabellinienMitPos(kid)
+                                    root._kabellinienCache = c
+                                }
+                                root._kabelAufgeklappt = auf
+                            }
+                        }
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+                            spacing: 5
+                            Text { text: kabelItem.aufgeklappt ? "▾" : "▸"; font.pixelSize: 9; color: root.theme.textMuted }
+                            Text { text: "⚡"; font.pixelSize: 11; color: root.theme.textMuted }
+                            Text {
+                                text: kabelItem.kBez
+                                font.pixelSize: 12; color: root.theme.textPrimary
+                                Layout.fillWidth: true; elide: Text.ElideRight
+                            }
+                            Text {
+                                text: kabelItem.kTyp
+                                font.pixelSize: 10; color: root.theme.textMuted
+                                elide: Text.ElideRight; Layout.maximumWidth: 90
+                            }
+                        }
+                    }
+
+                    // Kabellinie-Liste (lazy geladen)
+                    Column {
+                        width: parent.width
+                        visible: kabelItem.aufgeklappt
+                        property var linien: root._kabellinienCache[kabelItem.kId] || []
+
+                        Repeater {
+                            model: parent.linien
+                            delegate: Rectangle {
+                                width: parent.width; height: 26
+                                color: kabelLinieMA.containsMouse ? root.theme.hover : "transparent"
+                                property var ld: modelData
+
+                                // Hover-MA zuerst → Sprung-Button liegt darüber
+                                MouseArea {
+                                    id: kabelLinieMA; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.ArrowCursor
+                                }
+
+                                RowLayout {
+                                    anchors { fill: parent; leftMargin: 22; rightMargin: 6 }
+                                    spacing: 4
+                                    Text {
+                                        text: ld.blattnr || ""
+                                        font.pixelSize: 11; color: root.theme.textSecondary
+                                        Layout.fillWidth: true; elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        text: ld.seiteBez || ""
+                                        font.pixelSize: 10; color: root.theme.textMuted
+                                        elide: Text.ElideRight; Layout.maximumWidth: 80
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 3
+                                        color: kabelSprungMA.containsMouse ? root.theme.accent : "transparent"
+                                        Text {
+                                            anchors.centerIn: parent; text: "→"; font.pixelSize: 11
+                                            color: kabelSprungMA.containsMouse ? "#ffffff" : root.theme.accent
+                                        }
+                                        MouseArea {
+                                            id: kabelSprungMA; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                var d = ld
+                                                root.sprungAngefordert(d.seiteId, d.blattnr,
+                                                                       d.seiteBez, d.weltX, d.weltY)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

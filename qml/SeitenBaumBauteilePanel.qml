@@ -20,6 +20,9 @@ ColumnLayout {
     property var  _anschluesseCache:    ({})
     property var  _platziert:           ({})   // "klemmeId_bez" → true
 
+    property var  _geraeteAufgeklappt:  ({})
+    property var  _mitgliederCache:     ({})   // betriebsmittelId → [{...}]
+
     readonly property bool offen: _bauteilBereichOffen
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
@@ -48,6 +51,8 @@ ColumnLayout {
         root._klemmenAufgeklappt  = {}
         root._bauteilBereichOffen = false
         root._platziert           = {}
+        root._geraeteAufgeklappt  = {}
+        root._mitgliederCache     = {}
     }
 
     Connections {
@@ -304,6 +309,121 @@ ColumnLayout {
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── GERÄTE ───────────────────────────────────
+            property var _geraeteListe: root._bauteilBereichOffen && root.projektId >= 0
+                ? db.betriebsmittelListe(root.projektId).filter(function(b) { return b.anzahl > 0 })
+                : []
+
+            Rectangle {
+                width: parent.width; height: 1; color: root.theme.divider
+                visible: parent._geraeteListe.length > 0
+            }
+
+            Repeater {
+                model: parent._geraeteListe
+                delegate: Column {
+                    id: geraetItem
+                    width: parent.width
+                    property int    bmId:        modelData.id
+                    property string bmKz:        modelData.kz
+                    property string bmBez:       modelData.bezeichnung || ""
+                    property bool   aufgeklappt: root._geraeteAufgeklappt[bmId] === true
+
+                    // Betriebsmittel-Zeile
+                    Rectangle {
+                        width: parent.width; height: 32
+                        color: geraetMA.containsMouse ? root.theme.hover : "transparent"
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+                            spacing: 5
+                            Text { text: geraetItem.aufgeklappt ? "▾" : "▸"; font.pixelSize: 9; color: root.theme.textMuted }
+                            Text { text: "⚙"; font.pixelSize: 12; color: root.theme.textMuted }
+                            Text {
+                                text: "-" + geraetItem.bmKz + (geraetItem.bmBez ? "  " + geraetItem.bmBez : "")
+                                font.pixelSize: 12; color: root.theme.textPrimary
+                                Layout.fillWidth: true; elide: Text.ElideRight
+                            }
+                            Text {
+                                text: modelData.anzahl
+                                font.pixelSize: 10; color: root.theme.textMuted
+                            }
+                        }
+                        MouseArea {
+                            id: geraetMA; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var bid = geraetItem.bmId
+                                var auf = Object.assign({}, root._geraeteAufgeklappt)
+                                auf[bid] = !auf[bid]
+                                if (auf[bid] && root._mitgliederCache[bid] === undefined) {
+                                    var c = Object.assign({}, root._mitgliederCache)
+                                    c[bid] = db.betriebsmittelMitgliederMitPos(bid)
+                                    root._mitgliederCache = c
+                                }
+                                root._geraeteAufgeklappt = auf
+                            }
+                        }
+                    }
+
+                    // Mitglieder-Liste
+                    Column {
+                        width: parent.width
+                        visible: geraetItem.aufgeklappt
+                        property var mitglieder: root._mitgliederCache[geraetItem.bmId] || []
+
+                        Repeater {
+                            model: parent.mitglieder
+                            delegate: Rectangle {
+                                width: parent.width; height: 26
+                                color: mitgliedMA.containsMouse ? root.theme.hover : "transparent"
+                                property var md: modelData
+
+                                RowLayout {
+                                    anchors { fill: parent; leftMargin: 22; rightMargin: 6 }
+                                    spacing: 4
+                                    Text {
+                                        text: md.istHauptfunktion ? "★" : "◇"
+                                        font.pixelSize: 9
+                                        color: md.istHauptfunktion ? root.theme.accent : root.theme.textMuted
+                                    }
+                                    Text {
+                                        text: md.symbolId || ""
+                                        font.pixelSize: 11; color: root.theme.textSecondary
+                                        Layout.fillWidth: true; elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        text: md.blattnr || ""
+                                        font.pixelSize: 10; color: root.theme.textMuted
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 3
+                                        color: sprungGMA.containsMouse ? root.theme.accent : "transparent"
+                                        Text {
+                                            anchors.centerIn: parent; text: "→"; font.pixelSize: 11
+                                            color: sprungGMA.containsMouse ? "#ffffff" : root.theme.accent
+                                        }
+                                        MouseArea {
+                                            id: sprungGMA; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                var d = parent.parent.parent.md
+                                                if (d && d.seiteId > 0)
+                                                    root.sprungAngefordert(d.seiteId, d.blattnr,
+                                                                           d.seiteBez, d.weltX, d.weltY)
+                                            }
+                                        }
+                                    }
+                                }
+                                MouseArea {
+                                    id: mitgliedMA; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.ArrowCursor
                                 }
                             }
                         }

@@ -214,6 +214,7 @@ public:
     Q_INVOKABLE bool         grafikElementVerknuepfen(int elementId, int betriebsmittelId);
     Q_INVOKABLE bool         grafikElementEntknuepfen(int elementId);
     Q_INVOKABLE QVariantList betriebsmittelMitglieder(int betriebsmittelId);
+    Q_INVOKABLE QVariantList betriebsmittelMitgliederMitPos(int betriebsmittelId) const;
     Q_INVOKABLE QString      betriebsmittelKz(int betriebsmittelId);
     Q_INVOKABLE QVariantMap  betriebsmittelInfo(int betriebsmittelId);
     Q_INVOKABLE bool         betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int elementId);

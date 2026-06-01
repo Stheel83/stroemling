@@ -526,6 +526,54 @@ QVariantList Database::betriebsmittelMitglieder(int betriebsmittelId)
     return result;
 }
 
+QVariantList Database::betriebsmittelMitgliederMitPos(int betriebsmittelId) const
+{
+    int hauptId = 0;
+    {
+        QSqlQuery hq(m_db);
+        hq.prepare("SELECT haupt_element_id FROM betriebsmittel WHERE id = :id");
+        hq.bindValue(":id", betriebsmittelId);
+        if (hq.exec() && hq.next() && !hq.value(0).isNull())
+            hauptId = hq.value(0).toInt();
+    }
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT g.id, g.seite_id, s.blattnummer, COALESCE(s.bezeichnung,'') AS sbez,"
+        "       g.symbol_id, g.extra_daten,"
+        "       (g.x1+g.x2)/2.0, (g.y1+g.y2)/2.0"
+        " FROM grafik_element g"
+        " JOIN seite s ON s.id = g.seite_id"
+        " WHERE g.betriebsmittel_id = :bid"
+        " ORDER BY (g.id = :hid) DESC, s.blattnummer, g.id");
+    q.bindValue(":bid", betriebsmittelId);
+    q.bindValue(":hid", hauptId);
+    if (!q.exec()) return result;
+    while (q.next()) {
+        int gid = q.value(0).toInt();
+        QVariantMap m;
+        m[QStringLiteral("elementId")]        = gid;
+        m[QStringLiteral("seiteId")]          = q.value(1).toInt();
+        m[QStringLiteral("blattnr")]          = q.value(2).toString();
+        m[QStringLiteral("seiteBez")]         = q.value(3).toString();
+        m[QStringLiteral("symbolId")]         = q.value(4).toString();
+        m[QStringLiteral("istHauptfunktion")] = (hauptId > 0 && gid == hauptId);
+        m[QStringLiteral("weltX")]            = q.value(6).toDouble();
+        m[QStringLiteral("weltY")]            = q.value(7).toDouble();
+        QString extra = q.value(5).toString();
+        QString bmk;
+        if (!extra.isEmpty()) {
+            QJsonParseError err;
+            auto doc = QJsonDocument::fromJson(extra.toUtf8(), &err);
+            if (!err.error && doc.isObject())
+                bmk = doc.object()[QStringLiteral("bmk")].toString();
+        }
+        m[QStringLiteral("bmk")] = bmk;
+        result.append(m);
+    }
+    return result;
+}
+
 QString Database::betriebsmittelKz(int betriebsmittelId)
 {
     QSqlQuery q(m_db);

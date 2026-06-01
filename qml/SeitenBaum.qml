@@ -35,6 +35,9 @@ Item {
     // Wird ausgelöst wenn ein Klemmen-Anschluss zum Platzieren gewählt wurde (Modus A)
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
+    // Sprungfunktion: navigiere zu einem Element auf einer Seite
+    signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
+                             real weltX, real weltY)
 
     // Hilfsfunktion: Listenindex für bekannte DIN-Formate ermitteln
     function formatIndex(b, h) {
@@ -1105,6 +1108,9 @@ Item {
             debug: root.debug
             onKlemmenAnschlussPlatzieren: function(kId, bkId, bez, bmk) {
                 root.klemmenAnschlussPlatzieren(kId, bkId, bez, bmk)
+            }
+            onSprungAngefordert: function(sid, bnr, sbez, wx, wy) {
+                root.sprungAngefordert(sid, bnr, sbez, wx, wy)
             }
         }
     }

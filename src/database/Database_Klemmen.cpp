@@ -106,6 +106,30 @@ QVariantList Database::platzierteKlemmenAnschluesse() const
     return result;
 }
 
+QVariantMap Database::klemmeAnschlussPosition(int klemmeId, const QString &anschlussBezeichnung) const
+{
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT ge.seite_id, s.blattnummer, s.bezeichnung,"
+        "       (ge.x1 + ge.x2) / 2.0, (ge.y1 + ge.y2) / 2.0"
+        " FROM grafik_element ge"
+        " JOIN seite s ON s.id = ge.seite_id"
+        " WHERE ge.symbol_id = 'klemme_anschluss'"
+        "   AND CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER) = :kid"
+        "   AND json_extract(ge.extra_daten,'$.anschlussBezeichnung') = :bez"
+        " LIMIT 1");
+    q.bindValue(":kid", klemmeId);
+    q.bindValue(":bez", anschlussBezeichnung);
+    if (!q.exec() || !q.next()) return {};
+    QVariantMap m;
+    m[QStringLiteral("seiteId")]   = q.value(0).toInt();
+    m[QStringLiteral("blattnr")]   = q.value(1).toString();
+    m[QStringLiteral("seiteBez")]  = q.value(2).toString();
+    m[QStringLiteral("weltX")]     = q.value(3).toDouble();
+    m[QStringLiteral("weltY")]     = q.value(4).toDouble();
+    return m;
+}
+
 bool Database::klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlussBezeichnung) const
 {
     QSqlQuery q(m_db);

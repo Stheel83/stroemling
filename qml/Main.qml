@@ -883,6 +883,11 @@ ApplicationWindow {
                             panel1.normblattNeuLaden()
                             panel2.normblattNeuLaden()
                         }
+                        onSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                            var p = root.fokussiertesPanel === 1 ? panel1 : panel2
+                            p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
+                        }
                         onKlemmenAnschlussPlatzieren: function(klemmeId, bauteilKlemmeId, anschlussBezeichnung, bmk) {
                             if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
                             if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { bereitsPlatzierMeldung.open(); return }

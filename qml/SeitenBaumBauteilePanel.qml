@@ -24,6 +24,8 @@ ColumnLayout {
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
+    signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
+                             real weltX, real weltY)
 
     function aktualisiereStatus() {
         var liste = db.platzierteKlemmenAnschluesse()
@@ -257,10 +259,35 @@ ColumnLayout {
                                                     text: "✓"
                                                     font.pixelSize: 11; color: "#60b060"
                                                 }
+                                                // Sprung-Button: nur wenn platziert
+                                                Rectangle {
+                                                    visible: platziert
+                                                    width: 20; height: 20; radius: 3
+                                                    color: sprungMA.containsMouse ? root.theme.accent : "transparent"
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "→"
+                                                        font.pixelSize: 11
+                                                        color: sprungMA.containsMouse ? "#ffffff" : root.theme.accent
+                                                    }
+                                                    MouseArea {
+                                                        id: sprungMA; anchors.fill: parent; hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            if (!parent.parent.parent.kd || !parent.parent.parent.ans) return
+                                                            var _kd  = parent.parent.parent.kd
+                                                            var _ans = parent.parent.parent.ans
+                                                            var pos  = db.klemmeAnschlussPosition(_kd.id, _ans.bezeichnung)
+                                                            if (pos && pos.seiteId > 0)
+                                                                root.sprungAngefordert(pos.seiteId, pos.blattnr,
+                                                                                       pos.seiteBez, pos.weltX, pos.weltY)
+                                                        }
+                                                    }
+                                                }
                                             }
                                             MouseArea {
                                                 id: anschlussMA; anchors.fill: parent; hoverEnabled: true
-                                                cursorShape: parent.platziert ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                                                cursorShape: parent.platziert ? Qt.ArrowCursor : Qt.PointingHandCursor
                                                 enabled: !parent.platziert
                                                 onClicked: {
                                                     if (!parent.kd || !parent.ans) return

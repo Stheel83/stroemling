@@ -361,6 +361,12 @@ public:
     // Bereits platzierte klemme_anschluss-Elemente (projektübergreifend in dieser DB).
     Q_INVOKABLE QVariantList platzierteKlemmenAnschluesse() const;
     Q_INVOKABLE bool         klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlussBezeichnung) const;
+    // Alle Klemmen-IDs je Stegbrücke im Projekt (für Potenzialverfolgung KLEMME-NET-01).
+    // Gibt [{stegId, ebene, klemmeIds:[id,...]}] zurück.
+    Q_INVOKABLE QVariantList klemmenStegbrueckenGruppen(int projektId) const;
+    // Alle klemme_anschluss-Platzierungen im Projekt (alle Seiten).
+    // Gibt [{seiteId, klemmeId, anschlussBezeichnung}] zurück.
+    Q_INVOKABLE QVariantList klemmenAnschlussAlleSeiten(int projektId) const;
 
     // Kabeldefinitionslinie – neues Kabel anlegen und grafik_element verknüpfen.
     // Gibt die neue kabel-ID zurück (>0) oder -1 bei Fehler.

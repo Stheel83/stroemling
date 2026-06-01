@@ -1854,9 +1854,64 @@ Item {
         // Gibt [{netKey, bezeichnung, signaltyp, farbe, querschnitt,
         //        verbindungId, segmente:[{x1,y1,x2,y2}], querverweise:[...]}] zurück.
         function autoNetzeBerechnen() {
-            var vbs = autoVerbindungenBerechnen()
-            if (vbs.length === 0) return []
+            var vbs      = autoVerbindungenBerechnen()
             var elemente = elementeModel.snapshot()
+
+            // ── KLEMME-NET-01: Klemmen-Durchleitung + Stegbrücken ────────────────
+            // Schritt 1: klemme_anschluss-Elemente indizieren
+            var _kGruppen = {}   // "klemmeId:ebene" → [elIdx, ...]  (für A↔B-Hop)
+            var _kElMap   = {}   // klemmeId → [{elIdx, ebene}]      (für Stegbrücken)
+            for (var _ki = 0; _ki < elemente.length; _ki++) {
+                var _kel = elemente[_ki]
+                if (!_kel || _kel.typ !== "symbol" || _kel.symbolId !== "klemme_anschluss") continue
+                var _ked   = _kel.extraDaten || {}
+                var _kId   = _ked.klemmeId || 0
+                if (_kId <= 0) continue
+                var _bez   = _ked.anschlussBezeichnung || ""
+                var _ebene = (_bez === "PE" || _bez === "") ? _bez : _bez.split(".")[0]
+                if (!_ebene) continue
+                if (!_kElMap[_kId])    _kElMap[_kId] = []
+                _kElMap[_kId].push({ elIdx: _ki, ebene: _ebene })
+                var _gKey = _kId + ":" + _ebene
+                if (!_kGruppen[_gKey]) _kGruppen[_gKey] = []
+                _kGruppen[_gKey].push(_ki)
+            }
+            var _addLog = function(idxA, idxB) {
+                var _eA = elemente[idxA], _eB = elemente[idxB]
+                vbs.push({
+                    x1: (_eA.x1+_eA.x2)/2, y1: (_eA.y1+_eA.y2)/2,
+                    x2: (_eB.x1+_eB.x2)/2, y2: (_eB.y1+_eB.y2)/2,
+                    elIdxA: idxA, rolleA: "durchleiter", quellSigA: "neutral",
+                    elIdxB: idxB, rolleB: "durchleiter", quellSigB: "neutral",
+                    signaltyp: "neutral", logisch: true
+                })
+            }
+            // Schritt 2: A↔B-Hop – gleiche klemmeId + gleiche Ebene
+            for (var _gk in _kGruppen) {
+                var _grp = _kGruppen[_gk]
+                for (var _gi = 1; _gi < _grp.length; _gi++) _addLog(_grp[0], _grp[_gi])
+            }
+            // Schritt 3: Stegbrücken – verbindet mehrere klemmeIds gleicher Ebene
+            if (root.projektId >= 0) {
+                var _stege = db.klemmenStegbrueckenGruppen(root.projektId)
+                for (var _si = 0; _si < _stege.length; _si++) {
+                    var _steg    = _stege[_si]
+                    var _sEbene  = String(_steg.ebene)
+                    var _sIds    = _steg.klemmeIds
+                    var _sIdxs   = []
+                    for (var _ski = 0; _ski < _sIds.length; _ski++) {
+                        var _entries = _kElMap[_sIds[_ski]] || []
+                        for (var _ei = 0; _ei < _entries.length; _ei++) {
+                            if (String(_entries[_ei].ebene) === _sEbene)
+                                _sIdxs.push(_entries[_ei].elIdx)
+                        }
+                    }
+                    for (var _sii = 1; _sii < _sIdxs.length; _sii++) _addLog(_sIdxs[0], _sIdxs[_sii])
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────────
+
+            if (vbs.length === 0) return []
 
             // Union-Find auf Elementindizes
             var parent = {}
@@ -1933,6 +1988,123 @@ Item {
                 }
                 result.push(net)
             }
+
+            // ── Cross-page klemmen signaltyp import (KLEMME-NET-01) ──────────────
+            // Für Netze auf dieser Seite die noch kein Potenzial haben:
+            // Partner-Anschlüsse gleicher klemmeId+Ebene auf anderen Seiten laden.
+            // Die Partnerseite bekommt dieselbe A↔B- und Stegbrücken-Injektion
+            // wie die aktuelle Seite, damit Potenziale die nur über Stegbrücken
+            // ankommen ebenfalls erkannt werden.
+            if (root.projektId >= 0) {
+                var _cpAlleKa = db.klemmenAnschlussAlleSeiten(root.projektId)
+                var _cpStege  = db.klemmenStegbrueckenGruppen(root.projektId)
+                // Fremdseiten: "klemmeId:ebene" → [seiteId, ...]
+                var _cpFremd = {}
+                for (var _cpI = 0; _cpI < _cpAlleKa.length; _cpI++) {
+                    var _cpKa  = _cpAlleKa[_cpI]
+                    if (_cpKa.seiteId === root.seiteId) continue
+                    var _cpBez = _cpKa.anschlussBezeichnung || ""
+                    var _cpEb  = (_cpBez === "PE" || _cpBez.indexOf(".") < 0) ? _cpBez : _cpBez.split(".")[0]
+                    if (!_cpEb) continue
+                    var _cpKey = _cpKa.klemmeId + ":" + _cpEb
+                    if (!_cpFremd[_cpKey]) _cpFremd[_cpKey] = []
+                    if (_cpFremd[_cpKey].indexOf(_cpKa.seiteId) < 0)
+                        _cpFremd[_cpKey].push(_cpKa.seiteId)
+                }
+                var _cpCache = {}  // seiteId → {els, vbs}
+                for (var _cpRi = 0; _cpRi < result.length; _cpRi++) {
+                    var _cpNet = result[_cpRi]
+                    if (_cpNet.signaltyp !== "neutral" && _cpNet.signaltyp !== "unversorgt") continue
+                    var _cpDone = false
+                    for (var _cpSi = 0; _cpSi < _cpNet.segmente.length && !_cpDone; _cpSi++) {
+                        var _cpSeg = _cpNet.segmente[_cpSi]
+                        for (var _cpSide = 0; _cpSide < 2 && !_cpDone; _cpSide++) {
+                            var _cpEIdx = _cpSide === 0 ? _cpSeg.elIdxA : _cpSeg.elIdxB
+                            if (_cpEIdx === undefined) continue
+                            var _cpEl = elemente[_cpEIdx]
+                            if (!_cpEl || _cpEl.symbolId !== "klemme_anschluss") continue
+                            var _cpEd  = _cpEl.extraDaten || {}
+                            var _cpKId = _cpEd.klemmeId || 0
+                            if (_cpKId <= 0) continue
+                            var _cpEBez = _cpEd.anschlussBezeichnung || ""
+                            var _cpEEb  = (_cpEBez === "PE" || _cpEBez.indexOf(".") < 0) ? _cpEBez : _cpEBez.split(".")[0]
+                            var _cpFPs  = _cpFremd[_cpKId + ":" + _cpEEb]
+                            if (!_cpFPs || !_cpFPs.length) continue
+                            for (var _cpFPi = 0; _cpFPi < _cpFPs.length && !_cpDone; _cpFPi++) {
+                                var _cpSId = _cpFPs[_cpFPi]
+                                if (!_cpCache[_cpSId]) {
+                                    var _cpPEls = db.grafikLaden(_cpSId)
+                                    var _cpPVbs = symbolDefinitionModel.autoVerbindungenBerechnen(_cpPEls, root.gridPx, {})
+                                    // A↔B- und Stegbrücken-Injektion für die Partnerseite
+                                    var _ppKGrp = {}, _ppKMap = {}
+                                    for (var _ppI = 0; _ppI < _cpPEls.length; _ppI++) {
+                                        var _ppEl = _cpPEls[_ppI]
+                                        if (!_ppEl || _ppEl.symbolId !== "klemme_anschluss") continue
+                                        var _ppEd = _ppEl.extraDaten || {}
+                                        var _ppKId = _ppEd.klemmeId || 0
+                                        if (_ppKId <= 0) continue
+                                        var _ppBez = _ppEd.anschlussBezeichnung || ""
+                                        var _ppEb  = (_ppBez === "PE" || _ppBez.indexOf(".") < 0) ? _ppBez : _ppBez.split(".")[0]
+                                        if (!_ppEb) continue
+                                        if (!_ppKMap[_ppKId]) _ppKMap[_ppKId] = []
+                                        _ppKMap[_ppKId].push({elIdx: _ppI, ebene: _ppEb})
+                                        var _ppGk = _ppKId + ":" + _ppEb
+                                        if (!_ppKGrp[_ppGk]) _ppKGrp[_ppGk] = []
+                                        _ppKGrp[_ppGk].push(_ppI)
+                                    }
+                                    var _ppLog = function(iA, iB) {
+                                        var _ppEA = _cpPEls[iA], _ppEB = _cpPEls[iB]
+                                        _cpPVbs.push({
+                                            x1: (_ppEA.x1+_ppEA.x2)/2, y1: (_ppEA.y1+_ppEA.y2)/2,
+                                            x2: (_ppEB.x1+_ppEB.x2)/2, y2: (_ppEB.y1+_ppEB.y2)/2,
+                                            elIdxA: iA, rolleA: "durchleiter", quellSigA: "neutral",
+                                            elIdxB: iB, rolleB: "durchleiter", quellSigB: "neutral",
+                                            signaltyp: "neutral", logisch: true
+                                        })
+                                    }
+                                    for (var _ppGkk in _ppKGrp) {
+                                        var _ppGrp2 = _ppKGrp[_ppGkk]
+                                        for (var _ppGi = 1; _ppGi < _ppGrp2.length; _ppGi++) _ppLog(_ppGrp2[0], _ppGrp2[_ppGi])
+                                    }
+                                    for (var _ppSi = 0; _ppSi < _cpStege.length; _ppSi++) {
+                                        var _ppSteg = _cpStege[_ppSi]
+                                        var _ppSEb  = String(_ppSteg.ebene)
+                                        var _ppSIds = _ppSteg.klemmeIds
+                                        var _ppSIdx = []
+                                        for (var _ppSkI = 0; _ppSkI < _ppSIds.length; _ppSkI++) {
+                                            var _ppEnts = _ppKMap[_ppSIds[_ppSkI]] || []
+                                            for (var _ppEiI = 0; _ppEiI < _ppEnts.length; _ppEiI++) {
+                                                if (String(_ppEnts[_ppEiI].ebene) === _ppSEb)
+                                                    _ppSIdx.push(_ppEnts[_ppEiI].elIdx)
+                                            }
+                                        }
+                                        for (var _ppSii = 1; _ppSii < _ppSIdx.length; _ppSii++) _ppLog(_ppSIdx[0], _ppSIdx[_ppSii])
+                                    }
+                                    _cpCache[_cpSId] = { els: _cpPEls, vbs: _cpPVbs }
+                                }
+                                var _cpPC = _cpCache[_cpSId]
+                                var _cpSig = "neutral"
+                                for (var _cpPEi = 0; _cpPEi < _cpPC.els.length; _cpPEi++) {
+                                    var _cpPEl = _cpPC.els[_cpPEi]
+                                    if (!_cpPEl || _cpPEl.symbolId !== "klemme_anschluss") continue
+                                    var _cpPEd = _cpPEl.extraDaten || {}
+                                    if ((_cpPEd.klemmeId || 0) !== _cpKId) continue
+                                    var _cpPBez = _cpPEd.anschlussBezeichnung || ""
+                                    var _cpPEb  = (_cpPBez === "PE" || _cpPBez.indexOf(".") < 0) ? _cpPBez : _cpPBez.split(".")[0]
+                                    if (_cpPEb !== _cpEEb) continue
+                                    var _cpCand = root._signaltypInVerbindungen(_cpPEi, _cpPC.vbs)
+                                    if (_cpCand !== "neutral" && _cpCand !== "unversorgt") { _cpSig = _cpCand; break }
+                                }
+                                if (_cpSig !== "neutral" && _cpSig !== "unversorgt") {
+                                    _cpNet.signaltyp = _cpSig
+                                    _cpDone = true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────────
             return result
         }
 
@@ -2978,6 +3150,30 @@ Item {
             return "isoliert"
 
         return sid
+    }
+
+    // Ermittelt den Signaltyp der Union-Find-Gruppe von elIdx in verbindungen.
+    // Wird für den seitenübergreifenden Potenzialimport (KLEMME-NET-01) genutzt.
+    function _signaltypInVerbindungen(elIdx, verbindungen) {
+        var _sp = {}
+        var _sf = function(x) {
+            if (_sp[x] === undefined) _sp[x] = x
+            while (_sp[x] !== x) { _sp[x] = _sp[_sp[x]]; x = _sp[x] }
+            return x
+        }
+        for (var _si = 0; _si < verbindungen.length; _si++) {
+            var _ra = _sf(verbindungen[_si].elIdxA), _rb = _sf(verbindungen[_si].elIdxB)
+            if (_ra !== _rb) _sp[_ra] = _rb
+        }
+        var _ziel = _sf(elIdx)
+        for (var _sj = 0; _sj < verbindungen.length; _sj++) {
+            var _sv = verbindungen[_sj]
+            if (_sf(_sv.elIdxA) === _ziel || _sf(_sv.elIdxB) === _ziel) {
+                var _ssig = _sv.signaltyp || "neutral"
+                if (_ssig !== "neutral" && _ssig !== "unversorgt") return _ssig
+            }
+        }
+        return "neutral"
     }
 
     // Baut pin-basierten Adj-Graph aus einem db.grafikLaden()-Ergebnis.

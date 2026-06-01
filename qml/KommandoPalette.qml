@@ -108,7 +108,6 @@ Popup {
 
     contentItem: ColumnLayout {
         spacing: 0
-        implicitHeight: suchZeile.height + trenn.height + listView.contentHeight + 8
 
         Rectangle {
             id: suchZeile
@@ -161,8 +160,8 @@ Popup {
 
         ListView {
             id: listView
-            Layout.fillWidth:  true
-            height: Math.min(380, contentHeight)
+            Layout.fillWidth:    true
+            Layout.preferredHeight: Math.min(380, contentHeight)
             clip:   true
             model:  root._gefiltert
 

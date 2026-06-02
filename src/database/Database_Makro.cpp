@@ -116,20 +116,27 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     const double maxX = std::max(kx1, kx2);
     const double maxY = std::max(ky1, ky2);
 
-    // Elemente aus Projekt-DB sammeln
+    // Elemente aus Projekt-DB sammeln (inkl. Bauteil-Snapshot via LEFT JOIN)
     QSqlQuery qe(m_db);
     qe.prepare(R"(
-        SELECT typ, x1, y1, x2, y2, extra_daten, symbol_id, sortierung,
-               rotation, spiegel_x, spiegel_y,
-               strich_farbe, strich_breite, strich_art,
-               fuell, fuell_farbe, fuell_opazitaet, opazitaet, ecken_radius
-        FROM grafik_element
-        WHERE seite_id = :sid
-          AND id != :kid
-          AND typ != 'makrokasten'
-          AND (x1+x2)/2.0 BETWEEN :minx AND :maxx
-          AND (y1+y2)/2.0 BETWEEN :miny AND :maxy
-        ORDER BY sortierung
+        SELECT ge.typ, ge.x1, ge.y1, ge.x2, ge.y2, ge.extra_daten,
+               ge.symbol_id, ge.sortierung,
+               ge.rotation, ge.spiegel_x, ge.spiegel_y,
+               ge.strich_farbe, ge.strich_breite, ge.strich_art,
+               ge.fuell, ge.fuell_farbe, ge.fuell_opazitaet,
+               ge.opazitaet, ge.ecken_radius,
+               b.bezeichnung  AS bauteil_bezeichnung,
+               b.hersteller   AS bauteil_hersteller,
+               b.artikelnummer AS bauteil_artikelnummer
+        FROM grafik_element ge
+        LEFT JOIN betriebsmittel bm ON bm.id = ge.betriebsmittel_id
+        LEFT JOIN bauteil b         ON b.id  = bm.bauteil_id
+        WHERE ge.seite_id = :sid
+          AND ge.id != :kid
+          AND ge.typ != 'makrokasten'
+          AND (ge.x1+ge.x2)/2.0 BETWEEN :minx AND :maxx
+          AND (ge.y1+ge.y2)/2.0 BETWEEN :miny AND :maxy
+        ORDER BY ge.sortierung
     )");
     qe.bindValue(":sid",  seiteId);
     qe.bindValue(":kid",  grafikElementId);
@@ -199,13 +206,26 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     )");
 
     while (qe.next()) {
+        // Bauteil-Snapshot in extra_daten einbetten (falls Bauteil verknüpft)
+        const QString bauteilBezeich = qe.value(19).toString();
+        QString edJson = qe.value(5).toString();
+        if (!bauteilBezeich.isEmpty()) {
+            QJsonObject edObj = QJsonDocument::fromJson(edJson.toUtf8()).object();
+            QJsonObject snap;
+            snap[QStringLiteral("bezeichnung")]   = bauteilBezeich;
+            snap[QStringLiteral("hersteller")]    = qe.value(20).toString();
+            snap[QStringLiteral("artikelnummer")] = qe.value(21).toString();
+            edObj[QStringLiteral("bauteilSnapshot")] = snap;
+            edJson = QString::fromUtf8(QJsonDocument(edObj).toJson(QJsonDocument::Compact));
+        }
+
         qi.bindValue(":mid",  makroId);
         qi.bindValue(":typ",  qe.value(0).toString());
         qi.bindValue(":rx1",  qe.value(1).toDouble() - minX);
         qi.bindValue(":ry1",  qe.value(2).toDouble() - minY);
         qi.bindValue(":rx2",  qe.value(3).toDouble() - minX);
         qi.bindValue(":ry2",  qe.value(4).toDouble() - minY);
-        qi.bindValue(":ed",   qe.value(5));
+        qi.bindValue(":ed",   edJson);
         qi.bindValue(":sk",   qe.value(6));
         qi.bindValue(":sort", qe.value(7));
         qi.bindValue(":rot",  qe.value(8));
@@ -334,6 +354,15 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         return newIds;
     }
 
+    // projekt_id aus seite-Tabelle ermitteln (für betriebsmittel-Anlage)
+    int projektId = -1;
+    {
+        QSqlQuery qs(m_db);
+        qs.prepare("SELECT projekt_id FROM seite WHERE id = :sid");
+        qs.bindValue(":sid", seiteId);
+        if (qs.exec() && qs.next()) projektId = qs.value(0).toInt();
+    }
+
     QSqlQuery qe(m_makroDb);
     qe.prepare(R"(
         SELECT typ, rel_x1, rel_y1, rel_x2, rel_y2, extra_daten, symbol_key, sortierung,
@@ -356,22 +385,71 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
             (seite_id, typ, x1, y1, x2, y2,
              strich_farbe, strich_breite, strich_art,
              fuell, fuell_farbe, fuell_opazitaet, opazitaet, ecken_radius,
-             sortierung, symbol_id, rotation, spiegel_x, spiegel_y, extra_daten)
+             sortierung, symbol_id, rotation, spiegel_x, spiegel_y,
+             extra_daten, betriebsmittel_id)
         VALUES
             (:sid, :typ, :x1, :y1, :x2, :y2,
              :sf, :sb, :sa,
              :fl, :ff, :fo, :op, :er,
-             :sort, :sk, :rot, :spx, :spy, :ed)
+             :sort, :sk, :rot, :spx, :spy,
+             :ed, :bmid)
     )");
 
     while (qe.next()) {
+        QString edJson = qe.value(5).toString();
+        QJsonObject edObj = QJsonDocument::fromJson(edJson.toUtf8()).object();
+
+        // Bauteil-Snapshot verarbeiten: Bauteil finden oder anlegen, betriebsmittel erstellen
+        QVariant bmId; // NULL by default
+        const QJsonObject snap = edObj.value(QStringLiteral("bauteilSnapshot")).toObject();
+        if (!snap.isEmpty() && projektId > 0) {
+            const QString bezeichnung   = snap.value(QStringLiteral("bezeichnung")).toString();
+            const QString hersteller    = snap.value(QStringLiteral("hersteller")).toString();
+            const QString artikelnummer = snap.value(QStringLiteral("artikelnummer")).toString();
+
+            int bauteilId = -1;
+            if (!artikelnummer.isEmpty()) {
+                QSqlQuery qb(m_db);
+                qb.prepare("SELECT id FROM bauteil WHERE artikelnummer = :an LIMIT 1");
+                qb.bindValue(":an", artikelnummer);
+                if (qb.exec() && qb.next()) bauteilId = qb.value(0).toInt();
+            }
+            if (bauteilId < 0 && !bezeichnung.isEmpty()) {
+                QSqlQuery qins(m_db);
+                qins.prepare("INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer) "
+                             "VALUES (:bez, :her, :art)");
+                qins.bindValue(":bez", bezeichnung);
+                qins.bindValue(":her", hersteller.isEmpty() ? QVariant() : QVariant(hersteller));
+                qins.bindValue(":art", artikelnummer.isEmpty() ? QVariant() : QVariant(artikelnummer));
+                if (qins.exec()) bauteilId = qins.lastInsertId().toInt();
+                else qWarning() << "makroElementeEinfuegen INSERT bauteil:" << qins.lastError().text();
+            }
+            if (bauteilId > 0) {
+                const QString bmk       = edObj.value(QStringLiteral("bmk")).toString();
+                const QString symbolKey = qe.value(6).toString();
+                QSqlQuery qbm(m_db);
+                qbm.prepare("INSERT INTO betriebsmittel "
+                            "(projekt_id, bauteil_id, betriebsmittel_kz, symbol_code) "
+                            "VALUES (:pid, :bid, :kz, :sc)");
+                qbm.bindValue(":pid", projektId);
+                qbm.bindValue(":bid", bauteilId);
+                qbm.bindValue(":kz",  bmk.isEmpty() ? QStringLiteral("?") : bmk);
+                qbm.bindValue(":sc",  symbolKey.isEmpty() ? QVariant() : QVariant(symbolKey));
+                if (qbm.exec()) bmId = qbm.lastInsertId().toInt();
+                else qWarning() << "makroElementeEinfuegen INSERT betriebsmittel:" << qbm.lastError().text();
+            }
+            // Snapshot aus extra_daten entfernen (projekt-intern, nicht persistieren)
+            edObj.remove(QStringLiteral("bauteilSnapshot"));
+            edJson = QString::fromUtf8(QJsonDocument(edObj).toJson(QJsonDocument::Compact));
+        }
+
         qi.bindValue(":sid",  seiteId);
         qi.bindValue(":typ",  qe.value(0).toString());
         qi.bindValue(":x1",   qe.value(1).toDouble() + offsetX);
         qi.bindValue(":y1",   qe.value(2).toDouble() + offsetY);
         qi.bindValue(":x2",   qe.value(3).toDouble() + offsetX);
         qi.bindValue(":y2",   qe.value(4).toDouble() + offsetY);
-        qi.bindValue(":ed",   qe.value(5));
+        qi.bindValue(":ed",   edJson);
         qi.bindValue(":sk",   qe.value(6));
         qi.bindValue(":sort", qe.value(7));
         qi.bindValue(":rot",  qe.value(8));
@@ -385,6 +463,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         qi.bindValue(":fo",   qe.value(16));
         qi.bindValue(":op",   qe.value(17));
         qi.bindValue(":er",   qe.value(18));
+        qi.bindValue(":bmid", bmId);
         if (!qi.exec()) {
             qWarning() << "makroElementeEinfuegen INSERT:" << qi.lastError().text();
             m_db.rollback(); return QVariantList();

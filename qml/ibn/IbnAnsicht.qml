@@ -168,13 +168,14 @@ Item {
 
                     Item { width: 6 }
 
-                    // BM / Kabel Toggle
+                    // BM / Kabel / Felder Toggle
                     RowLayout {
                         spacing: 2
                         Repeater {
                             model: [
-                                { key: "bm",    label: qsTr("BM")    },
-                                { key: "kabel", label: qsTr("Kabel") }
+                                { key: "bm",     label: qsTr("BM")     },
+                                { key: "kabel",  label: qsTr("Kabel")  },
+                                { key: "felder", label: qsTr("Felder") }
                             ]
                             delegate: Rectangle {
                                 implicitWidth: 46; implicitHeight: 24; radius: 4
@@ -194,8 +195,9 @@ Item {
                         }
                     }
 
-                    // Projekt / Seite Toggle
+                    // Projekt / Seite Toggle (nur bei BM/Kabel)
                     RowLayout {
+                        visible: root._kategorie !== "felder"
                         spacing: 2
                         Repeater {
                             model: [
@@ -240,8 +242,9 @@ Item {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
-        // ── Suche + Filter ─────────────────────────────────────
+        // ── Suche + Filter (nur BM/Kabel) ─────────────────────
         RowLayout {
+            visible: root._kategorie !== "felder"
             Layout.fillWidth: true; Layout.margins: 8; spacing: 6
 
             TextField {
@@ -285,7 +288,10 @@ Item {
             }
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.divider }
+        Rectangle {
+            visible: root._kategorie !== "felder"
+            Layout.fillWidth: true; height: 1; color: theme.divider
+        }
 
         IbnBmSplit {
             id: bmSplit
@@ -308,6 +314,24 @@ Item {
             onKabelGewaehlt: function(sId, eId, x, y) { root.bmkGewaehlt(sId, eId, x, y) }
         }
 
+        IbnFeldPanel {
+            id: feldPanel
+            theme: theme
+            debug: root.debug
+            visible:           root._kategorie === "felder"
+            Layout.fillWidth:  true
+            Layout.fillHeight: root._kategorie === "felder"
+            onFelderGeaendert: {
+                // Dynamische Felder des aktuell gewählten BM neu laden
+                var fl = root._gefilterteListe()
+                if (root.ausgewaehlterIndex >= 0 && root.ausgewaehlterIndex < fl.length) {
+                    var e = fl[root.ausgewaehlterIndex]
+                    var kat = e.symbolKategorie || ""
+                    root._dynFelder = kat !== "" ? db.ibnFeldvorlagenLaden(kat) : []
+                }
+            }
+        }
+
         // ── Statusleiste ──────────────────────────────────────
         Rectangle {
             Layout.fillWidth: true; height: 28; color: theme.surfaceDeep
@@ -315,6 +339,11 @@ Item {
                 anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
                 Text {
                     text: {
+                        if (root._kategorie === "felder") {
+                            var sys  = feldPanel._vorlagen.filter(function(v){ return v.erstelltVon === "system" }).length
+                            var user = feldPanel._vorlagen.filter(function(v){ return v.erstelltVon === "user"   }).length
+                            return qsTr("%1 Systemfelder  ·  %2 eigene Felder").arg(sys).arg(user)
+                        }
                         var fl = root._kategorie === "kabel"
                                  ? root._gefilterteKabelListe()
                                  : root._gefilterteListe()
@@ -326,18 +355,6 @@ Item {
                     font.pixelSize: 10; color: theme.textMuted
                 }
                 Item { Layout.fillWidth: true }
-
-                Button {
-                    flat: true; implicitWidth: 70; implicitHeight: 22
-                    visible: root._kategorie === "bm"
-                    contentItem: Text { text: qsTr("⚙ Felder"); color: theme.textSecondary; font.pixelSize: 10;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 3;
-                        border.color: theme.border }
-                    onClicked: bmSplit.openFeldEditor()
-                    ToolTip.visible: hovered; ToolTip.text: qsTr("Benutzerdefinierte IBN-Felder bearbeiten")
-                    ToolTip.delay: 600
-                }
 
                 Button {
                     text: qsTr("⟳"); flat: true; implicitHeight: 24; implicitWidth: 28

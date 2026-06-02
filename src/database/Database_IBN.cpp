@@ -496,6 +496,33 @@ bool Database::ibnFeldVorlageLoeschen(int id)
     return q.numRowsAffected() > 0;
 }
 
+bool Database::ibnFeldVorlageAktualisieren(int id,
+                                             const QString &label,
+                                             const QString &feldtyp,
+                                             const QString &optionen,
+                                             const QString &einheit,
+                                             bool pflichtfeld)
+{
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        UPDATE ibn_feldvorlage
+        SET label = :lbl, feldtyp = :typ, optionen = :opt,
+            einheit = :ein, pflichtfeld = :pfl
+        WHERE id = :id AND erstellt_von = 'user'
+    )");
+    q.bindValue(":id",  id);
+    q.bindValue(":lbl", label);
+    q.bindValue(":typ", feldtyp);
+    q.bindValue(":opt", optionen);
+    q.bindValue(":ein", einheit);
+    q.bindValue(":pfl", pflichtfeld ? 1 : 0);
+    if (!q.exec()) {
+        qWarning() << "ibnFeldVorlageAktualisieren:" << q.lastError().text();
+        return false;
+    }
+    return q.numRowsAffected() > 0;
+}
+
 QVariantList Database::ibnFeldwerteLaden(int inbetriebnahmeId)
 {
     QSqlQuery q(m_db);

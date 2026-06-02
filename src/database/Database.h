@@ -305,6 +305,14 @@ public:
     // Benutzerdefiniertes Feld löschen (nur erstellt_von = 'user' erlaubt).
     Q_INVOKABLE bool ibnFeldVorlageLoeschen(int id);
 
+    // Benutzerdefiniertes Feld aktualisieren (nur label, feldtyp, optionen, einheit, pflicht).
+    Q_INVOKABLE bool ibnFeldVorlageAktualisieren(int id,
+                                                  const QString &label,
+                                                  const QString &feldtyp,
+                                                  const QString &optionen,
+                                                  const QString &einheit,
+                                                  bool pflichtfeld);
+
     // Prüfprotokoll als PDF exportieren.
     // seiteId=-1 = alle Seiten des Projekts.
     Q_INVOKABLE bool ibnProtokollPdfSpeichern(int projektId, int seiteId,

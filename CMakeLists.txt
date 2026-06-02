@@ -115,6 +115,7 @@ qt_add_qml_module(stroemling_app
         qml/ibn/IbnKabelSplit.qml
         qml/ibn/IbnAnsicht.qml
         qml/ibn/IbnFeldEditorDialog.qml
+        qml/ibn/IbnFeldPanel.qml
 
         qml/ba/BaFormContent.qml
         qml/ba/BaKategorieSidebar.qml

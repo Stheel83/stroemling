@@ -345,7 +345,7 @@ Rectangle {
                         { anzeige: "\u2191 Eine vor",    richt: "vorne1",     tip: qsTr("Eine Ebene nach vorne")  },
                         { anzeige: "\u2193 Eine zurück", richt: "hinten1",    tip: qsTr("Eine Ebene nach hinten") }
                     ]
-                    MiniButton { theme: theme;
+                    MiniButton { theme: panel.theme;
                         label:   modelData.anzeige
                         tooltip: modelData.tip
                         breite:  90; hoehe: 26

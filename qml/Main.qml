@@ -269,10 +269,7 @@ ApplicationWindow {
     MakroBibliothekDialog {
         id:    makroBibliothekDialog
         theme: appTheme
-        onMakroListeGeaendert: {
-            bauteilAnsicht.makroListeAktualisieren()
-            symbolPalette.makroListeAktualisieren()
-        }
+        onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
     }
 
     KommandoPalette {
@@ -1030,10 +1027,7 @@ ApplicationWindow {
                                     root.aktivSeiteName = panel1.aktivSeiteName
                                 }
                             }
-                            onMakroListeGeaendert: {
-                                bauteilAnsicht.makroListeAktualisieren()
-                                symbolPalette.makroListeAktualisieren()
-                            }
+                            onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
                             }
@@ -1083,10 +1077,7 @@ ApplicationWindow {
                                     root.aktivSeiteName = panel2.aktivSeiteName
                                 }
                             }
-                            onMakroListeGeaendert: {
-                                bauteilAnsicht.makroListeAktualisieren()
-                                symbolPalette.makroListeAktualisieren()
-                            }
+                            onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
                             }
@@ -1136,17 +1127,6 @@ ApplicationWindow {
                 onKabelEditorAngefordert: function(id, bezeichnung) {
                     root.aktiveAnsicht = "kabel_editor"
                 }
-                onMakroEinfuegenAngefordert: function(makroId, name) {
-                    if (root.aktivSeiteId < 0) {
-                        keineSeiteMeldung.open()
-                        return
-                    }
-                    root.aktiveAnsicht = "seiten"
-                    root.aktiverCanvas.makroEinfuegenId   = makroId
-                    root.aktiverCanvas.makroEinfuegenName = name
-                    root.aktiverCanvas.aktivesWerkzeug    = "makroEinfuegen"
-                }
-
                 onKlemmeAnschlussModusAPlatzieren: function(bauteilKlemmeId, anschlussBezeichnung, bmk, klemmeId) {
                     if (root.aktivSeiteId < 0) {
                         keineSeiteMeldung.open()

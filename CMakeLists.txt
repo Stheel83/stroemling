@@ -123,7 +123,6 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaBauteilNeuDialog.qml
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaBauteilListe.qml
-        qml/ba/BaMakroAnsicht.qml
 
         qml/la/LaCsvLeiste.qml
         qml/la/LaTabStueckliste.qml

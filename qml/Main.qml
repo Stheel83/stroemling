@@ -1027,6 +1027,10 @@ ApplicationWindow {
                                     root.aktivSeiteName = panel1.aktivSeiteName
                                 }
                             }
+                            onGkSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                                if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                                panel1.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
+                            }
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
@@ -1076,6 +1080,10 @@ ApplicationWindow {
                                     root.aktivSeiteId   = seiteId
                                     root.aktivSeiteName = panel2.aktivSeiteName
                                 }
+                            }
+                            onGkSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                                if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                                panel2.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
                             }
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {

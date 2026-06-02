@@ -305,6 +305,12 @@ public:
     // Benutzerdefiniertes Feld löschen (nur erstellt_von = 'user' erlaubt).
     Q_INVOKABLE bool ibnFeldVorlageLoeschen(int id);
 
+    // Alle Gerätekästen des Projekts mit Seite + Mittelpunkt (für Seitenbaum).
+    Q_INVOKABLE QVariantList geraetekastenListeMitPos(int projektId) const;
+
+    // Alle Gerätekästen mit gegebenem BMK (für EP-Abschnitt "Weitere Kästen").
+    Q_INVOKABLE QVariantList geraetekastenNachBmk(int projektId, const QString &bmk) const;
+
     // Benutzerdefiniertes Feld aktualisieren (nur label, feldtyp, optionen, einheit, pflicht).
     Q_INVOKABLE bool ibnFeldVorlageAktualisieren(int id,
                                                   const QString &label,

@@ -116,5 +116,90 @@ Item {
             onWertGeaendert: function(v) { root.extraSetzen("schriftgroesse", v) }
         }
         Item { height: 4 }
+
+        // ── Weitere Kästen mit gleichem BMK ────────────────
+        Loader {
+            id: weitereKaestenLoader
+            width: root.width
+            active: panel.el
+                    && panel.el.extraDaten
+                    && (panel.el.extraDaten.bmk || "").length > 0
+                    && panel.canvas.projektId >= 0
+
+            sourceComponent: Component {
+                Column {
+                    width: root.width; spacing: 0
+
+                    property string _bmk: (panel.el && panel.el.extraDaten)
+                                          ? (panel.el.extraDaten.bmk || "") : ""
+                    property int _projektId: panel.canvas.projektId
+
+                    property var _weitereKaesten: {
+                        if (_bmk === "" || _projektId < 0) return []
+                        return db.geraetekastenNachBmk(_projektId, _bmk)
+                    }
+
+                    Trennlinie {}
+                    AbschnittTitel { text: qsTr("WEITERE KÄSTEN") }
+
+                    Rectangle {
+                        width: root.width; height: 28; color: "transparent"
+                        visible: parent._weitereKaesten.length <= 1
+                        Text {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            text: qsTr("Nur dieser Kasten mit BMK ") + parent._bmk
+                            font.pixelSize: 10; color: root.theme.textMuted; font.italic: true
+                        }
+                    }
+
+                    Repeater {
+                        model: parent._weitereKaesten
+                        delegate: Rectangle {
+                            width: root.width; height: 28
+                            color: weitHover.containsMouse ? root.theme.hover : "transparent"
+                            property var gkd: modelData
+
+                            MouseArea {
+                                id: weitHover; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.ArrowCursor
+                            }
+
+                            RowLayout {
+                                anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
+                                spacing: 4
+                                Text {
+                                    text: "↳"; font.pixelSize: 11; color: root.theme.borderLight
+                                }
+                                Text {
+                                    text: (gkd.blattnr || "") + (gkd.seiteBez ? ": " + gkd.seiteBez : "")
+                                    font.pixelSize: 11; color: root.theme.textSecondary
+                                    Layout.fillWidth: true; elide: Text.ElideRight
+                                }
+                                Rectangle {
+                                    width: 20; height: 20; radius: 3
+                                    color: gkEpSprungMA.containsMouse ? root.theme.accent : "transparent"
+                                    Text {
+                                        anchors.centerIn: parent; text: "→"; font.pixelSize: 11
+                                        color: gkEpSprungMA.containsMouse ? "#ffffff" : root.theme.accent
+                                    }
+                                    MouseArea {
+                                        id: gkEpSprungMA; anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var d = gkd
+                                            if (d && d.seiteId > 0)
+                                                panel.canvas.gkSprungAngefordert(
+                                                    d.seiteId, d.blattnr,
+                                                    d.seiteBez, d.weltX, d.weltY)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Item { height: 4 }
+                }
+            }
+        }
     }
 }

@@ -36,6 +36,7 @@ Item {
 
     signal hintergrundGeaendert(string farbe)
     signal querverweisNavigieren(int seiteId)
+    signal gkSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal makroListeGeaendert()
     signal drcKlick()
 

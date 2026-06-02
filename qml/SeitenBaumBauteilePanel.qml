@@ -26,6 +26,8 @@ ColumnLayout {
     property var  _kabelAufgeklappt:   ({})
     property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
 
+    property var  _gkAufgeklappt:     ({})    // bmk → bool
+
     readonly property bool offen: _bauteilBereichOffen
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
@@ -58,6 +60,7 @@ ColumnLayout {
         root._mitgliederCache     = {}
         root._kabelAufgeklappt    = {}
         root._kabellinienCache    = {}
+        root._gkAufgeklappt       = {}
     }
 
     Connections {
@@ -557,6 +560,144 @@ ColumnLayout {
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 var d = ld
+                                                root.sprungAngefordert(d.seiteId, d.blattnr,
+                                                                       d.seiteBez, d.weltX, d.weltY)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // ── GERÄTEKÄSTEN ─────────────────────────────────────
+            property var _gkFlachListe: root._bauteilBereichOffen && root.projektId >= 0
+                ? db.geraetekastenListeMitPos(root.projektId)
+                : []
+
+            property var _gkGruppiert: {
+                var gruppen = {}
+                var reihenfolge = []
+                var liste = parent._gkFlachListe
+                for (var i = 0; i < liste.length; i++) {
+                    var gk = liste[i]
+                    var bmk = gk.bmk || ""
+                    if (!gruppen[bmk]) {
+                        gruppen[bmk] = { bmk: bmk, bezeichnung: gk.bezeichnung || "", instanzen: [] }
+                        reihenfolge.push(bmk)
+                    }
+                    gruppen[bmk].instanzen.push(gk)
+                }
+                return reihenfolge.map(function(b) { return gruppen[b] })
+            }
+
+            Rectangle {
+                width: parent.width; height: 1; color: root.theme.divider
+                visible: root._bauteilBereichOffen
+            }
+
+            Rectangle {
+                width: parent.width; height: 28; color: "transparent"
+                visible: root._bauteilBereichOffen && parent._gkGruppiert.length === 0
+                RowLayout {
+                    anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
+                    spacing: 6
+                    Text { text: "📐"; font.pixelSize: 11; opacity: 0.35; color: root.theme.textMuted }
+                    Text {
+                        text: qsTr("Geraetekaesten – mit G zeichnen")
+                        font.pixelSize: 11; color: root.theme.textMuted; opacity: 0.6
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            Repeater {
+                model: parent._gkGruppiert
+                delegate: Column {
+                    id: gkGruppeItem
+                    width: parent.width
+                    property string gkBmk:  modelData.bmk
+                    property string gkBez:  modelData.bezeichnung
+                    property var    gkInst: modelData.instanzen
+                    property bool   auf:    root._gkAufgeklappt[gkBmk] === true
+
+                    // Gruppen-Kopfzeile (BMK)
+                    Rectangle {
+                        width: parent.width; height: 32
+                        color: gkKopfMA.containsMouse ? root.theme.hover : "transparent"
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+                            spacing: 5
+                            Text { text: gkGruppeItem.auf ? "▾" : "▸"; font.pixelSize: 9; color: root.theme.textMuted }
+                            Text { text: "📐"; font.pixelSize: 12; color: root.theme.textMuted }
+                            Text {
+                                text: gkGruppeItem.gkBmk
+                                      + (gkGruppeItem.gkBez ? "  " + gkGruppeItem.gkBez : "")
+                                font.pixelSize: 12; color: root.theme.textPrimary
+                                Layout.fillWidth: true; elide: Text.ElideRight
+                            }
+                            Text {
+                                visible: gkGruppeItem.gkInst.length > 1
+                                text: gkGruppeItem.gkInst.length
+                                font.pixelSize: 10; color: root.theme.textMuted
+                            }
+                        }
+                        MouseArea {
+                            id: gkKopfMA; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var b = gkGruppeItem.gkBmk
+                                var auf = Object.assign({}, root._gkAufgeklappt)
+                                auf[b] = !auf[b]
+                                root._gkAufgeklappt = auf
+                            }
+                        }
+                    }
+
+                    // Instanzen-Liste
+                    Column {
+                        width: parent.width
+                        visible: gkGruppeItem.auf
+
+                        Repeater {
+                            model: gkGruppeItem.gkInst
+                            delegate: Rectangle {
+                                width: parent.width; height: 26
+                                color: gkInstMA.containsMouse ? root.theme.hover : "transparent"
+                                property var gkd: modelData
+
+                                MouseArea {
+                                    id: gkInstMA; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.ArrowCursor
+                                }
+
+                                RowLayout {
+                                    anchors { fill: parent; leftMargin: 22; rightMargin: 6 }
+                                    spacing: 4
+                                    Text {
+                                        text: gkd.blattnr || ""
+                                        font.pixelSize: 11; color: root.theme.textSecondary
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        text: gkd.seiteBez || ""
+                                        font.pixelSize: 10; color: root.theme.textMuted
+                                        elide: Text.ElideRight; Layout.fillWidth: true
+                                        Layout.maximumWidth: 80
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 3
+                                        color: gkSprungMA.containsMouse ? root.theme.accent : "transparent"
+                                        Text {
+                                            anchors.centerIn: parent; text: "→"; font.pixelSize: 11
+                                            color: gkSprungMA.containsMouse ? "#ffffff" : root.theme.accent
+                                        }
+                                        MouseArea {
+                                            id: gkSprungMA; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                var d = gkd
                                                 root.sprungAngefordert(d.seiteId, d.blattnr,
                                                                        d.seiteBez, d.weltX, d.weltY)
                                             }

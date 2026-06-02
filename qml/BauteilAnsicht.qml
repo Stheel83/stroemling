@@ -11,7 +11,7 @@ Item {
     property var    theme
     property bool   debug:                      false
     property int    projektId:                  -1
-    property string aktiveSpezialAnsicht:       ""   // "" | "klemmenreihen"
+    property string aktiveSpezialAnsicht:       ""   // "" | "klemmenreihen" | "geraetekaesten"
     property int    selectedBauteilId:            -1
     property string selectedBauteilBezeichnung:   ""
     property string selectedBauteilHersteller:    ""
@@ -20,6 +20,7 @@ Item {
     signal klemmeAnschlussModusAPlatzieren(int bauteilKlemmeId, string anschlussBezeichnung, string bmk, int klemmeId)
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
+    signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
 
     RowLayout {
         anchors.fill: parent; spacing: 0
@@ -55,9 +56,26 @@ Item {
                 }
             }
 
+            BaGeraetekastenAnsicht {
+                anchors.fill: parent
+                visible:   root.aktiveSpezialAnsicht === "geraetekaesten"
+                theme:     root.theme
+                debug:     root.debug
+                projektId: root.projektId
+                onSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                    root.geraetekastenSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
+                }
+            }
+
             DebugLabel {
-                panelName: root.aktiveSpezialAnsicht === "" ? qsTr("Bauteil-Liste") : qsTr("Klemmenreihen-Ansicht")
-                visible:   root.debug
+                panelName: {
+                    switch (root.aktiveSpezialAnsicht) {
+                        case "klemmenreihen":  return qsTr("Klemmenreihen-Ansicht")
+                        case "geraetekaesten": return qsTr("Geraetekaesten-Ansicht")
+                        default:               return qsTr("Bauteil-Liste")
+                    }
+                }
+                visible: root.debug
             }
         }
     }

@@ -186,6 +186,27 @@ Rectangle {
             }
         }
 
+        Rectangle {
+            Layout.fillWidth: true; height: 36
+            color: panel.aktiveSpezialAnsicht === "geraetekaesten"
+                   ? theme.hover : (gkHover.containsMouse ? theme.hover : "transparent")
+            HoverHandler { id: gkHover }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
+                Text { text: "📐"; font.pixelSize: 12 }
+                Text {
+                    text: qsTr("Gerätekästen"); font.pixelSize: 13
+                    color: panel.aktiveSpezialAnsicht === "geraetekaesten"
+                           ? theme.textPrimary : theme.textSecondary
+                    Layout.fillWidth: true
+                }
+            }
+            MouseArea {
+                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                onClicked: panel.aktiveSpezialAnsicht = "geraetekaesten"
+            }
+        }
+
         // ── KATEGORIEN ──────────────────────────────────────────
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 2 }
 

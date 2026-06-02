@@ -1135,6 +1135,11 @@ ApplicationWindow {
                 onKabelEditorAngefordert: function(id, bezeichnung) {
                     root.aktiveAnsicht = "kabel_editor"
                 }
+                onGeraetekastenSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                    if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                    var p = root.fokussiertesPanel === 2 ? panel2 : panel1
+                    p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
+                }
                 onKlemmeAnschlussModusAPlatzieren: function(bauteilKlemmeId, anschlussBezeichnung, bmk, klemmeId) {
                     if (root.aktivSeiteId < 0) {
                         keineSeiteMeldung.open()

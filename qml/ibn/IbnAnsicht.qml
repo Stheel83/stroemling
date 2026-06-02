@@ -296,7 +296,7 @@ Item {
         IbnBmSplit {
             id: bmSplit
             panel: root
-            theme: theme
+            theme: root.theme
             debug: root.debug
             visible:           root._kategorie === "bm"
             Layout.fillWidth:  true
@@ -306,7 +306,7 @@ Item {
 
         IbnKabelSplit {
             panel: root
-            theme: theme
+            theme: root.theme
             debug: root.debug
             visible:           root._kategorie === "kabel"
             Layout.fillWidth:  true
@@ -316,7 +316,7 @@ Item {
 
         IbnFeldPanel {
             id: feldPanel
-            theme: theme
+            theme: root.theme
             debug: root.debug
             visible:           root._kategorie === "felder"
             Layout.fillWidth:  true

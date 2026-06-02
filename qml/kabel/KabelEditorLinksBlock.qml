@@ -18,12 +18,25 @@ ScrollView {
     contentHeight: leftCol.implicitHeight
     clip:          true
 
+    function _bauteilLaden() {
+        var d = bauteilModel.bauteilNachId(bauteilId)
+        tfKabBez.text    = d.bezeichnung   || bauteilBezeichnung
+        tfKabHer.text    = d.hersteller    || bauteilHersteller
+        tfKabArt.text    = d.artikelnummer || bauteilArtikelnummer
+        tfKabLief.text   = d.lieferant     || ""
+        tfKabPreis.text  = (d.preisEur  > 0) ? d.preisEur.toFixed(2)  : ""
+        tfKabU.text      = (d.spannungV > 0) ? d.spannungV.toString() : ""
+        tfKabI.text      = (d.stromA    > 0) ? d.stromA.toString()    : ""
+        tfKabP.text      = (d.leistungW > 0) ? d.leistungW.toString() : ""
+        tfKabBem.text    = d.bemerkung     || ""
+        tfKabUrlHer.text = d.urlHersteller || ""
+        tfKabUrlDat.text = d.urlDatenblatt || ""
+    }
+
     onBauteilIdChanged: {
         if (bauteilId >= 0) {
             kabelModel.laden(bauteilId)
-            tfKabBez.text = bauteilBezeichnung
-            tfKabHer.text = bauteilHersteller
-            tfKabArt.text = bauteilArtikelnummer
+            root._bauteilLaden()
         }
     }
     onBauteilBezeichnungChanged:   if (bauteilId >= 0) tfKabBez.text = bauteilBezeichnung
@@ -101,36 +114,110 @@ ScrollView {
                 Text { text: qsTr("Artikel-Nr."); color: root.theme.textMuted; font.pixelSize: 11 }
                 NavTextField {
                     id: tfKabHer; Layout.fillWidth: true
-                    tabTarget:     tfKabArt
-                    backtabTarget: tfKabBez
+                    tabTarget: tfKabArt; backtabTarget: tfKabBez
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
                 }
                 NavTextField {
                     id: tfKabArt; Layout.fillWidth: true
-                    tabTarget:     kabelModel.hatKabel ? tfKabeltyp : tfKabBez
-                    backtabTarget: tfKabHer
+                    tabTarget: tfKabLief; backtabTarget: tfKabHer
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Lieferant");   color: root.theme.textMuted; font.pixelSize: 11 }
+                Text { text: qsTr("Preis (EUR)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                NavTextField {
+                    id: tfKabLief; Layout.fillWidth: true
+                    tabTarget: tfKabPreis; backtabTarget: tfKabArt
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+                NavTextField {
+                    id: tfKabPreis; Layout.fillWidth: true
+                    tabTarget: tfKabU; backtabTarget: tfKabLief
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0.00"
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Spannung (V)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                Text { text: qsTr("Strom (A)");    color: root.theme.textMuted; font.pixelSize: 11 }
+                NavTextField {
+                    id: tfKabU; Layout.fillWidth: true
+                    tabTarget: tfKabI; backtabTarget: tfKabPreis
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+                NavTextField {
+                    id: tfKabI; Layout.fillWidth: true
+                    tabTarget: tfKabP; backtabTarget: tfKabU
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Leistung (W)"); color: root.theme.textMuted; font.pixelSize: 11; Layout.columnSpan: 2 }
+                NavTextField {
+                    id: tfKabP; Layout.fillWidth: true; Layout.columnSpan: 2
+                    tabTarget: tfKabBem; backtabTarget: tfKabI
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
                 }
             }
 
+            Text { text: qsTr("Bemerkung"); color: root.theme.textMuted; font.pixelSize: 11 }
+            NavTextField {
+                id: tfKabBem; Layout.fillWidth: true
+                tabTarget: tfKabUrlHer; backtabTarget: tfKabP
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                color: root.theme.textPrimary; font.pixelSize: 12
+            }
+
+            Text { text: qsTr("Links"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+            Text { text: qsTr("Hersteller-Website"); color: root.theme.textMuted; font.pixelSize: 11 }
             RowLayout {
-                Layout.fillWidth: true
-                Item { Layout.fillWidth: true }
+                Layout.fillWidth: true; spacing: 6
+                NavTextField {
+                    id: tfKabUrlHer; Layout.fillWidth: true
+                    tabTarget: tfKabUrlDat; backtabTarget: tfKabBem
+                    placeholderText: "https://..."
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
                 Button {
-                    text: qsTr("Übernehmen"); implicitHeight: 30
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
-                                            radius: 4; border.color: root.theme.accent }
-                    onClicked: {
-                        bauteilModel.bauteilTitelSpeichern(root.bauteilId,
-                            tfKabBez.text, tfKabHer.text, tfKabArt.text)
-                        root.bauteilGespeichert(root.bauteilId, tfKabBez.text)
-                    }
+                    implicitWidth: 60; implicitHeight: 28; enabled: tfKabUrlHer.text.trim().length > 0
+                    text: qsTr("Oeffnen")
+                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
+                                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                    onClicked: Qt.openUrlExternally(tfKabUrlHer.text.trim())
                 }
             }
+            Text { text: qsTr("Datenblatt"); color: root.theme.textMuted; font.pixelSize: 11 }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                NavTextField {
+                    id: tfKabUrlDat; Layout.fillWidth: true
+                    tabTarget: kabelModel.hatKabel ? tfKabeltyp : tfKabBez; backtabTarget: tfKabUrlHer
+                    placeholderText: "https://..."
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+                Button {
+                    implicitWidth: 60; implicitHeight: 28; enabled: tfKabUrlDat.text.trim().length > 0
+                    text: qsTr("Oeffnen")
+                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
+                                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                    onClicked: Qt.openUrlExternally(tfKabUrlDat.text.trim())
+                }
+            }
+
         }
 
         Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
@@ -236,18 +323,6 @@ ScrollView {
                     placeholderText: "PVC, LSZH …"
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
-                }
-            }
-
-            Button {
-                Layout.fillWidth: true; text: qsTr("Kabel-Daten speichern")
-                contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
-                                        radius: 4; border.color: root.theme.accent }
-                onClicked: {
-                    if (kabelModel.stammdatenSpeichern(root.kabelMapSammeln()))
-                        root.bauteilGespeichert(root.bauteilId, tfKabBez.text)
                 }
             }
 
@@ -395,6 +470,30 @@ ScrollView {
                         kabelModel.paarAnlegen(aId, bId)
                     }
                 }
+            }
+        }
+
+        Button {
+            Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+            Layout.topMargin: 8; Layout.bottomMargin: 12
+            text: qsTr("Speichern")
+            contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
+                                    radius: 4; border.color: root.theme.accent }
+            onClicked: {
+                bauteilModel.bearbeiten(root.bauteilId,
+                    tfKabBez.text.trim(), tfKabHer.text.trim(), tfKabArt.text.trim(),
+                    tfKabLief.text.trim(),
+                    parseFloat(tfKabPreis.text) || 0,
+                    parseFloat(tfKabU.text)     || 0,
+                    parseFloat(tfKabI.text)     || 0,
+                    parseFloat(tfKabP.text)     || 0,
+                    tfKabBem.text.trim(),
+                    tfKabUrlHer.text.trim(), tfKabUrlDat.text.trim())
+                if (kabelModel.hatKabel)
+                    kabelModel.stammdatenSpeichern(root.kabelMapSammeln())
+                root.bauteilGespeichert(root.bauteilId, tfKabBez.text.trim())
             }
         }
     }

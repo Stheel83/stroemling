@@ -20,12 +20,25 @@ ScrollView {
     contentHeight: leftCol.implicitHeight
     clip:          true
 
+    function _bauteilLaden() {
+        var d = bauteilModel.bauteilNachId(bauteilId)
+        tfStamBez.text    = d.bezeichnung   || bauteilBezeichnung
+        tfStamHer.text    = d.hersteller    || bauteilHersteller
+        tfStamArt.text    = d.artikelnummer || bauteilArtikelnummer
+        tfStamLief.text   = d.lieferant     || ""
+        tfStamPreis.text  = (d.preisEur  > 0) ? d.preisEur.toFixed(2)    : ""
+        tfStamU.text      = (d.spannungV > 0) ? d.spannungV.toString()   : ""
+        tfStamI.text      = (d.stromA    > 0) ? d.stromA.toString()      : ""
+        tfStamP.text      = (d.leistungW > 0) ? d.leistungW.toString()   : ""
+        tfStamBem.text    = d.bemerkung     || ""
+        tfStamUrlHer.text = d.urlHersteller || ""
+        tfStamUrlDat.text = d.urlDatenblatt || ""
+    }
+
     onBauteilIdChanged: {
         if (bauteilId >= 0) {
             klemmeModel.laden(bauteilId)
-            tfStamBez.text = bauteilBezeichnung
-            tfStamHer.text = bauteilHersteller
-            tfStamArt.text = bauteilArtikelnummer
+            root._bauteilLaden()
         }
     }
     onBauteilBezeichnungChanged:   if (bauteilId >= 0) tfStamBez.text = bauteilBezeichnung
@@ -108,33 +121,107 @@ ScrollView {
                 Text { text: qsTr("Artikel-Nr."); color: root.theme.textMuted; font.pixelSize: 11 }
                 NavTextField {
                     id: tfStamHer; Layout.fillWidth: true
-                    tabTarget:     tfStamArt
-                    backtabTarget: tfStamBez
+                    tabTarget: tfStamArt; backtabTarget: tfStamBez
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
                 }
                 NavTextField {
                     id: tfStamArt; Layout.fillWidth: true
-                    tabTarget:     klemmeModel.hatKlemme ? tfBreite : tfStamBez
-                    backtabTarget: tfStamHer
+                    tabTarget: tfStamLief; backtabTarget: tfStamHer
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Lieferant");  color: root.theme.textMuted; font.pixelSize: 11 }
+                Text { text: qsTr("Preis (EUR)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                NavTextField {
+                    id: tfStamLief; Layout.fillWidth: true
+                    tabTarget: tfStamPreis; backtabTarget: tfStamArt
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+                NavTextField {
+                    id: tfStamPreis; Layout.fillWidth: true
+                    tabTarget: tfStamU; backtabTarget: tfStamLief
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0.00"
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Spannung (V)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                Text { text: qsTr("Strom (A)");    color: root.theme.textMuted; font.pixelSize: 11 }
+                NavTextField {
+                    id: tfStamU; Layout.fillWidth: true
+                    tabTarget: tfStamI; backtabTarget: tfStamPreis
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+                NavTextField {
+                    id: tfStamI; Layout.fillWidth: true
+                    tabTarget: tfStamP; backtabTarget: tfStamU
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Leistung (W)"); color: root.theme.textMuted; font.pixelSize: 11; Layout.columnSpan: 2 }
+                NavTextField {
+                    id: tfStamP; Layout.fillWidth: true; Layout.columnSpan: 2
+                    tabTarget: tfStamBem; backtabTarget: tfStamI
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
                 }
             }
 
+            Text { text: qsTr("Bemerkung"); color: root.theme.textMuted; font.pixelSize: 11 }
+            NavTextField {
+                id: tfStamBem; Layout.fillWidth: true
+                tabTarget: tfStamUrlHer; backtabTarget: tfStamP
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                color: root.theme.textPrimary; font.pixelSize: 12
+            }
+
+            Text { text: qsTr("Links"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+            Text { text: qsTr("Hersteller-Website"); color: root.theme.textMuted; font.pixelSize: 11 }
             RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Item { Layout.fillWidth: true }
+                Layout.fillWidth: true; spacing: 6
+                NavTextField {
+                    id: tfStamUrlHer; Layout.fillWidth: true
+                    tabTarget: tfStamUrlDat; backtabTarget: tfStamBem
+                    placeholderText: "https://..."
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
                 Button {
-                    text: qsTr("Übernehmen"); implicitHeight: 30
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
-                    onClicked: {
-                        bauteilModel.bauteilTitelSpeichern(root.bauteilId,
-                            tfStamBez.text, tfStamHer.text, tfStamArt.text)
-                        root.bauteilGespeichert(root.bauteilId, tfStamBez.text)
-                    }
+                    implicitWidth: 60; implicitHeight: 28; enabled: tfStamUrlHer.text.trim().length > 0
+                    text: qsTr("Oeffnen")
+                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
+                                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                    onClicked: Qt.openUrlExternally(tfStamUrlHer.text.trim())
+                }
+            }
+            Text { text: qsTr("Datenblatt"); color: root.theme.textMuted; font.pixelSize: 11 }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                NavTextField {
+                    id: tfStamUrlDat; Layout.fillWidth: true
+                    tabTarget: klemmeModel.hatKlemme ? tfBreite : tfStamBez; backtabTarget: tfStamUrlHer
+                    placeholderText: "https://..."
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+                Button {
+                    implicitWidth: 60; implicitHeight: 28; enabled: tfStamUrlDat.text.trim().length > 0
+                    text: qsTr("Oeffnen")
+                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
+                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
+                                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                    onClicked: Qt.openUrlExternally(tfStamUrlDat.text.trim())
                 }
             }
         }
@@ -293,26 +380,6 @@ ScrollView {
                 color: root.theme.textPrimary; font.pixelSize: 12
             }
 
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                Button {
-                    Layout.fillWidth: true
-                    text: qsTr("Speichern")
-                    onClicked: klemmeModel.speichern(root.klemmeMapSammeln())
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-                Button {
-                    text: qsTr("Platzieren ...")
-                    enabled: klemmeModel.hatKlemme
-                    onClicked: platzierDialog.open()
-                    background: Rectangle { color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg; radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
-                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted; font.pixelSize: 12;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-            }
-
             KlemmePlatzierDialog {
                 id: platzierDialog
                 theme: root.theme
@@ -434,6 +501,43 @@ ScrollView {
                     contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 11;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+            Layout.topMargin: 8; Layout.bottomMargin: 12; spacing: 6
+            Button {
+                Layout.fillWidth: true; text: qsTr("Speichern")
+                contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
+                                        radius: 4; border.color: root.theme.accent }
+                onClicked: {
+                    bauteilModel.bearbeiten(root.bauteilId,
+                        tfStamBez.text.trim(), tfStamHer.text.trim(), tfStamArt.text.trim(),
+                        tfStamLief.text.trim(),
+                        parseFloat(tfStamPreis.text) || 0,
+                        parseFloat(tfStamU.text)     || 0,
+                        parseFloat(tfStamI.text)     || 0,
+                        parseFloat(tfStamP.text)     || 0,
+                        tfStamBem.text.trim(),
+                        tfStamUrlHer.text.trim(), tfStamUrlDat.text.trim())
+                    if (klemmeModel.hatKlemme)
+                        klemmeModel.speichern(root.klemmeMapSammeln())
+                    root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
+                }
+            }
+            Button {
+                text: qsTr("Platzieren ..."); enabled: klemmeModel.hatKlemme
+                contentItem: Text { text: parent.text; font.pixelSize: 12;
+                                    color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle {
+                    color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                    radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border
+                }
+                onClicked: platzierDialog.open()
             }
         }
     }

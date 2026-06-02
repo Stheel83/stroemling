@@ -15,6 +15,8 @@ ColumnLayout {
     property alias strom:         fStrom.text
     property alias leistung:      fLeistung.text
     property alias bemerkung:     fBem.text
+    property alias urlHersteller: fUrlHer.text
+    property alias urlDatenblatt: fUrlDat.text
 
     width: parent.width
     spacing: 8
@@ -83,5 +85,51 @@ ColumnLayout {
         wrapMode: TextArea.Wrap
         background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
         color: theme.textPrimary; font.pixelSize: 14; padding: 8
+    }
+
+    Text { text: qsTr("Links"); color: theme.accent; font.pixelSize: 12; font.bold: true; Layout.topMargin: 4 }
+
+    Text { text: qsTr("Hersteller-Website"); color: theme.textMuted; font.pixelSize: 12 }
+    RowLayout {
+        Layout.fillWidth: true; spacing: 6
+        TextField {
+            id: fUrlHer; Layout.fillWidth: true
+            placeholderText: "https://..."
+            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+            color: theme.textPrimary; font.pixelSize: 13
+        }
+        Button {
+            implicitWidth: 60; implicitHeight: 34
+            enabled: fUrlHer.text.trim().length > 0
+            text: qsTr("Oeffnen")
+            contentItem: Text { text: parent.text; color: parent.enabled ? theme.accent : theme.textMuted;
+                                font.pixelSize: 11;
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: parent.hovered && parent.enabled ? theme.hover : theme.inputBg;
+                                    radius: 4; border.color: parent.enabled ? theme.accent : theme.border }
+            onClicked: Qt.openUrlExternally(fUrlHer.text.trim())
+        }
+    }
+
+    Text { text: qsTr("Datenblatt"); color: theme.textMuted; font.pixelSize: 12 }
+    RowLayout {
+        Layout.fillWidth: true; spacing: 6
+        TextField {
+            id: fUrlDat; Layout.fillWidth: true
+            placeholderText: "https://..."
+            background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+            color: theme.textPrimary; font.pixelSize: 13
+        }
+        Button {
+            implicitWidth: 60; implicitHeight: 34
+            enabled: fUrlDat.text.trim().length > 0
+            text: qsTr("Oeffnen")
+            contentItem: Text { text: parent.text; color: parent.enabled ? theme.accent : theme.textMuted;
+                                font.pixelSize: 11;
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: parent.hovered && parent.enabled ? theme.hover : theme.inputBg;
+                                    radius: 4; border.color: parent.enabled ? theme.accent : theme.border }
+            onClicked: Qt.openUrlExternally(fUrlDat.text.trim())
+        }
     }
 }

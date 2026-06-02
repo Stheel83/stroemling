@@ -27,6 +27,8 @@ struct BauteilEintrag {
     double  stromA;
     double  leistungW;
     QString bemerkung;
+    QString urlHersteller;
+    QString urlDatenblatt;
     bool    istKlemme;
     bool    istKabel;
     QString kabeltyp;
@@ -90,6 +92,8 @@ public:
         StromARole,
         LeistungWRole,
         BemerkungRole,
+        UrlHerstellerRole,
+        UrlDatenblattRole,
         IstKlemmeRole,
         IstKabelRole,
         KabeltypRole
@@ -115,7 +119,9 @@ public:
                               double spannungV,
                               double stromA,
                               double leistungW,
-                              const QString &bemerkung);
+                              const QString &bemerkung,
+                              const QString &urlHersteller = QString(),
+                              const QString &urlDatenblatt = QString());
     Q_INVOKABLE bool bearbeiten(int id,
                                  const QString &bezeichnung,
                                  const QString &hersteller,
@@ -125,8 +131,11 @@ public:
                                  double spannungV,
                                  double stromA,
                                  double leistungW,
-                                 const QString &bemerkung);
+                                 const QString &bemerkung,
+                                 const QString &urlHersteller = QString(),
+                                 const QString &urlDatenblatt = QString());
     Q_INVOKABLE bool loeschen(int id);
+    Q_INVOKABLE QVariantMap bauteilNachId(int id) const;
     Q_INVOKABLE bool bauteilTitelSpeichern(int id, const QString &bezeichnung,
                                             const QString &hersteller, const QString &artikelnummer);
 

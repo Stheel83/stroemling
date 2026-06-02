@@ -264,6 +264,8 @@ CREATE TABLE bauteil (
     symbol_code     TEXT,
     bmk_vorlage     TEXT,
     bemerkung       TEXT,
+    url_hersteller  TEXT,
+    url_datenblatt  TEXT,
     bild_data       BLOB,
     bild_mime       TEXT
 );

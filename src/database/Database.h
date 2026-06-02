@@ -28,8 +28,9 @@ public:
     // Squash (keine Produktivdatenbanken) wird diese Konstante auf die nächste
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
-    static const int BASELINE_VERSION    = 56;
-    static const int WIKI_SCHEMA_VERSION = 12;
+    static const int BASELINE_VERSION       = 56;
+    static const int CURRENT_SCHEMA_VERSION = 60;
+    static const int WIKI_SCHEMA_VERSION    = 12;
 
     explicit Database(QObject *parent = nullptr);
 

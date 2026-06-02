@@ -141,6 +141,11 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_definition SET ibn_kategorie='temperatursensor' WHERE id='sensor_temp')",
             R"(UPDATE symbol_definition SET ibn_kategorie='drucksensor'      WHERE id='sensor_druck')",
         }},
+
+        { 60, "bauteil: url_hersteller + url_datenblatt", {
+            R"(ALTER TABLE bauteil ADD COLUMN url_hersteller TEXT)",
+            R"(ALTER TABLE bauteil ADD COLUMN url_datenblatt TEXT)",
+        }},
     };
 }
 

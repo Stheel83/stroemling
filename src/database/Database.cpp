@@ -247,7 +247,8 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     bool ok = createSchema()
            && seedSymbolKatalog()
            && seedBuiltinSymbolDefinitionen()
-           && seedIbnFeldvorlagen();
+           && seedIbnFeldvorlagen()
+           && seedStandardKlemmen();
 
     if (ok) {
         // Projektzeile mit Nutzernamen anlegen
@@ -266,11 +267,11 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     }
 
     if (ok) {
-        // Baseline-Version eintragen
+        // Aktuelle Schema-Version eintragen (alle Migrationen bis hier bereits in schema.sql)
         QSqlQuery qm;
         qm.prepare("INSERT INTO schema_migration (version, beschreibung) VALUES (:v, :d)");
-        qm.bindValue(":v", BASELINE_VERSION);
-        qm.bindValue(":d", QString("Baseline v%1 – neues Projekt").arg(BASELINE_VERSION));
+        qm.bindValue(":v", CURRENT_SCHEMA_VERSION);
+        qm.bindValue(":d", QString("Baseline v%1 – neues Projekt").arg(CURRENT_SCHEMA_VERSION));
         ok = qm.exec();
     }
 

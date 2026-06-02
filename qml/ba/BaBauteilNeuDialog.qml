@@ -63,7 +63,9 @@ Dialog {
                         parseFloat(neuForm.spannung) || 0,
                         parseFloat(neuForm.strom)    || 0,
                         parseFloat(neuForm.leistung) || 0,
-                        neuForm.bemerkung.trim()
+                        neuForm.bemerkung.trim(),
+                        neuForm.urlHersteller.trim(),
+                        neuForm.urlDatenblatt.trim()
                     )
                     root.close()
                 }

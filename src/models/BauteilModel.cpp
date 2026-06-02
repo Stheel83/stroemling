@@ -183,6 +183,7 @@ void BauteilListModel::ladenIntern()
         "COALESCE(b.lieferant,''), COALESCE(b.preis_eur,0), "
         "COALESCE(b.spannung_v,0), COALESCE(b.strom_a,0), "
         "COALESCE(b.leistung_w,0), COALESCE(b.bemerkung,''), "
+        "COALESCE(b.url_hersteller,''), COALESCE(b.url_datenblatt,''), "
         "CASE WHEN k.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN ka.id IS NOT NULL THEN 1 ELSE 0 END, "
         "COALESCE(ka.kabeltyp,'') "
@@ -224,10 +225,12 @@ void BauteilListModel::ladenIntern()
         b.spannungV     = q.value(7).toDouble();
         b.stromA        = q.value(8).toDouble();
         b.leistungW     = q.value(9).toDouble();
-        b.bemerkung     = q.value(10).toString();
-        b.istKlemme     = q.value(11).toInt() != 0;
-        b.istKabel      = q.value(12).toInt() != 0;
-        b.kabeltyp      = q.value(13).toString();
+        b.bemerkung      = q.value(10).toString();
+        b.urlHersteller  = q.value(11).toString();
+        b.urlDatenblatt  = q.value(12).toString();
+        b.istKlemme      = q.value(13).toInt() != 0;
+        b.istKabel       = q.value(14).toInt() != 0;
+        b.kabeltyp       = q.value(15).toString();
         m_bauteile.append(b);
     }
 
@@ -259,10 +262,12 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case SpannungVRole:     return b.spannungV;
     case StromARole:        return b.stromA;
     case LeistungWRole:     return b.leistungW;
-    case BemerkungRole:     return b.bemerkung;
-    case IstKlemmeRole:     return b.istKlemme;
-    case IstKabelRole:      return b.istKabel;
-    case KabeltypRole:      return b.kabeltyp;
+    case BemerkungRole:      return b.bemerkung;
+    case UrlHerstellerRole:  return b.urlHersteller;
+    case UrlDatenblattRole:  return b.urlDatenblatt;
+    case IstKlemmeRole:      return b.istKlemme;
+    case IstKabelRole:       return b.istKabel;
+    case KabeltypRole:       return b.kabeltyp;
     default:                return {};
     }
 }
@@ -280,10 +285,12 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { SpannungVRole,     "spannungV"     },
         { StromARole,        "stromA"        },
         { LeistungWRole,     "leistungW"     },
-        { BemerkungRole,     "bemerkung"     },
-        { IstKlemmeRole,     "istKlemme"     },
-        { IstKabelRole,      "istKabel"      },
-        { KabeltypRole,      "kabeltyp"      },
+        { BemerkungRole,      "bemerkung"      },
+        { UrlHerstellerRole,  "urlHersteller"  },
+        { UrlDatenblattRole,  "urlDatenblatt"  },
+        { IstKlemmeRole,      "istKlemme"      },
+        { IstKabelRole,       "istKabel"       },
+        { KabeltypRole,       "kabeltyp"       },
     };
 }
 
@@ -291,13 +298,14 @@ int BauteilListModel::anlegen(int kategorieId, const QString &bezeichnung,
                                const QString &hersteller, const QString &artikelnummer,
                                const QString &lieferant, double preisEur,
                                double spannungV, double stromA, double leistungW,
-                               const QString &bemerkung)
+                               const QString &bemerkung,
+                               const QString &urlHersteller, const QString &urlDatenblatt)
 {
     QSqlQuery q;
     q.prepare("INSERT INTO bauteil "
               "(kategorie_id, bezeichnung, hersteller, artikelnummer, lieferant, "
-              " preis_eur, spannung_v, strom_a, leistung_w, bemerkung) "
-              "VALUES (:kid, :bez, :her, :art, :lief, :preis, :u, :i, :p, :bem)");
+              " preis_eur, spannung_v, strom_a, leistung_w, bemerkung, url_hersteller, url_datenblatt) "
+              "VALUES (:kid, :bez, :her, :art, :lief, :preis, :u, :i, :p, :bem, :uh, :ud)");
     q.bindValue(":kid",   kategorieId < 0 ? QVariant() : kategorieId);
     q.bindValue(":bez",   bezeichnung);
     q.bindValue(":her",   hersteller);
@@ -308,6 +316,8 @@ int BauteilListModel::anlegen(int kategorieId, const QString &bezeichnung,
     q.bindValue(":i",     stromA > 0 ? stromA : QVariant());
     q.bindValue(":p",     leistungW > 0 ? leistungW : QVariant());
     q.bindValue(":bem",   bemerkung);
+    q.bindValue(":uh",    urlHersteller);
+    q.bindValue(":ud",    urlDatenblatt);
     if (!q.exec()) {
         qWarning() << "Bauteil anlegen Fehler:" << q.lastError().text();
         return -1;
@@ -321,13 +331,15 @@ bool BauteilListModel::bearbeiten(int id, const QString &bezeichnung,
                                    const QString &hersteller, const QString &artikelnummer,
                                    const QString &lieferant, double preisEur,
                                    double spannungV, double stromA, double leistungW,
-                                   const QString &bemerkung)
+                                   const QString &bemerkung,
+                                   const QString &urlHersteller, const QString &urlDatenblatt)
 {
     QSqlQuery q;
     q.prepare("UPDATE bauteil SET "
               "bezeichnung = :bez, hersteller = :her, artikelnummer = :art, "
               "lieferant = :lief, preis_eur = :preis, spannung_v = :u, "
-              "strom_a = :i, leistung_w = :p, bemerkung = :bem "
+              "strom_a = :i, leistung_w = :p, bemerkung = :bem, "
+              "url_hersteller = :uh, url_datenblatt = :ud "
               "WHERE id = :id");
     q.bindValue(":bez",   bezeichnung);
     q.bindValue(":her",   hersteller);
@@ -338,6 +350,8 @@ bool BauteilListModel::bearbeiten(int id, const QString &bezeichnung,
     q.bindValue(":i",     stromA > 0 ? stromA : QVariant());
     q.bindValue(":p",     leistungW > 0 ? leistungW : QVariant());
     q.bindValue(":bem",   bemerkung);
+    q.bindValue(":uh",    urlHersteller);
+    q.bindValue(":ud",    urlDatenblatt);
     q.bindValue(":id",    id);
     if (!q.exec()) {
         qWarning() << "Bauteil bearbeiten Fehler:" << q.lastError().text();
@@ -358,6 +372,32 @@ bool BauteilListModel::loeschen(int id)
     }
     laden(m_aktiveKategorieId);
     return true;
+}
+
+QVariantMap BauteilListModel::bauteilNachId(int id) const
+{
+    QVariantMap m;
+    if (id < 0) return m;
+    QSqlQuery q;
+    q.prepare("SELECT bezeichnung, COALESCE(hersteller,''), COALESCE(artikelnummer,''), "
+              "COALESCE(lieferant,''), COALESCE(preis_eur,0), COALESCE(spannung_v,0), "
+              "COALESCE(strom_a,0), COALESCE(leistung_w,0), COALESCE(bemerkung,''), "
+              "COALESCE(url_hersteller,''), COALESCE(url_datenblatt,'') "
+              "FROM bauteil WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec() || !q.next()) return m;
+    m["bezeichnung"]   = q.value(0).toString();
+    m["hersteller"]    = q.value(1).toString();
+    m["artikelnummer"] = q.value(2).toString();
+    m["lieferant"]     = q.value(3).toString();
+    m["preisEur"]      = q.value(4).toDouble();
+    m["spannungV"]     = q.value(5).toDouble();
+    m["stromA"]        = q.value(6).toDouble();
+    m["leistungW"]     = q.value(7).toDouble();
+    m["bemerkung"]     = q.value(8).toString();
+    m["urlHersteller"] = q.value(9).toString();
+    m["urlDatenblatt"] = q.value(10).toString();
+    return m;
 }
 
 bool BauteilListModel::bauteilTitelSpeichern(int id, const QString &bezeichnung,

@@ -28,6 +28,8 @@ Item {
         property real   altStrom:         0
         property real   altLeistung:      0
         property string altBemerkung:     ""
+        property string altUrlHersteller: ""
+        property string altUrlDatenblatt: ""
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -41,6 +43,8 @@ Item {
             editForm.strom         = dlgBauteilBearbeiten.altStrom    > 0 ? dlgBauteilBearbeiten.altStrom.toString()    : ""
             editForm.leistung      = dlgBauteilBearbeiten.altLeistung > 0 ? dlgBauteilBearbeiten.altLeistung.toString() : ""
             editForm.bemerkung     = dlgBauteilBearbeiten.altBemerkung
+            editForm.urlHersteller = dlgBauteilBearbeiten.altUrlHersteller
+            editForm.urlDatenblatt = dlgBauteilBearbeiten.altUrlDatenblatt
         }
 
         contentItem: ColumnLayout {
@@ -83,7 +87,9 @@ Item {
                             parseFloat(editForm.spannung) || 0,
                             parseFloat(editForm.strom)    || 0,
                             parseFloat(editForm.leistung) || 0,
-                            editForm.bemerkung.trim()
+                            editForm.bemerkung.trim(),
+                            editForm.urlHersteller.trim(),
+                            editForm.urlDatenblatt.trim()
                         )
                         dlgBauteilBearbeiten.close()
                     }
@@ -264,6 +270,7 @@ Item {
                                 }
                             }
                             Button {
+                                visible: !model.istKlemme && !model.istKabel
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: "✎"; color: theme.accent; font.pixelSize: 14;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -279,6 +286,8 @@ Item {
                                     dlgBauteilBearbeiten.altStrom         = model.stromA
                                     dlgBauteilBearbeiten.altLeistung      = model.leistungW
                                     dlgBauteilBearbeiten.altBemerkung     = model.bemerkung
+                                    dlgBauteilBearbeiten.altUrlHersteller = model.urlHersteller
+                                    dlgBauteilBearbeiten.altUrlDatenblatt = model.urlDatenblatt
                                     dlgBauteilBearbeiten.open()
                                 }
                             }

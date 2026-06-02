@@ -92,7 +92,7 @@ Item {
         AbschnittTitel { text: qsTr("GERÄTEKASTEN") }
 
         InputField {
-            label: qsTr("BMK (Einbauort)")
+            label: qsTr("BMK")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bmk || "") : ""
             theme: theme
             onCommit: function(t) { root.extraSetzen("bmk", t.trim()) }

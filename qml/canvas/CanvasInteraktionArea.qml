@@ -148,6 +148,16 @@ MouseArea {
 
                 canvas.amVerschieben = true
 
+                // Shift+Drag: X/Y-Achsen-Constraint
+                if (mouse.modifiers & Qt.ShiftModifier) {
+                    if (canvas.axisLock === "" && Math.sqrt(dvpX*dvpX + dvpY*dvpY) >= 10)
+                        canvas.axisLock = Math.abs(dvpX) >= Math.abs(dvpY) ? "x" : "y"
+                    if (canvas.axisLock === "x") dvpY = 0
+                    else if (canvas.axisLock === "y") dvpX = 0
+                } else {
+                    canvas.axisLock = ""
+                }
+
                 var dwX = dvpX / canvas.zoom
                 var dwY = dvpY / canvas.zoom
 
@@ -525,6 +535,7 @@ MouseArea {
             if (canvas.amVerschieben) {
                 em.undoCheckpointFromSnapshot(canvas.schnapshotVorMove)
                 canvas.amVerschieben = false
+                canvas.axisLock      = ""
                 canvas.grafikSpeichernJetzt()
             }
             canvas.verschiebenErlaubt = false

@@ -122,6 +122,17 @@ Rectangle {
 
         Rectangle { width: 1; height: 18; color: AppTheme.border }
         Text { text: root.koordinatenText; color: AppTheme.borderLight; font.pixelSize: 10; font.family: "monospace" }
+
+        Rectangle {
+            width: 1; height: 18; color: AppTheme.border
+            visible: canvas.axisLock !== ""
+        }
+        Text {
+            visible: canvas.axisLock !== ""
+            text: canvas.axisLock === "x" ? "⟷ X-Achse gesperrt"
+                                           : "↕ Y-Achse gesperrt"
+            color: AppTheme.accent; font.pixelSize: 10
+        }
     }
 
     DebugLabel { panelName: qsTr("Canvas-Footer"); corner: "br"; visible: canvas.debug }

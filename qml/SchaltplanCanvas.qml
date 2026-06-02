@@ -143,7 +143,8 @@ Item {
     property bool mausUeberElement:    false  // für Cursor-Wechsel
     property int  aktiverGriff:        -1     // Handle-Index der gezogen wird (-1 = keiner)
     property bool mausUeberGriff:      false  // Maus über einem Handle
-    property bool verschiebenErlaubt:  false  // nur true wenn auf bereits-selektiertes Element geklickt
+    property bool   verschiebenErlaubt:  false  // nur true wenn auf bereits-selektiertes Element geklickt
+    property string axisLock:            ""     // "" | "x" | "y" — Shift+Drag-Constraint
     // Querverweis-Navigation: Index (elementIdx) → Blattnummer der Gegenseite
     property var  _querverweisPartnerMap: ({})
     // Kabellinien: kabelId → Gesamtzahl aller Linien dieses Kabels (seitenübergreifend)

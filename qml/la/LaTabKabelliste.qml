@@ -20,7 +20,7 @@ ColumnLayout {
     }
 
     LaCsvLeiste {
-        theme: theme
+        theme: root.theme
         listenName: qsTr("Kabelliste")
         anzahl: panel._kabelDaten.length
         onCsvKlick: csvDialogKabel.open()

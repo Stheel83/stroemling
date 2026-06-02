@@ -21,7 +21,7 @@ ColumnLayout {
     }
 
     LaCsvLeiste {
-        theme: theme
+        theme: root.theme
         listenName: qsTr("Aderliste")
         anzahl: panel._aderlisteModel.count
         onCsvKlick: csvDialogAder.open()
@@ -41,14 +41,30 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    Item {
+    ScrollView {
         Layout.fillWidth: true; Layout.fillHeight: true; clip: true
 
         ListView {
             id: alView
-            anchors.fill: parent
             model: panel._aderlisteModel; clip: true
-            ScrollBar.vertical: ScrollBar {}
+
+            Column {
+                visible: panel._aderlisteModel.count === 0
+                anchors.centerIn: parent
+                spacing: 6
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: panel.projektId >= 0 ? qsTr("Keine Aderdefinitionen im Projekt") : qsTr("Kein Projekt ausgewählt")
+                    font.pixelSize: 14; color: root.theme.borderDark
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: panel.projektId >= 0
+                    text: qsTr("Kabel im Bauteilkatalog anlegen und dort Adern mit Querschnitt definieren.")
+                    font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
+                }
+            }
+
             delegate: Rectangle {
                 width: alView.width; height: 30
                 color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
@@ -78,23 +94,6 @@ ColumnLayout {
                     Text { width: panel.alCols[7].w; text: model.anlageKz       || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
                     Text { width: panel.alCols[8].w; text: model.ortKz          || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
                 }
-            }
-        }
-
-        Column {
-            visible: panel._aderlisteModel.count === 0
-            anchors.centerIn: parent
-            spacing: 6
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: panel.projektId >= 0 ? qsTr("Keine Aderdefinitionen im Projekt") : qsTr("Kein Projekt ausgewählt")
-                font.pixelSize: 14; color: theme.borderDark
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: panel.projektId >= 0
-                text: qsTr("Kabel im Bauteilkatalog anlegen und dort Adern mit Querschnitt definieren.")
-                font.pixelSize: 11; font.italic: true; color: theme.textMuted
             }
         }
     }

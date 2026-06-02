@@ -361,11 +361,11 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
             currentIndex: 0
 
-            LaTabStueckliste  { panel: panel; theme: theme }
-            LaTabQuerverweise { panel: panel; theme: theme }
-            LaTabAderliste    { panel: panel; theme: theme }
-            LaTabKlemmenplan  { panel: panel; theme: theme }
-            LaTabKabelliste   { panel: panel; theme: theme }
+            LaTabStueckliste  { panel: panel; theme: panel.theme }
+            LaTabQuerverweise { panel: panel; theme: panel.theme }
+            LaTabAderliste    { panel: panel; theme: panel.theme }
+            LaTabKlemmenplan  { panel: panel; theme: panel.theme }
+            LaTabKabelliste   { panel: panel; theme: panel.theme }
         }
     }
 

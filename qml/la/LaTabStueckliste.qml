@@ -20,7 +20,7 @@ ColumnLayout {
     }
 
     LaCsvLeiste {
-        theme: theme
+        theme: root.theme
         listenName: qsTr("Stückliste")
         anzahl: panel._stuecklisteModel.count
         onCsvKlick: csvDialogStueckliste.open()
@@ -40,14 +40,30 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    Item {
+    ScrollView {
         Layout.fillWidth: true; Layout.fillHeight: true; clip: true
 
         ListView {
             id: slView
-            anchors.fill: parent
             model: panel._stuecklisteModel; clip: true
-            ScrollBar.vertical: ScrollBar {}
+
+            Column {
+                visible: panel._stuecklisteModel.count === 0
+                anchors.centerIn: parent
+                spacing: 6
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: panel.projektId >= 0 ? qsTr("Keine Symbole im Projekt") : qsTr("Kein Projekt ausgewählt")
+                    font.pixelSize: 14; color: root.theme.borderDark
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: panel.projektId >= 0
+                    text: qsTr("Symbole auf dem Schaltplan platzieren, um die Stückliste zu befüllen.")
+                    font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
+                }
+            }
+
             delegate: Rectangle {
                 width: slView.width; height: 30
                 color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
@@ -64,23 +80,6 @@ ColumnLayout {
                     Text { width: panel.slCols[7].w; text: model.anlageKz  || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
                     Text { width: panel.slCols[8].w; text: model.ortKz     || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
                 }
-            }
-        }
-
-        Column {
-            visible: panel._stuecklisteModel.count === 0
-            anchors.centerIn: parent
-            spacing: 6
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: panel.projektId >= 0 ? qsTr("Keine Symbole im Projekt") : qsTr("Kein Projekt ausgewählt")
-                font.pixelSize: 14; color: theme.borderDark
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: panel.projektId >= 0
-                text: qsTr("Symbole auf dem Schaltplan platzieren, um die Stückliste zu befüllen.")
-                font.pixelSize: 11; font.italic: true; color: theme.textMuted
             }
         }
     }

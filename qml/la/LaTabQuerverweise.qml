@@ -20,7 +20,7 @@ ColumnLayout {
     }
 
     LaCsvLeiste {
-        theme: theme
+        theme: root.theme
         listenName: qsTr("Querverweisliste")
         anzahl: panel._querverweisModel.count
         onCsvKlick: csvDialogQV.open()
@@ -40,14 +40,30 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    Item {
+    ScrollView {
         Layout.fillWidth: true; Layout.fillHeight: true; clip: true
 
         ListView {
             id: qvView
-            anchors.fill: parent
             model: panel._querverweisModel; clip: true
-            ScrollBar.vertical: ScrollBar {}
+
+            Column {
+                visible: panel._querverweisModel.count === 0
+                anchors.centerIn: parent
+                spacing: 6
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
+                    font.pixelSize: 14; color: root.theme.borderDark
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: panel.projektId >= 0
+                    text: qsTr("Querverweis-Linien im Canvas zeichnen (Werkzeug: ∿), um Querverweise zu erzeugen.")
+                    font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
+                }
+            }
+
             delegate: Rectangle {
                 width: qvView.width; height: 30
                 color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
@@ -61,23 +77,6 @@ ColumnLayout {
                     Text { width: panel.qvCols[3].w; text: model.zielSeite  || "–"; font.pixelSize: 12;
                            color: model.zielSeite ? root.theme.accentLight : root.theme.borderDark; elide: Text.ElideRight }
                 }
-            }
-        }
-
-        Column {
-            visible: panel._querverweisModel.count === 0
-            anchors.centerIn: parent
-            spacing: 6
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
-                font.pixelSize: 14; color: theme.borderDark
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: panel.projektId >= 0
-                text: qsTr("Querverweis-Linien im Canvas zeichnen (Werkzeug: ∿), um Querverweise zu erzeugen.")
-                font.pixelSize: 11; font.italic: true; color: theme.textMuted
             }
         }
     }

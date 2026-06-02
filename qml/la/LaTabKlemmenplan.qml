@@ -20,7 +20,7 @@ ColumnLayout {
     }
 
     LaCsvLeiste {
-        theme: theme
+        theme: root.theme
         listenName: qsTr("Klemmenplan")
         anzahl: panel.klemmenplanZaehler
         onCsvKlick: csvDialog.open()
@@ -40,14 +40,30 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    Item {
+    ScrollView {
         Layout.fillWidth: true; Layout.fillHeight: true; clip: true
 
         ListView {
             id: kpView
-            anchors.fill: parent
             model: panel._klemmenplanModel; clip: true
-            ScrollBar.vertical: ScrollBar {}
+
+            Column {
+                visible: panel.klemmenplanZaehler === 0
+                anchors.centerIn: parent
+                spacing: 6
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: panel.projektId >= 0 ? qsTr("Keine Klemmenleisten im Projekt") : qsTr("Kein Projekt ausgewählt")
+                    font.pixelSize: 14; color: root.theme.borderDark
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: panel.projektId >= 0
+                    text: qsTr("Klemmenleisten unter Bauteile → Klemmenreihen anlegen.")
+                    font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
+                }
+            }
+
             delegate: Rectangle {
                 width: kpView.width
                 height: model.typ === "leiste" ? 26 : 28
@@ -91,23 +107,6 @@ ColumnLayout {
                     Text { width: panel.kpCols[6].w; text: model.typ === "klemme" ? (model.ortKz || "–") : "";
                            font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
                 }
-            }
-        }
-
-        Column {
-            visible: panel.klemmenplanZaehler === 0
-            anchors.centerIn: parent
-            spacing: 6
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: panel.projektId >= 0 ? qsTr("Keine Klemmenleisten im Projekt") : qsTr("Kein Projekt ausgewählt")
-                font.pixelSize: 14; color: theme.borderDark
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: panel.projektId >= 0
-                text: qsTr("Klemmenleisten unter Bauteile → Klemmenreihen anlegen.")
-                font.pixelSize: 11; font.italic: true; color: theme.textMuted
             }
         }
     }

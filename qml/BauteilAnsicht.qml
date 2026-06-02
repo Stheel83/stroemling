@@ -69,7 +69,7 @@ Item {
             }
 
             DebugLabel {
-                panelName: root.aktiveSpezialAnsicht === "" ? qsTr("Bauteil-Liste") : qsTr("Klemmenreihen-Ansicht")
+                panelName: root.aktiveSpezialAnsicht === "makros" ? qsTr("Makros") : root.aktiveSpezialAnsicht === "" ? qsTr("Bauteil-Liste") : qsTr("Klemmenreihen-Ansicht")
                 visible:   root.debug
             }
         }

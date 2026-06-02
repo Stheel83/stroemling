@@ -23,9 +23,11 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
                (ge.x1 + ge.x2) / 2.0,
                (ge.y1 + ge.y2) / 2.0
         FROM grafik_element ge
-        JOIN seite s ON s.id = ge.seite_id
+        JOIN seite   s ON s.id  = ge.seite_id
+        JOIN ort     o ON o.id  = s.ort_id
+        JOIN anlage  a ON a.id  = o.anlage_id
         WHERE ge.typ = 'geraetekasten'
-          AND s.projekt_id = :pid
+          AND a.projekt_id = :pid
         ORDER BY COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
                  s.blattnummer
     )");
@@ -68,9 +70,11 @@ QVariantList Database::geraetekastenNachBmk(int projektId, const QString &bmk) c
                (ge.x1 + ge.x2) / 2.0,
                (ge.y1 + ge.y2) / 2.0
         FROM grafik_element ge
-        JOIN seite s ON s.id = ge.seite_id
+        JOIN seite   s ON s.id  = ge.seite_id
+        JOIN ort     o ON o.id  = s.ort_id
+        JOIN anlage  a ON a.id  = o.anlage_id
         WHERE ge.typ = 'geraetekasten'
-          AND s.projekt_id = :pid
+          AND a.projekt_id = :pid
           AND json_extract(ge.extra_daten, '$.bmk') = :bmk
         ORDER BY s.blattnummer
     )");

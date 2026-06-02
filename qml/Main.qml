@@ -266,6 +266,15 @@ ApplicationWindow {
         debug:     root.debugModeAktiv
     }
 
+    MakroBibliothekDialog {
+        id:    makroBibliothekDialog
+        theme: appTheme
+        onMakroListeGeaendert: {
+            bauteilAnsicht.makroListeAktualisieren()
+            symbolPalette.makroListeAktualisieren()
+        }
+    }
+
     KommandoPalette {
         id:        kommandoPalette
         theme:     appTheme
@@ -968,6 +977,7 @@ ApplicationWindow {
                             root.symbolEditorVorlageId = quellId
                             root.aktiveAnsicht         = "symbol_editor"
                         }
+                        onBibliothekOeffnenAngefordert: makroBibliothekDialog.open()
                     }
 
                     //\u2500\u2500 Arbeitsbereich: ein oder zwei CanvasPanels \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500

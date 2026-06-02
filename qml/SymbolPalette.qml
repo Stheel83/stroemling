@@ -34,6 +34,7 @@ Rectangle {
 
     signal symbolGewaehlt(string symbolCode)
     signal makroEinfuegenAngefordert(int makroId, string name)
+    signal bibliothekOeffnenAngefordert()
     signal editorOeffnen(string symbolId)
     signal vorlageFuerEditor(string quellId)
 
@@ -238,6 +239,7 @@ Rectangle {
             onMakroEinfuegenAngefordert: function(id, name) {
                 root.makroEinfuegenAngefordert(id, name)
             }
+            onBibliothekOeffnenAngefordert: root.bibliothekOeffnenAngefordert()
         }
 
         // ── Navigationszeile (Zurück / Titel) ─────────────────

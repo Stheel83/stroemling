@@ -8,6 +8,7 @@ Item {
     required property var theme
 
     signal makroEinfuegenAngefordert(int makroId, string name)
+    signal bibliothekOeffnenAngefordert()
 
     property var _liste: []
 
@@ -133,16 +134,21 @@ Item {
         }
     }
 
-    // ── Liste ─────────────────────────────────────────────────
-    ScrollView {
+    // ── Liste + Footer ────────────────────────────────────────
+    ColumnLayout {
         anchors.fill: parent
-        contentWidth: root.width
-        clip: true
+        spacing: 0
 
-        Column {
-            width: root.width
+        ScrollView {
+            Layout.fillWidth:  true
+            Layout.fillHeight: true
+            contentWidth: root.width
+            clip: true
 
-            Repeater {
+            Column {
+                width: root.width
+
+                Repeater {
                 model: root._liste
 
                 delegate: Rectangle {
@@ -223,4 +229,31 @@ Item {
             }
         }
     }
+
+    // Trennlinie
+    Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+    // Bibliothek-Button
+    Rectangle {
+        Layout.fillWidth: true
+        height: 32
+        color: bibliothekMa.containsMouse ? root.theme.hover : "transparent"
+
+        Text {
+            anchors.centerIn: parent
+            text:           qsTr("Bibliothek verwalten...")
+            font.pixelSize: 11
+            color:          root.theme.textMuted
+        }
+
+        MouseArea {
+            id: bibliothekMa
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape:  Qt.PointingHandCursor
+            onClicked:    root.bibliothekOeffnenAngefordert()
+        }
+    }
+
+    } // ColumnLayout
 }

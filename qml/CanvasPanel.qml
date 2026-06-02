@@ -35,6 +35,7 @@ Item {
     // ── Signale ────────────────────────────────────────────────────────────
     signal panelAngeklickt()
     signal querverweisNavigieren(int seiteId)
+    signal gkSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal hintergrundGeaendert(string farbe)
     signal makroListeGeaendert()
     signal aktivesWerkzeugGeaendert(string werkzeug)
@@ -293,6 +294,9 @@ Item {
             onQuerverweisNavigieren: function(seiteId) {
                 root.seiteOeffnenNachId(seiteId)
                 root.querverweisNavigieren(seiteId)
+            }
+            onGkSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                root.gkSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
             }
             onMakroListeGeaendert: root.makroListeGeaendert()
             onDrcKlick: root.drcKlick()

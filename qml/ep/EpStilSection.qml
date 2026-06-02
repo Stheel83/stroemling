@@ -124,7 +124,7 @@ Item {
                             { anzeige: "1.5", wert: 1.5 }, { anzeige: "2",   wert: 2.0 },
                             { anzeige: "3",   wert: 3.0 }, { anzeige: "5",   wert: 5.0 }
                         ]
-                        MiniButton { theme: theme;
+                        MiniButton { theme: root.theme;
                             label:   modelData.anzeige
                             tooltip: modelData.anzeige + " mm"
                             aktiv:   Math.abs(panel.s("strichBreite", 1.5) - modelData.wert) < 0.01
@@ -167,7 +167,7 @@ Item {
                     { anzeige: "- -  -",          wert: "gestrichelt", tip: qsTr("Gestrichelt")  },
                     { anzeige: "·····", wert: "gepunktet", tip: qsTr("Gepunktet") }
                 ]
-                MiniButton { theme: theme;
+                MiniButton { theme: root.theme;
                     label:   modelData.anzeige
                     tooltip: modelData.tip
                     aktiv:   panel.s("strichArt", "solid") === modelData.wert
@@ -212,7 +212,7 @@ Item {
                 Text { text: "%"; color: theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
             }
         }
-        StilSlider { theme: theme;
+        StilSlider { theme: root.theme;
             height: 36
             width: root.width - 16
             anchors.horizontalCenter: parent.horizontalCenter

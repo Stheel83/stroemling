@@ -78,7 +78,7 @@ Item {
                 ColorPalette {
                     model: panel.farbpalette
                     value: panel.s("fuellFarbe", theme.activeItemAlt)
-                    theme: theme
+                    theme: root.theme
                     onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
                 }
                 Item { height: 8 }
@@ -116,7 +116,7 @@ Item {
                         Text { text: "%"; color: theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
                     }
                 }
-                StilSlider { theme: theme;
+                StilSlider { theme: root.theme;
                     height: 36
                     width: root.width - 16
                     anchors.horizontalCenter: parent.horizontalCenter

@@ -66,7 +66,7 @@ Item {
                     { anzeige: "180°", wert: 180 },
                     { anzeige: "270°", wert: 270 }
                 ]
-                MiniButton { theme: theme;
+                MiniButton { theme: root.theme;
                     label:   modelData.anzeige
                     aktiv:   panel.s("rotation", 0) === modelData.wert
                     breite:  40
@@ -87,14 +87,14 @@ Item {
             visible: symbolCol.zeigeSpiegelung
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("↔ H")
                 tooltip: qsTr("Horizontal spiegeln (Taste X)")
                 aktiv:   panel.s("spiegelX", false)
                 breite:  56
                 onKlick: panel.canvas.eigenschaftAktualisieren("spiegelX", !panel.s("spiegelX", false))
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("↕ V")
                 tooltip: qsTr("Vertikal spiegeln (Taste Y)")
                 aktiv:   panel.s("spiegelY", false)

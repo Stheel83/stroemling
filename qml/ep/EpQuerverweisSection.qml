@@ -74,7 +74,7 @@ Item {
         InputField {
             label: qsTr("Signalname")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.signalname || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("signalname", t.trim()) }
         }
         Item { height: 6 }
@@ -83,7 +83,7 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label: qsTr("Signalname")
                 aktiv: !panel.el || !panel.el.extraDaten
                        || !panel.el.extraDaten.suchmodus
@@ -91,7 +91,7 @@ Item {
                 breite: 84
                 onKlick: root.extraSetzen("suchmodus", "signal")
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label: qsTr("mit BMK")
                 aktiv: panel.el && panel.el.extraDaten
                        && panel.el.extraDaten.suchmodus === "bmk"
@@ -105,14 +105,14 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label: qsTr("→ Ausgang")
                 aktiv:  !panel.el || !panel.el.extraDaten
                         || (panel.el.extraDaten.richtung || "ausgang") === "ausgang"
                 breite: 84
                 onKlick: root.extraSetzen("richtung", "ausgang")
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label: qsTr("Eingang ←")
                 aktiv:  panel.el && panel.el.extraDaten
                         && panel.el.extraDaten.richtung === "eingang"
@@ -133,7 +133,7 @@ Item {
                     { label: qsTr("←"), rot: 180 },
                     { label: qsTr("↑"), rot: 270 }
                 ]
-                delegate: MiniButton { theme: theme;
+                delegate: MiniButton { theme: root.theme;
                     label:  modelData.label
                     aktiv:  panel.s("rotation", 0) === modelData.rot
                     breite: 36
@@ -161,7 +161,7 @@ Item {
                 elide: Text.ElideRight
                 height: 22
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 visible: root.qvPartner !== null
                 label: qsTr("→ (F)")
                 breite: 48

@@ -55,7 +55,7 @@ Item {
         InputField {
             label: qsTr("Name")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.name || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) {
                 root.extraSetzen("name", t.trim())
                 var mkId = panel.el && panel.el.extraDaten ? (panel.el.extraDaten.makroId || 0) : 0
@@ -69,7 +69,7 @@ Item {
         InputField {
             label: qsTr("Beschreibung")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.beschreibung || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) {
                 root.extraSetzen("beschreibung", t.trim())
                 var mkId = panel.el && panel.el.extraDaten ? (panel.el.extraDaten.makroId || 0) : 0
@@ -83,7 +83,7 @@ Item {
         InputField {
             label: qsTr("Kategorie")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.kategorie || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) {
                 root.extraSetzen("kategorie", t.trim())
                 var mkId = panel.el && panel.el.extraDaten ? (panel.el.extraDaten.makroId || 0) : 0

@@ -56,7 +56,7 @@ Item {
                 Layout.fillWidth: true
                 height: Math.min(editForm.implicitHeight + 16, 460)
                 clip: true
-                BaFormContent { id: editForm; theme: theme }
+                BaFormContent { id: editForm; theme: root.theme }
             }
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 12 }
             RowLayout {

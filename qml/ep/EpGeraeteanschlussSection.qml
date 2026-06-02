@@ -63,13 +63,13 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("◄ Ziel")
                 aktiv:   root.aktuellRolle === "ziel"
                 breite:  80
                 onKlick: root.extraSetzen("rolle", "ziel")
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("Quelle ►")
                 aktiv:   root.aktuellRolle === "quelle"
                 breite:  80
@@ -82,7 +82,7 @@ Item {
             label: qsTr("Anschlusskennzeichnung")
             value: (panel.el && panel.el.extraDaten && panel.el.extraDaten.anschlusskennzeichnung)
                    ? panel.el.extraDaten.anschlusskennzeichnung : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("anschlusskennzeichnung", t) }
         }
         Item { height: 6 }

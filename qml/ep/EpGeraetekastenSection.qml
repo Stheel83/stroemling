@@ -95,7 +95,7 @@ Item {
         InputField {
             label: qsTr("BMK")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bmk || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("bmk", t.trim()) }
         }
         Item { height: 6 }
@@ -103,7 +103,7 @@ Item {
         InputField {
             label: qsTr("Bezeichnung")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bezeichnung || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("bezeichnung", t.trim()) }
         }
         Item { height: 6 }

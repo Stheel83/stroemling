@@ -94,7 +94,7 @@ Item {
         InputField {
             label: qsTr("Bezeichnung")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bezeichnung || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("bezeichnung", t.trim()) }
         }
         Item { height: 6 }
@@ -102,7 +102,7 @@ Item {
         InputField {
             label: qsTr("Übergeordnete Anlage (==)")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.anlageUO || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("anlageUO", t.trim()) }
         }
         Item { height: 6 }
@@ -110,7 +110,7 @@ Item {
         InputField {
             label: qsTr("Übergeordneter Ort (++)")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.ortUO || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("ortUO", t.trim()) }
         }
         Item { height: 6 }
@@ -118,7 +118,7 @@ Item {
         InputField {
             label: qsTr("Anlage (=)")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.anlage || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("anlage", t.trim()) }
         }
         Item { height: 6 }
@@ -126,7 +126,7 @@ Item {
         InputField {
             label: qsTr("Ort (+)")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.ort || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("ort", t.trim()) }
         }
         Item { height: 6 }

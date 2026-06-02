@@ -55,7 +55,7 @@ Item {
                     { anzeige: "180°", wert: 180 },
                     { anzeige: "270°", wert: 270 }
                 ]
-                MiniButton { theme: theme;
+                MiniButton { theme: root.theme;
                     label:   modelData.anzeige
                     aktiv:   panel.s("rotation", 0) === modelData.wert
                     breite:  40
@@ -108,14 +108,14 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("↔ H")
                 tooltip: qsTr("Horizontal spiegeln (Taste X)")
                 aktiv:   panel.s("spiegelX", false)
                 breite:  56
                 onKlick: panel.canvas.eigenschaftAktualisieren("spiegelX", !panel.s("spiegelX", false))
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("↕ V")
                 tooltip: qsTr("Vertikal spiegeln (Taste Y)")
                 aktiv:   panel.s("spiegelY", false)
@@ -160,7 +160,7 @@ Item {
                     onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittLinks", 0) }
             }
         }
-        StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
+        StilSlider { theme: root.theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittLinks", 0)
             onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittLinks", v) } }
 
@@ -178,7 +178,7 @@ Item {
                     onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittRechts", 0) }
             }
         }
-        StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
+        StilSlider { theme: root.theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittRechts", 0)
             onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittRechts", v) } }
 
@@ -196,7 +196,7 @@ Item {
                     onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittOben", 0) }
             }
         }
-        StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
+        StilSlider { theme: root.theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittOben", 0)
             onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittOben", v) } }
 
@@ -214,7 +214,7 @@ Item {
                     onClicked: panel.canvas.eigenschaftAktualisieren("ausschnittUnten", 0) }
             }
         }
-        StilSlider { theme: theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
+        StilSlider { theme: root.theme; height: 36; width: root.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             von: 0; bis: 0.5; schritt: 0.01; wert: panel.s("ausschnittUnten", 0)
             onGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("ausschnittUnten", v) } }
 

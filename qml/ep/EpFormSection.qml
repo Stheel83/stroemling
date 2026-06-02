@@ -45,7 +45,7 @@ Item {
         AbschnittTitel { text: qsTr("FORM") }
 
         FeldLabel { text: qsTr("Eckenradius  ") + Math.round(panel.s("eckenRadius", 0)) + " mm" }
-        StilSlider { theme: theme;
+        StilSlider { theme: root.theme;
             height: 36
             width: root.width - 16
             anchors.horizontalCenter: parent.horizontalCenter

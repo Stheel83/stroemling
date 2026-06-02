@@ -108,7 +108,7 @@ Item {
             visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.rahmFarbe)
             height: visible ? implicitHeight : 0
             MiniButton {
-                theme: theme
+                theme: root.theme
                 label: qsTr("Rahmen entfernen")
                 breite: 140
                 onKlick: {

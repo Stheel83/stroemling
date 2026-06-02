@@ -40,27 +40,27 @@ Item {
             width: parent.width; spacing: 0
             visible: panel.el && panel.el.typ === "linie"
 
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "X1"; einheit: "mm"
                 wert: panel.el ? +(panel.el.x1 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("x1", v * panel.canvas.mmToPx) }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "Y1"; einheit: "mm"
                 wert: panel.el ? +(panel.el.y1 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("y1", v * panel.canvas.mmToPx) }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "X2"; einheit: "mm"
                 wert: panel.el ? +(panel.el.x2 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("x2", v * panel.canvas.mmToPx) }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "Y2"; einheit: "mm"
                 wert: panel.el ? +(panel.el.y2 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("y2", v * panel.canvas.mmToPx) }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: qsTr("Länge"); einheit: "mm"
                 wert: {
                     if (!panel.el) return 0
@@ -88,7 +88,7 @@ Item {
             width: parent.width; spacing: 0
             visible: panel.el && panel.el.typ === "rechteck"
 
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "X"; einheit: "mm"
                 wert: panel.el ? +(Math.min(panel.el.x1, panel.el.x2) / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -97,7 +97,7 @@ Item {
                     panel.canvas.eigenschaftenSetzen({ x1: v * panel.canvas.mmToPx, x2: v * panel.canvas.mmToPx + w })
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "Y"; einheit: "mm"
                 wert: panel.el ? +(Math.min(panel.el.y1, panel.el.y2) / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -106,7 +106,7 @@ Item {
                     panel.canvas.eigenschaftenSetzen({ y1: v * panel.canvas.mmToPx, y2: v * panel.canvas.mmToPx + h })
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: qsTr("Breite"); einheit: "mm"
                 wert: panel.el ? +(Math.abs(panel.el.x2 - panel.el.x1) / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -114,7 +114,7 @@ Item {
                     panel.canvas.eigenschaftAktualisieren("x2", panel.el.x1 + v * panel.canvas.mmToPx)
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: qsTr("Höhe"); einheit: "mm"
                 wert: panel.el ? +(Math.abs(panel.el.y2 - panel.el.y1) / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -130,7 +130,7 @@ Item {
             visible: panel.el && panel.el.typ === "symbol"
                      && panel.el.symbolId !== "querverweis"
 
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "X"; einheit: "mm"
                 wert: panel.el ? +(Math.min(panel.el.x1, panel.el.x2) / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -139,7 +139,7 @@ Item {
                     panel.canvas.eigenschaftenSetzen({ x1: v * panel.canvas.mmToPx, x2: v * panel.canvas.mmToPx + w })
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "Y"; einheit: "mm"
                 wert: panel.el ? +(Math.min(panel.el.y1, panel.el.y2) / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -155,7 +155,7 @@ Item {
             width: parent.width; spacing: 0
             visible: panel.el && panel.el.typ === "text"
 
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "X"; einheit: "mm"
                 wert: panel.el ? +(panel.el.x1 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -164,7 +164,7 @@ Item {
                     panel.canvas.eigenschaftenSetzen({ x1: v * panel.canvas.mmToPx, x2: v * panel.canvas.mmToPx + w })
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "Y"; einheit: "mm"
                 wert: panel.el ? +(panel.el.y1 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -180,7 +180,7 @@ Item {
             width: parent.width; spacing: 0
             visible: panel.el && panel.el.typ === "kreis"
 
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "X"; einheit: "mm"
                 wert: panel.el ? +(panel.el.x1 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -190,7 +190,7 @@ Item {
                     panel.canvas.eigenschaftenSetzen({ x1: v * panel.canvas.mmToPx, x2: v * panel.canvas.mmToPx + dx, y2: panel.el.y1 + dy })
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: "Y"; einheit: "mm"
                 wert: panel.el ? +(panel.el.y1 / panel.canvas.mmToPx).toFixed(1) : 0
                 onWertGeaendert: function(v) {
@@ -200,7 +200,7 @@ Item {
                     panel.canvas.eigenschaftenSetzen({ y1: v * panel.canvas.mmToPx, x2: panel.el.x1 + dx, y2: v * panel.canvas.mmToPx + dy })
                 }
             }
-            MassField { theme: theme;
+            MassField { theme: root.theme;
                 label: qsTr("Radius"); einheit: "mm"
                 wert: {
                     if (!panel.el) return 0

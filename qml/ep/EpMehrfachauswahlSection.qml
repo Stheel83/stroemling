@@ -83,7 +83,7 @@ Item {
                             { anzeige: "180°", wert: 180 },
                             { anzeige: "270°", wert: 270 }
                         ]
-                        MiniButton { theme: theme;
+                        MiniButton { theme: root.theme;
                             label:   modelData.anzeige
                             breite:  40
                             onKlick: panel.canvas.eigenschaftAktualisieren("rotation", modelData.wert)
@@ -96,9 +96,9 @@ Item {
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 4
-                    MiniButton { theme: theme; label: qsTr("↺ 90°");  breite: 56; tooltip: qsTr("90° gegen Uhrzeigersinn um linken Pin"); onKlick: panel.canvas.multiRotationUmPivot(270) }
-                    MiniButton { theme: theme; label: qsTr("180°");   breite: 40; tooltip: qsTr("180° um linken Pin");                    onKlick: panel.canvas.multiRotationUmPivot(180) }
-                    MiniButton { theme: theme; label: qsTr("90° ↻");  breite: 56; tooltip: qsTr("90° im Uhrzeigersinn um linken Pin");    onKlick: panel.canvas.multiRotationUmPivot(90)  }
+                    MiniButton { theme: root.theme; label: qsTr("↺ 90°");  breite: 56; tooltip: qsTr("90° gegen Uhrzeigersinn um linken Pin"); onKlick: panel.canvas.multiRotationUmPivot(270) }
+                    MiniButton { theme: root.theme; label: qsTr("180°");   breite: 40; tooltip: qsTr("180° um linken Pin");                    onKlick: panel.canvas.multiRotationUmPivot(180) }
+                    MiniButton { theme: root.theme; label: qsTr("90° ↻");  breite: 56; tooltip: qsTr("90° im Uhrzeigersinn um linken Pin");    onKlick: panel.canvas.multiRotationUmPivot(90)  }
                 }
                 Item { height: 6 }
             }
@@ -110,10 +110,10 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme; label: qsTr("Kopieren");      breite: 86
+            MiniButton { theme: root.theme; label: qsTr("Kopieren");      breite: 86
                 tooltip: qsTr("Auswahl in Zwischenablage kopieren (Strg+C)")
                 onKlick: panel.canvas.kopieren() }
-            MiniButton { theme: theme; label: qsTr("Ausschneiden");  breite: 86
+            MiniButton { theme: root.theme; label: qsTr("Ausschneiden");  breite: 86
                 tooltip: qsTr("Auswahl ausschneiden (kopieren + loeschen)")
                 onKlick: panel.canvas.ausschneiden() }
         }
@@ -122,7 +122,7 @@ Item {
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            MiniButton { theme: theme; label: qsTr("Duplizieren");  breite: 176
+            MiniButton { theme: root.theme; label: qsTr("Duplizieren");  breite: 176
                 tooltip: qsTr("Auswahl duplizieren – Kopie an Mauszeiger platzieren (Strg+D)")
                 onKlick: panel.canvas.duplizieren() }
         }
@@ -136,7 +136,7 @@ Item {
             Row {
                 id: bmkRow
                 anchors.horizontalCenter: parent.horizontalCenter
-                MiniButton { theme: theme; label: qsTr("BMK nummerieren...");  breite: 176
+                MiniButton { theme: root.theme; label: qsTr("BMK nummerieren...");  breite: 176
                     tooltip: qsTr("Automatische BMK-Vergabe fuer selektierte Symbole")
                     onKlick: panel.canvas.batchBmkDialogOeffnen() }
             }
@@ -150,16 +150,16 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme; label: qsTr("← L"); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("← L"); breite: 44
                 tooltip: qsTr("Linksbündig ausrichten")
                 onKlick: panel.canvas.elementeAusrichten("links") }
-            MiniButton { theme: theme; label: qsTr("R →"); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("R →"); breite: 44
                 tooltip: qsTr("Rechtsbündig ausrichten")
                 onKlick: panel.canvas.elementeAusrichten("rechts") }
-            MiniButton { theme: theme; label: qsTr("↑ O"); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("↑ O"); breite: 44
                 tooltip: qsTr("Oben ausrichten")
                 onKlick: panel.canvas.elementeAusrichten("oben") }
-            MiniButton { theme: theme; label: qsTr("U ↓"); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("U ↓"); breite: 44
                 tooltip: qsTr("Unten ausrichten")
                 onKlick: panel.canvas.elementeAusrichten("unten") }
         }
@@ -169,17 +169,17 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme; label: qsTr("⊙ H"); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("⊙ H"); breite: 44
                 tooltip: qsTr("Horizontal zentrieren")
                 onKlick: panel.canvas.elementeAusrichten("mitte_h") }
-            MiniButton { theme: theme; label: qsTr("⊙ V"); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("⊙ V"); breite: 44
                 tooltip: qsTr("Vertikal zentrieren")
                 onKlick: panel.canvas.elementeAusrichten("mitte_v") }
-            MiniButton { theme: theme; label: qsTr("↔ V."); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("↔ V."); breite: 44
                 tooltip: qsTr("Horizontal verteilen (mind. 3 Elemente)")
                 opacity: panel.auswahlLaenge >= 3 ? 1.0 : 0.4
                 onKlick: panel.canvas.elementeAusrichten("verteilen_h") }
-            MiniButton { theme: theme; label: qsTr("↕ V."); breite: 44
+            MiniButton { theme: root.theme; label: qsTr("↕ V."); breite: 44
                 tooltip: qsTr("Vertikal verteilen (mind. 3 Elemente)")
                 opacity: panel.auswahlLaenge >= 3 ? 1.0 : 0.4
                 onKlick: panel.canvas.elementeAusrichten("verteilen_v") }

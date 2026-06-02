@@ -91,7 +91,7 @@ Item {
                     { anzeige: qsTr("◄► Mitte"),   wert: "mitte"  },
                     { anzeige: qsTr("Rechts ►"),   wert: "rechts" }
                 ]
-                MiniButton { theme: theme;
+                MiniButton { theme: root.theme;
                     label:   modelData.anzeige
                     aktiv:   panel.s("textAusrichtung", "links") === modelData.wert
                     breite:  52
@@ -122,13 +122,13 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("→ Waagrecht")
                 aktiv:   (panel.s("rotation", 0) % 180) === 0
                 breite:  86
                 onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 0)
             }
-            MiniButton { theme: theme;
+            MiniButton { theme: root.theme;
                 label:   qsTr("↑ Senkrecht")
                 aktiv:   (panel.s("rotation", 0) % 180) !== 0
                 breite:  86
@@ -184,7 +184,7 @@ Item {
             visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.rahmFarbe)
             height: visible ? implicitHeight : 0
             MiniButton {
-                theme: theme
+                theme: root.theme
                 label: qsTr("Rahmen entfernen")
                 breite: 140
                 onKlick: {

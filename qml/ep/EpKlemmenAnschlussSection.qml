@@ -103,7 +103,7 @@ Item {
         InputField {
             label: qsTr("BMK / Bezeichner")
             value: panel.el ? ((panel.el.extraDaten || {}).bmk || "") : ""
-            theme: theme
+            theme: root.theme
             readOnly: panel.el ? ((panel.el.extraDaten || {}).platziermodus === "verknuepft") : false
             onCommit: function(t) { root.extraSetzen("bmk", t) }
         }
@@ -253,7 +253,7 @@ Item {
                 KlemmenVorschau {
                     width: parent.width - 24
                     anchors.horizontalCenter: parent.horizontalCenter
-                    theme: theme
+                    theme: root.theme
 
                     klemme: panel.kaDetails ? {
                         "ebenenAnzahl":      panel.kaDetails.ebenenAnzahl    || 1,

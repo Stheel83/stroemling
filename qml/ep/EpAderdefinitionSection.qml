@@ -56,9 +56,9 @@ Item {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
-            MiniButton { theme: theme; label: "0°";  aktiv: panel.s("rotation", 0) === 0;  breite: 56
+            MiniButton { theme: root.theme; label: "0°";  aktiv: panel.s("rotation", 0) === 0;  breite: 56
                 onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 0)  }
-            MiniButton { theme: theme; label: "90°"; aktiv: panel.s("rotation", 0) === 90; breite: 56
+            MiniButton { theme: root.theme; label: "90°"; aktiv: panel.s("rotation", 0) === 90; breite: 56
                 onKlick: panel.canvas.eigenschaftAktualisieren("rotation", 90) }
         }
         Item { height: 8 }
@@ -66,7 +66,7 @@ Item {
         InputField {
             label: qsTr("Bezeichnung")
             value: panel.el ? ((panel.el.extraDaten || {}).bezeichnung || "") : ""
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { root.extraSetzen("bezeichnung", t) }
         }
 
@@ -120,7 +120,7 @@ Item {
                 model: [0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
                         10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
                         185.0, 240.0, 300.0]
-                MiniButton { theme: theme;
+                MiniButton { theme: root.theme;
                     label: modelData + ""; breite: 40; hoehe: 24
                     aktiv: {
                         var q = panel.el ? ((panel.el.extraDaten || {}).querschnitt_mm2 || 0) : 0
@@ -138,7 +138,7 @@ Item {
         InputField {
             label: qsTr("Länge (m)")
             value: { var v = panel.el ? ((panel.el.extraDaten || {}).laenge_m || 0) : 0; return v > 0 ? (v + "").replace('.', ',') : "" }
-            theme: theme
+            theme: root.theme
             onCommit: function(t) { var v = parseFloat(t.replace(',', '.')); root.extraSetzen("laenge_m", isNaN(v) ? 0 : v) }
         }
         Item { height: 4 }

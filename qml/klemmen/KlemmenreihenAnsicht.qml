@@ -685,7 +685,7 @@ Item {
 
         KrVorschauPanel {
             panel: panel
-            theme: theme
+            theme: panel.theme
             Layout.fillWidth:  true
             Layout.fillHeight: true
             visible:           aktivLeistenId >= 0
@@ -712,7 +712,7 @@ Item {
 
         KrEigenschaftenPanel {
             panel: panel
-            theme: theme
+            theme: panel.theme
             visible:               aktivLeistenId >= 0
             Layout.preferredWidth: 260
             Layout.fillHeight:     true

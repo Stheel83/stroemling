@@ -35,6 +35,7 @@ Item {
     // Wird ausgelöst wenn ein Klemmen-Anschluss zum Platzieren gewählt wurde (Modus A)
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
+    signal klemmenSequentiellStarten(string queueJson)
     // Sprungfunktion: navigiere zu einem Element auf einer Seite
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
@@ -1108,6 +1109,9 @@ Item {
             debug: root.debug
             onKlemmenAnschlussPlatzieren: function(kId, bkId, bez, bmk) {
                 root.klemmenAnschlussPlatzieren(kId, bkId, bez, bmk)
+            }
+            onKlemmenSequentiellStarten: function(json) {
+                root.klemmenSequentiellStarten(json)
             }
             onSprungAngefordert: function(sid, bnr, sbez, wx, wy) {
                 root.sprungAngefordert(sid, bnr, sbez, wx, wy)

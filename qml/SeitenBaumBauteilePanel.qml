@@ -32,6 +32,7 @@ ColumnLayout {
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
+    signal klemmenSequentiellStarten(string queueJson)
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
 
@@ -146,17 +147,8 @@ ColumnLayout {
                     Rectangle {
                         width: parent.width; height: 32
                         color: leisteMA.containsMouse ? root.theme.hover : "transparent"
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
-                            spacing: 5
-                            Text { text: leisteItem.offen ? "▾" : "▸"; font.pixelSize: 9; color: root.theme.textMuted }
-                            Text { text: "🔌"; font.pixelSize: 12 }
-                            Text {
-                                text: leisteItem.bmkKurz + "  " + leisteItem.bezeichnung
-                                font.pixelSize: 12; color: root.theme.textPrimary
-                                Layout.fillWidth: true; elide: Text.ElideRight
-                            }
-                        }
+
+                        // leisteMA zuerst → liegt im Z-Stack unter dem RowLayout
                         MouseArea {
                             id: leisteMA; anchors.fill: parent; hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -170,6 +162,59 @@ ColumnLayout {
                                     root._klemmenCache = c
                                 }
                                 root._leistenAufgeklappt = auf
+                            }
+                        }
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+                            spacing: 5
+                            Text { text: leisteItem.offen ? "▾" : "▸"; font.pixelSize: 9; color: root.theme.textMuted }
+                            Text { text: "🔌"; font.pixelSize: 12 }
+                            Text {
+                                text: leisteItem.bmkKurz + "  " + leisteItem.bezeichnung
+                                font.pixelSize: 12; color: root.theme.textPrimary
+                                Layout.fillWidth: true; elide: Text.ElideRight
+                            }
+                            // Sequentiell-Platzieren-Button
+                            Rectangle {
+                                width: 22; height: 22; radius: 3
+                                visible: leisteItem.offen
+                                color: seqMa.containsMouse ? root.theme.activeItemAlt : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "⇥"; font.pixelSize: 13
+                                    color: root.theme.accent
+                                }
+                                ToolTip.visible: seqMa.containsMouse
+                                ToolTip.text:    qsTr("Anschlüsse sequentiell platzieren")
+                                ToolTip.delay:   400
+                                MouseArea {
+                                    id: seqMa; anchors.fill: parent
+                                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        var klemmen = db.klemmenFuerLeiste(leisteItem.leisteId)
+                                        var queue = []
+                                        for (var i = 0; i < klemmen.length; i++) {
+                                            var kl = klemmen[i]
+                                            if (!kl.bauteilId || kl.bauteilId <= 0) continue
+                                            var anschluesse = db.anschluesseFuerKlemme(kl.bauteilId)
+                                            for (var j = 0; j < anschluesse.length; j++) {
+                                                var ans = anschluesse[j]
+                                                if (!root.istPlatziert(kl.id, ans.bezeichnung)) {
+                                                    queue.push({
+                                                        klemmeId:             kl.id,
+                                                        bauteilKlemmeId:      kl.bauteilKlemmeId,
+                                                        anschlussBezeichnung: ans.bezeichnung,
+                                                        bmk: kl.leisteBmk + ":" + kl.nummer + ":" + ans.bezeichnung
+                                                    })
+                                                    break  // nur erster freier Anschluss je Klemme
+                                                }
+                                            }
+                                        }
+                                        if (queue.length > 0)
+                                            root.klemmenSequentiellStarten(JSON.stringify(queue))
+                                    }
+                                }
                             }
                         }
                     }

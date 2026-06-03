@@ -53,6 +53,33 @@ ApplicationWindow {
     property string symbolEditorVorlageId:  ""
     property string symbolEditorVorher:     "projekte"
 
+    // ── Klemmen-Queue: sequentielles Platzieren ───────────────────────────
+    property var  _klemmeQueue:     []
+    property bool _klemmeQueueAktiv: false
+
+    function _klemmeQueueNaechste() {
+        if (_klemmeQueue.length === 0) { _klemmeQueueAktiv = false; return }
+        var q    = _klemmeQueue.slice()
+        var item = q.shift()
+        _klemmeQueue = q
+        if (aktivSeiteId < 0) { _klemmeQueueAktiv = false; return }
+        // bereits platziert → überspringen
+        if (db.klemmeAnschlussIstPlatziert(item.klemmeId, item.anschlussBezeichnung)) {
+            _klemmeQueueNaechste(); return
+        }
+        var p = fokussiertesPanel === 1 ? panel1 : panel2
+        p.canvas.paletteSymbolId   = "klemme_anschluss"
+        p.canvas.paletteExtraDaten = {
+            "bauteilKlemmeId":      item.bauteilKlemmeId,
+            "anschlussBezeichnung": item.anschlussBezeichnung,
+            "platziermodus":        "verknuepft",
+            "bmk":                  item.bmk,
+            "klemmeId":             item.klemmeId
+        }
+        p.canvas.aktivesWerkzeug = "symbol"
+        p.canvas.forceActiveFocus()
+    }
+
     // ── Theme-System ─────────────────────────────────────────────
     readonly property var themes: ({
         "dunkel": {
@@ -908,6 +935,15 @@ ApplicationWindow {
                             root.aktiverCanvas.aktivesWerkzeug = "symbol"
                             root.aktiverCanvas.forceActiveFocus()
                         }
+                        onKlemmenSequentiellStarten: function(queueJson) {
+                            var queue = JSON.parse(queueJson)
+                            if (!queue || queue.length === 0) return
+                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                            root._klemmeQueue      = queue
+                            root._klemmeQueueAktiv = true
+                            root._klemmeQueueNaechste()
+                        }
 
                         onWidthChanged: if (width >= 180) panelBreiten.seitenBaumBreite = width
                     }
@@ -1034,6 +1070,8 @@ ApplicationWindow {
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
+                                if (wkz === "zeiger" && root._klemmeQueueAktiv)
+                                    root._klemmeQueueNaechste()
                             }
                             onTeilenRechts: { root.splitHorizontal = true;  root.splitAktiv = true }
                             onTeilenUnten:  { root.splitHorizontal = false; root.splitAktiv = true }
@@ -1088,6 +1126,8 @@ ApplicationWindow {
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
+                                if (wkz === "zeiger" && root._klemmeQueueAktiv)
+                                    root._klemmeQueueNaechste()
                             }
                             onDrcKlick:     root.drcPanelOffen = !root.drcPanelOffen
                             drcAktiv:       root.drcPanelOffen

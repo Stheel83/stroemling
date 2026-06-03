@@ -562,17 +562,17 @@ MouseArea {
         }
         // Starteigenschaften nach Element-Typ
         if (elR.typ === "geraetekasten") {
-            elR.strichFarbe = "#cc7700"; elR.fuell = true
-            elR.fuellFarbe = "#331a00"; elR.fuellOpazitaet = 0.15
+            elR.strichFarbe = "#cc7700"; elR.strichArt = "gestrichelt"
+            elR.fuell = true; elR.fuellFarbe = "#331a00"; elR.fuellOpazitaet = 0.15
             elR.extraDaten = { bmk: "", bezeichnung: "" }
         } else if (elR.typ === "strukturkasten") {
-            elR.strichFarbe = "#00aacc"; elR.fuell = false
+            elR.strichFarbe = "#00aacc"; elR.strichArt = "gestrichelt"; elR.fuell = false
             elR.extraDaten  = { bezeichnung: "", anlage: "", ort: "", anlageUO: "", ortUO: "" }
         } else if (elR.typ === "kabellinie") {
             elR.strichFarbe = "#e07000"
             elR.extraDaten  = { bezeichnung: "", kabeltyp: "", aderzahl: 0, querschnittMm2: 0 }
         } else if (elR.typ === "makrokasten") {
-            elR.strichFarbe = "#aa44cc"; elR.fuell = false
+            elR.strichFarbe = "#aa44cc"; elR.strichArt = "gestrichelt"; elR.fuell = false
             elR.extraDaten  = { name: "", beschreibung: "", kategorie: "", makroId: 0 }
         } else if (elR.typ === "notiz") {
             elR.strichFarbe = "#cccc22"; elR.fuell = true

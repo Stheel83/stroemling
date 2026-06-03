@@ -1706,13 +1706,16 @@ Item {
                 var skRx = Math.min(vx1, vx2), skRy = Math.min(vy1, vy2)
                 var skRw = Math.abs(vx2 - vx1), skRh = Math.abs(vy2 - vy1)
                 ctx.lineCap = "butt"
+                var skR = er > 0 ? er * root.mmToPx * root.zoom : 0
                 if (fu && !vorschau) {
                     ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
-                    ctx.fillRect(skRx, skRy, skRw, skRh)
+                    if (skR > 0) { drawCanvas.roundRect(ctx, skRx, skRy, skRw, skRh, skR); ctx.fill() }
+                    else ctx.fillRect(skRx, skRy, skRw, skRh)
                     ctx.globalAlpha = op
                 }
                 ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
-                ctx.strokeRect(skRx, skRy, skRw, skRh)
+                if (skR > 0) { drawCanvas.roundRect(ctx, skRx, skRy, skRw, skRh, skR); ctx.stroke() }
+                else ctx.strokeRect(skRx, skRy, skRw, skRh)
                 if (!vorschau && !_skipText && skRw > 20) {
                     var skEd  = el.extraDaten || {}
                     var skAnl = skEd.anlage      || ""
@@ -1756,13 +1759,16 @@ Item {
                 var mkFarbe = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff"
                               : (el.strichFarbe || "#aa44cc"))
                 ctx.lineCap = "butt"
+                var mkR = er > 0 ? er * root.mmToPx * root.zoom : 0
                 if (fu && !vorschau) {
                     ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
-                    ctx.fillRect(mkRx, mkRy, mkRw, mkRh)
+                    if (mkR > 0) { drawCanvas.roundRect(ctx, mkRx, mkRy, mkRw, mkRh, mkR); ctx.fill() }
+                    else ctx.fillRect(mkRx, mkRy, mkRw, mkRh)
                     ctx.globalAlpha = op
                 }
                 ctx.strokeStyle = mkFarbe
-                ctx.strokeRect(mkRx, mkRy, mkRw, mkRh)
+                if (mkR > 0) { drawCanvas.roundRect(ctx, mkRx, mkRy, mkRw, mkRh, mkR); ctx.stroke() }
+                else ctx.strokeRect(mkRx, mkRy, mkRw, mkRh)
                 if (!vorschau && !_skipText && mkRw > 20) {
                     ctx.save()
                     ctx.setLineDash([])

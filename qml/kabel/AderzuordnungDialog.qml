@@ -18,7 +18,7 @@ Dialog {
     modal: true
     parent: Overlay.overlay
     anchors.centerIn: parent
-    width: 520
+    width: 580
     padding: 20
 
     required property var theme
@@ -319,124 +319,141 @@ Dialog {
             Repeater {
                 model: schnittModel
 
-                delegate: RowLayout {
-                    id: schnittZeile
+                delegate: Item {
                     width: parent.width
-                    spacing: 6
-                    property int rowIdx: index
+                    height: schnittZeile.implicitHeight + 2
 
-                    // Position
-                    Text {
-                        text: model.position
-                        width: 32
-                        color: theme.textMuted; font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    // Verbindungsname + Signaltyp
-                    Text {
-                        width: 130
-                        text: {
-                            var t = model.bezeichnung
-                            if (model.signaltyp && model.signaltyp !== "neutral")
-                                t += "  [" + model.signaltyp + "]"
-                            return t
+                    RowLayout {
+                        id: schnittZeile
+                        property int rowIdx: index
+                        anchors {
+                            left: parent.left; right: parent.right
+                            leftMargin: 8; rightMargin: 8
+                            verticalCenter: parent.verticalCenter
                         }
-                        color: theme.textSecondary
-                        font.pixelSize: 11; elide: Text.ElideRight
-                    }
+                        spacing: 6
 
-                    // Aktuell gespeicherte Zuweisung (read-only)
-                    Text {
-                        width: 110
-                        text: root._gespeichertLabel(schnittZeile.rowIdx)
-                        color: root._gespeichert[schnittZeile.rowIdx] > 0
-                               ? theme.accent : theme.textMuted
-                        font.pixelSize: 10; elide: Text.ElideRight
-                        font.italic: root._gespeichert[schnittZeile.rowIdx] <= 0
-                    }
+                        // Position
+                        Text {
+                            text: model.position
+                            width: 32
+                            color: theme.textMuted; font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter
+                        }
 
-                    // Ader-Dropdown
-                    ComboBox {
-                        id: aderCombo
-                        Layout.fillWidth: true
-                        model: root._aderOptionen()
-
-                        Component.onCompleted:
-                            currentIndex = (schnittZeile.rowIdx < root._auswahl.length)
-                                          ? root._auswahl[schnittZeile.rowIdx] : 0
-
-                        onCurrentIndexChanged: {
-                            if (schnittZeile.rowIdx < root._auswahl.length) {
-                                var tmp = root._auswahl.slice()
-                                tmp[schnittZeile.rowIdx] = currentIndex
-                                root._auswahl = tmp
+                        // Verbindungsname + Signaltyp
+                        Text {
+                            width: 130
+                            text: {
+                                var t = model.bezeichnung
+                                if (model.signaltyp && model.signaltyp !== "neutral")
+                                    t += "  [" + model.signaltyp + "]"
+                                return t
                             }
+                            color: theme.textSecondary
+                            font.pixelSize: 11; elide: Text.ElideRight
                         }
 
-                        // Ausgewählte Option: Farbpunkt + Text
-                        contentItem: RowLayout {
-                            spacing: 6
-                            Item { width: 4; height: 1 }
-                            Rectangle {
-                                width: 10; height: 10; radius: 5
-                                visible: root._aderHatFarbe(aderCombo.currentIndex)
-                                color:   root._aderFarbe(aderCombo.currentIndex)
-                                border.color: "#00000055"; border.width: 1
-                                Layout.alignment: Qt.AlignVCenter
-                            }
-                            Text {
-                                text: aderCombo.displayText
-                                color: theme.textPrimary; font.pixelSize: 11
-                                verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
-                                Layout.fillWidth: true
-                            }
+                        // Aktuell gespeicherte Zuweisung (read-only)
+                        Text {
+                            width: 110
+                            text: root._gespeichertLabel(schnittZeile.rowIdx)
+                            color: root._gespeichert[schnittZeile.rowIdx] > 0
+                                   ? theme.accent : theme.textMuted
+                            font.pixelSize: 10; elide: Text.ElideRight
+                            font.italic: root._gespeichert[schnittZeile.rowIdx] <= 0
                         }
 
-                        background: Rectangle {
-                            color:        theme.inputBg; radius: 3
-                            border.color: parent.pressed ? theme.accent : theme.border
-                        }
+                        // Ader-Dropdown
+                        ComboBox {
+                            id: aderCombo
+                            Layout.fillWidth: true
+                            rightPadding: 22
+                            model: root._aderOptionen()
 
-                        popup: Popup {
-                            y: aderCombo.height; width: aderCombo.width; padding: 0
-                            contentItem: ListView {
-                                id: popupListe
-                                implicitHeight: Math.min(contentHeight, 200)
-                                model: root._aderOptionen()
-                                clip: true
-                                ScrollBar.vertical: ScrollBar {}
+                            Component.onCompleted:
+                                currentIndex = (schnittZeile.rowIdx < root._auswahl.length)
+                                              ? root._auswahl[schnittZeile.rowIdx] : 0
 
-                                delegate: Rectangle {
-                                    width: popupListe.width; height: 24
-                                    color: aderCombo.currentIndex === index
-                                           ? theme.activeItemAlt : theme.inputBg
-                                    RowLayout {
-                                        anchors { fill: parent; leftMargin: 8; rightMargin: 4 }
-                                        spacing: 6
-                                        Rectangle {
-                                            width: 10; height: 10; radius: 5
-                                            visible: root._aderHatFarbe(index)
-                                            color:   root._aderFarbe(index)
-                                            border.color: "#00000055"; border.width: 1
-                                            Layout.alignment: Qt.AlignVCenter
-                                        }
-                                        Text {
-                                            text: modelData
-                                            color: theme.textSecondary; font.pixelSize: 11
-                                            verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
-                                            Layout.fillWidth: true
-                                        }
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: { aderCombo.currentIndex = index; aderCombo.popup.close() }
-                                    }
+                            onCurrentIndexChanged: {
+                                if (schnittZeile.rowIdx < root._auswahl.length) {
+                                    var tmp = root._auswahl.slice()
+                                    tmp[schnittZeile.rowIdx] = currentIndex
+                                    root._auswahl = tmp
                                 }
                             }
+
+                            contentItem: RowLayout {
+                                spacing: 6
+                                Item { width: 4; height: 1 }
+                                Rectangle {
+                                    width: 10; height: 10; radius: 5
+                                    visible: root._aderHatFarbe(aderCombo.currentIndex)
+                                    color:   root._aderFarbe(aderCombo.currentIndex)
+                                    border.color: "#00000055"; border.width: 1
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+                                Text {
+                                    text: aderCombo.displayText
+                                    color: theme.textPrimary; font.pixelSize: 11
+                                    verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            indicator: Text {
+                                x: aderCombo.width - width - 6
+                                y: (aderCombo.height - height) / 2
+                                text: "▾"
+                                color: theme.textMuted
+                                font.pixelSize: 13
+                            }
+
                             background: Rectangle {
-                                color:        theme.inputBg
-                                border.color: theme.border; radius: 3
+                                color:        theme.inputBg; radius: 3
+                                border.color: parent.hovered || parent.pressed ? theme.accent : theme.border
+                            }
+
+                            popup: Popup {
+                                y: aderCombo.height; width: aderCombo.width; padding: 0
+                                contentItem: ListView {
+                                    id: popupListe
+                                    implicitHeight: Math.min(contentHeight, 200)
+                                    model: root._aderOptionen()
+                                    clip: true
+                                    ScrollBar.vertical: ScrollBar {}
+
+                                    delegate: Rectangle {
+                                        width: popupListe.width; height: 24
+                                        color: aderCombo.currentIndex === index
+                                               ? theme.activeItemAlt : theme.inputBg
+                                        RowLayout {
+                                            anchors { fill: parent; leftMargin: 8; rightMargin: 4 }
+                                            spacing: 6
+                                            Rectangle {
+                                                width: 10; height: 10; radius: 5
+                                                visible: root._aderHatFarbe(index)
+                                                color:   root._aderFarbe(index)
+                                                border.color: "#00000055"; border.width: 1
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+                                            Text {
+                                                text: modelData
+                                                color: theme.textSecondary; font.pixelSize: 11
+                                                verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                                                Layout.fillWidth: true
+                                            }
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onClicked: { aderCombo.currentIndex = index; aderCombo.popup.close() }
+                                        }
+                                    }
+                                }
+                                background: Rectangle {
+                                    color:        theme.inputBg
+                                    border.color: theme.border; radius: 3
+                                }
                             }
                         }
                     }

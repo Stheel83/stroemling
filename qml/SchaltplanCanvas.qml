@@ -2315,11 +2315,19 @@ Item {
                 }
 
                 ctx.font = kLabelFs + "px sans-serif"
-                ctx.textAlign    = nx >= 0 ? "left" : "right"
                 ctx.textBaseline = "bottom"
                 var labelAbstand = kTickLen + Math.max(5, kLabelFs * 0.4)
-                var lx = vx + nx * labelAbstand
-                var ly = vy + ny * labelAbstand
+                var lx, ly
+                if (Math.abs(ny) < 0.1 || Math.abs(nx) < 0.1) {
+                    // Achsenparallele Kabellinien: Label immer rechts vom Kreuzungspunkt
+                    lx = vx + labelAbstand
+                    ly = vy + ny * labelAbstand
+                    ctx.textAlign = "left"
+                } else {
+                    lx = vx + nx * labelAbstand
+                    ly = vy + ny * labelAbstand
+                    ctx.textAlign = nx >= 0 ? "left" : "right"
+                }
                 ctx.strokeStyle = "#000000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"
                 ctx.strokeText(labelText, lx, ly)
                 ctx.fillStyle = klColor
@@ -3549,12 +3557,10 @@ Item {
         root.auswahl = savedAuswahl
         var reloaded = elementeModel.snapshot()
 
+        var elId = el.id || 0
         var freshEl = null
         for (var i = 0; i < reloaded.length; i++) {
-            var fe = reloaded[i]
-            if (fe.typ === "kabellinie" && fe.extraDaten && fe.extraDaten.kabelId === kabelId) {
-                freshEl = fe; break
-            }
+            if (reloaded[i].id === elId) { freshEl = reloaded[i]; break }
         }
         var currentEl = freshEl || el
         var freshGeid = currentEl.id || 0
@@ -3562,8 +3568,19 @@ Item {
         var details  = db.kabelLinieDetails(freshGeid)
         var netze    = drawCanvas.autoNetzeBerechnen()
         var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(currentEl, netze)
+
+        // Vollständige Aderliste aufbauen: DB-Einträge + fehlende aderNr als freie Platzhalter
+        var aderzahl = details.aderzahl || ed.aderzahl || 0
+        var rawAdern = details.adern || []
+        var aderMap  = {}
+        for (var ai = 0; ai < rawAdern.length; ai++)
+            aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
+        var fullAdern = []
+        for (var nr = 1; nr <= aderzahl; nr++)
+            fullAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "", verbindungId: 0, kabellinieGrafikElementId: 0 })
+
         dialogLayer.aderzuordnungOeffnen(kabelId, ed.bezeichnung || "", ed.kabeltyp || "",
-            ed.aderzahl || 0, details.adern || [], schnitte, ed.aderZuordnung || {},
+            aderzahl, fullAdern, schnitte, ed.aderZuordnung || {},
             freshGeid, _pinNummernFuerNetze(netze))
     }
 

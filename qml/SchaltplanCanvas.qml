@@ -1870,9 +1870,11 @@ Item {
 
         // Gibt Farbe für einen Signaltyp zurück
         function signaltypFarbe(sig) {
-            if (sig === "power")           return "#cc3300"
+            if (sig === "power")           return "#cc3300"   // L (AC-Phase)
             if (sig === "pe")              return "#88cc00"
             if (sig === "n")               return "#4488ff"
+            if (sig === "dc_plus")         return "#dd5500"
+            if (sig === "dc_minus")        return "#334488"
             if (sig === "input_digital")   return "#44aaff"
             if (sig === "output_digital")  return "#44cc66"
             if (sig === "input_analog")    return "#88bbff"

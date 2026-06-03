@@ -256,20 +256,27 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
 
+            // Rollenabhängige Signaltypen: quelle/ziel/beide
+            property var _alle: [
+                { key: "neutral",        label: qsTr("Neutral"), farbe: "#4a9eff", rollen: ["quelle","ziel"] },
+                { key: "power",          label: "L",             farbe: "#cc3300", rollen: ["quelle","ziel"] },
+                { key: "pe",             label: "PE",            farbe: "#88cc00", rollen: ["quelle","ziel"] },
+                { key: "n",              label: "N",             farbe: "#4488ff", rollen: ["quelle","ziel"] },
+                { key: "dc_plus",        label: "DC+",           farbe: "#dd5500", rollen: ["quelle","ziel"] },
+                { key: "dc_minus",       label: "DC−",      farbe: "#334488", rollen: ["quelle","ziel"] },
+                { key: "output_digital", label: "DO",            farbe: "#aa44cc", rollen: ["quelle"]        },
+                { key: "input_digital",  label: "DI",            farbe: "#44aacc", rollen: ["ziel"]          },
+                { key: "output_analog",  label: "AO",            farbe: "#66ddaa", rollen: ["quelle"]        },
+                { key: "input_analog",   label: "AI",            farbe: "#88bbff", rollen: ["ziel"]          },
+                { key: "kommunikation",  label: qsTr("Komm."),   farbe: "#cc8800", rollen: ["quelle","ziel"] },
+                { key: "temp",           label: qsTr("Temp"),    farbe: "#e07030", rollen: ["quelle","ziel"] },
+                { key: "stepper",        label: "Stepper",       farbe: "#20a890", rollen: ["quelle","ziel"] }
+            ]
+
             Repeater {
-                model: [
-                    { key: "neutral",        label: qsTr("Neutral"), farbe: "#4a9eff" },
-                    { key: "power",          label: qsTr("Kraft"),   farbe: "#cc3300" },
-                    { key: "pe",             label: "PE",            farbe: "#88cc00" },
-                    { key: "n",              label: "N",             farbe: "#4488ff" },
-                    { key: "input_digital",  label: "DI",            farbe: "#44aacc" },
-                    { key: "output_digital", label: "DO",            farbe: "#aa44cc" },
-                    { key: "input_analog",   label: "AI",            farbe: "#88bbff" },
-                    { key: "output_analog",  label: "AO",            farbe: "#66ddaa" },
-                    { key: "kommunikation",  label: qsTr("Komm."),   farbe: "#cc8800" },
-                    { key: "temp",           label: qsTr("Temp"),    farbe: "#e07030" },
-                    { key: "stepper",        label: "Stepper",       farbe: "#20a890" }
-                ]
+                model: parent._alle.filter(function(s) {
+                    return s.rollen.indexOf(root.aktuellRolle) >= 0
+                })
                 delegate: Rectangle {
                     width:  gaSigLbl.implicitWidth + 16; height: 24; radius: 4
                     color:  root.aktuellSig === modelData.key

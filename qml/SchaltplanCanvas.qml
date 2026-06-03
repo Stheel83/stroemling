@@ -1659,11 +1659,10 @@ Item {
                 }
             } else if (el.typ === "geraetekasten") {
                 // Gerätekasten: abgerundetes Rechteck mit leichter Füllung und Label oben links
-                ctx.setLineDash([])
                 ctx.lineCap = "butt"
                 var gkRx = Math.min(vx1, vx2), gkRy = Math.min(vy1, vy2)
                 var gkRw = Math.abs(vx2 - vx1), gkRh = Math.abs(vy2 - vy1)
-                var gkR  = 4 * root.zoom
+                var gkR  = er > 0 ? er * root.mmToPx * root.zoom : 4 * root.zoom
                 if (fu && !vorschau) {
                     ctx.fillStyle  = ff
                     ctx.globalAlpha = op * fo
@@ -1703,11 +1702,15 @@ Item {
                     }
                 }
             } else if (el.typ === "strukturkasten") {
-                // Strukturkasten: gestricheltes Rechteck mit Anlage/Ort-Label oben rechts
+                // Strukturkasten: Rechteck mit Anlage/Ort-Label oben rechts
                 var skRx = Math.min(vx1, vx2), skRy = Math.min(vy1, vy2)
                 var skRw = Math.abs(vx2 - vx1), skRh = Math.abs(vy2 - vy1)
-                ctx.setLineDash([8 * root.zoom, 5 * root.zoom])
-                ctx.lineCap    = "butt"
+                ctx.lineCap = "butt"
+                if (fu && !vorschau) {
+                    ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
+                    ctx.fillRect(skRx, skRy, skRw, skRh)
+                    ctx.globalAlpha = op
+                }
                 ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
                 ctx.strokeRect(skRx, skRy, skRw, skRh)
                 if (!vorschau && !_skipText && skRw > 20) {
@@ -1745,15 +1748,20 @@ Item {
                     ctx.restore()
                 }
             } else if (el.typ === "makrokasten") {
-                // Makrokasten: violett gestrichelt, Label oben-mitte
+                // Makrokasten: gestrichelt, Standard-Farbe violett (überschreibbar via Stil)
                 var mkRx = Math.min(vx1, vx2), mkRy = Math.min(vy1, vy2)
                 var mkRw = Math.abs(vx2 - vx1), mkRh = Math.abs(vy2 - vy1)
-                var mkEd   = el.extraDaten || {}
+                var mkEd    = el.extraDaten || {}
                 var mkSaved = mkEd.makroId > 0
-                ctx.setLineDash([6 * root.zoom, 4 * root.zoom])
-                ctx.lineCap     = "butt"
-                ctx.lineWidth   = mkSaved ? 1.5 : 1.0
-                ctx.strokeStyle = gewaehlt ? "#f0a030" : "#aa44cc"
+                var mkFarbe = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff"
+                              : (el.strichFarbe || "#aa44cc"))
+                ctx.lineCap = "butt"
+                if (fu && !vorschau) {
+                    ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
+                    ctx.fillRect(mkRx, mkRy, mkRw, mkRh)
+                    ctx.globalAlpha = op
+                }
+                ctx.strokeStyle = mkFarbe
                 ctx.strokeRect(mkRx, mkRy, mkRw, mkRh)
                 if (!vorschau && !_skipText && mkRw > 20) {
                     ctx.save()
@@ -1762,7 +1770,7 @@ Item {
                     ctx.font        = mkFs + "px sans-serif"
                     ctx.textBaseline = "top"
                     ctx.textAlign    = "center"
-                    ctx.fillStyle   = gewaehlt ? "#f0a030" : "#aa44cc"
+                    ctx.fillStyle   = mkFarbe
                     ctx.globalAlpha = op
                     var mkPfx  = mkSaved ? "✓ " : "⬜ "
                     var mkName = mkEd.name || qsTr("Makro")

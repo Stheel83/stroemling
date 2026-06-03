@@ -87,6 +87,157 @@ Item {
         }
         Item { height: 6 }
 
+        Trennlinie {}
+        AbschnittTitel { text: qsTr("ANSCHLUSSTECHNIK") }
+
+        FeldLabel { text: qsTr("Typ") }
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4
+            Repeater {
+                model: [
+                    { key: "schraube",   label: qsTr("Schraube") },
+                    { key: "feder",      label: qsTr("Feder")    },
+                    { key: "push_in",    label: "Push-in"        },
+                    { key: "klemmbügel", label: qsTr("Bügel")    }
+                ]
+                delegate: MiniButton {
+                    theme:   root.theme
+                    label:   modelData.label
+                    breite:  64
+                    aktiv:   (panel.el && panel.el.extraDaten && panel.el.extraDaten.anschlussTyp)
+                             === modelData.key
+                    onKlick: root.extraSetzen("anschlussTyp", modelData.key)
+                }
+            }
+        }
+        Item { height: 6 }
+
+        Row {
+            width: parent.width - 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 8
+
+            // max. Querschnitt
+            Item {
+                width: (parent.width - parent.spacing) / 2
+                height: maxMm2Field.height
+
+                InputField {
+                    id: maxMm2Field
+                    width: parent.width
+                    label: qsTr("max. mm²")
+                    value: (panel.el && panel.el.extraDaten && panel.el.extraDaten.maxMm2 !== undefined)
+                           ? String(panel.el.extraDaten.maxMm2) : ""
+                    theme: root.theme
+                    onCommit: function(t) {
+                        var n = parseFloat(t.replace(",", "."))
+                        root.extraSetzen("maxMm2", isNaN(n) ? 0 : n)
+                    }
+                }
+            }
+
+            // min. Querschnitt
+            Item {
+                width: (parent.width - parent.spacing) / 2
+                height: minMm2Field.height
+
+                InputField {
+                    id: minMm2Field
+                    width: parent.width
+                    label: qsTr("min. mm²")
+                    value: (panel.el && panel.el.extraDaten && panel.el.extraDaten.minMm2 !== undefined)
+                           ? String(panel.el.extraDaten.minMm2) : ""
+                    theme: root.theme
+                    onCommit: function(t) {
+                        var n = parseFloat(t.replace(",", "."))
+                        root.extraSetzen("minMm2", isNaN(n) ? 0 : n)
+                    }
+                }
+            }
+        }
+        Item { height: 4 }
+
+        // Doppelbelegung + AEH als Checkboxen nebeneinander
+        Row {
+            width: parent.width - 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 12
+
+            Rectangle {
+                width: (parent.width - parent.spacing) / 2
+                height: 28; radius: 4
+                color: doppelAktiv ? Qt.alpha(root.theme.accent, 0.15) : root.theme.inputBg
+                border.color: doppelAktiv ? root.theme.accent : root.theme.border
+                border.width: 1
+
+                readonly property bool doppelAktiv: panel.el && panel.el.extraDaten
+                                                    && panel.el.extraDaten.doppelbelegung === true
+
+                Row {
+                    anchors.centerIn: parent; spacing: 6
+                    Rectangle {
+                        width: 13; height: 13; radius: 2
+                        color: parent.parent.doppelAktiv ? root.theme.accent : "transparent"
+                        border.color: parent.parent.doppelAktiv ? root.theme.accent : root.theme.borderLight
+                        border.width: 1
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✓"; font.pixelSize: 9
+                            color: root.theme.textPrimary
+                            visible: parent.parent.parent.doppelAktiv
+                        }
+                    }
+                    Text {
+                        text: qsTr("Doppelbelegung")
+                        font.pixelSize: 10; color: root.theme.textPrimary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.extraSetzen("doppelbelegung", !parent.doppelAktiv)
+                }
+            }
+
+            Rectangle {
+                width: (parent.width - parent.spacing) / 2
+                height: 28; radius: 4
+                color: aehnAktiv ? Qt.alpha(root.theme.accent, 0.15) : root.theme.inputBg
+                border.color: aehnAktiv ? root.theme.accent : root.theme.border
+                border.width: 1
+
+                readonly property bool aehnAktiv: !(panel.el && panel.el.extraDaten
+                                                   && panel.el.extraDaten.aehnErlaubt === false)
+
+                Row {
+                    anchors.centerIn: parent; spacing: 6
+                    Rectangle {
+                        width: 13; height: 13; radius: 2
+                        color: parent.parent.aehnAktiv ? root.theme.accent : "transparent"
+                        border.color: parent.parent.aehnAktiv ? root.theme.accent : root.theme.borderLight
+                        border.width: 1
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✓"; font.pixelSize: 9
+                            color: root.theme.textPrimary
+                            visible: parent.parent.parent.aehnAktiv
+                        }
+                    }
+                    Text {
+                        text: "AEH"
+                        font.pixelSize: 10; color: root.theme.textPrimary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.extraSetzen("aehnErlaubt", !parent.aehnAktiv)
+                }
+            }
+        }
+        Item { height: 8 }
+
         Item {
             width:   parent.width
             height:  root.aktuellRolle === "quelle" ? gaSigCol.implicitHeight : 0

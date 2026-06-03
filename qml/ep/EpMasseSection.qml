@@ -9,7 +9,9 @@ Item {
     required property var theme
 
     width:   parent ? parent.width : 0
-    height:  panel.el ? masseCol.implicitHeight : 0
+    height:  (panel.el && (panel.el.typ === "linie" || panel.el.typ === "rechteck"
+                        || panel.el.typ === "kreis"  || panel.el.typ === "text"))
+             ? masseCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 
@@ -120,32 +122,6 @@ Item {
                 onWertGeaendert: function(v) {
                     if (!panel.el) return
                     panel.canvas.eigenschaftAktualisieren("y2", panel.el.y1 + v * panel.canvas.mmToPx)
-                }
-            }
-        }
-
-        // Symbol: nur X/Y-Position (Größe ist fest durch DB-Definition)
-        Column {
-            width: parent.width; spacing: 0
-            visible: panel.el && panel.el.typ === "symbol"
-                     && panel.el.symbolId !== "querverweis"
-
-            MassField { theme: root.theme;
-                label: "X"; einheit: "mm"
-                wert: panel.el ? +(Math.min(panel.el.x1, panel.el.x2) / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) {
-                    if (!panel.el) return
-                    var w = panel.el.x2 - panel.el.x1
-                    panel.canvas.eigenschaftenSetzen({ x1: v * panel.canvas.mmToPx, x2: v * panel.canvas.mmToPx + w })
-                }
-            }
-            MassField { theme: root.theme;
-                label: "Y"; einheit: "mm"
-                wert: panel.el ? +(Math.min(panel.el.y1, panel.el.y2) / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) {
-                    if (!panel.el) return
-                    var h = panel.el.y2 - panel.el.y1
-                    panel.canvas.eigenschaftenSetzen({ y1: v * panel.canvas.mmToPx, y2: v * panel.canvas.mmToPx + h })
                 }
             }
         }

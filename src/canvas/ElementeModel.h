@@ -79,8 +79,12 @@ signals:
 
 private:
     static std::vector<GrafikElement> parseVariantList(const QVariantList &liste);
+    void invalidateSnapshotCache();
 
     std::vector<GrafikElement>              m_elemente;
     std::vector<std::vector<GrafikElement>> m_undoStack;
     std::vector<std::vector<GrafikElement>> m_redoStack;
+
+    mutable QVariantList m_snapshotCache;
+    mutable bool         m_snapshotDirty = true;
 };

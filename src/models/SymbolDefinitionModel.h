@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QString>
+#include <QHash>
 
 // Bietet QML-Zugriff auf das Primitiv-Symbolsystem (Lesen + Schreiben).
 // Lesen:  primitiveFuerSymbol, hatPrimitive, pinsForSymbol, rolleForSymbol, symbolInfo, alleSymbole
@@ -80,4 +81,12 @@ public:
 
     // Alle Pins eines Symbols löschen.
     Q_INVOKABLE bool pinAlleLoeschen(const QString &symbolId);
+
+    // Cache-Invalidierung nach Bearbeitung im Symboleditor.
+    Q_INVOKABLE void cacheLeeren();
+
+private:
+    // In-Memory-Cache: symbolId → Primitive-Liste (gültig solange keine Schreiboperation stattfindet)
+    mutable QHash<QString, QVariantList> m_primitivCache;
+    mutable QHash<QString, QVariantList> m_pinCache;
 };

@@ -53,6 +53,10 @@ Item {
     property real worldX: 0
     property real worldY: 0
 
+    // Wird von CanvasNavigationHandler während Pan/Zoom gesetzt.
+    // Solange true überspringt maleElement alle fillText/strokeText-Aufrufe (LOD).
+    property bool bewegungAktiv: false
+
     property var  _zoomPanCache:   ({})  // seiteId → {zoom, worldX, worldY}
     property int  _vorherSeiteId:  -1    // seiteId vor dem letzten Seitenwechsel
 
@@ -466,6 +470,7 @@ Item {
     // --------------------------------------------------------
     Canvas {
         id: drawCanvas
+        renderTarget: Canvas.FramebufferObject
         anchors.fill: parent
         visible: root.seiteId >= 0
 
@@ -849,6 +854,7 @@ Item {
                         ctx.stroke()
                         break
                     case "text":
+                        if (root.bewegungAktiv) break
                         ctx.save()
                         ctx.fillStyle    = ctx.strokeStyle
                         ctx.font         = (p.schrift_fett ? "bold " : "") +
@@ -875,8 +881,9 @@ Item {
         }
 
         function maleElement(ctx, el, idx) {
-            var vorschau = (idx < 0)
-            var gewaehlt = (!vorschau && root.auswahl.indexOf(idx) >= 0)
+            var vorschau  = (idx < 0)
+            var gewaehlt  = (!vorschau && root.auswahl.indexOf(idx) >= 0)
+            var _skipText = !vorschau && root.bewegungAktiv
 
             // ── Fehlersuchmodus: Dimm-Faktor ─────────────────────
             var dimFaktor = 1.0
@@ -911,6 +918,15 @@ Item {
             var vy1 = el.y1 * root.zoom + root.worldY
             var vx2 = el.x2 * root.zoom + root.worldX
             var vy2 = el.y2 * root.zoom + root.worldY
+
+            // Viewport-Culling: Elemente außerhalb des Sichtbereichs überspringen.
+            // Puffer 200px für Labels/BMK-Texte die über die Bounding-Box hinausragen.
+            if (!vorschau) {
+                var _margin = 200
+                if (Math.max(vx1, vx2) + _margin < 0        || Math.min(vx1, vx2) - _margin > drawCanvas.width  ||
+                    Math.max(vy1, vy2) + _margin < 0        || Math.min(vy1, vy2) - _margin > drawCanvas.height)
+                    return
+            }
 
             ctx.globalAlpha = vorschau ? 0.55 : op
 
@@ -1081,8 +1097,10 @@ Item {
                     ctx.textAlign    = ctxAlign
                     ctx.fillStyle    = txtColor
                     ctx.globalAlpha  = op
-                    for (var li2 = 0; li2 < txtLines.length; li2++)
-                        ctx.fillText(txtLines[li2], 0, li2 * txtLineH)
+                    if (!_skipText) {
+                        for (var li2 = 0; li2 < txtLines.length; li2++)
+                            ctx.fillText(txtLines[li2], 0, li2 * txtLineH)
+                    }
                     // Selektion-Rahmen (im rotierten Koordinatensystem).
                     // Bei –90° (senkrecht) sind Breite und Höhe im Bildschirmraum
                     // getauscht; der Rahmen bleibt im lokalen (rotierten) Raum korrekt.
@@ -1158,7 +1176,7 @@ Item {
                     ctx.strokeRect(nRx, nRy, nRw, nRh)
                     // Text mit automatischem Zeilenumbruch
                     var nText = el.textInhalt || ""
-                    if (nText !== "") {
+                    if (nText !== "" && !_skipText) {
                         var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
                         var nLineH = nFsPx * 1.3
                         var nPad   = Math.max(4, nFsPx * 0.35)
@@ -1248,7 +1266,7 @@ Item {
                     // 0°/180° → über dem Symbol  (Anker: Oberkante, Mitte X)
                     // 90°/270° → links neben dem Symbol (Anker: linke Kante, Mitte Y)
                     // Verbindungshelfer erhalten keine Beschriftung.
-                    if (!vorschau) {
+                    if (!vorschau && !_skipText) {
                         var bmkSid = el.symbolId || ""
                         var verbHelper = bmkSid === "winkel" || bmkSid === "treffpunkt" || bmkSid === "treffpunkt_l"
                                       || bmkSid === "geraeteanschluss" || bmkSid === "unterbrechung"
@@ -1380,7 +1398,7 @@ Item {
                     // ── HF-Querverweis-Hinweis (Kontaktspiegel) ──────────
                     // Erscheint nur bei Nebenfunktionen auf einer anderen Seite
                     // als die Hauptfunktion.
-                    if (!vorschau && !verbHelper && (el.betriebsmittelId || 0) > 0) {
+                    if (!vorschau && !_skipText && !verbHelper && (el.betriebsmittelId || 0) > 0) {
                         var _hfRef = root._hfReferenzMap[el.betriebsmittelId]
                         if (_hfRef
                                 && _hfRef.hauptElementId !== (el.id || -1)
@@ -1414,7 +1432,7 @@ Item {
                     }
 
                     // Querverweis: Signalname + Partnerseite – BMK-Stil
-                    if (!vorschau && el.symbolId === "querverweis") {
+                    if (!vorschau && !_skipText && el.symbolId === "querverweis") {
                         var qed     = el.extraDaten || {}
                         var qSn     = qed.signalname || ""
                         var _qpInfo  = root._querverweisPartnerMap[idx]
@@ -1466,7 +1484,7 @@ Item {
                     }
 
                     // Geräteanschluss: Anschlusskennzeichnung, ggf. mit GK-BMK (z.B. "-X1:L1")
-                    if (!vorschau && el.symbolId === "geraeteanschluss") {
+                    if (!vorschau && !_skipText && el.symbolId === "geraeteanschluss") {
                         var gaed  = el.extraDaten || {}
                         var gaAnk = gaed.anschlusskennzeichnung || ""
                         if (gaAnk !== "") {
@@ -1517,7 +1535,7 @@ Item {
                     }
 
                     // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
-                    if (!vorschau && el.symbolId === "klemme_anschluss") {
+                    if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss") {
                         var kaed    = el.extraDaten || {}
                         var kaAnz   = kaed.anschlussBezeichnung || ""
                         var kaBmk   = kaed.bmk || ""
@@ -1589,7 +1607,7 @@ Item {
 
                     // Aderdefinitionspunkt: Textblock – Positionierung wie BMK an Symbolen
                     // 0° (waagerecht): Text über dem Symbol | 90° (senkrecht): Text links
-                    if (!vorschau && el.symbolId === "aderdefinition") {
+                    if (!vorschau && !_skipText && el.symbolId === "aderdefinition") {
                         var aed = el.extraDaten || {}
                         var adpZeilen = []
                         if (aed.bezeichnung) adpZeilen.push({ text: aed.bezeichnung, bold: true })
@@ -1656,7 +1674,7 @@ Item {
                 ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
                 drawCanvas.roundRect(ctx, gkRx, gkRy, gkRw, gkRh, gkR)
                 ctx.stroke()
-                if (!vorschau && gkRw > 20 && gkRh > 12) {
+                if (!vorschau && !_skipText && gkRw > 20 && gkRh > 12) {
                     var gkEd  = el.extraDaten || {}
                     var gkBmk = gkEd.bmk        || ""
                     var gkBez = gkEd.bezeichnung || ""
@@ -1692,7 +1710,7 @@ Item {
                 ctx.lineCap    = "butt"
                 ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
                 ctx.strokeRect(skRx, skRy, skRw, skRh)
-                if (!vorschau && skRw > 20) {
+                if (!vorschau && !_skipText && skRw > 20) {
                     var skEd  = el.extraDaten || {}
                     var skAnl = skEd.anlage      || ""
                     var skOrt = skEd.ort         || ""
@@ -1737,7 +1755,7 @@ Item {
                 ctx.lineWidth   = mkSaved ? 1.5 : 1.0
                 ctx.strokeStyle = gewaehlt ? "#f0a030" : "#aa44cc"
                 ctx.strokeRect(mkRx, mkRy, mkRw, mkRh)
-                if (!vorschau && mkRw > 20) {
+                if (!vorschau && !_skipText && mkRw > 20) {
                     ctx.save()
                     ctx.setLineDash([])
                     var mkFs = Math.max(5, Math.round(2.2 * root.mmToPx * root.zoom))
@@ -1775,7 +1793,7 @@ Item {
             }
 
             // Debug: Element-Beschriftung (Strg+Shift+D)
-            if (root.debug && !vorschau) {
+            if (root.debug && !vorschau && !_skipText) {
                 ctx.save()
                 var dbgLabel = idx + ": " + el.typ
                 if (el.typ === "symbol") dbgLabel += "/" + (el.symbolId || "?")
@@ -2332,10 +2350,12 @@ Item {
                     ly = vy + ny * labelAbstand
                     ctx.textAlign = nx >= 0 ? "left" : "right"
                 }
-                ctx.strokeStyle = "#000000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"
-                ctx.strokeText(labelText, lx, ly)
-                ctx.fillStyle = klColor
-                ctx.fillText(labelText, lx, ly)
+                if (!root.bewegungAktiv) {
+                    ctx.strokeStyle = "#000000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"
+                    ctx.strokeText(labelText, lx, ly)
+                    ctx.fillStyle = klColor
+                    ctx.fillText(labelText, lx, ly)
+                }
             }
             ctx.restore()
         }
@@ -2523,7 +2543,7 @@ Item {
                         ctx.stroke()
                     }
 
-                    if (sAdps.length >= 4) {
+                    if (sAdps.length >= 4 && !root.bewegungAktiv) {
                         var mvx = (seg.x1 + seg.x2) / 2 * root.zoom + root.worldX
                         var mvy = (seg.y1 + seg.y2) / 2 * root.zoom + root.worldY
                         ctx.save()

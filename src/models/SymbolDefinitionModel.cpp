@@ -19,6 +19,10 @@ SymbolDefinitionModel::SymbolDefinitionModel(QObject *parent)
 
 QVariantList SymbolDefinitionModel::primitiveFuerSymbol(const QString &symbolId) const
 {
+    auto it = m_primitivCache.find(symbolId);
+    if (it != m_primitivCache.end())
+        return it.value();
+
     QVariantList result;
     QSqlQuery q;
     q.prepare(R"(
@@ -59,6 +63,7 @@ QVariantList SymbolDefinitionModel::primitiveFuerSymbol(const QString &symbolId)
         m["linienart"]             = q.value(17).toString();
         result.append(m);
     }
+    m_primitivCache.insert(symbolId, result);
     return result;
 }
 
@@ -74,6 +79,10 @@ bool SymbolDefinitionModel::hatPrimitive(const QString &symbolId) const
 
 QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
 {
+    auto it = m_pinCache.find(symbolId);
+    if (it != m_pinCache.end())
+        return it.value();
+
     QVariantList result;
     QSqlQuery q;
     q.prepare(R"(
@@ -103,6 +112,7 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
         m["kontext"]   = q.value(7).toString();
         result.append(m);
     }
+    m_pinCache.insert(symbolId, result);
     return result;
 }
 
@@ -201,7 +211,15 @@ bool SymbolDefinitionModel::symbolLoeschen(const QString &symbolId)
         qWarning() << "symbolLoeschen:" << q.lastError().text();
         return false;
     }
+    m_primitivCache.remove(symbolId);
+    m_pinCache.remove(symbolId);
     return q.numRowsAffected() > 0;
+}
+
+void SymbolDefinitionModel::cacheLeeren()
+{
+    m_primitivCache.clear();
+    m_pinCache.clear();
 }
 
 int SymbolDefinitionModel::primitivHinzufuegen(const QString &symbolId, const QVariantMap &daten)
@@ -244,6 +262,7 @@ int SymbolDefinitionModel::primitivHinzufuegen(const QString &symbolId, const QV
         qWarning() << "primitivHinzufuegen:" << q.lastError().text();
         return -1;
     }
+    m_primitivCache.remove(symbolId);
     return q.lastInsertId().toInt();
 }
 
@@ -256,6 +275,7 @@ bool SymbolDefinitionModel::primitivAlleLoeschen(const QString &symbolId)
         qWarning() << "primitivAlleLoeschen:" << q.lastError().text();
         return false;
     }
+    m_primitivCache.remove(symbolId);
     return true;
 }
 
@@ -278,6 +298,7 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
         qWarning() << "pinHinzufuegen:" << q.lastError().text();
         return -1;
     }
+    m_pinCache.remove(symbolId);
     return q.lastInsertId().toInt();
 }
 
@@ -290,6 +311,7 @@ bool SymbolDefinitionModel::pinAlleLoeschen(const QString &symbolId)
         qWarning() << "pinAlleLoeschen:" << q.lastError().text();
         return false;
     }
+    m_pinCache.remove(symbolId);
     return true;
 }
 

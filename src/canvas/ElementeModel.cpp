@@ -59,6 +59,7 @@ void ElementeModel::laden(int seiteId)
     m_elemente.clear();
     m_undoStack.clear();
     m_redoStack.clear();
+    invalidateSnapshotCache();
 
     QSqlQuery q;
     q.prepare(R"(
@@ -191,6 +192,7 @@ std::vector<GrafikElement> ElementeModel::parseVariantList(const QVariantList &l
 void ElementeModel::fromVariantList(const QVariantList &liste)
 {
     m_elemente = parseVariantList(liste);
+    invalidateSnapshotCache();
     emit geaendert();
 }
 
@@ -199,16 +201,26 @@ void ElementeModel::leeren()
     m_elemente.clear();
     m_undoStack.clear();
     m_redoStack.clear();
+    invalidateSnapshotCache();
     emit geaendert();
+}
+
+void ElementeModel::invalidateSnapshotCache()
+{
+    m_snapshotDirty = true;
+    m_snapshotCache.clear();
 }
 
 QVariantList ElementeModel::snapshot() const
 {
-    QVariantList result;
-    result.reserve(static_cast<int>(m_elemente.size()));
+    if (!m_snapshotDirty)
+        return m_snapshotCache;
+    m_snapshotCache.clear();
+    m_snapshotCache.reserve(static_cast<int>(m_elemente.size()));
     for (const GrafikElement &el : m_elemente)
-        result.append(el.toVariantMap());
-    return result;
+        m_snapshotCache.append(el.toVariantMap());
+    m_snapshotDirty = false;
+    return m_snapshotCache;
 }
 
 QVariantMap ElementeModel::element(int idx) const
@@ -257,6 +269,7 @@ void ElementeModel::eigenschaftSetzen(int idx, const QString &key, const QVarian
 {
     if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) return;
     applyField(m_elemente[idx], key, value);
+    invalidateSnapshotCache();
     emit geaendert();
 }
 
@@ -266,6 +279,7 @@ void ElementeModel::elementAktualisieren(int idx, const QVariantMap &felder)
     GrafikElement &el = m_elemente[idx];
     for (auto it = felder.constBegin(); it != felder.constEnd(); ++it)
         applyField(el, it.key(), it.value());
+    invalidateSnapshotCache();
     emit geaendert();
 }
 
@@ -289,6 +303,7 @@ void ElementeModel::undo()
     m_redoStack.push_back(std::move(m_elemente));
     m_elemente = std::move(m_undoStack.back());
     m_undoStack.pop_back();
+    invalidateSnapshotCache();
     emit geaendert();
 }
 
@@ -298,6 +313,7 @@ void ElementeModel::redo()
     m_undoStack.push_back(std::move(m_elemente));
     m_elemente = std::move(m_redoStack.back());
     m_redoStack.pop_back();
+    invalidateSnapshotCache();
     emit geaendert();
 }
 
@@ -320,6 +336,7 @@ int ElementeModel::gruppeErstellen(const QVariantList &indizes)
         if (idx >= 0 && idx < static_cast<int>(m_elemente.size()))
             m_elemente[idx].gruppeId = neueId;
     }
+    invalidateSnapshotCache();
     emit geaendert();
     return neueId;
 }
@@ -329,6 +346,7 @@ void ElementeModel::gruppeAufloesen(int gruppeId)
     if (gruppeId < 0) return;
     for (auto &el : m_elemente)
         if (el.gruppeId == gruppeId) el.gruppeId = -1;
+    invalidateSnapshotCache();
     emit geaendert();
 }
 

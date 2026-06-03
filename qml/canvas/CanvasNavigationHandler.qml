@@ -9,6 +9,17 @@ Item {
 
     required property var canvas
 
+    // Settle-Timer: 200 ms nach dem letzten Bewegungsevent → voller Repaint mit Text
+    Timer {
+        id: settleTimer
+        interval: 200
+        repeat:   false
+        onTriggered: {
+            canvas.bewegungAktiv = false
+            canvas.repaintAll()
+        }
+    }
+
     // --------------------------------------------------------
     // Pan – Rechts-/Mittelklick
     // --------------------------------------------------------
@@ -18,8 +29,13 @@ Item {
         enabled: canvas.seiteId >= 0
         acceptedButtons: Qt.RightButton | Qt.MiddleButton
         property real startX: 0; property real startY: 0
-        onActiveChanged: { if (active) { startX = canvas.worldX; startY = canvas.worldY } }
+        onActiveChanged: {
+            if (active) { startX = canvas.worldX; startY = canvas.worldY }
+            else settleTimer.restart()
+        }
         onTranslationChanged: {
+            canvas.bewegungAktiv = true
+            settleTimer.restart()
             canvas.worldX = startX + translation.x
             canvas.worldY = startY + translation.y
             canvas.repaintAll()
@@ -230,6 +246,26 @@ Item {
     // --------------------------------------------------------
     // Zoom – Mausrad + Touchpad-Scroll
     // --------------------------------------------------------
+    // Pending-Zustand für akkumulierte Zoom-Schritte zwischen zwei Frames.
+    // Bei schnellen Touchpad-Gesten kommen viele Events pro Frame; wir
+    // akkumulieren den Zoom-Faktor und rendern erst beim Timer-Auslöser.
+    property real _pendingZoom: -1
+    property real _pendingWx:    0
+    property real _pendingWy:    0
+
+    Timer {
+        id: zoomFlushTimer
+        interval: 16   // ~1 Frame bei 60 fps
+        repeat:   false
+        onTriggered: {
+            canvas.worldX = root._pendingWx
+            canvas.worldY = root._pendingWy
+            canvas.zoom   = root._pendingZoom
+            canvas.repaintAll()
+            root._pendingZoom = -1
+        }
+    }
+
     WheelHandler {
         enabled: canvas.seiteId >= 0
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
@@ -237,11 +273,17 @@ Item {
             var delta = event.angleDelta.y !== 0 ? event.angleDelta.y
                                                  : event.pixelDelta.y * 3
             if (delta === 0) return
-            var factor  = delta > 0 ? 1.12 : (1 / 1.12)
-            var newZoom = Math.max(canvas.minZoom, Math.min(canvas.maxZoom, canvas.zoom * factor))
-            canvas.worldX = event.x - (event.x - canvas.worldX) * (newZoom / canvas.zoom)
-            canvas.worldY = event.y - (event.y - canvas.worldY) * (newZoom / canvas.zoom)
-            canvas.zoom   = newZoom; canvas.repaintAll()
+            canvas.bewegungAktiv = true
+            settleTimer.restart()
+            var factor   = delta > 0 ? 1.12 : (1 / 1.12)
+            var baseZoom = root._pendingZoom > 0 ? root._pendingZoom : canvas.zoom
+            var baseWx   = root._pendingZoom > 0 ? root._pendingWx   : canvas.worldX
+            var baseWy   = root._pendingZoom > 0 ? root._pendingWy   : canvas.worldY
+            var newZoom  = Math.max(canvas.minZoom, Math.min(canvas.maxZoom, baseZoom * factor))
+            root._pendingWx   = event.x - (event.x - baseWx) * (newZoom / baseZoom)
+            root._pendingWy   = event.y - (event.y - baseWy) * (newZoom / baseZoom)
+            root._pendingZoom = newZoom
+            if (!zoomFlushTimer.running) zoomFlushTimer.start()
         }
     }
 
@@ -253,8 +295,13 @@ Item {
         target: null
         enabled: canvas.seiteId >= 0
         property real startZoom: 1.0
-        onActiveChanged: { if (active) startZoom = canvas.zoom }
+        onActiveChanged: {
+            if (active) startZoom = canvas.zoom
+            else settleTimer.restart()
+        }
         onActiveScaleChanged: {
+            canvas.bewegungAktiv = true
+            settleTimer.restart()
             var newZoom = Math.max(canvas.minZoom, Math.min(canvas.maxZoom, startZoom * activeScale))
             var cx = centroid.position.x
             var cy = centroid.position.y

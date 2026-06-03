@@ -9,7 +9,9 @@ Item {
     required property var theme
 
     width:   parent ? parent.width : 0
-    height:  (panel.el && panel.el.typ === "rechteck") ? formCol.implicitHeight : 0
+    height:  (panel.el && (panel.el.typ === "rechteck"     || panel.el.typ === "geraetekasten"
+                        || panel.el.typ === "strukturkasten" || panel.el.typ === "makrokasten"))
+             ? formCol.implicitHeight : 0
     visible: height > 0
     clip:    true
 

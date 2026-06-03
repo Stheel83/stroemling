@@ -1878,6 +1878,8 @@ Item {
             if (sig === "input_analog")    return "#88bbff"
             if (sig === "output_analog")   return "#66ddaa"
             if (sig === "kommunikation")   return "#aa44cc"
+            if (sig === "temp")            return "#e07030"
+            if (sig === "stepper")         return "#20a890"
             if (sig === "konflikt")        return "#ff2200"
             if (sig === "unversorgt")      return "#ffaa00"
             return "#4a9eff"   // neutral

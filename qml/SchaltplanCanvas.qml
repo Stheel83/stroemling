@@ -38,6 +38,10 @@ Item {
     signal querverweisNavigieren(int seiteId)
     signal gkSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal makroListeGeaendert()
+
+    function bmElementSprungAnfordern(seiteId, blattnr, seiteBez, wx, wy) {
+        gkSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
+    }
     signal drcKlick()
 
     property bool drcAktiv: false

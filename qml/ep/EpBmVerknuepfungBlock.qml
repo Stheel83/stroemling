@@ -189,45 +189,115 @@ Column {
                 }
             }
 
-            // ── Mitglieder-Liste ──────────────────────
+            // ── Kontaktspiegel ────────────────────────
             Column {
                 visible: verknuepfungItem.bmId > 0
                 width: parent.width
-                spacing: 1
+                spacing: 0
+
+                // Header
+                Rectangle {
+                    width: parent.width; height: 20
+                    color: theme.surfaceDeep; radius: 2
+                    Row {
+                        anchors { fill: parent; leftMargin: 7; rightMargin: 4 }
+                        spacing: 0
+                        Text {
+                            width: 56; height: parent.height
+                            text: qsTr("Anschluss")
+                            font.pixelSize: 9; font.weight: Font.Medium
+                            color: theme.borderLight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            width: 52; height: parent.height
+                            text: qsTr("Typ")
+                            font.pixelSize: 9; font.weight: Font.Medium
+                            color: theme.borderLight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            width: 36; height: parent.height
+                            text: qsTr("Blatt")
+                            font.pixelSize: 9; font.weight: Font.Medium
+                            color: theme.borderLight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+
                 Repeater {
                     model: verknuepfungItem.bmId > 0
                            ? db.betriebsmittelMitglieder(verknuepfungItem.bmId) : []
                     delegate: Rectangle {
-                        width: verknuepfungItem.width; height: 22
+                        id: ksZeile
+                        width: verknuepfungItem.width; height: 24
                         color: modelData.id === (panel.el ? panel.el.id : -1)
-                               ? theme.activeItemAlt : "transparent"
+                               ? theme.activeItemAlt : (zeileMa.containsMouse ? theme.hover : "transparent")
                         radius: 2
+
+                        MouseArea { id: zeileMa; anchors.fill: parent; hoverEnabled: true }
+
                         Row {
-                            anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
-                            spacing: 5
+                            anchors { left: parent.left; right: parent.right
+                                      leftMargin: 4; rightMargin: 4
+                                      verticalCenter: parent.verticalCenter }
+                            spacing: 0
+
                             Rectangle {
                                 width: 3; height: 14; radius: 1
+                                anchors.verticalCenter: parent.verticalCenter
                                 color: modelData.id === (panel.el ? panel.el.id : -1)
                                        ? theme.accent : "transparent"
-                                anchors.verticalCenter: parent.verticalCenter
                             }
+
                             Text {
-                                text: modelData.istHauptfunktion ? "★" : "◆"
-                                font.pixelSize: 9
-                                color: modelData.istHauptfunktion ? theme.accent : theme.borderLight
-                                anchors.verticalCenter: parent.verticalCenter
+                                width: 56; height: ksZeile.height
+                                verticalAlignment: Text.AlignVCenter
+                                text: modelData.istHauptfunktion
+                                      ? "★ HF"
+                                      : (modelData.anschlusskennzeichnung || "–")
+                                font.pixelSize: 10; font.bold: modelData.istHauptfunktion
+                                color: modelData.istHauptfunktion ? theme.accent : theme.textMuted
+                                elide: Text.ElideRight
                             }
+
                             Text {
+                                width: 52; height: ksZeile.height
+                                verticalAlignment: Text.AlignVCenter
                                 text: modelData.symbolId || modelData.typ || "–"
                                 font.pixelSize: 9; color: theme.borderLight
-                                width: 52; elide: Text.ElideRight
-                                anchors.verticalCenter: parent.verticalCenter
+                                elide: Text.ElideRight
                             }
+
                             Text {
+                                width: 28; height: ksZeile.height
+                                verticalAlignment: Text.AlignVCenter
                                 text: modelData.blattnummer || "–"
                                 font.pixelSize: 9; color: theme.textMuted
-                                width: 26; elide: Text.ElideRight
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                width: 20; height: 18; radius: 3
                                 anchors.verticalCenter: parent.verticalCenter
+                                color: sprungMa.containsMouse ? theme.accent : "transparent"
+                                border.color: sprungMa.containsMouse ? theme.accent : theme.border
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "→"; font.pixelSize: 10
+                                    color: sprungMa.containsMouse ? "#ffffff" : theme.accent
+                                }
+                                MouseArea {
+                                    id: sprungMa; anchors.fill: parent
+                                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: panel.canvas.bmElementSprungAnfordern(
+                                        modelData.seiteId,
+                                        modelData.blattnummer,
+                                        modelData.seiteBezeichnung,
+                                        modelData.weltX,
+                                        modelData.weltY)
+                                }
                             }
                         }
                     }

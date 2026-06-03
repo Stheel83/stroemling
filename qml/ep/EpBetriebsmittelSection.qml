@@ -107,6 +107,16 @@ Item {
         }
     }
 
+    // Rolle des aktuellen Elements im Betriebsmittel
+    readonly property int  _bmId: (panel.el && (panel.el.betriebsmittelId || 0) > 0)
+                                  ? panel.el.betriebsmittelId : 0
+    readonly property bool _istHf: {
+        if (_bmId === 0) return false
+        var info = db.betriebsmittelInfo(_bmId)
+        return (info.hauptElementId || 0) === (panel.el ? panel.el.id : -1)
+    }
+    readonly property bool _istNf: _bmId > 0 && !_istHf
+
     Column {
         id: bmkCol
         width: parent.width
@@ -124,14 +134,19 @@ Item {
 
             Rectangle {
                 width: parent.width - 36
-                height: 28; color: theme.inputBg; radius: 3
-                border.color: bmkEdit.activeFocus ? theme.accent : theme.border
+                height: 28
+                color:  root._istNf ? theme.surfaceDeep : theme.inputBg
+                radius: 3
+                border.color: bmkEdit.activeFocus ? theme.accent
+                              : (root._istNf ? theme.divider : theme.border)
 
                 TextInput {
                     id: bmkEdit
                     anchors { fill: parent; margins: 5 }
-                    color: theme.textSecondary; font.pixelSize: 11
+                    color: root._istNf ? theme.borderLight : theme.textSecondary
+                    font.pixelSize: 11
                     verticalAlignment: TextInput.AlignVCenter
+                    readOnly: root._istNf
 
                     text: (panel.el && panel.el.extraDaten)
                           ? (panel.el.extraDaten.bmk || "") : ""
@@ -140,26 +155,42 @@ Item {
                         value: (panel.el && panel.el.extraDaten)
                                ? (panel.el.extraDaten.bmk || "") : ""
                     }
-                    onEditingFinished: root.extraSetzen("bmk", text.trim())
+                    onEditingFinished: {
+                        var kz = text.trim()
+                        root.extraSetzen("bmk", kz)
+                        if (root._istHf && root._bmId > 0 && kz !== "") {
+                            db.betriebsmittelKzSetzen(root._bmId, kz)
+                            panel.canvas.seiteNeuLaden()
+                        }
+                    }
                     Keys.onEscapePressed: focus = false
+                }
+
+                // Schloss-Icon wenn NF (read-only)
+                Text {
+                    anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
+                    text: "🔒"; font.pixelSize: 9; opacity: 0.5
+                    visible: root._istNf
                 }
             }
 
             Rectangle {
                 width: 28; height: 28; radius: 3
                 color: autoMa.containsMouse ? theme.border : theme.inputBg
-                border.color: theme.border
+                border.color: root._istNf ? theme.divider : theme.border
+                opacity: root._istNf ? 0.4 : 1.0
                 Text {
                     anchors.centerIn: parent
                     text: "#"; color: theme.accent; font.pixelSize: 13; font.bold: true
                 }
-                ToolTip.visible: autoMa.containsMouse
+                ToolTip.visible: autoMa.containsMouse && !root._istNf
                 ToolTip.text: qsTr("Nächste freie Nummer vorschlagen")
                 ToolTip.delay: 400
                 MouseArea {
                     id: autoMa
                     anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape: root._istNf ? Qt.ArrowCursor : Qt.PointingHandCursor
+                    enabled: !root._istNf
                     onClicked: {
                         if (panel.canvas.projektId < 0) return
                         var bmk = (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmk)
@@ -168,6 +199,8 @@ Item {
                         if (!praefix) praefix = "-?"
                         var vorschlag = db.naechsteBmkNummer(panel.canvas.projektId, praefix)
                         root.extraSetzen("bmk", vorschlag)
+                        if (root._istHf && root._bmId > 0)
+                            db.betriebsmittelKzSetzen(root._bmId, vorschlag)
                     }
                 }
             }

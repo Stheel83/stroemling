@@ -496,12 +496,14 @@ QVariantList Database::betriebsmittelMitglieder(int betriebsmittelId)
     QVariantList result;
     QSqlQuery q(m_db);
     q.prepare(
-        "SELECT g.id, s.blattnummer, s.bezeichnung, g.extra_daten, g.symbol_id, g.typ "
+        "SELECT g.id, s.blattnummer, s.bezeichnung, g.extra_daten, g.symbol_id, g.typ,"
+        "       s.id, (g.x1+g.x2)/2.0, (g.y1+g.y2)/2.0 "
         "FROM grafik_element g "
         "JOIN seite s ON s.id = g.seite_id "
         "WHERE g.betriebsmittel_id = :bid "
-        "ORDER BY s.blattnummer, g.id");
+        "ORDER BY (g.id = :hid) DESC, s.blattnummer, g.id");
     q.bindValue(":bid", betriebsmittelId);
+    q.bindValue(":hid", hauptId);
     if (!q.exec()) return result;
     while (q.next()) {
         QVariantMap m;
@@ -511,16 +513,23 @@ QVariantList Database::betriebsmittelMitglieder(int betriebsmittelId)
         m[QStringLiteral("seiteBezeichnung")] = q.value(2).toString();
         m[QStringLiteral("symbolId")]         = q.value(4).toString();
         m[QStringLiteral("typ")]              = q.value(5).toString();
+        m[QStringLiteral("seiteId")]          = q.value(6).toInt();
+        m[QStringLiteral("weltX")]            = q.value(7).toDouble();
+        m[QStringLiteral("weltY")]            = q.value(8).toDouble();
         m[QStringLiteral("istHauptfunktion")] = (hauptId > 0 && gid == hauptId);
         QString extra = q.value(3).toString();
-        QString bmk;
+        QString bmk, anschlusskennzeichnung;
         if (!extra.isEmpty()) {
             QJsonParseError err;
             auto doc = QJsonDocument::fromJson(extra.toUtf8(), &err);
-            if (!err.error && doc.isObject())
-                bmk = doc.object()[QStringLiteral("bmk")].toString();
+            if (!err.error && doc.isObject()) {
+                auto obj = doc.object();
+                bmk = obj[QStringLiteral("bmk")].toString();
+                anschlusskennzeichnung = obj[QStringLiteral("anschlusskennzeichnung")].toString();
+            }
         }
-        m[QStringLiteral("bmk")] = bmk;
+        m[QStringLiteral("bmk")]                   = bmk;
+        m[QStringLiteral("anschlusskennzeichnung")] = anschlusskennzeichnung;
         result.append(m);
     }
     return result;
@@ -610,6 +619,19 @@ bool Database::betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int eleme
         return false;
     }
     return true;
+}
+
+bool Database::betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz)
+{
+    QSqlQuery upd(m_db);
+    upd.prepare("UPDATE betriebsmittel SET betriebsmittel_kz = :kz WHERE id = :id");
+    upd.bindValue(":kz", neuKz);
+    upd.bindValue(":id", betriebsmittelId);
+    if (!upd.exec()) {
+        qWarning() << "betriebsmittelKzSetzen Fehler:" << upd.lastError().text();
+        return false;
+    }
+    return betriebsmittelBmkSynchronisieren(betriebsmittelId);
 }
 
 bool Database::betriebsmittelBmkSynchronisieren(int betriebsmittelId)

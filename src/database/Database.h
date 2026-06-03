@@ -219,6 +219,7 @@ public:
     Q_INVOKABLE QString      betriebsmittelKz(int betriebsmittelId);
     Q_INVOKABLE QVariantMap  betriebsmittelInfo(int betriebsmittelId);
     Q_INVOKABLE bool         betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int elementId);
+    Q_INVOKABLE bool         betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz);
     Q_INVOKABLE bool         betriebsmittelBmkSynchronisieren(int betriebsmittelId);
     Q_INVOKABLE QVariantList betriebsmittelHfListe(int projektId);
 

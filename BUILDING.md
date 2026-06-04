@@ -181,11 +181,20 @@ Danach ist `deploy\` ein eigenständiger Ordner, der auf jedem Windows-11-Rechne
 
 ### Datenpfad unter Windows
 
-Die Datenbank liegt unter:
+App-Datenbanken (Launcher, Wiki, Makros):
 ```
-%LOCALAPPDATA%\Strömling Design\stroemling.db
+%LOCALAPPDATA%\Strömling Design\
+  stroemling.db   ← Launcher-DB (zuletzt geöffnete Projekte)
+  wiki.db
+  makros.db
 ```
 Typischerweise: `C:\Users\<Benutzername>\AppData\Local\Strömling Design\`
+
+Projekte werden als Ordner gespeichert (frei wählbarer Ort):
+```
+[beliebiger Ort]\MeinProjekt\
+  projekt.strl    ← Projektdatenbank (alle Schaltplandaten)
+```
 
 Die Log-Datei liegt neben der `stroemling_app.exe`.
 
@@ -228,6 +237,120 @@ Compress-Archive -Path deploy\* -DestinationPath Stroemling-Design-0.5-win64.zip
 ```
 
 Der Nutzer entpackt das ZIP und startet `stroemling_app.exe` — fertig.
+
+---
+
+## Cross-Kompilierung: Windows-Build unter Linux (openSUSE Tumbleweed)
+
+Dieses Verfahren erzeugt eine `stroemling_app.exe` direkt auf dem Linux-Rechner,
+ohne dass Windows benötigt wird.
+
+**Werkzeug:** [MXE (M cross environment)](https://mxe.cc) baut einmalig den
+MinGW-w64-Compiler und Qt6 für Windows aus dem Quellcode.
+
+**Speicherbedarf:** ca. 15–20 GB für den MXE-Baum mit Qt6.  
+**Ersteinrichtungszeit:** 1–3 Stunden (danach Strömling-Builds in ~5 Minuten).
+
+---
+
+### Schritt 1: Abhängigkeiten installieren
+
+```bash
+sudo zypper install -y \
+  git autoconf automake bison bzip2 cmake flex \
+  gcc gcc-c++ gettext-tools gperf intltool libtool make \
+  nasm p7zip patch perl python3 ruby sed unzip wget xz \
+  libffi-devel libjpeg8-devel libpng16-devel
+```
+
+---
+
+### Schritt 2: MXE klonen und Qt6 bauen (einmalig)
+
+```bash
+git clone https://github.com/mxe/mxe.git ~/mxe
+cd ~/mxe
+
+# Qt6 für Windows (shared DLLs) + benötigte Module bauen
+# Dauer: 1–3 Stunden je nach CPU
+make -j$(nproc) MXE_TARGETS=x86_64-w64-mingw32.shared \
+  qt6-qtbase \
+  qt6-qtdeclarative \
+  qt6-qttools \
+  qt6-qtsvg
+```
+
+Danach MXE dauerhaft in den PATH aufnehmen:
+
+```bash
+echo 'export PATH="$HOME/mxe/usr/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+### Schritt 3: Strömling für Windows bauen
+
+```bash
+# Im Projektverzeichnis (stroemling/)
+mkdir -p build-win && cd build-win
+
+x86_64-w64-mingw32.shared-cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+```
+
+Das fertige Binary liegt unter `build-win/stroemling_app.exe`.
+
+---
+
+### Schritt 4: Windows-Deploy-Paket erstellen
+
+Die `.exe` allein startet nicht – Qt-DLLs und QML-Module müssen daneben liegen.
+`windeployqt6.exe` (aus dem MXE-Build) übernimmt das automatisch, wenn Wine
+installiert ist:
+
+```bash
+sudo zypper install -y wine
+
+MXE_BIN="$HOME/mxe/usr/x86_64-w64-mingw32.shared/qt6/bin"
+
+mkdir -p deploy-win
+cp build-win/stroemling_app.exe deploy-win/
+
+# windeployqt6 via Wine ausführen
+WINEPREFIX=/tmp/wine-deploy WINEPATH="$MXE_BIN" \
+  wine "$MXE_BIN/windeployqt6.exe" \
+    --qmldir qml \
+    --release \
+    deploy-win/stroemling_app.exe
+```
+
+> **Hinweis:** Schlägt `windeployqt6` unter Wine fehl, kann die `.exe` alternativ
+> auf einem Windows-Rechner mit dem nativen `windeployqt` deployed werden
+> (Abschnitt „Windows-Paket für Nutzer erstellen" weiter unten).
+
+---
+
+### Schritt 5: ZIP für Nutzer erstellen
+
+```bash
+zip -r Stroemling-Design-win64.zip deploy-win/
+```
+
+---
+
+### Tipps
+
+- **Erneuter Strömling-Build** (nach Codeänderung): nur Schritt 3 wiederholen –
+  MXE und Qt6 müssen nicht neu gebaut werden.
+- **Build nach Absturz/Unterbrechung fortsetzen:** `make` ist inkrementell –
+  einfach erneut `make -j$(nproc)` in `build-win/` ausführen. Bereits kompilierte
+  Objektdateien werden übersprungen. Bei Linker-Fehlern (korrumpierte `.o`-Dateien)
+  vorher `make clean` ausführen.
+- **System friert beim Build ein:** `make -j$(nproc)` lastet alle Kerne voll aus.
+  Alternativ `make -j4` verwenden – deutlich weniger Last, Build dauert etwas länger.
+- **MXE aktualisieren:** `cd ~/mxe && git pull && make -j$(nproc) MXE_TARGETS=... qt6-qtbase ...`
+- **Welche MXE-Version Qt6 hat:** `cat ~/mxe/src/qt6-qtbase.mk | grep PKG_VERSION`
 
 ---
 

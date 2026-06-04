@@ -1,6 +1,6 @@
 # Strömling Design – Bauanleitung
 
-## Voraussetzungen
+## Voraussetzungen (Linux)
 
 - Qt 6.5 oder neuer (inkl. Qt Quick, Qt Quick Controls 2, Qt SQL)
 - CMake 3.16+
@@ -117,8 +117,74 @@ chmod +x appimage/Stroemling-Design-x86_64.AppImage
 
 ---
 
-## Hinweise
+## Hinweise (Linux)
 
 - Das AppImage enthält alle Qt-Abhängigkeiten und läuft ohne installiertes Qt auf anderen Linux-Systemen.
 - Die Tools in `~/tools/` müssen nur einmalig heruntergeladen werden.
 - Das AppImage (`appimage/Stroemling-Design-x86_64.AppImage`) ist nicht im Git-Repository enthalten.
+
+---
+
+## Windows 11 Build
+
+### Voraussetzungen
+
+1. **Qt 6.5+** für Windows installieren: [qt.io/download](https://www.qt.io/download)
+   - Komponenten wählen: `Qt 6.x.x` → `MSVC 2022 64-bit` **oder** `MinGW 13.1.0 64-bit`
+   - Zusätzlich: `Qt Quick`, `Qt Quick Controls`, `Qt SQL`, `Qt Print Support`
+2. **CMake 3.16+** – wird mit Qt mitgeliefert oder separat von [cmake.org](https://cmake.org)
+3. **Compiler:**
+   - MSVC: Visual Studio 2022 Community (kostenlos) mit „Desktop-Entwicklung mit C++"
+   - **oder** MinGW: wird direkt im Qt-Installer angeboten (einfacher, kein VS nötig)
+4. **Git für Windows** (optional, für die Git-Integration in der App): [git-scm.com](https://git-scm.com)
+
+### Build (PowerShell / Eingabeaufforderung)
+
+```powershell
+# Im Projektverzeichnis (stroemling/)
+mkdir build
+cd build
+
+# Pfad zu Qt anpassen – Beispiel MSVC:
+cmake .. -DCMAKE_PREFIX_PATH="C:\Qt\6.9.0\msvc2022_64"
+
+# Beispiel MinGW:
+# cmake .. -DCMAKE_PREFIX_PATH="C:\Qt\6.9.0\mingw_64" -G "MinGW Makefiles"
+
+cmake --build . --parallel
+```
+
+Das fertige Binary liegt unter `build\stroemling_app.exe` (Debug) bzw. nach einem Release-Build:
+
+```powershell
+cmake .. -DCMAKE_PREFIX_PATH="C:\Qt\6.9.0\msvc2022_64" -DCMAKE_BUILD_TYPE=Release
+cmake --build . --parallel --config Release
+```
+
+### Deployment (windeployqt)
+
+Das `.exe` allein startet nicht – Qt-DLLs und QML-Module müssen daneben liegen.
+`windeployqt` erledigt das automatisch:
+
+```powershell
+# Qt-Pfad anpassen
+$env:Path = "C:\Qt\6.9.0\msvc2022_64\bin;" + $env:Path
+
+# Deploy-Ordner anlegen
+mkdir deploy
+copy build\Release\stroemling_app.exe deploy\
+
+windeployqt --qmldir qml deploy\stroemling_app.exe
+```
+
+Danach ist `deploy\` ein eigenständiger Ordner, der auf jedem Windows-11-Rechner läuft.
+
+### Datenpfad unter Windows
+
+Die Datenbank liegt unter:
+```
+%LOCALAPPDATA%\Strömling Design\stroemling.db
+```
+Typischerweise: `C:\Users\<Benutzername>\AppData\Local\Strömling Design\`
+
+Die Log-Datei liegt neben der `stroemling_app.exe`.

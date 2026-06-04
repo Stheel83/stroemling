@@ -2,7 +2,7 @@
 
 **Projekt:** Strömling Design · Open-Source E-CAD für Elektrotechnik  
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
-**Normen:** DIN EN 81346 · DIN 6771 · IEC 60617
+**Normen:** DIN EN 81346 · DIN 6771
 
 ---
 

@@ -81,6 +81,8 @@ public:
 
 // Einmalige Datenmigration: stroemling/Strömling Design → Strömling Design
 // Notwendig weil setOrganizationName("stroemling") entfernt wurde.
+// Nur auf Linux relevant – der alte Pfad existiert auf Windows nicht.
+#ifdef Q_OS_LINUX
 static void datenVerzeichnisMigrieren()
 {
     QString home    = QDir::homePath();
@@ -146,13 +148,15 @@ static void datenVerzeichnisMigrieren()
             qWarning() << "  QSettings-Migration fehlgeschlagen";
     }
 }
+#endif // Q_OS_LINUX
 
 int main(int argc, char *argv[])
 {
     // Log-Datei öffnen bevor QGuiApplication läuft (Qt-eigene Frühwarnungen landen sonst nicht rein)
     // Pfad: neben dem Binary (im Build-Ordner, gleiche Stelle wie die DB).
-    QString logPath = QString::fromLocal8Bit(argv[0]);
-    logPath = logPath.left(logPath.lastIndexOf('/') + 1) + "stroemling.log";
+    QString exePath = QString::fromLocal8Bit(argv[0]);
+    int lastSep = qMax(exePath.lastIndexOf(QLatin1Char('/')), exePath.lastIndexOf(QLatin1Char('\\')));
+    QString logPath = (lastSep >= 0 ? exePath.left(lastSep + 1) : QString()) + QLatin1String("stroemling.log");
     s_logFile.setFileName(logPath);
     if (!s_logFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
         fputs("stroemling: Log-Datei konnte nicht geöffnet werden\n", stderr);
@@ -160,9 +164,11 @@ int main(int argc, char *argv[])
 
     qInfo() << "=== Strömling gestartet" << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "===";
 
+#ifdef Q_OS_LINUX
     // Einmalige Migration: war früher unter ~/.local/share/stroemling/Strömling Design/
     // Jetzt: ~/.local/share/Strömling Design/ (kein OrganizationName mehr)
     datenVerzeichnisMigrieren();
+#endif
 
     QGuiApplication app(argc, argv);
     app.setApplicationName("Strömling Design");
@@ -185,7 +191,8 @@ int main(int argc, char *argv[])
     }
     // savedLanguage == "de": kein Translator nötig, Quellsprache ist Deutsch
 
-    // App-Datenverzeichnis: ~/.local/share/Strömling Design/ (Linux, kein OrganizationName gesetzt)
+    // App-Datenverzeichnis: Linux: ~/.local/share/Strömling Design/
+    //                       Windows: %LOCALAPPDATA%\Strömling Design\
     // Log-Datei bleibt neben dem Binary (Debug-Output, kein Nutzerdaten-Ordner).
     QString dataDir      = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir().mkpath(dataDir);

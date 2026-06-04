@@ -7,6 +7,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick Sql LinguistTools PrintSupport T
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(stroemling_app
+    WIN32 MACOSX_BUNDLE
     src/main.cpp
     src/database/Database.cpp
     src/database/Database_Schema.cpp

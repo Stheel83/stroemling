@@ -188,3 +188,69 @@ Die Datenbank liegt unter:
 Typischerweise: `C:\Users\<Benutzername>\AppData\Local\Strömling Design\`
 
 Die Log-Datei liegt neben der `stroemling_app.exe`.
+
+---
+
+## Windows-Paket für Nutzer erstellen
+
+Nutzer brauchen kein Qt installiert. `windeployqt` bündelt alle nötigen DLLs
+und QML-Module in einen eigenständigen Ordner, der sich einfach als ZIP verteilen lässt.
+
+### Schritt 1: Release-Build erstellen
+
+```powershell
+# Im Projektverzeichnis (stroemling/)
+mkdir build-release
+cd build-release
+cmake .. -DCMAKE_PREFIX_PATH="C:\Qt\6.9.0\mingw_64" -DCMAKE_BUILD_TYPE=Release
+cmake --build . --parallel --config Release
+cd ..
+```
+
+### Schritt 2: Deploy-Ordner befüllen
+
+```powershell
+# Qt-Tools in den PATH aufnehmen (Pfad anpassen)
+$env:Path = "C:\Qt\6.9.0\mingw_64\bin;" + $env:Path
+
+# Deploy-Ordner anlegen und EXE hineinkopieren
+mkdir deploy
+copy build-release\stroemling_app.exe deploy\
+
+# windeployqt kopiert alle DLLs und QML-Module automatisch
+windeployqt --qmldir qml --release deploy\stroemling_app.exe
+```
+
+### Schritt 3: ZIP erstellen
+
+```powershell
+Compress-Archive -Path deploy\* -DestinationPath Stroemling-Design-0.5-win64.zip
+```
+
+Der Nutzer entpackt das ZIP und startet `stroemling_app.exe` — fertig.
+
+---
+
+## Release auf Codeberg veröffentlichen
+
+Releases auf Codeberg funktionieren über Git-Tags. Sowohl Linux-AppImage als auch
+Windows-ZIP können als Anhang an denselben Release gehängt werden.
+
+### Schritt 1: Git-Tag setzen (auf Linux oder Windows)
+
+```bash
+git tag v0.5
+git push origin v0.5
+```
+
+### Schritt 2: Release auf Codeberg anlegen
+
+1. Codeberg-Projektseite öffnen → **Releases** → **Neuer Release**
+2. Tag `v0.5` auswählen
+3. Titel und Beschreibung eintragen (z.B. Changelog)
+4. Dateien hochladen:
+   - `Stroemling-Design-0.5-win64.zip` (Windows-Paket)
+   - `Stroemling-Design-x86_64.AppImage` (Linux-AppImage)
+5. **Release veröffentlichen**
+
+Nutzer sehen auf der Projektseite unter „Releases" direkt die Download-Links.

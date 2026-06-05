@@ -124,9 +124,15 @@ MouseArea {
                 var ldy = (vp.y - canvas.labelDragMausVpY) / canvas.zoom
                 var ldEl = em.element(canvas.labelDragIdx)
                 var ldEd = Object.assign({}, ldEl.extraDaten || {})
-                // Bei Rotation 90/270 steuert bmkOy die Screen-X-Achse und bmkOx die Screen-Y-Achse
+                var ldSid = ldEl.symbolId || ""
                 var ldRot = ((ldEl.rotation || 0) % 360 + 360) % 360
-                if (ldRot === 90 || ldRot === 270) {
+                // Potenzial/GA: pin rechts bei 0°, Text links/rechts (waagerecht) oder oben/unten (senkrecht)
+                // OX = horizontale Verschiebung, OY = vertikale Verschiebung (intuitiv)
+                if (ldSid === "potenzial" || ldSid === "geraeteanschluss") {
+                    ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
+                    ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
+                } else if (ldRot === 90 || ldRot === 270) {
+                    // Klemme/allgemeine Symbole: bei Rotation 90/270 sind X/Y-Achsen getauscht
                     ldEd.bmkOffsetX = canvas.labelDragStartOx + ldy
                     ldEd.bmkOffsetY = canvas.labelDragStartOy + ldx
                 } else {
@@ -299,7 +305,9 @@ MouseArea {
                     canvas.labelDragMausVpX  = vp.x
                     canvas.labelDragMausVpY  = vp.y
                     canvas.labelDragStartOx  = lEd.bmkOffsetX !== undefined ? lEd.bmkOffsetX : 0
-                    canvas.labelDragStartOy  = lEd.bmkOffsetY !== undefined ? lEd.bmkOffsetY : -14
+                    var lSid = lEl.symbolId || ""
+                    var lDefOy = (lSid === "potenzial" || lSid === "geraeteanschluss" || lSid === "klemme_anschluss") ? 0 : -14
+                    canvas.labelDragStartOy  = lEd.bmkOffsetY !== undefined ? lEd.bmkOffsetY : lDefOy
                     canvas.schnapshotVorMove = em.snapshot()
                     canvas.auswahl = canvas.auswahlFuerElement(labelIdx)
                     canvas.neuZeichnen()

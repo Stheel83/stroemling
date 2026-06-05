@@ -1271,7 +1271,7 @@ Item {
                         var verbHelper = bmkSid === "winkel" || bmkSid === "treffpunkt" || bmkSid === "treffpunkt_l"
                                       || bmkSid === "geraeteanschluss" || bmkSid === "unterbrechung"
                                       || bmkSid === "querverweis"     || bmkSid === "aderdefinition"
-                                      || bmkSid === "klemme_anschluss"
+                                      || bmkSid === "klemme_anschluss" || bmkSid === "potenzial"
                         if (!verbHelper) {
                             var bmkEd  = el.extraDaten || {}
                             var bmkStr = bmkEd.bmk || ""
@@ -1484,6 +1484,7 @@ Item {
                     }
 
                     // Geräteanschluss: Anschlusskennzeichnung, ggf. mit GK-BMK (z.B. "-X1:L1")
+                    // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
                     if (!vorschau && !_skipText && el.symbolId === "geraeteanschluss") {
                         var gaed  = el.extraDaten || {}
                         var gaAnk = gaed.anschlusskennzeichnung || ""
@@ -1508,27 +1509,124 @@ Item {
                                 if (gkBmkGA) gaLabel = gkBmkGA + ":" + gaAnk
                             }
 
-                            var gaFs  = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
-                            var gaRot = ((el.rotation || 0) % 360 + 360) % 360
+                            var gaFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                            var gaRot  = ((el.rotation || 0) % 360 + 360) % 360
                             var gaSenk = (gaRot === 90 || gaRot === 270)
-                            var gaCx  = (vx1 + vx2) / 2
-                            var gaCy  = (vy1 + vy2) / 2
+                            var gaCx   = (vx1 + vx2) / 2
+                            var gaCy   = (vy1 + vy2) / 2
+                            var gaOx   = (gaed.bmkOffsetX !== undefined ? gaed.bmkOffsetX : 0) * root.zoom
+                            var gaOy   = (gaed.bmkOffsetY !== undefined ? gaed.bmkOffsetY : 0) * root.zoom
                             ctx.save()
                             ctx.globalAlpha = 1.0
                             ctx.font = "bold " + gaFs + "px sans-serif"
                             ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#c0d8f0"
                             if (gaSenk) {
-                                ctx.textAlign = "left"; ctx.textBaseline = "middle"
-                                var gaX = Math.max(vx1, vx2) + 4 * root.zoom
-                                ctx.strokeText(gaLabel, gaX, gaCy)
-                                ctx.fillStyle = gewaehlt ? "#f0a030" : "#c0d8f0"
-                                ctx.fillText(gaLabel, gaX, gaCy)
+                                // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
+                                var gaPinUnten = (gaRot === 90)
+                                var gaY = gaPinUnten
+                                          ? Math.min(vy1, vy2) - 3 * root.zoom + gaOy
+                                          : Math.max(vy1, vy2) + 3 * root.zoom + gaOy
+                                ctx.textAlign = "center"
+                                ctx.textBaseline = gaPinUnten ? "bottom" : "top"
+                                ctx.strokeText(gaLabel, gaCx + gaOx, gaY)
+                                ctx.fillText(gaLabel, gaCx + gaOx, gaY)
                             } else {
-                                ctx.textAlign = "center"; ctx.textBaseline = "top"
-                                var gaY = Math.max(vy1, vy2) + 3 * root.zoom
-                                ctx.strokeText(gaLabel, gaCx, gaY)
-                                ctx.fillStyle = gewaehlt ? "#f0a030" : "#c0d8f0"
-                                ctx.fillText(gaLabel, gaCx, gaY)
+                                // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
+                                var gaPinRechts = (gaRot === 0)
+                                var gaX = gaPinRechts
+                                          ? Math.min(vx1, vx2) - 4 * root.zoom + gaOx
+                                          : Math.max(vx1, vx2) + 4 * root.zoom + gaOx
+                                ctx.textAlign = gaPinRechts ? "right" : "left"
+                                ctx.textBaseline = "middle"
+                                ctx.strokeText(gaLabel, gaX, gaCy + gaOy)
+                                ctx.fillText(gaLabel, gaX, gaCy + gaOy)
+                            }
+                            ctx.restore()
+                        }
+                    }
+
+                    // Potenzial: BMK + Freitext neben dem Symbol (pin-seitig, draggbar via bmkOffsetX/Y)
+                    // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
+                    if (!vorschau && !_skipText && el.symbolId === "potenzial") {
+                        var paed    = el.extraDaten || {}
+                        var paBmk   = paed.bmk || ""
+                        var paFtRhlg = paed.textReihenfolge || ["freitext1", "freitext2"]
+                        var paFt    = []
+                        for (var pfi = 0; pfi < paFtRhlg.length; pfi++) {
+                            var pftK = paFtRhlg[pfi]
+                            if (paed[pftK + "Sichtbar"] !== false && (paed[pftK] || "") !== "")
+                                paFt.push(paed[pftK])
+                        }
+                        if (paBmk !== "" || paFt.length > 0) {
+                            var paSchrift = paed.schriftgroesse !== undefined ? paed.schriftgroesse : 2.5
+                            var paFs   = Math.max(5, Math.round(paSchrift * root.mmToPx * root.zoom))
+                            var paFtFs = Math.max(4, Math.round(paSchrift * 0.85 * root.mmToPx * root.zoom))
+                            var paRot  = ((el.rotation || 0) % 360 + 360) % 360
+                            var paSenk = (paRot === 90 || paRot === 270)
+                            var paCx   = (vx1 + vx2) / 2
+                            var paCy   = (vy1 + vy2) / 2
+                            var paOx   = (paed.bmkOffsetX !== undefined ? paed.bmkOffsetX : 0) * root.zoom
+                            var paOy   = (paed.bmkOffsetY !== undefined ? paed.bmkOffsetY : 0) * root.zoom
+                            var paBmkClr = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
+                            var paFtClr  = gewaehlt ? "#f0a030" : "#8ab4d4"
+                            ctx.save()
+                            ctx.globalAlpha = 1.0
+                            ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                            if (paSenk) {
+                                // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
+                                var paPinUnten = (paRot === 90)
+                                var paBl  = paPinUnten ? "bottom" : "top"
+                                var paDir = paPinUnten ? -1 : 1
+                                var paY   = paPinUnten
+                                            ? Math.min(vy1, vy2) - 3 * root.zoom + paOy
+                                            : Math.max(vy1, vy2) + 3 * root.zoom + paOy
+                                var paCxO = paCx + paOx
+                                ctx.textAlign = "center"
+                                if (paBmk !== "") {
+                                    ctx.font = "bold " + paFs + "px sans-serif"
+                                    ctx.textBaseline = paBl
+                                    ctx.strokeText(paBmk, paCxO, paY)
+                                    ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paCxO, paY)
+                                }
+                                if (paFt.length > 0) {
+                                    ctx.font = paFtFs + "px sans-serif"
+                                    ctx.fillStyle = paFtClr
+                                    var paFtY = paY + paDir * (paBmk !== "" ? paFs + 2 : 0)
+                                    for (var pfi2 = 0; pfi2 < paFt.length; pfi2++) {
+                                        ctx.textBaseline = paBl
+                                        ctx.strokeText(paFt[pfi2], paCxO, paFtY)
+                                        ctx.fillText(paFt[pfi2], paCxO, paFtY)
+                                        paFtY += paDir * paFtFs * 1.3
+                                    }
+                                }
+                            } else {
+                                // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
+                                var paPinRechts = (paRot === 0)
+                                var paAl = paPinRechts ? "right" : "left"
+                                var paX  = paPinRechts
+                                           ? Math.min(vx1, vx2) - 4 * root.zoom + paOx
+                                           : Math.max(vx1, vx2) + 4 * root.zoom + paOx
+                                var paCyO = paCy + paOy
+                                var paLineH = (paBmk !== "" ? paFs : 0) + paFt.length * paFtFs * 1.3
+                                var paCurY = paCyO - paLineH / 2
+                                ctx.textBaseline = "top"
+                                if (paBmk !== "") {
+                                    ctx.font = "bold " + paFs + "px sans-serif"
+                                    ctx.textAlign = paAl
+                                    ctx.strokeText(paBmk, paX, paCurY)
+                                    ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paX, paCurY)
+                                    paCurY += paFs * 1.1
+                                }
+                                if (paFt.length > 0) {
+                                    ctx.font = paFtFs + "px sans-serif"
+                                    ctx.textAlign = paAl; ctx.fillStyle = paFtClr
+                                    for (var pfi3 = 0; pfi3 < paFt.length; pfi3++) {
+                                        ctx.strokeText(paFt[pfi3], paX, paCurY)
+                                        ctx.fillText(paFt[pfi3], paX, paCurY)
+                                        paCurY += paFtFs * 1.3
+                                    }
+                                }
                             }
                             ctx.restore()
                         }
@@ -3833,6 +3931,68 @@ Item {
                     hx1 = kaHCX - Math.max(30, kaFsH * 3); hx2 = kaHCX + Math.max(30, kaFsH * 3)
                     hy1 = kaPinUH ? kaHY - textH : kaHY - pad
                     hy2 = kaPinUH ? kaHY + pad   : kaHY + textH
+                }
+            } else if (el.symbolId === "geraeteanschluss") {
+                // GA: pin rechts bei 0° → 0°: links | 90°: oben | 180°: rechts | 270°: unten
+                var gaAnkH = bmkEd.anschlusskennzeichnung || ""
+                if (gaAnkH === "") continue
+                var gaFsH = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                var gaOxH = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0) * root.zoom
+                var gaOyH = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : 0) * root.zoom
+                var gaHitW = Math.max(40, gaFsH * 4)
+                if (senkrecht) {
+                    var gaHPinU = (symRot === 90)
+                    var gaHY = gaHPinU
+                               ? Math.min(vy1, vy2) - 3 * root.zoom + gaOyH
+                               : Math.max(vy1, vy2) + 3 * root.zoom + gaOyH
+                    var gaHCX = (vx1 + vx2) / 2 + gaOxH
+                    hx1 = gaHCX - gaHitW; hx2 = gaHCX + gaHitW
+                    hy1 = gaHPinU ? gaHY - gaFsH - pad : gaHY - pad
+                    hy2 = gaHPinU ? gaHY + pad          : gaHY + gaFsH + pad
+                } else {
+                    var gaHPinR = (symRot === 0)
+                    var gaHX = gaHPinR
+                               ? Math.min(vx1, vx2) - 4 * root.zoom + gaOxH
+                               : Math.max(vx1, vx2) + 4 * root.zoom + gaOxH
+                    var gaHCY = (vy1 + vy2) / 2 + gaOyH
+                    hx1 = gaHPinR ? gaHX - gaHitW : gaHX - pad
+                    hx2 = gaHPinR ? gaHX + pad     : gaHX + gaHitW
+                    hy1 = gaHCY - gaFsH / 2 - pad; hy2 = gaHCY + gaFsH / 2 + pad
+                }
+            } else if (el.symbolId === "potenzial") {
+                // Potenzial: pin rechts bei 0° → 0°: links | 90°: oben | 180°: rechts | 270°: unten
+                var paHBmk = bmkEd.bmk || ""
+                var paHFtR = bmkEd.textReihenfolge || ["freitext1", "freitext2"]
+                var paHFt = []
+                for (var phfi = 0; phfi < paHFtR.length; phfi++) {
+                    var phk = paHFtR[phfi]
+                    if (bmkEd[phk + "Sichtbar"] !== false && (bmkEd[phk] || "") !== "")
+                        paHFt.push(bmkEd[phk])
+                }
+                if (paHBmk === "" && paHFt.length === 0) continue
+                var paHFs  = Math.max(5, Math.round(2.5 * root.mmToPx * root.zoom))
+                var paHOx  = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0) * root.zoom
+                var paHOy  = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : 0) * root.zoom
+                var paHHitW = Math.max(40, paHFs * 4)
+                var paHTextH = paHFs * ((paHBmk !== "" ? 1 : 0) + paHFt.length) + pad
+                if (senkrecht) {
+                    var paHPinU = (symRot === 90)
+                    var paHY = paHPinU
+                               ? Math.min(vy1, vy2) - 3 * root.zoom + paHOy
+                               : Math.max(vy1, vy2) + 3 * root.zoom + paHOy
+                    var paHCX = (vx1 + vx2) / 2 + paHOx
+                    hx1 = paHCX - paHHitW; hx2 = paHCX + paHHitW
+                    hy1 = paHPinU ? paHY - paHTextH : paHY - pad
+                    hy2 = paHPinU ? paHY + pad        : paHY + paHTextH
+                } else {
+                    var paHPinR = (symRot === 0)
+                    var paHX = paHPinR
+                               ? Math.min(vx1, vx2) - 4 * root.zoom + paHOx
+                               : Math.max(vx1, vx2) + 4 * root.zoom + paHOx
+                    var paHCY = (vy1 + vy2) / 2 + paHOy
+                    hx1 = paHPinR ? paHX - paHHitW : paHX - pad
+                    hx2 = paHPinR ? paHX + pad       : paHX + paHHitW
+                    hy1 = paHCY - paHTextH / 2 - pad; hy2 = paHCY + paHTextH / 2 + pad
                 }
             } else {
                 var bmkStr = bmkEd.bmk || ""

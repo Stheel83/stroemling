@@ -1,6 +1,6 @@
 # Strömling Design
 
-Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771.
+Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771, erhebt aber keinen Anspruch auf zertifizierte Normkonformität.
 
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
 **Schema:** v49 · **Stand:** Mai 2026
@@ -36,7 +36,21 @@ cmake --build build -j$(nproc)
 ./build/stroemling_app
 ```
 
-Die Datenbankdatei liegt unter `~/.local/share/Strömling Design/stroemling.db` und wird beim ersten Start automatisch angelegt. Schemaänderungen werden als inkrementelle Migrationen eingespielt.
+Beim ersten Start wird das App-Datenverzeichnis automatisch angelegt:
+
+```
+~/.local/share/Strömling Design/
+  stroemling.db   ← Launcher-DB (zuletzt geöffnete Projekte, Wiki-Pfad)
+  wiki.db         ← projektübergreifendes Wiki
+  makros.db       ← Makro-Bibliothek
+```
+
+Projekte werden als eigenständige Ordner gespeichert:
+
+```
+~/[beliebiger Ort]/MeinProjekt/
+  projekt.strl    ← Projektdatenbank (SQLite, alle Schaltplandaten)
+```
 
 ---
 
@@ -67,7 +81,8 @@ QML (Oberfläche)
   │  Q_PROPERTY / Q_INVOKABLE / Signals
 C++ Backend (Database, ElementeModel, ProjektModel, SeitenModel, …)
   │  QSqlQuery / QtSql
-SQLite (~/.local/share/Strömling Design/stroemling.db)
+SQLite  ┬─ ~/.local/share/Strömling Design/stroemling.db  (Launcher-DB)
+        └─ [Projektordner]/projekt.strl                   (Projektdaten)
 ```
 
 QML hat keinen direkten Datenbankzugriff — ausschließlich über C++-Klassen.

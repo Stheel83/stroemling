@@ -1,6 +1,7 @@
 # Kabelrechner
 
-Der Kabelrechner berechnet den **Mindestquerschnitt** einer Leitung nach VDE.
+Der Kabelrechner berechnet den **empfohlenen Mindestquerschnitt** einer Leitung
+angelehnt an VDE 0298-4. Das Ergebnis ist eine Orientierungshilfe, kein zertifizierter Normwert.
 
 ## Eingaben
 

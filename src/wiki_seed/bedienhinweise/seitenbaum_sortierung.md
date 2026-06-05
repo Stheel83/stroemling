@@ -8,7 +8,7 @@ Der Seitenbaum ist dreistufig aufgebaut:
 - **Ort** (z. B. `+A1`) – ein Bereich innerhalb der Anlage (Schrank, Raum, …)
 - **Seite** (z. B. `001 Stromversorgung`) – ein einzelnes Schaltplanblatt
 
-Diese Struktur folgt **DIN EN 81346**: jede Seite gehört zu genau einem Ort,
+Diese Struktur orientiert sich an **DIN EN 81346**: jede Seite gehört zu genau einem Ort,
 jeder Ort zu genau einer Anlage.
 
 ## Reihenfolge ändern (innerhalb eines Orts)

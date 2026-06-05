@@ -84,13 +84,25 @@ Dialog {
                     verticalAlignment: Text.AlignVCenter
                 }
             }
+
+            RadioButton {
+                id: rbAlleVoll
+                onCheckedChanged: if (checked) cbNormblatt.checked = false
+                contentItem: Text {
+                    text:           qsTr("Alle Seiten (ganzes Canvas, ohne Normblatt)")
+                    color:          root.theme.textPrimary
+                    font.pixelSize: 12
+                    leftPadding:    rbAlleVoll.indicator.width + rbAlleVoll.spacing
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
         }
 
         // Normblatt-Option (im Ganzes-Canvas-Modus nicht sinnvoll)
         CheckBox {
             id: cbNormblatt
             checked: true
-            enabled: !rbVoll.checked
+            enabled: !rbVoll.checked && !rbAlleVoll.checked
             contentItem: Text {
                 text:           qsTr("Normblatt einschließen")
                 color:          cbNormblatt.enabled ? root.theme.textPrimary : root.theme.textMuted
@@ -206,10 +218,12 @@ Dialog {
                     var pfad = tfPfad.text.trim()
                     var nb   = cbNormblatt.checked
                     var ok = false
-                    if (rbVoll.checked)
+                    if (rbAlleVoll.checked)
+                        ok = db.canvasPdfExportieren(root.projektId, pfad, false, true)
+                    else if (rbVoll.checked)
                         ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true)
                     else if (rbAlle.checked)
-                        ok = db.canvasPdfExportieren(root.projektId, pfad, nb)
+                        ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false)
                     else
                         ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false)
 

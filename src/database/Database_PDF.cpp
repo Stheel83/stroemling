@@ -947,9 +947,58 @@ static void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPer
     }
 }
 
-// ── Öffentliche Methode ──────────────────────────────────────
+// ── Bounding-Box einer Seite berechnen (für vollCanvas-Modus) ───────────────
+struct PdfBBox { double txCu, tyCu, bMm, hMm; };
 
-bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt)
+static PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,
+                               const QSqlDatabase &db)
+{
+    const double randCu = 20.0; // 5 mm Rand
+    double bxMin =  1e9, byMin =  1e9;
+    double bxMax = -1e9, byMax = -1e9;
+
+    QSqlQuery bq(db);
+    bq.prepare(R"(
+        SELECT CASE WHEN x1<x2 THEN x1 ELSE x2 END,
+               CASE WHEN y1<y2 THEN y1 ELSE y2 END,
+               CASE WHEN x1>x2 THEN x1 ELSE x2 END,
+               CASE WHEN y1>y2 THEN y1 ELSE y2 END
+        FROM grafik_element WHERE seite_id = :sid
+    )");
+    bq.bindValue(":sid", seiteId);
+    if (bq.exec()) {
+        while (bq.next()) {
+            bxMin = qMin(bxMin, bq.value(0).toDouble());
+            byMin = qMin(byMin, bq.value(1).toDouble());
+            bxMax = qMax(bxMax, bq.value(2).toDouble());
+            byMax = qMax(byMax, bq.value(3).toDouble());
+        }
+    }
+    QSqlQuery sq(db);
+    sq.prepare("SELECT punkte FROM verbindung_segment WHERE seite_id = :sid");
+    sq.bindValue(":sid", seiteId);
+    if (sq.exec()) {
+        while (sq.next()) {
+            QJsonDocument doc = QJsonDocument::fromJson(sq.value(0).toString().toUtf8());
+            if (!doc.isArray()) continue;
+            for (const QJsonValue &v : doc.array()) {
+                double px = v.toObject()["x"].toDouble();
+                double py = v.toObject()["y"].toDouble();
+                bxMin = qMin(bxMin, px); byMin = qMin(byMin, py);
+                bxMax = qMax(bxMax, px); byMax = qMax(byMax, py);
+            }
+        }
+    }
+    if (bxMin < bxMax && byMin < byMax)
+        return { bxMin - randCu, byMin - randCu,
+                 (bxMax - bxMin + 2.0 * randCu) * 0.25,
+                 (byMax - byMin + 2.0 * randCu) * 0.25 };
+    return { 0.0, 0.0, normBMm, normHMm };
+}
+
+// ── Öffentliche Methoden ─────────────────────────────────────
+
+bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas)
 {
     // Alle Seiten des Projekts in Anzeigereihenfolge laden
     QSqlQuery q(m_db);
@@ -977,6 +1026,10 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
     QVariantMap nb0 = normblattDatenLaden(seiteIds.first());
     double b0 = nb0.value("breiteMm", 297.0).toDouble();
     double h0 = nb0.value("hoeheMm",  210.0).toDouble();
+    if (vollCanvas) {
+        PdfBBox bb0 = pdfBoundingBox(seiteIds.first(), b0, h0, m_db);
+        b0 = bb0.bMm; h0 = bb0.hMm;
+    }
 
     QPdfWriter writer(localPath);
     writer.setCreator(QStringLiteral("Stroemling Design"));
@@ -1001,6 +1054,13 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         QVariantMap nb = normblattDatenLaden(seiteId);
         double bMm = nb.value("breiteMm", 297.0).toDouble();
         double hMm = nb.value("hoeheMm",  210.0).toDouble();
+        double txCu = 0.0, tyCu = 0.0;
+
+        if (vollCanvas) {
+            PdfBBox bb = pdfBoundingBox(seiteId, bMm, hMm, m_db);
+            txCu = bb.txCu; tyCu = bb.tyCu;
+            bMm  = bb.bMm;  hMm  = bb.hMm;
+        }
 
         if (i > 0) {
             writer.setPageLayout(QPageLayout(
@@ -1014,6 +1074,9 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         // Weißer Seitenhintergrund
         painter.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
 
+        if (vollCanvas)
+            painter.translate(-txCu * C, -tyCu * C);
+
         // Canvas-Elemente rendern
         QVariantList elemente = grafikLaden(seiteId);
         for (const QVariant &ev : elemente)
@@ -1022,8 +1085,8 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         // Verbindungsleitungen aus DB
         pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
 
-        // Normblatt-Rahmen + Schriftfeld
-        if (mitNormblatt && nb.value("normblattAnzeigen").toBool())
+        // Normblatt-Rahmen + Schriftfeld (nicht im vollCanvas-Modus)
+        if (!vollCanvas && mitNormblatt && nb.value("normblattAnzeigen").toBool())
             pdfNormblattRendern(painter, nb, pxPerMm);
 
         painter.restore();
@@ -1044,55 +1107,11 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     double hMm = nb.value("hoeheMm",  210.0).toDouble();
 
     // ── Vollständiger Canvas-Bereich: Seitengröße aus Bounding-Box berechnen ─
-    double txCu = 0.0, tyCu = 0.0; // Verschiebung in Canvas-Einheiten
+    double txCu = 0.0, tyCu = 0.0;
     if (vollCanvas) {
-        const double randCu = 20.0; // 5 mm Rand = 20 Canvas-Einheiten
-
-        // Bounding-Box aller grafik_element
-        double bxMin =  1e9, byMin =  1e9;
-        double bxMax = -1e9, byMax = -1e9;
-
-        QSqlQuery bq;
-        bq.prepare(R"(
-            SELECT CASE WHEN x1<x2 THEN x1 ELSE x2 END,
-                   CASE WHEN y1<y2 THEN y1 ELSE y2 END,
-                   CASE WHEN x1>x2 THEN x1 ELSE x2 END,
-                   CASE WHEN y1>y2 THEN y1 ELSE y2 END
-            FROM grafik_element WHERE seite_id = :sid
-        )");
-        bq.bindValue(":sid", seiteId);
-        if (bq.exec()) {
-            while (bq.next()) {
-                bxMin = qMin(bxMin, bq.value(0).toDouble());
-                byMin = qMin(byMin, bq.value(1).toDouble());
-                bxMax = qMax(bxMax, bq.value(2).toDouble());
-                byMax = qMax(byMax, bq.value(3).toDouble());
-            }
-        }
-
-        // Bounding-Box der Verbindungssegmente
-        QSqlQuery sq;
-        sq.prepare("SELECT punkte FROM verbindung_segment WHERE seite_id = :sid");
-        sq.bindValue(":sid", seiteId);
-        if (sq.exec()) {
-            while (sq.next()) {
-                QJsonDocument doc = QJsonDocument::fromJson(sq.value(0).toString().toUtf8());
-                if (!doc.isArray()) continue;
-                for (const QJsonValue &v : doc.array()) {
-                    double px = v.toObject()["x"].toDouble();
-                    double py = v.toObject()["y"].toDouble();
-                    bxMin = qMin(bxMin, px); byMin = qMin(byMin, py);
-                    bxMax = qMax(bxMax, px); byMax = qMax(byMax, py);
-                }
-            }
-        }
-
-        if (bxMin < bxMax && byMin < byMax) {
-            txCu = bxMin - randCu;
-            tyCu = byMin - randCu;
-            bMm  = (bxMax - bxMin + 2.0 * randCu) * 0.25;
-            hMm  = (byMax - byMin + 2.0 * randCu) * 0.25;
-        }
+        PdfBBox bb = pdfBoundingBox(seiteId, bMm, hMm, m_db);
+        txCu = bb.txCu; tyCu = bb.tyCu;
+        bMm  = bb.bMm;  hMm  = bb.hMm;
     }
 
     QPdfWriter writer(localPath);

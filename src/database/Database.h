@@ -636,7 +636,7 @@ public:
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.
     // pfad: lokaler Dateipfad oder file://-URL.
-    Q_INVOKABLE bool canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt = true);
+    Q_INVOKABLE bool canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false);
     Q_INVOKABLE bool canvasSeiteExportieren(int seiteId,  const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false);
 
     // ── Datensicherung / Komplettarchiv (BACKUP-01) ─────────────────────────

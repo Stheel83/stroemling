@@ -158,6 +158,7 @@ Item {
                     }
                     onEditingFinished: {
                         var kz = text.trim()
+                        if (kz !== "" && !kz.startsWith("-")) kz = "-" + kz
                         root.extraSetzen("bmk", kz)
                         if (root._istHf && root._bmId > 0 && kz !== "") {
                             db.betriebsmittelKzSetzen(root._bmId, kz)

@@ -96,7 +96,11 @@ Item {
             label: qsTr("BMK")
             value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bmk || "") : ""
             theme: root.theme
-            onCommit: function(t) { root.extraSetzen("bmk", t.trim()) }
+            onCommit: function(t) {
+                var kz = t.trim()
+                if (kz !== "" && !kz.startsWith("-")) kz = "-" + kz
+                root.extraSetzen("bmk", kz)
+            }
         }
         Item { height: 6 }
 

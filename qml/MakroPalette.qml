@@ -8,7 +8,6 @@ Item {
     required property var theme
 
     signal makroEinfuegenAngefordert(int makroId, string name)
-    signal bibliothekOeffnenAngefordert()
 
     property var _liste: []
 
@@ -227,31 +226,6 @@ Item {
                 wrapMode: Text.WordWrap
                 topPadding: 20; leftPadding: 12; rightPadding: 12
             }
-        }
-    }
-
-    // Trennlinie
-    Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-    // Bibliothek-Button
-    Rectangle {
-        Layout.fillWidth: true
-        height: 32
-        color: bibliothekMa.containsMouse ? root.theme.hover : "transparent"
-
-        Text {
-            anchors.centerIn: parent
-            text:           qsTr("Bibliothek verwalten...")
-            font.pixelSize: 11
-            color:          root.theme.textMuted
-        }
-
-        MouseArea {
-            id: bibliothekMa
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape:  Qt.PointingHandCursor
-            onClicked:    root.bibliothekOeffnenAngefordert()
         }
     }
 

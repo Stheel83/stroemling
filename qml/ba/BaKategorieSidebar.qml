@@ -144,6 +144,23 @@ Rectangle {
             }}
         }
 
+        // Makros
+        Rectangle {
+            Layout.fillWidth: true; height: 36
+            property bool sel: panel.aktiveSpezialAnsicht === "makros"
+            color: sel ? theme.hover : (makrolibH.hovered ? theme.hover : "transparent")
+            HoverHandler { id: makrolibH }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 16; rightMargin: 4 }
+                spacing: 6
+                Text { text: "📎"; font.pixelSize: 12 }
+                Text { text: qsTr("Makros"); font.pixelSize: 13; Layout.fillWidth: true
+                       color: parent.parent.sel ? theme.textPrimary : theme.textSecondary }
+            }
+            MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor
+                onClicked: panel.aktiveSpezialAnsicht = "makros" }
+        }
+
         // Geräte (Platzhalter)
         Rectangle {
             Layout.fillWidth: true; height: 36; color: "transparent"

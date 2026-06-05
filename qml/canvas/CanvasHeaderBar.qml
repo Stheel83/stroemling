@@ -138,33 +138,6 @@ Rectangle {
 
         Rectangle { width: 1; height: 20; color: AppTheme.border }
 
-        Rectangle {
-            id: normblattToggle
-            property bool aktiv: canvas.normblattDaten ? !!canvas.normblattDaten.normblattAnzeigen : false
-            width: 26; height: 26; radius: 4
-            enabled: canvas.seiteId >= 0
-            color: aktiv ? AppTheme.activeItemAlt
-                         : (nbMa.containsMouse && enabled ? AppTheme.hover : "transparent")
-            border.color: aktiv ? AppTheme.accent : "transparent"
-            Text {
-                anchors.centerIn: parent; text: "≡"; font.pixelSize: 15
-                color: normblattToggle.aktiv ? AppTheme.accent : AppTheme.panelMid
-            }
-            MouseArea {
-                id: nbMa; anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (canvas.seiteId < 0 || !canvas.normblattDaten) return
-                    var neu = !canvas.normblattDaten.normblattAnzeigen
-                    db.normblattAnzeigenSetzen(canvas.seiteId, neu)
-                    canvas.normblattDaten = db.normblattDatenLaden(canvas.seiteId)
-                    canvas.repaintAll()
-                }
-            }
-            ToolTip.visible: nbMa.containsMouse; ToolTip.delay: 500
-            ToolTip.text: qsTr("Normblattrahmen ein-/ausblenden")
-        }
-
         Button {
             flat: true; implicitWidth: 26; implicitHeight: 26
             enabled: canvas.seiteId >= 0 && canvas.normblattDaten !== null

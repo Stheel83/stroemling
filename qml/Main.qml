@@ -293,12 +293,6 @@ ApplicationWindow {
         debug:     root.debugModeAktiv
     }
 
-    MakroBibliothekDialog {
-        id:    makroBibliothekDialog
-        theme: appTheme
-        onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
-    }
-
     KommandoPalette {
         id:        kommandoPalette
         theme:     appTheme
@@ -1010,7 +1004,6 @@ ApplicationWindow {
                             root.symbolEditorVorlageId = quellId
                             root.aktiveAnsicht         = "symbol_editor"
                         }
-                        onBibliothekOeffnenAngefordert: makroBibliothekDialog.open()
                     }
 
                     //\u2500\u2500 Arbeitsbereich: ein oder zwei CanvasPanels \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1180,6 +1173,7 @@ ApplicationWindow {
                     var p = root.fokussiertesPanel === 2 ? panel2 : panel1
                     p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
                 }
+                onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                 onKlemmeAnschlussModusAPlatzieren: function(bauteilKlemmeId, anschlussBezeichnung, bmk, klemmeId) {
                     if (root.aktivSeiteId < 0) {
                         keineSeiteMeldung.open()
@@ -1567,6 +1561,105 @@ ApplicationWindow {
         z:            700
         theme:        appTheme
         debug:        root.debugModeAktiv
+    }
+
+    // ── Äußerer Fensterrahmen + Resize-Griffe ─────────────────────
+    // Nur aktiv wenn das Fenster nicht maximiert ist.
+    readonly property int _rg: 5   // Griffbreite in Pixeln
+
+    // Sichtbarer Rahmen (konsumiert keine Events)
+    Rectangle {
+        anchors.fill: parent
+        color:        "transparent"
+        border.color: appTheme.border
+        border.width: 1
+        enabled:      false
+        visible:      root.visibility === Window.Windowed
+        z:            900
+    }
+
+    // Ecke: oben links
+    Item {
+        x: 0; y: 0; width: root._rg * 2; height: root._rg * 2
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeFDiagCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.TopEdge | Qt.LeftEdge)
+        }
+    }
+    // Kante: oben
+    Item {
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        anchors.leftMargin: root._rg * 2; anchors.rightMargin: root._rg * 2
+        height: root._rg
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeVerCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.TopEdge)
+        }
+    }
+    // Ecke: oben rechts
+    Item {
+        anchors { top: parent.top; right: parent.right }
+        width: root._rg * 2; height: root._rg * 2
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeBDiagCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.TopEdge | Qt.RightEdge)
+        }
+    }
+    // Kante: links
+    Item {
+        anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
+        anchors.topMargin: root._rg * 2; anchors.bottomMargin: root._rg * 2
+        width: root._rg
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeHorCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.LeftEdge)
+        }
+    }
+    // Kante: rechts
+    Item {
+        anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
+        anchors.topMargin: root._rg * 2; anchors.bottomMargin: root._rg * 2
+        width: root._rg
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeHorCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.RightEdge)
+        }
+    }
+    // Ecke: unten links
+    Item {
+        anchors { bottom: parent.bottom; left: parent.left }
+        width: root._rg * 2; height: root._rg * 2
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeBDiagCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.BottomEdge | Qt.LeftEdge)
+        }
+    }
+    // Kante: unten
+    Item {
+        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+        anchors.leftMargin: root._rg * 2; anchors.rightMargin: root._rg * 2
+        height: root._rg
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeVerCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.BottomEdge)
+        }
+    }
+    // Ecke: unten rechts
+    Item {
+        anchors { bottom: parent.bottom; right: parent.right }
+        width: root._rg * 2; height: root._rg * 2
+        visible: root.visibility === Window.Windowed; z: 800
+        DragHandler {
+            target: null; cursorShape: Qt.SizeFDiagCursor
+            onActiveChanged: if (active) root.startSystemResize(Qt.BottomEdge | Qt.RightEdge)
+        }
     }
 
     // ── Globale Canvas-Shortcuts ──────────────────────────────────

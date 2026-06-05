@@ -21,6 +21,7 @@ Item {
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
+    signal makroListeGeaendert()
 
     RowLayout {
         anchors.fill: parent; spacing: 0
@@ -67,11 +68,20 @@ Item {
                 }
             }
 
+            BaMakroBibliothek {
+                anchors.fill: parent
+                visible: root.aktiveSpezialAnsicht === "makros"
+                theme:   root.theme
+                debug:   root.debug
+                onMakroListeGeaendert: root.makroListeGeaendert()
+            }
+
             DebugLabel {
                 panelName: {
                     switch (root.aktiveSpezialAnsicht) {
                         case "klemmenreihen":  return qsTr("Klemmenreihen-Ansicht")
                         case "geraetekaesten": return qsTr("Geraetekaesten-Ansicht")
+                        case "makros":         return qsTr("Makro-Bibliothek")
                         default:               return qsTr("Bauteil-Liste")
                     }
                 }

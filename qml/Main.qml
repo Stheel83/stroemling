@@ -1143,13 +1143,13 @@ ApplicationWindow {
                         bottom: parent.bottom
                     }
                     height:    root.drcPanelOffen ? 200 : 0
-                    visible:   root.drcPanelOffen
+                    clip:      true
                     theme:     appTheme
                     projektId: root.aktivProjektId
                     debug:     root.debugModeAktiv
                     onSchliessen: root.drcPanelOffen = false
 
-                    Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                    Behavior on height { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
                 }
             }
 

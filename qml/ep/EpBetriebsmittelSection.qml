@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
+import "../SymbolKlassen.js" as SK
 
 Item {
     id: root
@@ -14,8 +15,7 @@ Item {
     height: {
         if (!panel.el || panel.el.typ !== "symbol") return 0
         var sid = panel.el.symbolId || ""
-        var verbEl = ["winkel","treffpunkt","treffpunkt_l","geraeteanschluss","unterbrechung","querverweis","aderdefinition"]
-        for (var k = 0; k < verbEl.length; k++) if (sid === verbEl[k]) return 0
+        if (SK.istVerbHelper(sid)) return 0
         return bmkCol.implicitHeight
     }
     visible: height > 0
@@ -308,7 +308,8 @@ Item {
                             }
                             property real weltWert: (panel.el && panel.el.extraDaten
                                 && panel.el.extraDaten.bmkOffsetY !== undefined)
-                                ? panel.el.extraDaten.bmkOffsetY : -14
+                                ? panel.el.extraDaten.bmkOffsetY
+                                : SK.bmkOffsetYDefault(panel.el ? (panel.el.symbolId || "") : "")
                             text: (weltWert / panel.canvas.mmToPx).toFixed(1)
                             Binding on text {
                                 when:    !bmkOyTf.activeFocus

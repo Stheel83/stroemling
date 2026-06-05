@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import QtCore
 import "components"
 import "canvas"
+import "SymbolKlassen.js" as SK
 
 Item {
     id: root
@@ -473,6 +474,10 @@ Item {
         renderTarget: Canvas.FramebufferObject
         anchors.fill: parent
         visible: root.seiteId >= 0
+
+        // Vorab gefilterte Gerätekasten-Liste — wird in onPaint einmalig aus dem Snapshot
+        // gebaut und im GA-Rendering-Block genutzt (verhindert O(n²) snapshot()-Aufrufe)
+        property var _gkListe: []
 
         // Wenn ein Bild asynchron fertig geladen ist → neu zeichnen
         onImageLoaded: drawCanvas.requestPaint()
@@ -1268,10 +1273,7 @@ Item {
                     // Verbindungshelfer erhalten keine Beschriftung.
                     if (!vorschau && !_skipText) {
                         var bmkSid = el.symbolId || ""
-                        var verbHelper = bmkSid === "winkel" || bmkSid === "treffpunkt" || bmkSid === "treffpunkt_l"
-                                      || bmkSid === "geraeteanschluss" || bmkSid === "unterbrechung"
-                                      || bmkSid === "querverweis"     || bmkSid === "aderdefinition"
-                                      || bmkSid === "klemme_anschluss" || bmkSid === "potenzial"
+                        var verbHelper = SK.istVerbHelper(bmkSid)
                         if (!verbHelper) {
                             var bmkEd  = el.extraDaten || {}
                             var bmkStr = bmkEd.bmk || ""
@@ -1490,12 +1492,12 @@ Item {
                         var gaAnk = gaed.anschlusskennzeichnung || ""
                         if (gaAnk !== "") {
                             // Umschließenden Gerätekasten suchen (kleinster)
+                            // _gkListe wurde einmalig in onPaint vorberechnet
                             var gaCxF = (el.x1 + el.x2) / 2, gaCyF = (el.y1 + el.y2) / 2
                             var bestGk = null, bestGkA = Infinity
-                            var _gaEls = elementeModel.snapshot()
+                            var _gaEls = drawCanvas._gkListe
                             for (var gi = 0; gi < _gaEls.length; gi++) {
                                 var gke = _gaEls[gi]
-                                if (gke.typ !== "geraetekasten") continue
                                 var gkx1 = Math.min(gke.x1,gke.x2), gkx2 = Math.max(gke.x1,gke.x2)
                                 var gky1 = Math.min(gke.y1,gke.y2), gky2 = Math.max(gke.y1,gke.y2)
                                 if (gaCxF >= gkx1 && gaCxF <= gkx2 && gaCyF >= gky1 && gaCyF <= gky2) {
@@ -2694,6 +2696,11 @@ Item {
             ctx.clearRect(0,0,width,height)
             drawCanvas.drawNormblatt(ctx)
             var elemente = elementeModel.snapshot()
+            // Gerätekasten-Liste einmalig filtern — GA-Rendering nutzt drawCanvas._gkListe
+            var _gkBuf = []
+            for (var _gi = 0; _gi < elemente.length; _gi++)
+                if (elemente[_gi] && elemente[_gi].typ === "geraetekasten") _gkBuf.push(elemente[_gi])
+            drawCanvas._gkListe = _gkBuf
             for (var i=0; i<elemente.length; i++)
                 drawCanvas.maleElement(ctx, elemente[i], i)
             if (root.vorschau !== null)

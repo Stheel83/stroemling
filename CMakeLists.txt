@@ -221,6 +221,7 @@ qt_add_qml_module(stroemling_app
         qml/logos/LogoIconGruenerFisch.qml
         qml/logos/LogoFischBase.js
         qml/logos/LogoBase.js
+        qml/SymbolKlassen.js
 )
 
 qt_add_resources(stroemling_app "stromlinge_assets"

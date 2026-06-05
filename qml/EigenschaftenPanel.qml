@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "components"
 import "ep"
+import "SymbolKlassen.js" as SK
 
 // ============================================================
 // EigenschaftenPanel.qml
@@ -128,9 +129,6 @@ Rectangle {
         var el = panel.el
         if (!el) return ""
 
-        var VERB_SYMS = ["winkel","treffpunkt","treffpunkt_l","geraeteanschluss",
-                         "unterbrechung","querverweis","aderdefinition","potenzial","klemme_anschluss"]
-
         var bmk = "", anlageUO = "", anlage = "", ortUO = "", ort = ""
         var nd  = canvas.normblattDaten   // {anlageKuerzel, ortKuerzel, ...} oder null
 
@@ -151,7 +149,7 @@ Rectangle {
                 ortUO    = skGA ? skGA.ortUO   || "" : ""
                 ort      = skGA && skGA.ort    ? skGA.ort    : (nd ? nd.ortKuerzel    || "" : "")
             } else {
-                for (var k = 0; k < VERB_SYMS.length; k++) if (sid === VERB_SYMS[k]) return ""
+                if (SK.istVerbHelper(sid)) return ""
                 bmk = (el.extraDaten || {}).bmk || ""
                 if (!bmk) return ""
                 var sk = strukturkastenFuer(el)

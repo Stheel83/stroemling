@@ -10,7 +10,7 @@ Dialog {
     modal:  true
     parent: Overlay.overlay
     anchors.centerIn: parent
-    width:  400
+    width:  500
     padding: 20
 
     required property var theme
@@ -103,11 +103,25 @@ Dialog {
             id: cbNormblatt
             checked: true
             enabled: !rbVoll.checked && !rbAlleVoll.checked
+            Layout.fillWidth: true
             contentItem: Text {
                 text:           qsTr("Normblatt einschließen")
                 color:          cbNormblatt.enabled ? root.theme.textPrimary : root.theme.textMuted
                 font.pixelSize: 12
                 leftPadding:    cbNormblatt.indicator.width + cbNormblatt.spacing
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
+
+        CheckBox {
+            id: cbInfostreifen
+            checked: false
+            Layout.fillWidth: true
+            contentItem: Text {
+                text:           qsTr("Infostreifen für Seiten ohne Schriftfeld")
+                color:          root.theme.textPrimary
+                font.pixelSize: 12
+                leftPadding:    cbInfostreifen.indicator.width + cbInfostreifen.spacing
                 verticalAlignment: Text.AlignVCenter
             }
         }
@@ -217,15 +231,16 @@ Dialog {
                     statusText.text = ""
                     var pfad = tfPfad.text.trim()
                     var nb   = cbNormblatt.checked
+                    var info = cbInfostreifen.checked
                     var ok = false
                     if (rbAlleVoll.checked)
-                        ok = db.canvasPdfExportieren(root.projektId, pfad, false, true)
+                        ok = db.canvasPdfExportieren(root.projektId, pfad, false, true, info)
                     else if (rbVoll.checked)
-                        ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true)
+                        ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true, info)
                     else if (rbAlle.checked)
-                        ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false)
+                        ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false, info)
                     else
-                        ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false)
+                        ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false, info)
 
                     if (ok) {
                         root.accept()

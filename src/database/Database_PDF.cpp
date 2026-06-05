@@ -947,6 +947,70 @@ static void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPer
     }
 }
 
+// ── Minimaler Infostreifen für Seiten ohne Normblatt ────────────────────────
+// Zeichnet einen 8 mm hohen Streifen am unteren Seitenrand mit:
+//   Links: Projektname · Auftraggeber   |   Mitte: Blatt – Bezeichnung (fett)
+//   Rechts: Exportdatum · Bearbeiter
+static void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
+                                    double bMm, double hMm, double pxPerMm)
+{
+    const double hStrMm = 8.0;
+    const double padMm  = 1.5;
+    double y0 = (hMm - hStrMm) * pxPerMm;
+    double w  =  bMm           * pxPerMm;
+    double h  =  hStrMm        * pxPerMm;
+
+    p.fillRect(QRectF(0, y0, w, h), Qt::white);
+
+    QPen linePen(Qt::black, 0.4 * pxPerMm);
+    p.setPen(linePen);
+    p.drawLine(QLineF(0, y0, w, y0));                // obere Trennlinie
+
+    // Abschnittsgrenzen (prozentual)
+    double x1 = w * 0.40;
+    double x2 = w * 0.72;
+    p.drawLine(QLineF(x1, y0, x1, hMm * pxPerMm));  // 1. vertikale Linie
+    p.drawLine(QLineF(x2, y0, x2, hMm * pxPerMm));  // 2. vertikale Linie
+
+    // Textstil
+    QFont font;
+    font.setFamily(QStringLiteral("sans-serif"));
+    font.setPixelSize(qMax(1, qRound(2.8 * pxPerMm)));
+    p.setFont(font);
+    p.setPen(Qt::black);
+
+    double pad  = padMm * pxPerMm;
+    double tY   = y0 + pad;
+    double tH   = h - 2.0 * pad;
+
+    // Links: Projektname · Auftraggeber
+    QString links = nb.value("projektName").toString();
+    QString ag    = nb.value("auftraggeber").toString();
+    if (!ag.isEmpty()) links += QStringLiteral("  \xB7  ") + ag;
+    p.drawText(QRectF(pad, tY, x1 - 2*pad, tH),
+               Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, links);
+
+    // Mitte: Blattnummer – Bezeichnung (fett)
+    QString blatt = nb.value("blattnummer").toString();
+    QString bez   = nb.value("bezeichnung").toString();
+    QString mitte = blatt.isEmpty() ? bez
+                  : bez.isEmpty()   ? blatt
+                  : blatt + QStringLiteral(" \x2013 ") + bez;
+    QFont fontB = font; fontB.setBold(true);
+    p.setFont(fontB);
+    p.drawText(QRectF(x1 + pad, tY, x2 - x1 - 2*pad, tH),
+               Qt::AlignHCenter | Qt::AlignVCenter, mitte);
+
+    // Rechts: Datum · Bearbeiter
+    p.setFont(font);
+    QString datum      = QDateTime::currentDateTime().toString("dd.MM.yyyy");
+    QString bearbeiter = nb.value("bearbeiter").toString();
+    QString rechts     = datum;
+    if (!bearbeiter.isEmpty()) rechts += QStringLiteral("  \xB7  ") + bearbeiter;
+    p.drawText(QRectF(x2 + pad, tY, w - x2 - 2*pad, tH),
+               Qt::AlignRight | Qt::AlignVCenter, rechts);
+}
+
 // ── Bounding-Box einer Seite berechnen (für vollCanvas-Modus) ───────────────
 struct PdfBBox { double txCu, tyCu, bMm, hMm; };
 
@@ -998,7 +1062,7 @@ static PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,
 
 // ── Öffentliche Methoden ─────────────────────────────────────
 
-bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas)
+bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
 {
     // Alle Seiten des Projekts in Anzeigereihenfolge laden
     QSqlQuery q(m_db);
@@ -1069,27 +1133,23 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
             writer.newPage();
         }
 
+        // Weißer Seitenhintergrund + Elemente im eigenen save/restore-Block
+        // (enthält ggf. den vollCanvas-Translate)
         painter.save();
-
-        // Weißer Seitenhintergrund
         painter.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
-
         if (vollCanvas)
             painter.translate(-txCu * C, -tyCu * C);
-
-        // Canvas-Elemente rendern
         QVariantList elemente = grafikLaden(seiteId);
         for (const QVariant &ev : elemente)
             pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
-
-        // Verbindungsleitungen aus DB
         pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
+        painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
-        // Normblatt-Rahmen + Schriftfeld (nicht im vollCanvas-Modus)
-        if (!vollCanvas && mitNormblatt && nb.value("normblattAnzeigen").toBool())
+        // Normblatt + Infostreifen in absoluten Koordinaten (kein Translate aktiv)
+        if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool())
             pdfNormblattRendern(painter, nb, pxPerMm);
-
-        painter.restore();
+        if (mitInfostreifen && !nb.value("normblattAnzeigen").toBool())
+            pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
     }
 
     painter.end();
@@ -1098,7 +1158,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
     return QFile::exists(localPath);
 }
 
-bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mitNormblatt, bool vollCanvas)
+bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
 {
     QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
 
@@ -1131,20 +1191,22 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     double pxPerMm = (double)writer.logicalDpiX() / 25.4;
     double C       = pxPerMm / 4.0;
 
+    // Elemente im eigenen save/restore-Block (enthält ggf. den vollCanvas-Translate)
+    painter.save();
     painter.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
-
-    // Vollständiger Canvas-Modus: alle Zeichenaufrufe um Bounding-Box-Ursprung verschieben
     if (vollCanvas)
         painter.translate(-txCu * C, -tyCu * C);
-
     QVariantList elemente = grafikLaden(seiteId);
     for (const QVariant &ev : elemente)
         pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
-
     pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
+    painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
-    if (mitNormblatt && nb.value("normblattAnzeigen").toBool())
+    // Normblatt + Infostreifen in absoluten Koordinaten
+    if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool())
         pdfNormblattRendern(painter, nb, pxPerMm);
+    if (mitInfostreifen && !nb.value("normblattAnzeigen").toBool())
+        pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
 
     painter.end();
     qInfo() << "canvasSeiteExportieren: PDF gespeichert:" << localPath

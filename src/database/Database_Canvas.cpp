@@ -532,10 +532,13 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
             }
         }
 
-        // Segmente einfügen
+        // Segmente einfügen (logische Verbindungen wie Klemmen-Durchleitung
+        // werden nicht gespeichert – sie sind auf dem Canvas nicht sichtbar
+        // und sollen daher auch im PDF nicht als Linie erscheinen)
         const QVariantList segmente = net.value(QStringLiteral("segmente")).toList();
         for (const QVariant &segVar : segmente) {
             const QVariantMap seg = segVar.toMap();
+            if (seg.value(QStringLiteral("logisch")).toBool()) continue;
             QJsonArray punkte;
             punkte.append(QJsonObject{{ QStringLiteral("x"), seg.value(QStringLiteral("x1")).toDouble() },
                                       { QStringLiteral("y"), seg.value(QStringLiteral("y1")).toDouble() }});

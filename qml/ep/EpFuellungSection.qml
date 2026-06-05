@@ -105,8 +105,9 @@ Item {
                                 validator: IntValidator { bottom: 5; top: 100 }
                                 text: Math.round(panel.s("fuellOpazitaet", 0.3) * 100)
                                 Binding on text {
-                                    when: !fuOpTf.activeFocus
-                                    value: Math.round(panel.s("fuellOpazitaet", 0.3) * 100)
+                                    when:    !fuOpTf.activeFocus
+                                    value:   Math.round(panel.s("fuellOpazitaet", 0.3) * 100)
+                                    delayed: true
                                 }
                                 onEditingFinished: {
                                     var v = parseInt(text)

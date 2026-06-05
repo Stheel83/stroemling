@@ -94,8 +94,9 @@ Item {
                     verticalAlignment: TextInput.AlignVCenter
                     text: panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
                     Binding on text {
-                        when: !bezTf.activeFocus
-                        value: panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
+                        when:    !bezTf.activeFocus
+                        value:   panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""
+                        delayed: true
                     }
                     onEditingFinished: panel.canvas.verbindungAnnotationAktualisieren("bezeichnung", text)
                     Keys.onEscapePressed: { text = panel.verbindung ? (panel.verbindung.bezeichnung || "") : ""; focus = false }

@@ -150,12 +150,13 @@ Item {
                                 return v !== undefined ? String(v) : ""
                             }
                             Binding on text {
-                                when: !mm2Tf.activeFocus
+                                when:    !mm2Tf.activeFocus
                                 value: {
                                     var v = panel.el && panel.el.extraDaten
                                             ? panel.el.extraDaten[modelData.key] : undefined
                                     return v !== undefined ? String(v) : ""
                                 }
+                                delayed: true
                             }
                             onEditingFinished: {
                                 var n = parseFloat(text.replace(",", "."))

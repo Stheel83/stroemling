@@ -151,9 +151,10 @@ Item {
                     text: (panel.el && panel.el.extraDaten)
                           ? (panel.el.extraDaten.bmk || "") : ""
                     Binding on text {
-                        when: !bmkEdit.activeFocus
-                        value: (panel.el && panel.el.extraDaten)
-                               ? (panel.el.extraDaten.bmk || "") : ""
+                        when:    !bmkEdit.activeFocus
+                        value:   (panel.el && panel.el.extraDaten)
+                                 ? (panel.el.extraDaten.bmk || "") : ""
+                        delayed: true
                     }
                     onEditingFinished: {
                         var kz = text.trim()
@@ -266,8 +267,9 @@ Item {
                                 ? panel.el.extraDaten.bmkOffsetX : 0
                             text: (weltWert / panel.canvas.mmToPx).toFixed(1)
                             Binding on text {
-                                when: !bmkOxTf.activeFocus
-                                value: (bmkOxTf.weltWert / panel.canvas.mmToPx).toFixed(1)
+                                when:    !bmkOxTf.activeFocus
+                                value:   (bmkOxTf.weltWert / panel.canvas.mmToPx).toFixed(1)
+                                delayed: true
                             }
                             onEditingFinished: {
                                 var v = parseFloat(text)
@@ -308,8 +310,9 @@ Item {
                                 ? panel.el.extraDaten.bmkOffsetY : -14
                             text: (weltWert / panel.canvas.mmToPx).toFixed(1)
                             Binding on text {
-                                when: !bmkOyTf.activeFocus
-                                value: (bmkOyTf.weltWert / panel.canvas.mmToPx).toFixed(1)
+                                when:    !bmkOyTf.activeFocus
+                                value:   (bmkOyTf.weltWert / panel.canvas.mmToPx).toFixed(1)
+                                delayed: true
                             }
                             onEditingFinished: {
                                 var v = parseFloat(text)

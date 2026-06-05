@@ -89,8 +89,9 @@ Item {
                         }
                         text: panel.s("rotation", 0).toFixed(1)
                         Binding on text {
-                            when: !bildRotTf.activeFocus
-                            value: panel.s("rotation", 0).toFixed(1)
+                            when:    !bildRotTf.activeFocus
+                            value:   panel.s("rotation", 0).toFixed(1)
+                            delayed: true
                         }
                         onEditingFinished: {
                             var v = parseFloat(text)

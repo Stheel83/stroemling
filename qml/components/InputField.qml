@@ -61,8 +61,9 @@ Item {
             text: root.value !== undefined ? (root.value + "") : ""
 
             Binding on text {
-                when:  !tf.activeFocus
-                value: root.value !== undefined ? (root.value + "") : ""
+                when:    !tf.activeFocus
+                value:   root.value !== undefined ? (root.value + "") : ""
+                delayed: true
             }
 
             onEditingFinished: if (!root.readOnly) root.commit(text)

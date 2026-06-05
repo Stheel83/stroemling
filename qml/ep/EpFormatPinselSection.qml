@@ -48,7 +48,7 @@ Item {
                 theme: root.theme
                 label:   qsTr("Format kopieren")
                 tooltip: qsTr("Stilformat des markierten Elements speichern (nur bei Einzelauswahl)")
-                breite:  92
+                breite:  112
                 opacity: root._kannKopieren ? 1.0 : 0.4
                 onKlick: panel.canvas.formatKopieren()
             }
@@ -59,7 +59,7 @@ Item {
                 tooltip: root._hatFormat
                           ? qsTr("Gespeichertes Stilformat auf alle markierten Elemente anwenden")
                           : qsTr("Zuerst ein Element markieren und \"Format kopieren\" klicken")
-                breite:  92
+                breite:  112
                 opacity: root._hatFormat ? 1.0 : 0.4
                 onKlick: panel.canvas.formatZuweisen()
             }

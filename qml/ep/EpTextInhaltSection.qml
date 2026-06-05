@@ -59,8 +59,9 @@ Item {
                 wrapMode: TextEdit.NoWrap
                 text: panel.s("textInhalt", "")
                 Binding on text {
-                    when: !txtEdit.activeFocus
-                    value: panel.s("textInhalt", "")
+                    when:    !txtEdit.activeFocus
+                    value:   panel.s("textInhalt", "")
+                    delayed: true
                 }
                 Keys.onReturnPressed: function(event) {
                     if (event.modifiers & Qt.ShiftModifier) {

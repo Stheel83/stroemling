@@ -123,9 +123,10 @@ Column {
                     text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.aderzahl)
                           ? panel.el.extraDaten.aderzahl.toString() : ""
                     Binding on text {
-                        when: !klAderEdit.activeFocus
-                        value: (panel.el && panel.el.extraDaten && panel.el.extraDaten.aderzahl)
-                               ? panel.el.extraDaten.aderzahl.toString() : ""
+                        when:    !klAderEdit.activeFocus
+                        value:   (panel.el && panel.el.extraDaten && panel.el.extraDaten.aderzahl)
+                                 ? panel.el.extraDaten.aderzahl.toString() : ""
+                        delayed: true
                     }
                     onEditingFinished: root.extraSetzen("aderzahl", parseInt(text) || 0)
                     Keys.onEscapePressed: focus = false
@@ -148,9 +149,10 @@ Column {
                     text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.querschnittMm2)
                           ? panel.el.extraDaten.querschnittMm2.toString() : ""
                     Binding on text {
-                        when: !klQsEdit.activeFocus
-                        value: (panel.el && panel.el.extraDaten && panel.el.extraDaten.querschnittMm2)
-                               ? panel.el.extraDaten.querschnittMm2.toString() : ""
+                        when:    !klQsEdit.activeFocus
+                        value:   (panel.el && panel.el.extraDaten && panel.el.extraDaten.querschnittMm2)
+                                 ? panel.el.extraDaten.querschnittMm2.toString() : ""
+                        delayed: true
                     }
                     onEditingFinished: root.extraSetzen("querschnittMm2",
                                            parseFloat(text.replace(",", ".")) || 0.0)
@@ -238,8 +240,9 @@ Column {
                     verticalAlignment: TextInput.AlignVCenter
                     text: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.vonOrt || "") : ""
                     Binding on text {
-                        when: !klVonEdit.activeFocus
-                        value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.vonOrt || "") : ""
+                        when:    !klVonEdit.activeFocus
+                        value:   (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.vonOrt || "") : ""
+                        delayed: true
                     }
                     onEditingFinished: {
                         root.extraSetzen("vonOrt", text.trim())
@@ -268,8 +271,9 @@ Column {
                     verticalAlignment: TextInput.AlignVCenter
                     text: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.nachOrt || "") : ""
                     Binding on text {
-                        when: !klNachEdit.activeFocus
-                        value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.nachOrt || "") : ""
+                        when:    !klNachEdit.activeFocus
+                        value:   (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.nachOrt || "") : ""
+                        delayed: true
                     }
                     onEditingFinished: {
                         root.extraSetzen("nachOrt", text.trim())

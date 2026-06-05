@@ -137,8 +137,9 @@ Column {
                             verticalAlignment: TextInput.AlignVCenter
                             text: ftZeileRoot.ftWert
                             Binding on text {
-                                when: !ftEdit.activeFocus
-                                value: ftZeileRoot.ftWert
+                                when:    !ftEdit.activeFocus
+                                value:   ftZeileRoot.ftWert
+                                delayed: true
                             }
                             onEditingFinished: ftZeileRoot.setWert(text.trim())
                             Keys.onEscapePressed: focus = false

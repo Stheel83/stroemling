@@ -445,8 +445,7 @@ Item {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
             var step = root.gridPx * root.zoom
-            while (step < 10)  step *= 2
-            while (step > 120) step /= 2
+            while (step < 10) step *= 2
             var ox = ((root.worldX % step) + step) % step
             var oy = ((root.worldY % step) + step) % step
             var hell = istHell()

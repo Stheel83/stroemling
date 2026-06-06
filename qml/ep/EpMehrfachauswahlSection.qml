@@ -11,18 +11,10 @@ Item {
     // panel.auswahlLaenge ist readonly property int → ändert sich bei JEDER
     // Auswahländerung, auch wenn ausgewaehlt konstant -1 bleibt (z.B. Keine→Mehrfach).
     // canvas.auswahl (property var) ist in AOT nicht direkt trackbar.
-    readonly property bool _hatSymbole: {
-        var n  = panel.auswahlLaenge         // int, AOT-sicher, alle Übergänge
-        var em = canvas.elementeModel.anzahl  // int, AOT-sicher getrackt
-        if (n < 2) return false
-        var sel = canvas.auswahl
-        for (var i = 0; i < sel.length; i++) {
-            var idx = sel[i]
-            if (idx >= 0 && idx < em
-                    && canvas.elementeModel.element(idx).typ === "symbol") return true
-        }
-        return false
-    }
+    // panel.symbolAuswahlAnzahl ist bereits ein getypter int in EigenschaftenPanel
+    // und funktioniert zuverlässig (wird auch für den BMK-Button verwendet).
+    // canvas ist in AOT-Bindings als required property var nicht auflösbar.
+    readonly property bool _hatSymbole: panel.symbolAuswahlAnzahl >= 1
 
     width:   parent ? parent.width : 0
     height:  panel.auswahlLaenge >= 2 ? multiCol.implicitHeight : 0

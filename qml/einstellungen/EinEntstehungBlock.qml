@@ -103,6 +103,29 @@ ColumnLayout {
                 text:           qsTr("Der Quellcode ist Open Source (GPL-3.0). Die Konzeptdateien sind meine persönlichen Arbeitsunterlagen und werden nicht veröffentlicht.")
                 font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
             }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            Text {
+                Layout.fillWidth: true
+                text:           qsTr("Verwendete Bibliotheken:")
+                font.pixelSize: 12; color: root.theme.textPrimary; wrapMode: Text.WordWrap
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
+                Repeater {
+                    model: [
+                        qsTr("Qt Framework (LGPL v3) — qt.io/licensing"),
+                        qsTr("SQLite (Public Domain) — sqlite.org")
+                    ]
+                    Text {
+                        Layout.fillWidth: true
+                        text:           modelData
+                        font.pixelSize: 11; color: root.theme.textSecondary; wrapMode: Text.WordWrap
+                    }
+                }
+            }
             Item { implicitHeight: 2 }
         }
     }

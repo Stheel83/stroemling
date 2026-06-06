@@ -47,15 +47,17 @@ Dialog {
             var aktuell = _stripUrl(tfPfad.text.trim())
             _pfadFeld.text = aktuell.length > 0
                 ? aktuell
-                : StandardPaths.writableLocation(StandardPaths.DocumentsLocation) + "/export.pdf"
+                : _stripUrl(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)) + "/export.pdf"
         }
 
+        // StandardPaths gibt in Qt6/QML URLs zurück (file:///…) – immer strippen
         function _stripUrl(s) {
             if (s.startsWith("file:///")) return s.substring(7)
+            if (s.startsWith("file://"))  return s.substring(7)
             return s
         }
         function _dateiname(pfad) {
-            var parts = pfad.split("/")
+            var parts = _stripUrl(pfad).split("/")
             var n = parts[parts.length - 1]
             return (n.length > 0 && n.includes(".")) ? n : "export.pdf"
         }
@@ -79,7 +81,7 @@ Dialog {
                         text: modelData.label
                         Layout.fillWidth: true
                         implicitHeight: 28
-                        onClicked: _pfadFeld.text = modelData.path + "/" + speicherDialog._dateiname(_pfadFeld.text)
+                        onClicked: _pfadFeld.text = speicherDialog._stripUrl(modelData.path) + "/" + speicherDialog._dateiname(_pfadFeld.text)
                         contentItem: Text {
                             text: parent.text; font.pixelSize: 11
                             color: root.theme.textSecondary
@@ -122,7 +124,7 @@ Dialog {
                     text: qsTr("OK"); Layout.fillWidth: true; implicitHeight: 32
                     enabled: _pfadFeld.text.trim().length > 0
                     onClicked: {
-                        var p = _pfadFeld.text.trim()
+                        var p = speicherDialog._stripUrl(_pfadFeld.text.trim())
                         if (!p.endsWith(".pdf")) p = p + ".pdf"
                         speicherDialog.selectedFile = "file://" + p
                         speicherDialog.accept()

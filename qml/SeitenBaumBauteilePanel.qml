@@ -22,6 +22,7 @@ ColumnLayout {
 
     property var  _geraeteAufgeklappt:  ({})
     property var  _mitgliederCache:     ({})   // betriebsmittelId → [{...}]
+    property int  _geraeteVersion:      0       // Zähler: Increment zwingt _geraeteListe zur Neuauswertung
 
     property var  _kabelAufgeklappt:   ({})
     property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
@@ -68,7 +69,11 @@ ColumnLayout {
     Connections {
         target: elementeModel
         function onGeaendert() {
-            if (root._bauteilBereichOffen) root.aktualisiereStatus()
+            if (root._bauteilBereichOffen) {
+                root.aktualisiereStatus()
+                root._mitgliederCache = {}
+                root._geraeteVersion++
+            }
         }
     }
 
@@ -372,7 +377,7 @@ ColumnLayout {
 
             // ── GERÄTE ───────────────────────────────────
             property var _geraeteListe: root._bauteilBereichOffen && root.projektId >= 0
-                ? db.betriebsmittelListe(root.projektId).filter(function(b) { return b.anzahl > 0 })
+                ? (root._geraeteVersion, db.betriebsmittelListe(root.projektId).filter(function(b) { return b.anzahl > 0 }))
                 : []
 
             Rectangle {

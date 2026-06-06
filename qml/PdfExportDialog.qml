@@ -51,11 +51,12 @@ Dialog {
             RadioButton {
                 id: rbAlle
                 checked: true
+                indicator: _radioInd.createObject(rbAlle, {ctrl: rbAlle})
                 contentItem: Text {
                     text:           qsTr("Alle Seiten")
                     color:          root.theme.textPrimary
                     font.pixelSize: 12
-                    leftPadding:    rbAlle.indicator.width + rbAlle.spacing
+                    leftPadding:    22
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -63,11 +64,12 @@ Dialog {
             RadioButton {
                 id: rbAktuell
                 enabled: root.seiteId > 0
+                indicator: _radioInd.createObject(rbAktuell, {ctrl: rbAktuell})
                 contentItem: Text {
                     text:           qsTr("Aktuelle Seite")
                     color:          rbAktuell.enabled ? root.theme.textPrimary : root.theme.textMuted
                     font.pixelSize: 12
-                    leftPadding:    rbAktuell.indicator.width + rbAktuell.spacing
+                    leftPadding:    22
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -76,11 +78,12 @@ Dialog {
                 id: rbVoll
                 enabled: root.seiteId > 0
                 onCheckedChanged: if (checked) cbNormblatt.checked = false
+                indicator: _radioInd.createObject(rbVoll, {ctrl: rbVoll})
                 contentItem: Text {
                     text:           qsTr("Ganzes Canvas (aktuelle Seite)")
                     color:          rbVoll.enabled ? root.theme.textPrimary : root.theme.textMuted
                     font.pixelSize: 12
-                    leftPadding:    rbVoll.indicator.width + rbVoll.spacing
+                    leftPadding:    22
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -88,11 +91,12 @@ Dialog {
             RadioButton {
                 id: rbAlleVoll
                 onCheckedChanged: if (checked) cbNormblatt.checked = false
+                indicator: _radioInd.createObject(rbAlleVoll, {ctrl: rbAlleVoll})
                 contentItem: Text {
                     text:           qsTr("Alle Seiten (ganzes Canvas, ohne Normblatt)")
                     color:          root.theme.textPrimary
                     font.pixelSize: 12
-                    leftPadding:    rbAlleVoll.indicator.width + rbAlleVoll.spacing
+                    leftPadding:    22
                     verticalAlignment: Text.AlignVCenter
                 }
             }
@@ -104,11 +108,12 @@ Dialog {
             checked: true
             enabled: !rbVoll.checked && !rbAlleVoll.checked
             Layout.fillWidth: true
+            indicator: _checkInd.createObject(cbNormblatt, {ctrl: cbNormblatt})
             contentItem: Text {
                 text:           qsTr("Normblatt einschließen")
                 color:          cbNormblatt.enabled ? root.theme.textPrimary : root.theme.textMuted
                 font.pixelSize: 12
-                leftPadding:    cbNormblatt.indicator.width + cbNormblatt.spacing
+                leftPadding:    22
                 verticalAlignment: Text.AlignVCenter
             }
         }
@@ -117,12 +122,55 @@ Dialog {
             id: cbInfostreifen
             checked: false
             Layout.fillWidth: true
+            indicator: _checkInd.createObject(cbInfostreifen, {ctrl: cbInfostreifen})
             contentItem: Text {
                 text:           qsTr("Infostreifen für Seiten ohne Schriftfeld")
                 color:          root.theme.textPrimary
                 font.pixelSize: 12
-                leftPadding:    cbInfostreifen.indicator.width + cbInfostreifen.spacing
+                leftPadding:    22
                 verticalAlignment: Text.AlignVCenter
+            }
+        }
+
+        // Indicator-Templates (style-unabhängig)
+        Component {
+            id: _radioInd
+            property var ctrl
+            Item {
+                implicitWidth: 14; implicitHeight: 14
+                x: ctrl.leftPadding; y: (ctrl.height - height) / 2
+                Rectangle {
+                    anchors.fill: parent; radius: 7
+                    color: "transparent"
+                    border.color: ctrl.checked ? root.theme.accent : root.theme.border
+                    border.width: 1.5
+                }
+                Rectangle {
+                    width: 7; height: 7; radius: 4
+                    anchors.centerIn: parent
+                    color: root.theme.accent
+                    visible: ctrl.checked
+                }
+            }
+        }
+        Component {
+            id: _checkInd
+            property var ctrl
+            Item {
+                implicitWidth: 14; implicitHeight: 14
+                x: ctrl.leftPadding; y: (ctrl.height - height) / 2
+                Rectangle {
+                    anchors.fill: parent; radius: 3
+                    color: ctrl.checked ? root.theme.accent : "transparent"
+                    border.color: ctrl.checked ? root.theme.accent : root.theme.border
+                    border.width: 1.5
+                }
+                Text {
+                    anchors.centerIn: parent
+                    text: "✓"; font.pixelSize: 10; font.bold: true
+                    color: root.theme.sidebar
+                    visible: ctrl.checked
+                }
             }
         }
 

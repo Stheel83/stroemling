@@ -179,6 +179,9 @@ Item {
     function aderFarbeZuCanvas(code) { return drawCanvas.aderFarbeZuCanvas(code) }
     // Cache der DB-Annotationen: netKey → {verbindungId, bezeichnung, farbe, querschnitt_mm2, signaltyp}
     property var verbindungAnnotationenCache: ({})
+    // OPT-KABEL-GEO-01: Netz-Geometrie-Cache (invalidiert bei elementeModel.geaendert)
+    property var _cachedNetze:        null   // autoNetzeBerechnen()-Ergebnis
+    property var _cachedKabelSchnitte: ({})  // elId → schnitte[]
 
     // --------------------------------------------------------
     // Text-Werkzeug: Inline-Editor
@@ -484,7 +487,11 @@ Item {
 
         Connections {
             target: elementeModel
-            function onGeaendert() { drawCanvas.requestPaint() }
+            function onGeaendert() {
+                root._cachedNetze = null
+                root._cachedKabelSchnitte = {}
+                drawCanvas.requestPaint()
+            }
         }
 
         // Normgerechte Textrotation: Text darf nie kopfstehen (max. 90°).
@@ -2410,7 +2417,7 @@ Item {
             if (kLenW < 0.5) return
 
             // Schnittpunkte mit netKey berechnen (dedupliziert, sortiert)
-            var schnitte = kabelSchnittNetzeBerechnen(el, netze)
+            var schnitte = kabelSchnittNetzeBerechnenCached(el, netze)
             if (schnitte.length === 0) return
 
             var klAdern       = (el.extraDaten && Array.isArray(el.extraDaten.adern))
@@ -2560,8 +2567,23 @@ Item {
             return result
         }
 
-        function maleAutoVerbindungen(ctx) {
-            var netze = drawCanvas.autoNetzeBerechnen()
+        function autoNetzeBerechnenCached() {
+            if (root._cachedNetze !== null) return root._cachedNetze
+            root._cachedNetze = autoNetzeBerechnen()
+            return root._cachedNetze
+        }
+
+        function kabelSchnittNetzeBerechnenCached(el, netze) {
+            var elId = el ? (el.id || 0) : 0
+            if (elId > 0 && root._cachedKabelSchnitte[elId] !== undefined)
+                return root._cachedKabelSchnitte[elId]
+            var result = kabelSchnittNetzeBerechnen(el, netze)
+            if (elId > 0) root._cachedKabelSchnitte[elId] = result
+            return result
+        }
+
+        function maleAutoVerbindungen(ctx, netze) {
+            if (netze === undefined) netze = autoNetzeBerechnenCached()
             if (netze.length === 0) return
 
             var _fsPfadKeys = Object.keys(root.fehlersuchPfadIds)
@@ -2769,12 +2791,12 @@ Item {
                 }
                 ctx.restore()
             }
-            drawCanvas.maleAutoVerbindungen(ctx)
+            var _repaintNetze = drawCanvas.autoNetzeBerechnenCached()
+            drawCanvas.maleAutoVerbindungen(ctx, _repaintNetze)
             // Schnittpunkte aller Kabellinien mit Auto-Verbindungen (Phase 5)
-            var kabelNetze = drawCanvas.autoNetzeBerechnen()
             for (var kli = 0; kli < elemente.length; kli++) {
                 if (elemente[kli].typ === "kabellinie")
-                    drawCanvas.maleKabelSchnitte(ctx, elemente[kli], kabelNetze)
+                    drawCanvas.maleKabelSchnitte(ctx, elemente[kli], _repaintNetze)
             }
             // Rubber-Band Auswahlrahmen
             if (root.amRubberband && root.rubberbandRect) {

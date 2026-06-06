@@ -31,6 +31,7 @@ KI-Werkzeugen entwickelt:
 |---|---|
 | **Claude Code** (Anthropic) | Code, Architektur, Konzepte |
 | **ChatGPT / DALL-E** (OpenAI) | Strömlinge-Charakterbilder |
+| **Google Gemini** | Strömlinge-Charakterbilder |
 
 Die Projektidee stammt vom Projektinhaber — Konzepte und Quellcode
 wurden gemeinsam mit KI erarbeitet.

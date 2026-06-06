@@ -26,3 +26,8 @@ oder einen **Systemzustand** – erkennbar an Farbe, Körpermerkmalen und Persö
 | Signale & Bus | Impulsino (Signal), Datinchen (Bus) | – |
 | Schutz & Isolierung | Isolus (Dunkleosteus-Panzerfish) | IEC Klasse II |
 | Fehlerzustände | Krizzo (Kurzschluss), Errinka (Fehler), Fusia (Überlast), Stoppius (Not-Aus) | – |
+
+## Entstehung der Bilder
+
+Die Strömlinge-Charakterbilder wurden mit KI-Bildgeneratoren erstellt:
+**ChatGPT / DALL-E** (OpenAI) und **Google Gemini**.

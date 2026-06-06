@@ -709,7 +709,8 @@ private:
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_makroDb;
     QSqlDatabase m_launcherDb;
-    bool         m_projektOffen = false;
+    bool         m_projektOffen  = false;
+    bool         m_fts5Verfuegbar = false;
     QString      m_wikiBlobDir;
     QString      m_wikiPfad;
     QString      m_makroPfad;

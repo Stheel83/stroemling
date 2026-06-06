@@ -262,39 +262,40 @@ bool Database::createWikiSchema()
         return false;
     }
 
-    if (!q.exec(R"(
+    // FTS5 optional – fehlt z.B. in MXE-SQLite (Windows-Cross-Build)
+    m_fts5Verfuegbar = q.exec(R"(
         CREATE VIRTUAL TABLE IF NOT EXISTS wiki_suche USING fts5(
             titel, inhalt, tags,
             content='wiki_artikel',
             content_rowid='id'
         )
-    )")) {
-        qWarning() << "Fehler wiki_suche (FTS5):" << q.lastError().text();
-        return false;
+    )");
+    if (!m_fts5Verfuegbar) {
+        qWarning() << "FTS5 nicht verfügbar – Wiki-Suche deaktiviert:" << q.lastError().text();
+    } else {
+        if (!q.exec(R"(
+            CREATE TRIGGER IF NOT EXISTS wiki_artikel_ai AFTER INSERT ON wiki_artikel BEGIN
+                INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
+                VALUES (new.id, new.titel, new.inhalt, new.tags);
+            END
+        )")) { qWarning() << "Trigger wiki_artikel_ai:" << q.lastError().text(); }
+
+        if (!q.exec(R"(
+            CREATE TRIGGER IF NOT EXISTS wiki_artikel_ad AFTER DELETE ON wiki_artikel BEGIN
+                INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
+                VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
+            END
+        )")) { qWarning() << "Trigger wiki_artikel_ad:" << q.lastError().text(); }
+
+        if (!q.exec(R"(
+            CREATE TRIGGER IF NOT EXISTS wiki_artikel_au AFTER UPDATE ON wiki_artikel BEGIN
+                INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
+                VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
+                INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
+                VALUES (new.id, new.titel, new.inhalt, new.tags);
+            END
+        )")) { qWarning() << "Trigger wiki_artikel_au:" << q.lastError().text(); }
     }
-
-    if (!q.exec(R"(
-        CREATE TRIGGER IF NOT EXISTS wiki_artikel_ai AFTER INSERT ON wiki_artikel BEGIN
-            INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
-            VALUES (new.id, new.titel, new.inhalt, new.tags);
-        END
-    )")) { qWarning() << "Trigger wiki_artikel_ai:" << q.lastError().text(); return false; }
-
-    if (!q.exec(R"(
-        CREATE TRIGGER IF NOT EXISTS wiki_artikel_ad AFTER DELETE ON wiki_artikel BEGIN
-            INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
-            VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
-        END
-    )")) { qWarning() << "Trigger wiki_artikel_ad:" << q.lastError().text(); return false; }
-
-    if (!q.exec(R"(
-        CREATE TRIGGER IF NOT EXISTS wiki_artikel_au AFTER UPDATE ON wiki_artikel BEGIN
-            INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
-            VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
-            INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
-            VALUES (new.id, new.titel, new.inhalt, new.tags);
-        END
-    )")) { qWarning() << "Trigger wiki_artikel_au:" << q.lastError().text(); return false; }
 
     return true;
 }
@@ -608,7 +609,7 @@ QString Database::wikiBildAlsTempDatei(int id)
 // ============================================================
 QVariantList Database::wikiSuchen(const QString &suchbegriff)
 {
-    if (suchbegriff.trimmed().isEmpty()) return {};
+    if (suchbegriff.trimmed().isEmpty() || !m_fts5Verfuegbar) return {};
 
     QSqlQuery q(m_wikiDb);
     q.prepare(R"(

@@ -3782,6 +3782,25 @@ Item {
 
     // CE-06: Ausrichten & Verteilen
     // richtung: "links"|"rechts"|"oben"|"unten"|"mitte_h"|"mitte_v"|"verteilen_h"|"verteilen_v"
+    function elementeAufRasterSnappen() {
+        if (root.auswahl.length === 0) return
+        var selSnapshot = root.auswahl.slice()
+        for (var i = 0; i < selSnapshot.length; i++) {
+            var idx = selSnapshot[i]
+            var el  = elementeModel.element(idx)
+            if (!el) continue
+            var g   = root.gridPx
+            var rx1 = Math.round(el.x1 / g) * g
+            var ry1 = Math.round(el.y1 / g) * g
+            var w   = el.x2 - el.x1
+            var h   = el.y2 - el.y1
+            if (rx1 !== el.x1 || ry1 !== el.y1)
+                elementeModel.elementAktualisieren(idx, { x1: rx1, y1: ry1, x2: rx1 + w, y2: ry1 + h })
+        }
+        root.auswahl = selSnapshot
+        root.grafikSpeichernJetzt()
+    }
+
     function elementeAusrichten(richtung) {
         if (root.auswahl.length < 2) return
         var verteilen = (richtung === "verteilen_h" || richtung === "verteilen_v")

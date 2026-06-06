@@ -34,8 +34,8 @@ Rectangle {
         ComboBox {
             id: cmbRaster
             implicitWidth: 84; implicitHeight: 24
-            model: ["2 mm","4 mm","6 mm","8 mm","10 mm"]; currentIndex: 1
-            readonly property var mmWerte: [2,4,6,8,10]
+            model: ["1 mm","2 mm","4 mm","6 mm","8 mm","10 mm"]; currentIndex: 2
+            readonly property var mmWerte: [1,2,4,6,8,10]
             property bool _laden: false
             onCurrentIndexChanged: {
                 canvas.gridMm = mmWerte[currentIndex]; canvas.repaintAll()

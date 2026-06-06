@@ -141,6 +141,15 @@ Item {
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
+            MiniButton { theme: root.theme; label: qsTr("Am Raster ausrichten"); breite: 176
+                tooltip: qsTr("Alle selektierten Elemente auf das aktuelle Raster snappen")
+                onKlick: panel.canvas.elementeAufRasterSnappen() }
+        }
+
+        Item { height: 4 }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
             MiniButton { theme: root.theme; label: qsTr("← L"); breite: 44
                 tooltip: qsTr("Linksbündig ausrichten")

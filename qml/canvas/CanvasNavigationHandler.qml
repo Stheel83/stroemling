@@ -146,14 +146,20 @@ Item {
         MenuSeparator {}
         Menu {
             title: "Ausrichten"
-            enabled: canvas.auswahl.length >= 2
-            MenuItem { text: "Linksbuendig";          onTriggered: canvas.elementeAusrichten("links")      }
-            MenuItem { text: "Rechtsbuendig";         onTriggered: canvas.elementeAusrichten("rechts")     }
-            MenuItem { text: "Oben ausrichten";       onTriggered: canvas.elementeAusrichten("oben")       }
-            MenuItem { text: "Unten ausrichten";      onTriggered: canvas.elementeAusrichten("unten")      }
+            enabled: canvas.auswahl.length >= 1
+            MenuItem {
+                text:    "Am Raster ausrichten"
+                enabled: canvas.auswahl.length >= 1
+                onTriggered: canvas.elementeAufRasterSnappen()
+            }
             MenuSeparator {}
-            MenuItem { text: "Horizontal zentrieren"; onTriggered: canvas.elementeAusrichten("mitte_h")   }
-            MenuItem { text: "Vertikal zentrieren";   onTriggered: canvas.elementeAusrichten("mitte_v")   }
+            MenuItem { text: "Linksbuendig";          enabled: canvas.auswahl.length >= 2; onTriggered: canvas.elementeAusrichten("links")    }
+            MenuItem { text: "Rechtsbuendig";         enabled: canvas.auswahl.length >= 2; onTriggered: canvas.elementeAusrichten("rechts")   }
+            MenuItem { text: "Oben ausrichten";       enabled: canvas.auswahl.length >= 2; onTriggered: canvas.elementeAusrichten("oben")     }
+            MenuItem { text: "Unten ausrichten";      enabled: canvas.auswahl.length >= 2; onTriggered: canvas.elementeAusrichten("unten")    }
+            MenuSeparator {}
+            MenuItem { text: "Horizontal zentrieren"; enabled: canvas.auswahl.length >= 2; onTriggered: canvas.elementeAusrichten("mitte_h") }
+            MenuItem { text: "Vertikal zentrieren";   enabled: canvas.auswahl.length >= 2; onTriggered: canvas.elementeAusrichten("mitte_v") }
             MenuSeparator {}
             MenuItem {
                 text:    "Horizontal verteilen"

@@ -146,6 +146,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE bauteil ADD COLUMN url_hersteller TEXT)",
             R"(ALTER TABLE bauteil ADD COLUMN url_datenblatt TEXT)",
         }},
+        { 61, "Winkel: 8x8mm auf 4x4mm verkleinert (= 1 Rastereinheit)", {
+            R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=4 WHERE id='winkel' AND ist_builtin=1)",
+        }},
     };
 }
 

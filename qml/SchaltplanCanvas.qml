@@ -1273,7 +1273,7 @@ Item {
                     // Verbindungshelfer erhalten keine Beschriftung.
                     if (!vorschau && !_skipText) {
                         var bmkSid = el.symbolId || ""
-                        var verbHelper = SK.istVerbHelper(bmkSid)
+                        var verbHelper = SK.hatEigenenBeschriftungsBlock(bmkSid)
                         if (!verbHelper) {
                             var bmkEd  = el.extraDaten || {}
                             var bmkStr = bmkEd.bmk || ""
@@ -1888,7 +1888,8 @@ Item {
             ctx.setLineDash([]); ctx.lineCap="butt"; ctx.globalAlpha=1.0
 
             if (!vorschau && el.typ !== "symbol" && el.typ !== "polygonlinie"
-                         && el.typ !== "rechteck" && el.typ !== "geraetekasten"
+                         && el.typ !== "rechteck" && el.typ !== "kreis"
+                         && el.typ !== "geraetekasten"
                          && el.typ !== "strukturkasten" && el.typ !== "makrokasten"
                          && el.typ !== "bild"  && el.typ !== "notiz") {
                 ctx.fillStyle = gewaehlt ? "#f0a030" : sf

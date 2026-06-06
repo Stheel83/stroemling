@@ -51,6 +51,10 @@ ColumnLayout {
                 text:           qsTr("Projektinhaber")
                 font.pixelSize: 11; color: root.theme.textMuted
             }
+            Text {
+                text:           "stroemling@stheelke.de"
+                font.pixelSize: 11; color: root.theme.accent
+            }
 
             Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 

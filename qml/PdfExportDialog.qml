@@ -81,7 +81,18 @@ Dialog {
                         text: modelData.label
                         Layout.fillWidth: true
                         implicitHeight: 28
-                        onClicked: _pfadFeld.text = speicherDialog._stripUrl(modelData.path) + "/" + speicherDialog._dateiname(_pfadFeld.text)
+                        onClicked: {
+                            var dir = ("" + modelData.path)
+                            if (dir.startsWith("file:///")) dir = dir.substring(7)
+                            else if (dir.startsWith("file://")) dir = dir.substring(7)
+                            var cur = ("" + _pfadFeld.text)
+                            if (cur.startsWith("file:///")) cur = cur.substring(7)
+                            else if (cur.startsWith("file://")) cur = cur.substring(7)
+                            var parts = cur.split("/")
+                            var name = parts[parts.length - 1]
+                            if (!name || !name.includes(".")) name = "export.pdf"
+                            _pfadFeld.text = dir + "/" + name
+                        }
                         contentItem: Text {
                             text: parent.text; font.pixelSize: 11
                             color: root.theme.textSecondary
@@ -124,7 +135,9 @@ Dialog {
                     text: qsTr("OK"); Layout.fillWidth: true; implicitHeight: 32
                     enabled: _pfadFeld.text.trim().length > 0
                     onClicked: {
-                        var p = speicherDialog._stripUrl(_pfadFeld.text.trim())
+                        var p = ("" + _pfadFeld.text).trim()
+                        if (p.startsWith("file:///")) p = p.substring(7)
+                        else if (p.startsWith("file://")) p = p.substring(7)
                         if (!p.endsWith(".pdf")) p = p + ".pdf"
                         speicherDialog.selectedFile = "file://" + p
                         speicherDialog.accept()

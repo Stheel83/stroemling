@@ -164,6 +164,15 @@ int main(int argc, char *argv[])
 
     qInfo() << "=== Strömling gestartet" << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "===";
 
+#ifdef Q_OS_WIN
+    // Auf Windows: single-threaded Render-Loop damit QSqlQuery in Canvas.onPaint
+    // die Datenbankverbindung des Haupt-Threads nutzen kann.
+    // Fusion-Style explizit setzen, da der native Windows-Style nicht vollständig deployed wird.
+    qputenv("QSG_RENDER_LOOP", "basic");
+    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE"))
+        qputenv("QT_QUICK_CONTROLS_STYLE", "Fusion");
+#endif
+
 #ifdef Q_OS_LINUX
     // Einmalige Migration: war früher unter ~/.local/share/stroemling/Strömling Design/
     // Jetzt: ~/.local/share/Strömling Design/ (kein OrganizationName mehr)

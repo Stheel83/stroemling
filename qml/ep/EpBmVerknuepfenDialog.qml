@@ -3,38 +3,29 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 // Dialog: Betriebsmittel verknüpfen oder neu anlegen.
-// Kommuniziert über `panel` (EP-Panel-Referenz).
+// Aufbau analog MakroBibliothekDialog: festes height, padding 0,
+// Titel als erstes contentItem-Kind → kein Header-Layout-Bug.
 Dialog {
     id: root
 
     required property var panel
     required property var theme
 
-    width:            400
-    anchors.centerIn: Overlay.overlay
-    modal:            true
-    padding:          14
-    standardButtons:  Dialog.NoButton
+    width:   400
+    height:  390
+    padding: 0
+    modal:   true
+    parent:  Overlay.overlay
+    anchors.centerIn: parent
+    standardButtons: Dialog.NoButton
 
     property int gewaehltId: 0
 
     background: Rectangle {
-        color:        theme.sidebar
-        border.color: theme.border
+        color:        root.theme.sidebar
+        border.color: root.theme.border
         border.width: 1
         radius:       6
-    }
-
-    header: Item {
-        height: 36
-        Text {
-            anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
-            text:           qsTr("Geräteverknüpfung")
-            color:          theme.accent
-            font.pixelSize: 13
-            font.weight:    Font.Medium
-        }
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: theme.border }
     }
 
     onOpened: {
@@ -60,20 +51,57 @@ Dialog {
     }
 
     contentItem: ColumnLayout {
-        spacing: 8
+        spacing: 0
 
+        // ── Titelzeile ───────────────────────────────────────
+        Rectangle {
+            Layout.fillWidth: true
+            height: 40
+            color:  "transparent"
+            RowLayout {
+                anchors { fill: parent; leftMargin: 14; rightMargin: 8 }
+                spacing: 8
+                Text {
+                    text: qsTr("Geräteverknüpfung")
+                    font.pixelSize: 13; font.weight: Font.Medium
+                    color: root.theme.accent
+                    Layout.fillWidth: true
+                }
+                Button {
+                    text: "×"; flat: true; implicitWidth: 28; implicitHeight: 28
+                    contentItem: Text {
+                        text: parent.text; color: root.theme.textMuted
+                        font.pixelSize: 18
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment:   Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? root.theme.hover : "transparent"; radius: 4
+                    }
+                    onClicked: root.reject()
+                }
+            }
+        }
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+        // ── Betriebsmittel-Liste ─────────────────────────────
         Text {
+            Layout.fillWidth: true
+            Layout.topMargin: 10; Layout.leftMargin: 14; Layout.rightMargin: 14
             text:           qsTr("Vorhandenes Betriebsmittel wählen:")
-            color:          theme.textMuted
+            color:          root.theme.textMuted
             font.pixelSize: 11
         }
 
         ListView {
-            id:               bmListe
-            Layout.fillWidth: true
-            height:           Math.min(contentHeight, 160)
-            clip:             true
-            model:            panel.canvas.projektId >= 0 ? db.betriebsmittelListe(panel.canvas.projektId) : []
+            id:                   bmListe
+            Layout.fillWidth:     true
+            Layout.fillHeight:    true
+            Layout.leftMargin:    14; Layout.rightMargin: 14
+            Layout.topMargin:     4;  Layout.bottomMargin: 4
+            clip:                 true
+            model:                panel.canvas.projektId >= 0
+                                  ? db.betriebsmittelListe(panel.canvas.projektId) : []
 
             ScrollBar.vertical: ScrollBar {}
 
@@ -81,15 +109,15 @@ Dialog {
                 width:  bmListe.width
                 height: 28; radius: 3
                 color: root.gewaehltId === modelData.id
-                       ? theme.activeItemAlt
-                       : (bmDelegMa.containsMouse ? theme.hover : "transparent")
-                border.color: root.gewaehltId === modelData.id ? theme.accent : "transparent"
+                       ? root.theme.activeItemAlt
+                       : (bmDelegMa.containsMouse ? root.theme.hover : "transparent")
+                border.color: root.gewaehltId === modelData.id ? root.theme.accent : "transparent"
                 Row {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     spacing: 8
-                    Text { text: modelData.kz;                font.pixelSize: 12; color: theme.accent;    width: 80;  elide: Text.ElideRight }
-                    Text { text: modelData.bezeichnung || ""; font.pixelSize: 11; color: theme.textMuted; width: 150; elide: Text.ElideRight }
-                    Text { text: modelData.anzahl > 0 ? "(" + modelData.anzahl + ")" : ""; font.pixelSize: 10; color: theme.borderLight }
+                    Text { text: modelData.kz;                font.pixelSize: 12; color: root.theme.accent;    width: 80;  elide: Text.ElideRight }
+                    Text { text: modelData.bezeichnung || ""; font.pixelSize: 11; color: root.theme.textMuted; width: 150; elide: Text.ElideRight }
+                    Text { text: modelData.anzahl > 0 ? "(" + modelData.anzahl + ")" : ""; font.pixelSize: 10; color: root.theme.borderLight }
                 }
                 MouseArea {
                     id: bmDelegMa; anchors.fill: parent
@@ -102,67 +130,78 @@ Dialog {
                 anchors.centerIn: parent
                 visible:        bmListe.count === 0
                 text:           qsTr("Noch keine Betriebsmittel im Projekt")
-                color:          theme.borderLight
+                color:          root.theme.borderLight
                 font.pixelSize: 10; font.italic: true
             }
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
+        // ── Neues Betriebsmittel anlegen ─────────────────────
         Text {
+            Layout.fillWidth: true
+            Layout.topMargin: 8; Layout.leftMargin: 14; Layout.rightMargin: 14
             text:           qsTr("… oder neues Betriebsmittel anlegen:")
-            color:          theme.textMuted
+            color:          root.theme.textMuted
             font.pixelSize: 11
         }
 
         RowLayout {
-            Layout.fillWidth: true; spacing: 6
+            Layout.fillWidth: true
+            Layout.leftMargin: 14; Layout.rightMargin: 14; Layout.topMargin: 4
+            spacing: 6
+
             TextField {
                 id:                    neuKzField
                 Layout.preferredWidth: 110; implicitHeight: 30
                 placeholderText:       qsTr("BMK z.B. -K1")
-                background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-                color: theme.textPrimary; font.pixelSize: 11
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                color: root.theme.textPrimary; font.pixelSize: 11
                 onTextChanged: if (text.trim() !== "") root.gewaehltId = 0
             }
             TextField {
                 id:               neuBezField
                 Layout.fillWidth: true; implicitHeight: 30
                 placeholderText:  qsTr("Bezeichnung (optional)")
-                background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-                color: theme.textPrimary; font.pixelSize: 11
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                color: root.theme.textPrimary; font.pixelSize: 11
             }
         }
 
         Text {
             visible:          root.gewaehltId > 0
             Layout.fillWidth: true
+            Layout.leftMargin: 14; Layout.rightMargin: 14; Layout.topMargin: 2
             text:             qsTr("BMK wird automatisch vom gewählten Betriebsmittel übernommen.")
-            color:            theme.textMuted
+            color:            root.theme.textMuted
             font.pixelSize:   10; font.italic: true
             wrapMode:         Text.WordWrap
         }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+        // ── Buttons ──────────────────────────────────────────
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 8 }
 
         RowLayout {
-            Layout.fillWidth: true; spacing: 8
+            Layout.fillWidth: true
+            Layout.leftMargin: 14; Layout.rightMargin: 14
+            Layout.topMargin: 8;   Layout.bottomMargin: 12
+            spacing: 8
 
             Item { Layout.fillWidth: true }
 
             Button {
                 text: qsTr("Abbrechen")
-                implicitWidth: 96; implicitHeight: 32; flat: true
+                implicitWidth: 96; implicitHeight: 32
                 contentItem: Text {
                     text: parent.text; font.pixelSize: 12
-                    color: theme.textSecondary
+                    color: root.theme.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment:   Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color:        parent.hovered ? theme.hover : theme.inputBg
+                    color:        parent.hovered ? root.theme.hover : root.theme.inputBg
                     radius:       4
-                    border.color: theme.border
+                    border.color: root.theme.border
                 }
                 onClicked: root.reject()
             }
@@ -172,14 +211,14 @@ Dialog {
                 implicitWidth: 80; implicitHeight: 32
                 contentItem: Text {
                     text: parent.text; font.pixelSize: 12; font.weight: Font.Medium
-                    color: parent.hovered ? "#ffffff" : theme.accent
+                    color: parent.hovered ? "#ffffff" : root.theme.accent
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment:   Text.AlignVCenter
                 }
                 background: Rectangle {
-                    color:        parent.hovered ? theme.accent : theme.inputBg
+                    color:        parent.hovered ? root.theme.accent : root.theme.inputBg
                     radius:       4
-                    border.color: theme.accent
+                    border.color: root.theme.accent
                 }
                 onClicked: root.accept()
             }

@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Dialogs
+import QtCore
 import "components"
 
 Dialog {
@@ -26,12 +26,117 @@ Dialog {
         border.width: 1; radius: 6
     }
 
-    FileDialog {
+    // Eigener Pfad-Picker – kein nativer FileDialog (funktioniert in AppImage)
+    Dialog {
         id: speicherDialog
-        title:         qsTr("PDF speichern unter")
-        fileMode:      FileDialog.SaveFile
-        nameFilters:   [qsTr("PDF-Datei (*.pdf)"), qsTr("Alle Dateien (*)")]
-        defaultSuffix: "pdf"
+        title:  qsTr("PDF speichern unter")
+        modal:  true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width:  440
+        padding: 16
+
+        property string selectedFile: ""
+
+        background: Rectangle {
+            color: root.theme.sidebar; border.color: root.theme.border
+            border.width: 1; radius: 6
+        }
+
+        onOpened: {
+            var aktuell = _stripUrl(tfPfad.text.trim())
+            _pfadFeld.text = aktuell.length > 0
+                ? aktuell
+                : StandardPaths.writableLocation(StandardPaths.DocumentsLocation) + "/export.pdf"
+        }
+
+        function _stripUrl(s) {
+            if (s.startsWith("file:///")) return s.substring(7)
+            return s
+        }
+        function _dateiname(pfad) {
+            var parts = pfad.split("/")
+            var n = parts[parts.length - 1]
+            return (n.length > 0 && n.includes(".")) ? n : "export.pdf"
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 8
+
+            Text { text: qsTr("Schnellzugriff"); color: root.theme.textMuted; font.pixelSize: 11 }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+                Repeater {
+                    model: [
+                        { label: "Home",      path: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
+                        { label: qsTr("Dokumente"), path: StandardPaths.writableLocation(StandardPaths.DocumentsLocation) },
+                        { label: qsTr("Downloads"), path: StandardPaths.writableLocation(StandardPaths.DownloadLocation) },
+                        { label: qsTr("Desktop"),   path: StandardPaths.writableLocation(StandardPaths.DesktopLocation) }
+                    ]
+                    Button {
+                        text: modelData.label
+                        Layout.fillWidth: true
+                        implicitHeight: 28
+                        onClicked: _pfadFeld.text = modelData.path + "/" + speicherDialog._dateiname(_pfadFeld.text)
+                        contentItem: Text {
+                            text: parent.text; font.pixelSize: 11
+                            color: root.theme.textSecondary
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                            radius: 4; border.color: root.theme.border
+                        }
+                    }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            Text { text: qsTr("Dateipfad"); color: root.theme.textMuted; font.pixelSize: 11 }
+
+            TextField {
+                id: _pfadFeld
+                Layout.fillWidth: true
+                placeholderText: qsTr("/home/user/projekt.pdf")
+                color:           root.theme.textPrimary
+                font.pixelSize:  12
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Button {
+                    text: qsTr("Abbrechen"); Layout.fillWidth: true; implicitHeight: 32
+                    onClicked: speicherDialog.reject()
+                    contentItem: Text { text: parent.text; color: root.theme.textSecondary; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                        radius: 4; border.color: root.theme.border }
+                }
+                Button {
+                    text: qsTr("OK"); Layout.fillWidth: true; implicitHeight: 32
+                    enabled: _pfadFeld.text.trim().length > 0
+                    onClicked: {
+                        var p = _pfadFeld.text.trim()
+                        if (!p.endsWith(".pdf")) p = p + ".pdf"
+                        speicherDialog.selectedFile = "file://" + p
+                        speicherDialog.accept()
+                    }
+                    contentItem: Text { text: parent.text; font.pixelSize: 12
+                        color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                        radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                }
+            }
+        }
+
         onAccepted: tfPfad.text = selectedFile
     }
 

@@ -938,6 +938,15 @@ ApplicationWindow {
                             root._klemmeQueueAktiv = true
                             root._klemmeQueueNaechste()
                         }
+                        onBetriebsmittelKontaktPlatzieren: function(betriebsmittelId, symbolId, bmk) {
+                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                            root.aktiverCanvas.paletteBetriebsmittelId = betriebsmittelId
+                            root.aktiverCanvas.paletteSymbolId         = symbolId
+                            root.aktiverCanvas.paletteExtraDaten       = { "bmk": bmk }
+                            root.aktiverCanvas.aktivesWerkzeug         = "symbol"
+                            root.aktiverCanvas.forceActiveFocus()
+                        }
 
                         onWidthChanged: if (width >= 180) panelBreiten.seitenBaumBreite = width
                     }

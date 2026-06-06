@@ -86,15 +86,17 @@ Item {
     property string aktivesWerkzeug: "zeiger"
 
     // Symbol-Werkzeug: ID des aus der Palette gewählten Symbols
-    property string paletteSymbolId:       ""
-    property int    paletteSymbolRotation: 0    // 0 / 90 / 180 / 270 – Vorab-Rotation beim Platzieren
-    property var    paletteExtraDaten:     ({})  // Extra-Daten für das nächste platzierte Symbol
-    property real   letzteMausWeltX:       0    // letzte bekannte Cursor-Weltposition (für Tab-Rotate)
-    property real   letzteMausWeltY:       0
+    property string paletteSymbolId:          ""
+    property int    paletteSymbolRotation:    0    // 0 / 90 / 180 / 270 – Vorab-Rotation beim Platzieren
+    property var    paletteExtraDaten:        ({})  // Extra-Daten für das nächste platzierte Symbol
+    property int    paletteBetriebsmittelId:  0    // >0: Symbol wird nach Platzierung mit BM verknüpft
+    property real   letzteMausWeltX:          0
+    property real   letzteMausWeltY:          0
 
     onPaletteSymbolIdChanged: {
-        paletteSymbolRotation = 0
-        paletteExtraDaten = {}
+        paletteSymbolRotation   = 0
+        paletteExtraDaten       = {}
+        paletteBetriebsmittelId = 0
     }
 
     // Bild-Werkzeug: Base64-Data-URL des gewählten Bildes (leer = kein Bild geladen)

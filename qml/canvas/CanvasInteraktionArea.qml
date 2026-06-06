@@ -369,24 +369,28 @@ MouseArea {
             var wSym = toWelt(mouse.x, mouse.y)
             var prev = canvas.symbolVorschauErstellen(wSym.x, wSym.y)
             var elSym = {
-                typ:            "symbol",
+                typ:              "symbol",
                 x1: prev.x1, y1: prev.y1, x2: prev.x2, y2: prev.y2,
-                symbolId:       canvas.paletteSymbolId,
-                rotation:       canvas.paletteSymbolRotation,
-                spiegelX:       false, spiegelY: false,
-                extraDaten:     JSON.parse(JSON.stringify(canvas.paletteExtraDaten)),
-                strichFarbe:    canvas.stilVorlage.strichFarbe,
-                strichBreite:   canvas.stilVorlage.strichBreite,
-                strichArt:      canvas.stilVorlage.strichArt,
-                fuell:          false,
-                fuellFarbe:     canvas.stilVorlage.fuellFarbe,
-                fuellOpazitaet: canvas.stilVorlage.fuellOpazitaet,
-                opazitaet:      canvas.stilVorlage.opazitaet,
-                eckenRadius:    0
+                symbolId:         canvas.paletteSymbolId,
+                rotation:         canvas.paletteSymbolRotation,
+                spiegelX:         false, spiegelY: false,
+                extraDaten:       JSON.parse(JSON.stringify(canvas.paletteExtraDaten)),
+                betriebsmittelId: canvas.paletteBetriebsmittelId > 0
+                                  ? canvas.paletteBetriebsmittelId : undefined,
+                strichFarbe:      canvas.stilVorlage.strichFarbe,
+                strichBreite:     canvas.stilVorlage.strichBreite,
+                strichArt:        canvas.stilVorlage.strichArt,
+                fuell:            false,
+                fuellFarbe:       canvas.stilVorlage.fuellFarbe,
+                fuellOpazitaet:   canvas.stilVorlage.fuellOpazitaet,
+                opazitaet:        canvas.stilVorlage.opazitaet,
+                eckenRadius:      0
             }
             canvas.aktionAusfuehren(em.snapshot().concat([elSym]))
-            if (canvas.paletteSymbolId === "klemme_anschluss") {
-                // Klemmenanschluss: nur einmal platzierbar → sofort zurück zum Zeiger
+            if (canvas.paletteSymbolId === "klemme_anschluss"
+                    || canvas.paletteBetriebsmittelId > 0) {
+                // Klemmenanschluss + BM-Kontakt: nur einmal platzierbar → zurück zum Zeiger
+                canvas.paletteBetriebsmittelId = 0
                 canvas.aktivesWerkzeug = "zeiger"
                 canvas.vorschau = null
             } else {

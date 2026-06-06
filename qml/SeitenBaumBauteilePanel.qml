@@ -33,6 +33,7 @@ ColumnLayout {
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
     signal klemmenSequentiellStarten(string queueJson)
+    signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk)
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
 
@@ -391,8 +392,78 @@ ColumnLayout {
 
                     // Betriebsmittel-Zeile
                     Rectangle {
+                        id: geraetZeile
                         width: parent.width; height: 32
                         color: geraetMA.containsMouse ? root.theme.hover : "transparent"
+
+                        // Picker-Popup: Kontakt-Symboltyp wählen
+                        Popup {
+                            id: kontaktPicker
+                            x: 10; y: geraetZeile.height
+                            width: 180
+                            padding: 4
+                            background: Rectangle {
+                                color: root.theme.surface; radius: 4
+                                border.color: root.theme.border
+                            }
+                            Column {
+                                width: parent.width
+                                spacing: 1
+                                property var symbole: [
+                                    { id: "schliesser",  name: "Schließer (NO)" },
+                                    { id: "oeffner",     name: "Öffner (NC)" },
+                                    { id: "wechsler",    name: "Wechsler" },
+                                    { id: "taster_no",   name: "Taster (NO)" },
+                                    { id: "taster_nc",   name: "Taster (NC)" },
+                                    { id: "bimetall_nc", name: "Bimetall-Kontakt (NC)" }
+                                ]
+                                Repeater {
+                                    model: parent.symbole
+                                    delegate: Rectangle {
+                                        width: parent.width; height: 28; radius: 3
+                                        color: pickerMA.containsMouse ? root.theme.activeItem : "transparent"
+                                        RowLayout {
+                                            anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
+                                            Text {
+                                                text: modelData.name
+                                                font.pixelSize: 11; color: root.theme.textPrimary
+                                                Layout.fillWidth: true
+                                            }
+                                        }
+                                        MouseArea {
+                                            id: pickerMA; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                kontaktPicker.close()
+                                                root.betriebsmittelKontaktPlatzieren(
+                                                    geraetItem.bmId,
+                                                    modelData.id,
+                                                    geraetItem.bmKz
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Hover-MA zuerst → RowLayout-Kinder liegen darüber
+                        MouseArea {
+                            id: geraetMA; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var bid = geraetItem.bmId
+                                var auf = Object.assign({}, root._geraeteAufgeklappt)
+                                auf[bid] = !auf[bid]
+                                if (auf[bid] && root._mitgliederCache[bid] === undefined) {
+                                    var c = Object.assign({}, root._mitgliederCache)
+                                    c[bid] = db.betriebsmittelMitgliederMitPos(bid)
+                                    root._mitgliederCache = c
+                                }
+                                root._geraeteAufgeklappt = auf
+                            }
+                        }
+
                         RowLayout {
                             anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
                             spacing: 5
@@ -407,20 +478,23 @@ ColumnLayout {
                                 text: modelData.anzahl
                                 font.pixelSize: 10; color: root.theme.textMuted
                             }
-                        }
-                        MouseArea {
-                            id: geraetMA; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                var bid = geraetItem.bmId
-                                var auf = Object.assign({}, root._geraeteAufgeklappt)
-                                auf[bid] = !auf[bid]
-                                if (auf[bid] && root._mitgliederCache[bid] === undefined) {
-                                    var c = Object.assign({}, root._mitgliederCache)
-                                    c[bid] = db.betriebsmittelMitgliederMitPos(bid)
-                                    root._mitgliederCache = c
+                            // Kontakt-hinzufügen-Button
+                            Rectangle {
+                                width: 22; height: 22; radius: 3
+                                color: plusMA.containsMouse ? root.theme.activeItemAlt : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "+"; font.pixelSize: 14; font.bold: true
+                                    color: root.theme.accent
                                 }
-                                root._geraeteAufgeklappt = auf
+                                ToolTip.visible: plusMA.containsMouse
+                                ToolTip.text:    qsTr("Kontakt platzieren")
+                                ToolTip.delay:   400
+                                MouseArea {
+                                    id: plusMA; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: { mouse.accepted = true; kontaktPicker.open() }
+                                }
                             }
                         }
                     }

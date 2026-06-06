@@ -36,6 +36,7 @@ Item {
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
     signal klemmenSequentiellStarten(string queueJson)
+    signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk)
     // Sprungfunktion: navigiere zu einem Element auf einer Seite
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
@@ -1112,6 +1113,9 @@ Item {
             }
             onKlemmenSequentiellStarten: function(json) {
                 root.klemmenSequentiellStarten(json)
+            }
+            onBetriebsmittelKontaktPlatzieren: function(bid, sid, bmk) {
+                root.betriebsmittelKontaktPlatzieren(bid, sid, bmk)
             }
             onSprungAngefordert: function(sid, bnr, sbez, wx, wy) {
                 root.sprungAngefordert(sid, bnr, sbez, wx, wy)

@@ -135,8 +135,8 @@ Dialog {
         // Indicator-Templates (style-unabhängig)
         Component {
             id: _radioInd
-            property var ctrl
             Item {
+                property var ctrl
                 implicitWidth: 14; implicitHeight: 14
                 x: ctrl.leftPadding; y: (ctrl.height - height) / 2
                 Rectangle {
@@ -155,8 +155,8 @@ Dialog {
         }
         Component {
             id: _checkInd
-            property var ctrl
             Item {
+                property var ctrl
                 implicitWidth: 14; implicitHeight: 14
                 x: ctrl.leftPadding; y: (ctrl.height - height) / 2
                 Rectangle {

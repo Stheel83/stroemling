@@ -952,946 +952,22 @@ Item {
             ctx.lineWidth   = lw
             ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
 
-            if (el.typ === "linie") {
-                ctx.beginPath(); ctx.moveTo(vx1,vy1); ctx.lineTo(vx2,vy2); ctx.stroke()
-            } else if (el.typ === "kabellinie") {
-                // Kabeldefinitionslinie: dicke, orange gestrichelte Linie mit Pfeilspitzen
-                var klColor = gewaehlt ? "#f0a030" : (vorschau ? "#4a9effaa" : (el.strichFarbe || "#e07000"))
-                ctx.save()
-                ctx.strokeStyle = klColor
-                ctx.lineWidth   = gewaehlt ? 3.5 : 2.5
-                ctx.setLineDash([10, 5])
-                ctx.lineCap = "round"
-                ctx.beginPath(); ctx.moveTo(vx1,vy1); ctx.lineTo(vx2,vy2); ctx.stroke()
-                // Endpunkte als kleine Kreise markieren
-                ctx.setLineDash([])
-                ctx.fillStyle = klColor
-                ctx.beginPath(); ctx.arc(vx1,vy1, 4, 0, 2*Math.PI); ctx.fill()
-                ctx.beginPath(); ctx.arc(vx2,vy2, 4, 0, 2*Math.PI); ctx.fill()
-                // Kabelkopf-Label nach §6.2: mehrzeilig neben dem Startpunkt
-                if (!vorschau) {
-                    var klEx  = el.extraDaten || {}
-                    var klBez = klEx.bezeichnung    || ""
-                    var klTyp = klEx.kabeltyp       || ""
-                    var klAdz = klEx.aderzahl       || 0
-                    var klQue = klEx.querschnittMm2 || 0
-                    var klLen = klEx.laenge_m       || 0
-                    var klZeilen = []
-                    if (klBez !== "") klZeilen.push({ text: klBez, bold: true })
-                    if (klTyp !== "") klZeilen.push({ text: klTyp, bold: false })
-                    // Zeile 3 nur wenn kein 'x'/'×' im Kabeltyp
-                    var klTypHatX = klTyp !== "" && (klTyp.indexOf("x") >= 0 || klTyp.indexOf("×") >= 0 || klTyp.indexOf("X") >= 0)
-                    if (!klTypHatX && (klAdz > 0 || klQue > 0)) {
-                        var klZ3 = ""
-                        if (klAdz > 0 && klQue > 0)
-                            klZ3 = klAdz + " × " + (klQue + "").replace(".", ",") + " mm²"
-                        else if (klAdz > 0)
-                            klZ3 = klAdz + " " + qsTr("Adern")
-                        else
-                            klZ3 = (klQue + "").replace(".", ",") + " mm²"
-                        klZeilen.push({ text: klZ3, bold: false })
-                    }
-                    if (klLen > 0)
-                        klZeilen.push({ text: "→ " + (klLen + "").replace(".", ",") + " m", bold: false })
-                    var klKabelId    = klEx.kabelId || 0
-                    var klGesamtLinien = (klKabelId > 0 && root._kabelLinienCache[klKabelId]) || 0
-                    if (klGesamtLinien > 1) {
-                        var klWeitere = klGesamtLinien - 1
-                        klZeilen.push({ text: "→ +" + klWeitere + " " + (klWeitere === 1 ? qsTr("Linie") : qsTr("Linien")), bold: false })
-                    }
-                    if (klZeilen.length > 0) {
-                        // Senkrechte zur Linie, auf der "oben"-Seite (negativstes y in Viewport)
-                        var klDxL = vx2 - vx1, klDyL = vy2 - vy1
-                        var klLLen = Math.sqrt(klDxL*klDxL + klDyL*klDyL) || 1
-                        var ccwXL = -klDyL/klLLen, ccwYL = klDxL/klLLen
-                        var cwXL  =  klDyL/klLLen, cwYL  = -klDxL/klLLen
-                        var useCC = (ccwYL < cwYL) || (ccwYL === cwYL && ccwXL < cwXL)
-                        var klNxL = useCC ? ccwXL : cwXL
-                        var klNyL = useCC ? ccwYL : cwYL
-                        var klFs  = Math.max(7, Math.round(2.5 * root.mmToPx * root.zoom))
-                        var klLH  = klFs * 1.3
-                        var klOff = klFs * 0.5 + 4
-                        var klAX  = vx1 + klNxL * klOff
-                        var klAY  = vy1 + klNyL * klOff
-                        ctx.globalAlpha  = 1.0
-                        ctx.strokeStyle  = "#000000"
-                        ctx.lineWidth    = 3
-                        ctx.lineJoin     = "round"
-                        ctx.textAlign    = klNxL >= 0 ? "left" : "right"
-                        ctx.textBaseline = "bottom"
-                        var klY = klAY
-                        for (var kzI = klZeilen.length - 1; kzI >= 0; kzI--) {
-                            ctx.font = (klZeilen[kzI].bold ? "bold " : "") + klFs + "px sans-serif"
-                            ctx.strokeText(klZeilen[kzI].text, klAX, klY)
-                            ctx.fillStyle = (klZeilen[kzI].bold && !gewaehlt) ? klColor : (gewaehlt ? "#f0a030" : "#c0d8f0")
-                            ctx.fillText(klZeilen[kzI].text, klAX, klY)
-                            klY -= klLH
-                        }
-                    }
-                }
-                ctx.restore()
-            } else if (el.typ === "polygonlinie") {
-                var plPts = el.punkte || []
-                if (plPts.length >= 2) {
-                    ctx.beginPath()
-                    ctx.moveTo(plPts[0].x * root.zoom + root.worldX, plPts[0].y * root.zoom + root.worldY)
-                    for (var plI = 1; plI < plPts.length; plI++)
-                        ctx.lineTo(plPts[plI].x * root.zoom + root.worldX, plPts[plI].y * root.zoom + root.worldY)
-                    ctx.stroke()
-                }
-            } else if (el.typ === "rechteck") {
-                var rr = er * root.mmToPx * root.zoom
-                if (fu && !vorschau) {
-                    ctx.fillStyle = ff; ctx.globalAlpha = fo
-                    if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.fill() }
-                    else          ctx.fillRect(vx1,vy1,vx2-vx1,vy2-vy1)
-                    ctx.globalAlpha = op
-                }
-                ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
-                if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.stroke() }
-                else          ctx.strokeRect(vx1,vy1,vx2-vx1,vy2-vy1)
-            } else if (el.typ === "kreis") {
-                var dx=vx2-vx1, dy=vy2-vy1, r=Math.sqrt(dx*dx+dy*dy)
-                if (r > 0.5) {
-                    ctx.beginPath(); ctx.arc(vx1,vy1,r,0,2*Math.PI)
-                    if (fu && !vorschau) {
-                        ctx.fillStyle=ff; ctx.globalAlpha=fo; ctx.fill()
-                        ctx.globalAlpha=op; ctx.beginPath(); ctx.arc(vx1,vy1,r,0,2*Math.PI)
-                    }
-                    ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
-                    ctx.stroke()
-                }
-            } else if (el.typ === "text") {
-                var txtInhalt = el.textInhalt || ""
-                if (txtInhalt !== "") {
-                    var txtLines  = txtInhalt.split("\n")
-                    var txtRot    = drawCanvas.normTextRot(el.rotation || 0)
-                    var txtBwPx   = Math.abs(vx2 - vx1)
-                    var txtBhPx   = Math.abs(vy2 - vy1)
-                    var txtAlign  = el.textAusrichtung || "links"
-                    var txtFsPx   // Schriftgröße in Pixel
-                    if (el.textEinpassen && txtBwPx > 4 && txtBhPx > 4) {
-                        var longestChars = 1
-                        for (var tli = 0; tli < txtLines.length; tli++)
-                            if (txtLines[tli].length > longestChars) longestChars = txtLines[tli].length
-                        txtFsPx = Math.min(txtBwPx / (longestChars * 0.62),
-                                           txtBhPx / (txtLines.length * 1.3))
-                    } else {
-                        txtFsPx = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
-                    }
-                    var txtLineH = txtFsPx * 1.3
-                    var txtColor = gewaehlt ? "#f0a030"
-                                           : (vorschau ? "#4a9eff88" : (el.strichFarbe || "#c0d8f0"))
-                    var ctxAlign = txtAlign === "mitte" ? "center"
-                                 : txtAlign === "rechts" ? "right" : "left"
-                    var tSelW  = txtRot !== 0 ? txtBhPx : txtBwPx
-                    var tSelH  = txtRot !== 0 ? txtBwPx : txtBhPx
-                    var tBxOff = txtAlign === "mitte"  ? -tSelW / 2
-                               : txtAlign === "rechts" ? -tSelW : 0
-                    ctx.save()
-                    ctx.translate(vx1, vy1)
-                    if (txtRot !== 0) ctx.rotate(txtRot)
-                    ctx.globalAlpha = op
-                    // Hintergrund
-                    if (!gewaehlt && !vorschau && el.fuell) {
-                        ctx.fillStyle   = el.fuellFarbe || "#000000"
-                        ctx.globalAlpha = op * (el.fuellOpazitaet !== undefined ? el.fuellOpazitaet : 0.85)
-                        ctx.fillRect(tBxOff, 0, tSelW, tSelH)
-                        ctx.globalAlpha = op
-                    }
-                    // Rahmen
-                    var tRahmFarbe = el.extraDaten ? el.extraDaten.rahmFarbe : undefined
-                    if (!gewaehlt && !vorschau && tRahmFarbe) {
-                        ctx.strokeStyle = tRahmFarbe; ctx.lineWidth = 1.5; ctx.setLineDash([])
-                        ctx.strokeRect(tBxOff, 0, tSelW, tSelH)
-                    }
-                    ctx.font         = "bold " + txtFsPx + "px sans-serif"
-                    ctx.textBaseline = "top"
-                    ctx.textAlign    = ctxAlign
-                    ctx.fillStyle    = txtColor
-                    ctx.globalAlpha  = op
-                    if (!_skipText) {
-                        for (var li2 = 0; li2 < txtLines.length; li2++)
-                            ctx.fillText(txtLines[li2], 0, li2 * txtLineH)
-                    }
-                    // Selektion-Rahmen (im rotierten Koordinatensystem).
-                    // Bei –90° (senkrecht) sind Breite und Höhe im Bildschirmraum
-                    // getauscht; der Rahmen bleibt im lokalen (rotierten) Raum korrekt.
-                    if (gewaehlt) {
-                        ctx.strokeStyle = "#f0a030"; ctx.lineWidth = 1
-                        ctx.setLineDash([3, 3])
-                        ctx.strokeRect(tBxOff - 2, -2, tSelW + 4, tSelH + 4)
-                    }
-                    ctx.restore()
-                }
-            } else if (el.typ === "bild") {
-                var bUrl  = el.bildDaten || ""
-                var bx    = Math.min(vx1, vx2), by = Math.min(vy1, vy2)
-                var bw    = Math.abs(vx2 - vx1), bh = Math.abs(vy2 - vy1)
-                var bcx   = bx + bw / 2,  bcy = by + bh / 2
-                var bRot  = (el.rotation  || 0) * Math.PI / 180
-                var bSx   = el.spiegelX ? -1 : 1
-                var bSy   = el.spiegelY ? -1 : 1
-                if (bUrl !== "" && bw > 1 && bh > 1) {
-                    ctx.save()
-                    ctx.globalAlpha = vorschau ? 0.55 : op
-                    ctx.translate(bcx, bcy)
-                    ctx.rotate(bRot)
-                    ctx.scale(bSx, bSy)
-                    if (drawCanvas.isImageLoaded(bUrl)) {
-                        var aL = el.ausschnittLinks  || 0, aR = el.ausschnittRechts || 0
-                        var aO = el.ausschnittOben   || 0, aU = el.ausschnittUnten  || 0
-                        var cw = bw * (1 - aL - aR),      ch = bh * (1 - aO - aU)
-                        if (cw > 0 && ch > 0) {
-                            ctx.beginPath()
-                            ctx.rect(-bw/2 + aL * bw, -bh/2 + aO * bh, cw, ch)
-                            ctx.clip()
-                            ctx.drawImage(bUrl, -bw/2, -bh/2, bw, bh)
-                        }
-                    } else {
-                        // Bild noch nicht geladen → Platzhalter zeichnen + laden anstoßen
-                        drawCanvas.loadImage(bUrl)
-                        ctx.globalAlpha = 0.4
-                        ctx.strokeStyle = "#4a9eff"; ctx.lineWidth = 1
-                        ctx.setLineDash([])
-                        ctx.strokeRect(-bw/2, -bh/2, bw, bh)
-                        ctx.beginPath()
-                        ctx.moveTo(-bw/2, -bh/2); ctx.lineTo(bw/2,  bh/2)
-                        ctx.moveTo( bw/2, -bh/2); ctx.lineTo(-bw/2, bh/2)
-                        ctx.stroke()
-                    }
-                    ctx.restore()
-                }
-                // Auswahlrahmen immer ohne Rotation (am Bounding-Box)
-                if (gewaehlt) {
-                    ctx.save()
-                    ctx.strokeStyle = "#f0a030"; ctx.lineWidth = 1.5; ctx.setLineDash([])
-                    ctx.strokeRect(bx - 1, by - 1, bw + 2, bh + 2)
-                    ctx.restore()
-                }
-            } else if (el.typ === "notiz") {
-                var nRx = Math.min(vx1, vx2), nRy = Math.min(vy1, vy2)
-                var nRw = Math.abs(vx2 - vx1), nRh = Math.abs(vy2 - vy1)
-                if (nRw > 2 && nRh > 2) {
-                    ctx.save()
-                    // Hintergrund
-                    var nFf  = el.fuellFarbe     || "#1a1a00"
-                    var nFo  = el.fuellOpazitaet !== undefined ? el.fuellOpazitaet : 0.9
-                    ctx.fillStyle   = nFf
-                    ctx.globalAlpha = op * nFo
-                    ctx.fillRect(nRx, nRy, nRw, nRh)
-                    ctx.globalAlpha = op
-                    // Rahmen
-                    var nRahmF = (el.extraDaten && el.extraDaten.rahmFarbe) ? el.extraDaten.rahmFarbe : (el.strichFarbe || "#cccc22")
-                    ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : nRahmF)
-                    ctx.lineWidth   = 1.5
-                    ctx.setLineDash([])
-                    ctx.strokeRect(nRx, nRy, nRw, nRh)
-                    // Text mit automatischem Zeilenumbruch
-                    var nText = el.textInhalt || ""
-                    if (nText !== "" && !_skipText) {
-                        var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
-                        var nLineH = nFsPx * 1.3
-                        var nPad   = Math.max(4, nFsPx * 0.35)
-                        var nMaxW  = nRw - 2 * nPad
+            var rc = { vorschau: vorschau, gewaehlt: gewaehlt, skipText: _skipText,
+                       sf: sf, sb: sb, sa: sa, fu: fu, ff: ff, fo: fo, op: op, er: er,
+                       vx1: vx1, vy1: vy1, vx2: vx2, vy2: vy2, lw: lw, idx: idx }
 
-                        ctx.save()
-                        ctx.beginPath()
-                        ctx.rect(nRx + 1, nRy + 1, nRw - 2, nRh - 2)
-                        ctx.clip()
-
-                        ctx.fillStyle    = el.strichFarbe || "#cccc22"
-                        ctx.font         = nFsPx + "px sans-serif"
-                        ctx.textBaseline = "top"
-                        ctx.textAlign    = "left"
-
-                        // Word-wrap: explizite \n beachten, lange Zeilen umbrechen
-                        var wrappedLines = []
-                        var paraLines = nText.split("\n")
-                        for (var nPi = 0; nPi < paraLines.length; nPi++) {
-                            var para = paraLines[nPi]
-                            if (para === "") { wrappedLines.push(""); continue }
-                            var words = para.split(" ")
-                            var curLine = ""
-                            for (var nWi = 0; nWi < words.length; nWi++) {
-                                var testLine = curLine === "" ? words[nWi] : curLine + " " + words[nWi]
-                                if (nMaxW > 0 && ctx.measureText(testLine).width > nMaxW && curLine !== "") {
-                                    wrappedLines.push(curLine)
-                                    curLine = words[nWi]
-                                } else {
-                                    curLine = testLine
-                                }
-                            }
-                            wrappedLines.push(curLine)
-                        }
-
-                        for (var nLi = 0; nLi < wrappedLines.length; nLi++) {
-                            var nYPos = nRy + nPad + nLi * nLineH
-                            if (nYPos + nLineH > nRy + nRh) break
-                            ctx.fillText(wrappedLines[nLi], nRx + nPad, nYPos)
-                        }
-                        ctx.restore()
-                    }
-                }
-            } else if (el.typ === "symbol") {
-                var sw = vx2 - vx1, sh = vy2 - vy1
-                if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {
-                    var scx = vx1 + sw/2, scy = vy1 + sh/2
-                    var rot = (el.rotation || 0) * Math.PI / 180
-
-                    ctx.save()
-                    ctx.translate(scx, scy)
-                    if (rot !== 0) ctx.rotate(rot)
-                    if (el.spiegelX) ctx.scale(-1, 1)
-                    if (el.spiegelY) ctx.scale(1, -1)
-                    ctx.translate(-Math.abs(sw)/2, -Math.abs(sh)/2)
-                    drawCanvas.drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh))
-                    // Erweiterungsmodifier im lokalen Koordinatensystem (dreht/spiegelt mit)
-                    if (!vorschau) {
-                        var erw = (el.extraDaten && Array.isArray(el.extraDaten.erweiterungen))
-                                  ? el.extraDaten.erweiterungen : []
-                        if (erw.length > 0)
-                            drawCanvas.maleModifier(ctx, erw, Math.abs(sw), Math.abs(sh))
-                    }
-                    ctx.restore()
-
-                    // Pin-Marker zeichnen (immer sichtbar, selektiert = hervorgehoben)
-                    if (!vorschau) {
-                        var pins = el.symbolId === "querverweis"
-                                   ? drawCanvas.querverweisPin(el)
-                                   : symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
-                        ctx.setLineDash([])
-                        for (var pi = 0; pi < pins.length; pi++) {
-                            var pp = drawCanvas.pinViewportPos(el, pins[pi].x, pins[pi].y)
-                            var pr = gewaehlt ? 2.5 : 1.5
-                            ctx.globalAlpha = gewaehlt ? 1.0 : 0.55
-                            ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
-                            ctx.fillStyle   = gewaehlt ? "#00e5a0" : "#4a9eff"
-                            ctx.strokeStyle = gewaehlt ? "#004d35" : "#0a2040"
-                            ctx.lineWidth   = 1.0
-                            ctx.fill(); ctx.stroke()
-                        }
-                        ctx.globalAlpha = op
-                    }
-
-                    // BMK-Label und Freitexte am Symbol rendern (konzeptgemäß, Abschnitt 7).
-                    // Text ist immer waagerecht.
-                    // 0°/180° → über dem Symbol  (Anker: Oberkante, Mitte X)
-                    // 90°/270° → links neben dem Symbol (Anker: linke Kante, Mitte Y)
-                    // Verbindungshelfer erhalten keine Beschriftung.
-                    if (!vorschau && !_skipText) {
-                        var bmkSid = el.symbolId || ""
-                        var verbHelper = SK.hatEigenenBeschriftungsBlock(bmkSid)
-                        if (!verbHelper) {
-                            var bmkEd  = el.extraDaten || {}
-                            var bmkStr = bmkEd.bmk || ""
-                            // Geordnete, sichtbare Freitext-Zeilen aufbauen
-                            var ftRhlg  = bmkEd.textReihenfolge || ["freitext1", "freitext2"]
-                            var ftZeilen = []
-                            for (var fti = 0; fti < ftRhlg.length; fti++) {
-                                var ftK = ftRhlg[fti]
-                                if (bmkEd[ftK + "Sichtbar"] !== false && (bmkEd[ftK] || "") !== "")
-                                    ftZeilen.push(bmkEd[ftK])
-                            }
-                            if (bmkStr !== "" || ftZeilen.length > 0) {
-                                // Schriftgröße aus extra_daten (mm), Standard 2.5 mm
-                                var schrift = (bmkEd.schriftgroesse !== undefined
-                                               ? bmkEd.schriftgroesse : 2.5)
-                                var bmkFs   = Math.max(5, Math.round(schrift * root.mmToPx * root.zoom))
-                                var ftFs    = Math.max(4, Math.round(schrift * 0.85 * root.mmToPx * root.zoom))
-                                var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * root.zoom
-                                var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * root.zoom
-                                var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
-                                var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
-                                var symRot    = ((el.rotation || 0) % 360 + 360) % 360
-                                var senkrecht = (symRot === 90 || symRot === 270)
-                                ctx.save()
-                                ctx.globalAlpha = 1.0
-                                ctx.textAlign   = senkrecht ? "right" : "center"
-                                ctx.fillStyle   = bmkClr
-                                if (senkrecht) {
-                                    var bkAx = Math.min(vx1, vx2) + bmkOy
-                                    var bkCy = (vy1 + vy2) / 2 + bmkOx
-                                    if (bmkStr !== "") {
-                                        ctx.font         = "bold " + bmkFs + "px sans-serif"
-                                        ctx.textBaseline = "bottom"
-                                        ctx.fillText(bmkStr, bkAx, bkCy)
-                                    }
-                                    ctx.font      = ftFs + "px sans-serif"
-                                    ctx.fillStyle = ftClr
-                                    ctx.textBaseline = "top"
-                                    var ftOff = bkCy + 2 * root.zoom
-                                    for (var fi = 0; fi < ftZeilen.length; fi++) {
-                                        ctx.fillText(ftZeilen[fi], bkAx, ftOff)
-                                        ftOff += ftFs * 1.25
-                                    }
-                                } else {
-                                    var bkCx = (vx1 + vx2) / 2 + bmkOx
-                                    var bkTy = Math.min(vy1, vy2) + bmkOy
-                                    if (bmkStr !== "") {
-                                        ctx.font         = "bold " + bmkFs + "px sans-serif"
-                                        ctx.textBaseline = "bottom"
-                                        ctx.fillText(bmkStr, bkCx, bkTy)
-                                    }
-                                    ctx.font      = ftFs + "px sans-serif"
-                                    ctx.fillStyle = ftClr
-                                    ctx.textBaseline = "top"
-                                    var ftY = Math.max(vy1, vy2) + 3 * root.zoom
-                                    for (var fj = 0; fj < ftZeilen.length; fj++) {
-                                        ctx.fillText(ftZeilen[fj], bkCx, ftY)
-                                        ftY += ftFs * 1.25
-                                    }
-                                }
-                                ctx.restore()
-                            }
-                        }
-                    }
-
-                    // ── IBN-Statusdot ────────────────────────────────────
-                    if (!vorschau && root.ibnModus) {
-                        var _ibnBmk = (el.extraDaten || {}).bmk || ""
-                        if (_ibnBmk !== "") {
-                            var _ibnSt = root.ibnStatusMap[_ibnBmk] || "offen"
-                            var _ibnClr = _ibnSt === "abgeschlossen" ? "#3cb371"
-                                        : _ibnSt === "in_arbeit"     ? "#f0a030"
-                                                                      : "#cc4444"
-                            var _ibnCx = Math.max(vx1, vx2) - 5 * root.zoom / root.mmToPx
-                            var _ibnCy = Math.min(vy1, vy2) + 5 * root.zoom / root.mmToPx
-                            var _ibnR  = Math.max(3, 3 * root.zoom)
-                            ctx.save()
-                            ctx.globalAlpha = 0.9
-                            ctx.beginPath()
-                            ctx.arc(_ibnCx, _ibnCy, _ibnR, 0, Math.PI * 2)
-                            ctx.fillStyle = _ibnClr
-                            ctx.fill()
-                            ctx.restore()
-                        }
-                    }
-
-                    // ── SPS-Konflikt-Dot ─────────────────────────────────
-                    // Rotes "!"-Dot oben-links wenn Element mehr als einem Kanal zugewiesen
-                    if (!vorschau && (el.id || 0) > 0 && root._spsKonfliktSet[el.id]) {
-                        var _spsR  = Math.max(3, 3 * root.zoom)
-                        var _spsCx = Math.min(vx1, vx2) + _spsR + 2
-                        var _spsCy = Math.min(vy1, vy2) + _spsR + 2
-                        ctx.save()
-                        ctx.globalAlpha = 0.92
-                        ctx.beginPath()
-                        ctx.arc(_spsCx, _spsCy, _spsR, 0, Math.PI * 2)
-                        ctx.fillStyle = "#cc2222"
-                        ctx.fill()
-                        ctx.globalAlpha = 1.0
-                        ctx.fillStyle   = "#ffffff"
-                        ctx.font        = "bold " + Math.max(6, Math.round(_spsR * 1.5)) + "px sans-serif"
-                        ctx.textAlign    = "center"
-                        ctx.textBaseline = "middle"
-                        ctx.fillText("!", _spsCx, _spsCy)
-                        ctx.restore()
-                    }
-
-                    // ── Fehlersuch-Startpunkt-Marker ─────────────────────
-                    if (!vorschau && root.fehlersuchModus &&
-                            (el.id || -1) === root.fehlersuchStartId) {
-                        var _fsR  = Math.max(4, 4 * root.zoom)
-                        var _fsCx = (vx1 + vx2) / 2
-                        var _fsCy = (vy1 + vy2) / 2
-                        ctx.save()
-                        ctx.globalAlpha = 0.85
-                        ctx.beginPath()
-                        ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
-                        ctx.strokeStyle = root.theme.accent
-                        ctx.lineWidth   = 2.5
-                        ctx.stroke()
-                        ctx.restore()
-                    }
-
-                    // ── HF-Querverweis-Hinweis (Kontaktspiegel) ──────────
-                    // Erscheint nur bei Nebenfunktionen auf einer anderen Seite
-                    // als die Hauptfunktion.
-                    if (!vorschau && !_skipText && !verbHelper && (el.betriebsmittelId || 0) > 0) {
-                        var _hfRef = root._hfReferenzMap[el.betriebsmittelId]
-                        if (_hfRef
-                                && _hfRef.hauptElementId !== (el.id || -1)
-                                && _hfRef.seiteId        !== root.seiteId) {
-                            var _hfTxt = "← /" + _hfRef.blattnummer
-                            var _hfEd  = el.extraDaten || {}
-                            var _hfFs  = Math.max(4, Math.round(
-                                (_hfEd.schriftgroesse !== undefined ? _hfEd.schriftgroesse : 2.5)
-                                * 0.75 * root.mmToPx * root.zoom))
-                            var _hfRot  = ((el.rotation || 0) % 360 + 360) % 360
-                            var _hfSenk = (_hfRot === 90 || _hfRot === 270)
-                            ctx.save()
-                            ctx.globalAlpha = 0.75
-                            ctx.fillStyle   = gewaehlt ? "#f0a030" : "#6899c4"
-                            ctx.font        = _hfFs + "px sans-serif"
-                            if (_hfSenk) {
-                                ctx.textAlign    = "left"
-                                ctx.textBaseline = "middle"
-                                ctx.fillText(_hfTxt,
-                                             Math.max(vx1, vx2) + 3 * root.zoom,
-                                             (vy1 + vy2) / 2)
-                            } else {
-                                ctx.textAlign    = "center"
-                                ctx.textBaseline = "top"
-                                ctx.fillText(_hfTxt,
-                                             (vx1 + vx2) / 2,
-                                             Math.max(vy1, vy2) + 2 * root.zoom)
-                            }
-                            ctx.restore()
-                        }
-                    }
-
-                    // Querverweis: Signalname + Partnerseite – BMK-Stil
-                    if (!vorschau && !_skipText && el.symbolId === "querverweis") {
-                        var qed     = el.extraDaten || {}
-                        var qSn     = qed.signalname || ""
-                        var _qpInfo  = root._querverweisPartnerMap[idx]
-                        var qPartner = _qpInfo ? (_qpInfo.label || "") : ""
-                        if (qSn !== "" || qPartner !== "") {
-                            var qFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
-                            var qFsS  = Math.max(6, Math.round(1.6 * root.mmToPx * root.zoom))
-                            var qRot  = ((el.rotation || 0) % 360 + 360) % 360
-                            var qSenk = (qRot === 90 || qRot === 270)
-                            var qCx   = (vx1 + vx2) / 2
-                            var qCy   = (vy1 + vy2) / 2
-                            ctx.save()
-                            ctx.globalAlpha = 1.0
-                            if (qSenk) {
-                                var qX = Math.min(vx1, vx2) - 4 * root.zoom
-                                if (qSn !== "") {
-                                    ctx.fillStyle    = gewaehlt ? "#f0a030" : "#c0d8f0"
-                                    ctx.font         = "bold " + qFs + "px sans-serif"
-                                    ctx.textAlign    = "right"
-                                    ctx.textBaseline = qPartner !== "" ? "bottom" : "middle"
-                                    ctx.fillText(qSn, qX, qCy)
-                                }
-                                if (qPartner !== "") {
-                                    ctx.fillStyle    = gewaehlt ? "#f0a030" : "#7aaacc"
-                                    ctx.font         = qFsS + "px sans-serif"
-                                    ctx.textAlign    = "right"
-                                    ctx.textBaseline = "top"
-                                    ctx.fillText("→ " + qPartner, qX, qCy)
-                                }
-                            } else {
-                                var qY = Math.min(vy1, vy2) - 3 * root.zoom
-                                if (qSn !== "") {
-                                    ctx.fillStyle    = gewaehlt ? "#f0a030" : "#c0d8f0"
-                                    ctx.font         = "bold " + qFs + "px sans-serif"
-                                    ctx.textAlign    = "center"
-                                    ctx.textBaseline = "bottom"
-                                    ctx.fillText(qSn, qCx, qY)
-                                }
-                                if (qPartner !== "") {
-                                    ctx.fillStyle    = gewaehlt ? "#f0a030" : "#7aaacc"
-                                    ctx.font         = qFsS + "px sans-serif"
-                                    ctx.textAlign    = "center"
-                                    ctx.textBaseline = "bottom"
-                                    ctx.fillText("→ " + qPartner, qCx, qY - qFs - 1)
-                                }
-                            }
-                            ctx.restore()
-                        }
-                    }
-
-                    // Geräteanschluss: Anschlusskennzeichnung, ggf. mit GK-BMK (z.B. "-X1:L1")
-                    // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
-                    if (!vorschau && !_skipText && el.symbolId === "geraeteanschluss") {
-                        var gaed  = el.extraDaten || {}
-                        var gaAnk = gaed.anschlusskennzeichnung || ""
-                        if (gaAnk !== "") {
-                            // Umschließenden Gerätekasten suchen (kleinster)
-                            // _gkListe wurde einmalig in onPaint vorberechnet
-                            var gaCxF = (el.x1 + el.x2) / 2, gaCyF = (el.y1 + el.y2) / 2
-                            var bestGk = null, bestGkA = Infinity
-                            var _gaEls = drawCanvas._gkListe
-                            for (var gi = 0; gi < _gaEls.length; gi++) {
-                                var gke = _gaEls[gi]
-                                var gkx1 = Math.min(gke.x1,gke.x2), gkx2 = Math.max(gke.x1,gke.x2)
-                                var gky1 = Math.min(gke.y1,gke.y2), gky2 = Math.max(gke.y1,gke.y2)
-                                if (gaCxF >= gkx1 && gaCxF <= gkx2 && gaCyF >= gky1 && gaCyF <= gky2) {
-                                    var gkA = (gkx2-gkx1)*(gky2-gky1)
-                                    if (gkA < bestGkA) { bestGkA = gkA; bestGk = gke }
-                                }
-                            }
-                            var gaLabel = gaAnk
-                            if (bestGk) {
-                                var gkBmkGA = (bestGk.extraDaten || {}).bmk || ""
-                                if (gkBmkGA) gaLabel = gkBmkGA + ":" + gaAnk
-                            }
-
-                            var gaFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
-                            var gaRot  = ((el.rotation || 0) % 360 + 360) % 360
-                            var gaSenk = (gaRot === 90 || gaRot === 270)
-                            var gaCx   = (vx1 + vx2) / 2
-                            var gaCy   = (vy1 + vy2) / 2
-                            var gaOx   = (gaed.bmkOffsetX !== undefined ? gaed.bmkOffsetX : 0) * root.zoom
-                            var gaOy   = (gaed.bmkOffsetY !== undefined ? gaed.bmkOffsetY : 0) * root.zoom
-                            ctx.save()
-                            ctx.globalAlpha = 1.0
-                            ctx.font = "bold " + gaFs + "px sans-serif"
-                            ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#c0d8f0"
-                            if (gaSenk) {
-                                // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
-                                var gaPinUnten = (gaRot === 90)
-                                var gaY = gaPinUnten
-                                          ? Math.min(vy1, vy2) - 3 * root.zoom + gaOy
-                                          : Math.max(vy1, vy2) + 3 * root.zoom + gaOy
-                                ctx.textAlign = "center"
-                                ctx.textBaseline = gaPinUnten ? "bottom" : "top"
-                                ctx.strokeText(gaLabel, gaCx + gaOx, gaY)
-                                ctx.fillText(gaLabel, gaCx + gaOx, gaY)
-                            } else {
-                                // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
-                                var gaPinRechts = (gaRot === 0)
-                                var gaX = gaPinRechts
-                                          ? Math.min(vx1, vx2) - 4 * root.zoom + gaOx
-                                          : Math.max(vx1, vx2) + 4 * root.zoom + gaOx
-                                ctx.textAlign = gaPinRechts ? "right" : "left"
-                                ctx.textBaseline = "middle"
-                                ctx.strokeText(gaLabel, gaX, gaCy + gaOy)
-                                ctx.fillText(gaLabel, gaX, gaCy + gaOy)
-                            }
-                            ctx.restore()
-                        }
-                    }
-
-                    // Potenzial: BMK + Freitext neben dem Symbol (pin-seitig, draggbar via bmkOffsetX/Y)
-                    // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
-                    if (!vorschau && !_skipText && el.symbolId === "potenzial") {
-                        var paed    = el.extraDaten || {}
-                        var paBmk   = paed.bmk || ""
-                        var paFtRhlg = paed.textReihenfolge || ["freitext1", "freitext2"]
-                        var paFt    = []
-                        for (var pfi = 0; pfi < paFtRhlg.length; pfi++) {
-                            var pftK = paFtRhlg[pfi]
-                            if (paed[pftK + "Sichtbar"] !== false && (paed[pftK] || "") !== "")
-                                paFt.push(paed[pftK])
-                        }
-                        if (paBmk !== "" || paFt.length > 0) {
-                            var paSchrift = paed.schriftgroesse !== undefined ? paed.schriftgroesse : 2.5
-                            var paFs   = Math.max(5, Math.round(paSchrift * root.mmToPx * root.zoom))
-                            var paFtFs = Math.max(4, Math.round(paSchrift * 0.85 * root.mmToPx * root.zoom))
-                            var paRot  = ((el.rotation || 0) % 360 + 360) % 360
-                            var paSenk = (paRot === 90 || paRot === 270)
-                            var paCx   = (vx1 + vx2) / 2
-                            var paCy   = (vy1 + vy2) / 2
-                            var paOx   = (paed.bmkOffsetX !== undefined ? paed.bmkOffsetX : 0) * root.zoom
-                            var paOy   = (paed.bmkOffsetY !== undefined ? paed.bmkOffsetY : 0) * root.zoom
-                            var paBmkClr = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
-                            var paFtClr  = gewaehlt ? "#f0a030" : "#8ab4d4"
-                            ctx.save()
-                            ctx.globalAlpha = 1.0
-                            ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                            if (paSenk) {
-                                // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
-                                var paPinUnten = (paRot === 90)
-                                var paBl  = paPinUnten ? "bottom" : "top"
-                                var paDir = paPinUnten ? -1 : 1
-                                var paY   = paPinUnten
-                                            ? Math.min(vy1, vy2) - 3 * root.zoom + paOy
-                                            : Math.max(vy1, vy2) + 3 * root.zoom + paOy
-                                var paCxO = paCx + paOx
-                                ctx.textAlign = "center"
-                                if (paBmk !== "") {
-                                    ctx.font = "bold " + paFs + "px sans-serif"
-                                    ctx.textBaseline = paBl
-                                    ctx.strokeText(paBmk, paCxO, paY)
-                                    ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paCxO, paY)
-                                }
-                                if (paFt.length > 0) {
-                                    ctx.font = paFtFs + "px sans-serif"
-                                    ctx.fillStyle = paFtClr
-                                    var paFtY = paY + paDir * (paBmk !== "" ? paFs + 2 : 0)
-                                    for (var pfi2 = 0; pfi2 < paFt.length; pfi2++) {
-                                        ctx.textBaseline = paBl
-                                        ctx.strokeText(paFt[pfi2], paCxO, paFtY)
-                                        ctx.fillText(paFt[pfi2], paCxO, paFtY)
-                                        paFtY += paDir * paFtFs * 1.3
-                                    }
-                                }
-                            } else {
-                                // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
-                                var paPinRechts = (paRot === 0)
-                                var paAl = paPinRechts ? "right" : "left"
-                                var paX  = paPinRechts
-                                           ? Math.min(vx1, vx2) - 4 * root.zoom + paOx
-                                           : Math.max(vx1, vx2) + 4 * root.zoom + paOx
-                                var paCyO = paCy + paOy
-                                var paLineH = (paBmk !== "" ? paFs : 0) + paFt.length * paFtFs * 1.3
-                                var paCurY = paCyO - paLineH / 2
-                                ctx.textBaseline = "top"
-                                if (paBmk !== "") {
-                                    ctx.font = "bold " + paFs + "px sans-serif"
-                                    ctx.textAlign = paAl
-                                    ctx.strokeText(paBmk, paX, paCurY)
-                                    ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paX, paCurY)
-                                    paCurY += paFs * 1.1
-                                }
-                                if (paFt.length > 0) {
-                                    ctx.font = paFtFs + "px sans-serif"
-                                    ctx.textAlign = paAl; ctx.fillStyle = paFtClr
-                                    for (var pfi3 = 0; pfi3 < paFt.length; pfi3++) {
-                                        ctx.strokeText(paFt[pfi3], paX, paCurY)
-                                        ctx.fillText(paFt[pfi3], paX, paCurY)
-                                        paCurY += paFtFs * 1.3
-                                    }
-                                }
-                            }
-                            ctx.restore()
-                        }
-                    }
-
-                    // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
-                    if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss") {
-                        var kaed    = el.extraDaten || {}
-                        var kaAnz   = kaed.anschlussBezeichnung || ""
-                        var kaBmk   = kaed.bmk || ""
-                        var kaBmkVis = kaBmk !== "" && kaed.bmkSichtbar !== false
-                        var kaFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
-                        var kaBmkFs = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
-                        var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
-                        var kaSenk  = (kaRot === 90 || kaRot === 270)
-                        var kaCx    = (vx1 + vx2) / 2
-                        var kaCy    = (vy1 + vy2) / 2
-                        var kaOx    = (kaed.bmkOffsetX !== undefined ? kaed.bmkOffsetX : 0) * root.zoom
-                        var kaOy    = (kaed.bmkOffsetY !== undefined ? kaed.bmkOffsetY : 0) * root.zoom
-                        // Textposition: immer gegenüber dem Pin
-                        // 0°  → Pin oben   → Text unten
-                        // 90° → Pin rechts → Text links
-                        // 180°→ Pin unten  → Text oben
-                        // 270°→ Pin links  → Text rechts
-                        ctx.save()
-                        ctx.globalAlpha = 1.0
-                        ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                        if (kaSenk) {
-                            var kaPinRechts = (kaRot === 90)
-                            var kaX   = kaPinRechts
-                                        ? Math.min(vx1, vx2) - 4 * root.zoom + kaOy
-                                        : Math.max(vx1, vx2) + 4 * root.zoom + kaOy
-                            var kaAlg = kaPinRechts ? "right" : "left"
-                            var kaCyO = kaCy + kaOx
-                            if (kaAnz !== "") {
-                                ctx.font = "bold " + kaFs + "px sans-serif"
-                                ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
-                                var kaAy = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
-                                ctx.strokeText(kaAnz, kaX, kaAy)
-                                ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
-                                ctx.fillText(kaAnz, kaX, kaAy)
-                            }
-                            if (kaBmkVis) {
-                                ctx.font = kaBmkFs + "px sans-serif"
-                                ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
-                                var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
-                                ctx.strokeText(kaBmk, kaX, kaBmkY)
-                                ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
-                                ctx.fillText(kaBmk, kaX, kaBmkY)
-                            }
-                        } else {
-                            var kaPinUnten = (kaRot === 180)
-                            var kaY   = kaPinUnten
-                                        ? Math.min(vy1, vy2) - 3 * root.zoom + kaOy
-                                        : Math.max(vy1, vy2) + 3 * root.zoom + kaOy
-                            var kaBl  = kaPinUnten ? "bottom" : "top"
-                            var kaCxO = kaCx + kaOx
-                            if (kaAnz !== "") {
-                                ctx.font = "bold " + kaFs + "px sans-serif"
-                                ctx.textAlign = "center"; ctx.textBaseline = kaBl
-                                ctx.strokeText(kaAnz, kaCxO, kaY)
-                                ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
-                                ctx.fillText(kaAnz, kaCxO, kaY)
-                            }
-                            if (kaBmkVis) {
-                                ctx.font = kaBmkFs + "px sans-serif"
-                                ctx.textAlign = "center"; ctx.textBaseline = kaBl
-                                var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
-                                ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
-                                ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
-                                ctx.fillText(kaBmk, kaCxO, kaBmkYh)
-                            }
-                        }
-                        ctx.restore()
-                    }
-
-                    // Aderdefinitionspunkt: Textblock – Positionierung wie BMK an Symbolen
-                    // 0° (waagerecht): Text über dem Symbol | 90° (senkrecht): Text links
-                    if (!vorschau && !_skipText && el.symbolId === "aderdefinition") {
-                        var aed = el.extraDaten || {}
-                        var adpZeilen = []
-                        if (aed.bezeichnung) adpZeilen.push({ text: aed.bezeichnung, bold: true })
-                        var adpFarb = aed.aderfarbe || "", adpQuer = aed.querschnitt_mm2
-                        if (adpFarb !== "" || (adpQuer !== undefined && adpQuer > 0))
-                            adpZeilen.push({ text: (adpFarb || "–") + (adpQuer > 0 ? "  " + (adpQuer + "").replace('.', ',') + " mm²" : ""), bold: false })
-                        if (aed.laenge_m && aed.laenge_m > 0)
-                            adpZeilen.push({ text: qsTr("\u2192 ") + (aed.laenge_m + "").replace('.', ',') + " m", bold: false })
-                        if (adpZeilen.length > 0) {
-                            var adpFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
-                            var adpLineH = adpFs * 1.3
-                            var adpRot   = ((el.rotation || 0) % 360 + 360) % 360
-                            var adpSenk  = (adpRot === 90 || adpRot === 270)
-                            var adpCx    = (vx1 + vx2) / 2
-                            var adpCy    = (vy1 + vy2) / 2
-                            ctx.save()
-                            ctx.globalAlpha = 1.0
-                            var adpTextFarbe = gewaehlt ? "#f0a030" : "#c0d8f0"
-                            if (adpSenk) {
-                                // Senkrecht: Text links, vertikal zentriert
-                                var adpLx = Math.min(vx1, vx2) - 4 * root.zoom
-                                var adpLy = adpCy - adpZeilen.length * adpLineH / 2
-                                ctx.textAlign = "right"; ctx.textBaseline = "top"
-                                for (var az1 = 0; az1 < adpZeilen.length; az1++) {
-                                    ctx.font = (adpZeilen[az1].bold ? "bold " : "") + adpFs + "px sans-serif"
-                                    ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                                    ctx.strokeText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
-                                    ctx.fillStyle = adpTextFarbe
-                                    ctx.fillText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
-                                }
-                            } else {
-                                // Waagerecht: Text über dem Symbol, horizontal zentriert
-                                var adpOy = Math.min(vy1, vy2) - 3 * root.zoom
-                                var adpOx = adpCx
-                                ctx.textAlign = "center"; ctx.textBaseline = "bottom"
-                                // Zeilen von unten nach oben (letzte Zeile oben)
-                                for (var az2 = adpZeilen.length - 1; az2 >= 0; az2--) {
-                                    ctx.font = (adpZeilen[az2].bold ? "bold " : "") + adpFs + "px sans-serif"
-                                    ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                                    ctx.strokeText(adpZeilen[az2].text, adpOx, adpOy)
-                                    ctx.fillStyle = adpTextFarbe
-                                    ctx.fillText(adpZeilen[az2].text, adpOx, adpOy)
-                                    adpOy -= adpLineH
-                                }
-                            }
-                            ctx.restore()
-                        }
-                    }
-                }
-            } else if (el.typ === "geraetekasten") {
-                // Gerätekasten: abgerundetes Rechteck mit leichter Füllung und Label oben links
-                ctx.lineCap = "butt"
-                var gkRx = Math.min(vx1, vx2), gkRy = Math.min(vy1, vy2)
-                var gkRw = Math.abs(vx2 - vx1), gkRh = Math.abs(vy2 - vy1)
-                var gkR  = er > 0 ? er * root.mmToPx * root.zoom : 4 * root.zoom
-                if (fu && !vorschau) {
-                    ctx.fillStyle  = ff
-                    ctx.globalAlpha = op * fo
-                    drawCanvas.roundRect(ctx, gkRx, gkRy, gkRw, gkRh, gkR)
-                    ctx.fill()
-                    ctx.globalAlpha = op
-                }
-                ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
-                drawCanvas.roundRect(ctx, gkRx, gkRy, gkRw, gkRh, gkR)
-                ctx.stroke()
-                if (!vorschau && !_skipText && gkRw > 20 && gkRh > 12) {
-                    var gkEd  = el.extraDaten || {}
-                    var gkBmk = gkEd.bmk        || ""
-                    var gkBez = gkEd.bezeichnung || ""
-                    if (gkBmk !== "" || gkBez !== "") {
-                        ctx.save()
-                        ctx.setLineDash([])
-                        var gkSch = (gkEd.schriftgroesse !== undefined ? gkEd.schriftgroesse : 2.5)
-                        var gkFs  = Math.max(5, Math.round(gkSch * root.mmToPx * root.zoom))
-                        var gkFsB = Math.max(4, Math.round(gkSch * 0.85 * root.mmToPx * root.zoom))
-                        var gkPad = Math.round(5 * root.zoom)
-                        ctx.textAlign    = "left"
-                        ctx.textBaseline = "top"
-                        ctx.fillStyle    = gewaehlt ? "#f0a030" : sf
-                        ctx.globalAlpha  = op
-                        var gkTy = gkRy + gkPad
-                        if (gkBmk !== "") {
-                            ctx.font = "bold " + gkFs + "px sans-serif"
-                            ctx.fillText(gkBmk, gkRx + gkPad, gkTy)
-                            gkTy += gkFs * 1.3
-                        }
-                        if (gkBez !== "") {
-                            ctx.font = gkFsB + "px sans-serif"
-                            ctx.fillText(gkBez, gkRx + gkPad, gkTy)
-                        }
-                        ctx.restore()
-                    }
-                }
-            } else if (el.typ === "strukturkasten") {
-                // Strukturkasten: Rechteck mit Anlage/Ort-Label oben rechts
-                var skRx = Math.min(vx1, vx2), skRy = Math.min(vy1, vy2)
-                var skRw = Math.abs(vx2 - vx1), skRh = Math.abs(vy2 - vy1)
-                ctx.lineCap = "butt"
-                var skR = er > 0 ? er * root.mmToPx * root.zoom : 0
-                if (fu && !vorschau) {
-                    ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
-                    if (skR > 0) { drawCanvas.roundRect(ctx, skRx, skRy, skRw, skRh, skR); ctx.fill() }
-                    else ctx.fillRect(skRx, skRy, skRw, skRh)
-                    ctx.globalAlpha = op
-                }
-                ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
-                if (skR > 0) { drawCanvas.roundRect(ctx, skRx, skRy, skRw, skRh, skR); ctx.stroke() }
-                else ctx.strokeRect(skRx, skRy, skRw, skRh)
-                if (!vorschau && !_skipText && skRw > 20) {
-                    var skEd  = el.extraDaten || {}
-                    var skAnl = skEd.anlage      || ""
-                    var skOrt = skEd.ort         || ""
-                    var skAUO = skEd.anlageUO    || ""
-                    var skOUO = skEd.ortUO       || ""
-                    var skBez = skEd.bezeichnung || ""
-                    ctx.save()
-                    ctx.setLineDash([])
-                    var skSch = (skEd.schriftgroesse !== undefined ? skEd.schriftgroesse : 2.5)
-                    var skFs  = Math.max(5, Math.round(skSch * root.mmToPx * root.zoom))
-                    ctx.font        = "bold " + skFs + "px sans-serif"
-                    ctx.textBaseline = "top"
-                    ctx.fillStyle   = gewaehlt ? "#f0a030" : sf
-                    ctx.globalAlpha = op
-                    var skOff = Math.round(4 * root.zoom)
-                    // Anlage/Ort-Label oben rechts
-                    var skLbl = ""
-                    if (skAUO) skLbl += "==" + skAUO + " "
-                    if (skOUO) skLbl += "++" + skOUO + " "
-                    if (skAnl) skLbl += "="  + skAnl + " "
-                    if (skOrt) skLbl += "+"  + skOrt
-                    if (skLbl !== "") {
-                        ctx.textAlign = "right"
-                        ctx.fillText(skLbl.trim(), skRx + skRw - Math.round(5 * root.zoom), skRy + skOff)
-                    }
-                    // Bezeichnung oben links
-                    if (skBez !== "") {
-                        ctx.textAlign = "left"
-                        ctx.font      = skFs + "px sans-serif"
-                        ctx.fillText(skBez, skRx + Math.round(5 * root.zoom), skRy + skOff)
-                    }
-                    ctx.restore()
-                }
-            } else if (el.typ === "makrokasten") {
-                // Makrokasten: gestrichelt, Standard-Farbe violett (überschreibbar via Stil)
-                var mkRx = Math.min(vx1, vx2), mkRy = Math.min(vy1, vy2)
-                var mkRw = Math.abs(vx2 - vx1), mkRh = Math.abs(vy2 - vy1)
-                var mkEd    = el.extraDaten || {}
-                var mkSaved = mkEd.makroId > 0
-                var mkFarbe = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff"
-                              : (el.strichFarbe || "#aa44cc"))
-                ctx.lineCap = "butt"
-                var mkR = er > 0 ? er * root.mmToPx * root.zoom : 0
-                if (fu && !vorschau) {
-                    ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
-                    if (mkR > 0) { drawCanvas.roundRect(ctx, mkRx, mkRy, mkRw, mkRh, mkR); ctx.fill() }
-                    else ctx.fillRect(mkRx, mkRy, mkRw, mkRh)
-                    ctx.globalAlpha = op
-                }
-                ctx.strokeStyle = mkFarbe
-                if (mkR > 0) { drawCanvas.roundRect(ctx, mkRx, mkRy, mkRw, mkRh, mkR); ctx.stroke() }
-                else ctx.strokeRect(mkRx, mkRy, mkRw, mkRh)
-                if (!vorschau && !_skipText && mkRw > 20) {
-                    ctx.save()
-                    ctx.setLineDash([])
-                    var mkFs = Math.max(5, Math.round(2.2 * root.mmToPx * root.zoom))
-                    ctx.font        = mkFs + "px sans-serif"
-                    ctx.textBaseline = "top"
-                    ctx.textAlign    = "center"
-                    ctx.fillStyle   = mkFarbe
-                    ctx.globalAlpha = op
-                    var mkPfx  = mkSaved ? "✓ " : "⬜ "
-                    var mkName = mkEd.name || qsTr("Makro")
-                    ctx.fillText(mkPfx + mkName, mkRx + mkRw / 2, mkRy + Math.round(4 * root.zoom))
-                    ctx.restore()
-                }
-            }
+            if      (el.typ === "linie")          _renderLinie(ctx, el, rc)
+            else if (el.typ === "kabellinie")     _renderKabellinie(ctx, el, rc)
+            else if (el.typ === "polygonlinie")   _renderPolygonlinie(ctx, el, rc)
+            else if (el.typ === "rechteck")       _renderRechteck(ctx, el, rc)
+            else if (el.typ === "kreis")          _renderKreis(ctx, el, rc)
+            else if (el.typ === "text")           _renderText(ctx, el, rc)
+            else if (el.typ === "bild")           _renderBild(ctx, el, rc)
+            else if (el.typ === "notiz")          _renderNotiz(ctx, el, rc)
+            else if (el.typ === "symbol")         _renderSymbol(ctx, el, rc)
+            else if (el.typ === "geraetekasten")  _renderGeraetekasten(ctx, el, rc)
+            else if (el.typ === "strukturkasten") _renderStrukturkasten(ctx, el, rc)
+            else if (el.typ === "makrokasten")    _renderMakrokasten(ctx, el, rc)
 
             ctx.setLineDash([]); ctx.lineCap="butt"; ctx.globalAlpha=1.0
 
@@ -1937,6 +1013,1006 @@ Item {
                 ctx.restore()
             }
         }
+
+        function _renderLinie(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            ctx.beginPath(); ctx.moveTo(vx1,vy1); ctx.lineTo(vx2,vy2); ctx.stroke()
+        }
+
+        function _renderKabellinie(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            // Kabeldefinitionslinie: dicke, orange gestrichelte Linie mit Pfeilspitzen
+            var klColor = gewaehlt ? "#f0a030" : (vorschau ? "#4a9effaa" : (el.strichFarbe || "#e07000"))
+            ctx.save()
+            ctx.strokeStyle = klColor
+            ctx.lineWidth   = gewaehlt ? 3.5 : 2.5
+            ctx.setLineDash([10, 5])
+            ctx.lineCap = "round"
+            ctx.beginPath(); ctx.moveTo(vx1,vy1); ctx.lineTo(vx2,vy2); ctx.stroke()
+            // Endpunkte als kleine Kreise markieren
+            ctx.setLineDash([])
+            ctx.fillStyle = klColor
+            ctx.beginPath(); ctx.arc(vx1,vy1, 4, 0, 2*Math.PI); ctx.fill()
+            ctx.beginPath(); ctx.arc(vx2,vy2, 4, 0, 2*Math.PI); ctx.fill()
+            // Kabelkopf-Label nach §6.2: mehrzeilig neben dem Startpunkt
+            if (!vorschau) {
+                var klEx  = el.extraDaten || {}
+                var klBez = klEx.bezeichnung    || ""
+                var klTyp = klEx.kabeltyp       || ""
+                var klAdz = klEx.aderzahl       || 0
+                var klQue = klEx.querschnittMm2 || 0
+                var klLen = klEx.laenge_m       || 0
+                var klZeilen = []
+                if (klBez !== "") klZeilen.push({ text: klBez, bold: true })
+                if (klTyp !== "") klZeilen.push({ text: klTyp, bold: false })
+                // Zeile 3 nur wenn kein 'x'/'×' im Kabeltyp
+                var klTypHatX = klTyp !== "" && (klTyp.indexOf("x") >= 0 || klTyp.indexOf("×") >= 0 || klTyp.indexOf("X") >= 0)
+                if (!klTypHatX && (klAdz > 0 || klQue > 0)) {
+                    var klZ3 = ""
+                    if (klAdz > 0 && klQue > 0)
+                        klZ3 = klAdz + " × " + (klQue + "").replace(".", ",") + " mm²"
+                    else if (klAdz > 0)
+                        klZ3 = klAdz + " " + qsTr("Adern")
+                    else
+                        klZ3 = (klQue + "").replace(".", ",") + " mm²"
+                    klZeilen.push({ text: klZ3, bold: false })
+                }
+                if (klLen > 0)
+                    klZeilen.push({ text: "→ " + (klLen + "").replace(".", ",") + " m", bold: false })
+                var klKabelId    = klEx.kabelId || 0
+                var klGesamtLinien = (klKabelId > 0 && root._kabelLinienCache[klKabelId]) || 0
+                if (klGesamtLinien > 1) {
+                    var klWeitere = klGesamtLinien - 1
+                    klZeilen.push({ text: "→ +" + klWeitere + " " + (klWeitere === 1 ? qsTr("Linie") : qsTr("Linien")), bold: false })
+                }
+                if (klZeilen.length > 0) {
+                    // Senkrechte zur Linie, auf der "oben"-Seite (negativstes y in Viewport)
+                    var klDxL = vx2 - vx1, klDyL = vy2 - vy1
+                    var klLLen = Math.sqrt(klDxL*klDxL + klDyL*klDyL) || 1
+                    var ccwXL = -klDyL/klLLen, ccwYL = klDxL/klLLen
+                    var cwXL  =  klDyL/klLLen, cwYL  = -klDxL/klLLen
+                    var useCC = (ccwYL < cwYL) || (ccwYL === cwYL && ccwXL < cwXL)
+                    var klNxL = useCC ? ccwXL : cwXL
+                    var klNyL = useCC ? ccwYL : cwYL
+                    var klFs  = Math.max(7, Math.round(2.5 * root.mmToPx * root.zoom))
+                    var klLH  = klFs * 1.3
+                    var klOff = klFs * 0.5 + 4
+                    var klAX  = vx1 + klNxL * klOff
+                    var klAY  = vy1 + klNyL * klOff
+                    ctx.globalAlpha  = 1.0
+                    ctx.strokeStyle  = "#000000"
+                    ctx.lineWidth    = 3
+                    ctx.lineJoin     = "round"
+                    ctx.textAlign    = klNxL >= 0 ? "left" : "right"
+                    ctx.textBaseline = "bottom"
+                    var klY = klAY
+                    for (var kzI = klZeilen.length - 1; kzI >= 0; kzI--) {
+                        ctx.font = (klZeilen[kzI].bold ? "bold " : "") + klFs + "px sans-serif"
+                        ctx.strokeText(klZeilen[kzI].text, klAX, klY)
+                        ctx.fillStyle = (klZeilen[kzI].bold && !gewaehlt) ? klColor : (gewaehlt ? "#f0a030" : "#c0d8f0")
+                        ctx.fillText(klZeilen[kzI].text, klAX, klY)
+                        klY -= klLH
+                    }
+                }
+            }
+            ctx.restore()
+        }
+
+        function _renderPolygonlinie(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var plPts = el.punkte || []
+            if (plPts.length >= 2) {
+                ctx.beginPath()
+                ctx.moveTo(plPts[0].x * root.zoom + root.worldX, plPts[0].y * root.zoom + root.worldY)
+                for (var plI = 1; plI < plPts.length; plI++)
+                    ctx.lineTo(plPts[plI].x * root.zoom + root.worldX, plPts[plI].y * root.zoom + root.worldY)
+                ctx.stroke()
+            }
+        }
+
+        function _renderRechteck(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var rr = er * root.mmToPx * root.zoom
+            if (fu && !vorschau) {
+                ctx.fillStyle = ff; ctx.globalAlpha = fo
+                if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.fill() }
+                else          ctx.fillRect(vx1,vy1,vx2-vx1,vy2-vy1)
+                ctx.globalAlpha = op
+            }
+            ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
+            if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.stroke() }
+            else          ctx.strokeRect(vx1,vy1,vx2-vx1,vy2-vy1)
+        }
+
+        function _renderKreis(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var dx=vx2-vx1, dy=vy2-vy1, r=Math.sqrt(dx*dx+dy*dy)
+            if (r > 0.5) {
+                ctx.beginPath(); ctx.arc(vx1,vy1,r,0,2*Math.PI)
+                if (fu && !vorschau) {
+                    ctx.fillStyle=ff; ctx.globalAlpha=fo; ctx.fill()
+                    ctx.globalAlpha=op; ctx.beginPath(); ctx.arc(vx1,vy1,r,0,2*Math.PI)
+                }
+                ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
+                ctx.stroke()
+            }
+        }
+
+        function _renderText(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var txtInhalt = el.textInhalt || ""
+            if (txtInhalt !== "") {
+                var txtLines  = txtInhalt.split("\n")
+                var txtRot    = drawCanvas.normTextRot(el.rotation || 0)
+                var txtBwPx   = Math.abs(vx2 - vx1)
+                var txtBhPx   = Math.abs(vy2 - vy1)
+                var txtAlign  = el.textAusrichtung || "links"
+                var txtFsPx   // Schriftgröße in Pixel
+                if (el.textEinpassen && txtBwPx > 4 && txtBhPx > 4) {
+                    var longestChars = 1
+                    for (var tli = 0; tli < txtLines.length; tli++)
+                        if (txtLines[tli].length > longestChars) longestChars = txtLines[tli].length
+                    txtFsPx = Math.min(txtBwPx / (longestChars * 0.62),
+                                       txtBhPx / (txtLines.length * 1.3))
+                } else {
+                    txtFsPx = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
+                }
+                var txtLineH = txtFsPx * 1.3
+                var txtColor = gewaehlt ? "#f0a030"
+                                       : (vorschau ? "#4a9eff88" : (el.strichFarbe || "#c0d8f0"))
+                var ctxAlign = txtAlign === "mitte" ? "center"
+                             : txtAlign === "rechts" ? "right" : "left"
+                var tSelW  = txtRot !== 0 ? txtBhPx : txtBwPx
+                var tSelH  = txtRot !== 0 ? txtBwPx : txtBhPx
+                var tBxOff = txtAlign === "mitte"  ? -tSelW / 2
+                           : txtAlign === "rechts" ? -tSelW : 0
+                ctx.save()
+                ctx.translate(vx1, vy1)
+                if (txtRot !== 0) ctx.rotate(txtRot)
+                ctx.globalAlpha = op
+                // Hintergrund
+                if (!gewaehlt && !vorschau && el.fuell) {
+                    ctx.fillStyle   = el.fuellFarbe || "#000000"
+                    ctx.globalAlpha = op * (el.fuellOpazitaet !== undefined ? el.fuellOpazitaet : 0.85)
+                    ctx.fillRect(tBxOff, 0, tSelW, tSelH)
+                    ctx.globalAlpha = op
+                }
+                // Rahmen
+                var tRahmFarbe = el.extraDaten ? el.extraDaten.rahmFarbe : undefined
+                if (!gewaehlt && !vorschau && tRahmFarbe) {
+                    ctx.strokeStyle = tRahmFarbe; ctx.lineWidth = 1.5; ctx.setLineDash([])
+                    ctx.strokeRect(tBxOff, 0, tSelW, tSelH)
+                }
+                ctx.font         = "bold " + txtFsPx + "px sans-serif"
+                ctx.textBaseline = "top"
+                ctx.textAlign    = ctxAlign
+                ctx.fillStyle    = txtColor
+                ctx.globalAlpha  = op
+                if (!_skipText) {
+                    for (var li2 = 0; li2 < txtLines.length; li2++)
+                        ctx.fillText(txtLines[li2], 0, li2 * txtLineH)
+                }
+                // Selektion-Rahmen (im rotierten Koordinatensystem).
+                // Bei –90° (senkrecht) sind Breite und Höhe im Bildschirmraum
+                // getauscht; der Rahmen bleibt im lokalen (rotierten) Raum korrekt.
+                if (gewaehlt) {
+                    ctx.strokeStyle = "#f0a030"; ctx.lineWidth = 1
+                    ctx.setLineDash([3, 3])
+                    ctx.strokeRect(tBxOff - 2, -2, tSelW + 4, tSelH + 4)
+                }
+                ctx.restore()
+            }
+        }
+
+        function _renderBild(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var bUrl  = el.bildDaten || ""
+            var bx    = Math.min(vx1, vx2), by = Math.min(vy1, vy2)
+            var bw    = Math.abs(vx2 - vx1), bh = Math.abs(vy2 - vy1)
+            var bcx   = bx + bw / 2,  bcy = by + bh / 2
+            var bRot  = (el.rotation  || 0) * Math.PI / 180
+            var bSx   = el.spiegelX ? -1 : 1
+            var bSy   = el.spiegelY ? -1 : 1
+            if (bUrl !== "" && bw > 1 && bh > 1) {
+                ctx.save()
+                ctx.globalAlpha = vorschau ? 0.55 : op
+                ctx.translate(bcx, bcy)
+                ctx.rotate(bRot)
+                ctx.scale(bSx, bSy)
+                if (drawCanvas.isImageLoaded(bUrl)) {
+                    var aL = el.ausschnittLinks  || 0, aR = el.ausschnittRechts || 0
+                    var aO = el.ausschnittOben   || 0, aU = el.ausschnittUnten  || 0
+                    var cw = bw * (1 - aL - aR),      ch = bh * (1 - aO - aU)
+                    if (cw > 0 && ch > 0) {
+                        ctx.beginPath()
+                        ctx.rect(-bw/2 + aL * bw, -bh/2 + aO * bh, cw, ch)
+                        ctx.clip()
+                        ctx.drawImage(bUrl, -bw/2, -bh/2, bw, bh)
+                    }
+                } else {
+                    // Bild noch nicht geladen → Platzhalter zeichnen + laden anstoßen
+                    drawCanvas.loadImage(bUrl)
+                    ctx.globalAlpha = 0.4
+                    ctx.strokeStyle = "#4a9eff"; ctx.lineWidth = 1
+                    ctx.setLineDash([])
+                    ctx.strokeRect(-bw/2, -bh/2, bw, bh)
+                    ctx.beginPath()
+                    ctx.moveTo(-bw/2, -bh/2); ctx.lineTo(bw/2,  bh/2)
+                    ctx.moveTo( bw/2, -bh/2); ctx.lineTo(-bw/2, bh/2)
+                    ctx.stroke()
+                }
+                ctx.restore()
+            }
+            // Auswahlrahmen immer ohne Rotation (am Bounding-Box)
+            if (gewaehlt) {
+                ctx.save()
+                ctx.strokeStyle = "#f0a030"; ctx.lineWidth = 1.5; ctx.setLineDash([])
+                ctx.strokeRect(bx - 1, by - 1, bw + 2, bh + 2)
+                ctx.restore()
+            }
+        }
+
+        function _renderNotiz(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var nRx = Math.min(vx1, vx2), nRy = Math.min(vy1, vy2)
+            var nRw = Math.abs(vx2 - vx1), nRh = Math.abs(vy2 - vy1)
+            if (nRw > 2 && nRh > 2) {
+                ctx.save()
+                // Hintergrund
+                var nFf  = el.fuellFarbe     || "#1a1a00"
+                var nFo  = el.fuellOpazitaet !== undefined ? el.fuellOpazitaet : 0.9
+                ctx.fillStyle   = nFf
+                ctx.globalAlpha = op * nFo
+                ctx.fillRect(nRx, nRy, nRw, nRh)
+                ctx.globalAlpha = op
+                // Rahmen
+                var nRahmF = (el.extraDaten && el.extraDaten.rahmFarbe) ? el.extraDaten.rahmFarbe : (el.strichFarbe || "#cccc22")
+                ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : nRahmF)
+                ctx.lineWidth   = 1.5
+                ctx.setLineDash([])
+                ctx.strokeRect(nRx, nRy, nRw, nRh)
+                // Text mit automatischem Zeilenumbruch
+                var nText = el.textInhalt || ""
+                if (nText !== "" && !_skipText) {
+                    var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
+                    var nLineH = nFsPx * 1.3
+                    var nPad   = Math.max(4, nFsPx * 0.35)
+                    var nMaxW  = nRw - 2 * nPad
+
+                    ctx.save()
+                    ctx.beginPath()
+                    ctx.rect(nRx + 1, nRy + 1, nRw - 2, nRh - 2)
+                    ctx.clip()
+
+                    ctx.fillStyle    = el.strichFarbe || "#cccc22"
+                    ctx.font         = nFsPx + "px sans-serif"
+                    ctx.textBaseline = "top"
+                    ctx.textAlign    = "left"
+
+                    // Word-wrap: explizite \n beachten, lange Zeilen umbrechen
+                    var wrappedLines = []
+                    var paraLines = nText.split("\n")
+                    for (var nPi = 0; nPi < paraLines.length; nPi++) {
+                        var para = paraLines[nPi]
+                        if (para === "") { wrappedLines.push(""); continue }
+                        var words = para.split(" ")
+                        var curLine = ""
+                        for (var nWi = 0; nWi < words.length; nWi++) {
+                            var testLine = curLine === "" ? words[nWi] : curLine + " " + words[nWi]
+                            if (nMaxW > 0 && ctx.measureText(testLine).width > nMaxW && curLine !== "") {
+                                wrappedLines.push(curLine)
+                                curLine = words[nWi]
+                            } else {
+                                curLine = testLine
+                            }
+                        }
+                        wrappedLines.push(curLine)
+                    }
+
+                    for (var nLi = 0; nLi < wrappedLines.length; nLi++) {
+                        var nYPos = nRy + nPad + nLi * nLineH
+                        if (nYPos + nLineH > nRy + nRh) break
+                        ctx.fillText(wrappedLines[nLi], nRx + nPad, nYPos)
+                    }
+                    ctx.restore()
+                }
+            }
+        }
+
+        function _renderSymbol(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            var sw = vx2 - vx1, sh = vy2 - vy1
+            if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {
+                var scx = vx1 + sw/2, scy = vy1 + sh/2
+                var rot = (el.rotation || 0) * Math.PI / 180
+
+                ctx.save()
+                ctx.translate(scx, scy)
+                if (rot !== 0) ctx.rotate(rot)
+                if (el.spiegelX) ctx.scale(-1, 1)
+                if (el.spiegelY) ctx.scale(1, -1)
+                ctx.translate(-Math.abs(sw)/2, -Math.abs(sh)/2)
+                drawCanvas.drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh))
+                // Erweiterungsmodifier im lokalen Koordinatensystem (dreht/spiegelt mit)
+                if (!vorschau) {
+                    var erw = (el.extraDaten && Array.isArray(el.extraDaten.erweiterungen))
+                              ? el.extraDaten.erweiterungen : []
+                    if (erw.length > 0)
+                        drawCanvas.maleModifier(ctx, erw, Math.abs(sw), Math.abs(sh))
+                }
+                ctx.restore()
+
+                // Pin-Marker zeichnen (immer sichtbar, selektiert = hervorgehoben)
+                if (!vorschau) {
+                    var pins = el.symbolId === "querverweis"
+                               ? drawCanvas.querverweisPin(el)
+                               : symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+                    ctx.setLineDash([])
+                    for (var pi = 0; pi < pins.length; pi++) {
+                        var pp = drawCanvas.pinViewportPos(el, pins[pi].x, pins[pi].y)
+                        var pr = gewaehlt ? 2.5 : 1.5
+                        ctx.globalAlpha = gewaehlt ? 1.0 : 0.55
+                        ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
+                        ctx.fillStyle   = gewaehlt ? "#00e5a0" : "#4a9eff"
+                        ctx.strokeStyle = gewaehlt ? "#004d35" : "#0a2040"
+                        ctx.lineWidth   = 1.0
+                        ctx.fill(); ctx.stroke()
+                    }
+                    ctx.globalAlpha = op
+                }
+
+                // BMK-Label und Freitexte am Symbol rendern (konzeptgemäß, Abschnitt 7).
+                // Text ist immer waagerecht.
+                // 0°/180° → über dem Symbol  (Anker: Oberkante, Mitte X)
+                // 90°/270° → links neben dem Symbol (Anker: linke Kante, Mitte Y)
+                // Verbindungshelfer erhalten keine Beschriftung.
+                if (!vorschau && !_skipText) {
+                    var bmkSid = el.symbolId || ""
+                    var verbHelper = SK.hatEigenenBeschriftungsBlock(bmkSid)
+                    if (!verbHelper) {
+                        var bmkEd  = el.extraDaten || {}
+                        var bmkStr = bmkEd.bmk || ""
+                        // Geordnete, sichtbare Freitext-Zeilen aufbauen
+                        var ftRhlg  = bmkEd.textReihenfolge || ["freitext1", "freitext2"]
+                        var ftZeilen = []
+                        for (var fti = 0; fti < ftRhlg.length; fti++) {
+                            var ftK = ftRhlg[fti]
+                            if (bmkEd[ftK + "Sichtbar"] !== false && (bmkEd[ftK] || "") !== "")
+                                ftZeilen.push(bmkEd[ftK])
+                        }
+                        if (bmkStr !== "" || ftZeilen.length > 0) {
+                            // Schriftgröße aus extra_daten (mm), Standard 2.5 mm
+                            var schrift = (bmkEd.schriftgroesse !== undefined
+                                           ? bmkEd.schriftgroesse : 2.5)
+                            var bmkFs   = Math.max(5, Math.round(schrift * root.mmToPx * root.zoom))
+                            var ftFs    = Math.max(4, Math.round(schrift * 0.85 * root.mmToPx * root.zoom))
+                            var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * root.zoom
+                            var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * root.zoom
+                            var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
+                            var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
+                            var symRot    = ((el.rotation || 0) % 360 + 360) % 360
+                            var senkrecht = (symRot === 90 || symRot === 270)
+                            ctx.save()
+                            ctx.globalAlpha = 1.0
+                            ctx.textAlign   = senkrecht ? "right" : "center"
+                            ctx.fillStyle   = bmkClr
+                            if (senkrecht) {
+                                var bkAx = Math.min(vx1, vx2) + bmkOy
+                                var bkCy = (vy1 + vy2) / 2 + bmkOx
+                                if (bmkStr !== "") {
+                                    ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                    ctx.textBaseline = "bottom"
+                                    ctx.fillText(bmkStr, bkAx, bkCy)
+                                }
+                                ctx.font      = ftFs + "px sans-serif"
+                                ctx.fillStyle = ftClr
+                                ctx.textBaseline = "top"
+                                var ftOff = bkCy + 2 * root.zoom
+                                for (var fi = 0; fi < ftZeilen.length; fi++) {
+                                    ctx.fillText(ftZeilen[fi], bkAx, ftOff)
+                                    ftOff += ftFs * 1.25
+                                }
+                            } else {
+                                var bkCx = (vx1 + vx2) / 2 + bmkOx
+                                var bkTy = Math.min(vy1, vy2) + bmkOy
+                                if (bmkStr !== "") {
+                                    ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                    ctx.textBaseline = "bottom"
+                                    ctx.fillText(bmkStr, bkCx, bkTy)
+                                }
+                                ctx.font      = ftFs + "px sans-serif"
+                                ctx.fillStyle = ftClr
+                                ctx.textBaseline = "top"
+                                var ftY = Math.max(vy1, vy2) + 3 * root.zoom
+                                for (var fj = 0; fj < ftZeilen.length; fj++) {
+                                    ctx.fillText(ftZeilen[fj], bkCx, ftY)
+                                    ftY += ftFs * 1.25
+                                }
+                            }
+                            ctx.restore()
+                        }
+                    }
+                }
+
+                // ── IBN-Statusdot ────────────────────────────────────
+                if (!vorschau && root.ibnModus) {
+                    var _ibnBmk = (el.extraDaten || {}).bmk || ""
+                    if (_ibnBmk !== "") {
+                        var _ibnSt = root.ibnStatusMap[_ibnBmk] || "offen"
+                        var _ibnClr = _ibnSt === "abgeschlossen" ? "#3cb371"
+                                    : _ibnSt === "in_arbeit"     ? "#f0a030"
+                                                                  : "#cc4444"
+                        var _ibnCx = Math.max(vx1, vx2) - 5 * root.zoom / root.mmToPx
+                        var _ibnCy = Math.min(vy1, vy2) + 5 * root.zoom / root.mmToPx
+                        var _ibnR  = Math.max(3, 3 * root.zoom)
+                        ctx.save()
+                        ctx.globalAlpha = 0.9
+                        ctx.beginPath()
+                        ctx.arc(_ibnCx, _ibnCy, _ibnR, 0, Math.PI * 2)
+                        ctx.fillStyle = _ibnClr
+                        ctx.fill()
+                        ctx.restore()
+                    }
+                }
+
+                // ── SPS-Konflikt-Dot ─────────────────────────────────
+                // Rotes "!"-Dot oben-links wenn Element mehr als einem Kanal zugewiesen
+                if (!vorschau && (el.id || 0) > 0 && root._spsKonfliktSet[el.id]) {
+                    var _spsR  = Math.max(3, 3 * root.zoom)
+                    var _spsCx = Math.min(vx1, vx2) + _spsR + 2
+                    var _spsCy = Math.min(vy1, vy2) + _spsR + 2
+                    ctx.save()
+                    ctx.globalAlpha = 0.92
+                    ctx.beginPath()
+                    ctx.arc(_spsCx, _spsCy, _spsR, 0, Math.PI * 2)
+                    ctx.fillStyle = "#cc2222"
+                    ctx.fill()
+                    ctx.globalAlpha = 1.0
+                    ctx.fillStyle   = "#ffffff"
+                    ctx.font        = "bold " + Math.max(6, Math.round(_spsR * 1.5)) + "px sans-serif"
+                    ctx.textAlign    = "center"
+                    ctx.textBaseline = "middle"
+                    ctx.fillText("!", _spsCx, _spsCy)
+                    ctx.restore()
+                }
+
+                // ── Fehlersuch-Startpunkt-Marker ─────────────────────
+                if (!vorschau && root.fehlersuchModus &&
+                        (el.id || -1) === root.fehlersuchStartId) {
+                    var _fsR  = Math.max(4, 4 * root.zoom)
+                    var _fsCx = (vx1 + vx2) / 2
+                    var _fsCy = (vy1 + vy2) / 2
+                    ctx.save()
+                    ctx.globalAlpha = 0.85
+                    ctx.beginPath()
+                    ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
+                    ctx.strokeStyle = root.theme.accent
+                    ctx.lineWidth   = 2.5
+                    ctx.stroke()
+                    ctx.restore()
+                }
+
+                // ── HF-Querverweis-Hinweis (Kontaktspiegel) ──────────
+                // Erscheint nur bei Nebenfunktionen auf einer anderen Seite
+                // als die Hauptfunktion.
+                if (!vorschau && !_skipText && !verbHelper && (el.betriebsmittelId || 0) > 0) {
+                    var _hfRef = root._hfReferenzMap[el.betriebsmittelId]
+                    if (_hfRef
+                            && _hfRef.hauptElementId !== (el.id || -1)
+                            && _hfRef.seiteId        !== root.seiteId) {
+                        var _hfTxt = "← /" + _hfRef.blattnummer
+                        var _hfEd  = el.extraDaten || {}
+                        var _hfFs  = Math.max(4, Math.round(
+                            (_hfEd.schriftgroesse !== undefined ? _hfEd.schriftgroesse : 2.5)
+                            * 0.75 * root.mmToPx * root.zoom))
+                        var _hfRot  = ((el.rotation || 0) % 360 + 360) % 360
+                        var _hfSenk = (_hfRot === 90 || _hfRot === 270)
+                        ctx.save()
+                        ctx.globalAlpha = 0.75
+                        ctx.fillStyle   = gewaehlt ? "#f0a030" : "#6899c4"
+                        ctx.font        = _hfFs + "px sans-serif"
+                        if (_hfSenk) {
+                            ctx.textAlign    = "left"
+                            ctx.textBaseline = "middle"
+                            ctx.fillText(_hfTxt,
+                                         Math.max(vx1, vx2) + 3 * root.zoom,
+                                         (vy1 + vy2) / 2)
+                        } else {
+                            ctx.textAlign    = "center"
+                            ctx.textBaseline = "top"
+                            ctx.fillText(_hfTxt,
+                                         (vx1 + vx2) / 2,
+                                         Math.max(vy1, vy2) + 2 * root.zoom)
+                        }
+                        ctx.restore()
+                    }
+                }
+
+                // Querverweis: Signalname + Partnerseite – BMK-Stil
+                if (!vorschau && !_skipText && el.symbolId === "querverweis") {
+                    var qed     = el.extraDaten || {}
+                    var qSn     = qed.signalname || ""
+                    var _qpInfo  = root._querverweisPartnerMap[idx]
+                    var qPartner = _qpInfo ? (_qpInfo.label || "") : ""
+                    if (qSn !== "" || qPartner !== "") {
+                        var qFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var qFsS  = Math.max(6, Math.round(1.6 * root.mmToPx * root.zoom))
+                        var qRot  = ((el.rotation || 0) % 360 + 360) % 360
+                        var qSenk = (qRot === 90 || qRot === 270)
+                        var qCx   = (vx1 + vx2) / 2
+                        var qCy   = (vy1 + vy2) / 2
+                        ctx.save()
+                        ctx.globalAlpha = 1.0
+                        if (qSenk) {
+                            var qX = Math.min(vx1, vx2) - 4 * root.zoom
+                            if (qSn !== "") {
+                                ctx.fillStyle    = gewaehlt ? "#f0a030" : "#c0d8f0"
+                                ctx.font         = "bold " + qFs + "px sans-serif"
+                                ctx.textAlign    = "right"
+                                ctx.textBaseline = qPartner !== "" ? "bottom" : "middle"
+                                ctx.fillText(qSn, qX, qCy)
+                            }
+                            if (qPartner !== "") {
+                                ctx.fillStyle    = gewaehlt ? "#f0a030" : "#7aaacc"
+                                ctx.font         = qFsS + "px sans-serif"
+                                ctx.textAlign    = "right"
+                                ctx.textBaseline = "top"
+                                ctx.fillText("→ " + qPartner, qX, qCy)
+                            }
+                        } else {
+                            var qY = Math.min(vy1, vy2) - 3 * root.zoom
+                            if (qSn !== "") {
+                                ctx.fillStyle    = gewaehlt ? "#f0a030" : "#c0d8f0"
+                                ctx.font         = "bold " + qFs + "px sans-serif"
+                                ctx.textAlign    = "center"
+                                ctx.textBaseline = "bottom"
+                                ctx.fillText(qSn, qCx, qY)
+                            }
+                            if (qPartner !== "") {
+                                ctx.fillStyle    = gewaehlt ? "#f0a030" : "#7aaacc"
+                                ctx.font         = qFsS + "px sans-serif"
+                                ctx.textAlign    = "center"
+                                ctx.textBaseline = "bottom"
+                                ctx.fillText("→ " + qPartner, qCx, qY - qFs - 1)
+                            }
+                        }
+                        ctx.restore()
+                    }
+                }
+
+                // Geräteanschluss: Anschlusskennzeichnung, ggf. mit GK-BMK (z.B. "-X1:L1")
+                // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
+                if (!vorschau && !_skipText && el.symbolId === "geraeteanschluss") {
+                    var gaed  = el.extraDaten || {}
+                    var gaAnk = gaed.anschlusskennzeichnung || ""
+                    if (gaAnk !== "") {
+                        // Umschließenden Gerätekasten suchen (kleinster)
+                        // _gkListe wurde einmalig in onPaint vorberechnet
+                        var gaCxF = (el.x1 + el.x2) / 2, gaCyF = (el.y1 + el.y2) / 2
+                        var bestGk = null, bestGkA = Infinity
+                        var _gaEls = drawCanvas._gkListe
+                        for (var gi = 0; gi < _gaEls.length; gi++) {
+                            var gke = _gaEls[gi]
+                            var gkx1 = Math.min(gke.x1,gke.x2), gkx2 = Math.max(gke.x1,gke.x2)
+                            var gky1 = Math.min(gke.y1,gke.y2), gky2 = Math.max(gke.y1,gke.y2)
+                            if (gaCxF >= gkx1 && gaCxF <= gkx2 && gaCyF >= gky1 && gaCyF <= gky2) {
+                                var gkA = (gkx2-gkx1)*(gky2-gky1)
+                                if (gkA < bestGkA) { bestGkA = gkA; bestGk = gke }
+                            }
+                        }
+                        var gaLabel = gaAnk
+                        if (bestGk) {
+                            var gkBmkGA = (bestGk.extraDaten || {}).bmk || ""
+                            if (gkBmkGA) gaLabel = gkBmkGA + ":" + gaAnk
+                        }
+
+                        var gaFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var gaRot  = ((el.rotation || 0) % 360 + 360) % 360
+                        var gaSenk = (gaRot === 90 || gaRot === 270)
+                        var gaCx   = (vx1 + vx2) / 2
+                        var gaCy   = (vy1 + vy2) / 2
+                        var gaOx   = (gaed.bmkOffsetX !== undefined ? gaed.bmkOffsetX : 0) * root.zoom
+                        var gaOy   = (gaed.bmkOffsetY !== undefined ? gaed.bmkOffsetY : 0) * root.zoom
+                        ctx.save()
+                        ctx.globalAlpha = 1.0
+                        ctx.font = "bold " + gaFs + "px sans-serif"
+                        ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : "#c0d8f0"
+                        if (gaSenk) {
+                            // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
+                            var gaPinUnten = (gaRot === 90)
+                            var gaY = gaPinUnten
+                                      ? Math.min(vy1, vy2) - 3 * root.zoom + gaOy
+                                      : Math.max(vy1, vy2) + 3 * root.zoom + gaOy
+                            ctx.textAlign = "center"
+                            ctx.textBaseline = gaPinUnten ? "bottom" : "top"
+                            ctx.strokeText(gaLabel, gaCx + gaOx, gaY)
+                            ctx.fillText(gaLabel, gaCx + gaOx, gaY)
+                        } else {
+                            // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
+                            var gaPinRechts = (gaRot === 0)
+                            var gaX = gaPinRechts
+                                      ? Math.min(vx1, vx2) - 4 * root.zoom + gaOx
+                                      : Math.max(vx1, vx2) + 4 * root.zoom + gaOx
+                            ctx.textAlign = gaPinRechts ? "right" : "left"
+                            ctx.textBaseline = "middle"
+                            ctx.strokeText(gaLabel, gaX, gaCy + gaOy)
+                            ctx.fillText(gaLabel, gaX, gaCy + gaOy)
+                        }
+                        ctx.restore()
+                    }
+                }
+
+                // Potenzial: BMK + Freitext neben dem Symbol (pin-seitig, draggbar via bmkOffsetX/Y)
+                // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
+                if (!vorschau && !_skipText && el.symbolId === "potenzial") {
+                    var paed    = el.extraDaten || {}
+                    var paBmk   = paed.bmk || ""
+                    var paFtRhlg = paed.textReihenfolge || ["freitext1", "freitext2"]
+                    var paFt    = []
+                    for (var pfi = 0; pfi < paFtRhlg.length; pfi++) {
+                        var pftK = paFtRhlg[pfi]
+                        if (paed[pftK + "Sichtbar"] !== false && (paed[pftK] || "") !== "")
+                            paFt.push(paed[pftK])
+                    }
+                    if (paBmk !== "" || paFt.length > 0) {
+                        var paSchrift = paed.schriftgroesse !== undefined ? paed.schriftgroesse : 2.5
+                        var paFs   = Math.max(5, Math.round(paSchrift * root.mmToPx * root.zoom))
+                        var paFtFs = Math.max(4, Math.round(paSchrift * 0.85 * root.mmToPx * root.zoom))
+                        var paRot  = ((el.rotation || 0) % 360 + 360) % 360
+                        var paSenk = (paRot === 90 || paRot === 270)
+                        var paCx   = (vx1 + vx2) / 2
+                        var paCy   = (vy1 + vy2) / 2
+                        var paOx   = (paed.bmkOffsetX !== undefined ? paed.bmkOffsetX : 0) * root.zoom
+                        var paOy   = (paed.bmkOffsetY !== undefined ? paed.bmkOffsetY : 0) * root.zoom
+                        var paBmkClr = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
+                        var paFtClr  = gewaehlt ? "#f0a030" : "#8ab4d4"
+                        ctx.save()
+                        ctx.globalAlpha = 1.0
+                        ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                        if (paSenk) {
+                            // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
+                            var paPinUnten = (paRot === 90)
+                            var paBl  = paPinUnten ? "bottom" : "top"
+                            var paDir = paPinUnten ? -1 : 1
+                            var paY   = paPinUnten
+                                        ? Math.min(vy1, vy2) - 3 * root.zoom + paOy
+                                        : Math.max(vy1, vy2) + 3 * root.zoom + paOy
+                            var paCxO = paCx + paOx
+                            ctx.textAlign = "center"
+                            if (paBmk !== "") {
+                                ctx.font = "bold " + paFs + "px sans-serif"
+                                ctx.textBaseline = paBl
+                                ctx.strokeText(paBmk, paCxO, paY)
+                                ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paCxO, paY)
+                            }
+                            if (paFt.length > 0) {
+                                ctx.font = paFtFs + "px sans-serif"
+                                ctx.fillStyle = paFtClr
+                                var paFtY = paY + paDir * (paBmk !== "" ? paFs + 2 : 0)
+                                for (var pfi2 = 0; pfi2 < paFt.length; pfi2++) {
+                                    ctx.textBaseline = paBl
+                                    ctx.strokeText(paFt[pfi2], paCxO, paFtY)
+                                    ctx.fillText(paFt[pfi2], paCxO, paFtY)
+                                    paFtY += paDir * paFtFs * 1.3
+                                }
+                            }
+                        } else {
+                            // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
+                            var paPinRechts = (paRot === 0)
+                            var paAl = paPinRechts ? "right" : "left"
+                            var paX  = paPinRechts
+                                       ? Math.min(vx1, vx2) - 4 * root.zoom + paOx
+                                       : Math.max(vx1, vx2) + 4 * root.zoom + paOx
+                            var paCyO = paCy + paOy
+                            var paLineH = (paBmk !== "" ? paFs : 0) + paFt.length * paFtFs * 1.3
+                            var paCurY = paCyO - paLineH / 2
+                            ctx.textBaseline = "top"
+                            if (paBmk !== "") {
+                                ctx.font = "bold " + paFs + "px sans-serif"
+                                ctx.textAlign = paAl
+                                ctx.strokeText(paBmk, paX, paCurY)
+                                ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paX, paCurY)
+                                paCurY += paFs * 1.1
+                            }
+                            if (paFt.length > 0) {
+                                ctx.font = paFtFs + "px sans-serif"
+                                ctx.textAlign = paAl; ctx.fillStyle = paFtClr
+                                for (var pfi3 = 0; pfi3 < paFt.length; pfi3++) {
+                                    ctx.strokeText(paFt[pfi3], paX, paCurY)
+                                    ctx.fillText(paFt[pfi3], paX, paCurY)
+                                    paCurY += paFtFs * 1.3
+                                }
+                            }
+                        }
+                        ctx.restore()
+                    }
+                }
+
+                // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
+                if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss") {
+                    var kaed    = el.extraDaten || {}
+                    var kaAnz   = kaed.anschlussBezeichnung || ""
+                    var kaBmk   = kaed.bmk || ""
+                    var kaBmkVis = kaBmk !== "" && kaed.bmkSichtbar !== false
+                    var kaFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                    var kaBmkFs = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
+                    var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
+                    var kaSenk  = (kaRot === 90 || kaRot === 270)
+                    var kaCx    = (vx1 + vx2) / 2
+                    var kaCy    = (vy1 + vy2) / 2
+                    var kaOx    = (kaed.bmkOffsetX !== undefined ? kaed.bmkOffsetX : 0) * root.zoom
+                    var kaOy    = (kaed.bmkOffsetY !== undefined ? kaed.bmkOffsetY : 0) * root.zoom
+                    // Textposition: immer gegenüber dem Pin
+                    // 0°  → Pin oben   → Text unten
+                    // 90° → Pin rechts → Text links
+                    // 180°→ Pin unten  → Text oben
+                    // 270°→ Pin links  → Text rechts
+                    ctx.save()
+                    ctx.globalAlpha = 1.0
+                    ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                    if (kaSenk) {
+                        var kaPinRechts = (kaRot === 90)
+                        var kaX   = kaPinRechts
+                                    ? Math.min(vx1, vx2) - 4 * root.zoom + kaOy
+                                    : Math.max(vx1, vx2) + 4 * root.zoom + kaOy
+                        var kaAlg = kaPinRechts ? "right" : "left"
+                        var kaCyO = kaCy + kaOx
+                        if (kaAnz !== "") {
+                            ctx.font = "bold " + kaFs + "px sans-serif"
+                            ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
+                            var kaAy = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
+                            ctx.strokeText(kaAnz, kaX, kaAy)
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
+                            ctx.fillText(kaAnz, kaX, kaAy)
+                        }
+                        if (kaBmkVis) {
+                            ctx.font = kaBmkFs + "px sans-serif"
+                            ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
+                            var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
+                            ctx.strokeText(kaBmk, kaX, kaBmkY)
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
+                            ctx.fillText(kaBmk, kaX, kaBmkY)
+                        }
+                    } else {
+                        var kaPinUnten = (kaRot === 180)
+                        var kaY   = kaPinUnten
+                                    ? Math.min(vy1, vy2) - 3 * root.zoom + kaOy
+                                    : Math.max(vy1, vy2) + 3 * root.zoom + kaOy
+                        var kaBl  = kaPinUnten ? "bottom" : "top"
+                        var kaCxO = kaCx + kaOx
+                        if (kaAnz !== "") {
+                            ctx.font = "bold " + kaFs + "px sans-serif"
+                            ctx.textAlign = "center"; ctx.textBaseline = kaBl
+                            ctx.strokeText(kaAnz, kaCxO, kaY)
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
+                            ctx.fillText(kaAnz, kaCxO, kaY)
+                        }
+                        if (kaBmkVis) {
+                            ctx.font = kaBmkFs + "px sans-serif"
+                            ctx.textAlign = "center"; ctx.textBaseline = kaBl
+                            var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
+                            ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
+                            ctx.fillText(kaBmk, kaCxO, kaBmkYh)
+                        }
+                    }
+                    ctx.restore()
+                }
+
+                // Aderdefinitionspunkt: Textblock – Positionierung wie BMK an Symbolen
+                // 0° (waagerecht): Text über dem Symbol | 90° (senkrecht): Text links
+                if (!vorschau && !_skipText && el.symbolId === "aderdefinition") {
+                    var aed = el.extraDaten || {}
+                    var adpZeilen = []
+                    if (aed.bezeichnung) adpZeilen.push({ text: aed.bezeichnung, bold: true })
+                    var adpFarb = aed.aderfarbe || "", adpQuer = aed.querschnitt_mm2
+                    if (adpFarb !== "" || (adpQuer !== undefined && adpQuer > 0))
+                        adpZeilen.push({ text: (adpFarb || "–") + (adpQuer > 0 ? "  " + (adpQuer + "").replace('.', ',') + " mm²" : ""), bold: false })
+                    if (aed.laenge_m && aed.laenge_m > 0)
+                        adpZeilen.push({ text: qsTr("\u2192 ") + (aed.laenge_m + "").replace('.', ',') + " m", bold: false })
+                    if (adpZeilen.length > 0) {
+                        var adpFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var adpLineH = adpFs * 1.3
+                        var adpRot   = ((el.rotation || 0) % 360 + 360) % 360
+                        var adpSenk  = (adpRot === 90 || adpRot === 270)
+                        var adpCx    = (vx1 + vx2) / 2
+                        var adpCy    = (vy1 + vy2) / 2
+                        ctx.save()
+                        ctx.globalAlpha = 1.0
+                        var adpTextFarbe = gewaehlt ? "#f0a030" : "#c0d8f0"
+                        if (adpSenk) {
+                            // Senkrecht: Text links, vertikal zentriert
+                            var adpLx = Math.min(vx1, vx2) - 4 * root.zoom
+                            var adpLy = adpCy - adpZeilen.length * adpLineH / 2
+                            ctx.textAlign = "right"; ctx.textBaseline = "top"
+                            for (var az1 = 0; az1 < adpZeilen.length; az1++) {
+                                ctx.font = (adpZeilen[az1].bold ? "bold " : "") + adpFs + "px sans-serif"
+                                ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                                ctx.strokeText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
+                                ctx.fillStyle = adpTextFarbe
+                                ctx.fillText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
+                            }
+                        } else {
+                            // Waagerecht: Text über dem Symbol, horizontal zentriert
+                            var adpOy = Math.min(vy1, vy2) - 3 * root.zoom
+                            var adpOx = adpCx
+                            ctx.textAlign = "center"; ctx.textBaseline = "bottom"
+                            // Zeilen von unten nach oben (letzte Zeile oben)
+                            for (var az2 = adpZeilen.length - 1; az2 >= 0; az2--) {
+                                ctx.font = (adpZeilen[az2].bold ? "bold " : "") + adpFs + "px sans-serif"
+                                ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
+                                ctx.strokeText(adpZeilen[az2].text, adpOx, adpOy)
+                                ctx.fillStyle = adpTextFarbe
+                                ctx.fillText(adpZeilen[az2].text, adpOx, adpOy)
+                                adpOy -= adpLineH
+                            }
+                        }
+                        ctx.restore()
+                    }
+                }
+            }
+        }
+
+        function _renderGeraetekasten(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            // Gerätekasten: abgerundetes Rechteck mit leichter Füllung und Label oben links
+            ctx.lineCap = "butt"
+            var gkRx = Math.min(vx1, vx2), gkRy = Math.min(vy1, vy2)
+            var gkRw = Math.abs(vx2 - vx1), gkRh = Math.abs(vy2 - vy1)
+            var gkR  = er > 0 ? er * root.mmToPx * root.zoom : 4 * root.zoom
+            if (fu && !vorschau) {
+                ctx.fillStyle  = ff
+                ctx.globalAlpha = op * fo
+                drawCanvas.roundRect(ctx, gkRx, gkRy, gkRw, gkRh, gkR)
+                ctx.fill()
+                ctx.globalAlpha = op
+            }
+            ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
+            drawCanvas.roundRect(ctx, gkRx, gkRy, gkRw, gkRh, gkR)
+            ctx.stroke()
+            if (!vorschau && !_skipText && gkRw > 20 && gkRh > 12) {
+                var gkEd  = el.extraDaten || {}
+                var gkBmk = gkEd.bmk        || ""
+                var gkBez = gkEd.bezeichnung || ""
+                if (gkBmk !== "" || gkBez !== "") {
+                    ctx.save()
+                    ctx.setLineDash([])
+                    var gkSch = (gkEd.schriftgroesse !== undefined ? gkEd.schriftgroesse : 2.5)
+                    var gkFs  = Math.max(5, Math.round(gkSch * root.mmToPx * root.zoom))
+                    var gkFsB = Math.max(4, Math.round(gkSch * 0.85 * root.mmToPx * root.zoom))
+                    var gkPad = Math.round(5 * root.zoom)
+                    ctx.textAlign    = "left"
+                    ctx.textBaseline = "top"
+                    ctx.fillStyle    = gewaehlt ? "#f0a030" : sf
+                    ctx.globalAlpha  = op
+                    var gkTy = gkRy + gkPad
+                    if (gkBmk !== "") {
+                        ctx.font = "bold " + gkFs + "px sans-serif"
+                        ctx.fillText(gkBmk, gkRx + gkPad, gkTy)
+                        gkTy += gkFs * 1.3
+                    }
+                    if (gkBez !== "") {
+                        ctx.font = gkFsB + "px sans-serif"
+                        ctx.fillText(gkBez, gkRx + gkPad, gkTy)
+                    }
+                    ctx.restore()
+                }
+            }
+        }
+
+        function _renderStrukturkasten(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            // Strukturkasten: Rechteck mit Anlage/Ort-Label oben rechts
+            var skRx = Math.min(vx1, vx2), skRy = Math.min(vy1, vy2)
+            var skRw = Math.abs(vx2 - vx1), skRh = Math.abs(vy2 - vy1)
+            ctx.lineCap = "butt"
+            var skR = er > 0 ? er * root.mmToPx * root.zoom : 0
+            if (fu && !vorschau) {
+                ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
+                if (skR > 0) { drawCanvas.roundRect(ctx, skRx, skRy, skRw, skRh, skR); ctx.fill() }
+                else ctx.fillRect(skRx, skRy, skRw, skRh)
+                ctx.globalAlpha = op
+            }
+            ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
+            if (skR > 0) { drawCanvas.roundRect(ctx, skRx, skRy, skRw, skRh, skR); ctx.stroke() }
+            else ctx.strokeRect(skRx, skRy, skRw, skRh)
+            if (!vorschau && !_skipText && skRw > 20) {
+                var skEd  = el.extraDaten || {}
+                var skAnl = skEd.anlage      || ""
+                var skOrt = skEd.ort         || ""
+                var skAUO = skEd.anlageUO    || ""
+                var skOUO = skEd.ortUO       || ""
+                var skBez = skEd.bezeichnung || ""
+                ctx.save()
+                ctx.setLineDash([])
+                var skSch = (skEd.schriftgroesse !== undefined ? skEd.schriftgroesse : 2.5)
+                var skFs  = Math.max(5, Math.round(skSch * root.mmToPx * root.zoom))
+                ctx.font        = "bold " + skFs + "px sans-serif"
+                ctx.textBaseline = "top"
+                ctx.fillStyle   = gewaehlt ? "#f0a030" : sf
+                ctx.globalAlpha = op
+                var skOff = Math.round(4 * root.zoom)
+                // Anlage/Ort-Label oben rechts
+                var skLbl = ""
+                if (skAUO) skLbl += "==" + skAUO + " "
+                if (skOUO) skLbl += "++" + skOUO + " "
+                if (skAnl) skLbl += "="  + skAnl + " "
+                if (skOrt) skLbl += "+"  + skOrt
+                if (skLbl !== "") {
+                    ctx.textAlign = "right"
+                    ctx.fillText(skLbl.trim(), skRx + skRw - Math.round(5 * root.zoom), skRy + skOff)
+                }
+                // Bezeichnung oben links
+                if (skBez !== "") {
+                    ctx.textAlign = "left"
+                    ctx.font      = skFs + "px sans-serif"
+                    ctx.fillText(skBez, skRx + Math.round(5 * root.zoom), skRy + skOff)
+                }
+                ctx.restore()
+            }
+        }
+
+        function _renderMakrokasten(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+            // Makrokasten: gestrichelt, Standard-Farbe violett (überschreibbar via Stil)
+            var mkRx = Math.min(vx1, vx2), mkRy = Math.min(vy1, vy2)
+            var mkRw = Math.abs(vx2 - vx1), mkRh = Math.abs(vy2 - vy1)
+            var mkEd    = el.extraDaten || {}
+            var mkSaved = mkEd.makroId > 0
+            var mkFarbe = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff"
+                          : (el.strichFarbe || "#aa44cc"))
+            ctx.lineCap = "butt"
+            var mkR = er > 0 ? er * root.mmToPx * root.zoom : 0
+            if (fu && !vorschau) {
+                ctx.fillStyle   = ff; ctx.globalAlpha = op * fo
+                if (mkR > 0) { drawCanvas.roundRect(ctx, mkRx, mkRy, mkRw, mkRh, mkR); ctx.fill() }
+                else ctx.fillRect(mkRx, mkRy, mkRw, mkRh)
+                ctx.globalAlpha = op
+            }
+            ctx.strokeStyle = mkFarbe
+            if (mkR > 0) { drawCanvas.roundRect(ctx, mkRx, mkRy, mkRw, mkRh, mkR); ctx.stroke() }
+            else ctx.strokeRect(mkRx, mkRy, mkRw, mkRh)
+            if (!vorschau && !_skipText && mkRw > 20) {
+                ctx.save()
+                ctx.setLineDash([])
+                var mkFs = Math.max(5, Math.round(2.2 * root.mmToPx * root.zoom))
+                ctx.font        = mkFs + "px sans-serif"
+                ctx.textBaseline = "top"
+                ctx.textAlign    = "center"
+                ctx.fillStyle   = mkFarbe
+                ctx.globalAlpha = op
+                var mkPfx  = mkSaved ? "✓ " : "⬜ "
+                var mkName = mkEd.name || qsTr("Makro")
+                ctx.fillText(mkPfx + mkName, mkRx + mkRw / 2, mkRy + Math.round(4 * root.zoom))
+                ctx.restore()
+            }
+        }
+
 
         // Gibt den korrekten Pin für ein Querverweis-Element zurück.
         // Ausgang: Pin am Schwanz (x=0), Eingang: Pin an der Spitze (x=1).

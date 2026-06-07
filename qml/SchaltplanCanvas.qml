@@ -2156,6 +2156,26 @@ Item {
                     for (var _sii = 1; _sii < _sIdxs.length; _sii++) _addLog(_sIdxs[0], _sIdxs[_sii])
                 }
             }
+            // Schritt 4: Interne Ebenen-Brücken – verbindet verschiedene Ebenen derselben klemmeId
+            if (root.projektId >= 0) {
+                var _iBruecken = db.klemmenInterneBruecken(root.projektId)
+                for (var _ibi = 0; _ibi < _iBruecken.length; _ibi++) {
+                    var _ib      = _iBruecken[_ibi]
+                    var _ibKId   = _ib.klemmeId
+                    var _ibVon   = String(_ib.vonEbene)
+                    var _ibNach  = String(_ib.nachEbene)
+                    var _ibEls   = _kElMap[_ibKId] || []
+                    var _vonIdxs = [], _nachIdxs = []
+                    for (var _ibEi = 0; _ibEi < _ibEls.length; _ibEi++) {
+                        var _ibE = String(_ibEls[_ibEi].ebene)
+                        if (_ibE === _ibVon)  _vonIdxs.push(_ibEls[_ibEi].elIdx)
+                        if (_ibE === _ibNach) _nachIdxs.push(_ibEls[_ibEi].elIdx)
+                    }
+                    for (var _ibVi = 0; _ibVi < _vonIdxs.length; _ibVi++)
+                        for (var _ibNi = 0; _ibNi < _nachIdxs.length; _ibNi++)
+                            _addLog(_vonIdxs[_ibVi], _nachIdxs[_ibNi])
+                }
+            }
             // ─────────────────────────────────────────────────────────────────────
 
             if (vbs.length === 0) return []

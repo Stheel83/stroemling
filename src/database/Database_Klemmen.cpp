@@ -185,6 +185,31 @@ QVariantList Database::klemmenAnschlussAlleSeiten(int projektId) const
 // Gibt für jede Stegbrücke im Projekt alle Klemmen-IDs zurück,
 // die im Sortierungsbereich von→bis liegen.
 // Ergebnis: [{stegId, ebene, klemmeIds:[id,...]}]
+QVariantList Database::klemmenInterneBruecken(int /*projektId*/) const
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    if (!q.exec(
+        "SELECT DISTINCT CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER), "
+        "       bkb.von_ebene, bkb.nach_ebene "
+        "FROM grafik_element ge "
+        "JOIN bauteil_klemme_bruecke bkb "
+        "  ON bkb.klemme_id = CAST(json_extract(ge.extra_daten,'$.bauteilKlemmeId') AS INTEGER) "
+        "WHERE ge.symbol_id = 'klemme_anschluss' "
+        "  AND (bkb.ist_pe_fuss IS NULL OR bkb.ist_pe_fuss = 0)")) {
+        qWarning() << "klemmenInterneBruecken:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("klemmeId")]  = q.value(0).toInt();
+        m[QStringLiteral("vonEbene")]  = q.value(1).toInt();
+        m[QStringLiteral("nachEbene")] = q.value(2).toInt();
+        result.append(m);
+    }
+    return result;
+}
+
 QVariantList Database::klemmenStegbrueckenGruppen(int projektId) const
 {
     QVariantList result;

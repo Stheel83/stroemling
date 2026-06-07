@@ -235,7 +235,8 @@ void KlemmeModel::ladeBruecken()
     m_bruecken.clear();
     QSqlQuery q;
     q.prepare("SELECT id, von_ebene, nach_ebene, ist_pe_fuss "
-              "FROM bauteil_klemme_bruecke WHERE klemme_id = :kid "
+              "FROM bauteil_klemme_bruecke "
+              "WHERE klemme_id = :kid AND (ist_pe_fuss IS NULL OR ist_pe_fuss = 0) "
               "ORDER BY von_ebene, nach_ebene");
     q.bindValue(":kid", m_klemmeId);
     if (!q.exec()) return;

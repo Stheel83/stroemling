@@ -382,6 +382,9 @@ public:
     // Alle Klemmen-IDs je Stegbrücke im Projekt (für Potenzialverfolgung KLEMME-NET-01).
     // Gibt [{stegId, ebene, klemmeIds:[id,...]}] zurück.
     Q_INVOKABLE QVariantList klemmenStegbrueckenGruppen(int projektId) const;
+    // Interne Ebenen-Brücken aller platzierten Klemmen im Projekt (bauteil_klemme_bruecke).
+    // Gibt [{klemmeId, vonEbene, nachEbene}] zurück (ist_pe_fuss-Einträge ausgeschlossen).
+    Q_INVOKABLE QVariantList klemmenInterneBruecken(int projektId) const;
     // Alle klemme_anschluss-Platzierungen im Projekt (alle Seiten).
     // Gibt [{seiteId, klemmeId, anschlussBezeichnung}] zurück.
     Q_INVOKABLE QVariantList klemmenAnschlussAlleSeiten(int projektId) const;

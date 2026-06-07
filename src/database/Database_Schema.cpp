@@ -155,6 +155,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 63, "farb_definition: Transparent / farblos als Gehaeuse- und Aderfarbe", {
             R"(INSERT INTO farb_definition (hex_wert, bezeichnung, ist_standard, sortierung) SELECT 'transparent','Transparent / farblos',1,0 WHERE NOT EXISTS (SELECT 1 FROM farb_definition WHERE hex_wert='transparent'))",
         }},
+        { 64, "Winkel: symbole.sql-Seed-Fix 8x8mm auf 4x4mm (Baseline-Seed hatte alten Wert)", {
+            R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=4 WHERE id='winkel' AND ist_builtin=1)",
+        }},
     };
 }
 

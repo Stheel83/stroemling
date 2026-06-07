@@ -175,12 +175,18 @@ ScrollView {
                 }
             }
 
-            Text { text: qsTr("Bemerkung"); color: root.theme.textMuted; font.pixelSize: 11 }
-            NavTextField {
-                id: tfStamBem; Layout.fillWidth: true
-                tabTarget: tfStamUrlHer; backtabTarget: tfStamP
+            Text { text: qsTr("Bemerkung Bauteil"); color: root.theme.textMuted; font.pixelSize: 11 }
+            TextArea {
+                id: tfStamBem
+                Layout.fillWidth: true
+                wrapMode:        Text.Wrap
+                implicitHeight:  Math.max(36, contentHeight + topPadding + bottomPadding)
+                color:           root.theme.textPrimary
+                font.pixelSize:  12
+                topPadding: 6; bottomPadding: 6; leftPadding: 8; rightPadding: 8
                 background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                color: root.theme.textPrimary; font.pixelSize: 12
+                Keys.onTabPressed:     { event.accepted = true; tfStamUrlHer.forceActiveFocus() }
+                Keys.onBacktabPressed: { event.accepted = true; tfStamP.forceActiveFocus() }
             }
 
             Text { text: qsTr("Links"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
@@ -375,13 +381,18 @@ ScrollView {
                 color: root.theme.textPrimary; font.pixelSize: 12
             }
 
-            Text { text: qsTr("Bemerkung"); color: root.theme.textMuted; font.pixelSize: 11 }
-            NavTextField {
-                id: tfBemerkung; Layout.fillWidth: true
-                tabTarget:     tfStamBez
-                backtabTarget: tfNorm
+            Text { text: qsTr("Bemerkung Klemme"); color: root.theme.textMuted; font.pixelSize: 11 }
+            TextArea {
+                id: tfBemerkung
+                Layout.fillWidth: true
+                wrapMode:        Text.Wrap
+                implicitHeight:  Math.max(36, contentHeight + topPadding + bottomPadding)
+                color:           root.theme.textPrimary
+                font.pixelSize:  12
+                topPadding: 6; bottomPadding: 6; leftPadding: 8; rightPadding: 8
                 background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                color: root.theme.textPrimary; font.pixelSize: 12
+                Keys.onTabPressed:     { event.accepted = true; tfStamBez.forceActiveFocus() }
+                Keys.onBacktabPressed: { event.accepted = true; tfNorm.forceActiveFocus() }
             }
 
             KlemmePlatzierDialog {

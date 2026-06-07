@@ -65,7 +65,7 @@ Item {
             Repeater {
                 model: [
                     { key: "neutral",        label: qsTr("Neutral"),  farbe: "#4a9eff" },
-                    { key: "power",          label: qsTr("Kraft"),    farbe: "#cc3300" },
+                    { key: "power",          label: "L",              farbe: "#cc3300" },
                     { key: "pe",             label: "PE",             farbe: "#88cc00" },
                     { key: "n",              label: "N",              farbe: "#4488ff" },
                     { key: "input_digital",  label: "DI",             farbe: "#44aacc" },

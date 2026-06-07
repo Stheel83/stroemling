@@ -1841,6 +1841,14 @@ ApplicationWindow {
             root.aktiveAnsicht           = "projekte"
             seitenModel.laden(info.id)
             klemmenleistenModel.laden(info.id)
+            // Modelle neu laden die im C++-Konstruktor oder Component.onCompleted
+            // ohne offene Projekt-DB initialisiert wurden:
+            farbModel.laden()
+            kategorieModel.laden()
+            symbolDefinitionModel.cacheLeeren()
+            symbolPalette.laden()
+            symbolEditorAnsicht.ladeDaten()
+            symbolEditorAnsicht.symbollisteAktualisieren()
         }
     }
 

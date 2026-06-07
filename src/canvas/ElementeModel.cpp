@@ -41,6 +41,11 @@ QVariantMap GrafikElement::toVariantMap() const
     el[QStringLiteral("textEinpassen")]  = textEinpassen;
     if (!bildDaten.isEmpty())
         el[QStringLiteral("bildDaten")]  = bildDaten;
+    el[QStringLiteral("proportional")]      = proportional;
+    if (ausschnittLinks  != 0.0) el[QStringLiteral("ausschnittLinks")]  = ausschnittLinks;
+    if (ausschnittRechts != 0.0) el[QStringLiteral("ausschnittRechts")] = ausschnittRechts;
+    if (ausschnittOben   != 0.0) el[QStringLiteral("ausschnittOben")]   = ausschnittOben;
+    if (ausschnittUnten  != 0.0) el[QStringLiteral("ausschnittUnten")]  = ausschnittUnten;
     if (!extraDaten.isEmpty())
         el[QStringLiteral("extraDaten")] = extraDaten;
     if (betriebsmittelId != 0)
@@ -120,8 +125,23 @@ void ElementeModel::laden(int seiteId)
         if (!extraDatenStr.isEmpty()) {
             QJsonParseError jsonErr;
             QJsonDocument extraDoc = QJsonDocument::fromJson(extraDatenStr.toUtf8(), &jsonErr);
-            if (!jsonErr.error && extraDoc.isObject())
-                el.extraDaten = extraDoc.object().toVariantMap();
+            if (!jsonErr.error && extraDoc.isObject()) {
+                QVariantMap em = extraDoc.object().toVariantMap();
+                auto popBool = [&](const QString &k, bool &f) {
+                    auto it = em.find(k); if (it == em.end()) return;
+                    f = it->toBool(); em.erase(it);
+                };
+                auto popDouble = [&](const QString &k, double &f) {
+                    auto it = em.find(k); if (it == em.end()) return;
+                    f = it->toDouble(); em.erase(it);
+                };
+                popBool  (QStringLiteral("proportional"),     el.proportional);
+                popDouble(QStringLiteral("ausschnittLinks"),  el.ausschnittLinks);
+                popDouble(QStringLiteral("ausschnittRechts"), el.ausschnittRechts);
+                popDouble(QStringLiteral("ausschnittOben"),   el.ausschnittOben);
+                popDouble(QStringLiteral("ausschnittUnten"),  el.ausschnittUnten);
+                el.extraDaten = em;
+            }
         }
 
         if (!q.value(25).isNull())
@@ -181,6 +201,11 @@ std::vector<GrafikElement> ElementeModel::parseVariantList(const QVariantList &l
         el.textAusrichtung = m.value(QStringLiteral("textAusrichtung")).toString();
         el.textEinpassen   = m.value(QStringLiteral("textEinpassen")).toBool();
         el.bildDaten       = m.value(QStringLiteral("bildDaten")).toString();
+        el.proportional     = m.value(QStringLiteral("proportional"),     false).toBool();
+        el.ausschnittLinks  = m.value(QStringLiteral("ausschnittLinks"),  0.0).toDouble();
+        el.ausschnittRechts = m.value(QStringLiteral("ausschnittRechts"), 0.0).toDouble();
+        el.ausschnittOben   = m.value(QStringLiteral("ausschnittOben"),   0.0).toDouble();
+        el.ausschnittUnten  = m.value(QStringLiteral("ausschnittUnten"),  0.0).toDouble();
         el.extraDaten      = m.value(QStringLiteral("extraDaten")).toMap();
         el.betriebsmittelId = m.value(QStringLiteral("betriebsmittelId")).toInt();
         el.gruppeId         = m.value(QStringLiteral("gruppeId"), -1).toInt();
@@ -260,6 +285,11 @@ static void applyField(GrafikElement &el, const QString &key, const QVariant &va
     else if (key == QLatin1String("textAusrichtung"))  el.textAusrichtung  = value.toString();
     else if (key == QLatin1String("textEinpassen"))    el.textEinpassen    = value.toBool();
     else if (key == QLatin1String("bildDaten"))        el.bildDaten        = value.toString();
+    else if (key == QLatin1String("proportional"))     el.proportional     = value.toBool();
+    else if (key == QLatin1String("ausschnittLinks"))  el.ausschnittLinks  = value.toDouble();
+    else if (key == QLatin1String("ausschnittRechts")) el.ausschnittRechts = value.toDouble();
+    else if (key == QLatin1String("ausschnittOben"))   el.ausschnittOben   = value.toDouble();
+    else if (key == QLatin1String("ausschnittUnten"))  el.ausschnittUnten  = value.toDouble();
     else if (key == QLatin1String("extraDaten"))       el.extraDaten       = value.toMap();
     else if (key == QLatin1String("betriebsmittelId")) el.betriebsmittelId = value.toInt();
     else if (key == QLatin1String("gruppeId"))         el.gruppeId         = value.toInt();

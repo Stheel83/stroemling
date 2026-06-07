@@ -260,19 +260,26 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             qIns.bindValue(":bildmime",  QVariant(QMetaType::fromType<QString>()));
         }
 
-        // extra_daten: extraDaten-Map als kompaktes JSON serialisieren
+        // extra_daten: extraDaten-Map + bild-spezifische Felder als kompaktes JSON
         QVariant extraVar = el.value(QStringLiteral("extraDaten"));
-        if (extraVar.isValid() && !extraVar.isNull() && extraVar.canConvert<QVariantMap>()) {
-            QVariantMap extraMap = extraVar.toMap();
-            if (!extraMap.isEmpty()) {
-                QJsonObject obj;
-                for (auto it = extraMap.constBegin(); it != extraMap.constEnd(); ++it)
-                    obj.insert(it.key(), QJsonValue::fromVariant(it.value()));
-                qIns.bindValue(":extradaten",
-                    QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)));
-            } else {
-                qIns.bindValue(":extradaten", QVariant(QMetaType::fromType<QString>()));
-            }
+        QVariantMap extraMap = (extraVar.isValid() && extraVar.canConvert<QVariantMap>())
+                               ? extraVar.toMap() : QVariantMap{};
+        if (el.value(QStringLiteral("proportional"), false).toBool())
+            extraMap[QStringLiteral("proportional")] = true;
+        auto packDouble = [&](const QString &key) {
+            double v = el.value(key, 0.0).toDouble();
+            if (v != 0.0) extraMap[key] = v;
+        };
+        packDouble(QStringLiteral("ausschnittLinks"));
+        packDouble(QStringLiteral("ausschnittRechts"));
+        packDouble(QStringLiteral("ausschnittOben"));
+        packDouble(QStringLiteral("ausschnittUnten"));
+        if (!extraMap.isEmpty()) {
+            QJsonObject obj;
+            for (auto it = extraMap.constBegin(); it != extraMap.constEnd(); ++it)
+                obj.insert(it.key(), QJsonValue::fromVariant(it.value()));
+            qIns.bindValue(":extradaten",
+                QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)));
         } else {
             qIns.bindValue(":extradaten", QVariant(QMetaType::fromType<QString>()));
         }

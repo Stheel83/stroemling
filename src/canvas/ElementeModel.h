@@ -29,6 +29,11 @@ struct GrafikElement {
     QString textAusrichtung;
     bool    textEinpassen   = false;
     QString bildDaten;
+    bool    proportional     = false;
+    double  ausschnittLinks  = 0.0;
+    double  ausschnittRechts = 0.0;
+    double  ausschnittOben   = 0.0;
+    double  ausschnittUnten  = 0.0;
     QVariantMap extraDaten;
     int     betriebsmittelId = 0;
     int     gruppeId         = -1;

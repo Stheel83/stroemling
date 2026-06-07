@@ -398,7 +398,7 @@ ScrollView {
             Text { text: qsTr("Querschnitte"); color: root.theme.accent; font.pixelSize: 12; font.bold: true }
 
             Repeater {
-                model: ["starr", "flexibel", "aderendhulse"]
+                model: ["starr", "flexibel", "aenh_blank", "aenh_isoliert"]
                 delegate: RowLayout {
                     property string adertyp: modelData
                     property var eintrag: {
@@ -409,14 +409,31 @@ ScrollView {
                     }
                     Layout.fillWidth: true; spacing: 6
 
-                    Text {
-                        text: {
-                            if (modelData === "starr")    return qsTr("Starr")
-                            if (modelData === "flexibel") return qsTr("Flexibel")
-                            return qsTr("Aderendhülse")
-                        }
-                        color: root.theme.textSecondary; font.pixelSize: 11
+                    Item {
                         Layout.preferredWidth: 80
+                        implicitHeight: lbl.implicitHeight
+
+                        Text {
+                            id: lbl
+                            text: {
+                                if (modelData === "starr")         return qsTr("Starr")
+                                if (modelData === "flexibel")      return qsTr("Flexibel")
+                                if (modelData === "aenh_blank")    return qsTr("AEH blank")
+                                if (modelData === "aenh_isoliert") return qsTr("AEH isoliert")
+                                return modelData
+                            }
+                            color: root.theme.textSecondary; font.pixelSize: 11
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            ToolTip.visible: containsMouse && (modelData === "aenh_blank" || modelData === "aenh_isoliert")
+                            ToolTip.text:    modelData === "aenh_blank"
+                                             ? qsTr("Aderendhülse (nicht isoliert)")
+                                             : qsTr("Aderendhülse (mit Isolationskragen)")
+                            ToolTip.delay:   600
+                        }
                     }
                     NavTextField {
                         id: tfMin; tabTarget: tfMax; backtabTarget: tfMax

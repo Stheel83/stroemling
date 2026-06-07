@@ -75,13 +75,15 @@ Canvas {
 
         // ── Horizontales Layout und Skalierung ───────────────────────────
         var colW  = 28    // Breite pro Ebene
-        var ebGap = 20    // Lücke zwischen Ebenen (Brückenbalken)
+        // Mit Labels breiteren Abstand zwischen Ebenen: Labels (rechts vom Kreis)
+        // dürfen nicht in den Kreis der nächsten Ebene hineinragen
+        var ebGap = root.zeigeBezeichnungen ? 36 : 20
         var logW  = ebenen * colW + (ebenen - 1) * ebGap
         var scale = Math.min(1.0, (width - 2 * margin) / Math.max(logW, 1))
         var totalW = logW * scale
         var startX = (width - totalW) / 2
 
-        var marked = root.markierteBezeichnung || ""
+        var marked  = root.markierteBezeichnung || ""
         var showLbl = root.zeigeBezeichnungen
         var akzent  = root.akzentFarbe
 

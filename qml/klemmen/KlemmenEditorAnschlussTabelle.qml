@@ -18,11 +18,12 @@ Item {
         KlemmenVorschau {
             Layout.fillWidth:       true
             Layout.preferredHeight: implicitHeight
-            theme:       root.theme
-            klemme:      klemmeModel.klemme
-            anschluesse: klemmeModel.anschluesse
-            bruecken:    klemmeModel.bruecken
-            debug:       root.debug
+            theme:              root.theme
+            klemme:             klemmeModel.klemme
+            anschluesse:        klemmeModel.anschluesse
+            bruecken:           klemmeModel.bruecken
+            zeigeBezeichnungen: true
+            debug:              root.debug
         }
 
         Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }

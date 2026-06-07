@@ -30,11 +30,11 @@ Canvas {
 
     // Höhe passt sich dynamisch an pA / pB an
     implicitHeight: {
-        var pA = (klemme && klemme.punkteSeitenA) ? klemme.punkteSeitenA : 1
-        var pB = (klemme && klemme.punkteSeitenB) ? klemme.punkteSeitenB : 1
+        var pA = (klemme && klemme.punkteSeitenA !== undefined) ? klemme.punkteSeitenA : 1
+        var pB = (klemme && klemme.punkteSeitenB !== undefined) ? klemme.punkteSeitenB : 1
         var pe = (klemme && klemme.fussKontaktPe) ? 38 : 0
-        var topH = pA * 2 * _kreisR + (pA - 1) * _circGap
-        var botH = pB * 2 * _kreisR + (pB - 1) * _circGap
+        var topH = pA > 0 ? (pA * 2 * _kreisR + (pA - 1) * _circGap) : 0
+        var botH = pB > 0 ? (pB * 2 * _kreisR + (pB - 1) * _circGap) : 0
         return Math.max(100, 2 * _margin + topH + _bodyH + botH + pe)
     }
 
@@ -51,8 +51,8 @@ Canvas {
         if (!klemme || !klemme.ebenenAnzahl) return
 
         var ebenen  = klemme.ebenenAnzahl  || 1
-        var pA      = klemme.punkteSeitenA || 1
-        var pB      = klemme.punkteSeitenB || 1
+        var pA      = (klemme.punkteSeitenA !== undefined) ? klemme.punkteSeitenA : 1
+        var pB      = (klemme.punkteSeitenB !== undefined) ? klemme.punkteSeitenB : 1
         var hatPe   = klemme.fussKontaktPe || false
         var hatSteg = klemme.stegbrueckeFaehig || false
 
@@ -62,16 +62,17 @@ Canvas {
         var margin  = _margin
 
         // ── Vertikale Positionen (absolut, nicht skaliert) ───────────────
-        // Seite-A-Kreise von oben gestapelt
-        var aStartY = margin + kreisR
-        var aEndY   = aStartY + (pA - 1) * (2 * kreisR + circGap)
-
-        // Seite-B-Kreise direkt nach dem Körper-Abschnitt
-        var bStartY = aEndY + kreisR + bodyH + kreisR
-        var bEndY   = bStartY + (pB - 1) * (2 * kreisR + circGap)
+        // pA / pB können 0 sein (einseitige Klemme) – aber nie beide gleichzeitig
+        var aStartY  = margin + (pA > 0 ? kreisR : 0)
+        var aEndY    = pA > 0 ? aStartY + (pA - 1) * (2 * kreisR + circGap) : aStartY
+        var bodyTopY = aEndY  + (pA > 0 ? kreisR : 0)
+        var bStartY  = bodyTopY + bodyH + (pB > 0 ? kreisR : 0)
+        var bEndY    = pB > 0 ? bStartY + (pB - 1) * (2 * kreisR + circGap) : bStartY
+        var lineTopY = pA > 0 ? aStartY : bodyTopY
+        var lineEndY = pB > 0 ? bEndY   : (bodyTopY + bodyH)
 
         // Mittelpunkt des Körpers (für Brücken-Verbindung und Steg-Indikator)
-        var busY = aEndY + kreisR + bodyH / 2
+        var busY = bodyTopY + bodyH / 2
 
         // ── Horizontales Layout und Skalierung ───────────────────────────
         var colW  = 28    // Breite pro Ebene
@@ -98,8 +99,8 @@ Canvas {
 
             // ── Durchgehende senkrechte Linie A→B ───────────────────────
             ctx.beginPath()
-            ctx.moveTo(cx, aStartY)
-            ctx.lineTo(cx, bEndY)
+            ctx.moveTo(cx, lineTopY)
+            ctx.lineTo(cx, lineEndY)
             ctx.strokeStyle = "#cccccc"
             ctx.lineWidth   = 1.5
             ctx.stroke()

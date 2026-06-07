@@ -256,9 +256,9 @@ Item {
                     theme: root.theme
 
                     klemme: panel.kaDetails ? {
-                        "ebenenAnzahl":      panel.kaDetails.ebenenAnzahl    || 1,
-                        "punkteSeitenA":     panel.kaDetails.punkteSeitenA   || 1,
-                        "punkteSeitenB":     panel.kaDetails.punkteSeitenB   || 1,
+                        "ebenenAnzahl":      panel.kaDetails.ebenenAnzahl    !== undefined ? panel.kaDetails.ebenenAnzahl    : 1,
+                        "punkteSeitenA":     panel.kaDetails.punkteSeitenA   !== undefined ? panel.kaDetails.punkteSeitenA   : 1,
+                        "punkteSeitenB":     panel.kaDetails.punkteSeitenB   !== undefined ? panel.kaDetails.punkteSeitenB   : 1,
                         "fussKontaktPe":     panel.kaDetails.fussKontaktPe   || false,
                         "stegbrueckeFaehig": panel.kaDetails.stegbrueckeFaehig || false
                     } : ({})

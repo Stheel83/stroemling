@@ -66,9 +66,9 @@ ScrollView {
         tfNorm.text      = k.norm      || ""
         tfBreite.text    = k.breiteMm  > 0 ? k.breiteMm.toFixed(1) : ""
         tfBemerkung.text = k.bemerkung || ""
-        sbEbenen.value   = k.ebenenAnzahl      || 1
-        sbPktA.value     = k.punkteSeitenA     || 1
-        sbPktB.value     = k.punkteSeitenB     || 1
+        sbEbenen.value   = k.ebenenAnzahl  !== undefined ? k.ebenenAnzahl  : 1
+        sbPktA.value     = k.punkteSeitenA !== undefined ? k.punkteSeitenA : 1
+        sbPktB.value     = k.punkteSeitenB !== undefined ? k.punkteSeitenB : 1
         swPe.checked     = k.fussKontaktPe     || false
         swSteg.checked   = k.stegbrueckeFaehig || false
 
@@ -287,21 +287,25 @@ ScrollView {
 
                 Text { text: qsTr("Ebenen");        color: root.theme.textMuted; font.pixelSize: 11 }
                 SpinBox {
-                    id: sbEbenen; from: 1; to: 4; value: 1; Layout.fillWidth: true
+                    id: sbEbenen; from: 1; to: 10; value: 1; Layout.fillWidth: true
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                     contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
                 Text { text: qsTr("Punkte Seite A"); color: root.theme.textMuted; font.pixelSize: 11 }
                 SpinBox {
-                    id: sbPktA; from: 1; to: 4; value: 1; Layout.fillWidth: true
+                    id: sbPktA
+                    from: sbPktB.value === 0 ? 1 : 0
+                    to: 10; value: 1; Layout.fillWidth: true
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                     contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
                 Text { text: qsTr("Punkte Seite B"); color: root.theme.textMuted; font.pixelSize: 11 }
                 SpinBox {
-                    id: sbPktB; from: 1; to: 4; value: 1; Layout.fillWidth: true
+                    id: sbPktB
+                    from: sbPktA.value === 0 ? 1 : 0
+                    to: 10; value: 1; Layout.fillWidth: true
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                     contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }

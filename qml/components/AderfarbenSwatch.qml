@@ -33,9 +33,17 @@ Item {
 
     visible: aderCode !== ""
 
-    // Einfarbig (alle außer GNYE)
+    // CL (transparent / farblos): nur Rahmen
     Rectangle {
-        visible: root.farbe !== ""
+        visible: root.aderCode === "CL"
+        anchors.fill: parent; radius: 2
+        color: "transparent"
+        border.color: "#888888"; border.width: 1
+    }
+
+    // Einfarbig (alle außer GNYE und CL)
+    Rectangle {
+        visible: root.farbe !== "" && root.aderCode !== "CL"
         anchors.fill: parent
         radius: 2
         color: root.farbe

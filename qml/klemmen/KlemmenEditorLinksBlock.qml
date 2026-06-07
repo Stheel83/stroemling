@@ -357,9 +357,12 @@ ScrollView {
                     spacing: 6
                     Rectangle {
                         width: 14; height: 14; radius: 3
-                        color: farbCombo.currentIndex >= 0
-                               ? farbModel.data(farbModel.index(farbCombo.currentIndex, 0), 0x102)
-                               : "transparent"
+                        property string hex: farbCombo.currentIndex >= 0
+                                             ? farbModel.data(farbModel.index(farbCombo.currentIndex, 0), 0x102)
+                                             : ""
+                        color:        hex || "transparent"
+                        border.color: (hex === "transparent" || hex === "") ? root.theme.border : "transparent"
+                        border.width: 1
                     }
                     Text {
                         text: farbCombo.currentIndex >= 0

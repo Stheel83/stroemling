@@ -152,6 +152,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 62, "klemme_anschluss: Doppelkreis (innerer Kreis r=0.12 als zweites Primitiv)", {
             R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('klemme_anschluss', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.12, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
         }},
+        { 63, "farb_definition: Transparent / farblos als Gehaeuse- und Aderfarbe", {
+            R"(INSERT INTO farb_definition (hex_wert, bezeichnung, ist_standard, sortierung) SELECT 'transparent','Transparent / farblos',1,0 WHERE NOT EXISTS (SELECT 1 FROM farb_definition WHERE hex_wert='transparent'))",
+        }},
     };
 }
 

@@ -75,7 +75,7 @@ Item {
             width: parent.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4; bottomPadding: 4
             Repeater {
-                model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE"]
+                model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
                 delegate: Rectangle {
                     property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData
                     property string sName: ({"BN":"Brauno – L1","BK":"Schwärzchen – L2",

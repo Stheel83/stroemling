@@ -149,6 +149,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 61, "Winkel: 8x8mm auf 4x4mm verkleinert (= 1 Rastereinheit)", {
             R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=4 WHERE id='winkel' AND ist_builtin=1)",
         }},
+        { 62, "klemme_anschluss: Doppelkreis (innerer Kreis r=0.12 als zweites Primitiv)", {
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('klemme_anschluss', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.12, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
+        }},
     };
 }
 

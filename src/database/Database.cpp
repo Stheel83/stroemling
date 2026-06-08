@@ -749,9 +749,11 @@ QString Database::projektHintergrundLaden(int projektId)
     QSqlQuery q(m_db);
     q.prepare("SELECT canvas_hintergrund FROM projekt WHERE id = :pid");
     q.bindValue(":pid", projektId);
-    if (q.exec() && q.next())
-        return q.value(0).toString();
-    return QStringLiteral("#080f1c");
+    if (q.exec() && q.next()) {
+        QString farbe = q.value(0).toString().trimmed();
+        if (!farbe.isEmpty()) return farbe;
+    }
+    return QStringLiteral("#fdf8e8");
 }
 
 bool Database::projektHintergrundSpeichern(int projektId, const QString &farbe)

@@ -28,7 +28,7 @@ Item {
     property int    seiteId:          -1
     property int    projektId:        -1
     property string seiteName:        ""
-    property string hintergrundFarbe: "#080f1c"
+    property string hintergrundFarbe: "#fdf8e8"
 
     required property var theme
     property bool debug: false

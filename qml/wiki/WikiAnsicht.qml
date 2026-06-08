@@ -110,6 +110,7 @@ Item {
         _aktArtikel = db.wikiArtikelLaden(_aktArtId)
         _artikel    = db.wikiArtikelFuerKategorie(_aktKatId)
         _editModus  = false
+        achievementManager.ereignis("wiki_artikel_bearbeitet")
     }
 
     function _neueKategorieBestaetigen() {
@@ -118,6 +119,7 @@ Item {
         const newId = db.wikiKategorieAnlegen(name, "")
         _neuKatModus = false
         _neuKatName  = ""
+        achievementManager.ereignis("wiki_kategorie_erstellt")
         _kategorienLaden()
         // neu angelegte Kategorie selektieren
         for (var i = 0; i < _kategorien.length; i++) {
@@ -130,6 +132,7 @@ Item {
         const titel = _neuArtTitel.trim()
         if (titel === "" || _aktKatId < 0) { _neuArtModus = false; return }
         const newId = db.wikiArtikelAnlegen(_aktKatId, titel)
+        achievementManager.ereignis("wiki_artikel_erstellt")
         _neuArtModus  = false
         _neuArtTitel  = ""
         _artikel = db.wikiArtikelFuerKategorie(_aktKatId)

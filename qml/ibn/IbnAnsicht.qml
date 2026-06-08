@@ -378,6 +378,7 @@ Item {
             var sid = root.ansichtModus === "seite" ? root.seiteId : -1
             var ok  = db.ibnProtokollPdfSpeichern(root.projektId, sid,
                                                    selectedFile.toString())
+            if (ok) achievementManager.ereignis("ibn_protokoll")
             pdfMeldung.erfolg = ok
             pdfMeldung.open()
         }

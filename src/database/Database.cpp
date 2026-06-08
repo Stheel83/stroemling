@@ -107,6 +107,16 @@ bool Database::openLauncher(const QString &path)
         )")) {
             qWarning() << "zuletzt_geoeffnet Tabelle:" << q.lastError().text();
         }
+        // Achievement-Tabellen (global, nicht projektspezifisch)
+        q.exec(R"(CREATE TABLE IF NOT EXISTS achievement_errungen (
+            id                  TEXT    PRIMARY KEY,
+            freigeschaltet_am   INTEGER NOT NULL
+        ))");
+        q.exec(R"(CREATE TABLE IF NOT EXISTS achievement_zaehler (
+            schluessel  TEXT    PRIMARY KEY,
+            wert        INTEGER NOT NULL DEFAULT 0
+        ))");
+
         if (!q.exec(R"(
             CREATE TABLE IF NOT EXISTS bekannte_projekte (
                 id                INTEGER PRIMARY KEY,

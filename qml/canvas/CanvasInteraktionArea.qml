@@ -387,6 +387,8 @@ MouseArea {
                 eckenRadius:      0
             }
             canvas.aktionAusfuehren(em.snapshot().concat([elSym]))
+            achievementManager.ereignis("element_platziert",
+                { "typ": "symbol", "elementeAufSeite": em.anzahl })
             if (canvas.paletteSymbolId === "klemme_anschluss"
                     || canvas.paletteBetriebsmittelId > 0) {
                 // Klemmenanschluss + BM-Kontakt: nur einmal platzierbar → zurück zum Zeiger
@@ -608,7 +610,13 @@ MouseArea {
         canvas.vorschau = null; canvas.amZeichnen = false
         canvas.verschiebenErlaubt = false
         canvas.neuZeichnen()
-        if (elR.typ === "kabellinie") canvas.kabellinieDialogFuerNeuOeffnen(newIdx)
+        if (elR.typ === "kabellinie") {
+            achievementManager.ereignis("kabel_gezogen")
+            canvas.kabellinieDialogFuerNeuOeffnen(newIdx)
+        } else {
+            achievementManager.ereignis("element_platziert",
+                { "typ": elR.typ, "elementeAufSeite": em.anzahl })
+        }
         if (elR.typ === "makrokasten") canvas.makrobenennDialogFuerNeuOeffnen(newIdx)
     }
 

@@ -616,7 +616,10 @@ ApplicationWindow {
                     opacity:         enabled ? 1.0 : 0.4
                     tooltip:         qsTr("Inbetriebnahme: Betriebsmittel prüfen und Messwerte erfassen")
                     tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: root.aktiveAnsicht = "ibn"
+                    onClicked: {
+                        root.aktiveAnsicht = "ibn"
+                        achievementManager.ereignis("ibn_geoeffnet")
+                    }
                 }
                 SidebarButton {
                     theme:           appTheme
@@ -635,7 +638,10 @@ ApplicationWindow {
                     label:   qsTr("Kabelrechner")
                     active:  root.aktiveAnsicht === "kabelrechner"
                     tooltip: qsTr("Leitungsquerschnitt nach VDE 0298 / IEC 60364 berechnen")
-                    onClicked: root.aktiveAnsicht = "kabelrechner"
+                    onClicked: {
+                        root.aktiveAnsicht = "kabelrechner"
+                        achievementManager.ereignis("kabelrechner_geoeffnet")
+                    }
                 }
                 SidebarButton {
                     theme:           appTheme
@@ -669,6 +675,7 @@ ApplicationWindow {
                         root.symbolEditorId        = ""
                         root.symbolEditorVorlageId = ""
                         root.aktiveAnsicht         = "symbol_editor"
+                        achievementManager.ereignis("symbol_editor_geoeffnet")
                     }
                 }
                 SidebarButton {
@@ -677,7 +684,18 @@ ApplicationWindow {
                     label:   qsTr("Wiki")
                     active:  root.aktiveAnsicht === "wiki"
                     tooltip: qsTr("Erfahrungs-Wiki: Fachwissen nachschlagen und eigene Artikel erfassen")
-                    onClicked: root.aktiveAnsicht = "wiki"
+                    onClicked: {
+                        root.aktiveAnsicht = "wiki"
+                        achievementManager.ereignis("wiki_geoeffnet")
+                    }
+                }
+                SidebarButton {
+                    theme:   appTheme
+                    icon:    "🏆"
+                    label:   qsTr("Errungenschaften")
+                    active:  root.aktiveAnsicht === "achievements"
+                    tooltip: qsTr("Deine freigeschalteten Errungenschaften")
+                    onClicked: root.aktiveAnsicht = "achievements"
                 }
                 SidebarButton {
                     theme:   appTheme
@@ -1533,6 +1551,14 @@ ApplicationWindow {
                 }
             }
 
+            // ── Errungenschaften ───────────────────────────────────────
+            AchievementsPanel {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "achievements"
+                theme:        appTheme
+                debug:        root.debugModeAktiv
+            }
+
             // ── Einstellungen ──────────────────────────────────────────
             EinstellungenAnsicht {
                 anchors.fill: parent
@@ -1546,6 +1572,7 @@ ApplicationWindow {
                     if (!c) c = panel1.canvas
                     funOverlay.canvas  = c
                     funOverlay.visible = true
+                    achievementManager.ereignis("fun_modus")
                 }
                 onGespraechTexteGeaendert: root._funGesprTexte = json
             }
@@ -1561,6 +1588,22 @@ ApplicationWindow {
         theme:           appTheme
         gespraechTexte:  root._funGesprTexte
         onDeaktiviert:   idleTimer.restart()
+    }
+
+    // ── Achievement-Toast ─────────────────────────────────────────
+    AchievementToast {
+        id:     achievementToast
+        z:      750
+        theme:  appTheme
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 20
+    }
+
+    Connections {
+        target: achievementManager
+        function onAchievementFreigeschaltet(id, titel, beschreibung) {
+            achievementToast.zeigen(titel, beschreibung)
+        }
     }
 
     // ── Shortcut-Übersicht ────────────────────────────────────────
@@ -1856,6 +1899,7 @@ ApplicationWindow {
     // Component.onCompleted holt den Zustand nach.
     Component.onCompleted: {
         if (db.projektOffen) root._projektInitialisieren()
+        achievementManager.ereignis("app_start")
     }
 
     Connections {

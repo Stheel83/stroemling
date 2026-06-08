@@ -392,6 +392,10 @@ SplitView {
                                 if (!fl || panel.ausgewaehlterIndex >= fl.length) return
                                 var e = fl[panel.ausgewaehlterIndex]
                                 db.ibnStatusSetzen(e.seiteId, e.bmk, modelData.key)
+                                if (modelData.key === "abgeschlossen")
+                                    achievementManager.ereignis("ibn_element_gruen",
+                                        { "elementeAufSeite": fl.length,
+                                          "gruenAufSeite": fl.filter(function(x) { return x.status === "abgeschlossen" }).length + 1 })
                                 panel.laden()
                                 var fl2 = panel._gefilterteListe()
                                 for (var i = 0; i < fl2.length; i++) {

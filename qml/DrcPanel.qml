@@ -133,6 +133,7 @@ Item {
             })
         }
         root.hatGeprueft = true
+        achievementManager.ereignis("drc_ausgefuehrt", { "fehlerAnzahl": ergebnisModel.count })
     }
 
     // Hintergrund

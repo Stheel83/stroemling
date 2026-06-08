@@ -411,6 +411,9 @@ Dialog {
                         ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false, info)
 
                     if (ok) {
+                        var seiten = (rbAlle.checked || rbAlleVoll.checked)
+                            ? seitenModel.rowCount() : 1
+                        achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": seiten })
                         root.accept()
                     } else {
                         statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")

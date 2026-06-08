@@ -270,6 +270,7 @@ Item {
                 root._version,
                 root._katIds
             )
+            if (ok) achievementManager.ereignis("wiki_bundle_exportiert")
             root.statusMeldung(
                 ok ? qsTr("Bundle exportiert") : qsTr("Bundle-Export fehlgeschlagen"), ok
             )

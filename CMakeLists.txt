@@ -44,6 +44,8 @@ qt_add_executable(stroemling_app
     src/utils/KabelTabellen.h
     src/canvas/ElementeModel.cpp
     src/canvas/ElementeModel.h
+    src/achievements/AchievementManager.cpp
+    src/achievements/AchievementManager.h
 )
 
 # Qt 6: pragma Singleton allein reicht nicht – qmldir bekommt "singleton"-Schlüsselwort
@@ -80,6 +82,9 @@ qt_add_qml_module(stroemling_app
         qml/components/AderfarbenSwatch.qml
         qml/components/StilSlider.qml
         qml/components/MassField.qml
+        qml/components/AchievementToast.qml
+
+        qml/AchievementsPanel.qml
 
         qml/ep/EpGeraetekastenSection.qml
         qml/ep/EpStrukturkastenSection.qml

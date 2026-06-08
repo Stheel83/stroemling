@@ -4349,6 +4349,7 @@ Item {
         root.auswahl = []
         root.grafikSpeichernJetzt()
         drawCanvas.requestPaint()
+        achievementManager.ereignis("undo")
     }
 
     function redo() {
@@ -4378,11 +4379,17 @@ Item {
         var sorted = root.auswahl.slice().sort(function(a, b) { return b - a })
         var neu = elementeModel.snapshot()
         for (var i = 0; i < sorted.length; i++) neu.splice(sorted[i], 1)
+        var vorher = elementeModel.anzahl
         elementeModel.undoCheckpoint()
         elementeModel.fromVariantList(neu); root.auswahl = []
         root.grafikSpeichernJetzt()
         root.kabelLinienCacheAktualisieren()
         drawCanvas.requestPaint()
+        achievementManager.ereignis("element_geloescht", {
+            "anzahl":    sorted.length,
+            "seiteWar":  vorher,
+            "seiteJetzt": elementeModel.anzahl
+        })
     }
 
     function alleAuswaehlen() {

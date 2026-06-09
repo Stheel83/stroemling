@@ -2687,13 +2687,6 @@ Item {
             var _fsAktiv    = root.fehlersuchModus && _fsPfadKeys.length > 0
 
             var kreuzungsLuecken = drawCanvas._kreuzungsLuecken(netze)
-            if (root.debug) {
-                var _nKreuz = Object.keys(kreuzungsLuecken).length
-                if (_nKreuz > 0)
-                    console.log("[CANVAS-CROSS] " + _nKreuz + " Kreuzung(en) erkannt:", JSON.stringify(kreuzungsLuecken))
-                else
-                    console.log("[CANVAS-CROSS] Keine Kreuzungen erkannt. Netze:", netze.length)
-            }
 
             // Alle Aderdefinitionspunkte sammeln
             var adpList = []

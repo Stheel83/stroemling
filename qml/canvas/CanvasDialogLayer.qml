@@ -169,18 +169,12 @@ Item {
         onAccepted: canvas.neuZeichnen()
 
         onZuordnungGespeichert: function(netKeyMap) {
-            console.log("onZuordnungGespeichert: ausgewaehlt=", canvas.ausgewaehlt,
-                        "netKeyMap=", JSON.stringify(netKeyMap))
             var idx = canvas.ausgewaehlt
-            if (idx < 0 || idx >= elementeModel.anzahl) {
-                console.log("  -> abgebrochen: idx ungueltig")
+            if (idx < 0 || idx >= elementeModel.anzahl)
                 return
-            }
             var el = elementeModel.element(idx)
-            if (!el || el.typ !== "kabellinie") {
-                console.log("  -> abgebrochen: kein kabellinie, typ=", el ? el.typ : "null")
+            if (!el || el.typ !== "kabellinie")
                 return
-            }
             var el2 = Object.assign({}, el)
             el2.extraDaten = Object.assign({}, el2.extraDaten || {})
             el2.extraDaten.aderZuordnung = netKeyMap

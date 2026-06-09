@@ -376,9 +376,12 @@ ColumnLayout {
             }
 
             // ── GERÄTE ───────────────────────────────────
-            property var _geraeteListe: root._bauteilBereichOffen && root.projektId >= 0
-                ? (root._geraeteVersion, db.betriebsmittelListe(root.projektId).filter(function(b) { return b.anzahl > 0 }))
-                : []
+            property var _geraeteListe: {
+                var _v = root._geraeteVersion;
+                return root._bauteilBereichOffen && root.projektId >= 0
+                    ? db.betriebsmittelListe(root.projektId).filter(function(b) { return b.anzahl > 0 })
+                    : [];
+            }
 
             Rectangle {
                 width: parent.width; height: 1; color: root.theme.divider

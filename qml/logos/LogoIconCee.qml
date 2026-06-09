@@ -1,5 +1,4 @@
 import QtQuick
-import "LogoBase.js" as Base
 
 Canvas {
     width: 52; height: 52

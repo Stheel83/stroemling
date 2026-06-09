@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 
 // Text-Editor-Overlay des SchaltplanCanvas.
 // Zeigt ein schwebendes Eingabefeld an der Cursor-Position.

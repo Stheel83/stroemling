@@ -28,7 +28,7 @@ Rectangle {
         // Galerie-Header
         RowLayout {
             Layout.fillWidth: true
-            height: 28
+            Layout.preferredHeight: 28
             Layout.leftMargin:  16
             Layout.rightMargin: 8
 
@@ -41,8 +41,8 @@ Rectangle {
                 Layout.fillWidth: true
             }
             Rectangle {
-                width: 110; height: 20; radius: 3
-                color: addBildHover.containsMouse ? root.theme.accent : root.theme.border
+                implicitWidth: 110; implicitHeight: 20; radius: 3
+                color: addBildHover.hovered ? root.theme.accent : root.theme.border
                 Text {
                     anchors.centerIn: parent
                     text:           qsTr("+ Bild hinzufügen")
@@ -58,7 +58,7 @@ Rectangle {
         ListView {
             id:               thumbListe
             Layout.fillWidth: true
-            height:           84
+            Layout.preferredHeight: 84
             Layout.leftMargin: 8
             orientation:      ListView.Horizontal
             spacing:          6
@@ -84,8 +84,8 @@ Rectangle {
                 Rectangle {
                     anchors { top: parent.top; right: parent.right; margins: 3 }
                     width: 18; height: 18; radius: 9
-                    color:   thumbHover.containsMouse ? "#cc000000" : "#88000000"
-                    visible: thumbHover.containsMouse || delThumbHover.containsMouse
+                    color:   thumbHover.hovered ? "#cc000000" : "#88000000"
+                    visible: thumbHover.hovered || delThumbHover.hovered
                     Text {
                         anchors.centerIn: parent
                         text: "✕"

@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
 // Sektion "Entstehung & KI-Werkzeuge": Projektinhaber, Entstehungsgeschichte, KI-Tools.

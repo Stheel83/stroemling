@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 
 // Fun-Modus-Overlay: liegt über dem gesamten Fenster (z: 600).
 // Wird von Main.qml gesteuert; schreibt NICHT in elementeModel oder DB.

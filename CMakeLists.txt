@@ -317,6 +317,8 @@ enable_testing()
 
 qt_add_executable(stroemling_test
     tests/tst_migrationen.cpp
+    src/logging.cpp
+    src/logging.h
     src/database/Database.cpp
     src/database/Database_Schema.cpp
     src/database/Database_Canvas.cpp
@@ -329,6 +331,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
     src/database/Database_PDF.cpp
+    src/database/Database_Archiv.cpp
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp

@@ -180,7 +180,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: exportBtnHover.containsMouse ? root.theme.hover : "transparent"
+                            color: exportBtnHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             Text {
                                 anchors.centerIn: parent
@@ -196,7 +196,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: importBtnHover.containsMouse ? root.theme.hover : "transparent"
+                            color: importBtnHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             Text {
                                 anchors.centerIn: parent
@@ -212,8 +212,8 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: bundleBtnHover.containsMouse ? "#5b8dd9" + "33" : "transparent"
-                            border.color: (bundleBtnHover.containsMouse) ? "#5b8dd9" : root.theme.border
+                            color: bundleBtnHover.hovered ? "#5b8dd9" + "33" : "transparent"
+                            border.color: (bundleBtnHover.hovered) ? "#5b8dd9" : root.theme.border
                             Text {
                                 anchors.centerIn: parent
                                 text: "🗂"
@@ -227,7 +227,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: katAddHover.containsMouse ? root.theme.hover : "transparent"
+                            color: katAddHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             visible: !root._neuKatModus
                             Text {
@@ -278,7 +278,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: katOkHover.containsMouse ? root.theme.accent : root.theme.border
+                            color: katOkHover.hovered ? root.theme.accent : root.theme.border
                             Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; color: root.theme.textPrimary }
                             ToolTip.visible: katOkHover.hovered
                             ToolTip.text:    qsTr("Kategorie anlegen")
@@ -288,7 +288,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: katXHover.containsMouse ? root.theme.hover : "transparent"
+                            color: katXHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: root.theme.textMuted }
                             ToolTip.visible: katXHover.hovered
@@ -314,7 +314,7 @@ Item {
                         height:  34
                         color:   root._katIdx === index
                                  ? root.theme.accent + "33"
-                                 : (katDelegHover.containsMouse ? root.theme.hover : "transparent")
+                                 : (katDelegHover.hovered ? root.theme.hover : "transparent")
 
                         property bool _editModus: false
 
@@ -410,7 +410,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: artAddHover.containsMouse ? root.theme.hover : "transparent"
+                            color: artAddHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             visible: root._hatKategorie && !root._neuArtModus
                             Text {
@@ -498,7 +498,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: artOkHover.containsMouse ? root.theme.accent : root.theme.border
+                            color: artOkHover.hovered ? root.theme.accent : root.theme.border
                             Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 11; color: root.theme.textPrimary }
                             ToolTip.visible: artOkHover.hovered
                             ToolTip.text:    qsTr("Artikel anlegen")
@@ -508,7 +508,7 @@ Item {
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
-                            color: artXHover.containsMouse ? root.theme.hover : "transparent"
+                            color: artXHover.hovered ? root.theme.hover : "transparent"
                             border.color: root.theme.border
                             Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: root.theme.textMuted }
                             ToolTip.visible: artXHover.hovered
@@ -533,7 +533,7 @@ Item {
                         height: 40
                         color:  root._artIdx === index
                                 ? root.theme.accent + "33"
-                                : (artDelegHover.containsMouse ? root.theme.hover : "transparent")
+                                : (artDelegHover.hovered ? root.theme.hover : "transparent")
                         Rectangle {
                             anchors.bottom: parent.bottom
                             width: parent.width; height: 1; color: root.theme.divider
@@ -807,15 +807,15 @@ Item {
                         }
                         Rectangle {
                             visible:  root._aktArtikel.vonNutzerGeaendert == 1
-                            width:    resetBndHover.containsMouse ? resetBndText.implicitWidth + 12 : 16
-                            height:   18; radius: 3
-                            color:    resetBndHover.containsMouse ? "#5b8dd9" + "33" : "transparent"
+                            width:    resetBndHover.hovered ? resetBndText.implicitWidth + 12 : 16
+                            implicitHeight: 18; radius: 3
+                            color:    resetBndHover.hovered ? "#5b8dd9" + "33" : "transparent"
                             border.color: "#5b8dd9" + "66"
                             Behavior on width { NumberAnimation { duration: 100 } }
                             Text {
                                 id:             resetBndText
                                 anchors.centerIn: parent
-                                text:           resetBndHover.containsMouse ? qsTr("Zurücksetzen") : "↺"
+                                text:           resetBndHover.hovered ? qsTr("Zurücksetzen") : "↺"
                                 font.pixelSize: 9
                                 color:          "#5b8dd9"
                             }
@@ -834,7 +834,7 @@ Item {
                 // Tags-Eingabe (Edit)
                 Rectangle {
                     Layout.fillWidth: true
-                    height:           visible ? 34 : 0
+                    implicitHeight:    visible ? 34 : 0
                     visible:          root._editModus
                     color:            root.theme.surface
                     Rectangle {
@@ -852,7 +852,7 @@ Item {
                         TextField {
                             id:               tagsFeld
                             Layout.fillWidth: true
-                            height:           26
+                            Layout.preferredHeight: 26
                             font.pixelSize:   11
                             color:            root.theme.textPrimary
                             background: Rectangle {
@@ -1049,8 +1049,8 @@ Item {
                         Rectangle {
                             anchors.fill:  parent
                             radius:        4
-                            color:         pickHover.containsMouse ? root.theme.accent + "44" : "transparent"
-                            border.color:  pickHover.containsMouse ? root.theme.accent : "transparent"
+                            color:         pickHover.hovered ? root.theme.accent + "44" : "transparent"
+                            border.color:  pickHover.hovered ? root.theme.accent : "transparent"
                             border.width:  2
                         }
                     }
@@ -1138,7 +1138,7 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true; height: 32; radius: 3
-                    color: mergeHover.containsMouse ? root.theme.accent : root.theme.border
+                    color: mergeHover.hovered ? root.theme.accent : root.theme.border
                     Text {
                         anchors.centerIn: parent
                         text:           qsTr("Zusammenführen")
@@ -1158,7 +1158,7 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true; height: 32; radius: 3
-                    color: replaceHover.containsMouse ? "#c0392b" : root.theme.border
+                    color: replaceHover.hovered ? "#c0392b" : root.theme.border
                     Text {
                         anchors.centerIn: parent
                         text:           qsTr("Ersetzen")
@@ -1181,7 +1181,7 @@ Item {
 
                 Rectangle {
                     width: 70; height: 32; radius: 3
-                    color: abbrImportHover.containsMouse ? root.theme.hover : "transparent"
+                    color: abbrImportHover.hovered ? root.theme.hover : "transparent"
                     border.color: root.theme.border
                     Text {
                         anchors.centerIn: parent
@@ -1276,7 +1276,7 @@ Item {
                 }
                 Rectangle {
                     width: 70; height: 24; radius: 3
-                    color: closeHover.containsMouse ? root.theme.hover : "transparent"
+                    color: closeHover.hovered ? root.theme.hover : "transparent"
                     border.color: root.theme.border
                     Text {
                         anchors.centerIn: parent

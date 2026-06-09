@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import QtCore
 import "components"
 import "canvas"
@@ -4911,7 +4910,7 @@ Item {
             }
 
             Rectangle {
-                Layout.fillWidth: true; height: 32; radius: 4
+                Layout.fillWidth: true; implicitHeight: 32; radius: 4
                 color: root.theme.inputBg
                 border.color: anzahlField.activeFocus ? root.theme.accent : root.theme.border
 
@@ -4926,7 +4925,7 @@ Item {
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: root.theme.border }
 
             RowLayout {
                 Layout.fillWidth: true

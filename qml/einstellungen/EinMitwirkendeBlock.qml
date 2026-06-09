@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
 // Sektion "Mitwirkende": Dankliste nach Kategorien.

@@ -18,14 +18,14 @@ Item {
     readonly property real pagePxW: normblattDaten ? (normblattDaten.breiteMm || 297) * mmToPx : 297 * mmToPx
     readonly property real pagePxH: normblattDaten ? (normblattDaten.hoeheMm  || 210) * mmToPx : 210 * mmToPx
     readonly property real mapW:    180
-    readonly property real scale:   mapW / pagePxW
-    readonly property real mapH:    pagePxH * scale
+    readonly property real mapScale:   mapW / pagePxW
+    readonly property real mapH:    pagePxH * mapScale
 
     // Viewport-Rechteck in Minimap-Koordinaten (geclipt auf Seitengrenzen)
-    readonly property real vpRaw:  (-worldX / zoom) * scale
-    readonly property real vpTop:  (-worldY / zoom) * scale
-    readonly property real vpWRaw: (canvasWidth  / zoom) * scale
-    readonly property real vpHRaw: (canvasHeight / zoom) * scale
+    readonly property real vpRaw:  (-worldX / zoom) * mapScale
+    readonly property real vpTop:  (-worldY / zoom) * mapScale
+    readonly property real vpWRaw: (canvasWidth  / zoom) * mapScale
+    readonly property real vpHRaw: (canvasHeight / zoom) * mapScale
 
     readonly property real vpX: Math.max(0, vpRaw)
     readonly property real vpY: Math.max(0, vpTop)
@@ -70,8 +70,8 @@ Item {
             onClicked: function(mouse) {
                 var cx = mouse.x - 1
                 var cy = mouse.y - 1
-                var cpx = cx / root.scale
-                var cpy = cy / root.scale
+                var cpx = cx / root.mapScale
+                var cpy = cy / root.mapScale
                 root.panRequest(
                     -(cpx * root.zoom) + root.canvasWidth  / 2,
                     -(cpy * root.zoom) + root.canvasHeight / 2

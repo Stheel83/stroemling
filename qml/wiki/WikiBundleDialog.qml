@@ -48,7 +48,7 @@ Item {
 
             Rectangle {
                 width: parent.width; height: 32; radius: 3
-                color: bndImportHover.containsMouse ? root.theme.hover : "transparent"
+                color: bndImportHover.hovered ? root.theme.hover : "transparent"
                 border.color: root.theme.border
                 Text {
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
@@ -62,7 +62,7 @@ Item {
             }
             Rectangle {
                 width: parent.width; height: 32; radius: 3
-                color: bndExportHover.containsMouse ? root.theme.hover : "transparent"
+                color: bndExportHover.hovered ? root.theme.hover : "transparent"
                 border.color: root.theme.border
                 Text {
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
@@ -124,18 +124,18 @@ Item {
                 font.pixelSize: 14; font.weight: Font.Medium
                 color: root.theme.textPrimary
             }
-            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.divider }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: root.theme.divider }
 
             // Kennung
             RowLayout {
                 Layout.fillWidth: true; spacing: 8
                 Text {
                     text: qsTr("Kennung:"); font.pixelSize: 11; color: root.theme.textMuted
-                    width: 70
+                    Layout.preferredWidth: 70
                 }
                 TextField {
                     id: bndKennungFeld
-                    Layout.fillWidth: true; height: 28; font.pixelSize: 11
+                    Layout.fillWidth: true; Layout.preferredHeight: 28; font.pixelSize: 11
                     placeholderText: "z.B. meine_tutorials"
                     color: root.theme.textPrimary
                     text: root._kennung
@@ -152,11 +152,11 @@ Item {
                 Layout.fillWidth: true; spacing: 8
                 Text {
                     text: qsTr("Titel:"); font.pixelSize: 11; color: root.theme.textMuted
-                    width: 70
+                    Layout.preferredWidth: 70
                 }
                 TextField {
                     id: bndTitelFeld
-                    Layout.fillWidth: true; height: 28; font.pixelSize: 11
+                    Layout.fillWidth: true; Layout.preferredHeight: 28; font.pixelSize: 11
                     placeholderText: qsTr("Lesbarer Name")
                     color: root.theme.textPrimary
                     text: root._titel
@@ -173,7 +173,7 @@ Item {
                 Layout.fillWidth: true; spacing: 8
                 Text {
                     text: qsTr("Version:"); font.pixelSize: 11; color: root.theme.textMuted
-                    width: 70
+                    Layout.preferredWidth: 70
                 }
                 SpinBox {
                     id: bndVersionSpin
@@ -192,7 +192,7 @@ Item {
             }
             Rectangle {
                 Layout.fillWidth: true
-                height: Math.min(bndKatCol.implicitHeight + 8, 160)
+                implicitHeight: Math.min(bndKatCol.implicitHeight + 8, 160)
                 color: root.theme.inputBg; radius: 3; border.color: root.theme.border
                 clip: true
                 Flickable {
@@ -231,8 +231,8 @@ Item {
                 Layout.fillWidth: true; spacing: 8
                 Item { Layout.fillWidth: true }
                 Rectangle {
-                    width: 80; height: 30; radius: 3
-                    color: bndExpSaveHover.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.15)
+                    implicitWidth: 80; implicitHeight: 30; radius: 3
+                    color: bndExpSaveHover.hovered ? root.theme.accent : Qt.darker(root.theme.accent, 1.15)
                     enabled: root._kennung.trim() !== "" && root._katIds.length > 0
                     opacity: enabled ? 1.0 : 0.5
                     Text { anchors.centerIn: parent; text: qsTr("Speichern"); font.pixelSize: 11; color: "white" }
@@ -245,8 +245,8 @@ Item {
                     }
                 }
                 Rectangle {
-                    width: 70; height: 30; radius: 3
-                    color: bndExpAbbrHover.containsMouse ? root.theme.hover : "transparent"
+                    implicitWidth: 70; implicitHeight: 30; radius: 3
+                    color: bndExpAbbrHover.hovered ? root.theme.hover : "transparent"
                     border.color: root.theme.border
                     Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); font.pixelSize: 11; color: root.theme.textMuted }
                     HoverHandler { id: bndExpAbbrHover }

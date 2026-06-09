@@ -1,7 +1,6 @@
 build/
 build-release/
-appimage/AppDir/
-appimage/*.AppImage
+appimage/
 *.db
 *.db-shm
 *.db-wal
@@ -17,3 +16,5 @@ Programmversionen/
 konzept
 konzept/
 Website/
+build-win/
+claude

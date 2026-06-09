@@ -460,6 +460,21 @@ bool Database::createSchema()
     }
 
     qInfo() << "Schema aus schema.sql geladen.";
+
+    // Tabellenzahl prüfen: wenn schema.sql neue Tabellen bekommt, muss
+    // BASELINE_TABLE_COUNT (und BASELINE_VERSION) in Database.h mitsynchronisiert werden.
+    // Weichen sie ab, würde eine Baseline-Migration fehlschlagen oder Spalten doppelt anlegen.
+    QSqlQuery cnt(m_db);
+    if (cnt.exec("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            && cnt.next()) {
+        const int actual = cnt.value(0).toInt();
+        if (actual != BASELINE_TABLE_COUNT) {
+            qCritical() << "DV-03: schema.sql hat" << actual << "Tabellen, erwartet"
+                        << BASELINE_TABLE_COUNT << "– BASELINE_TABLE_COUNT und"
+                        << "BASELINE_VERSION in Database.h aktualisieren!";
+        }
+    }
+
     return true;
 }
 

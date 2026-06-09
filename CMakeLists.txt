@@ -8,6 +8,8 @@ qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(stroemling_app
     WIN32 MACOSX_BUNDLE
+    src/logging.cpp
+    src/logging.h
     src/main.cpp
     src/database/Database.cpp
     src/database/Database_Schema.cpp
@@ -301,6 +303,8 @@ target_link_libraries(stroemling_app PRIVATE
     Qt6::Sql
     Qt6::PrintSupport
 )
+
+target_include_directories(stroemling_app PRIVATE src)
 
 string(TIMESTAMP BUILD_DATE "%Y-%m-%d")
 target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}" APP_VERSION="0.5")

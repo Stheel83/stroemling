@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "ElementeModel.h"
 #include <cmath>
 #include <algorithm>
@@ -82,7 +83,7 @@ void ElementeModel::laden(int seiteId)
     )");
     q.bindValue(QStringLiteral(":sid"), seiteId);
     if (!q.exec()) {
-        qWarning() << "ElementeModel::laden:" << q.lastError().text();
+        qCWarning(lcApp) << "ElementeModel::laden:" << q.lastError().text();
         emit geaendert();
         return;
     }

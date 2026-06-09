@@ -43,7 +43,7 @@ int Database::kabelAnlegen(int projektId, const QString &bezeichnung,
     q.bindValue(":von",  vonOrt.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : vonOrt);
     q.bindValue(":nach", nachOrt.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : nachOrt);
     if (!q.exec()) {
-        qWarning() << "kabelAnlegen fehlgeschlagen:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelAnlegen fehlgeschlagen:" << q.lastError().text();
         return -1;
     }
     return q.lastInsertId().toInt();
@@ -65,7 +65,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
     q.bindValue(":kid", kabelId);
     q.bindValue(":nr",  aderNr);
     if (!q.exec()) {
-        qWarning() << "kabelAderZuordnen SELECT:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelAderZuordnen SELECT:" << q.lastError().text();
         return false;
     }
     if (q.next()) {
@@ -83,7 +83,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
                                 ? kabellinieGrafikElementId : QVariant(QMetaType(QMetaType::Int)));
         upd.bindValue(":id",    existingId);
         if (!upd.exec()) {
-            qWarning() << "kabelAderZuordnen UPDATE:" << upd.lastError().text();
+            qCWarning(lcDb) << "kabelAderZuordnen UPDATE:" << upd.lastError().text();
             return false;
         }
     } else {
@@ -101,7 +101,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
         ins.bindValue(":lgeid", kabellinieGrafikElementId > 0
                                 ? kabellinieGrafikElementId : QVariant(QMetaType(QMetaType::Int)));
         if (!ins.exec()) {
-            qWarning() << "kabelAderZuordnen INSERT:" << ins.lastError().text();
+            qCWarning(lcDb) << "kabelAderZuordnen INSERT:" << ins.lastError().text();
             return false;
         }
     }
@@ -182,7 +182,7 @@ QVariantList Database::kabelListe(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "kabelListe:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelListe:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -224,7 +224,7 @@ QVariantList Database::kabelListeMitPos(int projektId) const
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "kabelListeMitPos:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelListeMitPos:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -266,7 +266,7 @@ QVariantList Database::kabellinienMitPos(int kabelId) const
     )");
     q.bindValue(":kid", kabelId);
     if (!q.exec()) {
-        qWarning() << "kabellinienMitPos:" << q.lastError().text();
+        qCWarning(lcDb) << "kabellinienMitPos:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -307,7 +307,7 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
     )");
     q1.bindValue(":pid", projektId);
     if (!q1.exec()) {
-        qWarning() << "kabelListeAufgeschluesselt (kabel):" << q1.lastError().text();
+        qCWarning(lcDb) << "kabelListeAufgeschluesselt (kabel):" << q1.lastError().text();
         return kabel;
     }
     while (q1.next()) {
@@ -342,7 +342,7 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
     )");
     q2.bindValue(":pid", projektId);
     if (!q2.exec()) {
-        qWarning() << "kabelListeAufgeschluesselt (adern):" << q2.lastError().text();
+        qCWarning(lcDb) << "kabelListeAufgeschluesselt (adern):" << q2.lastError().text();
         return kabel;
     }
     while (q2.next()) {
@@ -391,7 +391,7 @@ bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
     q.bindValue(":nach", nachOrt.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : nachOrt);
     q.bindValue(":id",   kabelId);
     if (!q.exec()) {
-        qWarning() << "kabelMetaAktualisieren:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelMetaAktualisieren:" << q.lastError().text();
         return false;
     }
     return true;
@@ -416,7 +416,7 @@ QVariantList Database::kabelAderListeMitVerbindung(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "kabelAderListeMitVerbindung:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelAderListeMitVerbindung:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -439,7 +439,7 @@ bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &a
 {
     if (adern.isEmpty()) return true;
     if (!m_db.transaction()) {
-        qWarning() << "kabelAderEndpunkteBulkSetzen: Transaktion:" << m_db.lastError().text();
+        qCWarning(lcDb) << "kabelAderEndpunkteBulkSetzen: Transaktion:" << m_db.lastError().text();
         return false;
     }
     QSqlQuery q(m_db);
@@ -459,13 +459,13 @@ bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &a
         q.bindValue(":nr",   a.value(QStringLiteral("aderNr")).toInt());
         q.bindValue(":pid",  projektId);
         if (!q.exec()) {
-            qWarning() << "kabelAderEndpunkteBulkSetzen:" << q.lastError().text();
+            qCWarning(lcDb) << "kabelAderEndpunkteBulkSetzen:" << q.lastError().text();
             m_db.rollback();
             return false;
         }
     }
     if (!m_db.commit()) {
-        qWarning() << "kabelAderEndpunkteBulkSetzen commit:" << m_db.lastError().text();
+        qCWarning(lcDb) << "kabelAderEndpunkteBulkSetzen commit:" << m_db.lastError().text();
         m_db.rollback();
         return false;
     }
@@ -485,7 +485,7 @@ bool Database::kabelLoeschen(int kabelId)
     q.prepare("DELETE FROM kabel WHERE id = :id");
     q.bindValue(":id", kabelId);
     if (!q.exec()) {
-        qWarning() << "kabelLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelLoeschen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -504,9 +504,9 @@ QVariantList Database::bauteilKabelListe()
         QSqlQuery cnt;
         cnt.exec("SELECT COUNT(*) FROM bauteil_kabel");
         if (cnt.next())
-            qDebug() << "bauteilKabelListe: bauteil_kabel Zeilen=" << cnt.value(0).toInt();
+            qCDebug(lcDb) << "bauteilKabelListe: bauteil_kabel Zeilen=" << cnt.value(0).toInt();
         else
-            qWarning() << "bauteilKabelListe: COUNT Fehler:" << cnt.lastError().text();
+            qCWarning(lcDb) << "bauteilKabelListe: COUNT Fehler:" << cnt.lastError().text();
     }
     QSqlQuery q(m_db);
     if (!q.exec(R"(
@@ -519,7 +519,7 @@ QVariantList Database::bauteilKabelListe()
         GROUP BY bk.id
         ORDER BY b.bezeichnung, bk.kabeltyp
     )")) {
-        qWarning() << "bauteilKabelListe:" << q.lastError().text();
+        qCWarning(lcDb) << "bauteilKabelListe:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -550,7 +550,7 @@ QVariantList Database::bauteilKabelListe()
         k[QStringLiteral("adern")] = adern;
         result.append(k);
     }
-    qDebug() << "bauteilKabelListe: Einträge=" << result.size();
+    qCDebug(lcDb) << "bauteilKabelListe: Einträge=" << result.size();
     return result;
 }
 
@@ -597,7 +597,7 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
     q.bindValue(":qs",   neuerQuer > 0       ? neuerQuer    : QVariant(QMetaType(QMetaType::Double)));
     q.bindValue(":id",   kabelId);
     if (!q.exec()) {
-        qWarning() << "kabelBauteilKabelSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelBauteilKabelSetzen:" << q.lastError().text();
         return result;
     }
     result[QStringLiteral("kabeltyp")]       = neuerTyp;
@@ -650,7 +650,7 @@ QVariantList Database::kabelAlleLinienLaden(int kabelId)
     )");
     q.bindValue(":kid", kabelId);
     if (!q.exec()) {
-        qWarning() << "kabelAlleLinienLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelAlleLinienLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -680,7 +680,7 @@ QVariantList Database::kabelFreieAderLaden(int kabelId)
     )");
     q.bindValue(":kid", kabelId);
     if (!q.exec()) {
-        qWarning() << "kabelFreieAderLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelFreieAderLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -711,7 +711,7 @@ QVariantList Database::kabelAderFuerLinieLaden(int kabellinieGrafikElementId)
     )");
     q.bindValue(":geid", kabellinieGrafikElementId);
     if (!q.exec()) {
-        qWarning() << "kabelAderFuerLinieLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "kabelAderFuerLinieLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {

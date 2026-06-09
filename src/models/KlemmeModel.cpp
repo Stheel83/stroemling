@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "KlemmeModel.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -124,7 +125,7 @@ int KlemmeModel::anlegen(int bauteilId)
               "VALUES (:bid, 'schraube', 1, 1, 1)");
     q.bindValue(":bid", bauteilId);
     if (!q.exec()) {
-        qWarning() << "KlemmeModel::anlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmeModel::anlegen:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -159,7 +160,7 @@ bool KlemmeModel::speichern(const QVariantMap &daten)
     q.bindValue(":id",   m_klemmeId);
 
     if (!q.exec()) {
-        qWarning() << "KlemmeModel::speichern:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmeModel::speichern:" << q.lastError().text();
         return false;
     }
 
@@ -203,7 +204,7 @@ bool KlemmeModel::loeschen()
     q.prepare("DELETE FROM bauteil_klemme WHERE id = :id");
     q.bindValue(":id", m_klemmeId);
     if (!q.exec()) {
-        qWarning() << "KlemmeModel::loeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmeModel::loeschen:" << q.lastError().text();
         return false;
     }
     laden(m_bauteilId);
@@ -275,7 +276,7 @@ bool KlemmeModel::querschnittSetzen(const QString &adertyp, double min, double m
     }
 
     if (!q.exec()) {
-        qWarning() << "querschnittSetzen:" << q.lastError().text();
+        qCWarning(lcModel) << "querschnittSetzen:" << q.lastError().text();
         return false;
     }
     ladeQuerschnitte();
@@ -293,7 +294,7 @@ bool KlemmeModel::querschnittLoeschen(const QString &adertyp)
     q.bindValue(":kid", m_klemmeId);
     q.bindValue(":typ", adertyp);
     if (!q.exec()) {
-        qWarning() << "querschnittLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "querschnittLoeschen:" << q.lastError().text();
         return false;
     }
     ladeQuerschnitte();
@@ -320,7 +321,7 @@ bool KlemmeModel::brueckeAnlegen(int vonEbene, int nachEbene)
     q.bindValue(":v",   vonEbene);
     q.bindValue(":n",   nachEbene);
     if (!q.exec()) {
-        qWarning() << "brueckeAnlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "brueckeAnlegen:" << q.lastError().text();
         return false;
     }
     ladeBruecken();
@@ -334,7 +335,7 @@ bool KlemmeModel::brueckeLoeschen(int id)
     q.prepare("DELETE FROM bauteil_klemme_bruecke WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "brueckeLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "brueckeLoeschen:" << q.lastError().text();
         return false;
     }
     ladeBruecken();

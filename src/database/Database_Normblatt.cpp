@@ -62,7 +62,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
 
     QVariantMap m;
     if (!q.exec() || !q.next()) {
-        qWarning() << "normblattDatenLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattDatenLaden:" << q.lastError().text();
         return m;
     }
     m[QStringLiteral("blattnummer")]      = q.value("blattnummer");
@@ -149,7 +149,7 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
     q.bindValue(":nid", normblattId > 0 ? QVariant(normblattId) : QVariant());
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
-        qWarning() << "normblattEinstellungenSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattEinstellungenSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -167,7 +167,7 @@ bool Database::seiteRevisionSetzen(int seiteId, const QString &status, const QSt
     q.bindValue(":kn",  kennung);
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
-        qWarning() << "seiteRevisionSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "seiteRevisionSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -183,7 +183,7 @@ QVariantList Database::normblattVorlagenListe()
     if (!q.exec("SELECT id, name, beschreibung, ist_standard, breite_mm, hoehe_mm, "
                 "rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm "
                 "FROM normblatt_vorlage ORDER BY name")) {
-        qWarning() << "normblattVorlagenListe:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattVorlagenListe:" << q.lastError().text();
         return {};
     }
     QVariantList result;
@@ -234,7 +234,7 @@ int Database::normblattVorlageSpeichern(const QVariantMap &v)
     q.bindValue(":ro",     v.value(QStringLiteral("randObenMm"),   10.0));
     q.bindValue(":ru",     v.value(QStringLiteral("randUntenMm"),  10.0));
     if (!q.exec()) {
-        qWarning() << "normblattVorlageSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattVorlageSpeichern:" << q.lastError().text();
         return -1;
     }
     if (v.value(QStringLiteral("id")).toInt() > 0)
@@ -248,7 +248,7 @@ bool Database::normblattVorlageLoeschen(int vorlageId)
     q.prepare("DELETE FROM normblatt_vorlage WHERE id = :id");
     q.bindValue(":id", vorlageId);
     if (!q.exec()) {
-        qWarning() << "normblattVorlageLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattVorlageLoeschen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -265,7 +265,7 @@ QVariantList Database::normblattFelderLaden(int vorlageId)
                  ORDER BY reihenfolge, id)");
     q.bindValue(":vid", vorlageId);
     if (!q.exec()) {
-        qWarning() << "normblattFelderLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattFelderLaden:" << q.lastError().text();
         return {};
     }
     QVariantList result;
@@ -292,14 +292,14 @@ QVariantList Database::normblattFelderLaden(int vorlageId)
 bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felder)
 {
     if (!m_db.transaction()) {
-        qWarning() << "normblattFelderSpeichern: Transaction fehlgeschlagen";
+        qCWarning(lcDb) << "normblattFelderSpeichern: Transaction fehlgeschlagen";
         return false;
     }
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM normblatt_feld WHERE vorlage_id = :vid");
     q.bindValue(":vid", vorlageId);
     if (!q.exec()) {
-        qWarning() << "normblattFelderSpeichern DELETE:" << q.lastError().text();
+        qCWarning(lcDb) << "normblattFelderSpeichern DELETE:" << q.lastError().text();
         m_db.rollback();
         return false;
     }
@@ -323,7 +323,7 @@ bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felde
         q.bindValue(":rahmen", f.value(QStringLiteral("rahmen"), 1));
         q.bindValue(":rei",    i);
         if (!q.exec()) {
-            qWarning() << "normblattFelderSpeichern INSERT:" << q.lastError().text();
+            qCWarning(lcDb) << "normblattFelderSpeichern INSERT:" << q.lastError().text();
             m_db.rollback();
             return false;
         }
@@ -350,7 +350,7 @@ bool Database::projektMetaSpeichern(int projektId,
     q.bindValue(":be",   bearbeiter);
     q.bindValue(":id",   projektId);
     if (!q.exec()) {
-        qWarning() << "projektMetaSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "projektMetaSpeichern:" << q.lastError().text();
         return false;
     }
     return true;
@@ -362,11 +362,11 @@ bool Database::projektLogoSpeichern(int projektId, const QString &pfad)
     QString localPath = url.isLocalFile() ? url.toLocalFile() : pfad;
 
     QFileInfo info(localPath);
-    if (!info.exists()) { qWarning() << "projektLogoSpeichern: Datei nicht gefunden:" << localPath; return false; }
-    if (info.size() > 5 * 1024 * 1024) { qWarning() << "projektLogoSpeichern: Datei zu groß"; return false; }
+    if (!info.exists()) { qCWarning(lcDb) << "projektLogoSpeichern: Datei nicht gefunden:" << localPath; return false; }
+    if (info.size() > 5 * 1024 * 1024) { qCWarning(lcDb) << "projektLogoSpeichern: Datei zu groß"; return false; }
 
     QFile file(localPath);
-    if (!file.open(QIODevice::ReadOnly)) { qWarning() << "projektLogoSpeichern: Öffnen fehlgeschlagen"; return false; }
+    if (!file.open(QIODevice::ReadOnly)) { qCWarning(lcDb) << "projektLogoSpeichern: Öffnen fehlgeschlagen"; return false; }
     QByteArray data = file.readAll();
     file.close();
 
@@ -382,7 +382,7 @@ bool Database::projektLogoSpeichern(int projektId, const QString &pfad)
     q.bindValue(":d",  data);
     q.bindValue(":m",  mime);
     q.bindValue(":id", projektId);
-    if (!q.exec()) { qWarning() << "projektLogoSpeichern:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "projektLogoSpeichern:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -404,7 +404,7 @@ bool Database::projektLogoLoeschen(int projektId)
     QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET logo_data = NULL, logo_mime = NULL WHERE id = :id");
     q.bindValue(":id", projektId);
-    if (!q.exec()) { qWarning() << "projektLogoLoeschen:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "projektLogoLoeschen:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -426,7 +426,7 @@ int Database::seiteDuplizieren(int seiteId)
                "FROM seite WHERE id = :sid");
     qs.bindValue(":sid", seiteId);
     if (!qs.exec() || !qs.next()) {
-        qWarning() << "seiteDuplizieren: Seite nicht gefunden:" << seiteId;
+        qCWarning(lcDb) << "seiteDuplizieren: Seite nicht gefunden:" << seiteId;
         return -1;
     }
 
@@ -458,7 +458,7 @@ int Database::seiteDuplizieren(int seiteId)
     qi.bindValue(":bh",   qs.value(11));
     qi.bindValue(":aus",  qs.value(12));
     if (!qi.exec()) {
-        qWarning() << "seiteDuplizieren: neue Seite anlegen:" << qi.lastError().text();
+        qCWarning(lcDb) << "seiteDuplizieren: neue Seite anlegen:" << qi.lastError().text();
         m_db.rollback();
         return -1;
     }
@@ -483,7 +483,7 @@ int Database::seiteDuplizieren(int seiteId)
     qe.bindValue(":nsid", neueSeiteId);
     qe.bindValue(":osid", seiteId);
     if (!qe.exec()) {
-        qWarning() << "seiteDuplizieren: Elemente kopieren:" << qe.lastError().text();
+        qCWarning(lcDb) << "seiteDuplizieren: Elemente kopieren:" << qe.lastError().text();
         m_db.rollback();
         return -1;
     }

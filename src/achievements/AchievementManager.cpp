@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "AchievementManager.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -121,7 +122,7 @@ void AchievementManager::_freischalten(const QString &id)
     q.addBindValue(id);
     q.addBindValue(QDateTime::currentSecsSinceEpoch());
     if (!q.exec()) {
-        qWarning() << "Achievement speichern fehlgeschlagen:" << q.lastError().text();
+        qCWarning(lcApp) << "Achievement speichern fehlgeschlagen:" << q.lastError().text();
         return;
     }
 
@@ -130,7 +131,7 @@ void AchievementManager::_freischalten(const QString &id)
     // Katalog nach Titel/Beschreibung durchsuchen
     for (const auto &def : _katalog()) {
         if (def.id == id) {
-            qInfo() << "Achievement freigeschaltet:" << id << def.titel;
+            qCInfo(lcApp) << "Achievement freigeschaltet:" << id << def.titel;
             emit achievementFreigeschaltet(id, def.titel, def.beschreibung);
             return;
         }

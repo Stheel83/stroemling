@@ -26,7 +26,7 @@ bool Database::openWiki(const QString &path)
     m_wikiDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_wiki");
     m_wikiDb.setDatabaseName(path);
     if (!m_wikiDb.open()) {
-        qWarning() << "Wiki-Datenbank konnte nicht geöffnet werden:" << m_wikiDb.lastError().text();
+        qCWarning(lcDb) << "Wiki-Datenbank konnte nicht geöffnet werden:" << m_wikiDb.lastError().text();
         return false;
     }
     {
@@ -34,7 +34,7 @@ bool Database::openWiki(const QString &path)
         pragma.exec("PRAGMA foreign_keys = ON");
         pragma.exec("PRAGMA journal_mode = WAL");
     }
-    qInfo() << "Wiki-Datenbank geöffnet:" << path;
+    qCInfo(lcDb) << "Wiki-Datenbank geöffnet:" << path;
     if (!checkAndApplyWikiSchema())
         return false;
     // Eingebettete Bundles (Qt-Ressourcen) automatisch einspielen
@@ -52,7 +52,7 @@ bool Database::checkAndApplyWikiSchema()
     {
         QSqlQuery q(m_wikiDb);
         if (!q.exec("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")) {
-            qWarning() << "wiki schema_version anlegen:" << q.lastError().text();
+            qCWarning(lcDb) << "wiki schema_version anlegen:" << q.lastError().text();
             return false;
         }
         if (q.exec("SELECT version FROM schema_version LIMIT 1") && q.next())
@@ -60,18 +60,18 @@ bool Database::checkAndApplyWikiSchema()
     }
 
     if (storedVersion == WIKI_SCHEMA_VERSION) {
-        qInfo() << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– keine Änderung.";
+        qCInfo(lcDb) << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– keine Änderung.";
         return true;
     }
 
-    qInfo() << "Wiki-Schema:" << storedVersion << "→" << WIKI_SCHEMA_VERSION;
+    qCInfo(lcDb) << "Wiki-Schema:" << storedVersion << "→" << WIKI_SCHEMA_VERSION;
 
     // Backup vor Wiki-Migration (nur wenn DB bereits Daten hat)
     if (storedVersion >= 0)
         erstelleBackup("stroemling_wiki", "wiki", storedVersion);
 
     if (!m_wikiDb.transaction()) {
-        qWarning() << "Wiki-Transaktion konnte nicht gestartet werden:" << m_wikiDb.lastError().text();
+        qCWarning(lcDb) << "Wiki-Transaktion konnte nicht gestartet werden:" << m_wikiDb.lastError().text();
         return false;
     }
 
@@ -86,7 +86,7 @@ bool Database::checkAndApplyWikiSchema()
         if (!hatIstSystem) {
             QSqlQuery alter(m_wikiDb);
             if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN ist_system INTEGER NOT NULL DEFAULT 0")) {
-                qWarning() << "ALTER TABLE wiki_artikel ADD ist_system:" << alter.lastError().text();
+                qCWarning(lcDb) << "ALTER TABLE wiki_artikel ADD ist_system:" << alter.lastError().text();
                 m_wikiDb.rollback();
                 return false;
             }
@@ -106,7 +106,7 @@ bool Database::checkAndApplyWikiSchema()
         if (!hatBundleKennung) {
             QSqlQuery alter(m_wikiDb);
             if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN bundle_kennung TEXT DEFAULT NULL")) {
-                qWarning() << "ALTER wiki_artikel ADD bundle_kennung:" << alter.lastError().text();
+                qCWarning(lcDb) << "ALTER wiki_artikel ADD bundle_kennung:" << alter.lastError().text();
                 m_wikiDb.rollback();
                 return false;
             }
@@ -114,14 +114,14 @@ bool Database::checkAndApplyWikiSchema()
         if (!hatVonNutzerGeaendert) {
             QSqlQuery alter(m_wikiDb);
             if (!alter.exec("ALTER TABLE wiki_artikel ADD COLUMN von_nutzer_geaendert INTEGER NOT NULL DEFAULT 0")) {
-                qWarning() << "ALTER wiki_artikel ADD von_nutzer_geaendert:" << alter.lastError().text();
+                qCWarning(lcDb) << "ALTER wiki_artikel ADD von_nutzer_geaendert:" << alter.lastError().text();
                 m_wikiDb.rollback();
                 return false;
             }
         }
         QSqlQuery q(m_wikiDb);
         if (!q.exec("CREATE TABLE IF NOT EXISTS wiki_meta (schluessel TEXT PRIMARY KEY, wert TEXT NOT NULL)")) {
-            qWarning() << "CREATE wiki_meta:" << q.lastError().text();
+            qCWarning(lcDb) << "CREATE wiki_meta:" << q.lastError().text();
             m_wikiDb.rollback();
             return false;
         }
@@ -140,7 +140,7 @@ bool Database::checkAndApplyWikiSchema()
         if (!hasBlobPfad) {
             QSqlQuery alter(m_wikiDb);
             if (!alter.exec("ALTER TABLE wiki_bild ADD COLUMN blob_pfad TEXT NOT NULL DEFAULT ''")) {
-                qWarning() << "ALTER wiki_bild ADD blob_pfad:" << alter.lastError().text();
+                qCWarning(lcDb) << "ALTER wiki_bild ADD blob_pfad:" << alter.lastError().text();
                 m_wikiDb.rollback();
                 return false;
             }
@@ -165,12 +165,12 @@ bool Database::checkAndApplyWikiSchema()
                     upd.bindValue(":id", blobId);
                     upd.exec();
                 } else {
-                    qWarning() << "wiki_bild Migration: Datei nicht schreibbar:" << fn;
+                    qCWarning(lcDb) << "wiki_bild Migration: Datei nicht schreibbar:" << fn;
                 }
             }
             QSqlQuery drop(m_wikiDb);
             if (!drop.exec("ALTER TABLE wiki_bild DROP COLUMN daten")) {
-                qWarning() << "ALTER wiki_bild DROP COLUMN daten:" << drop.lastError().text();
+                qCWarning(lcDb) << "ALTER wiki_bild DROP COLUMN daten:" << drop.lastError().text();
                 m_wikiDb.rollback();
                 return false;
             }
@@ -189,7 +189,7 @@ bool Database::checkAndApplyWikiSchema()
     ins.prepare("INSERT INTO schema_version (version) VALUES (:v)");
     ins.bindValue(":v", WIKI_SCHEMA_VERSION);
     if (!ins.exec()) {
-        qWarning() << "wiki schema_version schreiben:" << ins.lastError().text();
+        qCWarning(lcDb) << "wiki schema_version schreiben:" << ins.lastError().text();
         m_wikiDb.rollback();
         return false;
     }
@@ -199,7 +199,7 @@ bool Database::checkAndApplyWikiSchema()
         return false;
     }
 
-    qInfo() << "Wiki-Schema v" << WIKI_SCHEMA_VERSION << "erfolgreich angelegt.";
+    qCInfo(lcDb) << "Wiki-Schema v" << WIKI_SCHEMA_VERSION << "erfolgreich angelegt.";
     return true;
 }
 
@@ -215,7 +215,7 @@ bool Database::createWikiSchema()
             sortierung   INTEGER NOT NULL DEFAULT 0
         )
     )")) {
-        qWarning() << "Fehler wiki_kategorie:" << q.lastError().text();
+        qCWarning(lcDb) << "Fehler wiki_kategorie:" << q.lastError().text();
         return false;
     }
 
@@ -233,7 +233,7 @@ bool Database::createWikiSchema()
             geaendert_am         TEXT    NOT NULL DEFAULT (datetime('now'))
         )
     )")) {
-        qWarning() << "Fehler wiki_artikel:" << q.lastError().text();
+        qCWarning(lcDb) << "Fehler wiki_artikel:" << q.lastError().text();
         return false;
     }
 
@@ -243,7 +243,7 @@ bool Database::createWikiSchema()
             wert       TEXT NOT NULL
         )
     )")) {
-        qWarning() << "Fehler wiki_meta:" << q.lastError().text();
+        qCWarning(lcDb) << "Fehler wiki_meta:" << q.lastError().text();
         return false;
     }
 
@@ -258,7 +258,7 @@ bool Database::createWikiSchema()
             sortierung   INTEGER NOT NULL DEFAULT 0
         )
     )")) {
-        qWarning() << "Fehler wiki_bild:" << q.lastError().text();
+        qCWarning(lcDb) << "Fehler wiki_bild:" << q.lastError().text();
         return false;
     }
 
@@ -271,21 +271,21 @@ bool Database::createWikiSchema()
         )
     )");
     if (!m_fts5Verfuegbar) {
-        qWarning() << "FTS5 nicht verfügbar – Wiki-Suche deaktiviert:" << q.lastError().text();
+        qCWarning(lcDb) << "FTS5 nicht verfügbar – Wiki-Suche deaktiviert:" << q.lastError().text();
     } else {
         if (!q.exec(R"(
             CREATE TRIGGER IF NOT EXISTS wiki_artikel_ai AFTER INSERT ON wiki_artikel BEGIN
                 INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
                 VALUES (new.id, new.titel, new.inhalt, new.tags);
             END
-        )")) { qWarning() << "Trigger wiki_artikel_ai:" << q.lastError().text(); }
+        )")) { qCWarning(lcDb) << "Trigger wiki_artikel_ai:" << q.lastError().text(); }
 
         if (!q.exec(R"(
             CREATE TRIGGER IF NOT EXISTS wiki_artikel_ad AFTER DELETE ON wiki_artikel BEGIN
                 INSERT INTO wiki_suche(wiki_suche, rowid, titel, inhalt, tags)
                 VALUES ('delete', old.id, old.titel, old.inhalt, old.tags);
             END
-        )")) { qWarning() << "Trigger wiki_artikel_ad:" << q.lastError().text(); }
+        )")) { qCWarning(lcDb) << "Trigger wiki_artikel_ad:" << q.lastError().text(); }
 
         if (!q.exec(R"(
             CREATE TRIGGER IF NOT EXISTS wiki_artikel_au AFTER UPDATE ON wiki_artikel BEGIN
@@ -294,7 +294,7 @@ bool Database::createWikiSchema()
                 INSERT INTO wiki_suche(rowid, titel, inhalt, tags)
                 VALUES (new.id, new.titel, new.inhalt, new.tags);
             END
-        )")) { qWarning() << "Trigger wiki_artikel_au:" << q.lastError().text(); }
+        )")) { qCWarning(lcDb) << "Trigger wiki_artikel_au:" << q.lastError().text(); }
     }
 
     return true;
@@ -325,7 +325,7 @@ int Database::wikiKategorieAnlegen(const QString &name, const QString &beschreib
     q.bindValue(":n", name);
     q.bindValue(":b", beschreibung);
     if (!q.exec()) {
-        qWarning() << "wikiKategorieAnlegen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiKategorieAnlegen:" << q.lastError().text();
         return -1;
     }
     return q.lastInsertId().toInt();
@@ -339,7 +339,7 @@ bool Database::wikiKategorieUmbenennen(int id, const QString &name, const QStrin
     q.bindValue(":b",   beschreibung);
     q.bindValue(":id",  id);
     if (!q.exec()) {
-        qWarning() << "wikiKategorieUmbenennen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiKategorieUmbenennen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -351,7 +351,7 @@ bool Database::wikiKategorieLoeschen(int id)
     q.prepare("DELETE FROM wiki_kategorie WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "wikiKategorieLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiKategorieLoeschen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -364,7 +364,7 @@ bool Database::wikiKategorieSortierungSetzen(int id, int sortierung)
     q.bindValue(":s",  sortierung);
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "wikiKategorieSortierungSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiKategorieSortierungSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -421,7 +421,7 @@ int Database::wikiArtikelAnlegen(int kategorieId, const QString &titel)
     q.bindValue(":kid", kategorieId);
     q.bindValue(":t",   titel);
     if (!q.exec()) {
-        qWarning() << "wikiArtikelAnlegen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiArtikelAnlegen:" << q.lastError().text();
         return -1;
     }
     return q.lastInsertId().toInt();
@@ -442,7 +442,7 @@ bool Database::wikiArtikelSpeichern(int id, const QString &titel,
     q.bindValue(":tags", tags);
     q.bindValue(":id",   id);
     if (!q.exec()) {
-        qWarning() << "wikiArtikelSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiArtikelSpeichern:" << q.lastError().text();
         return false;
     }
     // Wenn es ein Bundle-Artikel ist, Nutzer-Änderung markieren
@@ -460,7 +460,7 @@ bool Database::wikiArtikelLoeschen(int id)
     q.prepare("DELETE FROM wiki_artikel WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "wikiArtikelLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiArtikelLoeschen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -519,7 +519,7 @@ int Database::wikiBildHinzufuegen(int artikelId, const QString &pfad)
 
     QImage img(localPfad);
     if (img.isNull()) {
-        qWarning() << "wikiBildHinzufuegen: Bild nicht lesbar:" << localPfad;
+        qCWarning(lcDb) << "wikiBildHinzufuegen: Bild nicht lesbar:" << localPfad;
         return -1;
     }
     if (img.width() > 1920)
@@ -547,7 +547,7 @@ int Database::wikiBildHinzufuegen(int artikelId, const QString &pfad)
     q.bindValue(":mime", mimeTyp);
     q.bindValue(":aid2", artikelId);
     if (!q.exec()) {
-        qWarning() << "wikiBildHinzufuegen INSERT:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiBildHinzufuegen INSERT:" << q.lastError().text();
         return -1;
     }
     const int newId = q.lastInsertId().toInt();
@@ -556,7 +556,7 @@ int Database::wikiBildHinzufuegen(int artikelId, const QString &pfad)
     const QString fn = QString::number(newId) + (ext == "png" ? ".png" : ".jpg");
     QFile f(m_wikiBlobDir + "/" + fn);
     if (!f.open(QIODevice::WriteOnly)) {
-        qWarning() << "wikiBildHinzufuegen: Datei nicht schreibbar:" << fn;
+        qCWarning(lcDb) << "wikiBildHinzufuegen: Datei nicht schreibbar:" << fn;
         QSqlQuery del(m_wikiDb);
         del.prepare("DELETE FROM wiki_bild WHERE id = :id");
         del.bindValue(":id", newId);
@@ -587,7 +587,7 @@ bool Database::wikiBildLoeschen(int id)
     q.prepare("DELETE FROM wiki_bild WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "wikiBildLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiBildLoeschen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -624,7 +624,7 @@ QVariantList Database::wikiSuchen(const QString &suchbegriff)
 
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "wikiSuchen:" << q.lastError().text();
+        qCWarning(lcDb) << "wikiSuchen:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -650,7 +650,7 @@ bool Database::wikiExportJson(const QString &pfad)
     QJsonArray kategorienArr;
     QSqlQuery qKat(m_wikiDb);
     if (!qKat.exec("SELECT id, name, beschreibung, sortierung FROM wiki_kategorie ORDER BY sortierung, name")) {
-        qWarning() << "wikiExportJson kategorien:" << qKat.lastError().text();
+        qCWarning(lcDb) << "wikiExportJson kategorien:" << qKat.lastError().text();
         return false;
     }
     while (qKat.next()) {
@@ -672,7 +672,7 @@ bool Database::wikiExportJson(const QString &pfad)
         WHERE wa.ist_system = 0
         ORDER BY wk.sortierung, wk.name, wa.titel
     )")) {
-        qWarning() << "wikiExportJson artikel:" << qArt.lastError().text();
+        qCWarning(lcDb) << "wikiExportJson artikel:" << qArt.lastError().text();
         return false;
     }
     while (qArt.next()) {
@@ -696,7 +696,7 @@ bool Database::wikiExportJson(const QString &pfad)
         WHERE wa.ist_system = 0
         ORDER BY wb.artikel_id, wb.sortierung, wb.id
     )")) {
-        qWarning() << "wikiExportJson bilder:" << qBild.lastError().text();
+        qCWarning(lcDb) << "wikiExportJson bilder:" << qBild.lastError().text();
         return false;
     }
     while (qBild.next()) {
@@ -723,11 +723,11 @@ bool Database::wikiExportJson(const QString &pfad)
 
     QFile f(localPfad);
     if (!f.open(QIODevice::WriteOnly)) {
-        qWarning() << "wikiExportJson: Datei nicht schreibbar:" << localPfad;
+        qCWarning(lcDb) << "wikiExportJson: Datei nicht schreibbar:" << localPfad;
         return false;
     }
     f.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
-    qInfo() << "Wiki exportiert:" << localPfad << "-" << artikelArr.size() << "Artikel";
+    qCInfo(lcDb) << "Wiki exportiert:" << localPfad << "-" << artikelArr.size() << "Artikel";
     return true;
 }
 
@@ -737,23 +737,23 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
 
     QFile f(localPfad);
     if (!f.open(QIODevice::ReadOnly)) {
-        qWarning() << "wikiImportJson: Datei nicht lesbar:" << localPfad;
+        qCWarning(lcDb) << "wikiImportJson: Datei nicht lesbar:" << localPfad;
         return false;
     }
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
     if (doc.isNull()) {
-        qWarning() << "wikiImportJson: JSON-Fehler:" << err.errorString();
+        qCWarning(lcDb) << "wikiImportJson: JSON-Fehler:" << err.errorString();
         return false;
     }
     const QJsonObject root = doc.object();
     if (root["wiki_export_version"].toInt() != 1) {
-        qWarning() << "wikiImportJson: Unbekannte Export-Version:" << root["wiki_export_version"].toInt();
+        qCWarning(lcDb) << "wikiImportJson: Unbekannte Export-Version:" << root["wiki_export_version"].toInt();
         return false;
     }
 
     if (!m_wikiDb.transaction()) {
-        qWarning() << "wikiImportJson: Transaktion fehlgeschlagen";
+        qCWarning(lcDb) << "wikiImportJson: Transaktion fehlgeschlagen";
         return false;
     }
 
@@ -762,7 +762,7 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
         wikiBlobDateienAlleNutzerArtikelLoeschen();
         QSqlQuery del(m_wikiDb);
         if (!del.exec("DELETE FROM wiki_artikel WHERE ist_system = 0")) {
-            qWarning() << "wikiImportJson replace:" << del.lastError().text();
+            qCWarning(lcDb) << "wikiImportJson replace:" << del.lastError().text();
             m_wikiDb.rollback();
             return false;
         }
@@ -788,7 +788,7 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
             ins.bindValue(":b", o["beschreibung"].toString());
             ins.bindValue(":s", o["sortierung"].toInt());
             if (!ins.exec()) {
-                qWarning() << "wikiImportJson Kategorie anlegen:" << ins.lastError().text();
+                qCWarning(lcDb) << "wikiImportJson Kategorie anlegen:" << ins.lastError().text();
                 m_wikiDb.rollback();
                 return false;
             }
@@ -834,7 +834,7 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
         ins.bindValue(":i",    o["inhalt"].toString());
         ins.bindValue(":tags", o["tags"].toString());
         if (!ins.exec()) {
-            qWarning() << "wikiImportJson Artikel einfügen:" << ins.lastError().text();
+            qCWarning(lcDb) << "wikiImportJson Artikel einfügen:" << ins.lastError().text();
             m_wikiDb.rollback();
             return false;
         }
@@ -861,7 +861,7 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
         ins.bindValue(":beschr", o["beschreibung"].toString());
         ins.bindValue(":sort",  o["sortierung"].toInt());
         if (!ins.exec()) {
-            qWarning() << "wikiImportJson Bild einfügen:" << ins.lastError().text();
+            qCWarning(lcDb) << "wikiImportJson Bild einfügen:" << ins.lastError().text();
             m_wikiDb.rollback();
             return false;
         }
@@ -876,16 +876,16 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
             upd.bindValue(":id", newBildId);
             upd.exec();
         } else {
-            qWarning() << "wikiImportJson: Bilddatei nicht schreibbar:" << fn;
+            qCWarning(lcDb) << "wikiImportJson: Bilddatei nicht schreibbar:" << fn;
         }
     }
 
     if (!m_wikiDb.commit()) {
         m_wikiDb.rollback();
-        qWarning() << "wikiImportJson commit:" << m_wikiDb.lastError().text();
+        qCWarning(lcDb) << "wikiImportJson commit:" << m_wikiDb.lastError().text();
         return false;
     }
-    qInfo() << "Wiki importiert:" << artArr.size() << "Artikel"
+    qCInfo(lcDb) << "Wiki importiert:" << artArr.size() << "Artikel"
             << (mergeMode ? "(Merge)" : "(Replace)");
     return true;
 }
@@ -914,14 +914,14 @@ QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
     QFile f(localPfad);
     if (!f.open(QIODevice::ReadOnly)) {
         result["meldung"] = QString("Datei nicht lesbar: %1").arg(localPfad);
-        qWarning() << "wikiBundleAnwenden:" << result["meldung"].toString();
+        qCWarning(lcDb) << "wikiBundleAnwenden:" << result["meldung"].toString();
         return result;
     }
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
     if (doc.isNull()) {
         result["meldung"] = QString("JSON-Fehler: %1").arg(err.errorString());
-        qWarning() << "wikiBundleAnwenden:" << result["meldung"].toString();
+        qCWarning(lcDb) << "wikiBundleAnwenden:" << result["meldung"].toString();
         return result;
     }
     const QJsonObject root = doc.object();
@@ -1155,7 +1155,7 @@ QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
     result["uebersprungen"] = skipCount;
     result["meldung"]       = QString("%1 neu, %2 aktualisiert, %3 übersprungen")
                                 .arg(neuCount).arg(aktCount).arg(skipCount);
-    qInfo() << "wikiBundleAnwenden" << kennung << "v" << bundleVersion << "–" << result["meldung"].toString();
+    qCInfo(lcDb) << "wikiBundleAnwenden" << kennung << "v" << bundleVersion << "–" << result["meldung"].toString();
     return result;
 }
 
@@ -1247,11 +1247,11 @@ bool Database::wikiBundleExportieren(const QString &pfad, const QString &kennung
 
     QFile f(localPfad);
     if (!f.open(QIODevice::WriteOnly)) {
-        qWarning() << "wikiBundleExportieren: nicht schreibbar:" << localPfad;
+        qCWarning(lcDb) << "wikiBundleExportieren: nicht schreibbar:" << localPfad;
         return false;
     }
     f.write(QJsonDocument(rootObj).toJson());
-    qInfo() << "wikiBundleExportieren:" << kennung << "v" << version
+    qCInfo(lcDb) << "wikiBundleExportieren:" << kennung << "v" << version
             << artikelArr.size() << "Artikel, Pfad:" << localPfad;
     return true;
 }
@@ -1291,13 +1291,13 @@ bool Database::seedWikiStarterInhalte()
     // Manifest laden
     QFile mf(":/wiki_seed/manifest.json");
     if (!mf.open(QIODevice::ReadOnly)) {
-        qWarning() << "seedWikiStarterInhalte: manifest.json nicht gefunden";
+        qCWarning(lcDb) << "seedWikiStarterInhalte: manifest.json nicht gefunden";
         return false;
     }
     QJsonParseError parseErr;
     const QJsonDocument doc = QJsonDocument::fromJson(mf.readAll(), &parseErr);
     if (doc.isNull()) {
-        qWarning() << "seedWikiStarterInhalte: JSON-Fehler:" << parseErr.errorString();
+        qCWarning(lcDb) << "seedWikiStarterInhalte: JSON-Fehler:" << parseErr.errorString();
         return false;
     }
 
@@ -1326,7 +1326,7 @@ bool Database::seedWikiStarterInhalte()
         qKat.bindValue(":beschr", kat["beschreibung"].toString());
         qKat.bindValue(":sort",  kat["sortierung"].toInt());
         if (!qKat.exec()) {
-            qWarning() << "seedWikiStarterInhalte Kategorie:" << qKat.lastError().text();
+            qCWarning(lcDb) << "seedWikiStarterInhalte Kategorie:" << qKat.lastError().text();
             return false;
         }
 
@@ -1349,7 +1349,7 @@ bool Database::seedWikiStarterInhalte()
                 if (f.open(QIODevice::ReadOnly))
                     inhalt = QString::fromUtf8(f.readAll());
                 else
-                    qWarning() << "seedWikiStarterInhalte: Datei nicht gefunden:" << datei;
+                    qCWarning(lcDb) << "seedWikiStarterInhalte: Datei nicht gefunden:" << datei;
             }
 
             qArtIns.bindValue(":kid",    katId);
@@ -1360,7 +1360,7 @@ bool Database::seedWikiStarterInhalte()
             qArtIns.bindValue(":tags",   tags);
             qArtIns.bindValue(":sys",    istSys ? 1 : 0);
             if (!qArtIns.exec()) {
-                qWarning() << "seedWikiStarterInhalte Artikel insert:" << qArtIns.lastError().text();
+                qCWarning(lcDb) << "seedWikiStarterInhalte Artikel insert:" << qArtIns.lastError().text();
                 return false;
             }
             if (istSys) {
@@ -1369,7 +1369,7 @@ bool Database::seedWikiStarterInhalte()
                 qArtUpd.bindValue(":inhalt", inhalt);
                 qArtUpd.bindValue(":tags",   tags);
                 if (!qArtUpd.exec()) {
-                    qWarning() << "seedWikiStarterInhalte Artikel update:" << qArtUpd.lastError().text();
+                    qCWarning(lcDb) << "seedWikiStarterInhalte Artikel update:" << qArtUpd.lastError().text();
                     return false;
                 }
             }
@@ -1393,7 +1393,7 @@ bool Database::seedWikiStarterInhalte()
 
             QFile bf(bildQrc);
             if (!bf.open(QIODevice::ReadOnly)) {
-                qWarning() << "seedWikiStarterInhalte: Bild nicht gefunden:" << bildQrc;
+                qCWarning(lcDb) << "seedWikiStarterInhalte: Bild nicht gefunden:" << bildQrc;
                 continue;
             }
             const QByteArray daten = bf.readAll();
@@ -1409,7 +1409,7 @@ bool Database::seedWikiStarterInhalte()
             qIns.bindValue(":aid", artId);
             qIns.bindValue(":fn",  bildFn);
             if (!qIns.exec()) {
-                qWarning() << "seedWikiStarterInhalte Bild INSERT:" << qIns.lastError().text();
+                qCWarning(lcDb) << "seedWikiStarterInhalte Bild INSERT:" << qIns.lastError().text();
                 continue;
             }
             const int newId = qIns.lastInsertId().toInt();

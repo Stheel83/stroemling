@@ -85,13 +85,13 @@ bool Database::openLauncher(const QString &path)
             }
         }
         QDir(pendingDir).removeRecursively();
-        qInfo() << "BACKUP-01: Ausstehende Wiederherstellung angewendet aus" << pendingDir;
+        qCInfo(lcDb) << "BACKUP-01: Ausstehende Wiederherstellung angewendet aus" << pendingDir;
     }
 
     m_launcherDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_launcher");
     m_launcherDb.setDatabaseName(path);
     if (!m_launcherDb.open()) {
-        qWarning() << "Launcher-DB konnte nicht geöffnet werden:" << m_launcherDb.lastError().text();
+        qCWarning(lcDb) << "Launcher-DB konnte nicht geöffnet werden:" << m_launcherDb.lastError().text();
         return false;
     }
     {
@@ -105,7 +105,7 @@ bool Database::openLauncher(const QString &path)
                 geoeffnet_am TEXT NOT NULL DEFAULT (datetime('now'))
             )
         )")) {
-            qWarning() << "zuletzt_geoeffnet Tabelle:" << q.lastError().text();
+            qCWarning(lcDb) << "zuletzt_geoeffnet Tabelle:" << q.lastError().text();
         }
         // Achievement-Tabellen (global, nicht projektspezifisch)
         q.exec(R"(CREATE TABLE IF NOT EXISTS achievement_errungen (
@@ -127,10 +127,10 @@ bool Database::openLauncher(const QString &path)
                 zuletzt_geoeffnet TEXT NOT NULL DEFAULT (datetime('now'))
             )
         )")) {
-            qWarning() << "bekannte_projekte Tabelle:" << q.lastError().text();
+            qCWarning(lcDb) << "bekannte_projekte Tabelle:" << q.lastError().text();
         }
     }
-    qInfo() << "Launcher-DB geöffnet:" << path;
+    qCInfo(lcDb) << "Launcher-DB geöffnet:" << path;
     return true;
 }
 
@@ -155,7 +155,7 @@ bool Database::openProjekt(const QString &path)
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName(localPath);
     if (!m_db.open()) {
-        qWarning() << "Projekt konnte nicht geöffnet werden:" << m_db.lastError().text();
+        qCWarning(lcDb) << "Projekt konnte nicht geöffnet werden:" << m_db.lastError().text();
         emit projektOffenChanged();
         return false;
     }
@@ -190,7 +190,7 @@ bool Database::openProjekt(const QString &path)
 
     zuletzGeoeffnetEintragen(localPath, projektName);
     bekannteProjecteEintragen(localPath, projektName, projektNummer);
-    qInfo() << "Projekt geöffnet:" << localPath;
+    qCInfo(lcDb) << "Projekt geöffnet:" << localPath;
     emit projektOffenChanged();
     return true;
 }
@@ -207,7 +207,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     QDir().mkpath(QFileInfo(localPath).absolutePath());
 
     if (QFile::exists(localPath)) {
-        qWarning() << "Projektdatei existiert bereits:" << localPath;
+        qCWarning(lcDb) << "Projektdatei existiert bereits:" << localPath;
         return false;
     }
 
@@ -223,7 +223,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName(localPath);
     if (!m_db.open()) {
-        qWarning() << "Projektdatei konnte nicht erstellt werden:" << m_db.lastError().text();
+        qCWarning(lcDb) << "Projektdatei konnte nicht erstellt werden:" << m_db.lastError().text();
         return false;
     }
     {
@@ -238,7 +238,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         if (!q.exec("CREATE TABLE IF NOT EXISTS schema_migration ("
                     "version INTEGER PRIMARY KEY, beschreibung TEXT NOT NULL, "
                     "angewendet_am TEXT NOT NULL DEFAULT (datetime('now')))")) {
-            qWarning() << "schema_migration für neues Projekt:" << q.lastError().text();
+            qCWarning(lcDb) << "schema_migration für neues Projekt:" << q.lastError().text();
             m_db.close(); m_db = QSqlDatabase();
             QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
             QFile::remove(localPath);
@@ -247,7 +247,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     }
 
     if (!m_db.transaction()) {
-        qWarning() << "Transaktion für neues Projekt fehlgeschlagen";
+        qCWarning(lcDb) << "Transaktion für neues Projekt fehlgeschlagen";
         m_db.close(); m_db = QSqlDatabase();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         QFile::remove(localPath);
@@ -273,7 +273,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         qp.bindValue(":n", projektName.isEmpty() ? fallbackName : projektName);
         ok = qp.exec();
         if (!ok)
-            qWarning() << "Projekt-Eintrag anlegen:" << qp.lastError().text();
+            qCWarning(lcDb) << "Projekt-Eintrag anlegen:" << qp.lastError().text();
     }
 
     if (ok) {
@@ -297,7 +297,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     QString name = projektName.isEmpty() ? QFileInfo(localPath).baseName() : projektName;
     zuletzGeoeffnetEintragen(localPath, name);
     bekannteProjecteEintragen(localPath, name, "");
-    qInfo() << "Neues Projekt erstellt:" << localPath;
+    qCInfo(lcDb) << "Neues Projekt erstellt:" << localPath;
     emit projektOffenChanged();
     return true;
 }
@@ -313,7 +313,7 @@ void Database::closeProjekt()
     m_db = QSqlDatabase();
     QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
     m_projektOffen = false;
-    qInfo() << "Projekt geschlossen.";
+    qCInfo(lcDb) << "Projekt geschlossen.";
     emit projektOffenChanged();
 }
 
@@ -322,13 +322,13 @@ bool Database::projektExportieren(const QString &destPfad)
     const QString localPfad = QUrl(destPfad).isLocalFile() ? QUrl(destPfad).toLocalFile() : destPfad;
 
     if (!m_projektOffen) {
-        qWarning() << "projektExportieren: kein Projekt geöffnet";
+        qCWarning(lcDb) << "projektExportieren: kein Projekt geöffnet";
         return false;
     }
 
     // VACUUM INTO schlägt fehl wenn die Zieldatei bereits existiert
     if (QFile::exists(localPfad) && !QFile::remove(localPfad)) {
-        qWarning() << "projektExportieren: Zieldatei konnte nicht gelöscht werden:" << localPfad;
+        qCWarning(lcDb) << "projektExportieren: Zieldatei konnte nicht gelöscht werden:" << localPfad;
         return false;
     }
 
@@ -336,10 +336,10 @@ bool Database::projektExportieren(const QString &destPfad)
     escaped.replace("'", "''");
     QSqlQuery q(m_db);
     if (!q.exec("VACUUM INTO '" + escaped + "'")) {
-        qWarning() << "projektExportieren:" << q.lastError().text();
+        qCWarning(lcDb) << "projektExportieren:" << q.lastError().text();
         return false;
     }
-    qInfo() << "Projekt exportiert nach:" << localPfad;
+    qCInfo(lcDb) << "Projekt exportiert nach:" << localPfad;
     return true;
 }
 
@@ -382,7 +382,7 @@ bool Database::projektLoeschen(const QString &pfad)
 {
     if (QFile::exists(pfad)) {
         if (!QFile::remove(pfad)) {
-            qWarning() << "projektLoeschen: Datei konnte nicht gelöscht werden:" << pfad;
+            qCWarning(lcDb) << "projektLoeschen: Datei konnte nicht gelöscht werden:" << pfad;
             return false;
         }
     }
@@ -442,7 +442,7 @@ bool Database::projektMetaDatenSpeichern(const QString &name,
     q.bindValue(":an", auftragnehmer.trimmed());
     q.bindValue(":b",  bearbeiter.trimmed());
     if (!q.exec()) {
-        qWarning() << "projektMetaDatenSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "projektMetaDatenSpeichern:" << q.lastError().text();
         return false;
     }
     bekannteProjecteEintragen(m_db.databaseName(), name.trimmed(), nummer.trimmed());
@@ -487,7 +487,7 @@ void Database::bekannteProjecteEintragen(const QString &pfad, const QString &nam
     q.bindValue(":n",  name);
     q.bindValue(":nr", nummer);
     if (!q.exec())
-        qWarning() << "bekannteProjecteEintragen:" << q.lastError().text();
+        qCWarning(lcDb) << "bekannteProjecteEintragen:" << q.lastError().text();
     emit registryGeaendert();
 }
 
@@ -528,7 +528,7 @@ bool Database::projektAusRegistryEntfernen(const QString &pfad)
     q.prepare("DELETE FROM bekannte_projekte WHERE datei_pfad = :p");
     q.bindValue(":p", pfad);
     if (!q.exec()) {
-        qWarning() << "projektAusRegistryEntfernen:" << q.lastError().text();
+        qCWarning(lcDb) << "projektAusRegistryEntfernen:" << q.lastError().text();
         return false;
     }
     QSqlQuery q2(m_launcherDb);
@@ -620,7 +620,7 @@ QVariantMap Database::datenbankAutobackup()
         QSqlQuery q(db);
         bool ok = q.exec(QString("VACUUM INTO '%1'").arg(zielEsc));
         if (!ok) {
-            qWarning() << "BACKUP-01 Auto-Backup" << prefix << ":" << q.lastError().text();
+            qCWarning(lcDb) << "BACKUP-01 Auto-Backup" << prefix << ":" << q.lastError().text();
             return false;
         }
 
@@ -642,7 +642,7 @@ QVariantMap Database::datenbankAutobackup()
         if (basename.size() >= 17) letztesSicherung = basename.mid(7, 10);
     }
 
-    qInfo() << "BACKUP-01 Auto-Backup: makros=" << makroOk << "wiki=" << wikiOk
+    qCInfo(lcDb) << "BACKUP-01 Auto-Backup: makros=" << makroOk << "wiki=" << wikiOk
             << "→" << backupDir;
     return {
         {"erfolg",           true},
@@ -682,7 +682,7 @@ QVariantList Database::symboleNachNorm(const QString &norm)
     )");
     q.bindValue(":n", norm);
     if (!q.exec()) {
-        qWarning() << "symboleNachNorm:" << q.lastError().text();
+        qCWarning(lcDb) << "symboleNachNorm:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -709,7 +709,7 @@ bool Database::symbolFavoritSetzen(int symbolId, bool favorit)
     q.bindValue(":fav", favorit ? 1 : 0);
     q.bindValue(":id",  symbolId);
     if (!q.exec()) {
-        qWarning() << "symbolFavoritSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "symbolFavoritSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -735,7 +735,7 @@ bool Database::projektNormSpeichern(int projektId, const QString &norm)
     q.bindValue(":norm", norm);
     q.bindValue(":pid",  projektId);
     if (!q.exec()) {
-        qWarning() << "projektNormSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "projektNormSpeichern:" << q.lastError().text();
         return false;
     }
     return true;
@@ -763,7 +763,7 @@ bool Database::projektHintergrundSpeichern(int projektId, const QString &farbe)
     q.bindValue(":farbe", farbe);
     q.bindValue(":pid",   projektId);
     if (!q.exec()) {
-        qWarning() << "projektHintergrundSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "projektHintergrundSpeichern:" << q.lastError().text();
         return false;
     }
     return true;

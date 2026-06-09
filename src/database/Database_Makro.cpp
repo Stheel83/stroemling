@@ -21,7 +21,7 @@ bool Database::openMakro(const QString &path)
     m_makroDb = QSqlDatabase::addDatabase("QSQLITE", "stroemling_makro");
     m_makroDb.setDatabaseName(path);
     if (!m_makroDb.open()) {
-        qWarning() << "Makro-DB konnte nicht geöffnet werden:" << m_makroDb.lastError().text();
+        qCWarning(lcDb) << "Makro-DB konnte nicht geöffnet werden:" << m_makroDb.lastError().text();
         return false;
     }
     QSqlQuery q(m_makroDb);
@@ -38,7 +38,7 @@ bool Database::openMakro(const QString &path)
         kasten_hoehe  REAL    NOT NULL DEFAULT 100,
         erstellt_am   TEXT    DEFAULT (datetime('now'))
     ))")) {
-        qWarning() << "Makro-DB makro-Tabelle:" << q.lastError().text();
+        qCWarning(lcDb) << "Makro-DB makro-Tabelle:" << q.lastError().text();
         return false;
     }
     if (!q.exec(R"(CREATE TABLE IF NOT EXISTS makro_element (
@@ -53,7 +53,7 @@ bool Database::openMakro(const QString &path)
         symbol_key  TEXT    DEFAULT '',
         sortierung  INTEGER DEFAULT 0
     ))")) {
-        qWarning() << "Makro-DB makro_element-Tabelle:" << q.lastError().text();
+        qCWarning(lcDb) << "Makro-DB makro_element-Tabelle:" << q.lastError().text();
         return false;
     }
 
@@ -76,7 +76,7 @@ bool Database::openMakro(const QString &path)
         if (!cols.contains("ecken_radius"))   m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN ecken_radius   REAL    DEFAULT 0");
     }
 
-    qInfo() << "Makro-DB geöffnet:" << path;
+    qCInfo(lcDb) << "Makro-DB geöffnet:" << path;
     return true;
 }
 
@@ -86,7 +86,7 @@ bool Database::openMakro(const QString &path)
 int Database::makroSpeichern(int grafikElementId, int seiteId)
 {
     if (!m_makroDb.isOpen()) {
-        qWarning() << "makroSpeichern: Makro-DB nicht geöffnet";
+        qCWarning(lcDb) << "makroSpeichern: Makro-DB nicht geöffnet";
         return -1;
     }
 
@@ -95,7 +95,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     qk.prepare("SELECT x1, y1, x2, y2, extra_daten FROM grafik_element WHERE id = :id");
     qk.bindValue(":id", grafikElementId);
     if (!qk.exec() || !qk.next()) {
-        qWarning() << "makroSpeichern: Kasten nicht gefunden" << grafikElementId;
+        qCWarning(lcDb) << "makroSpeichern: Kasten nicht gefunden" << grafikElementId;
         return -1;
     }
     const double kx1 = qk.value(0).toDouble();
@@ -145,13 +145,13 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     qe.bindValue(":miny", minY);
     qe.bindValue(":maxy", maxY);
     if (!qe.exec()) {
-        qWarning() << "makroSpeichern SELECT elemente:" << qe.lastError().text();
+        qCWarning(lcDb) << "makroSpeichern SELECT elemente:" << qe.lastError().text();
         return -1;
     }
 
     // Makro in Makro-DB schreiben (eigene Transaktion)
     if (!m_makroDb.transaction()) {
-        qWarning() << "makroSpeichern: makroDb transaction fehlgeschlagen";
+        qCWarning(lcDb) << "makroSpeichern: makroDb transaction fehlgeschlagen";
         return -1;
     }
 
@@ -168,14 +168,14 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qm.bindValue(":h",  maxY - minY);
         qm.bindValue(":id", makroId);
         if (!qm.exec()) {
-            qWarning() << "makroSpeichern UPDATE makro:" << qm.lastError().text();
+            qCWarning(lcDb) << "makroSpeichern UPDATE makro:" << qm.lastError().text();
             m_makroDb.rollback(); return -1;
         }
         QSqlQuery qdel(m_makroDb);
         qdel.prepare("DELETE FROM makro_element WHERE makro_id = :id");
         qdel.bindValue(":id", makroId);
         if (!qdel.exec()) {
-            qWarning() << "makroSpeichern DELETE makro_element:" << qdel.lastError().text();
+            qCWarning(lcDb) << "makroSpeichern DELETE makro_element:" << qdel.lastError().text();
             m_makroDb.rollback(); return -1;
         }
     } else {
@@ -187,7 +187,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qm.bindValue(":w",  maxX - minX);
         qm.bindValue(":h",  maxY - minY);
         if (!qm.exec()) {
-            qWarning() << "makroSpeichern INSERT makro:" << qm.lastError().text();
+            qCWarning(lcDb) << "makroSpeichern INSERT makro:" << qm.lastError().text();
             m_makroDb.rollback(); return -1;
         }
         makroId = qm.lastInsertId().toInt();
@@ -240,13 +240,13 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qi.bindValue(":op",   qe.value(17));
         qi.bindValue(":er",   qe.value(18));
         if (!qi.exec()) {
-            qWarning() << "makroSpeichern INSERT makro_element:" << qi.lastError().text();
+            qCWarning(lcDb) << "makroSpeichern INSERT makro_element:" << qi.lastError().text();
             m_makroDb.rollback(); return -1;
         }
     }
 
     if (!m_makroDb.commit()) {
-        qWarning() << "makroSpeichern: commit fehlgeschlagen";
+        qCWarning(lcDb) << "makroSpeichern: commit fehlgeschlagen";
         return -1;
     }
 
@@ -257,7 +257,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     qu.bindValue(":ed", QString::fromUtf8(QJsonDocument(ed).toJson(QJsonDocument::Compact)));
     qu.bindValue(":id", grafikElementId);
     if (!qu.exec()) {
-        qWarning() << "makroSpeichern UPDATE extra_daten:" << qu.lastError().text();
+        qCWarning(lcDb) << "makroSpeichern UPDATE extra_daten:" << qu.lastError().text();
         return -1;
     }
 
@@ -350,7 +350,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
 {
     QVariantList newIds;
     if (!m_makroDb.isOpen()) {
-        qWarning() << "makroElementeEinfuegen: Makro-DB nicht geöffnet";
+        qCWarning(lcDb) << "makroElementeEinfuegen: Makro-DB nicht geöffnet";
         return newIds;
     }
 
@@ -373,11 +373,11 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
     )");
     qe.bindValue(":mid", makroId);
     if (!qe.exec()) {
-        qWarning() << "makroElementeEinfuegen SELECT:" << qe.lastError().text();
+        qCWarning(lcDb) << "makroElementeEinfuegen SELECT:" << qe.lastError().text();
         return newIds;
     }
 
-    if (!m_db.transaction()) { qWarning() << "makroElementeEinfuegen: transaction"; return newIds; }
+    if (!m_db.transaction()) { qCWarning(lcDb) << "makroElementeEinfuegen: transaction"; return newIds; }
 
     QSqlQuery qi(m_db);
     qi.prepare(R"(
@@ -422,7 +422,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
                 qins.bindValue(":her", hersteller.isEmpty() ? QVariant() : QVariant(hersteller));
                 qins.bindValue(":art", artikelnummer.isEmpty() ? QVariant() : QVariant(artikelnummer));
                 if (qins.exec()) bauteilId = qins.lastInsertId().toInt();
-                else qWarning() << "makroElementeEinfuegen INSERT bauteil:" << qins.lastError().text();
+                else qCWarning(lcDb) << "makroElementeEinfuegen INSERT bauteil:" << qins.lastError().text();
             }
             if (bauteilId > 0) {
                 const QString bmk       = edObj.value(QStringLiteral("bmk")).toString();
@@ -436,7 +436,7 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
                 qbm.bindValue(":kz",  bmk.isEmpty() ? QStringLiteral("?") : bmk);
                 qbm.bindValue(":sc",  symbolKey.isEmpty() ? QVariant() : QVariant(symbolKey));
                 if (qbm.exec()) bmId = qbm.lastInsertId().toInt();
-                else qWarning() << "makroElementeEinfuegen INSERT betriebsmittel:" << qbm.lastError().text();
+                else qCWarning(lcDb) << "makroElementeEinfuegen INSERT betriebsmittel:" << qbm.lastError().text();
             }
             // Snapshot aus extra_daten entfernen (projekt-intern, nicht persistieren)
             edObj.remove(QStringLiteral("bauteilSnapshot"));
@@ -465,13 +465,13 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         qi.bindValue(":er",   qe.value(18));
         qi.bindValue(":bmid", bmId);
         if (!qi.exec()) {
-            qWarning() << "makroElementeEinfuegen INSERT:" << qi.lastError().text();
+            qCWarning(lcDb) << "makroElementeEinfuegen INSERT:" << qi.lastError().text();
             m_db.rollback(); return QVariantList();
         }
         newIds.append(qi.lastInsertId().toInt());
     }
 
-    if (!m_db.commit()) { qWarning() << "makroElementeEinfuegen: commit"; return QVariantList(); }
+    if (!m_db.commit()) { qCWarning(lcDb) << "makroElementeEinfuegen: commit"; return QVariantList(); }
     return newIds;
 }
 
@@ -485,7 +485,7 @@ bool Database::makroLoeschen(int makroId)
     q.prepare("DELETE FROM makro WHERE id = :id");
     q.bindValue(":id", makroId);
     if (!q.exec()) {
-        qWarning() << "makroLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "makroLoeschen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -506,7 +506,7 @@ bool Database::makroMetaAktualisieren(int makroId, const QString &name,
     q.bindValue(":k",  kategorie);
     q.bindValue(":id", makroId);
     if (!q.exec()) {
-        qWarning() << "makroMetaAktualisieren:" << q.lastError().text();
+        qCWarning(lcDb) << "makroMetaAktualisieren:" << q.lastError().text();
         return false;
     }
     return true;

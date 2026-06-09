@@ -31,7 +31,7 @@ QVariantList Database::alleSeitenFlach(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "alleSeitenFlach:" << q.lastError().text();
+        qCWarning(lcDb) << "alleSeitenFlach:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -91,7 +91,7 @@ QVariantList Database::spotlightEintraege(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "spotlightEintraege:" << q.lastError().text();
+        qCWarning(lcDb) << "spotlightEintraege:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -137,7 +137,7 @@ QVariantList Database::querverweiseLadenProjekt(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "querverweiseLadenProjekt:" << q.lastError().text();
+        qCWarning(lcDb) << "querverweiseLadenProjekt:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -208,7 +208,7 @@ QVariantList Database::stueckliste(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "stueckliste:" << q.lastError().text();
+        qCWarning(lcDb) << "stueckliste:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -281,7 +281,7 @@ QVariantList Database::querverweisListe(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "querverweisListe:" << q.lastError().text();
+        qCWarning(lcDb) << "querverweisListe:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -355,7 +355,7 @@ QVariantList Database::aderliste(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "aderliste:" << q.lastError().text();
+        qCWarning(lcDb) << "aderliste:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -443,7 +443,7 @@ int Database::betriebsmittelAnlegen(int projektId, const QString &kz, const QStr
     q.bindValue(":kz",  kz);
     q.bindValue(":bez", bezeichnung);
     if (!q.exec()) {
-        qWarning() << "betriebsmittelAnlegen Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "betriebsmittelAnlegen Fehler:" << q.lastError().text();
         return -1;
     }
     return q.lastInsertId().toInt();
@@ -456,7 +456,7 @@ bool Database::grafikElementVerknuepfen(int elementId, int betriebsmittelId)
     q.bindValue(":bid", betriebsmittelId);
     q.bindValue(":id",  elementId);
     if (!q.exec()) {
-        qWarning() << "grafikElementVerknuepfen Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "grafikElementVerknuepfen Fehler:" << q.lastError().text();
         return false;
     }
     return true;
@@ -475,7 +475,7 @@ bool Database::grafikElementEntknuepfen(int elementId)
     q.prepare("UPDATE grafik_element SET betriebsmittel_id = NULL WHERE id = :id");
     q.bindValue(":id", elementId);
     if (!q.exec()) {
-        qWarning() << "grafikElementEntknuepfen Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "grafikElementEntknuepfen Fehler:" << q.lastError().text();
         return false;
     }
     return true;
@@ -615,7 +615,7 @@ bool Database::betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int eleme
     q.bindValue(":eid", elementId);
     q.bindValue(":bid", betriebsmittelId);
     if (!q.exec()) {
-        qWarning() << "betriebsmittelHauptfunktionSetzen Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "betriebsmittelHauptfunktionSetzen Fehler:" << q.lastError().text();
         return false;
     }
     return true;
@@ -628,7 +628,7 @@ bool Database::betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz
     upd.bindValue(":kz", neuKz);
     upd.bindValue(":id", betriebsmittelId);
     if (!upd.exec()) {
-        qWarning() << "betriebsmittelKzSetzen Fehler:" << upd.lastError().text();
+        qCWarning(lcDb) << "betriebsmittelKzSetzen Fehler:" << upd.lastError().text();
         return false;
     }
     return betriebsmittelBmkSynchronisieren(betriebsmittelId);
@@ -660,7 +660,7 @@ bool Database::betriebsmittelBmkSynchronisieren(int betriebsmittelId)
         upd.bindValue(":ed", QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)));
         upd.bindValue(":id", gid);
         if (!upd.exec())
-            qWarning() << "betriebsmittelBmkSynchronisieren Fehler Element" << gid << upd.lastError().text();
+            qCWarning(lcDb) << "betriebsmittelBmkSynchronisieren Fehler Element" << gid << upd.lastError().text();
     }
     return true;
 }
@@ -722,7 +722,7 @@ QVariantList Database::klemmenplan(int projektId)
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "Database::klemmenplan:" << q.lastError().text();
+        qCWarning(lcDb) << "Database::klemmenplan:" << q.lastError().text();
         return result;
     }
 
@@ -773,7 +773,7 @@ bool Database::klemmenplanCsvSpeichern(int projektId, const QString &pfad)
 
     QFile file(localPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "klemmenplanCsvSpeichern: kann nicht öffnen:" << localPath;
+        qCWarning(lcDb) << "klemmenplanCsvSpeichern: kann nicht öffnen:" << localPath;
         return false;
     }
 
@@ -812,7 +812,7 @@ bool Database::stuecklisteCsvSpeichern(int projektId, const QString &pfad)
     if (localPath.isEmpty()) localPath = pfad;
     QFile file(localPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "stuecklisteCsvSpeichern: kann nicht öffnen:" << localPath;
+        qCWarning(lcDb) << "stuecklisteCsvSpeichern: kann nicht öffnen:" << localPath;
         return false;
     }
     QTextStream out(&file);
@@ -848,7 +848,7 @@ bool Database::querverweislisteCsvSpeichern(int projektId, const QString &pfad)
     if (localPath.isEmpty()) localPath = pfad;
     QFile file(localPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "querverweislisteCsvSpeichern: kann nicht öffnen:" << localPath;
+        qCWarning(lcDb) << "querverweislisteCsvSpeichern: kann nicht öffnen:" << localPath;
         return false;
     }
     QTextStream out(&file);
@@ -879,7 +879,7 @@ bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
     if (localPath.isEmpty()) localPath = pfad;
     QFile file(localPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "aderlisteCsvSpeichern: kann nicht öffnen:" << localPath;
+        qCWarning(lcDb) << "aderlisteCsvSpeichern: kann nicht öffnen:" << localPath;
         return false;
     }
     QTextStream out(&file);
@@ -917,7 +917,7 @@ bool Database::kabellisteCsvSpeichern(int projektId, const QString &pfad)
     if (localPath.isEmpty()) localPath = pfad;
     QFile file(localPath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "kabellisteCsvSpeichern: kann nicht öffnen:" << localPath;
+        qCWarning(lcDb) << "kabellisteCsvSpeichern: kann nicht öffnen:" << localPath;
         return false;
     }
     QTextStream out(&file);

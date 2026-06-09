@@ -24,7 +24,7 @@ QVariantList Database::spsRackListe(int projektId)
     q.prepare("SELECT id, rack_nr, system_typ, bezeichnung, beschreibung, hersteller, sortierung "
               "FROM sps_rack WHERE projekt_id = :pid ORDER BY sortierung, rack_nr");
     q.bindValue(":pid", projektId);
-    if (!q.exec()) { qWarning() << "spsRackListe:" << q.lastError().text(); return result; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsRackListe:" << q.lastError().text(); return result; }
     while (q.next()) {
         QVariantMap m;
         m["id"]           = q.value(0).toInt();
@@ -50,7 +50,7 @@ int Database::spsRackAnlegen(int projektId, int rackNr, const QString &systemTyp
     q.bindValue(":typ", systemTyp);
     q.bindValue(":bez", bezeichnung);
     q.bindValue(":her", hersteller);
-    if (!q.exec()) { qWarning() << "spsRackAnlegen:" << q.lastError().text(); return -1; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsRackAnlegen:" << q.lastError().text(); return -1; }
     return q.lastInsertId().toInt();
 }
 
@@ -67,7 +67,7 @@ bool Database::spsRackAktualisieren(int id, int rackNr, const QString &systemTyp
     q.bindValue(":desc", beschreibung);
     q.bindValue(":her",  hersteller);
     q.bindValue(":id",   id);
-    if (!q.exec()) { qWarning() << "spsRackAktualisieren:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsRackAktualisieren:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -76,7 +76,7 @@ bool Database::spsRackLoeschen(int id)
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_rack WHERE id=:id");
     q.bindValue(":id", id);
-    if (!q.exec()) { qWarning() << "spsRackLoeschen:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsRackLoeschen:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -90,7 +90,7 @@ QVariantList Database::spsBaugruppeListe(int rackId)
               "datentyp_standard, adress_byte_start, kommentar "
               "FROM sps_baugruppe WHERE rack_id = :rid ORDER BY slot");
     q.bindValue(":rid", rackId);
-    if (!q.exec()) { qWarning() << "spsBaugruppeListe:" << q.lastError().text(); return result; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeListe:" << q.lastError().text(); return result; }
     while (q.next()) {
         QVariantMap m;
         m["id"]                = q.value(0).toInt();
@@ -120,7 +120,7 @@ int Database::spsBaugruppeAnlegen(int rackId, int slot, const QString &typ,
     q.bindValue(":bez",  bezeichnung);
     q.bindValue(":kan",  kanaele);
     q.bindValue(":abs",  adressByteStart);
-    if (!q.exec()) { qWarning() << "spsBaugruppeAnlegen:" << q.lastError().text(); return -1; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeAnlegen:" << q.lastError().text(); return -1; }
     return q.lastInsertId().toInt();
 }
 
@@ -142,7 +142,7 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
     q.bindValue(":abs",  adressByteStart);
     q.bindValue(":kom",  kommentar);
     q.bindValue(":id",   id);
-    if (!q.exec()) { qWarning() << "spsBaugruppeAktualisieren:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeAktualisieren:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -151,7 +151,7 @@ bool Database::spsBaugruppeLoeschen(int id)
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_baugruppe WHERE id=:id");
     q.bindValue(":id", id);
-    if (!q.exec()) { qWarning() << "spsBaugruppeLoeschen:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeLoeschen:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -233,7 +233,7 @@ QVariantList Database::spsKanalListe(int projektId)
               + "WHERE sk.projekt_id = :pid "
                 "ORDER BY sr.rack_nr, sb.slot, sk.kanal_nr, sk.adress_typ, sk.byte_nr, sk.bit_nr");
     q.bindValue(":pid", projektId);
-    if (!q.exec()) { qWarning() << "spsKanalListe:" << q.lastError().text(); return result; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalListe:" << q.lastError().text(); return result; }
     while (q.next()) result.append(_spsKanalRow(q));
     return result;
 }
@@ -245,7 +245,7 @@ QVariantList Database::spsKanalListeFuerBaugruppe(int baugruppeId)
     q.prepare(QString(_spsKanalSelectBase)
               + "WHERE sk.baugruppe_id = :bid ORDER BY sk.kanal_nr, sk.byte_nr, sk.bit_nr");
     q.bindValue(":bid", baugruppeId);
-    if (!q.exec()) { qWarning() << "spsKanalListeFuerBaugruppe:" << q.lastError().text(); return result; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalListeFuerBaugruppe:" << q.lastError().text(); return result; }
     while (q.next()) result.append(_spsKanalRow(q));
     return result;
 }
@@ -269,7 +269,7 @@ int Database::spsKanalAnlegen(int projektId, int baugruppeId, int kanalNr,
     q.bindValue(":dty", datentyp);
     q.bindValue(":var", variablenname);
     q.bindValue(":kom", kommentar);
-    if (!q.exec()) { qWarning() << "spsKanalAnlegen:" << q.lastError().text(); return -1; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalAnlegen:" << q.lastError().text(); return -1; }
     return q.lastInsertId().toInt();
 }
 
@@ -310,7 +310,7 @@ bool Database::spsKanalAktualisieren(int id, const QVariantMap &felder)
     for (auto it = bv.constBegin(); it != bv.constEnd(); ++it)
         q.bindValue(QStringLiteral(":") + it.key(), it.value());
     q.bindValue(":id", id);
-    if (!q.exec()) { qWarning() << "spsKanalAktualisieren:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalAktualisieren:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -319,7 +319,7 @@ bool Database::spsKanalLoeschen(int id)
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_kanal WHERE id=:id");
     q.bindValue(":id", id);
-    if (!q.exec()) { qWarning() << "spsKanalLoeschen:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalLoeschen:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -338,7 +338,7 @@ bool Database::spsKanalElementZuweisen(int kanalId, int elementId)
     q.prepare("UPDATE sps_kanal SET grafik_element_id=:eid WHERE id=:id");
     q.bindValue(":eid", elementId);
     q.bindValue(":id",  kanalId);
-    if (!q.exec()) { qWarning() << "spsKanalElementZuweisen:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalElementZuweisen:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -347,7 +347,7 @@ bool Database::spsKanalElementEntfernen(int kanalId)
     QSqlQuery q(m_db);
     q.prepare("UPDATE sps_kanal SET grafik_element_id=NULL WHERE id=:id");
     q.bindValue(":id", kanalId);
-    if (!q.exec()) { qWarning() << "spsKanalElementEntfernen:" << q.lastError().text(); return false; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKanalElementEntfernen:" << q.lastError().text(); return false; }
     return true;
 }
 
@@ -371,7 +371,7 @@ bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
     QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
     QFile file(localPfad);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "spsIOListeCsvSpeichern: Datei nicht schreibbar:" << localPfad;
+        qCWarning(lcDb) << "spsIOListeCsvSpeichern: Datei nicht schreibbar:" << localPfad;
         return false;
     }
     QTextStream out(&file);
@@ -405,7 +405,7 @@ bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
         out << '"' << csv(k["grafik_element_id"]) << "\"\n";
     }
     file.close();
-    qInfo() << "SPS/PLS I/O-Liste exportiert:" << localPfad << "(" << kanaele.size() << "Kanäle)";
+    qCInfo(lcDb) << "SPS/PLS I/O-Liste exportiert:" << localPfad << "(" << kanaele.size() << "Kanäle)";
     return true;
 }
 
@@ -417,7 +417,7 @@ QVariantList Database::spsKonfliktElementIds(int projektId)
               "WHERE projekt_id = :pid AND grafik_element_id IS NOT NULL "
               "GROUP BY grafik_element_id HAVING COUNT(*) > 1");
     q.bindValue(":pid", projektId);
-    if (!q.exec()) { qWarning() << "spsKonfliktElementIds:" << q.lastError().text(); return result; }
+    if (!q.exec()) { qCWarning(lcDb) << "spsKonfliktElementIds:" << q.lastError().text(); return result; }
     while (q.next()) result.append(q.value(0).toInt());
     return result;
 }

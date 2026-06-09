@@ -20,7 +20,7 @@ QVariantList Database::klemmenFuerLeiste(int leisteId) const
         "ORDER BY k.sortierung, k.id"
     );
     q.bindValue(":lid", leisteId);
-    if (!q.exec()) { qWarning() << "klemmenFuerLeiste:" << q.lastError().text(); return result; }
+    if (!q.exec()) { qCWarning(lcDb) << "klemmenFuerLeiste:" << q.lastError().text(); return result; }
     while (q.next()) {
         QVariantMap row;
         row[QStringLiteral("id")]              = q.value(0).toInt();
@@ -92,7 +92,7 @@ QVariantList Database::platzierteKlemmenAnschluesse() const
             "   AND extra_daten IS NOT NULL"
             "   AND json_extract(extra_daten,'$.klemmeId') IS NOT NULL"
             "   AND json_extract(extra_daten,'$.klemmeId') != 'null'")) {
-        qWarning() << "platzierteKlemmenAnschluesse:" << q.lastError().text();
+        qCWarning(lcDb) << "platzierteKlemmenAnschluesse:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -167,7 +167,7 @@ QVariantList Database::klemmenAnschlussAlleSeiten(int projektId) const
         "  AND json_extract(ge.extra_daten,'$.klemmeId') != 'null'"
     ).arg(projektId);
     if (!q.exec(sql)) {
-        qWarning() << "klemmenAnschlussAlleSeiten:" << q.lastError().text();
+        qCWarning(lcDb) << "klemmenAnschlussAlleSeiten:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -197,7 +197,7 @@ QVariantList Database::klemmenInterneBruecken(int /*projektId*/) const
         "  ON bkb.klemme_id = CAST(json_extract(ge.extra_daten,'$.bauteilKlemmeId') AS INTEGER) "
         "WHERE ge.symbol_id = 'klemme_anschluss' "
         "  AND (bkb.ist_pe_fuss IS NULL OR bkb.ist_pe_fuss = 0)")) {
-        qWarning() << "klemmenInterneBruecken:" << q.lastError().text();
+        qCWarning(lcDb) << "klemmenInterneBruecken:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -228,7 +228,7 @@ QVariantList Database::klemmenStegbrueckenGruppen(int projektId) const
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "klemmenStegbrueckenGruppen:" << q.lastError().text();
+        qCWarning(lcDb) << "klemmenStegbrueckenGruppen:" << q.lastError().text();
         return result;
     }
     QHash<int, QVariantList> klemmeIds;

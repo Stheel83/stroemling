@@ -1076,7 +1076,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec() || !q.next()) {
-        qWarning() << "canvasPdfExportieren: keine Seiten für Projekt" << projektId;
+        qCWarning(lcDb) << "canvasPdfExportieren: keine Seiten für Projekt" << projektId;
         return false;
     }
     QList<int> seiteIds;
@@ -1105,7 +1105,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
 
     QPainter painter(&writer);
     if (!painter.isActive()) {
-        qWarning() << "canvasPdfExportieren: QPainter konnte nicht gestartet werden";
+        qCWarning(lcDb) << "canvasPdfExportieren: QPainter konnte nicht gestartet werden";
         return false;
     }
 
@@ -1153,7 +1153,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
     }
 
     painter.end();
-    qInfo() << "canvasPdfExportieren: PDF gespeichert:" << localPath
+    qCInfo(lcDb) << "canvasPdfExportieren: PDF gespeichert:" << localPath
             << "(" << seiteIds.size() << "Seiten)";
     return QFile::exists(localPath);
 }
@@ -1184,7 +1184,7 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
 
     QPainter painter(&writer);
     if (!painter.isActive()) {
-        qWarning() << "canvasSeiteExportieren: QPainter konnte nicht gestartet werden";
+        qCWarning(lcDb) << "canvasSeiteExportieren: QPainter konnte nicht gestartet werden";
         return false;
     }
 
@@ -1209,7 +1209,7 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
         pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
 
     painter.end();
-    qInfo() << "canvasSeiteExportieren: PDF gespeichert:" << localPath
+    qCInfo(lcDb) << "canvasSeiteExportieren: PDF gespeichert:" << localPath
             << (vollCanvas ? "(vollCanvas)" : "");
     return QFile::exists(localPath);
 }
@@ -1256,7 +1256,7 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
         QSqlQuery q(m_makroDb);
         makroDbOk = q.exec(QString("VACUUM INTO '%1'").arg(esc));
         if (!makroDbOk)
-            qWarning() << "komplettarchivExportieren makros.db:" << q.lastError().text();
+            qCWarning(lcDb) << "komplettarchivExportieren makros.db:" << q.lastError().text();
     }
 
     // 1c. wiki.db per VACUUM INTO sichern
@@ -1267,7 +1267,7 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
         QSqlQuery q(m_wikiDb);
         wikiDbOk = q.exec(QString("VACUUM INTO '%1'").arg(esc));
         if (!wikiDbOk)
-            qWarning() << "komplettarchivExportieren wiki.db:" << q.lastError().text();
+            qCWarning(lcDb) << "komplettarchivExportieren wiki.db:" << q.lastError().text();
     }
 
     // 1d. wiki_blobs/ rekursiv kopieren
@@ -1307,7 +1307,7 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
                     {QStringLiteral("originalPfad"), pfad}
                 });
             } else {
-                qWarning() << "komplettarchivExportieren: Projektkopie fehlgeschlagen:" << pfad;
+                qCWarning(lcDb) << "komplettarchivExportieren: Projektkopie fehlgeschlagen:" << pfad;
             }
         }
     }
@@ -1330,7 +1330,7 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
     if (wikiDbOk)  meldung += ", Wiki";
     meldung += QStringLiteral(" gesichert");
 
-    qInfo() << "komplettarchivExportieren:" << projekteAnzahl << "Projekt(e),"
+    qCInfo(lcDb) << "komplettarchivExportieren:" << projekteAnzahl << "Projekt(e),"
             << "makros=" << makroDbOk << "wiki=" << wikiDbOk << "→" << ziel;
     return {
         {QStringLiteral("erfolg"),         true},
@@ -1411,7 +1411,7 @@ QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
         QString srcPfad   = projSrcOrdner + "/" + dateiName;
 
         if (!QFile::exists(srcPfad)) {
-            qWarning() << "komplettarchivImportieren: Projektdatei fehlt:" << srcPfad;
+            qCWarning(lcDb) << "komplettarchivImportieren: Projektdatei fehlt:" << srcPfad;
             continue;
         }
 
@@ -1439,7 +1439,7 @@ QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
     if (makroDbGeplant || wikiDbGeplant)
         meldung += QStringLiteral(" · Makros/Wiki werden beim nächsten Start wiederhergestellt");
 
-    qInfo() << "komplettarchivImportieren:" << projekteAnzahl << "Projekt(e)"
+    qCInfo(lcDb) << "komplettarchivImportieren:" << projekteAnzahl << "Projekt(e)"
             << "makroPending=" << makroDbGeplant << "wikiPending=" << wikiDbGeplant;
     return {
         {QStringLiteral("erfolg"),          true},
@@ -1555,7 +1555,7 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
                       .arg(dbFelder.join(", "), bindVars.join(", "));
 
     if (!m_db.transaction()) {
-        qWarning() << "csvBauteileImportieren: transaction fehlgeschlagen";
+        qCWarning(lcDb) << "csvBauteileImportieren: transaction fehlgeschlagen";
         return 0;
     }
     QSqlQuery q(m_db);
@@ -1576,7 +1576,7 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
             }
         }
         if (q.exec()) ++count;
-        else qWarning() << "csvBauteileImportieren Zeile" << row << ":" << q.lastError().text();
+        else qCWarning(lcDb) << "csvBauteileImportieren Zeile" << row << ":" << q.lastError().text();
     }
     m_db.commit();
     return count;

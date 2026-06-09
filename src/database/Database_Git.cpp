@@ -85,7 +85,7 @@ bool Database::snapshotErstellen(const QString &ordner)
 
     QFile f(ordner + "/snapshot.json");
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "snapshotErstellen: Datei nicht schreibbar:" << f.fileName();
+        qCWarning(lcDb) << "snapshotErstellen: Datei nicht schreibbar:" << f.fileName();
         return false;
     }
     f.write(QJsonDocument(snap).toJson(QJsonDocument::Indented));
@@ -112,7 +112,7 @@ void Database::gitProjektInit(const QString &ordner)
         [init, ordner](int exitCode) {
             init->deleteLater();
             if (exitCode != 0) {
-                qWarning() << "gitProjektInit: git init fehlgeschlagen";
+                qCWarning(lcDb) << "gitProjektInit: git init fehlgeschlagen";
                 return;
             }
             auto add = new QProcess();
@@ -125,7 +125,7 @@ void Database::gitProjektInit(const QString &ordner)
                     QObject::connect(commit, &QProcess::finished, commit,
                         [commit](int code) {
                             commit->deleteLater();
-                            qInfo() << "GIT-01 Init-Commit:" << (code == 0 ? "ok" : "fehlgeschlagen");
+                            qCInfo(lcDb) << "GIT-01 Init-Commit:" << (code == 0 ? "ok" : "fehlgeschlagen");
                         });
                     commit->start("git", {"commit", "-m", "Projekt angelegt"});
                 });
@@ -161,7 +161,7 @@ void Database::gitAutoCommit(const QString &ordner, const QString &nachricht)
                 [commit, ordner](int code) {
                     commit->deleteLater();
                     if (code != 0) return; // "nothing to commit" oder Fehler
-                    qInfo() << "GIT-01 Auto-Commit ok";
+                    qCInfo(lcDb) << "GIT-01 Auto-Commit ok";
                     // GIT-02: Push wenn Remote konfiguriert (stiller Fehler)
                     QProcess remoteCheck;
                     remoteCheck.setWorkingDirectory(ordner);
@@ -173,8 +173,8 @@ void Database::gitAutoCommit(const QString &ordner, const QString &nachricht)
                     QObject::connect(push, &QProcess::finished, push,
                         [push](int pCode) {
                             push->deleteLater();
-                            if (pCode == 0) qInfo() << "GIT-02 Push ok";
-                            else qWarning() << "GIT-02 Push fehlgeschlagen (ignoriert)";
+                            if (pCode == 0) qCInfo(lcDb) << "GIT-02 Push ok";
+                            else qCWarning(lcDb) << "GIT-02 Push fehlgeschlagen (ignoriert)";
                         });
                     push->start("git", {"push", "--set-upstream", "origin", "HEAD"});
                 });
@@ -228,11 +228,11 @@ bool Database::gitCheckout(const QString &ordner, const QString &hash)
     proc.setWorkingDirectory(ordner);
     proc.start("git", {"checkout", hash, "--", "projekt.strl", "snapshot.json"});
     if (!proc.waitForFinished(5000) || proc.exitCode() != 0) {
-        qWarning() << "gitCheckout fehlgeschlagen:" << proc.readAllStandardError();
+        qCWarning(lcDb) << "gitCheckout fehlgeschlagen:" << proc.readAllStandardError();
         return false;
     }
 
-    qInfo() << "GIT-01 Checkout:" << hash << "→" << ordner;
+    qCInfo(lcDb) << "GIT-01 Checkout:" << hash << "→" << ordner;
     return openProjekt(ordner + "/projekt.strl");
 }
 
@@ -270,7 +270,7 @@ void Database::gitRemoteSetzen(const QString &ordner, const QString &url)
         [remote, ordner](int code) {
             remote->deleteLater();
             if (code != 0) {
-                qWarning() << "GIT-02 gitRemoteSetzen: remote-Befehl fehlgeschlagen";
+                qCWarning(lcDb) << "GIT-02 gitRemoteSetzen: remote-Befehl fehlgeschlagen";
                 return;
             }
             // Initialer Push
@@ -279,11 +279,11 @@ void Database::gitRemoteSetzen(const QString &ordner, const QString &url)
             QObject::connect(push, &QProcess::finished, push,
                 [push](int pCode) {
                     push->deleteLater();
-                    if (pCode == 0) qInfo() << "GIT-02 Initialer Push ok";
-                    else qWarning() << "GIT-02 Initialer Push fehlgeschlagen (SSH-Key / Zugangsdaten prüfen)";
+                    if (pCode == 0) qCInfo(lcDb) << "GIT-02 Initialer Push ok";
+                    else qCWarning(lcDb) << "GIT-02 Initialer Push fehlgeschlagen (SSH-Key / Zugangsdaten prüfen)";
                 });
             push->start("git", {"push", "--set-upstream", "origin", "HEAD"});
         });
     remote->start("git", remoteArgs);
-    qInfo() << "GIT-02 Remote gesetzt:" << url;
+    qCInfo(lcDb) << "GIT-02 Remote gesetzt:" << url;
 }

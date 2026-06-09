@@ -4,6 +4,7 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QString>
+#include "logging.h"
 
 // Database kümmert sich um:
 //   - Verbindung zur SQLite-Datei aufbauen

@@ -68,7 +68,7 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
 
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "ibnListeLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnListeLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -111,7 +111,7 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
     q.bindValue(":sid", seiteId);
     q.bindValue(":bmk", bmk);
     if (!q.exec()) {
-        qWarning() << "ibnEintragSpeichern INSERT:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnEintragSpeichern INSERT:" << q.lastError().text();
         return false;
     }
 
@@ -132,7 +132,7 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
     q.bindValue(":sid", seiteId);
     q.bindValue(":bmk", bmk);
     if (!q.exec()) {
-        qWarning() << "ibnEintragSpeichern UPDATE:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnEintragSpeichern UPDATE:" << q.lastError().text();
         return false;
     }
     return true;
@@ -153,7 +153,7 @@ bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &s
     q.bindValue(":bmk", bmk);
     q.bindValue(":st",  status);
     if (!q.exec()) {
-        qWarning() << "ibnStatusSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnStatusSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -191,7 +191,7 @@ QVariantList Database::ibnKabelListeLaden(int projektId)
 
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "ibnKabelListeLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnKabelListeLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -236,7 +236,7 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
     q.bindValue(":gv",  geprueftVon);
     q.bindValue(":ga",  geprueftAm);
     if (!q.exec()) {
-        qWarning() << "ibnKabelSpeichern INSERT:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnKabelSpeichern INSERT:" << q.lastError().text();
         return false;
     }
     q.prepare(R"(
@@ -253,7 +253,7 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
     q.bindValue(":ga",  geprueftAm);
     q.bindValue(":kid", kabelId);
     if (!q.exec()) {
-        qWarning() << "ibnKabelSpeichern UPDATE:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnKabelSpeichern UPDATE:" << q.lastError().text();
         return false;
     }
     return true;
@@ -270,7 +270,7 @@ bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
     q.bindValue(":kid", kabelId);
     q.bindValue(":st",  status);
     if (!q.exec()) {
-        qWarning() << "ibnKabelStatusSetzen:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnKabelStatusSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -417,7 +417,7 @@ bool Database::seedIbnFeldvorlagen()
         q.bindValue(":pfl", f.pflicht);
         q.bindValue(":rei", f.reihenfolge);
         if (!q.exec()) {
-            qWarning() << "seedIbnFeldvorlagen:" << q.lastError().text();
+            qCWarning(lcDb) << "seedIbnFeldvorlagen:" << q.lastError().text();
             return false;
         }
     }
@@ -442,7 +442,7 @@ bool Database::seedIbnFeldvorlagen()
         qu.bindValue(":kat", km.kategorie);
         qu.bindValue(":id",  km.symbolId);
         if (!qu.exec())
-            qWarning() << "seedIbnFeldvorlagen update" << km.symbolId << ":" << qu.lastError().text();
+            qCWarning(lcDb) << "seedIbnFeldvorlagen update" << km.symbolId << ":" << qu.lastError().text();
     }
     return true;
 }
@@ -461,7 +461,7 @@ QVariantList Database::ibnFeldvorlagenLaden(const QString &symbolKategorie)
     q.bindValue(":kat", symbolKategorie);
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "ibnFeldvorlagenLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnFeldvorlagenLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -488,7 +488,7 @@ QVariantList Database::ibnAlleVorlagenLaden()
     )");
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "ibnAlleVorlagenLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnAlleVorlagenLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -513,7 +513,7 @@ QVariantList Database::ibnAlleKategorienLaden()
     QSqlQuery q("SELECT DISTINCT symbol_kategorie FROM ibn_feldvorlage ORDER BY symbol_kategorie");
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "ibnAlleKategorienLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnAlleKategorienLaden:" << q.lastError().text();
         return result;
     }
     while (q.next())
@@ -548,7 +548,7 @@ bool Database::ibnFeldVorlageSpeichern(const QString &symbolKategorie,
     q.bindValue(":ein",  einheit);
     q.bindValue(":pfl",  pflichtfeld ? 1 : 0);
     if (!q.exec()) {
-        qWarning() << "ibnFeldVorlageSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnFeldVorlageSpeichern:" << q.lastError().text();
         return false;
     }
     return true;
@@ -560,7 +560,7 @@ bool Database::ibnFeldVorlageLoeschen(int id)
     q.prepare("DELETE FROM ibn_feldvorlage WHERE id = :id AND erstellt_von = 'user'");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "ibnFeldVorlageLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnFeldVorlageLoeschen:" << q.lastError().text();
         return false;
     }
     return q.numRowsAffected() > 0;
@@ -587,7 +587,7 @@ bool Database::ibnFeldVorlageAktualisieren(int id,
     q.bindValue(":ein", einheit);
     q.bindValue(":pfl", pflichtfeld ? 1 : 0);
     if (!q.exec()) {
-        qWarning() << "ibnFeldVorlageAktualisieren:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnFeldVorlageAktualisieren:" << q.lastError().text();
         return false;
     }
     return q.numRowsAffected() > 0;
@@ -603,7 +603,7 @@ QVariantList Database::ibnFeldwerteLaden(int inbetriebnahmeId)
     q.bindValue(":id", inbetriebnahmeId);
     QVariantList result;
     if (!q.exec()) {
-        qWarning() << "ibnFeldwerteLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "ibnFeldwerteLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -629,7 +629,7 @@ bool Database::ibnFeldwerteAktualisieren(int inbetriebnahmeId, const QVariantLis
         q.bindValue(":fn",   m.value("feldname").toString());
         q.bindValue(":wert", m.value("wert").toString());
         if (!q.exec()) {
-            qWarning() << "ibnFeldwerteAktualisieren:" << q.lastError().text();
+            qCWarning(lcDb) << "ibnFeldwerteAktualisieren:" << q.lastError().text();
             return false;
         }
     }

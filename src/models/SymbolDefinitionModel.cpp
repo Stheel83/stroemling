@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "SymbolDefinitionModel.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -38,7 +39,7 @@ QVariantList SymbolDefinitionModel::primitiveFuerSymbol(const QString &symbolId)
     )");
     q.bindValue(":sym", symbolId);
     if (!q.exec()) {
-        qWarning() << "primitiveFuerSymbol:" << q.lastError().text();
+        qCWarning(lcModel) << "primitiveFuerSymbol:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -92,7 +93,7 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
     )");
     q.bindValue(":sym", symbolId);
     if (!q.exec()) {
-        qWarning() << "pinsForSymbol:" << q.lastError().text();
+        qCWarning(lcModel) << "pinsForSymbol:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -177,7 +178,7 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
     q.bindValue(":hMm",   hoeheMm);
     q.bindValue(":rolle", rolle);
     if (!q.exec()) {
-        qWarning() << "symbolAnlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "symbolAnlegen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -196,7 +197,7 @@ bool SymbolDefinitionModel::symbolAktualisieren(const QString &id, const QString
     q.bindValue(":rolle", rolle);
     q.bindValue(":id",    id);
     if (!q.exec()) {
-        qWarning() << "symbolAktualisieren:" << q.lastError().text();
+        qCWarning(lcModel) << "symbolAktualisieren:" << q.lastError().text();
         return false;
     }
     return q.numRowsAffected() > 0;
@@ -208,7 +209,7 @@ bool SymbolDefinitionModel::symbolLoeschen(const QString &symbolId)
     q.prepare("DELETE FROM symbol_definition WHERE id=:id AND ist_builtin=0");
     q.bindValue(":id", symbolId);
     if (!q.exec()) {
-        qWarning() << "symbolLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "symbolLoeschen:" << q.lastError().text();
         return false;
     }
     m_primitivCache.remove(symbolId);
@@ -259,7 +260,7 @@ int SymbolDefinitionModel::primitivHinzufuegen(const QString &symbolId, const QV
     q.bindValue(":tb",    daten.value("text_baseline", "middle"));
     q.bindValue(":la",    daten.value("linienart", "solid"));
     if (!q.exec()) {
-        qWarning() << "primitivHinzufuegen:" << q.lastError().text();
+        qCWarning(lcModel) << "primitivHinzufuegen:" << q.lastError().text();
         return -1;
     }
     m_primitivCache.remove(symbolId);
@@ -272,7 +273,7 @@ bool SymbolDefinitionModel::primitivAlleLoeschen(const QString &symbolId)
     q.prepare("DELETE FROM symbol_primitiv WHERE symbol_id = :sym");
     q.bindValue(":sym", symbolId);
     if (!q.exec()) {
-        qWarning() << "primitivAlleLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "primitivAlleLoeschen:" << q.lastError().text();
         return false;
     }
     m_primitivCache.remove(symbolId);
@@ -295,7 +296,7 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
     q.bindValue(":sig",  daten.value("signaltyp", "neutral"));
     q.bindValue(":ctx",  daten.value("kontext", ""));
     if (!q.exec()) {
-        qWarning() << "pinHinzufuegen:" << q.lastError().text();
+        qCWarning(lcModel) << "pinHinzufuegen:" << q.lastError().text();
         return -1;
     }
     m_pinCache.remove(symbolId);
@@ -308,7 +309,7 @@ bool SymbolDefinitionModel::pinAlleLoeschen(const QString &symbolId)
     q.prepare("DELETE FROM symbol_pin WHERE symbol_id = :sym");
     q.bindValue(":sym", symbolId);
     if (!q.exec()) {
-        qWarning() << "pinAlleLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "pinAlleLoeschen:" << q.lastError().text();
         return false;
     }
     m_pinCache.remove(symbolId);

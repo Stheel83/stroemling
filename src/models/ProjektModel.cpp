@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "ProjektModel.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -78,7 +79,7 @@ void ProjektModel::laden()
     }
 
     endResetModel();
-    qInfo() << "Projekte geladen:" << m_projekte.size();
+    qCInfo(lcModel) << "Projekte geladen:" << m_projekte.size();
 }
 
 int ProjektModel::anlegen(const QString &name,
@@ -93,7 +94,7 @@ int ProjektModel::anlegen(const QString &name,
     q.bindValue(":bemerkung",     bemerkung);
 
     if (!q.exec()) {
-        qWarning() << "Projekt anlegen fehlgeschlagen:" << q.lastError().text();
+        qCWarning(lcModel) << "Projekt anlegen fehlgeschlagen:" << q.lastError().text();
         return -1;
     }
 
@@ -115,7 +116,7 @@ bool ProjektModel::loeschen(int projektId)
 
     if (!db.transaction()) {
         fk.exec("PRAGMA foreign_keys = ON");
-        qWarning() << "ProjektModel::loeschen: Transaktion fehlgeschlagen";
+        qCWarning(lcModel) << "ProjektModel::loeschen: Transaktion fehlgeschlagen";
         return false;
     }
 
@@ -124,7 +125,7 @@ bool ProjektModel::loeschen(int projektId)
         q.prepare(QString::fromUtf8(sql));
         q.bindValue(":id", projektId);
         if (!q.exec()) {
-            qWarning() << "ProjektModel::loeschen:" << sql << q.lastError().text();
+            qCWarning(lcModel) << "ProjektModel::loeschen:" << sql << q.lastError().text();
             return false;
         }
         return true;
@@ -185,7 +186,7 @@ bool ProjektModel::loeschen(int projektId)
     fk.exec("PRAGMA foreign_keys = ON");
 
     if (!ok) {
-        qWarning() << "ProjektModel::loeschen: Rollback für Projekt" << projektId;
+        qCWarning(lcModel) << "ProjektModel::loeschen: Rollback für Projekt" << projektId;
         return false;
     }
 

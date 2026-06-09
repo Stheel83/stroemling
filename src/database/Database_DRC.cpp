@@ -32,7 +32,7 @@ QVariantList Database::drcDoppelteBmk(int projektId)
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "drcDoppelteBmk:" << q.lastError().text();
+        qCWarning(lcDb) << "drcDoppelteBmk:" << q.lastError().text();
         return ergebnis;
     }
     while (q.next()) {
@@ -68,7 +68,7 @@ QVariantList Database::drcSymboleOhneBmk(int projektId)
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "drcSymboleOhneBmk:" << q.lastError().text();
+        qCWarning(lcDb) << "drcSymboleOhneBmk:" << q.lastError().text();
         return ergebnis;
     }
     while (q.next()) {
@@ -94,7 +94,7 @@ QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "drcSeitenOhneBezeichnung:" << q.lastError().text();
+        qCWarning(lcDb) << "drcSeitenOhneBezeichnung:" << q.lastError().text();
         return ergebnis;
     }
     while (q.next()) {
@@ -127,7 +127,7 @@ QVariantList Database::drcKabeladernOhneAnschluss(int projektId)
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "drcKabeladernOhneAnschluss:" << q.lastError().text();
+        qCWarning(lcDb) << "drcKabeladernOhneAnschluss:" << q.lastError().text();
         return ergebnis;
     }
     while (q.next()) {
@@ -157,7 +157,7 @@ QVariantList Database::drcUnverbundenePins(int projektId)
     seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
     seitenQ.bindValue(":pid", projektId);
     if (!seitenQ.exec()) {
-        qWarning() << "drcUnverbundenePins seiten:" << seitenQ.lastError().text();
+        qCWarning(lcDb) << "drcUnverbundenePins seiten:" << seitenQ.lastError().text();
         return ergebnis;
     }
 
@@ -272,7 +272,7 @@ QVariantList Database::drcLeitungsenden(int projektId)
     seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
     seitenQ.bindValue(":pid", projektId);
     if (!seitenQ.exec()) {
-        qWarning() << "drcLeitungsenden seiten:" << seitenQ.lastError().text();
+        qCWarning(lcDb) << "drcLeitungsenden seiten:" << seitenQ.lastError().text();
         return ergebnis;
     }
 
@@ -396,7 +396,7 @@ QVariantList Database::drcPotenzialkonflikte(int projektId)
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "drcPotenzialkonflikte:" << q.lastError().text();
+        qCWarning(lcDb) << "drcPotenzialkonflikte:" << q.lastError().text();
         return ergebnis;
     }
     while (q.next()) {
@@ -427,7 +427,7 @@ QVariantList Database::drcParallelQuellen(int projektId)
     seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
     seitenQ.bindValue(":pid", projektId);
     if (!seitenQ.exec()) {
-        qWarning() << "drcParallelQuellen seiten:" << seitenQ.lastError().text();
+        qCWarning(lcDb) << "drcParallelQuellen seiten:" << seitenQ.lastError().text();
         return {};
     }
 

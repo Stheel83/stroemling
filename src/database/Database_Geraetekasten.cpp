@@ -33,7 +33,7 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
     )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "geraetekastenListeMitPos:" << q.lastError().text();
+        qCWarning(lcDb) << "geraetekastenListeMitPos:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -81,7 +81,7 @@ QVariantList Database::geraetekastenNachBmk(int projektId, const QString &bmk) c
     q.bindValue(":pid", projektId);
     q.bindValue(":bmk", bmk);
     if (!q.exec()) {
-        qWarning() << "geraetekastenNachBmk:" << q.lastError().text();
+        qCWarning(lcDb) << "geraetekastenNachBmk:" << q.lastError().text();
         return result;
     }
     while (q.next()) {

@@ -36,7 +36,7 @@ QVariantList Database::grafikLaden(int seiteId)
     )");
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
-        qWarning() << "grafikLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "grafikLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -129,7 +129,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
 {
     if (!m_db.transaction()) {
         auto msg = m_db.lastError().text();
-        qWarning() << "grafikSpeichern: Transaktion:" << msg;
+        qCWarning(lcDb) << "grafikSpeichern: Transaktion:" << msg;
         emit dbFehler("Speichern fehlgeschlagen (Transaktion konnte nicht gestartet werden).\n" + msg);
         return false;
     }
@@ -159,7 +159,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
     qDel.prepare("DELETE FROM grafik_element WHERE seite_id = :sid");
     qDel.bindValue(":sid", seiteId);
     if (!qDel.exec()) {
-        qWarning() << "grafikSpeichern delete:" << qDel.lastError().text();
+        qCWarning(lcDb) << "grafikSpeichern delete:" << qDel.lastError().text();
         m_db.rollback(); return false;
     }
 
@@ -299,7 +299,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             qIns.bindValue(":gid", QVariant(QMetaType::fromType<int>()));
 
         if (!qIns.exec()) {
-            qWarning() << "grafikSpeichern insert:" << qIns.lastError().text();
+            qCWarning(lcDb) << "grafikSpeichern insert:" << qIns.lastError().text();
             m_db.rollback(); return false;
         }
 
@@ -316,7 +316,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
                     upd.bindValue(":geid", newGeid);
                     upd.bindValue(":kid",  kabelId);
                     if (!upd.exec())
-                        qWarning() << "grafikSpeichern kabel relink:" << upd.lastError().text();
+                        qCWarning(lcDb) << "grafikSpeichern kabel relink:" << upd.lastError().text();
 
                     // Ader-Linie-Zuordnungen wiederherstellen
                     if (kabelLinieAderMap.contains(i)) {
@@ -331,7 +331,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
                             upd2.bindValue(":kid",  kabelId);
                             upd2.bindValue(":nr",   aderNr);
                             if (!upd2.exec())
-                                qWarning() << "grafikSpeichern ader relink:" << upd2.lastError().text();
+                                qCWarning(lcDb) << "grafikSpeichern ader relink:" << upd2.lastError().text();
                         }
                     }
                 }
@@ -341,7 +341,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
 
     if (!m_db.commit()) {
         auto msg = m_db.lastError().text();
-        qWarning() << "grafikSpeichern commit:" << msg;
+        qCWarning(lcDb) << "grafikSpeichern commit:" << msg;
         m_db.rollback();
         emit dbFehler("Speichern fehlgeschlagen (Commit nicht möglich). Änderungen dieser Aktion "
                       "wurden zurückgerollt.\n" + msg);
@@ -442,7 +442,7 @@ QString Database::naechsteBmkNummer(int projektId, const QString &praefix)
             }
         }
     } else {
-        qWarning() << "naechsteBmkNummer:" << q.lastError().text();
+        qCWarning(lcDb) << "naechsteBmkNummer:" << q.lastError().text();
     }
 
     int next = 1;
@@ -460,7 +460,7 @@ QString Database::naechsteBmkNummer(int projektId, const QString &praefix)
 bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVariantList &netze)
 {
     if (!m_db.transaction()) {
-        qWarning() << "verbindungenSynchronisieren: Transaktion:" << m_db.lastError().text();
+        qCWarning(lcDb) << "verbindungenSynchronisieren: Transaktion:" << m_db.lastError().text();
         return false;
     }
 
@@ -470,7 +470,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
         del.prepare("DELETE FROM verbindung_segment WHERE seite_id = :sid");
         del.bindValue(":sid", seiteId);
         if (!del.exec()) {
-            qWarning() << "verbindungenSynchronisieren del segments:" << del.lastError().text();
+            qCWarning(lcDb) << "verbindungenSynchronisieren del segments:" << del.lastError().text();
             m_db.rollback(); return false;
         }
     }
@@ -481,7 +481,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
         del.prepare("DELETE FROM querverweis WHERE von_seite_id = :sid");
         del.bindValue(":sid", seiteId);
         if (!del.exec()) {
-            qWarning() << "verbindungenSynchronisieren del querverweis:" << del.lastError().text();
+            qCWarning(lcDb) << "verbindungenSynchronisieren del querverweis:" << del.lastError().text();
             m_db.rollback(); return false;
         }
     }
@@ -513,7 +513,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
                 upd.bindValue(":sig", signaltyp);
                 upd.bindValue(":id",  verbId);
                 if (!upd.exec()) {
-                    qWarning() << "verbindungenSynchronisieren update:" << upd.lastError().text();
+                    qCWarning(lcDb) << "verbindungenSynchronisieren update:" << upd.lastError().text();
                     m_db.rollback(); return false;
                 }
             } else {
@@ -532,7 +532,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
                 ins.bindValue(":q",     querschnitt > 0
                                         ? querschnitt : QVariant(QMetaType::fromType<double>()));
                 if (!ins.exec()) {
-                    qWarning() << "verbindungenSynchronisieren insert verbindung:" << ins.lastError().text();
+                    qCWarning(lcDb) << "verbindungenSynchronisieren insert verbindung:" << ins.lastError().text();
                     m_db.rollback(); return false;
                 }
                 verbId = ins.lastInsertId().toInt();
@@ -557,7 +557,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
             insSeg.bindValue(":sid", seiteId);
             insSeg.bindValue(":pt",  QString::fromUtf8(QJsonDocument(punkte).toJson(QJsonDocument::Compact)));
             if (!insSeg.exec()) {
-                qWarning() << "verbindungenSynchronisieren insert segment:" << insSeg.lastError().text();
+                qCWarning(lcDb) << "verbindungenSynchronisieren insert segment:" << insSeg.lastError().text();
                 m_db.rollback(); return false;
             }
         }
@@ -577,14 +577,14 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
             insQv.bindValue(":vonbez", qv.value(QStringLiteral("vonBezeichnung")).toString());
             insQv.bindValue(":nachbez",qv.value(QStringLiteral("nachBezeichnung")).toString());
             if (!insQv.exec()) {
-                qWarning() << "verbindungenSynchronisieren insert querverweis:" << insQv.lastError().text();
+                qCWarning(lcDb) << "verbindungenSynchronisieren insert querverweis:" << insQv.lastError().text();
                 m_db.rollback(); return false;
             }
         }
     }
 
     if (!m_db.commit()) {
-        qWarning() << "verbindungenSynchronisieren commit:" << m_db.lastError().text();
+        qCWarning(lcDb) << "verbindungenSynchronisieren commit:" << m_db.lastError().text();
         m_db.rollback(); return false;
     }
     return true;
@@ -604,7 +604,7 @@ bool Database::verbindungAktualisieren(int verbindungId, const QString &bezeichn
     q.bindValue(":q",     querschnitt > 0       ? querschnitt : QVariant(QMetaType::fromType<double>()));
     q.bindValue(":id",    verbindungId);
     if (!q.exec()) {
-        qWarning() << "verbindungAktualisieren:" << q.lastError().text();
+        qCWarning(lcDb) << "verbindungAktualisieren:" << q.lastError().text();
         return false;
     }
     return true;
@@ -629,7 +629,7 @@ QVariantList Database::verbindungAnnotationenLaden(int seiteId)
     )");
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
-        qWarning() << "verbindungAnnotationenLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "verbindungAnnotationenLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -656,7 +656,7 @@ QVariantList Database::verbindungenProjektLaden(int projektId)
     q.prepare("SELECT id, bezeichnung, signaltyp FROM verbindung WHERE projekt_id = :pid ORDER BY id");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
-        qWarning() << "verbindungenProjektLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "verbindungenProjektLaden:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
@@ -707,7 +707,7 @@ bool Database::verbindungenBulkBezeichnungSetzen(int projektId, const QVariantLi
 {
     if (zuweisungen.isEmpty()) return true;
     if (!m_db.transaction()) {
-        qWarning() << "verbindungenBulkBezeichnungSetzen: transaction:" << m_db.lastError().text();
+        qCWarning(lcDb) << "verbindungenBulkBezeichnungSetzen: transaction:" << m_db.lastError().text();
         return false;
     }
     QSqlQuery q(m_db);
@@ -719,7 +719,7 @@ bool Database::verbindungenBulkBezeichnungSetzen(int projektId, const QVariantLi
         q.bindValue(":id",  m.value(QStringLiteral("id")).toInt());
         q.bindValue(":pid", projektId);
         if (!q.exec()) {
-            qWarning() << "verbindungenBulkBezeichnungSetzen:" << q.lastError().text();
+            qCWarning(lcDb) << "verbindungenBulkBezeichnungSetzen:" << q.lastError().text();
             m_db.rollback();
             return false;
         }

@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "KabelModel.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -60,7 +61,7 @@ void KabelModel::ladeAdern()
               "FROM bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr");
     q.bindValue(":kid", m_kabelId);
     if (!q.exec()) {
-        qWarning() << "KabelModel::ladeAdern:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::ladeAdern:" << q.lastError().text();
         return;
     }
     while (q.next()) {
@@ -85,7 +86,7 @@ void KabelModel::ladePaare()
               "FROM bauteil_kabel_paar WHERE kabel_id = :kid ORDER BY paar_nr");
     q.bindValue(":kid", m_kabelId);
     if (!q.exec()) {
-        qWarning() << "KabelModel::ladePaare:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::ladePaare:" << q.lastError().text();
         return;
     }
     while (q.next()) {
@@ -137,13 +138,13 @@ bool KabelModel::stammdatenSpeichern(const QVariantMap &daten)
     bindOpt("material_isolierung", ":mi");
 
     if (!q.exec()) {
-        qWarning() << "KabelModel::stammdatenSpeichern:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::stammdatenSpeichern:" << q.lastError().text();
         return false;
     }
 
     if (m_kabelId < 0) {
         m_kabelId = q.lastInsertId().toInt();
-        qDebug() << "bauteil_kabel INSERT: bauteil_id=" << m_bauteilId
+        qCDebug(lcModel) << "bauteil_kabel INSERT: bauteil_id=" << m_bauteilId
                  << "neueId=" << m_kabelId;
     }
 
@@ -159,7 +160,7 @@ bool KabelModel::kabelLoeschen()
     q.prepare("DELETE FROM bauteil_kabel WHERE id = :id");
     q.bindValue(":id", m_kabelId);
     if (!q.exec()) {
-        qWarning() << "KabelModel::kabelLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::kabelLoeschen:" << q.lastError().text();
         return false;
     }
     laden(m_bauteilId);
@@ -179,7 +180,7 @@ int KabelModel::aderAnlegen()
     q.bindValue(":kid", m_kabelId);
     q.bindValue(":nr",  nextNr);
     if (!q.exec()) {
-        qWarning() << "KabelModel::aderAnlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::aderAnlegen:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -195,7 +196,7 @@ bool KabelModel::aderLoeschen(int aderId)
     q.bindValue(":id",  aderId);
     q.bindValue(":kid", m_kabelId);
     if (!q.exec()) {
-        qWarning() << "KabelModel::aderLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::aderLoeschen:" << q.lastError().text();
         return false;
     }
 
@@ -243,7 +244,7 @@ bool KabelModel::aderAktualisieren(int aderId, const QVariantMap &daten)
     q.bindValue(":kid", m_kabelId);
 
     if (!q.exec()) {
-        qWarning() << "KabelModel::aderAktualisieren:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::aderAktualisieren:" << q.lastError().text();
         return false;
     }
     ladeAdern();
@@ -297,7 +298,7 @@ int KabelModel::paarAnlegen(int aderA, int aderB)
     q.bindValue(":a",   aderA);
     q.bindValue(":b",   aderB);
     if (!q.exec()) {
-        qWarning() << "KabelModel::paarAnlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::paarAnlegen:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -313,7 +314,7 @@ bool KabelModel::paarLoeschen(int paarId)
     q.bindValue(":id",  paarId);
     q.bindValue(":kid", m_kabelId);
     if (!q.exec()) {
-        qWarning() << "KabelModel::paarLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::paarLoeschen:" << q.lastError().text();
         return false;
     }
     ladePaare();
@@ -354,7 +355,7 @@ bool KabelModel::aderMehrfachAktualisieren(const QVariantList &ids, const QVaria
     q.bindValue(":kid", m_kabelId);
 
     if (!q.exec()) {
-        qWarning() << "KabelModel::aderMehrfachAktualisieren:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::aderMehrfachAktualisieren:" << q.lastError().text();
         return false;
     }
     ladeAdern();
@@ -372,7 +373,7 @@ bool KabelModel::paarAktualisieren(int paarId, int aderA, int aderB)
     q.bindValue(":id",  paarId);
     q.bindValue(":kid", m_kabelId);
     if (!q.exec()) {
-        qWarning() << "KabelModel::paarAktualisieren:" << q.lastError().text();
+        qCWarning(lcModel) << "KabelModel::paarAktualisieren:" << q.lastError().text();
         return false;
     }
     ladePaare();

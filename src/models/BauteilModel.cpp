@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "BauteilModel.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -98,7 +99,7 @@ int BauteilKategorieModel::anlegen(int parentId, const QString &name)
     }
     q.bindValue(":name", name);
     if (!q.exec()) {
-        qWarning() << "Kategorie anlegen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "Kategorie anlegen Fehler:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -113,7 +114,7 @@ bool BauteilKategorieModel::bearbeiten(int id, const QString &name)
     q.bindValue(":name", name);
     q.bindValue(":id",   id);
     if (!q.exec()) {
-        qWarning() << "Kategorie bearbeiten Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "Kategorie bearbeiten Fehler:" << q.lastError().text();
         return false;
     }
     laden();
@@ -126,7 +127,7 @@ bool BauteilKategorieModel::loeschen(int id)
     q.prepare("DELETE FROM bauteil_kategorie WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "Kategorie löschen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "Kategorie löschen Fehler:" << q.lastError().text();
         return false;
     }
     laden();
@@ -319,7 +320,7 @@ int BauteilListModel::anlegen(int kategorieId, const QString &bezeichnung,
     q.bindValue(":uh",    urlHersteller);
     q.bindValue(":ud",    urlDatenblatt);
     if (!q.exec()) {
-        qWarning() << "Bauteil anlegen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "Bauteil anlegen Fehler:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -354,7 +355,7 @@ bool BauteilListModel::bearbeiten(int id, const QString &bezeichnung,
     q.bindValue(":ud",    urlDatenblatt);
     q.bindValue(":id",    id);
     if (!q.exec()) {
-        qWarning() << "Bauteil bearbeiten Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "Bauteil bearbeiten Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_aktiveKategorieId);
@@ -367,7 +368,7 @@ bool BauteilListModel::loeschen(int id)
     q.prepare("DELETE FROM bauteil WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "Bauteil löschen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "Bauteil löschen Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_aktiveKategorieId);
@@ -410,7 +411,7 @@ bool BauteilListModel::bauteilTitelSpeichern(int id, const QString &bezeichnung,
     q.bindValue(":a",  artikelnummer);
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "bauteilTitelSpeichern Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "bauteilTitelSpeichern Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_aktiveKategorieId);

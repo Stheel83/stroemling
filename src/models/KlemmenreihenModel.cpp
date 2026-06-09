@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "KlemmenreihenModel.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -41,7 +42,7 @@ void KlemmenleistenModel::laden(int projektId)
     q.bindValue(":pid", projektId);
 
     if (!q.exec()) {
-        qWarning() << "KlemmenleistenModel::laden:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenleistenModel::laden:" << q.lastError().text();
         endResetModel();
         emit geladen();
         return;
@@ -69,7 +70,7 @@ int KlemmenleistenModel::anlegen(int projektId, const QString &bezeichnung)
     q.bindValue(":pid", projektId);
     q.bindValue(":bez", bezeichnung.trimmed());
     if (!q.exec()) {
-        qWarning() << "KlemmenleistenModel::anlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenleistenModel::anlegen:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -90,7 +91,7 @@ void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
     int idDurch = bauteilIdFuer("Durchgangsklemme 2,5mm²");
     int idPE    = bauteilIdFuer("PE-Klemme 2,5mm²");
     if (idDurch < 0 || idPE < 0) {
-        qWarning() << "beispielLeistenAnlegen: Seed-Klemmen nicht gefunden";
+        qCWarning(lcModel) << "beispielLeistenAnlegen: Seed-Klemmen nicht gefunden";
         return;
     }
 
@@ -99,7 +100,7 @@ void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
     q.bindValue(":pid", projektId);
     q.bindValue(":bez", QString("X1"));
     if (!q.exec()) {
-        qWarning() << "beispielLeistenAnlegen: klemmenleiste" << q.lastError().text();
+        qCWarning(lcModel) << "beispielLeistenAnlegen: klemmenleiste" << q.lastError().text();
         return;
     }
     int leisteId = q.lastInsertId().toInt();
@@ -119,7 +120,7 @@ void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
         qi.bindValue(":nr",   eintraege[i].nr);
         qi.bindValue(":sort", i + 1);
         if (!qi.exec())
-            qWarning() << "beispielLeistenAnlegen klemme" << eintraege[i].nr << qi.lastError().text();
+            qCWarning(lcModel) << "beispielLeistenAnlegen klemme" << eintraege[i].nr << qi.lastError().text();
     }
 
     laden(projektId);
@@ -135,7 +136,7 @@ bool KlemmenleistenModel::loeschen(int id)
     q.prepare("DELETE FROM klemmenleiste WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "KlemmenleistenModel::loeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenleistenModel::loeschen:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -149,7 +150,7 @@ bool KlemmenleistenModel::umbenennen(int id, const QString &bezeichnung)
     q.bindValue(":bez", bezeichnung.trimmed());
     q.bindValue(":id",  id);
     if (!q.exec()) {
-        qWarning() << "KlemmenleistenModel::umbenennen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenleistenModel::umbenennen:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -224,7 +225,7 @@ void KlemmenreiheModel::laden(int leisteId)
     q.bindValue(":id", leisteId);
 
     if (!q.exec() || !q.next()) {
-        qWarning() << "KlemmenreiheModel::laden – Leiste nicht gefunden:" << leisteId;
+        qCWarning(lcModel) << "KlemmenreiheModel::laden – Leiste nicht gefunden:" << leisteId;
         emit leisteGeladen();
         return;
     }
@@ -261,7 +262,7 @@ void KlemmenreiheModel::ladeStegbruecken()
     );
     q.bindValue(":lid", m_leisteId);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::ladeStegbruecken:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::ladeStegbruecken:" << q.lastError().text();
         return;
     }
 
@@ -349,7 +350,7 @@ void KlemmenreiheModel::ladeKlemmen()
     );
     q.bindValue(":lid", m_leisteId);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::ladeKlemmen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::ladeKlemmen:" << q.lastError().text();
         return;
     }
 
@@ -391,7 +392,7 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
     q.bindValue(":id",  m_leisteId);
 
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::leisteAktualisieren:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::leisteAktualisieren:" << q.lastError().text();
         return false;
     }
     laden(m_leisteId);
@@ -422,7 +423,7 @@ int KlemmenreiheModel::klemmeAnlegen(int bauteilId)
     q.bindValue(":srt", nextSort);
 
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::klemmeAnlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeAnlegen:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -437,7 +438,7 @@ bool KlemmenreiheModel::klemmeLoeschen(int klemmeId)
     q.prepare("DELETE FROM klemme WHERE id = :id");
     q.bindValue(":id", klemmeId);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::klemmeLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeLoeschen:" << q.lastError().text();
         return false;
     }
     ladeKlemmen();
@@ -486,7 +487,7 @@ bool KlemmenreiheModel::klemmeNummerSetzen(int klemmeId, const QString &nummer)
     q.bindValue(":nr", nummer);
     q.bindValue(":id", klemmeId);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::klemmeNummerSetzen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeNummerSetzen:" << q.lastError().text();
         return false;
     }
     ladeKlemmen();
@@ -501,7 +502,7 @@ bool KlemmenreiheModel::klemmeBauteilSetzen(int klemmeId, int bauteilId)
     q.bindValue(":bid", bauteilId > 0 ? QVariant(bauteilId) : QVariant());
     q.bindValue(":id",  klemmeId);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::klemmeBauteilSetzen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeBauteilSetzen:" << q.lastError().text();
         return false;
     }
     ladeKlemmen();
@@ -519,7 +520,7 @@ bool KlemmenreiheModel::klemmeMehrfachBauteilSetzen(const QVariantList &ids, int
         q.prepare("UPDATE klemme SET bauteil_id = :bid WHERE id = :id");
         q.bindValue(":bid", bid);
         q.bindValue(":id",  v.toInt());
-        if (!q.exec()) { qWarning() << "klemmeMehrfachBauteilSetzen:" << q.lastError().text(); ok = false; }
+        if (!q.exec()) { qCWarning(lcModel) << "klemmeMehrfachBauteilSetzen:" << q.lastError().text(); ok = false; }
     }
     ladeKlemmen();
     emit leisteGeladen();
@@ -536,7 +537,7 @@ bool KlemmenreiheModel::klemmeMehrfachNummerieren(const QVariantList &ids, int s
         q.prepare("UPDATE klemme SET nummer = :nr WHERE id = :id");
         q.bindValue(":nr", QString::number(num++));
         q.bindValue(":id", v.toInt());
-        if (!q.exec()) { qWarning() << "klemmeMehrfachNummerieren:" << q.lastError().text(); ok = false; }
+        if (!q.exec()) { qCWarning(lcModel) << "klemmeMehrfachNummerieren:" << q.lastError().text(); ok = false; }
     }
     ladeKlemmen();
     emit leisteGeladen();
@@ -563,7 +564,7 @@ QVariantList KlemmenreiheModel::klemmeBauteileHolen(const QString &suchtext) con
         q.bindValue(":s", "%" + such + "%");
 
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::klemmeBauteileHolen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeBauteileHolen:" << q.lastError().text();
         return liste;
     }
 
@@ -610,7 +611,7 @@ int KlemmenreiheModel::stegbrueckeAnlegen(int ebene, int vonKlemmeId, int bisKle
     q.bindValue(":kt",  konflikt.isEmpty() ? QVariant() : konflikt);
 
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::stegbrueckeAnlegen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::stegbrueckeAnlegen:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -625,7 +626,7 @@ bool KlemmenreiheModel::stegbrueckeLoeschen(int id)
     q.prepare("DELETE FROM klemme_stegbruecke WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::stegbrueckeLoeschen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::stegbrueckeLoeschen:" << q.lastError().text();
         return false;
     }
     ladeStegbruecken();
@@ -640,7 +641,7 @@ bool KlemmenreiheModel::stegbrueckePotenzialSetzen(int id, const QString &potenz
     q.bindValue(":pt", potenzialText.trimmed().isEmpty() ? QVariant() : potenzialText.trimmed());
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "KlemmenreiheModel::stegbrueckePotenzialSetzen:" << q.lastError().text();
+        qCWarning(lcModel) << "KlemmenreiheModel::stegbrueckePotenzialSetzen:" << q.lastError().text();
         return false;
     }
     ladeStegbruecken();

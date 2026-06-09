@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "SeitenModel.h"
 #include <QSqlQuery>
 #include <QSqlError>
@@ -335,7 +336,7 @@ int SeitenModel::anlageAnlegen(int projektId, const QString &kuerzel, const QStr
     q.bindValue(":kz",  kuerzel);
     q.bindValue(":bez", bezeichnung);
     if (!q.exec()) {
-        qWarning() << "anlageAnlegen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "anlageAnlegen Fehler:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -351,7 +352,7 @@ int SeitenModel::ortAnlegen(int anlageId, const QString &kuerzel, const QString 
     q.bindValue(":kz",  kuerzel);
     q.bindValue(":bez", bezeichnung);
     if (!q.exec()) {
-        qWarning() << "ortAnlegen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "ortAnlegen Fehler:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -387,7 +388,7 @@ int SeitenModel::seiteAnlegen(int ortId, const QString &blattnummer,
     q.bindValue(":ro",    randObenMm);
     q.bindValue(":ru",    randUntenMm);
     if (!q.exec()) {
-        qWarning() << "seiteAnlegen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "seiteAnlegen Fehler:" << q.lastError().text();
         return -1;
     }
     int newId = q.lastInsertId().toInt();
@@ -405,7 +406,7 @@ bool SeitenModel::loeschen(int knotenTyp, int id)
         del.prepare("DELETE FROM grafik_element WHERE seite_id = :id");
         del.bindValue(":id", id);
         if (!del.exec())
-            qWarning() << "loeschen: grafik_element bereinigen fehlgeschlagen:" << del.lastError().text();
+            qCWarning(lcModel) << "loeschen: grafik_element bereinigen fehlgeschlagen:" << del.lastError().text();
     }
 
     QSqlQuery q;
@@ -419,7 +420,7 @@ bool SeitenModel::loeschen(int knotenTyp, int id)
     q.prepare(QString("DELETE FROM %1 WHERE id = :id").arg(tabelle));
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qWarning() << "loeschen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "loeschen Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -434,7 +435,7 @@ bool SeitenModel::anlageBearbeiten(int id, const QString &kuerzel, const QString
     q.bindValue(":bez", bezeichnung);
     q.bindValue(":id",  id);
     if (!q.exec()) {
-        qWarning() << "anlageBearbeiten Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "anlageBearbeiten Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -449,7 +450,7 @@ bool SeitenModel::ortBearbeiten(int id, const QString &kuerzel, const QString &b
     q.bindValue(":bez", bezeichnung);
     q.bindValue(":id",  id);
     if (!q.exec()) {
-        qWarning() << "ortBearbeiten Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "ortBearbeiten Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -478,7 +479,7 @@ bool SeitenModel::seiteBearbeiten(int id, const QString &blattnummer,
     q.bindValue(":ru",    randUntenMm);
     q.bindValue(":id",    id);
     if (!q.exec()) {
-        qWarning() << "seiteBearbeiten Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "seiteBearbeiten Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -492,7 +493,7 @@ bool SeitenModel::seiteVerschieben(int seiteId, int neuerOrtId)
     q.bindValue(":oid", neuerOrtId);
     q.bindValue(":id",  seiteId);
     if (!q.exec()) {
-        qWarning() << "seiteVerschieben Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "seiteVerschieben Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -506,7 +507,7 @@ bool SeitenModel::ortVerschieben(int ortId, int neueAnlageId)
     q.bindValue(":aid", neueAnlageId);
     q.bindValue(":id",  ortId);
     if (!q.exec()) {
-        qWarning() << "ortVerschieben Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "ortVerschieben Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_projektId);
@@ -615,7 +616,7 @@ bool SeitenModel::seiteRasterSpeichern(int seiteId, double rasterMm, bool rasten
     q.bindValue(":rs",  rastend ? 1 : 0);
     q.bindValue(":id",  seiteId);
     if (!q.exec()) {
-        qWarning() << "seiteRasterSpeichern Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "seiteRasterSpeichern Fehler:" << q.lastError().text();
         return false;
     }
     // In-Memory aktualisieren (kein beginResetModel nötig)

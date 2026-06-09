@@ -1,3 +1,4 @@
+#include "logging.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -96,7 +97,7 @@ static void datenVerzeichnisMigrieren()
     QString neuDb = neuPfad + "/stroemling.db";
     if (QFile::exists(neuDb) && QFileInfo(neuDb).size() > 0) return;
 
-    qInfo() << "Einmalige Datenmigration:" << altPfad << "->" << neuPfad;
+    qCInfo(lcApp) << "Einmalige Datenmigration:" << altPfad << "->" << neuPfad;
     QDir().mkpath(neuPfad);
 
     // Datenbank-Dateien inkl. WAL
@@ -108,9 +109,9 @@ static void datenVerzeichnisMigrieren()
         if (!QFile::exists(src)) continue;
         QFile::remove(neuPfad + "/" + name);
         if (QFile::copy(src, neuPfad + "/" + name))
-            qInfo() << "  kopiert:" << name;
+            qCInfo(lcApp) << "  kopiert:" << name;
         else
-            qWarning() << "  Fehler beim Kopieren:" << name;
+            qCWarning(lcApp) << "  Fehler beim Kopieren:" << name;
     }
 
     // Wiki-Blobs
@@ -122,7 +123,7 @@ static void datenVerzeichnisMigrieren()
             QFile::remove(blobDest + "/" + f);
             QFile::copy(blobSrc.absoluteFilePath(f), blobDest + "/" + f);
         }
-        qInfo() << "  wiki_blobs kopiert:" << blobSrc.entryList(QDir::Files).size() << "Dateien";
+        qCInfo(lcApp) << "  wiki_blobs kopiert:" << blobSrc.entryList(QDir::Files).size() << "Dateien";
     }
 
     // Backups
@@ -134,19 +135,19 @@ static void datenVerzeichnisMigrieren()
             QFile::remove(backupDest + "/" + f);
             QFile::copy(backupSrc.absoluteFilePath(f), backupDest + "/" + f);
         }
-        qInfo() << "  backups kopiert:" << backupSrc.entryList(QDir::Files).size() << "Dateien";
+        qCInfo(lcApp) << "  backups kopiert:" << backupSrc.entryList(QDir::Files).size() << "Dateien";
     }
 
-    qInfo() << "Migration abgeschlossen. Altes Verzeichnis kann manuell geloescht werden:" << altPfad;
+    qCInfo(lcApp) << "Migration abgeschlossen. Altes Verzeichnis kann manuell geloescht werden:" << altPfad;
 
     // QSettings-Config migrieren: ~/.config/stroemling/ → ~/.config/
     QString altConf = QDir::homePath() + "/.config/stroemling/Strömling Design.conf";
     QString neuConf = QDir::homePath() + "/.config/Strömling Design.conf";
     if (QFile::exists(altConf) && !QFile::exists(neuConf)) {
         if (QFile::copy(altConf, neuConf))
-            qInfo() << "  QSettings migriert:" << neuConf;
+            qCInfo(lcApp) << "  QSettings migriert:" << neuConf;
         else
-            qWarning() << "  QSettings-Migration fehlgeschlagen";
+            qCWarning(lcApp) << "  QSettings-Migration fehlgeschlagen";
     }
 }
 #endif // Q_OS_LINUX
@@ -163,7 +164,7 @@ int main(int argc, char *argv[])
         fputs("stroemling: Log-Datei konnte nicht geöffnet werden\n", stderr);
     qInstallMessageHandler(logMessageHandler);
 
-    qInfo() << "=== Strömling gestartet" << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "===";
+    qCInfo(lcApp) << "=== Strömling gestartet" << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << "===";
 
 #ifdef Q_OS_WIN
     // Auf Windows: single-threaded Render-Loop damit QSqlQuery in Canvas.onPaint
@@ -213,15 +214,15 @@ int main(int argc, char *argv[])
     // Datenbankverbindungen aufbauen
     Database db;
     if (!db.openLauncher(launcherPath)) {
-        qCritical() << "Launcher-DB konnte nicht geöffnet werden:" << db.lastError();
+        qCCritical(lcApp) << "Launcher-DB konnte nicht geöffnet werden:" << db.lastError();
         return 1;
     }
     if (!db.openWiki(wikiPath)) {
-        qCritical() << "Wiki-Datenbank konnte nicht geöffnet werden:" << db.lastError();
+        qCCritical(lcApp) << "Wiki-Datenbank konnte nicht geöffnet werden:" << db.lastError();
         return 1;
     }
     if (!db.openMakro(makroPath)) {
-        qCritical() << "Makro-DB konnte nicht geöffnet werden:" << db.lastError();
+        qCCritical(lcApp) << "Makro-DB konnte nicht geöffnet werden:" << db.lastError();
         return 1;
     }
 
@@ -291,7 +292,7 @@ int main(int argc, char *argv[])
     engine.loadFromModule("stroemling", "Main");
 
     if (engine.rootObjects().isEmpty()) {
-        qCritical() << "QML konnte nicht geladen werden.";
+        qCCritical(lcApp) << "QML konnte nicht geladen werden.";
         return 1;
     }
 

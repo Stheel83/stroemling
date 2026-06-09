@@ -183,7 +183,7 @@ bool Database::checkAndApplySchema()
             "    beschreibung  TEXT    NOT NULL,"
             "    angewendet_am TEXT    NOT NULL DEFAULT (datetime('now'))"
             ")")) {
-            qWarning() << "schema_migration anlegen:" << q.lastError().text();
+            qCWarning(lcDb) << "schema_migration anlegen:" << q.lastError().text();
             return false;
         }
     }
@@ -207,7 +207,7 @@ bool Database::checkAndApplySchema()
                 ins.bindValue(":b", QString("Baseline v%1 – übernommen aus schema_version").arg(BASELINE_VERSION));
                 ins.exec();
                 currentVersion = BASELINE_VERSION;
-                qInfo() << "schema_migration: Übergang schema_version → v" << BASELINE_VERSION;
+                qCInfo(lcDb) << "schema_migration: Übergang schema_version → v" << BASELINE_VERSION;
             }
         } else {
             if (q.exec("SELECT COALESCE(MAX(version), 0) FROM schema_migration") && q.next())
@@ -228,10 +228,10 @@ bool Database::checkAndApplySchema()
     for (const SchemaMigration &mig : alleMigrationen()) {
         if (mig.version <= currentVersion) continue;
 
-        qInfo() << "Wende Migration" << mig.version << "an:" << mig.beschreibung;
+        qCInfo(lcDb) << "Wende Migration" << mig.version << "an:" << mig.beschreibung;
 
         if (!m_db.transaction()) {
-            qWarning() << "Transaktion fehlgeschlagen:" << m_db.lastError().text();
+            qCWarning(lcDb) << "Transaktion fehlgeschlagen:" << m_db.lastError().text();
             return false;
         }
 
@@ -257,22 +257,22 @@ bool Database::checkAndApplySchema()
         ins.bindValue(":v", mig.version);
         ins.bindValue(":b", mig.beschreibung);
         if (!ins.exec()) {
-            qWarning() << "schema_migration schreiben:" << ins.lastError().text();
+            qCWarning(lcDb) << "schema_migration schreiben:" << ins.lastError().text();
             m_db.rollback();
             return false;
         }
 
         if (!m_db.commit()) {
-            qWarning() << "Commit fehlgeschlagen:" << m_db.lastError().text();
+            qCWarning(lcDb) << "Commit fehlgeschlagen:" << m_db.lastError().text();
             m_db.rollback();
             return false;
         }
 
-        qInfo() << "Migration" << mig.version << "erfolgreich angewendet.";
+        qCInfo(lcDb) << "Migration" << mig.version << "erfolgreich angewendet.";
         currentVersion = mig.version;
     }
 
-    qInfo() << "Hauptdatenbank auf Schema-Version" << currentVersion;
+    qCInfo(lcDb) << "Hauptdatenbank auf Schema-Version" << currentVersion;
     return true;
 }
 
@@ -282,8 +282,8 @@ bool Database::applyMigrationStatements(const QStringList &statements)
     for (const QString &stmt : statements) {
         if (stmt.trimmed().isEmpty()) continue;
         if (!q.exec(stmt)) {
-            qWarning() << "Migration-Statement fehlgeschlagen:" << q.lastError().text();
-            qWarning() << "Statement:" << stmt.left(200);
+            qCWarning(lcDb) << "Migration-Statement fehlgeschlagen:" << q.lastError().text();
+            qCWarning(lcDb) << "Statement:" << stmt.left(200);
             return false;
         }
     }
@@ -308,7 +308,7 @@ bool Database::erstelleBackup(const QString &verbindungsName, const QString &pre
 
     QString backupDir = fi.absolutePath() + "/backups";
     if (!QDir().mkpath(backupDir)) {
-        qWarning() << "Backup-Verzeichnis konnte nicht angelegt werden:" << backupDir;
+        qCWarning(lcDb) << "Backup-Verzeichnis konnte nicht angelegt werden:" << backupDir;
         return false;
     }
 
@@ -328,10 +328,10 @@ bool Database::erstelleBackup(const QString &verbindungsName, const QString &pre
     escaped.replace("'", "''");
     QSqlQuery q(db);
     if (!q.exec("VACUUM INTO '" + escaped + "'")) {
-        qWarning() << "Backup fehlgeschlagen:" << backupPfad << q.lastError().text();
+        qCWarning(lcDb) << "Backup fehlgeschlagen:" << backupPfad << q.lastError().text();
         return false;
     }
-    qInfo() << "Backup erstellt:" << backupPfad;
+    qCInfo(lcDb) << "Backup erstellt:" << backupPfad;
 
     // Älteste Backups löschen wenn mehr als 5 vorhanden
     QDir bd(backupDir);
@@ -339,7 +339,7 @@ bool Database::erstelleBackup(const QString &verbindungsName, const QString &pre
     while (backups.size() > 5) {
         QString alt = backups.takeFirst();
         if (bd.remove(alt))
-            qInfo() << "Altes Backup gelöscht:" << alt;
+            qCInfo(lcDb) << "Altes Backup gelöscht:" << alt;
     }
 
     return true;
@@ -411,13 +411,13 @@ bool Database::dropAllTables()
 
     for (const QString &v : views) {
         if (!q.exec("DROP VIEW IF EXISTS " + v)) {
-            qWarning() << "View löschen fehlgeschlagen:" << v << q.lastError().text();
+            qCWarning(lcDb) << "View löschen fehlgeschlagen:" << v << q.lastError().text();
             return false;
         }
     }
     for (const QString &t : tables) {
         if (!q.exec("DROP TABLE IF EXISTS " + t)) {
-            qWarning() << "Tabelle löschen fehlgeschlagen:" << t << q.lastError().text();
+            qCWarning(lcDb) << "Tabelle löschen fehlgeschlagen:" << t << q.lastError().text();
             return false;
         }
     }
@@ -435,7 +435,7 @@ bool Database::createSchema()
 {
     QFile f(QStringLiteral(":/database/schema.sql"));
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "createSchema: schema.sql nicht gefunden (:/database/schema.sql)";
+        qCWarning(lcDb) << "createSchema: schema.sql nicht gefunden (:/database/schema.sql)";
         return false;
     }
     const QString sql = QString::fromUtf8(f.readAll());
@@ -453,13 +453,13 @@ bool Database::createSchema()
         const QString stmt = raw.trimmed();
         if (stmt.isEmpty()) continue;
         if (!q.exec(stmt)) {
-            qWarning() << "createSchema:" << q.lastError().text()
+            qCWarning(lcDb) << "createSchema:" << q.lastError().text()
                        << "\nStatement:" << stmt.left(120);
             return false;
         }
     }
 
-    qInfo() << "Schema aus schema.sql geladen.";
+    qCInfo(lcDb) << "Schema aus schema.sql geladen.";
 
     // Tabellenzahl prüfen: wenn schema.sql neue Tabellen bekommt, muss
     // BASELINE_TABLE_COUNT (und BASELINE_VERSION) in Database.h mitsynchronisiert werden.
@@ -469,7 +469,7 @@ bool Database::createSchema()
             && cnt.next()) {
         const int actual = cnt.value(0).toInt();
         if (actual != BASELINE_TABLE_COUNT) {
-            qCritical() << "DV-03: schema.sql hat" << actual << "Tabellen, erwartet"
+            qCCritical(lcDb) << "DV-03: schema.sql hat" << actual << "Tabellen, erwartet"
                         << BASELINE_TABLE_COUNT << "– BASELINE_TABLE_COUNT und"
                         << "BASELINE_VERSION in Database.h aktualisieren!";
         }
@@ -570,12 +570,12 @@ bool Database::seedSymbolKatalog()
         q.bindValue(":norm",   s.norm);
         q.bindValue(":anschl", s.anschluesse);
         if (!q.exec()) {
-            qWarning() << "seedSymbolKatalog:" << s.code << q.lastError().text();
+            qCWarning(lcDb) << "seedSymbolKatalog:" << s.code << q.lastError().text();
             return false;
         }
     }
 
-    qInfo() << "Symbol-Katalog befüllt:" << symbole.size() << "Symbole.";
+    qCInfo(lcDb) << "Symbol-Katalog befüllt:" << symbole.size() << "Symbole.";
 
     // ----------------------------------------------------------
     // Vordefinierte Gehäusefarben (farb_definition, ist_standard=1)
@@ -614,11 +614,11 @@ bool Database::seedSymbolKatalog()
         fq.bindValue(":bez",  f.bez);
         fq.bindValue(":sort", f.sort);
         if (!fq.exec()) {
-            qWarning() << "seedFarbDefinition:" << f.bez << fq.lastError().text();
+            qCWarning(lcDb) << "seedFarbDefinition:" << f.bez << fq.lastError().text();
             return false;
         }
     }
-    qInfo() << "Farb-Katalog befüllt:" << farben.size() << "Einträge.";
+    qCInfo(lcDb) << "Farb-Katalog befüllt:" << farben.size() << "Einträge.";
 
     return true;
 }
@@ -671,7 +671,7 @@ bool Database::seedStandardKlemmen()
         qb.bindValue(":norm", QString("IEC 60947-7-1"));
         qb.bindValue(":bem",  QString("Standard-Klemme"));
         if (!qb.exec()) {
-            qWarning() << "seedStandardKlemmen bauteil:" << t.bez << qb.lastError().text();
+            qCWarning(lcDb) << "seedStandardKlemmen bauteil:" << t.bez << qb.lastError().text();
             return false;
         }
         int bId = qb.lastInsertId().toInt();
@@ -690,7 +690,7 @@ bool Database::seedStandardKlemmen()
         qk.bindValue(":br",   t.breiteMm);
         qk.bindValue(":fid",  farbId(t.farbHex));
         if (!qk.exec()) {
-            qWarning() << "seedStandardKlemmen bauteil_klemme:" << t.bez << qk.lastError().text();
+            qCWarning(lcDb) << "seedStandardKlemmen bauteil_klemme:" << t.bez << qk.lastError().text();
             return false;
         }
         int kId = qk.lastInsertId().toInt();
@@ -711,7 +711,7 @@ bool Database::seedStandardKlemmen()
             qq.bindValue(":min", s.min);
             qq.bindValue(":max", s.max);
             if (!qq.exec()) {
-                qWarning() << "seedStandardKlemmen querschnitt:" << t.bez << s.typ << qq.lastError().text();
+                qCWarning(lcDb) << "seedStandardKlemmen querschnitt:" << t.bez << s.typ << qq.lastError().text();
                 return false;
             }
         }
@@ -722,11 +722,11 @@ bool Database::seedStandardKlemmen()
                         "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, 1, 1, 1)");
             qbr.bindValue(":kid", kId);
             if (!qbr.exec())
-                qWarning() << "seedStandardKlemmen bruecke PE:" << t.bez << qbr.lastError().text();
+                qCWarning(lcDb) << "seedStandardKlemmen bruecke PE:" << t.bez << qbr.lastError().text();
         }
     }
 
-    qInfo() << "Standard-Klemmen geseedet: 6 Typen.";
+    qCInfo(lcDb) << "Standard-Klemmen geseedet: 6 Typen.";
     return true;
 }
 
@@ -740,7 +740,7 @@ bool Database::seedBuiltinSymbolDefinitionen()
 {
     QFile f(QStringLiteral(":/database/symbole.sql"));
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "seedBuiltinSymbolDefinitionen: symbole.sql nicht gefunden (:/database/symbole.sql)";
+        qCWarning(lcDb) << "seedBuiltinSymbolDefinitionen: symbole.sql nicht gefunden (:/database/symbole.sql)";
         return false;
     }
     const QString sql = QString::fromUtf8(f.readAll());
@@ -762,12 +762,12 @@ bool Database::seedBuiltinSymbolDefinitionen()
         if (stmt.isEmpty())
             continue;
         if (!q.exec(stmt)) {
-            qWarning() << "seedBuiltinSymbolDefinitionen:" << q.lastError().text()
+            qCWarning(lcDb) << "seedBuiltinSymbolDefinitionen:" << q.lastError().text()
                        << "\nStatement:" << stmt.left(120);
             return false;
         }
     }
 
-    qInfo() << "Builtin-Symboldefinitionen aus symbole.sql geladen.";
+    qCInfo(lcDb) << "Builtin-Symboldefinitionen aus symbole.sql geladen.";
     return true;
 }

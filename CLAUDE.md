@@ -77,6 +77,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/architektur/21_canvas_elemente_model.md` | ElementeModel: Canvas-Datenschicht; API-Design, Element-Struct | ✅ |
 | `konzept/architektur/23_technische_ablaeufe.md` | Systemabläufe: EP↔Canvas-Datenfluss, Netzberechnung, Koordinatensystem, Laden/Speichern | ✅ |
 | `konzept/architektur/26_release_migration.md` | Release-Vorbereitung: DB-Trennung, Migrations-System, Export/Import, App-Datenverzeichnis | ✅ |
+| `konzept/architektur/37_button_design_standard.md` | Button-Design-Standard für Dialoge: Primär/Abbrechen-Optik, hover-Logik, Referenz-Implementierungen | ✅ |
 | **`konzept/features/`** | **Was kann die App?** | |
 | `konzept/features/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation; Domain-Symbole Arduino (§9) | ✅ |
 | `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas | ✅ |
@@ -93,9 +94,14 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/29_pdf_export.md` | PDF-Export: Vektor-PDF, alle Element-Typen, Kreuzungslücken, Aderbeschriftung | ✅ |
 | `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System | ✅ |
 | `konzept/features/35_drc.md` | Design Rule Check: 8 Checks (D-01 bis D-08) | ✅ |
+| `konzept/features/36_minimap.md` | Canvas Minimap: Strg+M Übersichtsfenster, CanvasMinimap.qml | ✅ |
 | `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding | 🔄 Phase 2 📋 |
+| `konzept/features/39_fehlersuchmodus.md` | Fehlersuchmodus (L9): Strompfad-BFS, seitenübergreifend, Symbol-Rollen | ✅ |
 | `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow | 🔄 Platzier-Workflow offen |
+| `konzept/features/41_git_integration.md` | Git-Integration: Auto-Commit, Remote-Push, Projekt-History | ✅ |
 | `konzept/features/41_sprungfunktion.md` | Sprungfunktion: Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette | 🔄 Phase 3+4 offen |
+| `konzept/features/42_makro_palette.md` | Makro-Schnellpalette: Kategorie-Akzentstreifen, Overlay-Vorschau, Bibliotheks-Dialog | ✅ |
+| `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3; GK-2/3/4 offen | 🔄 |
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** | |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen | ✅ |
@@ -103,6 +109,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/technik/31_optimierungen.md` | Optimierungspotenziale (alle abgeschlossen) | ✅ |
 | `konzept/technik/33_rotation_multi_debug.md` | Debugging-Protokoll: ROTATION-MULTI-01 (behoben) | ✅ |
 | `konzept/technik/36_codeberg_repo_aufteilung.md` | Codeberg-Einrichtung & Repo-Aufteilung (Symlink-Lösung) | ✅ |
+| `konzept/technik/40_listen_bg_debug.md` | Debugging-Protokoll: LISTEN-BG-01 (behoben) | ✅ |
 | **`konzept/projekt/`** | **Wer ist das Projekt?** | |
 | `konzept/projekt/08_roadmap.md` | Nächste Schritte, mittelfristige und langfristige Planung | — |
 | `konzept/projekt/32_mitwirkende.md` | Mitwirkende, Danksagungen, Entstehungsgeschichte | ✅ |

@@ -155,6 +155,25 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
         if (!adern.isEmpty()) kabelLinieAderMap[i] = qMakePair(kabelId, adern);
     }
 
+    // Betriebsmittel-Hauptfunktion vor dem DELETE sichern:
+    // bmId → alter grafik_element.id (haupt_element_id)
+    // Nach dem re-Insert wird haupt_element_id auf die neue ID umgeschrieben.
+    QMap<int, int> bmHfOldElId;
+    {
+        QSqlQuery q;
+        q.prepare("SELECT bm.id, bm.haupt_element_id "
+                  "FROM betriebsmittel bm "
+                  "JOIN grafik_element ge ON ge.id = bm.haupt_element_id "
+                  "WHERE ge.seite_id = :sid");
+        q.bindValue(":sid", seiteId);
+        if (q.exec()) {
+            while (q.next())
+                bmHfOldElId[q.value(0).toInt()] = q.value(1).toInt();
+        }
+    }
+    // Alter grafik_element.id → Neue ID (wird im INSERT-Loop befüllt)
+    QMap<int, int> oldElIdToNewId;
+
     QSqlQuery qDel;
     qDel.prepare("DELETE FROM grafik_element WHERE seite_id = :sid");
     qDel.bindValue(":sid", seiteId);
@@ -303,6 +322,13 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             m_db.rollback(); return false;
         }
 
+        // Alte → neue Element-ID tracken (für HF-Wiederherstellung)
+        {
+            int oldId = el.value(QStringLiteral("id"), 0).toInt();
+            if (oldId > 0)
+                oldElIdToNewId[oldId] = qIns.lastInsertId().toInt();
+        }
+
         // Kabellinie: kabel.grafik_element_id + kabel_ader.kabellinie_grafik_element_id
         // nach re-Insert auf neue ID aktualisieren.
         if (el.value(QStringLiteral("typ")).toString() == QLatin1String("kabellinie")) {
@@ -337,6 +363,18 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
                 }
             }
         }
+    }
+
+    // Betriebsmittel-Hauptfunktion wiederherstellen: haupt_element_id auf neue IDs umschreiben
+    for (auto it = bmHfOldElId.constBegin(); it != bmHfOldElId.constEnd(); ++it) {
+        int newElId = oldElIdToNewId.value(it.value(), -1);
+        if (newElId <= 0) continue;
+        QSqlQuery qHf;
+        qHf.prepare("UPDATE betriebsmittel SET haupt_element_id = :eid WHERE id = :bmid");
+        qHf.bindValue(":eid",  newElId);
+        qHf.bindValue(":bmid", it.key());
+        if (!qHf.exec())
+            qCWarning(lcDb) << "grafikSpeichern hf relink:" << qHf.lastError().text();
     }
 
     if (!m_db.commit()) {

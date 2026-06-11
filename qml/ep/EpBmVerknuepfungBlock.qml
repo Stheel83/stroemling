@@ -41,6 +41,10 @@ Column {
                                           && bmInfo.hauptElementId > 0
                                           && bmInfo.hauptElementId === (panel.el ? panel.el.id : -1)
         property bool hauptfunktionFehlt: bmId > 0 && (bmInfo.hauptElementId || 0) === 0
+        property bool _hasBmk: {
+            var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
+            return (ed.bmk || "").trim() !== ""
+        }
 
         Column {
             id: verknuepfungCol
@@ -137,34 +141,52 @@ Column {
             }
 
             // ── Aktions-Buttons Zeile 2: Hauptfunktion / BMK-Sync ──
+            // HF-Button erscheint auch ohne BM wenn ein BMK eingetragen ist.
             Row {
-                visible: verknuepfungItem.bmId > 0
+                visible: !verknuepfungItem.istHauptfunktion
+                         && (verknuepfungItem.bmId > 0 || verknuepfungItem._hasBmk)
                 spacing: 4
                 Rectangle {
-                    width: (verknuepfungItem.width - 4) / 2; height: 24; radius: 3
-                    color: hfMa.containsMouse && !verknuepfungItem.istHauptfunktion
-                           ? theme.border : theme.inputBg
-                    border.color: verknuepfungItem.istHauptfunktion ? theme.accent : theme.border
-                    opacity: verknuepfungItem.istHauptfunktion ? 0.5 : 1.0
+                    width: verknuepfungItem.bmId > 0
+                           ? (verknuepfungItem.width - 4) / 2 : verknuepfungItem.width
+                    height: 24; radius: 3
+                    color: hfMa.containsMouse ? theme.border : theme.inputBg
+                    border.color: theme.border
                     Text {
                         anchors.centerIn: parent
                         text: "★ " + qsTr("Als HF festlegen")
-                        font.pixelSize: 10
-                        color: verknuepfungItem.istHauptfunktion ? theme.accent : theme.textMuted
+                        font.pixelSize: 10; color: theme.textMuted
                     }
                     MouseArea {
                         id: hfMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        enabled: !verknuepfungItem.istHauptfunktion
                         onClicked: {
-                            db.betriebsmittelHauptfunktionSetzen(
-                                verknuepfungItem.bmId, panel.el.id)
+                            var bmId = verknuepfungItem.bmId
+                            if (bmId <= 0) {
+                                var kz = (panel.el && panel.el.extraDaten
+                                          && panel.el.extraDaten.bmk)
+                                         ? panel.el.extraDaten.bmk.trim() : ""
+                                if (kz === "") return
+                                bmId = db.betriebsmittelAnlegen(
+                                    panel.canvas.projektId, kz, "")
+                                if (bmId <= 0) return
+                                // Nur gezielte UPDATEs – kein eigenschaftAktualisieren,
+                                // das würde DELETE+INSERT triggern und alle Element-IDs
+                                // invalidieren (FK setzt haupt_element_id auf NULL).
+                                db.grafikElementVerknuepfen(panel.el.id, bmId)
+                                db.betriebsmittelBmkSynchronisieren(bmId)
+                            }
+                            db.betriebsmittelHauptfunktionSetzen(bmId, panel.el.id)
+                            // seiteNeuLaden() liest per SELECT aus DB – keine ID-Änderung.
+                            // In-Memory-Modell bekommt betriebsmittelId aus der DB zurück.
+                            panel.canvas.seiteNeuLaden()
                             verknuepfungItem._refresh++
                             panel.canvas.hfKarteAktualisieren()
                         }
                     }
                 }
                 Rectangle {
+                    visible: verknuepfungItem.bmId > 0
                     width: (verknuepfungItem.width - 4) / 2; height: 24; radius: 3
                     color: syncMa.containsMouse ? theme.border : theme.inputBg
                     border.color: theme.border

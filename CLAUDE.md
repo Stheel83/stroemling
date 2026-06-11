@@ -103,6 +103,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/42_makro_palette.md` | Makro-Schnellpalette: Kategorie-Akzentstreifen, Overlay-Vorschau, Bibliotheks-Dialog | ✅ |
 | `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3; GK-2/3/4 offen | 🔄 |
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |
+| `konzept/features/45_steckverbinder.md` | Stecker und Buchsen: 4-Kombinations-Matrix, 3-Ebenen-Modell, Kontakteigenschaften, Steckpaar-Logik, BMK, DB-Schema-Entwurf | 📋 Konzept |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** | |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen | ✅ |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten | ✅ |

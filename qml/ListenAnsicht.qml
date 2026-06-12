@@ -139,11 +139,11 @@ Item {
         { header: "+Ort",        w: 80  }
     ]
     readonly property var klaCols: [
-        { header: qsTr("Nr."),           w: 50  },
-        { header: qsTr("Von (Seite A)"), w: 220 },
-        { header: qsTr("Nach (Seite B)"),w: 220 },
-        { header: qsTr("Qs"),            w: 80  },
-        { header: qsTr("Farbe"),         w: 90  }
+        { header: qsTr("Nr."),            w: 50  },
+        { header: qsTr("Von (Seite A)"),  w: 210 },
+        { header: qsTr("Qs"),             w: 80  },
+        { header: qsTr("Farbe"),          w: 90  },
+        { header: qsTr("Nach (Seite B)"), w: 210 }
     ]
     readonly property var klCols: [
         { header: "Bezeichnung", w: 110 }, { header: "Kabeltyp",  w: 130 },

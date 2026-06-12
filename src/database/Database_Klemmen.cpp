@@ -378,7 +378,8 @@ QVariantList Database::klemmlistenauszug(int projektId)
         QSqlQuery q(m_db);
         q.prepare(
             "SELECT ks.klemmenleiste_id, ks.ebene,"
-            "       kv.sortierung, kv.nummer, kb.nummer,"
+            "       kv.sortierung, kb.sortierung,"
+            "       kv.nummer, kb.nummer,"
             "       COALESCE(ks.potenzial_text,''), ks.hat_konflikt,"
             "       COALESCE(v.signaltyp,'')"
             " FROM klemme_stegbruecke ks"
@@ -395,11 +396,12 @@ QVariantList Database::klemmlistenauszug(int projektId)
                 QVariantMap s;
                 s[QStringLiteral("ebene")]       = q.value(1).toInt();
                 s[QStringLiteral("vonSort")]     = q.value(2).toInt();
-                s[QStringLiteral("vonNr")]       = q.value(3).toString();
-                s[QStringLiteral("bisNr")]       = q.value(4).toString();
-                s[QStringLiteral("potenzial")]   = q.value(5).toString();
-                s[QStringLiteral("hatKonflikt")] = q.value(6).toBool();
-                s[QStringLiteral("signaltyp")]   = q.value(7).toString();
+                s[QStringLiteral("bisSort")]     = q.value(3).toInt();
+                s[QStringLiteral("vonNr")]       = q.value(4).toString();
+                s[QStringLiteral("bisNr")]       = q.value(5).toString();
+                s[QStringLiteral("potenzial")]   = q.value(6).toString();
+                s[QStringLiteral("hatKonflikt")] = q.value(7).toBool();
+                s[QStringLiteral("signaltyp")]   = q.value(8).toString();
                 stegMap[q.value(0).toInt()].append(s);
             }
         }
@@ -435,7 +437,6 @@ QVariantList Database::klemmlistenauszug(int projektId)
 
     int lastLeistenId = -1;
     QList<QVariantMap> curStegs;
-    int stegIdx = 0;
 
     while (q.next()) {
         int leisteId = q.value(0).toInt();
@@ -449,7 +450,6 @@ QVariantList Database::klemmlistenauszug(int projektId)
             result.append(row);
             lastLeistenId = leisteId;
             curStegs = stegMap.value(leisteId);
-            stegIdx  = 0;
         }
 
         int    klemmeId = q.value(3).toInt();
@@ -464,13 +464,25 @@ QVariantList Database::klemmlistenauszug(int projektId)
         QString farbHex = q.value(11).toString();
         QString qs      = q.value(12).toString();
 
-        // Stegbrücken-Trennzeilen vor dieser Klemme einf\xc3\xbcgen
-        while (stegIdx < curStegs.size() &&
-               curStegs[stegIdx][QStringLiteral("vonSort")].toInt() <= kSort) {
-            QVariantMap steg = curStegs[stegIdx++];
-            steg[QStringLiteral("typ")]      = QStringLiteral("steg");
-            steg[QStringLiteral("leisteId")] = leisteId;
-            result.append(steg);
+        // Steg-Mitgliedschaft dieser Klemme ermitteln (erster passender Steg)
+        bool    stegAkt  = false;
+        QString stegSt, stegPot, stegVNr, stegBNr;
+        int     stegEb   = 0;
+        bool    stegErst = false, stegLetzt = false;
+        for (const QVariantMap &steg : curStegs) {
+            int vS = steg[QStringLiteral("vonSort")].toInt();
+            int bS = steg[QStringLiteral("bisSort")].toInt();
+            if (kSort >= vS && kSort <= bS) {
+                stegAkt   = true;
+                stegSt    = steg[QStringLiteral("signaltyp")].toString();
+                stegPot   = steg[QStringLiteral("potenzial")].toString();
+                stegEb    = steg[QStringLiteral("ebene")].toInt();
+                stegVNr   = steg[QStringLiteral("vonNr")].toString();
+                stegBNr   = steg[QStringLiteral("bisNr")].toString();
+                stegErst  = (kSort == vS);
+                stegLetzt = (kSort == bS);
+                break;
+            }
         }
 
         bool ersteZeile = true;
@@ -508,6 +520,15 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("querschnitt")]     = qs;
             row[QStringLiteral("farbeBez")]        = farbBez;
             row[QStringLiteral("farbeHex")]        = farbHex;
+            // Steg-Mitgliedschaft (für vertikalen Indikatorbalken)
+            row[QStringLiteral("stegAktiv")]       = stegAkt;
+            row[QStringLiteral("stegSignaltyp")]   = stegSt;
+            row[QStringLiteral("stegPotenzial")]   = stegPot;
+            row[QStringLiteral("stegEbene")]       = stegEb;
+            row[QStringLiteral("stegVonNr")]       = stegVNr;
+            row[QStringLiteral("stegBisNr")]       = stegBNr;
+            row[QStringLiteral("stegIstErste")]    = stegErst;
+            row[QStringLiteral("stegIstLetzte")]   = stegLetzt;
             result.append(row);
             ersteZeile = false;
         };

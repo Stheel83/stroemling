@@ -394,6 +394,11 @@ public:
     // Gibt [{seiteId, klemmeId, anschlussBezeichnung}] zurück.
     Q_INVOKABLE QVariantList klemmenAnschlussAlleSeiten(int projektId) const;
 
+    // Klemmlistenauszug: Von/Nach je Anschluss mit Verbindungsdaten (KLISTE-01).
+    // Gibt flache Liste: "leiste", "steg", "anschluss"-Zeilen.
+    Q_INVOKABLE QVariantList klemmlistenauszug(int projektId);
+    Q_INVOKABLE bool         klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad);
+
     // Kabeldefinitionslinie – neues Kabel anlegen und grafik_element verknüpfen.
     // Gibt die neue kabel-ID zurück (>0) oder -1 bei Fehler.
     Q_INVOKABLE int kabelAnlegen(int projektId, const QString &bezeichnung,

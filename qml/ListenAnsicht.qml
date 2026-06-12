@@ -20,6 +20,7 @@ Item {
         if (projektId < 0) {
             stuecklisteModel.clear(); querverweisModel.clear()
             aderlisteModel.clear();   klemmenplanModel.clear()
+            klaModel.clear()
             panel._kabelDaten = []; return
         }
         stuecklisteModel.clear()
@@ -38,6 +39,10 @@ Item {
         var kp = db.klemmenplan(projektId)
         for (var m = 0; m < kp.length; m++) klemmenplanModel.append(kp[m])
 
+        klaModel.clear()
+        var kla = db.klemmlistenauszug(projektId)
+        for (var n = 0; n < kla.length; n++) klaModel.append(kla[n])
+
         panel._kabelDaten    = db.kabelListeAufgeschluesselt(projektId)
         panel._kabelExpanded = {}
     }
@@ -46,11 +51,13 @@ Item {
     ListModel { id: querverweisModel }
     ListModel { id: aderlisteModel }
     ListModel { id: klemmenplanModel }
+    ListModel { id: klaModel }
 
     property alias _stuecklisteModel: stuecklisteModel
     property alias _querverweisModel: querverweisModel
     property alias _aderlisteModel:   aderlisteModel
     property alias _klemmenplanModel: klemmenplanModel
+    property alias _klaModel:         klaModel
 
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
@@ -100,6 +107,13 @@ Item {
         return n
     }
 
+    readonly property int _klaAnschlussZaehler: {
+        var n = 0
+        for (var i = 0; i < klaModel.count; i++)
+            if (klaModel.get(i).typ === "anschluss") n++
+        return n
+    }
+
     readonly property var slCols: [
         { header: "BMK",        w: 110 }, { header: "Typ",        w: 110 },
         { header: "Freitext 1", w: 130 }, { header: "Freitext 2", w: 130 },
@@ -123,6 +137,14 @@ Item {
         { header: "Typ",         w: 90  }, { header: "Querschnitt", w: 110 },
         { header: "Farbe",       w: 100 }, { header: "Potenzial",   w: 100 },
         { header: "+Ort",        w: 80  }
+    ]
+    readonly property var klaCols: [
+        { header: qsTr("Nr."),        w: 55  },
+        { header: qsTr("Anschluss"),  w: 70  },
+        { header: qsTr("Seite"),      w: 45  },
+        { header: qsTr("Verbindung"), w: 210 },
+        { header: qsTr("Qs"),         w: 90  },
+        { header: qsTr("Farbe"),      w: 90  }
     ]
     readonly property var klCols: [
         { header: "Bezeichnung", w: 110 }, { header: "Kabeltyp",  w: 130 },
@@ -327,11 +349,12 @@ Item {
                 spacing: 2
                 Repeater {
                     model: [
-                        { label: qsTr("Stückliste  (")   + stuecklisteModel.count + ")",  tab: 0 },
-                        { label: qsTr("Querverweise  (") + querverweisModel.count + ")",  tab: 1 },
-                        { label: qsTr("Aderliste  (")    + aderlisteModel.count   + ")",  tab: 2 },
-                        { label: qsTr("Klemmenplan  (")  + klemmenplanZaehler     + ")",  tab: 3 },
-                        { label: qsTr("Kabelliste  (")   + panel._kabelDaten.length + ")", tab: 4 }
+                        { label: qsTr("Stückliste  (")        + stuecklisteModel.count    + ")",  tab: 0 },
+                        { label: qsTr("Querverweise  (")      + querverweisModel.count    + ")",  tab: 1 },
+                        { label: qsTr("Aderliste  (")         + aderlisteModel.count      + ")",  tab: 2 },
+                        { label: qsTr("Klemmenplan  (")       + klemmenplanZaehler        + ")",  tab: 3 },
+                        { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler + ")", tab: 4 },
+                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5
@@ -361,11 +384,12 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
             currentIndex: 0
 
-            LaTabStueckliste  { panel: panel; theme: panel.theme }
-            LaTabQuerverweise { panel: panel; theme: panel.theme }
-            LaTabAderliste    { panel: panel; theme: panel.theme }
-            LaTabKlemmenplan  { panel: panel; theme: panel.theme }
-            LaTabKabelliste   { panel: panel; theme: panel.theme }
+            LaTabStueckliste       { panel: panel; theme: panel.theme }
+            LaTabQuerverweise      { panel: panel; theme: panel.theme }
+            LaTabAderliste         { panel: panel; theme: panel.theme }
+            LaTabKlemmenplan       { panel: panel; theme: panel.theme }
+            LaTabKlemmlistenauszug { panel: panel; theme: panel.theme }
+            LaTabKabelliste        { panel: panel; theme: panel.theme }
         }
     }
 

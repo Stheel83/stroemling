@@ -885,7 +885,7 @@ bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
     out << "\xEF\xBB\xBF";
-    out << "Bezeichnung;Aderfarbe;Querschnitt mm2;Laenge m;Seite;==Anlage;++Ort;=Anlage;+Ort\n";
+    out << "Adernummer;Aderfarbe;Querschnitt mm2;Laenge m;Seite;==Anlage;++Ort;=Anlage;+Ort\n";
     auto csvQ = [](const QString &s) -> QString {
         if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
             return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';

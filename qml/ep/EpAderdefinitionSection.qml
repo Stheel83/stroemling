@@ -64,7 +64,7 @@ Item {
         Item { height: 8 }
 
         InputField {
-            label: qsTr("Bezeichnung")
+            label: qsTr("Adernummer")
             value: panel.el ? ((panel.el.extraDaten || {}).bezeichnung || "") : ""
             theme: root.theme
             onCommit: function(t) { root.extraSetzen("bezeichnung", t) }

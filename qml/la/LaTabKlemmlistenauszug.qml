@@ -10,7 +10,10 @@ ColumnLayout {
     required property var theme
     spacing: 0
 
-    // ── Hilfsfunktionen (root-Scope → in Delegates per root.xxx erreichbar) ──
+    // Breite des Steg-Indikatorbereichs zwischen Qs und Farbe
+    readonly property int _stegBreite: 18
+
+    // ── Hilfsfunktionen (root-Scope → AOT-sicher) ──────────────
     function stegFarbe(st) {
         if (st === "pe")    return "#3a8c3a"
         if (st === "n")     return "#2a62a0"
@@ -25,7 +28,6 @@ ColumnLayout {
         if (st === "analog")  return "#ff9800"
         return "#888"
     }
-    // platz = Element im Canvas; verbBez = Netz-Bezeichnung (leer wenn kein Netz)
     function _verbText(bez, platz, verbBez, bl) {
         if ((bez || "") === "") return ""
         if (!platz) return qsTr("(nicht platziert)")
@@ -61,7 +63,8 @@ ColumnLayout {
         Layout.fillWidth: true; height: 30; color: theme.tableHeader
 
         Row {
-            anchors { left: parent.left; leftMargin: 20; verticalCenter: parent.verticalCenter }
+            anchors { left: parent.left; leftMargin: 8
+                      verticalCenter: parent.verticalCenter }
             spacing: 0
 
             Text { width: panel.klaCols[0].w; text: panel.klaCols[0].header
@@ -72,6 +75,8 @@ ColumnLayout {
                         anchors.verticalCenter: parent.verticalCenter }
             Text { width: panel.klaCols[2].w; text: panel.klaCols[2].header; leftPadding: 8
                    font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
+            // Steg-Spalte (kein Spaltenheader-Text, wird visuell genutzt)
+            Item { width: root._stegBreite; height: 22 }
             Text { width: panel.klaCols[3].w; text: panel.klaCols[3].header
                    font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
             Rectangle { width: 1; height: 22; color: root.theme.border
@@ -112,10 +117,13 @@ ColumnLayout {
                 width: klaView.width
                 height: model.typ === "leiste" ? 26 : 28
 
-                // Steg-Daten: JSON-Array parsen (einmal pro Zeile)
+                // Nur die Stegs dieser Ebene anzeigen
                 property var _stegs: {
                     if (model.typ !== "anschluss") return []
-                    try { return JSON.parse(model.stegJson || "[]") } catch(e) { return [] }
+                    try {
+                        var all = JSON.parse(model.stegJson || "[]")
+                        return all.filter(function(s) { return s.eb === model.ebene })
+                    } catch(e) { return [] }
                 }
 
                 // ── Leisten-Kopfzeile ─────────────────────────
@@ -140,63 +148,9 @@ ColumnLayout {
                     anchors.fill: parent
                     color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
 
-                    // Steg-Klammern: mittig in 20px-Bereich links
-                    Item {
-                        anchors.left: parent.left; width: 20; height: parent.height
-                        visible: klaDelegate._stegs.length > 0
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 3
-
-                            Repeater {
-                                model: klaDelegate._stegs
-
-                                Item {
-                                    width: 6; height: klaDelegate.height
-
-                                    // Vertikaler Balken (Bracket-Stil)
-                                    Rectangle {
-                                        width: 2
-                                        color: root.stegFarbe(modelData.st || "")
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        // Einzelne Klemme im Steg: nur Querstrich, kein Balken
-                                        visible: !(modelData.er && modelData.la)
-                                        y: modelData.er ? parent.height * 0.5 : 0
-                                        height: (modelData.er || modelData.la)
-                                                ? parent.height * 0.5
-                                                : parent.height
-                                    }
-                                    // Querstrich in der Mitte (erste/letzte Zeile im Steg)
-                                    Rectangle {
-                                        visible: modelData.er || modelData.la
-                                        width: parent.width; height: 2
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        y: parent.height * 0.5 - 1
-                                        color: root.stegFarbe(modelData.st || "")
-                                    }
-
-                                    MouseArea {
-                                        id: stegMa; anchors.fill: parent; hoverEnabled: true
-                                    }
-                                    ToolTip.visible: stegMa.containsMouse
-                                    ToolTip.delay: 300
-                                    ToolTip.text: {
-                                        var t = qsTr("Steg Eb.%1  %2–%3")
-                                                .arg(modelData.eb || 1)
-                                                .arg(modelData.vn || "?")
-                                                .arg(modelData.bn || "?")
-                                        if (modelData.pot) t += "\n" + modelData.pot
-                                        return t
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Daten-Row: Nr | A | sep | Qs | Farbe | sep | B
+                    // Daten-Row: Nr | A | sep | Qs | [Steg] | Farbe | sep | B
                     Row {
-                        anchors { left: parent.left; leftMargin: 20
+                        anchors { left: parent.left; leftMargin: 8
                                   verticalCenter: parent.verticalCenter }
                         spacing: 0
 
@@ -252,6 +206,60 @@ ColumnLayout {
                             text: model.typ === "anschluss" ? (model.querschnitt || "–") : ""
                             font.pixelSize: 11; color: root.theme.borderLight
                             elide: Text.ElideRight
+                        }
+
+                        // ── Steg-Indikatoren (zentriert in _stegBreite px) ──
+                        Item {
+                            width: root._stegBreite; height: klaDelegate.height
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 2
+
+                                Repeater {
+                                    model: klaDelegate._stegs
+
+                                    Item {
+                                        width: 4; height: klaDelegate.height
+
+                                        // Verbindungsbalken (volle Höhe für mittlere Zeilen,
+                                        // halbe Höhe für erste / letzte Zeile der Gruppe)
+                                        Rectangle {
+                                            width: 2
+                                            color: root.stegFarbe(modelData.st || "")
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            visible: !(modelData.er && modelData.la)
+                                            y: modelData.er ? parent.height * 0.5 : 0
+                                            height: (modelData.er || modelData.la)
+                                                    ? parent.height * 0.5
+                                                    : parent.height
+                                        }
+                                        // Querstrich in Zeilenmitte (Gruppenanfang/-ende)
+                                        Rectangle {
+                                            visible: modelData.er || modelData.la
+                                            width: parent.width; height: 2
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            y: parent.height * 0.5 - 1
+                                            color: root.stegFarbe(modelData.st || "")
+                                        }
+
+                                        MouseArea {
+                                            id: stegMa; anchors.fill: parent
+                                            hoverEnabled: true
+                                        }
+                                        ToolTip.visible: stegMa.containsMouse
+                                        ToolTip.delay: 300
+                                        ToolTip.text: {
+                                            var t = qsTr("Steg Eb.%1  %2–%3")
+                                                    .arg(modelData.eb || 1)
+                                                    .arg(modelData.vn || "?")
+                                                    .arg(modelData.bn || "?")
+                                            if (modelData.pot) t += "\n" + modelData.pot
+                                            return t
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         // Farbe
@@ -315,14 +323,16 @@ ColumnLayout {
                     }
 
                     // Durchgehende Trennlinien (volle Zeilenhöhe)
+                    // Position: leftMargin + Nr + Von
                     Rectangle {
-                        x: 20 + panel.klaCols[0].w + panel.klaCols[1].w
+                        x: 8 + panel.klaCols[0].w + panel.klaCols[1].w
                         width: 1; height: parent.height
                         color: root.theme.border; opacity: 0.5
                     }
+                    // Position: leftMargin + Nr + Von + sep + Qs + Steg + Farbe
                     Rectangle {
-                        x: 20 + panel.klaCols[0].w + panel.klaCols[1].w + 1
-                            + panel.klaCols[2].w + panel.klaCols[3].w
+                        x: 8 + panel.klaCols[0].w + panel.klaCols[1].w + 1
+                            + panel.klaCols[2].w + root._stegBreite + panel.klaCols[3].w
                         width: 1; height: parent.height
                         color: root.theme.border; opacity: 0.5
                     }

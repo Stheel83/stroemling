@@ -43,8 +43,10 @@ Item {
         gkSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
     }
     signal drcKlick()
+    signal suchKlick()
 
-    property bool drcAktiv: false
+    property bool drcAktiv:  false
+    property bool suchAktiv: false
 
     property real zoom:    1.0
     property real minZoom: 0.1
@@ -3039,8 +3041,10 @@ Item {
         canvas: root
         visible: root.seiteId >= 0
         anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-        drcAktiv: root.drcAktiv
-        onDrcKlick: root.drcKlick()
+        drcAktiv:  root.drcAktiv
+        suchAktiv: root.suchAktiv
+        onDrcKlick:  root.drcKlick()
+        onSuchKlick: root.suchKlick()
     }
 
     // --------------------------------------------------------

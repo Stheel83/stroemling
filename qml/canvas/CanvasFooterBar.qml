@@ -9,8 +9,10 @@ Rectangle {
     required property var canvas
 
     property string koordinatenText: ""
-    property bool   drcAktiv:       false
+    property bool   drcAktiv:  false
+    property bool   suchAktiv: false
     signal drcKlick()
+    signal suchKlick()
 
     height: 34
     color: AppTheme.surfaceDeep
@@ -100,6 +102,23 @@ Rectangle {
         }
 
         Item { Layout.fillWidth: true }
+
+        Rectangle {
+            implicitWidth: 70; implicitHeight: 24; radius: 4
+            color:        root.suchAktiv ? AppTheme.activeItemAlt : (suchHover.hovered ? AppTheme.hover : AppTheme.inputBg)
+            border.color: root.suchAktiv ? AppTheme.accent : AppTheme.border
+            ToolTip.visible: suchHover.hovered
+            ToolTip.text:    qsTr("Suchen – Elemente, Seiten und Befehle finden (Strg+J)")
+            ToolTip.delay:   500
+            HoverHandler { id: suchHover }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                spacing: 4
+                Text { text: "🔍"; font.pixelSize: 11; color: root.suchAktiv ? AppTheme.accent : AppTheme.panelMid }
+                Text { text: qsTr("Suchen"); font.pixelSize: 11; color: root.suchAktiv ? AppTheme.accent : AppTheme.panelMid }
+            }
+            TapHandler { onTapped: root.suchKlick() }
+        }
 
         Rectangle {
             implicitWidth: 52; implicitHeight: 24; radius: 4

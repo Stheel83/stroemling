@@ -1,56 +1,42 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import "components"
 
-Popup {
+// Suchpanel – erscheint am unteren Rand des Canvas-Bereichs (wie DrcPanel).
+// Auslösung: Strg+J, Strg+P oder Suchen-Button im Footer.
+Item {
     id: root
 
-    property int    projektId:  -1
+    property int    projektId: -1
     required property var theme
     property bool   debug: false
 
     signal werkzeugAktiviert(string werkzeug)
     signal seiteOeffnen(int id, string blattnummer, string bezeichnung)
     signal elementSprung(int seiteId, string blattnummer, string seiteBez, real cx, real cy)
+    signal schliessen()
 
-    modal:  false
-    focus:  true
-    width:  500
-    height: Math.min(480, contentItem.implicitHeight + 2)
-    padding: 0
-
-    parent:  Overlay.overlay
-    x:       (parent.width  - width)  / 2
-    y:       Math.max(60, (parent.height - height) / 4)
-
-    background: Rectangle {
-        color:        root.theme.sidebar
-        border.color: root.theme.accent
-        border.width: 1
-        radius: 6
-    }
-
-    onOpened: {
+    function oeffnen() {
         suchfeld.text = ""
-        suchfeld.forceActiveFocus()
         _eintraegeLaden()
+        suchfeld.forceActiveFocus()
     }
 
     property var _alleEintraege: []
 
     readonly property var _werkzeuge: [
-        { label: "Zeiger",           werkzeug: "zeiger",          kuerzel: "V" },
-        { label: "Linie",            werkzeug: "linie",           kuerzel: "L" },
-        { label: "Polygonlinie",     werkzeug: "polygonlinie",    kuerzel: "P" },
-        { label: "Kabellinie",       werkzeug: "kabellinie",      kuerzel: "C" },
-        { label: "Rechteck",         werkzeug: "rechteck",        kuerzel: "R" },
-        { label: "Kreis",            werkzeug: "kreis",           kuerzel: "K" },
-        { label: "Gerätekasten",     werkzeug: "geraetekasten",   kuerzel: "G" },
-        { label: "Strukturkasten",   werkzeug: "strukturkasten",  kuerzel: "U" },
-        { label: "Makrokasten",      werkzeug: "makrokasten",     kuerzel: "M" },
-        { label: "Text",             werkzeug: "text",            kuerzel: "T" },
-        { label: "Notiz",            werkzeug: "notiz",           kuerzel: "N" }
+        { label: "Zeiger",         werkzeug: "zeiger",        kuerzel: "V" },
+        { label: "Linie",          werkzeug: "linie",         kuerzel: "L" },
+        { label: "Polygonlinie",   werkzeug: "polygonlinie",  kuerzel: "P" },
+        { label: "Kabellinie",     werkzeug: "kabellinie",    kuerzel: "C" },
+        { label: "Rechteck",       werkzeug: "rechteck",      kuerzel: "R" },
+        { label: "Kreis",          werkzeug: "kreis",         kuerzel: "K" },
+        { label: "Geraetekasten",  werkzeug: "geraetekasten", kuerzel: "G" },
+        { label: "Strukturkasten", werkzeug: "strukturkasten",kuerzel: "U" },
+        { label: "Makrokasten",    werkzeug: "makrokasten",   kuerzel: "M" },
+        { label: "Text",           werkzeug: "text",          kuerzel: "T" },
+        { label: "Notiz",          werkzeug: "notiz",         kuerzel: "N" }
     ]
 
     function _eintraegeLaden() {
@@ -80,7 +66,7 @@ Popup {
             }
         }
         root._alleEintraege = liste
-        _auswahl = liste.length > 0 ? 0 : -1
+        root._auswahl = liste.length > 0 ? 0 : -1
     }
 
     property int _auswahl: -1
@@ -96,7 +82,7 @@ Popup {
     function _aktivieren(idx) {
         if (idx < 0 || idx >= _gefiltert.length) return
         var e = _gefiltert[idx]
-        root.close()
+        root.schliessen()
         if (e.kategorie === "Werkzeug") {
             root.werkzeugAktiviert(e.werkzeug)
         } else if (e.kategorie === "Seite") {
@@ -106,24 +92,62 @@ Popup {
         }
     }
 
-    contentItem: ColumnLayout {
+    // Hintergrund
+    Rectangle {
+        anchors.fill: parent
+        color:        root.theme.surface
+        border.color: root.theme.border
+        border.width: 1
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
         spacing: 0
 
+        // ── Kopfzeile ────────────────────────────────────────────
         Rectangle {
-            id: suchZeile
+            Layout.fillWidth: true
+            height: 34
+            color: root.theme.surfaceDeep
+
+            RowLayout {
+                anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
+                spacing: 8
+
+                Text { text: "⌕"; font.pixelSize: 14; color: root.theme.textMuted }
+                Text {
+                    text: qsTr("Suchen")
+                    font.pixelSize: 12; font.weight: Font.Medium
+                    color: root.theme.textPrimary
+                    Layout.fillWidth: true
+                }
+                Text {
+                    text: root._gefiltert.length + " " + qsTr("Treffer")
+                    font.pixelSize: 10; color: root.theme.textMuted
+                    visible: suchfeld.text.length > 0
+                }
+                Rectangle {
+                    width: 22; height: 22; radius: 3
+                    color: schliessenHover.hovered ? root.theme.hover : "transparent"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "×"; font.pixelSize: 16; color: root.theme.textMuted
+                    }
+                    HoverHandler { id: schliessenHover }
+                    TapHandler { onTapped: root.schliessen() }
+                }
+            }
+        }
+
+        // ── Suchfeld ─────────────────────────────────────────────
+        Rectangle {
             Layout.fillWidth: true
             height: 44
             color: "transparent"
-            radius: 6
 
             RowLayout {
                 anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
                 spacing: 8
-
-                Text {
-                    text: "⌕"; font.pixelSize: 16
-                    color: root.theme.textMuted
-                }
 
                 TextField {
                     id: suchfeld
@@ -131,46 +155,36 @@ Popup {
                     placeholderText: qsTr("Werkzeug, Seite, BMK oder Kabel suchen …")
                     font.pixelSize: 14
                     color:               root.theme.textPrimary
-                    background:          Rectangle { color: "transparent" }
                     placeholderTextColor: root.theme.textMuted
+                    background: Rectangle {
+                        color: root.theme.inputBg; border.color: root.theme.border; radius: 4
+                    }
 
                     onTextChanged: root._auswahl = root._gefiltert.length > 0 ? 0 : -1
 
                     Keys.onUpPressed:     { if (root._auswahl > 0) root._auswahl-- }
                     Keys.onDownPressed:   { if (root._auswahl < root._gefiltert.length - 1) root._auswahl++ }
                     Keys.onReturnPressed: root._aktivieren(root._auswahl)
-                    Keys.onEscapePressed: root.close()
-                }
-
-                Text {
-                    text: root._gefiltert.length + " " + qsTr("Treffer")
-                    font.pixelSize: 10
-                    color: root.theme.textMuted
-                    visible: suchfeld.text.length > 0
+                    Keys.onEscapePressed: root.schliessen()
                 }
             }
         }
 
-        Rectangle {
-            id: trenn
-            Layout.fillWidth: true
-            height: 1
-            color: root.theme.border
-        }
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
+        // ── Ergebnisliste ─────────────────────────────────────────
         ListView {
             id: listView
-            Layout.fillWidth:    true
-            Layout.preferredHeight: Math.min(380, contentHeight)
-            clip:   true
-            model:  root._gefiltert
-
-            ScrollBar.vertical: ScrollBar {}
+            Layout.fillWidth:  true
+            Layout.fillHeight: true
+            clip:  true
+            model: root._gefiltert
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             delegate: Rectangle {
                 width:  listView.width
-                height: 38
-                color:  (index === root._auswahl) ? root.theme.activeItem : "transparent"
+                height: 36
+                color:  index === root._auswahl ? root.theme.activeItem : "transparent"
 
                 RowLayout {
                     anchors { fill: parent; leftMargin: 14; rightMargin: 12 }
@@ -185,38 +199,33 @@ Popup {
                         Text {
                             anchors.centerIn: parent
                             text:  modelData.kategorie
-                            font.pixelSize: 9
-                            color: root.theme.textMuted
+                            font.pixelSize: 9; color: root.theme.textMuted
                         }
                     }
 
                     Text {
                         Layout.fillWidth: true
                         text:  modelData.label
-                        font.pixelSize: 13
-                        color: root.theme.textPrimary
+                        font.pixelSize: 13; color: root.theme.textPrimary
                         elide: Text.ElideRight
                     }
 
                     Text {
                         text:  modelData.info || ""
-                        font.pixelSize: 11
-                        color: root.theme.textMuted
+                        font.pixelSize: 11; color: root.theme.textMuted
                     }
                 }
 
                 MouseArea {
                     anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape:  Qt.PointingHandCursor
+                    hoverEnabled: true
                     onClicked:              { root._auswahl = index; root._aktivieren(index) }
                     onContainsMouseChanged: if (containsMouse) root._auswahl = index
-                    hoverEnabled: true
                 }
             }
         }
     }
 
-    Overlay.modal: Rectangle { color: "transparent" }
-
-    DebugLabel { parent: root.contentItem; panelName: qsTr("Kommando-Palette"); visible: root.debug && root.visible }
+    DebugLabel { panelName: qsTr("Suchpanel"); visible: root.debug && root.visible }
 }

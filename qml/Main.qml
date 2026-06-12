@@ -48,6 +48,7 @@ ApplicationWindow {
 
     property bool   debugModeAktiv:         false
     property bool   drcPanelOffen:          false
+    property bool   suchPanelOffen:         false
 
     property string symbolEditorId:         ""
     property string symbolEditorVorlageId:  ""
@@ -275,7 +276,7 @@ ApplicationWindow {
     Shortcut {
         sequence:    "Ctrl+P"
         context:     Shortcut.ApplicationShortcut
-        onActivated: kommandoPalette.open()
+        onActivated: root.suchPanelOffen = !root.suchPanelOffen
     }
 
     Shortcut {
@@ -293,26 +294,8 @@ ApplicationWindow {
         debug:     root.debugModeAktiv
     }
 
-    KommandoPalette {
-        id:        kommandoPalette
-        theme:     appTheme
-        projektId: root.aktivProjektId
-        debug:     root.debugModeAktiv
-
-        onWerkzeugAktiviert: function(werkzeug) {
-            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
-            root.aktiverCanvas.aktivesWerkzeug = werkzeug
-        }
-        onSeiteOeffnen: function(id, blattnummer, bezeichnung) {
-            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
-            var p = root.fokussiertesPanel === 1 ? panel1 : panel2
-            p.seiteOeffnen(id, blattnummer, bezeichnung)
-        }
-        onElementSprung: function(seiteId, blattnummer, seiteBez, cx, cy) {
-            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
-            var p = root.fokussiertesPanel === 1 ? panel1 : panel2
-            p.seiteOeffnenUndZentrieren(seiteId, blattnummer, seiteBez, cx, cy)
-        }
+    onSuchPanelOffenChanged: {
+        if (suchPanelOffen) suchPanel.oeffnen()
     }
 
     // ── Hilfsdialog: keine Seite aktiv ──────────────────────────
@@ -894,7 +877,7 @@ ApplicationWindow {
                         left:   parent.left
                         right:  parent.right
                         top:    parent.top
-                        bottom: drcPanel.top
+                        bottom: suchPanel.top
                     }
                     spacing: 0
 
@@ -1103,8 +1086,10 @@ ApplicationWindow {
                             }
                             onTeilenRechts: { root.splitHorizontal = true;  root.splitAktiv = true }
                             onTeilenUnten:  { root.splitHorizontal = false; root.splitAktiv = true }
-                            onDrcKlick:     root.drcPanelOffen = !root.drcPanelOffen
+                            onDrcKlick:     root.drcPanelOffen  = !root.drcPanelOffen
+                            onSuchKlick:    root.suchPanelOffen = !root.suchPanelOffen
                             drcAktiv:       root.drcPanelOffen
+                            suchAktiv:      root.suchPanelOffen
                         }
 
                         CanvasPanel {
@@ -1157,8 +1142,10 @@ ApplicationWindow {
                                 if (wkz === "zeiger" && root._klemmeQueueAktiv)
                                     root._klemmeQueueNaechste()
                             }
-                            onDrcKlick:     root.drcPanelOffen = !root.drcPanelOffen
+                            onDrcKlick:     root.drcPanelOffen  = !root.drcPanelOffen
+                            onSuchKlick:    root.suchPanelOffen = !root.suchPanelOffen
                             drcAktiv:       root.drcPanelOffen
+                            suchAktiv:      root.suchPanelOffen
                             onPanelLeer: {
                                 root.splitAktiv      = false
                                 root.fokussiertesPanel = 1
@@ -1170,6 +1157,39 @@ ApplicationWindow {
                 }
 
                 // \u2500\u2500 DRC-Panel (unten, ausklappbar) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                // ── Suchpanel (unten, ausklappbar) ───────────────────────
+                KommandoPalette {
+                    id:    suchPanel
+                    anchors {
+                        left:   parent.left
+                        right:  parent.right
+                        bottom: drcPanel.top
+                    }
+                    height:    root.suchPanelOffen ? 260 : 0
+                    clip:      true
+                    theme:     appTheme
+                    projektId: root.aktivProjektId
+                    debug:     root.debugModeAktiv
+
+                    onSchliessen: root.suchPanelOffen = false
+                    onWerkzeugAktiviert: function(werkzeug) {
+                        if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                        root.aktiverCanvas.aktivesWerkzeug = werkzeug
+                    }
+                    onSeiteOeffnen: function(id, blattnummer, bezeichnung) {
+                        if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                        var p = root.fokussiertesPanel === 1 ? panel1 : panel2
+                        p.seiteOeffnen(id, blattnummer, bezeichnung)
+                    }
+                    onElementSprung: function(seiteId, blattnummer, seiteBez, cx, cy) {
+                        if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                        var p = root.fokussiertesPanel === 1 ? panel1 : panel2
+                        p.seiteOeffnenUndZentrieren(seiteId, blattnummer, seiteBez, cx, cy)
+                    }
+
+                    Behavior on height { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
+                }
+
                 DrcPanel {
                     id:    drcPanel
                     anchors {
@@ -1770,7 +1790,7 @@ ApplicationWindow {
     Shortcut { sequence: "S"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv&&c.paletteSymbolId!==""){c.abbruch();c.aktivesWerkzeug="symbol"} } }
     Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
     Shortcut { sequence: "Ctrl+M"; context: Shortcut.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
-    Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: kommandoPalette.open() }
+    Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: root.suchPanelOffen = !root.suchPanelOffen }
     // GIT-01: Explizites Speichern + Auto-Commit
     Shortcut {
         sequence: "Ctrl+S"

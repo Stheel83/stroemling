@@ -44,8 +44,10 @@ Item {
     signal panelLeer()
     signal splitSchliessen()
     signal drcKlick()
+    signal suchKlick()
 
-    property bool drcAktiv: false
+    property bool drcAktiv:  false
+    property bool suchAktiv: false
 
     // Wenn true → Split-Schließen-Button erscheint in der Tab-Leiste
     property bool splitSchliessbar: false
@@ -299,8 +301,10 @@ Item {
                 root.gkSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
             }
             onMakroListeGeaendert: root.makroListeGeaendert()
-            onDrcKlick: root.drcKlick()
-            drcAktiv: root.drcAktiv
+            onDrcKlick:  root.drcKlick()
+            onSuchKlick: root.suchKlick()
+            drcAktiv:  root.drcAktiv
+            suchAktiv: root.suchAktiv
         }
     }
 

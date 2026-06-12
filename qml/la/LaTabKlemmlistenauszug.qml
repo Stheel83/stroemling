@@ -40,6 +40,10 @@ ColumnLayout {
         if (!verbBez) return root.theme.borderLight
         return root.theme.textSecondary
     }
+    // Dezente Hintergrundfarbe für Steg-Gruppen-Zeilen
+    function _stegBgFarbe(st) {
+        return Qt.alpha(root.stegFarbe(st), 0.17)
+    }
 
     FileDialog {
         id: csvDialog
@@ -117,13 +121,28 @@ ColumnLayout {
                 width: klaView.width
                 height: model.typ === "leiste" ? 26 : 28
 
-                // Nur die Stegs dieser Ebene anzeigen
+                // Nur die Stegs dieser Ebene (für Klammer-Indikator)
                 property var _stegs: {
                     if (model.typ !== "anschluss") return []
                     try {
                         var all = JSON.parse(model.stegJson || "[]")
                         return all.filter(function(s) { return s.eb === model.ebene })
                     } catch(e) { return [] }
+                }
+                // Hintergrundfarbe: alle Ebenen-Zeilen einer Steg-Klemme einfärben.
+                // Bevorzugt die Farbe des zur aktuellen Ebene passenden Stegs.
+                property color _stegBg: {
+                    if (model.typ !== "anschluss") return "transparent"
+                    try {
+                        var all = JSON.parse(model.stegJson || "[]")
+                        if (all.length === 0) return "transparent"
+                        for (var i = 0; i < all.length; i++) {
+                            if (all[i].eb === model.ebene)
+                                return root._stegBgFarbe(all[i].st || "")
+                        }
+                        // Andere Ebene dieser Klemme: gleiche Farbe, noch dezenter
+                        return Qt.alpha(root.stegFarbe(all[0].st || ""), 0.09)
+                    } catch(e) { return "transparent" }
                 }
 
                 // ── Leisten-Kopfzeile ─────────────────────────
@@ -147,6 +166,13 @@ ColumnLayout {
                     visible: model.typ === "anschluss"
                     anchors.fill: parent
                     color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
+
+                    // Steg-Gruppen-Einfärbung (halbtransparent über Zebramuster)
+                    Rectangle {
+                        anchors.fill: parent
+                        color: klaDelegate._stegBg
+                        visible: klaDelegate._stegBg !== Qt.rgba(0,0,0,0)
+                    }
 
                     // Daten-Row: Nr | A | sep | Qs | [Steg] | Farbe | sep | B
                     Row {

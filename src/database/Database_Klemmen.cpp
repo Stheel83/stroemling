@@ -5,6 +5,9 @@
 #include <QFile>
 #include <QTextStream>
 #include <QUrl>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 
 QVariantList Database::klemmenFuerLeiste(int leisteId) const
 {
@@ -312,6 +315,18 @@ QVariantList Database::klemmlistenauszug(int projektId)
         }
     }
 
+    // Schnellzugriff: "klemmeId|abez" → platziert / blattnummer
+    QSet<QString>          platzSet;
+    QHash<QString,QString> platzBl;
+    for (auto it = platz.cbegin(); it != platz.cend(); ++it) {
+        const QString kid = QString::number(it.key());
+        for (const QVariantMap &p : it.value()) {
+            const QString key = kid + QLatin1Char('|') + p[QStringLiteral("abez")].toString();
+            platzSet.insert(key);
+            platzBl[key] = p[QStringLiteral("bl")].toString();
+        }
+    }
+
     // ── 2. Verbindungssegmente nach Seite ────────────────────────────────────
     // seite_id → [{x1,y1,x2,y2, vb(Netzbezeichnung), st(Signaltyp)}]
     QHash<int, QList<QVariantMap>> segmente;
@@ -347,7 +362,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
     // ── 3. Geometrisches Matching: Pinposition → Verbindung ─────────────────
     // Schlüssel "klemmeId|anschlussBezeichnung" → {bl, vb, st}
     QHash<QString, QVariantMap> verbInfo;
-    const double TOL = 0.5;
+    const double TOL = 2.0;
     for (auto it = platz.cbegin(); it != platz.cend(); ++it) {
         int kid = it.key();
         for (const QVariantMap &p : it.value()) {
@@ -464,43 +479,51 @@ QVariantList Database::klemmlistenauszug(int projektId)
         QString farbHex = q.value(11).toString();
         QString qs      = q.value(12).toString();
 
-        // Steg-Mitgliedschaft dieser Klemme ermitteln (erster passender Steg)
-        bool    stegAkt  = false;
-        QString stegSt, stegPot, stegVNr, stegBNr;
-        int     stegEb   = 0;
-        bool    stegErst = false, stegLetzt = false;
+        // Alle Stegbrücken für diese Klemme sammeln (je Ebene eine)
+        QJsonArray stegArr;
         for (const QVariantMap &steg : curStegs) {
             int vS = steg[QStringLiteral("vonSort")].toInt();
             int bS = steg[QStringLiteral("bisSort")].toInt();
             if (kSort >= vS && kSort <= bS) {
-                stegAkt   = true;
-                stegSt    = steg[QStringLiteral("signaltyp")].toString();
-                stegPot   = steg[QStringLiteral("potenzial")].toString();
-                stegEb    = steg[QStringLiteral("ebene")].toInt();
-                stegVNr   = steg[QStringLiteral("vonNr")].toString();
-                stegBNr   = steg[QStringLiteral("bisNr")].toString();
-                stegErst  = (kSort == vS);
-                stegLetzt = (kSort == bS);
-                break;
+                QJsonObject obj;
+                obj[QLatin1String("st")]  = steg[QStringLiteral("signaltyp")].toString();
+                obj[QLatin1String("pot")] = steg[QStringLiteral("potenzial")].toString();
+                obj[QLatin1String("eb")]  = steg[QStringLiteral("ebene")].toInt();
+                obj[QLatin1String("vn")]  = steg[QStringLiteral("vonNr")].toString();
+                obj[QLatin1String("bn")]  = steg[QStringLiteral("bisNr")].toString();
+                obj[QLatin1String("er")]  = (kSort == vS);
+                obj[QLatin1String("la")]  = (kSort == bS);
+                stegArr.append(obj);
             }
         }
 
         bool ersteZeile = true;
 
-        // Verbindungsinfo für einen Anschluss (leere Map wenn nicht platziert)
+        // Verbindungsinfo für einen Anschluss
         auto vi = [&](const QString &abez) -> QVariantMap {
             return verbInfo.value(QString::number(klemmeId) + QLatin1Char('|') + abez);
         };
+        // platziert = Element liegt im Canvas (unabhängig von Netzanschluss)
         auto isPlatz = [&](const QString &abez) -> bool {
+            return !abez.isEmpty() &&
+                   platzSet.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
+        };
+        // verbunden = geometrisch mit einem Verbindungssegment gematcht
+        auto isVerb = [&](const QString &abez) -> bool {
             return !abez.isEmpty() &&
                    verbInfo.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
         };
 
+        const QString stegJsonStr =
+            QString::fromUtf8(QJsonDocument(stegArr).toJson(QJsonDocument::Compact));
+
         // Paar-Zeile: Seite A links, Seite B rechts
         auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene) {
             bool pA = isPlatz(bezA), pB = isPlatz(bezB);
-            QVariantMap vA = pA ? vi(bezA) : QVariantMap{};
-            QVariantMap vB = pB ? vi(bezB) : QVariantMap{};
+            bool vA = isVerb(bezA),  vB = isVerb(bezB);
+            QVariantMap viA = vA ? vi(bezA) : QVariantMap{};
+            QVariantMap viB = vB ? vi(bezB) : QVariantMap{};
+            const QString kidStr = QString::number(klemmeId);
             QVariantMap row;
             row[QStringLiteral("typ")]             = QStringLiteral("anschluss");
             row[QStringLiteral("leisteId")]        = leisteId;
@@ -509,26 +532,18 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("ebene")]           = ebene;
             row[QStringLiteral("anschlussVon")]    = bezA;
             row[QStringLiteral("vonPlatziert")]    = pA;
-            row[QStringLiteral("vonBlattnummer")]  = pA ? vA[QStringLiteral("bl")].toString() : QString();
-            row[QStringLiteral("vonVerbBez")]      = pA ? vA[QStringLiteral("vb")].toString() : QString();
-            row[QStringLiteral("vonSignaltyp")]    = pA ? vA[QStringLiteral("st")].toString() : QString();
+            row[QStringLiteral("vonBlattnummer")]  = pA ? platzBl.value(kidStr+"|"+bezA) : QString();
+            row[QStringLiteral("vonVerbBez")]      = vA ? viA[QStringLiteral("vb")].toString() : QString();
+            row[QStringLiteral("vonSignaltyp")]    = vA ? viA[QStringLiteral("st")].toString() : QString();
             row[QStringLiteral("anschlussNach")]   = bezB;
             row[QStringLiteral("nachPlatziert")]   = pB;
-            row[QStringLiteral("nachBlattnummer")] = pB ? vB[QStringLiteral("bl")].toString() : QString();
-            row[QStringLiteral("nachVerbBez")]     = pB ? vB[QStringLiteral("vb")].toString() : QString();
-            row[QStringLiteral("nachSignaltyp")]   = pB ? vB[QStringLiteral("st")].toString() : QString();
+            row[QStringLiteral("nachBlattnummer")] = pB ? platzBl.value(kidStr+"|"+bezB) : QString();
+            row[QStringLiteral("nachVerbBez")]     = vB ? viB[QStringLiteral("vb")].toString() : QString();
+            row[QStringLiteral("nachSignaltyp")]   = vB ? viB[QStringLiteral("st")].toString() : QString();
             row[QStringLiteral("querschnitt")]     = qs;
             row[QStringLiteral("farbeBez")]        = farbBez;
             row[QStringLiteral("farbeHex")]        = farbHex;
-            // Steg-Mitgliedschaft (für vertikalen Indikatorbalken)
-            row[QStringLiteral("stegAktiv")]       = stegAkt;
-            row[QStringLiteral("stegSignaltyp")]   = stegSt;
-            row[QStringLiteral("stegPotenzial")]   = stegPot;
-            row[QStringLiteral("stegEbene")]       = stegEb;
-            row[QStringLiteral("stegVonNr")]       = stegVNr;
-            row[QStringLiteral("stegBisNr")]       = stegBNr;
-            row[QStringLiteral("stegIstErste")]    = stegErst;
-            row[QStringLiteral("stegIstLetzte")]   = stegLetzt;
+            row[QStringLiteral("stegJson")]        = stegJsonStr;
             result.append(row);
             ersteZeile = false;
         };

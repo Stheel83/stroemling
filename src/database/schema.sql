@@ -266,6 +266,7 @@ CREATE TABLE bauteil (
     bemerkung       TEXT,
     url_hersteller  TEXT,
     url_datenblatt  TEXT,
+    hauptfunktion_symbol_id TEXT REFERENCES symbol_definition(id) ON DELETE SET NULL,
     bild_data       BLOB,
     bild_mime       TEXT
 );

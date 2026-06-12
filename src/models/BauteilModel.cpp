@@ -187,7 +187,8 @@ void BauteilListModel::ladenIntern()
         "COALESCE(b.url_hersteller,''), COALESCE(b.url_datenblatt,''), "
         "CASE WHEN k.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN ka.id IS NOT NULL THEN 1 ELSE 0 END, "
-        "COALESCE(ka.kabeltyp,'') "
+        "COALESCE(ka.kabeltyp,''), "
+        "COALESCE(b.hauptfunktion_symbol_id,'') "
         "FROM bauteil b "
         "LEFT JOIN bauteil_klemme k  ON k.bauteil_id  = b.id "
         "LEFT JOIN bauteil_kabel  ka ON ka.bauteil_id = b.id ";
@@ -229,9 +230,10 @@ void BauteilListModel::ladenIntern()
         b.bemerkung      = q.value(10).toString();
         b.urlHersteller  = q.value(11).toString();
         b.urlDatenblatt  = q.value(12).toString();
-        b.istKlemme      = q.value(13).toInt() != 0;
-        b.istKabel       = q.value(14).toInt() != 0;
-        b.kabeltyp       = q.value(15).toString();
+        b.istKlemme               = q.value(13).toInt() != 0;
+        b.istKabel                = q.value(14).toInt() != 0;
+        b.kabeltyp                = q.value(15).toString();
+        b.hauptfunktionSymbolId   = q.value(16).toString();
         m_bauteile.append(b);
     }
 
@@ -266,10 +268,11 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case BemerkungRole:      return b.bemerkung;
     case UrlHerstellerRole:  return b.urlHersteller;
     case UrlDatenblattRole:  return b.urlDatenblatt;
-    case IstKlemmeRole:      return b.istKlemme;
-    case IstKabelRole:       return b.istKabel;
-    case KabeltypRole:       return b.kabeltyp;
-    default:                return {};
+    case IstKlemmeRole:             return b.istKlemme;
+    case IstKabelRole:              return b.istKabel;
+    case KabeltypRole:              return b.kabeltyp;
+    case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
+    default:                        return {};
     }
 }
 
@@ -289,9 +292,10 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { BemerkungRole,      "bemerkung"      },
         { UrlHerstellerRole,  "urlHersteller"  },
         { UrlDatenblattRole,  "urlDatenblatt"  },
-        { IstKlemmeRole,      "istKlemme"      },
-        { IstKabelRole,       "istKabel"       },
-        { KabeltypRole,       "kabeltyp"       },
+        { IstKlemmeRole,             "istKlemme"              },
+        { IstKabelRole,              "istKabel"               },
+        { KabeltypRole,              "kabeltyp"               },
+        { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
     };
 }
 
@@ -412,6 +416,20 @@ bool BauteilListModel::bauteilTitelSpeichern(int id, const QString &bezeichnung,
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcModel) << "bauteilTitelSpeichern Fehler:" << q.lastError().text();
+        return false;
+    }
+    laden(m_aktiveKategorieId);
+    return true;
+}
+
+bool BauteilListModel::symbolSpeichern(int id, const QString &symbolId)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE bauteil SET hauptfunktion_symbol_id = :sid WHERE id = :id");
+    q.bindValue(":sid", symbolId.isEmpty() ? QVariant() : symbolId);
+    q.bindValue(":id",  id);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "symbolSpeichern Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_aktiveKategorieId);

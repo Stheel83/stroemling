@@ -30,6 +30,9 @@ Item {
         property string altBemerkung:     ""
         property string altUrlHersteller: ""
         property string altUrlDatenblatt: ""
+        property string altSymbolId:      ""
+        property var    symEintraege:     []
+        property int    symGewIndex:      -1
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -45,6 +48,16 @@ Item {
             editForm.bemerkung     = dlgBauteilBearbeiten.altBemerkung
             editForm.urlHersteller = dlgBauteilBearbeiten.altUrlHersteller
             editForm.urlDatenblatt = dlgBauteilBearbeiten.altUrlDatenblatt
+
+            dlgBauteilBearbeiten.symEintraege = symbolDefinitionModel.alleSymbole()
+            dlgBauteilBearbeiten.symGewIndex  = -1
+            for (let i = 0; i < dlgBauteilBearbeiten.symEintraege.length; i++) {
+                if (dlgBauteilBearbeiten.symEintraege[i].id === dlgBauteilBearbeiten.altSymbolId) {
+                    dlgBauteilBearbeiten.symGewIndex = i
+                    break
+                }
+            }
+            symbolCombo.currentIndex = dlgBauteilBearbeiten.symGewIndex + 1
         }
 
         contentItem: ColumnLayout {
@@ -58,6 +71,34 @@ Item {
                 clip: true
                 BaFormContent { id: editForm; theme: root.theme }
             }
+
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.topMargin: 4; spacing: 4
+                Text { text: qsTr("Symbol (Hauptfunktion)"); color: theme.textMuted; font.pixelSize: 12 }
+                ComboBox {
+                    id: symbolCombo
+                    Layout.fillWidth: true
+                    model: [qsTr("(kein Symbol)")].concat(
+                        dlgBauteilBearbeiten.symEintraege.map(e => e.kategorie + " – " + e.name)
+                    )
+                    onActivated: dlgBauteilBearbeiten.symGewIndex = currentIndex - 1
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                    contentItem: Text {
+                        text: symbolCombo.displayText
+                        color: theme.textPrimary; font.pixelSize: 13
+                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                    }
+                    popup: Popup {
+                        y: symbolCombo.height; width: symbolCombo.width; padding: 0
+                        background: Rectangle { color: theme.surface; border.color: theme.border; radius: 4 }
+                        contentItem: ListView {
+                            implicitHeight: Math.min(contentHeight, 220); clip: true
+                            model: symbolCombo.delegateModel
+                        }
+                    }
+                }
+            }
+
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 12 }
             RowLayout {
                 Layout.fillWidth: true; spacing: 8; Layout.topMargin: 10
@@ -91,6 +132,10 @@ Item {
                             editForm.urlHersteller.trim(),
                             editForm.urlDatenblatt.trim()
                         )
+                        const symId = dlgBauteilBearbeiten.symGewIndex >= 0
+                            ? dlgBauteilBearbeiten.symEintraege[dlgBauteilBearbeiten.symGewIndex].id
+                            : ""
+                        bauteilModel.symbolSpeichern(dlgBauteilBearbeiten.itemId, symId)
                         dlgBauteilBearbeiten.close()
                     }
                 }
@@ -230,6 +275,20 @@ Item {
                             font.pixelSize: 11; color: theme.accent
                             Layout.preferredWidth: 120; elide: Text.ElideRight
                         }
+                        Rectangle {
+                            visible: !model.istKlemme && !model.istKabel && (model.hauptfunktionSymbolId || "") !== ""
+                            Layout.preferredWidth: 70; height: 20; radius: 3
+                            color: "#1a2a4a"; border.color: "#2d5a8a"
+                            Text {
+                                anchors.centerIn: parent
+                                text: model.hauptfunktionSymbolId || ""
+                                font.pixelSize: 10; color: "#7db8e8"; elide: Text.ElideRight
+                                width: parent.width - 8
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                        }
+                        Item { visible: !model.istKlemme && !model.istKabel && (model.hauptfunktionSymbolId || "") === ""; Layout.preferredWidth: 70 }
+
                         Text { text: model.preisEur > 0 ? model.preisEur.toFixed(2) : "–";
                                font.pixelSize: 13; color: theme.textMuted; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
                         Text { text: model.spannungV > 0 ? model.spannungV : "–";
@@ -288,6 +347,7 @@ Item {
                                     dlgBauteilBearbeiten.altBemerkung     = model.bemerkung
                                     dlgBauteilBearbeiten.altUrlHersteller = model.urlHersteller
                                     dlgBauteilBearbeiten.altUrlDatenblatt = model.urlDatenblatt
+                                    dlgBauteilBearbeiten.altSymbolId      = model.hauptfunktionSymbolId || ""
                                     dlgBauteilBearbeiten.open()
                                 }
                             }

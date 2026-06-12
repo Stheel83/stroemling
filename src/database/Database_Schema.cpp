@@ -158,6 +158,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 64, "Winkel: symbole.sql-Seed-Fix 8x8mm auf 4x4mm (Baseline-Seed hatte alten Wert)", {
             R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=4 WHERE id='winkel' AND ist_builtin=1)",
         }},
+        { 65, "bauteil: hauptfunktion_symbol_id – Symbolzuweisung für einfache Geräte (Lampe, Motor …)", {
+            R"(ALTER TABLE bauteil ADD COLUMN hauptfunktion_symbol_id TEXT REFERENCES symbol_definition(id) ON DELETE SET NULL)",
+        }},
     };
 }
 

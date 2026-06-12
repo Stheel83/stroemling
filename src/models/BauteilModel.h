@@ -32,6 +32,7 @@ struct BauteilEintrag {
     bool    istKlemme;
     bool    istKabel;
     QString kabeltyp;
+    QString hauptfunktionSymbolId;
 };
 
 // ============================================================
@@ -96,7 +97,8 @@ public:
         UrlDatenblattRole,
         IstKlemmeRole,
         IstKabelRole,
-        KabeltypRole
+        KabeltypRole,
+        HauptfunktionSymbolIdRole
     };
 
     explicit BauteilListModel(QObject *parent = nullptr);
@@ -138,6 +140,7 @@ public:
     Q_INVOKABLE QVariantMap bauteilNachId(int id) const;
     Q_INVOKABLE bool bauteilTitelSpeichern(int id, const QString &bezeichnung,
                                             const QString &hersteller, const QString &artikelnummer);
+    Q_INVOKABLE bool symbolSpeichern(int id, const QString &symbolId);
 
     Q_PROPERTY(int  aktiveKategorieId READ aktiveKategorieId NOTIFY aktiveKategorieIdChanged)
     Q_PROPERTY(bool nurKlemmen        READ nurKlemmen        NOTIFY aktiveKategorieIdChanged)

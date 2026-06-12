@@ -475,62 +475,65 @@ QVariantList Database::klemmlistenauszug(int projektId)
 
         bool ersteZeile = true;
 
-        auto addAnschluss = [&](const QString &abez, const QString &seite, int ebene) {
-            QString key = QString::number(klemmeId) + QLatin1Char('|') + abez;
-            bool platziert = verbInfo.contains(key);
-            const QVariantMap &vm = verbInfo[key];
+        // Verbindungsinfo für einen Anschluss (leere Map wenn nicht platziert)
+        auto vi = [&](const QString &abez) -> QVariantMap {
+            return verbInfo.value(QString::number(klemmeId) + QLatin1Char('|') + abez);
+        };
+        auto isPlatz = [&](const QString &abez) -> bool {
+            return !abez.isEmpty() &&
+                   verbInfo.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
+        };
+
+        // Paar-Zeile: Seite A links, Seite B rechts
+        auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene) {
+            bool pA = isPlatz(bezA), pB = isPlatz(bezB);
+            QVariantMap vA = pA ? vi(bezA) : QVariantMap{};
+            QVariantMap vB = pB ? vi(bezB) : QVariantMap{};
             QVariantMap row;
-            row[QStringLiteral("typ")]         = QStringLiteral("anschluss");
-            row[QStringLiteral("leisteId")]    = leisteId;
-            row[QStringLiteral("klemmeId")]    = klemmeId;
-            row[QStringLiteral("klemmeNr")]    = ersteZeile ? kNr : QString();
-            row[QStringLiteral("anschlussBez")]= abez;
-            row[QStringLiteral("seite")]       = seite;
-            row[QStringLiteral("ebene")]       = ebene;
-            row[QStringLiteral("platziert")]   = platziert;
-            row[QStringLiteral("blattnummer")] = platziert ? vm[QStringLiteral("bl")].toString() : QString();
-            row[QStringLiteral("verbBez")]     = platziert ? vm[QStringLiteral("vb")].toString() : QString();
-            row[QStringLiteral("signaltyp")]   = platziert ? vm[QStringLiteral("st")].toString() : QString();
-            row[QStringLiteral("querschnitt")] = qs;
-            row[QStringLiteral("farbeBez")]    = farbBez;
-            row[QStringLiteral("farbeHex")]    = farbHex;
+            row[QStringLiteral("typ")]             = QStringLiteral("anschluss");
+            row[QStringLiteral("leisteId")]        = leisteId;
+            row[QStringLiteral("klemmeId")]        = klemmeId;
+            row[QStringLiteral("klemmeNr")]        = ersteZeile ? kNr : QString();
+            row[QStringLiteral("ebene")]           = ebene;
+            row[QStringLiteral("anschlussVon")]    = bezA;
+            row[QStringLiteral("vonPlatziert")]    = pA;
+            row[QStringLiteral("vonBlattnummer")]  = pA ? vA[QStringLiteral("bl")].toString() : QString();
+            row[QStringLiteral("vonVerbBez")]      = pA ? vA[QStringLiteral("vb")].toString() : QString();
+            row[QStringLiteral("vonSignaltyp")]    = pA ? vA[QStringLiteral("st")].toString() : QString();
+            row[QStringLiteral("anschlussNach")]   = bezB;
+            row[QStringLiteral("nachPlatziert")]   = pB;
+            row[QStringLiteral("nachBlattnummer")] = pB ? vB[QStringLiteral("bl")].toString() : QString();
+            row[QStringLiteral("nachVerbBez")]     = pB ? vB[QStringLiteral("vb")].toString() : QString();
+            row[QStringLiteral("nachSignaltyp")]   = pB ? vB[QStringLiteral("st")].toString() : QString();
+            row[QStringLiteral("querschnitt")]     = qs;
+            row[QStringLiteral("farbeBez")]        = farbBez;
+            row[QStringLiteral("farbeHex")]        = farbHex;
             result.append(row);
             ersteZeile = false;
         };
 
         if (hatBk) {
             for (int e = 1; e <= ebAnz; ++e) {
+                QStringList aList, bList;
                 int idx = 1;
                 for (int a = 0; a < ptA; ++a, ++idx)
-                    addAnschluss(QString("%1.%2").arg(e).arg(idx), QStringLiteral("A"), e);
+                    aList.append(QString("%1.%2").arg(e).arg(idx));
                 for (int b = 0; b < ptB; ++b, ++idx)
-                    addAnschluss(QString("%1.%2").arg(e).arg(idx), QStringLiteral("B"), e);
+                    bList.append(QString("%1.%2").arg(e).arg(idx));
+                int paare = qMax(ptA, ptB);
+                for (int i = 0; i < paare; ++i)
+                    addPaar(i < aList.size() ? aList[i] : QString(),
+                            i < bList.size() ? bList[i] : QString(), e);
             }
             if (haPE)
-                addAnschluss(QStringLiteral("PE"), QStringLiteral("PE"), 0);
+                addPaar(QStringLiteral("PE"), QString(), 0);
         } else {
             const QList<QVariantMap> &placed = platz.value(klemmeId);
             if (!placed.isEmpty()) {
                 for (const QVariantMap &p : placed)
-                    addAnschluss(p[QStringLiteral("abez")].toString(), QString(), 0);
+                    addPaar(p[QStringLiteral("abez")].toString(), QString(), 0);
             } else {
-                // Klemme ohne Bauteil und ohne platzierte Elemente
-                QVariantMap row;
-                row[QStringLiteral("typ")]         = QStringLiteral("anschluss");
-                row[QStringLiteral("leisteId")]    = leisteId;
-                row[QStringLiteral("klemmeId")]    = klemmeId;
-                row[QStringLiteral("klemmeNr")]    = kNr;
-                row[QStringLiteral("anschlussBez")]= QString();
-                row[QStringLiteral("seite")]       = QString();
-                row[QStringLiteral("ebene")]       = 0;
-                row[QStringLiteral("platziert")]   = false;
-                row[QStringLiteral("blattnummer")] = QString();
-                row[QStringLiteral("verbBez")]     = QString();
-                row[QStringLiteral("signaltyp")]   = QString();
-                row[QStringLiteral("querschnitt")] = qs;
-                row[QStringLiteral("farbeBez")]    = farbBez;
-                row[QStringLiteral("farbeHex")]    = farbHex;
-                result.append(row);
+                addPaar(QString(), QString(), 0);
             }
         }
     }
@@ -554,7 +557,8 @@ bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
     out << "\xEF\xBB\xBF";
-    out << "Leiste;Nr.;Anschluss;Seite;Verbindung;Signaltyp;Schaltplanseite;Querschnitt;Farbe\n";
+    out << "Leiste;Nr.;Von-Anschl.;Von-Verbindung;Von-Signaltyp;Von-Seite;"
+           "Nach-Anschl.;Nach-Verbindung;Nach-Signaltyp;Nach-Seite;Querschnitt;Farbe\n";
 
     auto csvQ = [](const QString &s) -> QString {
         if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
@@ -569,14 +573,18 @@ bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
         if (typ == QLatin1String("leiste")) {
             curLeisteBmk = row[QStringLiteral("bmk")].toString();
         } else if (typ == QLatin1String("anschluss")) {
-            bool platz = row[QStringLiteral("platziert")].toBool();
+            bool pA = row[QStringLiteral("vonPlatziert")].toBool();
+            bool pB = row[QStringLiteral("nachPlatziert")].toBool();
             out << csvQ(curLeisteBmk)
                 << u';' << csvQ(row[QStringLiteral("klemmeNr")].toString())
-                << u';' << csvQ(row[QStringLiteral("anschlussBez")].toString())
-                << u';' << csvQ(row[QStringLiteral("seite")].toString())
-                << u';' << csvQ(platz ? row[QStringLiteral("verbBez")].toString() : QString())
-                << u';' << csvQ(platz ? row[QStringLiteral("signaltyp")].toString() : QString())
-                << u';' << csvQ(platz ? row[QStringLiteral("blattnummer")].toString() : QString())
+                << u';' << csvQ(row[QStringLiteral("anschlussVon")].toString())
+                << u';' << csvQ(pA ? row[QStringLiteral("vonVerbBez")].toString()    : QString())
+                << u';' << csvQ(pA ? row[QStringLiteral("vonSignaltyp")].toString()  : QString())
+                << u';' << csvQ(pA ? row[QStringLiteral("vonBlattnummer")].toString(): QString())
+                << u';' << csvQ(row[QStringLiteral("anschlussNach")].toString())
+                << u';' << csvQ(pB ? row[QStringLiteral("nachVerbBez")].toString()    : QString())
+                << u';' << csvQ(pB ? row[QStringLiteral("nachSignaltyp")].toString()  : QString())
+                << u';' << csvQ(pB ? row[QStringLiteral("nachBlattnummer")].toString(): QString())
                 << u';' << csvQ(row[QStringLiteral("querschnitt")].toString())
                 << u';' << csvQ(row[QStringLiteral("farbeBez")].toString())
                 << u'\n';

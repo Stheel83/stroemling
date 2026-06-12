@@ -567,6 +567,7 @@ QVariantMap Database::datenbankInfos() const
             schemaVersion = q.value(0).toInt();
     }
 
+    m["launcherDb"]        = m_launcherDb.isOpen() ? m_launcherDb.databaseName() : QString();
     m["hauptDb"]           = projektDatei;
     m["wikiDb"]            = wikiPfad;
     m["makrosDb"]          = m_makroPfad;
@@ -661,7 +662,7 @@ QVariantMap Database::datenbankAutobackup()
 QString Database::standardProjektOrdner() const
 {
     QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QString ordner = home + QStringLiteral("/Strömling-Projekte");
+    QString ordner = home + QStringLiteral("/Stroemling-Projekte");
     QDir().mkpath(ordner);
     return ordner;
 }

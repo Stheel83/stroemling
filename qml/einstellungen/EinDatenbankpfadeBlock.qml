@@ -28,7 +28,7 @@ ColumnLayout {
         Layout.fillWidth:   true
         Layout.leftMargin:  12
         Layout.rightMargin: 12
-        height:             3 * 60
+        height:             4 * 60
         color:              root.theme.surface
         radius:             6
         border.color:       root.theme.border
@@ -38,9 +38,10 @@ ColumnLayout {
 
             Repeater {
                 model: [
-                    { label: qsTr("Wiki-Datenbank"),     key: "wikiDb",    icon: "📚" },
-                    { label: qsTr("Makro-Bibliothek"),   key: "makrosDb",  icon: "⚙" },
-                    { label: qsTr("Backup-Verzeichnis"), key: "backupDir", icon: "💾" }
+                    { label: qsTr("Zentrale Datenbank"), key: "launcherDb", icon: "🗄" },
+                    { label: qsTr("Wiki-Datenbank"),     key: "wikiDb",     icon: "📚" },
+                    { label: qsTr("Makro-Bibliothek"),   key: "makrosDb",   icon: "⚙" },
+                    { label: qsTr("Backup-Verzeichnis"), key: "backupDir",  icon: "💾" }
                 ]
 
                 delegate: Item {
@@ -48,7 +49,7 @@ ColumnLayout {
                     height: 60
 
                     Rectangle {
-                        visible:        index < 2
+                        visible:        index < 3
                         anchors.bottom: parent.bottom
                         width:          parent.width; height: 1
                         color:          root.theme.divider

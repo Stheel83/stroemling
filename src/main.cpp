@@ -81,26 +81,11 @@ public:
 
 #include "main.moc"
 
-// Einmalige Datenmigration: stroemling/Strömling Design → Strömling Design
-// Notwendig weil setOrganizationName("stroemling") entfernt wurde.
-// Nur auf Linux relevant – der alte Pfad existiert auf Windows nicht.
+// Hilfsfunktion: Dateien + Unterordner von altPfad nach neuPfad kopieren
 #ifdef Q_OS_LINUX
-static void datenVerzeichnisMigrieren()
+static void _kopiereAppDaten(const QString &altPfad, const QString &neuPfad)
 {
-    QString home    = QDir::homePath();
-    QString altPfad = home + "/.local/share/stroemling/Strömling Design";
-    QString neuPfad = home + "/.local/share/Strömling Design";
-
-    if (!QDir(altPfad).exists()) return;
-
-    // Nur migrieren wenn die neue Launcher-DB leer / noch nicht vorhanden ist
-    QString neuDb = neuPfad + "/stroemling.db";
-    if (QFile::exists(neuDb) && QFileInfo(neuDb).size() > 0) return;
-
-    qCInfo(lcApp) << "Einmalige Datenmigration:" << altPfad << "->" << neuPfad;
     QDir().mkpath(neuPfad);
-
-    // Datenbank-Dateien inkl. WAL
     for (const QString &name : {
              "stroemling.db", "stroemling.db-shm", "stroemling.db-wal",
              "wiki.db",       "wiki.db-shm",       "wiki.db-wal",
@@ -113,42 +98,57 @@ static void datenVerzeichnisMigrieren()
         else
             qCWarning(lcApp) << "  Fehler beim Kopieren:" << name;
     }
-
-    // Wiki-Blobs
-    QDir blobSrc(altPfad + "/wiki_blobs");
-    if (blobSrc.exists()) {
-        QString blobDest = neuPfad + "/wiki_blobs";
-        QDir().mkpath(blobDest);
-        for (const QString &f : blobSrc.entryList(QDir::Files)) {
-            QFile::remove(blobDest + "/" + f);
-            QFile::copy(blobSrc.absoluteFilePath(f), blobDest + "/" + f);
+    for (const QString &sub : { "wiki_blobs", "backups" }) {
+        QDir srcDir(altPfad + "/" + sub);
+        if (!srcDir.exists()) continue;
+        QString dstSub = neuPfad + "/" + sub;
+        QDir().mkpath(dstSub);
+        for (const QString &f : srcDir.entryList(QDir::Files)) {
+            QFile::remove(dstSub + "/" + f);
+            QFile::copy(srcDir.absoluteFilePath(f), dstSub + "/" + f);
         }
-        qCInfo(lcApp) << "  wiki_blobs kopiert:" << blobSrc.entryList(QDir::Files).size() << "Dateien";
+        qCInfo(lcApp) << " " << sub << "kopiert";
     }
+}
 
-    // Backups
-    QDir backupSrc(altPfad + "/backups");
-    if (backupSrc.exists()) {
-        QString backupDest = neuPfad + "/backups";
-        QDir().mkpath(backupDest);
-        for (const QString &f : backupSrc.entryList(QDir::Files)) {
-            QFile::remove(backupDest + "/" + f);
-            QFile::copy(backupSrc.absoluteFilePath(f), backupDest + "/" + f);
-        }
-        qCInfo(lcApp) << "  backups kopiert:" << backupSrc.entryList(QDir::Files).size() << "Dateien";
-    }
+// Migration 1: stroemling/Strömling Design → Strömling Design
+// (Entfernung des alten OrganizationName-Unterordners)
+static void datenVerzeichnisMigrieren()
+{
+    QString home    = QDir::homePath();
+    QString altPfad = home + "/.local/share/stroemling/Strömling Design";
+    QString neuPfad = home + "/.local/share/Strömling Design";
+    if (!QDir(altPfad).exists()) return;
+    QString neuDb = neuPfad + "/stroemling.db";
+    if (QFile::exists(neuDb) && QFileInfo(neuDb).size() > 0) return;
 
-    qCInfo(lcApp) << "Migration abgeschlossen. Altes Verzeichnis kann manuell geloescht werden:" << altPfad;
+    qCInfo(lcApp) << "Datenmigration (1/2):" << altPfad << "->" << neuPfad;
+    _kopiereAppDaten(altPfad, neuPfad);
 
-    // QSettings-Config migrieren: ~/.config/stroemling/ → ~/.config/
-    QString altConf = QDir::homePath() + "/.config/stroemling/Strömling Design.conf";
-    QString neuConf = QDir::homePath() + "/.config/Strömling Design.conf";
-    if (QFile::exists(altConf) && !QFile::exists(neuConf)) {
-        if (QFile::copy(altConf, neuConf))
-            qCInfo(lcApp) << "  QSettings migriert:" << neuConf;
-        else
-            qCWarning(lcApp) << "  QSettings-Migration fehlgeschlagen";
-    }
+    QString altConf = home + "/.config/stroemling/Strömling Design.conf";
+    QString neuConf = home + "/.config/Strömling Design.conf";
+    if (QFile::exists(altConf) && !QFile::exists(neuConf))
+        QFile::copy(altConf, neuConf);
+}
+
+// Migration 2: Strömling Design → Stroemling_Design
+// (ö→oe, Leerzeichen→Unterstrich für Dateisystem-Kompatibilität)
+static void datenpfadNormalisieren()
+{
+    QString home    = QDir::homePath();
+    QString altPfad = home + "/.local/share/Strömling Design";
+    QString neuPfad = home + "/.local/share/Stroemling_Design";
+    if (!QDir(altPfad).exists()) return;
+    QString neuDb = neuPfad + "/stroemling.db";
+    if (QFile::exists(neuDb) && QFileInfo(neuDb).size() > 0) return;
+
+    qCInfo(lcApp) << "Datenmigration (2/2):" << altPfad << "->" << neuPfad;
+    _kopiereAppDaten(altPfad, neuPfad);
+
+    QString altConf = home + "/.config/Strömling Design.conf";
+    QString neuConf = home + "/.config/Stroemling_Design.conf";
+    if (QFile::exists(altConf) && !QFile::exists(neuConf))
+        QFile::copy(altConf, neuConf);
 }
 #endif // Q_OS_LINUX
 
@@ -176,13 +176,13 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef Q_OS_LINUX
-    // Einmalige Migration: war früher unter ~/.local/share/stroemling/Strömling Design/
-    // Jetzt: ~/.local/share/Strömling Design/ (kein OrganizationName mehr)
-    datenVerzeichnisMigrieren();
+    datenVerzeichnisMigrieren();   // stroemling/… → Strömling Design
+    datenpfadNormalisieren();      // Strömling Design → Stroemling_Design
 #endif
 
     QGuiApplication app(argc, argv);
-    app.setApplicationName("Strömling Design");
+    app.setApplicationName("Stroemling_Design");
+    app.setApplicationDisplayName("Strömling Design");
 
     // Gespeicherte Sprache laden (gesetzt vom QML-Sprachpicker)
     QSettings settings;
@@ -202,8 +202,8 @@ int main(int argc, char *argv[])
     }
     // savedLanguage == "de": kein Translator nötig, Quellsprache ist Deutsch
 
-    // App-Datenverzeichnis: Linux: ~/.local/share/Strömling Design/
-    //                       Windows: %LOCALAPPDATA%\Strömling Design\
+    // App-Datenverzeichnis: Linux: ~/.local/share/Stroemling_Design/
+    //                       Windows: %LOCALAPPDATA%\Stroemling_Design\
     // Log-Datei bleibt neben dem Binary (Debug-Output, kein Nutzerdaten-Ordner).
     QString dataDir      = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir().mkpath(dataDir);

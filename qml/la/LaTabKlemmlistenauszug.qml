@@ -11,7 +11,7 @@ ColumnLayout {
     spacing: 0
 
     // Breite je Steg-Spalte in px
-    readonly property int _stegSlotBreite: 10
+    readonly property int _stegSlotBreite: 30
     // Gesamtbreite Steg-Block (mindestens 0, wächst mit Steg-Anzahl)
     readonly property int _stegBreite: panel._klaMaxStegSpalten * _stegSlotBreite
 
@@ -79,8 +79,35 @@ ColumnLayout {
             Text { width: panel.klaCols[2].w; text: panel.klaCols[2].header
                    leftPadding: 8; font.pixelSize: 11; font.weight: Font.Medium
                    color: root.theme.textSubtle }
-            // Steg-Block (keine Beschriftung, Breite dynamisch)
-            Item { width: root._stegBreite; height: 22 }
+            Rectangle { width: 1; height: 22; color: root.theme.border
+                        anchors.verticalCenter: parent.verticalCenter }
+            // Steg-Block: ein beschrifteter Slot je Steg
+            Row {
+                spacing: 0
+                Repeater {
+                    model: panel._klaMaxStegSpalten
+                    Item {
+                        width: root._stegSlotBreite; height: 22
+                        Rectangle {
+                            visible: index > 0
+                            x: 0; anchors.verticalCenter: parent.verticalCenter
+                            width: 1; height: 16; color: root.theme.border
+                        }
+                        Text {
+                            x: index > 0 ? 1 : 0
+                            width: parent.width - (index > 0 ? 1 : 0)
+                            height: parent.height
+                            text: qsTr("St.%1").arg(index + 1)
+                            font.pixelSize: 10; font.weight: Font.Medium
+                            color: root.theme.textSubtle
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+            }
+            Rectangle { width: 1; height: 22; color: root.theme.border
+                        anchors.verticalCenter: parent.verticalCenter }
             Text { width: panel.klaCols[3].w; text: panel.klaCols[3].header
                    font.pixelSize: 11; font.weight: Font.Medium
                    color: root.theme.textSubtle }
@@ -237,6 +264,13 @@ ColumnLayout {
                                         property int   ks: klaDelegate._ks
                                         property int   re: klaDelegate._eb
 
+                                        // Trennlinie zwischen Steg-Spalten
+                                        Rectangle {
+                                            visible: index > 0
+                                            x: 0; y: 0; width: 1; height: parent.height
+                                            color: root.theme.border; opacity: 0.4
+                                        }
+
                                         // Status dieser Zeile für diesen Steg
                                         readonly property bool _inRange:
                                             sd != null && ks >= sd.vs && ks <= sd.bs
@@ -357,6 +391,18 @@ ColumnLayout {
                     // Durchgehende Trennlinien (volle Zeilenhöhe)
                     Rectangle {
                         x: 8 + panel.klaCols[0].w + panel.klaCols[1].w
+                        width: 1; height: parent.height
+                        color: root.theme.border; opacity: 0.5
+                    }
+                    Rectangle {
+                        x: 8 + panel.klaCols[0].w + panel.klaCols[1].w + 1
+                            + panel.klaCols[2].w
+                        width: 1; height: parent.height
+                        color: root.theme.border; opacity: 0.5
+                    }
+                    Rectangle {
+                        x: 8 + panel.klaCols[0].w + panel.klaCols[1].w + 1
+                            + panel.klaCols[2].w + root._stegBreite
                         width: 1; height: parent.height
                         color: root.theme.border; opacity: 0.5
                     }

@@ -42,10 +42,6 @@ ColumnLayout {
         if (!verbBez) return root.theme.borderLight
         return root.theme.textSecondary
     }
-    function _stegBgFarbe(st) {
-        return Qt.alpha(root.stegFarbe(st), 0.17)
-    }
-
     FileDialog {
         id: csvDialog
         fileMode: FileDialog.SaveFile
@@ -135,23 +131,6 @@ ColumnLayout {
                     try { return JSON.parse(model.leisteStegJson || "[]") } catch(e) { return [] }
                 }
 
-                // Hintergrundfarbe: passenden Steg für diese Ebene bevorzugen;
-                // "Durchlauf"-Zeilen (anderer Ebene) dezenter tönen
-                property color _stegBg: {
-                    if (model.typ !== "anschluss") return "transparent"
-                    var ks = klaDelegate._ks, re = klaDelegate._eb
-                    var ls = klaDelegate._ls
-                    for (var i = 0; i < ls.length; i++) {
-                        var s = ls[i]
-                        if (ks < s.vs || ks > s.bs) continue
-                        if (re === s.eb) return root._stegBgFarbe(s.st || "")
-                        // "Durch"-Zeile (in Range, andere Ebene), Grenzbedingung beachten
-                        if (ks === s.vs && re < s.eb) continue
-                        if (ks === s.bs && re > s.eb) continue
-                        return Qt.alpha(root.stegFarbe(s.st || ""), 0.09)
-                    }
-                    return "transparent"
-                }
 
                 // ── Leisten-Kopfzeile ─────────────────────────
                 Rectangle {
@@ -173,14 +152,7 @@ ColumnLayout {
                 Rectangle {
                     visible: model.typ === "anschluss"
                     anchors.fill: parent
-                    color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
-
-                    // Steg-Gruppenfarbe
-                    Rectangle {
-                        anchors.fill: parent
-                        color: klaDelegate._stegBg
-                        visible: klaDelegate._stegBg !== Qt.rgba(0,0,0,0)
-                    }
+                    color: root.theme.tableEven
 
                     // Daten-Row: Nr | A | sep | Qs | [Steg-Spalten] | Farbe | sep | B
                     Row {

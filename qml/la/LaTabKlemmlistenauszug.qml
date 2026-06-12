@@ -124,8 +124,10 @@ ColumnLayout {
                 height: model.typ === "leiste" ? 26 : 28
 
                 // ── Felder die Steg-Slots benötigen ──────────
-                property int _ks: model.typ === "anschluss" ? (model.klemmeSort || 0) : 0
-                property int _eb: model.typ === "anschluss" ? (model.ebene       || 0) : 0
+                property int _ks: model.typ === "anschluss" ? (model.klemmeSort    || 0) : 0
+                property int _eb: model.typ === "anschluss" ? (model.ebene        || 0) : 0
+                property int _ri: model.typ === "anschluss" ? (model.klemmeReiheIdx  || 0) : 0
+                property int _rn: model.typ === "anschluss" ? (model.klemmeReihenAnz || 1) : 1
                 property var _ls: {
                     if (model.typ !== "anschluss") return []
                     try { return JSON.parse(model.leisteStegJson || "[]") } catch(e) { return [] }
@@ -248,8 +250,9 @@ ColumnLayout {
                                             if (ks === sd.bs && re > sd.eb) return false
                                             return true
                                         }
-                                        readonly property bool _er: _active && ks === sd.vs
-                                        readonly property bool _la: _active && ks === sd.bs
+                                        // Querstrich nur an allererster / allerletzter Zeile der Klemme
+                                        readonly property bool _er: _active && ks === sd.vs && klaDelegate._ri === 0
+                                        readonly property bool _la: _active && ks === sd.bs && klaDelegate._ri === (klaDelegate._rn - 1)
 
                                         // Vertikaler Balken
                                         Rectangle {

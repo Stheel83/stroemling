@@ -516,7 +516,8 @@ QVariantList Database::klemmlistenauszug(int projektId)
         };
 
         // Paar-Zeile: Seite A links, Seite B rechts
-        auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene) {
+        // ri = 0-basierter Index innerhalb der Klemme; rn = Gesamtzahl Zeilen
+        auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene, int ri, int rn) {
             bool pA = isPlatz(bezA), pB = isPlatz(bezB);
             bool vA = isVerb(bezA),  vB = isVerb(bezB);
             QVariantMap viA = vA ? vi(bezA) : QVariantMap{};
@@ -542,6 +543,8 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("farbeBez")]         = farbBez;
             row[QStringLiteral("farbeHex")]         = farbHex;
             row[QStringLiteral("klemmeSort")]       = kSort;
+            row[QStringLiteral("klemmeReiheIdx")]   = ri;
+            row[QStringLiteral("klemmeReihenAnz")]  = rn;
             row[QStringLiteral("leisteStegJson")]   = curLeisteStegsJson;
             result.append(row);
             ersteZeile = false;
@@ -558,17 +561,18 @@ QVariantList Database::klemmlistenauszug(int projektId)
                 int paare = qMax(ptA, ptB);
                 for (int i = 0; i < paare; ++i)
                     addPaar(i < aList.size() ? aList[i] : QString(),
-                            i < bList.size() ? bList[i] : QString(), e);
+                            i < bList.size() ? bList[i] : QString(), e, i, paare);
             }
             if (haPE)
-                addPaar(QStringLiteral("PE"), QString(), 0);
+                addPaar(QStringLiteral("PE"), QString(), 0, 0, 1);
         } else {
             const QList<QVariantMap> &placed = platz.value(klemmeId);
             if (!placed.isEmpty()) {
-                for (const QVariantMap &p : placed)
-                    addPaar(p[QStringLiteral("abez")].toString(), QString(), 0);
+                int n = placed.size();
+                for (int pi = 0; pi < n; ++pi)
+                    addPaar(placed[pi][QStringLiteral("abez")].toString(), QString(), 0, pi, n);
             } else {
-                addPaar(QString(), QString(), 0);
+                addPaar(QString(), QString(), 0, 0, 1);
             }
         }
     }

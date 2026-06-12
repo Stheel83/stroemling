@@ -592,19 +592,12 @@ Item {
                 // ── Trennlinie ────────────────────────────────────────────────
                 Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 20; Layout.bottomMargin: 16 }
 
-                // ── Datenpfade ────────────────────────────────────────────────
-                Text { text: qsTr("DATENPFADE"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.bottomMargin: 12 }
+                // ── Projektpfad ───────────────────────────────────────────────
+                Text { text: qsTr("PROJEKTPFAD"); font.pixelSize: 10; font.letterSpacing: 1; color: root.theme.textMuted; Layout.bottomMargin: 12 }
 
-                GridLayout {
-                    Layout.fillWidth: true
-                    columns: 3; rowSpacing: 10; columnSpacing: 12
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 12
 
-                    // Projektordner/-datei (GIT-00: zeigt Ordner für neues Format)
-                    Text {
-                        text: root._istNeuesFormat(db.projektPfad)
-                              ? qsTr("Projektordner") : qsTr("Projektdatei")
-                        font.pixelSize: 11; color: root.theme.textMuted
-                    }
                     Column {
                         Layout.fillWidth: true; spacing: 2
                         Text {
@@ -627,64 +620,6 @@ Item {
                         MouseArea {
                             id: pfad1Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: Qt.openUrlExternally("file://" + db.projektPfad.substring(0, db.projektPfad.lastIndexOf("/")))
-                            ToolTip.visible: containsMouse; ToolTip.delay: 600
-                            ToolTip.text: qsTr("Verzeichnis öffnen")
-                        }
-                    }
-
-                    // Makrobibliothek
-                    Text { text: qsTr("Makrobibliothek"); font.pixelSize: 11; color: root.theme.textMuted }
-                    Column {
-                        Layout.fillWidth: true; spacing: 2
-                        Text {
-                            width: parent.width
-                            text: root._dateiName(db.makroPfad)
-                            font.pixelSize: 12; color: root.theme.textPrimary
-                            elide: Text.ElideRight
-                        }
-                        Text {
-                            width: parent.width
-                            text: root._verzeichnis(db.makroPfad)
-                            font.pixelSize: 10; font.family: "monospace"
-                            color: root.theme.textMuted; elide: Text.ElideLeft; opacity: 0.7
-                        }
-                    }
-                    Rectangle {
-                        width: 24; height: 24; radius: 4
-                        color: pfad2Ma.containsMouse ? root.theme.hover : "transparent"
-                        Text { anchors.centerIn: parent; text: "📁"; font.pixelSize: 13 }
-                        MouseArea {
-                            id: pfad2Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: Qt.openUrlExternally("file://" + db.makroPfad.substring(0, db.makroPfad.lastIndexOf("/")))
-                            ToolTip.visible: containsMouse; ToolTip.delay: 600
-                            ToolTip.text: qsTr("Verzeichnis öffnen")
-                        }
-                    }
-
-                    // Wiki
-                    Text { text: qsTr("Wiki"); font.pixelSize: 11; color: root.theme.textMuted }
-                    Column {
-                        Layout.fillWidth: true; spacing: 2
-                        Text {
-                            width: parent.width
-                            text: root._dateiName(db.wikiPfad)
-                            font.pixelSize: 12; color: root.theme.textPrimary
-                            elide: Text.ElideRight
-                        }
-                        Text {
-                            width: parent.width
-                            text: root._verzeichnis(db.wikiPfad)
-                            font.pixelSize: 10; font.family: "monospace"
-                            color: root.theme.textMuted; elide: Text.ElideLeft; opacity: 0.7
-                        }
-                    }
-                    Rectangle {
-                        width: 24; height: 24; radius: 4
-                        color: pfad3Ma.containsMouse ? root.theme.hover : "transparent"
-                        Text { anchors.centerIn: parent; text: "📁"; font.pixelSize: 13 }
-                        MouseArea {
-                            id: pfad3Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: Qt.openUrlExternally("file://" + db.wikiPfad.substring(0, db.wikiPfad.lastIndexOf("/")))
                             ToolTip.visible: containsMouse; ToolTip.delay: 600
                             ToolTip.text: qsTr("Verzeichnis öffnen")
                         }

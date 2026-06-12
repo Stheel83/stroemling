@@ -390,8 +390,9 @@ MouseArea {
             achievementManager.ereignis("element_platziert",
                 { "typ": "symbol", "elementeAufSeite": em.anzahl })
             if (canvas.paletteSymbolId === "klemme_anschluss"
-                    || canvas.paletteBetriebsmittelId > 0) {
-                // Klemmenanschluss + BM-Kontakt: nur einmal platzierbar → zurück zum Zeiger
+                    || canvas.paletteBetriebsmittelId > 0
+                    || (canvas.paletteExtraDaten && canvas.paletteExtraDaten.bauteilId)) {
+                // Klemmenanschluss, BM-Kontakt, Bauteil: nur einmal platzierbar → zurück zum Zeiger
                 canvas.paletteBetriebsmittelId = 0
                 canvas.aktivesWerkzeug = "zeiger"
                 canvas.vorschau = null

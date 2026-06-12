@@ -141,6 +141,7 @@ public:
     Q_INVOKABLE bool bauteilTitelSpeichern(int id, const QString &bezeichnung,
                                             const QString &hersteller, const QString &artikelnummer);
     Q_INVOKABLE bool symbolSpeichern(int id, const QString &symbolId);
+    Q_INVOKABLE QVariantList bauteileWithSymbol() const;
 
     Q_PROPERTY(int  aktiveKategorieId READ aktiveKategorieId NOTIFY aktiveKategorieIdChanged)
     Q_PROPERTY(bool nurKlemmen        READ nurKlemmen        NOTIFY aktiveKategorieIdChanged)

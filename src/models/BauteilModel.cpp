@@ -435,3 +435,25 @@ bool BauteilListModel::symbolSpeichern(int id, const QString &symbolId)
     laden(m_aktiveKategorieId);
     return true;
 }
+
+QVariantList BauteilListModel::bauteileWithSymbol() const
+{
+    QSqlQuery q;
+    q.prepare("SELECT id, bezeichnung, hauptfunktion_symbol_id "
+              "FROM bauteil "
+              "WHERE hauptfunktion_symbol_id IS NOT NULL AND hauptfunktion_symbol_id != '' "
+              "ORDER BY bezeichnung COLLATE NOCASE");
+    QVariantList liste;
+    if (!q.exec()) {
+        qCWarning(lcModel) << "bauteileWithSymbol Fehler:" << q.lastError().text();
+        return liste;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["bauteilId"]   = q.value(0).toInt();
+        m["bezeichnung"] = q.value(1).toString();
+        m["symbolId"]    = q.value(2).toString();
+        liste.append(m);
+    }
+    return liste;
+}

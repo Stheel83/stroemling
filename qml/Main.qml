@@ -965,6 +965,14 @@ ApplicationWindow {
                             root.aktiverCanvas.aktivesWerkzeug         = "symbol"
                             root.aktiverCanvas.forceActiveFocus()
                         }
+                        onBauteilPlatzieren: function(bauteilId, symbolId, bezeichnung) {
+                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                            root.aktiverCanvas.paletteSymbolId   = symbolId
+                            root.aktiverCanvas.paletteExtraDaten = { "bauteilId": bauteilId, "bezeichnung": bezeichnung }
+                            root.aktiverCanvas.aktivesWerkzeug   = "symbol"
+                            root.aktiverCanvas.forceActiveFocus()
+                        }
 
                         onWidthChanged: if (width >= 180) panelBreiten.seitenBaumBreite = width
                     }

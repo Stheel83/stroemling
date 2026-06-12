@@ -662,7 +662,7 @@ QVariantMap Database::datenbankAutobackup()
 QString Database::standardProjektOrdner() const
 {
     QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QString ordner = home + QStringLiteral("/Stroemling-Projekte");
+    QString ordner = home + QStringLiteral("/Stroemling_Projekte");
     QDir().mkpath(ordner);
     return ordner;
 }

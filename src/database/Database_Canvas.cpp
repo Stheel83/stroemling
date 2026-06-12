@@ -121,6 +121,16 @@ QVariantList Database::grafikLaden(int seiteId)
     return result;
 }
 
+int Database::letzteGrafikElementId(int seiteId) const
+{
+    QSqlQuery q;
+    q.prepare("SELECT MAX(id) FROM grafik_element WHERE seite_id = :sid");
+    q.bindValue(":sid", seiteId);
+    if (q.exec() && q.next() && !q.value(0).isNull())
+        return q.value(0).toInt();
+    return -1;
+}
+
 // ============================================================
 // grafikSpeichern
 // Ersetzt alle Grafik-Elemente einer Seite in einer Transaktion.

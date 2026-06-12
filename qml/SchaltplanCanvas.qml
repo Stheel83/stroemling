@@ -4297,4 +4297,99 @@ Item {
 
         onOpened: { anzahlField.text = "1"; anzahlField.selectAll(); anzahlField.forceActiveFocus() }
     }
+
+    // ── BMK-Eingabe nach Bauteil-Platzierung ─────────────────────────────────
+    property int    _bmkElementId:   -1
+    property string _bmkBauteilBez:  ""
+
+    function bauteilNachPlatzierenAusfuehren(elementId, bauteilBez) {
+        if (elementId <= 0) return
+        root._bmkElementId  = elementId
+        root._bmkBauteilBez = bauteilBez
+        bmkNachPlatzierenDialog.open()
+    }
+
+    Dialog {
+        id: bmkNachPlatzierenDialog
+        modal: true; parent: Overlay.overlay; anchors.centerIn: parent
+        width: 300; padding: 20
+        standardButtons: Dialog.NoButton
+
+        background: Rectangle {
+            color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 8
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 10
+
+            Text {
+                text: qsTr("Betriebsmittelkennzeichen (BMK)")
+                font.pixelSize: 14; font.weight: Font.Medium; color: root.theme.textPrimary
+            }
+
+            Text {
+                visible: root._bmkBauteilBez.length > 0
+                text: root._bmkBauteilBez
+                font.pixelSize: 12; color: root.theme.textMuted
+            }
+
+            Rectangle {
+                Layout.fillWidth: true; implicitHeight: 32; radius: 4
+                color: root.theme.inputBg
+                border.color: bmkField.activeFocus ? root.theme.accent : root.theme.border
+
+                TextInput {
+                    id: bmkField
+                    anchors { fill: parent; leftMargin: 8; rightMargin: 8; topMargin: 4; bottomMargin: 4 }
+                    font.pixelSize: 13; color: root.theme.textPrimary
+                    placeholderText: qsTr("z. B. –K1"); selectByMouse: true; clip: true
+                    Keys.onReturnPressed: bmkNachPlatzierenDialog.bmkAnlegenUndSchliessen()
+                    Keys.onEscapePressed: { bmkNachPlatzierenDialog.close() }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: root.theme.border }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+
+                Rectangle {
+                    implicitWidth: 90; implicitHeight: 30; radius: 4
+                    color: uebMaus.containsMouse ? root.theme.hover : root.theme.inputBg
+                    border.color: root.theme.border
+                    Text { anchors.centerIn: parent; text: qsTr("Überspringen"); font.pixelSize: 11; color: root.theme.textPrimary }
+                    MouseArea { id: uebMaus; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: bmkNachPlatzierenDialog.close() }
+                }
+
+                Rectangle {
+                    implicitWidth: 90; implicitHeight: 30; radius: 4
+                    color: bmkOkMaus.containsMouse ? root.theme.accent : root.theme.inputBg
+                    border.color: root.theme.accent
+                    Text { anchors.centerIn: parent; text: qsTr("Anlegen"); font.pixelSize: 11; font.weight: Font.Medium
+                           color: bmkOkMaus.containsMouse ? "white" : root.theme.accent }
+                    MouseArea { id: bmkOkMaus; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: bmkNachPlatzierenDialog.bmkAnlegenUndSchliessen() }
+                }
+            }
+        }
+
+        function bmkAnlegenUndSchliessen() {
+            var kz = bmkField.text.trim()
+            if (kz.length > 0 && root._bmkElementId > 0) {
+                var bmId = db.betriebsmittelAnlegen(root.projektId, kz, root._bmkBauteilBez)
+                if (bmId > 0) {
+                    db.grafikElementVerknuepfen(root._bmkElementId, bmId)
+                    db.betriebsmittelHauptfunktionSetzen(bmId, root._bmkElementId)
+                    db.betriebsmittelBmkSynchronisieren(bmId)
+                    root.seiteNeuLaden()
+                    root.hfKarteAktualisieren()
+                }
+            }
+            bmkNachPlatzierenDialog.close()
+        }
+
+        onOpened: { bmkField.text = ""; bmkField.forceActiveFocus() }
+    }
 }

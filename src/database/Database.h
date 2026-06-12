@@ -226,6 +226,7 @@ public:
     Q_INVOKABLE bool         betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz);
     Q_INVOKABLE bool         betriebsmittelBmkSynchronisieren(int betriebsmittelId);
     Q_INVOKABLE QVariantList betriebsmittelHfListe(int projektId);
+    Q_INVOKABLE int          letzteGrafikElementId(int seiteId) const;
 
     // Klemmenplan: alle Klemmen aller Leisten, mit Gruppen-Headern.
     // Gibt abwechselnd {typ:"leiste",...} und {typ:"klemme",...} zurück.

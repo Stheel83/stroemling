@@ -393,9 +393,15 @@ MouseArea {
                     || canvas.paletteBetriebsmittelId > 0
                     || (canvas.paletteExtraDaten && canvas.paletteExtraDaten.bauteilId)) {
                 // Klemmenanschluss, BM-Kontakt, Bauteil: nur einmal platzierbar → zurück zum Zeiger
+                var _bauteilId  = canvas.paletteExtraDaten ? canvas.paletteExtraDaten.bauteilId  : 0
+                var _bauteilBez = canvas.paletteExtraDaten ? (canvas.paletteExtraDaten.bezeichnung || "") : ""
                 canvas.paletteBetriebsmittelId = 0
                 canvas.aktivesWerkzeug = "zeiger"
                 canvas.vorschau = null
+                if (_bauteilId) {
+                    var newElId = db.letzteGrafikElementId(canvas.seiteId)
+                    canvas.bauteilNachPlatzierenAusfuehren(newElId, _bauteilBez)
+                }
             } else {
                 // CE-03: Symbol-Modus bleibt aktiv – Vorschau für nächste Platzierung neu aufbauen.
                 canvas.vorschau = canvas.symbolVorschauErstellen(wSym.x, wSym.y)

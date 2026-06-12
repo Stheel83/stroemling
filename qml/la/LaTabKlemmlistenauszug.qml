@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import stroemling
+import "../components"
 
 ColumnLayout {
     id: root
@@ -148,7 +149,7 @@ ColumnLayout {
             delegate: Item {
                 id: klaDelegate
                 width: klaView.width
-                height: model.typ === "leiste" ? 26 : 28
+                height: model.typ === "leiste" ? 26 : 38
 
                 // ── Felder die Steg-Slots benötigen ──────────
                 property int _ks: model.typ === "anschluss" ? (model.klemmeSort    || 0) : 0
@@ -199,31 +200,53 @@ ColumnLayout {
 
                         // Von (Seite A)
                         Item {
-                            width: panel.klaCols[1].w; height: 28
-                            Row {
-                                anchors.verticalCenter: parent.verticalCenter; spacing: 4
-                                Text {
-                                    visible: (model.anschlussVon || "") !== ""
-                                    text: model.anschlussVon || ""
-                                    font.pixelSize: 11; font.weight: Font.Medium
-                                    color: root.theme.accent
+                            width: panel.klaCols[1].w; height: parent.height
+                            Column {
+                                anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                                spacing: 1
+                                Row {
+                                    spacing: 4
+                                    Text {
+                                        visible: (model.anschlussVon || "") !== ""
+                                        text: model.anschlussVon || ""
+                                        font.pixelSize: 11; font.weight: Font.Medium
+                                        color: root.theme.accent
+                                    }
+                                    Rectangle {
+                                        visible: (model.vonPlatziert || false) &&
+                                                 (model.vonSignaltyp || "") !== ""
+                                        width: 5; height: 5; radius: 3
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: root._sigFarbe(model.vonSignaltyp || "")
+                                    }
+                                    Text {
+                                        width: panel.klaCols[1].w - 50
+                                        text: root._verbText(model.anschlussVon,
+                                                             model.vonPlatziert,
+                                                             model.vonVerbBez,
+                                                             model.vonBlattnummer)
+                                        font.pixelSize: 11
+                                        color: root._verbFarbe(model.vonPlatziert, model.vonVerbBez)
+                                        elide: Text.ElideRight
+                                    }
                                 }
-                                Rectangle {
-                                    visible: (model.vonPlatziert || false) &&
-                                             (model.vonSignaltyp || "") !== ""
-                                    width: 5; height: 5; radius: 3
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    color: root._sigFarbe(model.vonSignaltyp || "")
-                                }
-                                Text {
-                                    width: panel.klaCols[1].w - 50
-                                    text: root._verbText(model.anschlussVon,
-                                                         model.vonPlatziert,
-                                                         model.vonVerbBez,
-                                                         model.vonBlattnummer)
-                                    font.pixelSize: 11
-                                    color: root._verbFarbe(model.vonPlatziert, model.vonVerbBez)
-                                    elide: Text.ElideRight
+                                Row {
+                                    visible: (model.vonAderFarbe || "") !== "" ||
+                                             (model.vonAderNr    || "") !== ""
+                                    height:  visible ? implicitHeight : 0
+                                    spacing: 3
+                                    AderfarbenSwatch {
+                                        visible:  (model.vonAderFarbe || "") !== ""
+                                        aderCode: model.vonAderFarbe || ""
+                                        width: 10; height: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    Text {
+                                        text:           model.vonAderNr || ""
+                                        font.pixelSize: 9
+                                        color:          root.theme.textMuted
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
                                 }
                             }
                         }
@@ -357,32 +380,53 @@ ColumnLayout {
 
                         // Nach (Seite B)
                         Item {
-                            width: panel.klaCols[4].w; height: 28
-                            Row {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 4; leftPadding: 8
-                                Text {
-                                    visible: (model.anschlussNach || "") !== ""
-                                    text: model.anschlussNach || ""
-                                    font.pixelSize: 11; font.weight: Font.Medium
-                                    color: root.theme.borderLight
+                            width: panel.klaCols[4].w; height: parent.height
+                            Column {
+                                anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                                spacing: 1
+                                Row {
+                                    spacing: 4
+                                    Text {
+                                        visible: (model.anschlussNach || "") !== ""
+                                        text: model.anschlussNach || ""
+                                        font.pixelSize: 11; font.weight: Font.Medium
+                                        color: root.theme.borderLight
+                                    }
+                                    Rectangle {
+                                        visible: (model.nachPlatziert || false) &&
+                                                 (model.nachSignaltyp || "") !== ""
+                                        width: 5; height: 5; radius: 3
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: root._sigFarbe(model.nachSignaltyp || "")
+                                    }
+                                    Text {
+                                        width: panel.klaCols[4].w - 58
+                                        text: root._verbText(model.anschlussNach,
+                                                             model.nachPlatziert,
+                                                             model.nachVerbBez,
+                                                             model.nachBlattnummer)
+                                        font.pixelSize: 11
+                                        color: root._verbFarbe(model.nachPlatziert, model.nachVerbBez)
+                                        elide: Text.ElideRight
+                                    }
                                 }
-                                Rectangle {
-                                    visible: (model.nachPlatziert || false) &&
-                                             (model.nachSignaltyp || "") !== ""
-                                    width: 5; height: 5; radius: 3
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    color: root._sigFarbe(model.nachSignaltyp || "")
-                                }
-                                Text {
-                                    width: panel.klaCols[4].w - 58
-                                    text: root._verbText(model.anschlussNach,
-                                                         model.nachPlatziert,
-                                                         model.nachVerbBez,
-                                                         model.nachBlattnummer)
-                                    font.pixelSize: 11
-                                    color: root._verbFarbe(model.nachPlatziert, model.nachVerbBez)
-                                    elide: Text.ElideRight
+                                Row {
+                                    visible: (model.nachAderFarbe || "") !== "" ||
+                                             (model.nachAderNr    || "") !== ""
+                                    height:  visible ? implicitHeight : 0
+                                    spacing: 3
+                                    AderfarbenSwatch {
+                                        visible:  (model.nachAderFarbe || "") !== ""
+                                        aderCode: model.nachAderFarbe || ""
+                                        width: 10; height: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    Text {
+                                        text:           model.nachAderNr || ""
+                                        font.pixelSize: 9
+                                        color:          root.theme.textMuted
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
                                 }
                             }
                         }

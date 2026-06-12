@@ -328,7 +328,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
     }
 
     // ── 2. Verbindungssegmente nach Seite ────────────────────────────────────
-    // seite_id → [{x1,y1,x2,y2, vb(Netzbezeichnung), st(Signaltyp)}]
+    // seite_id → [{x1,y1,x2,y2, vb(Netzbezeichnung), st(Signaltyp), vid(verbindung_id)}]
     QHash<int, QList<QVariantMap>> segmente;
     {
         QSqlQuery q(m_db);
@@ -338,7 +338,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             "       CAST(json_extract(vs.punkte,'$[0].y') AS REAL),"
             "       CAST(json_extract(vs.punkte,'$[1].x') AS REAL),"
             "       CAST(json_extract(vs.punkte,'$[1].y') AS REAL),"
-            "       COALESCE(v.bezeichnung,''), v.signaltyp"
+            "       COALESCE(v.bezeichnung,''), v.signaltyp, v.id"
             " FROM verbindung_segment vs"
             " JOIN verbindung v ON v.id = vs.verbindung_id"
             " WHERE v.projekt_id = :pid"
@@ -348,19 +348,81 @@ QVariantList Database::klemmlistenauszug(int projektId)
             while (q.next()) {
                 int sid = q.value(0).toInt();
                 QVariantMap seg;
-                seg[QStringLiteral("x1")] = q.value(1).toDouble();
-                seg[QStringLiteral("y1")] = q.value(2).toDouble();
-                seg[QStringLiteral("x2")] = q.value(3).toDouble();
-                seg[QStringLiteral("y2")] = q.value(4).toDouble();
-                seg[QStringLiteral("vb")] = q.value(5).toString();
-                seg[QStringLiteral("st")] = q.value(6).toString();
+                seg[QStringLiteral("x1")]  = q.value(1).toDouble();
+                seg[QStringLiteral("y1")]  = q.value(2).toDouble();
+                seg[QStringLiteral("x2")]  = q.value(3).toDouble();
+                seg[QStringLiteral("y2")]  = q.value(4).toDouble();
+                seg[QStringLiteral("vb")]  = q.value(5).toString();
+                seg[QStringLiteral("st")]  = q.value(6).toString();
+                seg[QStringLiteral("vid")] = q.value(7).toInt();
                 segmente[sid].append(seg);
             }
         }
     }
 
-    // ── 3. Geometrisches Matching: Pinposition → Verbindung ─────────────────
-    // Schlüssel "klemmeId|anschlussBezeichnung" → {bl, vb, st}
+    // ── 2a. Kabel-Ader-Daten: verbindung_id → {farbe, nr} ──────────────────
+    QHash<int, QVariantMap> kabelAderMap;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(
+            "SELECT ka.verbindung_id, COALESCE(ka.farbe,''), COALESCE(ka.bezeichnung,'')"
+            " FROM kabel_ader ka"
+            " JOIN kabel kb ON kb.id = ka.kabel_id"
+            " WHERE kb.projekt_id = :pid AND ka.verbindung_id IS NOT NULL"
+        );
+        q.bindValue(":pid", projektId);
+        if (q.exec()) {
+            while (q.next()) {
+                int vid = q.value(0).toInt();
+                QVariantMap m;
+                m[QStringLiteral("farbe")] = q.value(1).toString();
+                m[QStringLiteral("nr")]    = q.value(2).toString();
+                kabelAderMap[vid] = m;
+            }
+        }
+    }
+
+    // ── 2b. Aderdefinition-Symbole: seite_id → [{cx,cy,farbe,nr}] ───────────
+    QHash<int, QList<QVariantMap>> aderdefMap;
+    {
+        const QString sql = QString(
+            "SELECT ge.seite_id,"
+            "       (ge.x1+ge.x2)/2.0, (ge.y1+ge.y2)/2.0,"
+            "       COALESCE(json_extract(ge.extra_daten,'$.aderfarbe'),''),"
+            "       COALESCE(json_extract(ge.extra_daten,'$.bezeichnung'),'')"
+            " FROM grafik_element ge"
+            " JOIN seite s ON s.id = ge.seite_id"
+            " JOIN ort o ON o.id = s.ort_id"
+            " JOIN anlage a ON a.id = o.anlage_id"
+            " WHERE ge.symbol_id = 'aderdefinition' AND a.projekt_id = %1"
+        ).arg(projektId);
+        QSqlQuery q(m_db);
+        if (q.exec(sql)) {
+            while (q.next()) {
+                QVariantMap ad;
+                ad[QStringLiteral("cx")]    = q.value(1).toDouble();
+                ad[QStringLiteral("cy")]    = q.value(2).toDouble();
+                ad[QStringLiteral("farbe")] = q.value(3).toString();
+                ad[QStringLiteral("nr")]    = q.value(4).toString();
+                aderdefMap[q.value(0).toInt()].append(ad);
+            }
+        }
+    }
+
+    // ── 3. Geometrisches Matching: Pinposition → Verbindung + Aderinfos ──────
+    // Schlüssel "klemmeId|anschlussBezeichnung" → {bl, vb, st, af, an}
+    auto punktAufSegment = [](double cx, double cy,
+                               double sx1, double sy1, double sx2, double sy2,
+                               double tol) -> bool {
+        double dx = sx2 - sx1, dy = sy2 - sy1;
+        double len2 = dx*dx + dy*dy;
+        if (len2 < 1e-6) return false;
+        double t = ((cx-sx1)*dx + (cy-sy1)*dy) / len2;
+        if (t < 0.0 || t > 1.0) return false;
+        double projX = sx1 + t*dx, projY = sy1 + t*dy;
+        return qAbs(cx-projX) < tol && qAbs(cy-projY) < tol;
+    };
+
     QHash<QString, QVariantMap> verbInfo;
     const double TOL = 2.0;
     for (auto it = platz.cbegin(); it != platz.cend(); ++it) {
@@ -370,19 +432,44 @@ QVariantList Database::klemmlistenauszug(int projektId)
             double py  = p[QStringLiteral("py")].toDouble();
             int    sid = p[QStringLiteral("sid")].toInt();
             QString key = QString::number(kid) + QLatin1Char('|') + p[QStringLiteral("abez")].toString();
-            QString vb, st;
+            QString vb, st, af, an;
             for (const QVariantMap &seg : segmente.value(sid)) {
                 bool h1 = qAbs(seg[QStringLiteral("x1")].toDouble() - px) < TOL &&
                           qAbs(seg[QStringLiteral("y1")].toDouble() - py) < TOL;
                 bool h2 = qAbs(seg[QStringLiteral("x2")].toDouble() - px) < TOL &&
                           qAbs(seg[QStringLiteral("y2")].toDouble() - py) < TOL;
-                if (h1 || h2) { vb = seg[QStringLiteral("vb")].toString();
-                                 st = seg[QStringLiteral("st")].toString(); break; }
+                if (h1 || h2) {
+                    vb = seg[QStringLiteral("vb")].toString();
+                    st = seg[QStringLiteral("st")].toString();
+                    int vid = seg[QStringLiteral("vid")].toInt();
+                    if (kabelAderMap.contains(vid)) {
+                        af = kabelAderMap[vid][QStringLiteral("farbe")].toString();
+                        an = kabelAderMap[vid][QStringLiteral("nr")].toString();
+                    }
+                    if (af.isEmpty() && an.isEmpty()) {
+                        double sx1 = seg[QStringLiteral("x1")].toDouble();
+                        double sy1 = seg[QStringLiteral("y1")].toDouble();
+                        double sx2 = seg[QStringLiteral("x2")].toDouble();
+                        double sy2 = seg[QStringLiteral("y2")].toDouble();
+                        for (const QVariantMap &ad : aderdefMap.value(sid)) {
+                            if (punktAufSegment(ad[QStringLiteral("cx")].toDouble(),
+                                                ad[QStringLiteral("cy")].toDouble(),
+                                                sx1, sy1, sx2, sy2, 3.0)) {
+                                af = ad[QStringLiteral("farbe")].toString();
+                                an = ad[QStringLiteral("nr")].toString();
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
             }
             QVariantMap vm;
             vm[QStringLiteral("bl")] = p[QStringLiteral("bl")];
             vm[QStringLiteral("vb")] = vb;
             vm[QStringLiteral("st")] = st;
+            vm[QStringLiteral("af")] = af;
+            vm[QStringLiteral("an")] = an;
             verbInfo[key] = vm;
         }
     }
@@ -534,11 +621,15 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("vonBlattnummer")]  = pA ? platzBl.value(kidStr+"|"+bezA) : QString();
             row[QStringLiteral("vonVerbBez")]      = vA ? viA[QStringLiteral("vb")].toString() : QString();
             row[QStringLiteral("vonSignaltyp")]    = vA ? viA[QStringLiteral("st")].toString() : QString();
+            row[QStringLiteral("vonAderFarbe")]    = vA ? viA[QStringLiteral("af")].toString() : QString();
+            row[QStringLiteral("vonAderNr")]       = vA ? viA[QStringLiteral("an")].toString() : QString();
             row[QStringLiteral("anschlussNach")]   = bezB;
             row[QStringLiteral("nachPlatziert")]   = pB;
             row[QStringLiteral("nachBlattnummer")] = pB ? platzBl.value(kidStr+"|"+bezB) : QString();
             row[QStringLiteral("nachVerbBez")]     = vB ? viB[QStringLiteral("vb")].toString() : QString();
             row[QStringLiteral("nachSignaltyp")]   = vB ? viB[QStringLiteral("st")].toString() : QString();
+            row[QStringLiteral("nachAderFarbe")]   = vB ? viB[QStringLiteral("af")].toString() : QString();
+            row[QStringLiteral("nachAderNr")]      = vB ? viB[QStringLiteral("an")].toString() : QString();
             row[QStringLiteral("querschnitt")]      = qs;
             row[QStringLiteral("farbeBez")]         = farbBez;
             row[QStringLiteral("farbeHex")]         = farbHex;
@@ -596,8 +687,9 @@ bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
     out << "\xEF\xBB\xBF";
-    out << "Leiste;Nr.;Von-Anschl.;Von-Verbindung;Von-Signaltyp;Von-Seite;"
-           "Nach-Anschl.;Nach-Verbindung;Nach-Signaltyp;Nach-Seite;Querschnitt;Farbe\n";
+    out << "Leiste;Nr.;Von-Anschl.;Von-Verbindung;Von-Signaltyp;Von-Seite;Von-Aderfarbe;Von-Adernr;"
+           "Nach-Anschl.;Nach-Verbindung;Nach-Signaltyp;Nach-Seite;Nach-Aderfarbe;Nach-Adernr;"
+           "Querschnitt;Farbe\n";
 
     auto csvQ = [](const QString &s) -> QString {
         if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
@@ -617,13 +709,17 @@ bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
             out << csvQ(curLeisteBmk)
                 << u';' << csvQ(row[QStringLiteral("klemmeNr")].toString())
                 << u';' << csvQ(row[QStringLiteral("anschlussVon")].toString())
-                << u';' << csvQ(pA ? row[QStringLiteral("vonVerbBez")].toString()    : QString())
-                << u';' << csvQ(pA ? row[QStringLiteral("vonSignaltyp")].toString()  : QString())
-                << u';' << csvQ(pA ? row[QStringLiteral("vonBlattnummer")].toString(): QString())
+                << u';' << csvQ(pA ? row[QStringLiteral("vonVerbBez")].toString()     : QString())
+                << u';' << csvQ(pA ? row[QStringLiteral("vonSignaltyp")].toString()   : QString())
+                << u';' << csvQ(pA ? row[QStringLiteral("vonBlattnummer")].toString() : QString())
+                << u';' << csvQ(row[QStringLiteral("vonAderFarbe")].toString())
+                << u';' << csvQ(row[QStringLiteral("vonAderNr")].toString())
                 << u';' << csvQ(row[QStringLiteral("anschlussNach")].toString())
-                << u';' << csvQ(pB ? row[QStringLiteral("nachVerbBez")].toString()    : QString())
-                << u';' << csvQ(pB ? row[QStringLiteral("nachSignaltyp")].toString()  : QString())
-                << u';' << csvQ(pB ? row[QStringLiteral("nachBlattnummer")].toString(): QString())
+                << u';' << csvQ(pB ? row[QStringLiteral("nachVerbBez")].toString()     : QString())
+                << u';' << csvQ(pB ? row[QStringLiteral("nachSignaltyp")].toString()   : QString())
+                << u';' << csvQ(pB ? row[QStringLiteral("nachBlattnummer")].toString() : QString())
+                << u';' << csvQ(row[QStringLiteral("nachAderFarbe")].toString())
+                << u';' << csvQ(row[QStringLiteral("nachAderNr")].toString())
                 << u';' << csvQ(row[QStringLiteral("querschnitt")].toString())
                 << u';' << csvQ(row[QStringLiteral("farbeBez")].toString())
                 << u'\n';

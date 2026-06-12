@@ -4342,7 +4342,7 @@ Item {
                     id: bmkField
                     anchors { fill: parent; leftMargin: 8; rightMargin: 8; topMargin: 4; bottomMargin: 4 }
                     font.pixelSize: 13; color: root.theme.textPrimary
-                    placeholderText: qsTr("z. B. –K1"); selectByMouse: true; clip: true
+                    selectByMouse: true; clip: true
                     Keys.onReturnPressed: bmkNachPlatzierenDialog.bmkAnlegenUndSchliessen()
                     Keys.onEscapePressed: { bmkNachPlatzierenDialog.close() }
                 }

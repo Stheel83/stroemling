@@ -285,6 +285,17 @@ bool Database::applyMigrationStatements(const QStringList &statements)
     for (const QString &stmt : statements) {
         if (stmt.trimmed().isEmpty()) continue;
         if (!q.exec(stmt)) {
+            // ALTER TABLE ADD COLUMN wird von SQLite auto-committed und kann
+            // nicht zurückgerollt werden. Wenn die Spalte bereits existiert
+            // (Absturz nach DDL aber vor schema_migration-Commit), gilt die
+            // Migration als erfolgreich angewendet.
+            bool isAddColumn = stmt.trimmed().toUpper().contains("ADD COLUMN");
+            bool isDupCol    = q.lastError().databaseText().toLower()
+                                .contains("duplicate column name");
+            if (isAddColumn && isDupCol) {
+                qCInfo(lcDb) << "ADD COLUMN bereits vorhanden (idempotent):" << stmt.left(120);
+                continue;
+            }
             qCWarning(lcDb) << "Migration-Statement fehlgeschlagen:" << q.lastError().text();
             qCWarning(lcDb) << "Statement:" << stmt.left(200);
             return false;
@@ -319,9 +330,9 @@ bool Database::erstelleBackup(const QString &verbindungsName, const QString &pre
     QString backupPfad = backupDir + "/" + prefix + "_v" + QString::number(version)
                          + "_" + datum + ".db";
 
-    // Zweiter Backup am selben Tag: Uhrzeit ergänzen
+    // Kollision: Uhrzeit ergänzen, notfalls Sekunden
     if (QFile::exists(backupPfad)) {
-        QString zeit = QTime::currentTime().toString("HHmm");
+        QString zeit = QTime::currentTime().toString("HHmmss");
         backupPfad = backupDir + "/" + prefix + "_v" + QString::number(version)
                      + "_" + datum + "_" + zeit + ".db";
     }

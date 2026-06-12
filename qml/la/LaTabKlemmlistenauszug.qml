@@ -10,10 +10,12 @@ ColumnLayout {
     required property var theme
     spacing: 0
 
-    // Breite des Steg-Indikatorbereichs zwischen Qs und Farbe
-    readonly property int _stegBreite: 18
+    // Breite je Steg-Spalte in px
+    readonly property int _stegSlotBreite: 10
+    // Gesamtbreite Steg-Block (mindestens 0, wächst mit Steg-Anzahl)
+    readonly property int _stegBreite: panel._klaMaxStegSpalten * _stegSlotBreite
 
-    // ── Hilfsfunktionen (root-Scope → AOT-sicher) ──────────────
+    // ── Hilfsfunktionen ─────────────────────────────────────────
     function stegFarbe(st) {
         if (st === "pe")    return "#3a8c3a"
         if (st === "n")     return "#2a62a0"
@@ -40,7 +42,6 @@ ColumnLayout {
         if (!verbBez) return root.theme.borderLight
         return root.theme.textSecondary
     }
-    // Dezente Hintergrundfarbe für Steg-Gruppen-Zeilen
     function _stegBgFarbe(st) {
         return Qt.alpha(root.stegFarbe(st), 0.17)
     }
@@ -72,21 +73,26 @@ ColumnLayout {
             spacing: 0
 
             Text { width: panel.klaCols[0].w; text: panel.klaCols[0].header
-                   font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
+                   font.pixelSize: 11; font.weight: Font.Medium
+                   color: root.theme.textSubtle }
             Text { width: panel.klaCols[1].w; text: panel.klaCols[1].header
-                   font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
+                   font.pixelSize: 11; font.weight: Font.Medium
+                   color: root.theme.textSubtle }
             Rectangle { width: 1; height: 22; color: root.theme.border
                         anchors.verticalCenter: parent.verticalCenter }
-            Text { width: panel.klaCols[2].w; text: panel.klaCols[2].header; leftPadding: 8
-                   font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
-            // Steg-Spalte (kein Spaltenheader-Text, wird visuell genutzt)
+            Text { width: panel.klaCols[2].w; text: panel.klaCols[2].header
+                   leftPadding: 8; font.pixelSize: 11; font.weight: Font.Medium
+                   color: root.theme.textSubtle }
+            // Steg-Block (keine Beschriftung, Breite dynamisch)
             Item { width: root._stegBreite; height: 22 }
             Text { width: panel.klaCols[3].w; text: panel.klaCols[3].header
-                   font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
+                   font.pixelSize: 11; font.weight: Font.Medium
+                   color: root.theme.textSubtle }
             Rectangle { width: 1; height: 22; color: root.theme.border
                         anchors.verticalCenter: parent.verticalCenter }
-            Text { width: panel.klaCols[4].w; text: panel.klaCols[4].header; leftPadding: 8
-                   font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle }
+            Text { width: panel.klaCols[4].w; text: panel.klaCols[4].header
+                   leftPadding: 8; font.pixelSize: 11; font.weight: Font.Medium
+                   color: root.theme.textSubtle }
         }
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
@@ -121,28 +127,30 @@ ColumnLayout {
                 width: klaView.width
                 height: model.typ === "leiste" ? 26 : 28
 
-                // Nur die Stegs dieser Ebene (für Klammer-Indikator)
-                property var _stegs: {
+                // ── Felder die Steg-Slots benötigen ──────────
+                property int _ks: model.typ === "anschluss" ? (model.klemmeSort || 0) : 0
+                property int _eb: model.typ === "anschluss" ? (model.ebene       || 0) : 0
+                property var _ls: {
                     if (model.typ !== "anschluss") return []
-                    try {
-                        var all = JSON.parse(model.stegJson || "[]")
-                        return all.filter(function(s) { return s.eb === model.ebene })
-                    } catch(e) { return [] }
+                    try { return JSON.parse(model.leisteStegJson || "[]") } catch(e) { return [] }
                 }
-                // Hintergrundfarbe: alle Ebenen-Zeilen einer Steg-Klemme einfärben.
-                // Bevorzugt die Farbe des zur aktuellen Ebene passenden Stegs.
+
+                // Hintergrundfarbe: passenden Steg für diese Ebene bevorzugen;
+                // "Durchlauf"-Zeilen (anderer Ebene) dezenter tönen
                 property color _stegBg: {
                     if (model.typ !== "anschluss") return "transparent"
-                    try {
-                        var all = JSON.parse(model.stegJson || "[]")
-                        if (all.length === 0) return "transparent"
-                        for (var i = 0; i < all.length; i++) {
-                            if (all[i].eb === model.ebene)
-                                return root._stegBgFarbe(all[i].st || "")
-                        }
-                        // Andere Ebene dieser Klemme: gleiche Farbe, noch dezenter
-                        return Qt.alpha(root.stegFarbe(all[0].st || ""), 0.09)
-                    } catch(e) { return "transparent" }
+                    var ks = klaDelegate._ks, re = klaDelegate._eb
+                    var ls = klaDelegate._ls
+                    for (var i = 0; i < ls.length; i++) {
+                        var s = ls[i]
+                        if (ks < s.vs || ks > s.bs) continue
+                        if (re === s.eb) return root._stegBgFarbe(s.st || "")
+                        // "Durch"-Zeile (in Range, andere Ebene), Grenzbedingung beachten
+                        if (ks === s.vs && re < s.eb) continue
+                        if (ks === s.bs && re > s.eb) continue
+                        return Qt.alpha(root.stegFarbe(s.st || ""), 0.09)
+                    }
+                    return "transparent"
                 }
 
                 // ── Leisten-Kopfzeile ─────────────────────────
@@ -167,14 +175,14 @@ ColumnLayout {
                     anchors.fill: parent
                     color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
 
-                    // Steg-Gruppen-Einfärbung (halbtransparent über Zebramuster)
+                    // Steg-Gruppenfarbe
                     Rectangle {
                         anchors.fill: parent
                         color: klaDelegate._stegBg
                         visible: klaDelegate._stegBg !== Qt.rgba(0,0,0,0)
                     }
 
-                    // Daten-Row: Nr | A | sep | Qs | [Steg] | Farbe | sep | B
+                    // Daten-Row: Nr | A | sep | Qs | [Steg-Spalten] | Farbe | sep | B
                     Row {
                         anchors { left: parent.left; leftMargin: 8
                                   verticalCenter: parent.verticalCenter }
@@ -213,8 +221,7 @@ ColumnLayout {
                                                          model.vonVerbBez,
                                                          model.vonBlattnummer)
                                     font.pixelSize: 11
-                                    color: root._verbFarbe(model.vonPlatziert,
-                                                           model.vonVerbBez)
+                                    color: root._verbFarbe(model.vonPlatziert, model.vonVerbBez)
                                     elide: Text.ElideRight
                                 }
                             }
@@ -234,53 +241,78 @@ ColumnLayout {
                             elide: Text.ElideRight
                         }
 
-                        // ── Steg-Indikatoren (zentriert in _stegBreite px) ──
+                        // ── Steg-Spalten (eine je Leisten-Steg) ───────────────
                         Item {
+                            id: stegBlock
                             width: root._stegBreite; height: klaDelegate.height
 
                             Row {
-                                anchors.centerIn: parent
-                                spacing: 2
+                                anchors.left: parent.left
+                                anchors.top: parent.top; anchors.bottom: parent.bottom
+                                spacing: 0
 
                                 Repeater {
-                                    model: klaDelegate._stegs
+                                    model: klaDelegate._ls.length
 
                                     Item {
-                                        width: 4; height: klaDelegate.height
+                                        id: stegSlot
+                                        width: root._stegSlotBreite
+                                        height: stegBlock.height
 
-                                        // Verbindungsbalken (volle Höhe für mittlere Zeilen,
-                                        // halbe Höhe für erste / letzte Zeile der Gruppe)
-                                        Rectangle {
-                                            width: 2
-                                            color: root.stegFarbe(modelData.st || "")
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            visible: !(modelData.er && modelData.la)
-                                            y: modelData.er ? parent.height * 0.5 : 0
-                                            height: (modelData.er || modelData.la)
-                                                    ? parent.height * 0.5
-                                                    : parent.height
+                                        property var   sd: klaDelegate._ls[index]
+                                        property int   ks: klaDelegate._ks
+                                        property int   re: klaDelegate._eb
+
+                                        // Status dieser Zeile für diesen Steg
+                                        readonly property bool _inRange:
+                                            sd != null && ks >= sd.vs && ks <= sd.bs
+                                        readonly property bool _active:
+                                            _inRange && re === sd.eb
+                                        // Durchlauf: Klemme ist in Range, aber falsche Ebene,
+                                        // jedoch noch zwischen erster und letzter aktiven Zeile
+                                        readonly property bool _through: {
+                                            if (!_inRange || _active) return false
+                                            if (ks === sd.vs && re < sd.eb) return false
+                                            if (ks === sd.bs && re > sd.eb) return false
+                                            return true
                                         }
-                                        // Querstrich in Zeilenmitte (Gruppenanfang/-ende)
+                                        readonly property bool _er: _active && ks === sd.vs
+                                        readonly property bool _la: _active && ks === sd.bs
+
+                                        // Vertikaler Balken
                                         Rectangle {
-                                            visible: modelData.er || modelData.la
+                                            visible: (stegSlot._active || stegSlot._through) &&
+                                                     !(stegSlot._er && stegSlot._la)
+                                            width: 3
+                                            color: root.stegFarbe(stegSlot.sd ? stegSlot.sd.st || "" : "")
+                                            opacity: stegSlot._through ? 0.28 : 1.0
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            y: stegSlot._er ? parent.height * 0.5 : 0
+                                            height: (stegSlot._er || stegSlot._la)
+                                                    ? parent.height * 0.5 : parent.height
+                                        }
+                                        // Querstrich (Gruppenanfang/-ende, nur aktive Ebene)
+                                        Rectangle {
+                                            visible: stegSlot._er || stegSlot._la
                                             width: parent.width; height: 2
                                             anchors.horizontalCenter: parent.horizontalCenter
                                             y: parent.height * 0.5 - 1
-                                            color: root.stegFarbe(modelData.st || "")
+                                            color: root.stegFarbe(stegSlot.sd ? stegSlot.sd.st || "" : "")
                                         }
 
                                         MouseArea {
-                                            id: stegMa; anchors.fill: parent
-                                            hoverEnabled: true
+                                            id: ssMa; anchors.fill: parent; hoverEnabled: true
                                         }
-                                        ToolTip.visible: stegMa.containsMouse
+                                        ToolTip.visible: ssMa.containsMouse &&
+                                                         (stegSlot._active || stegSlot._through)
                                         ToolTip.delay: 300
                                         ToolTip.text: {
+                                            if (!stegSlot.sd) return ""
                                             var t = qsTr("Steg Eb.%1  %2–%3")
-                                                    .arg(modelData.eb || 1)
-                                                    .arg(modelData.vn || "?")
-                                                    .arg(modelData.bn || "?")
-                                            if (modelData.pot) t += "\n" + modelData.pot
+                                                    .arg(stegSlot.sd.eb || 1)
+                                                    .arg(stegSlot.sd.vn || "?")
+                                                    .arg(stegSlot.sd.bn || "?")
+                                            if (stegSlot.sd.pot) t += "\n" + stegSlot.sd.pot
                                             return t
                                         }
                                     }
@@ -340,8 +372,7 @@ ColumnLayout {
                                                          model.nachVerbBez,
                                                          model.nachBlattnummer)
                                     font.pixelSize: 11
-                                    color: root._verbFarbe(model.nachPlatziert,
-                                                           model.nachVerbBez)
+                                    color: root._verbFarbe(model.nachPlatziert, model.nachVerbBez)
                                     elide: Text.ElideRight
                                 }
                             }
@@ -349,13 +380,11 @@ ColumnLayout {
                     }
 
                     // Durchgehende Trennlinien (volle Zeilenhöhe)
-                    // Position: leftMargin + Nr + Von
                     Rectangle {
                         x: 8 + panel.klaCols[0].w + panel.klaCols[1].w
                         width: 1; height: parent.height
                         color: root.theme.border; opacity: 0.5
                     }
-                    // Position: leftMargin + Nr + Von + sep + Qs + Steg + Farbe
                     Rectangle {
                         x: 8 + panel.klaCols[0].w + panel.klaCols[1].w + 1
                             + panel.klaCols[2].w + root._stegBreite + panel.klaCols[3].w

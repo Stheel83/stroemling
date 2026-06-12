@@ -450,21 +450,39 @@ QVariantList Database::klemmlistenauszug(int projektId)
         return result;
     }
 
-    int lastLeistenId = -1;
+    int     lastLeistenId    = -1;
     QList<QVariantMap> curStegs;
+    QString curLeisteStegsJson = QStringLiteral("[]");
 
     while (q.next()) {
         int leisteId = q.value(0).toInt();
 
         if (leisteId != lastLeistenId) {
+            lastLeistenId = leisteId;
+            curStegs = stegMap.value(leisteId);
+            // JSON aller Stegbrücken dieser Leiste (für Spalten-Darstellung im QML)
+            QJsonArray lsArr;
+            for (const QVariantMap &s : curStegs) {
+                QJsonObject o;
+                o[QLatin1String("st")]  = s[QStringLiteral("signaltyp")].toString();
+                o[QLatin1String("pot")] = s[QStringLiteral("potenzial")].toString();
+                o[QLatin1String("eb")]  = s[QStringLiteral("ebene")].toInt();
+                o[QLatin1String("vn")]  = s[QStringLiteral("vonNr")].toString();
+                o[QLatin1String("bn")]  = s[QStringLiteral("bisNr")].toString();
+                o[QLatin1String("vs")]  = s[QStringLiteral("vonSort")].toInt();
+                o[QLatin1String("bs")]  = s[QStringLiteral("bisSort")].toInt();
+                lsArr.append(o);
+            }
+            curLeisteStegsJson =
+                QString::fromUtf8(QJsonDocument(lsArr).toJson(QJsonDocument::Compact));
+
             QVariantMap row;
             row[QStringLiteral("typ")]         = QStringLiteral("leiste");
             row[QStringLiteral("leisteId")]    = leisteId;
             row[QStringLiteral("bezeichnung")] = q.value(1).toString();
             row[QStringLiteral("bmk")]         = q.value(2).toString();
+            row[QStringLiteral("stegAnzahl")]  = curStegs.size();
             result.append(row);
-            lastLeistenId = leisteId;
-            curStegs = stegMap.value(leisteId);
         }
 
         int    klemmeId = q.value(3).toInt();
@@ -479,23 +497,6 @@ QVariantList Database::klemmlistenauszug(int projektId)
         QString farbHex = q.value(11).toString();
         QString qs      = q.value(12).toString();
 
-        // Alle Stegbrücken für diese Klemme sammeln (je Ebene eine)
-        QJsonArray stegArr;
-        for (const QVariantMap &steg : curStegs) {
-            int vS = steg[QStringLiteral("vonSort")].toInt();
-            int bS = steg[QStringLiteral("bisSort")].toInt();
-            if (kSort >= vS && kSort <= bS) {
-                QJsonObject obj;
-                obj[QLatin1String("st")]  = steg[QStringLiteral("signaltyp")].toString();
-                obj[QLatin1String("pot")] = steg[QStringLiteral("potenzial")].toString();
-                obj[QLatin1String("eb")]  = steg[QStringLiteral("ebene")].toInt();
-                obj[QLatin1String("vn")]  = steg[QStringLiteral("vonNr")].toString();
-                obj[QLatin1String("bn")]  = steg[QStringLiteral("bisNr")].toString();
-                obj[QLatin1String("er")]  = (kSort == vS);
-                obj[QLatin1String("la")]  = (kSort == bS);
-                stegArr.append(obj);
-            }
-        }
 
         bool ersteZeile = true;
 
@@ -513,9 +514,6 @@ QVariantList Database::klemmlistenauszug(int projektId)
             return !abez.isEmpty() &&
                    verbInfo.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
         };
-
-        const QString stegJsonStr =
-            QString::fromUtf8(QJsonDocument(stegArr).toJson(QJsonDocument::Compact));
 
         // Paar-Zeile: Seite A links, Seite B rechts
         auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene) {
@@ -540,10 +538,11 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("nachBlattnummer")] = pB ? platzBl.value(kidStr+"|"+bezB) : QString();
             row[QStringLiteral("nachVerbBez")]     = vB ? viB[QStringLiteral("vb")].toString() : QString();
             row[QStringLiteral("nachSignaltyp")]   = vB ? viB[QStringLiteral("st")].toString() : QString();
-            row[QStringLiteral("querschnitt")]     = qs;
-            row[QStringLiteral("farbeBez")]        = farbBez;
-            row[QStringLiteral("farbeHex")]        = farbHex;
-            row[QStringLiteral("stegJson")]        = stegJsonStr;
+            row[QStringLiteral("querschnitt")]      = qs;
+            row[QStringLiteral("farbeBez")]         = farbBez;
+            row[QStringLiteral("farbeHex")]         = farbHex;
+            row[QStringLiteral("klemmeSort")]       = kSort;
+            row[QStringLiteral("leisteStegJson")]   = curLeisteStegsJson;
             result.append(row);
             ersteZeile = false;
         };

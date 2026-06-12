@@ -113,6 +113,14 @@ Item {
             if (klaModel.get(i).typ === "anschluss") n++
         return n
     }
+    readonly property int _klaMaxStegSpalten: {
+        var max = 0
+        for (var i = 0; i < klaModel.count; i++) {
+            var row = klaModel.get(i)
+            if (row.typ === "leiste") { var n = row.stegAnzahl || 0; if (n > max) max = n }
+        }
+        return max
+    }
 
     readonly property var slCols: [
         { header: "BMK",        w: 110 }, { header: "Typ",        w: 110 },

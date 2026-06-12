@@ -132,6 +132,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaKategorieNeuDialog.qml
         qml/ba/BaKategorieBearbeitenDialog.qml
         qml/ba/BaBauteilNeuDialog.qml
+        qml/ba/BaSymbolPickerDialog.qml
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml

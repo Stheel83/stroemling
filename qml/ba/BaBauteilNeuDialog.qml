@@ -5,9 +5,8 @@ import QtQuick.Layouts
 Dialog {
     id: root
     required property var theme
-    property int kategorieId:  -1
-    property var symEintraege: []
-    property int symGewIndex:  -1
+    property int    kategorieId:   -1
+    property string gewaehlterSymbolId: ""
 
     title:  qsTr("Neues Bauteil")
     modal:  true; parent: Overlay.overlay; anchors.centerIn: parent
@@ -23,9 +22,7 @@ Dialog {
         neuForm.preis         = ""; neuForm.spannung      = ""
         neuForm.strom         = ""; neuForm.leistung      = ""
         neuForm.bemerkung     = ""
-        root.symEintraege = symbolDefinitionModel.alleSymbole()
-        root.symGewIndex  = -1
-        neuSymbolCombo.currentIndex = 0
+        root.gewaehlterSymbolId = ""
     }
 
     contentItem: ColumnLayout {
@@ -40,28 +37,39 @@ Dialog {
             BaFormContent { id: neuForm; theme: root.theme }
         }
 
+        BaSymbolPickerDialog {
+            id: neuSymbolPicker
+            theme: root.theme
+            onAccepted: root.gewaehlterSymbolId = ausgewaehltId
+        }
+
         ColumnLayout {
             Layout.fillWidth: true; Layout.topMargin: 4; spacing: 4
             Text { text: qsTr("Symbol (Hauptfunktion)"); color: root.theme.textMuted; font.pixelSize: 12 }
-            ComboBox {
-                id: neuSymbolCombo
-                Layout.fillWidth: true
-                model: [qsTr("(kein Symbol)")].concat(
-                    root.symEintraege.map(e => e.kategorie + " – " + e.name)
-                )
-                onActivated: root.symGewIndex = currentIndex - 1
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text {
-                    text: neuSymbolCombo.displayText
-                    color: root.theme.textPrimary; font.pixelSize: 13
-                    verticalAlignment: Text.AlignVCenter; leftPadding: 8
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Rectangle {
+                    Layout.fillWidth: true; height: 34
+                    color: root.theme.inputBg; border.color: root.theme.border; radius: 4
+                    Text {
+                        anchors { verticalCenter: parent.verticalCenter; left: parent.left; leftMargin: 10 }
+                        text: root.gewaehlterSymbolId !== ""
+                              ? root.gewaehlterSymbolId
+                              : qsTr("(kein Symbol)")
+                        color: root.gewaehlterSymbolId !== ""
+                               ? root.theme.textPrimary : root.theme.textMuted
+                        font.pixelSize: 13; font.italic: root.gewaehlterSymbolId === ""
+                    }
                 }
-                popup: Popup {
-                    y: neuSymbolCombo.height; width: neuSymbolCombo.width; padding: 0
-                    background: Rectangle { color: root.theme.surface; border.color: root.theme.border; radius: 4 }
-                    contentItem: ListView {
-                        implicitHeight: Math.min(contentHeight, 220); clip: true
-                        model: neuSymbolCombo.delegateModel
+                Button {
+                    text: qsTr("Waehlen …"); implicitHeight: 34; implicitWidth: 90
+                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 12;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                        radius: 4; border.color: root.theme.accent }
+                    onClicked: {
+                        neuSymbolPicker.aktuelleSymbolId = root.gewaehlterSymbolId
+                        neuSymbolPicker.open()
                     }
                 }
             }
@@ -100,8 +108,8 @@ Dialog {
                         neuForm.urlHersteller.trim(),
                         neuForm.urlDatenblatt.trim()
                     )
-                    if (newId > 0 && root.symGewIndex >= 0)
-                        bauteilModel.symbolSpeichern(newId, root.symEintraege[root.symGewIndex].id)
+                    if (newId > 0 && root.gewaehlterSymbolId !== "")
+                        bauteilModel.symbolSpeichern(newId, root.gewaehlterSymbolId)
                     root.close()
                 }
             }

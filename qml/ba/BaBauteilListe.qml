@@ -11,6 +11,16 @@ Item {
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
 
+    // ── Symbol-Picker ────────────────────────────────────────
+    BaSymbolPickerDialog {
+        id: dlgSymbolPicker
+        theme: root.theme
+        onAccepted: {
+            dlgBauteilBearbeiten.altSymbolId = ausgewaehltId
+            dlgBauteilBearbeiten.symGewIndex  = -1  // nicht mehr gebraucht, direkt über altSymbolId
+        }
+    }
+
     // ── Dialog – Bauteil bearbeiten ──────────────────────────
     Dialog {
         id: dlgBauteilBearbeiten
@@ -30,9 +40,7 @@ Item {
         property string altBemerkung:     ""
         property string altUrlHersteller: ""
         property string altUrlDatenblatt: ""
-        property string altSymbolId:      ""
-        property var    symEintraege:     []
-        property int    symGewIndex:      -1
+        property string altSymbolId: ""
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -48,16 +56,6 @@ Item {
             editForm.bemerkung     = dlgBauteilBearbeiten.altBemerkung
             editForm.urlHersteller = dlgBauteilBearbeiten.altUrlHersteller
             editForm.urlDatenblatt = dlgBauteilBearbeiten.altUrlDatenblatt
-
-            dlgBauteilBearbeiten.symEintraege = symbolDefinitionModel.alleSymbole()
-            dlgBauteilBearbeiten.symGewIndex  = -1
-            for (let i = 0; i < dlgBauteilBearbeiten.symEintraege.length; i++) {
-                if (dlgBauteilBearbeiten.symEintraege[i].id === dlgBauteilBearbeiten.altSymbolId) {
-                    dlgBauteilBearbeiten.symGewIndex = i
-                    break
-                }
-            }
-            symbolCombo.currentIndex = dlgBauteilBearbeiten.symGewIndex + 1
         }
 
         contentItem: ColumnLayout {
@@ -75,25 +73,30 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true; Layout.topMargin: 4; spacing: 4
                 Text { text: qsTr("Symbol (Hauptfunktion)"); color: theme.textMuted; font.pixelSize: 12 }
-                ComboBox {
-                    id: symbolCombo
-                    Layout.fillWidth: true
-                    model: [qsTr("(kein Symbol)")].concat(
-                        dlgBauteilBearbeiten.symEintraege.map(e => e.kategorie + " – " + e.name)
-                    )
-                    onActivated: dlgBauteilBearbeiten.symGewIndex = currentIndex - 1
-                    background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
-                    contentItem: Text {
-                        text: symbolCombo.displayText
-                        color: theme.textPrimary; font.pixelSize: 13
-                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 8
+                    Rectangle {
+                        Layout.fillWidth: true; height: 34
+                        color: theme.inputBg; border.color: theme.border; radius: 4
+                        Text {
+                            anchors { verticalCenter: parent.verticalCenter; left: parent.left; leftMargin: 10 }
+                            text: dlgBauteilBearbeiten.altSymbolId !== ""
+                                  ? dlgBauteilBearbeiten.altSymbolId
+                                  : qsTr("(kein Symbol)")
+                            color: dlgBauteilBearbeiten.altSymbolId !== ""
+                                   ? theme.textPrimary : theme.textMuted
+                            font.pixelSize: 13; font.italic: dlgBauteilBearbeiten.altSymbolId === ""
+                        }
                     }
-                    popup: Popup {
-                        y: symbolCombo.height; width: symbolCombo.width; padding: 0
-                        background: Rectangle { color: theme.surface; border.color: theme.border; radius: 4 }
-                        contentItem: ListView {
-                            implicitHeight: Math.min(contentHeight, 220); clip: true
-                            model: symbolCombo.delegateModel
+                    Button {
+                        text: qsTr("Waehlen …"); implicitHeight: 34; implicitWidth: 90
+                        contentItem: Text { text: parent.text; color: theme.accent; font.pixelSize: 12;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg;
+                            radius: 4; border.color: theme.accent }
+                        onClicked: {
+                            dlgSymbolPicker.aktuelleSymbolId = dlgBauteilBearbeiten.altSymbolId
+                            dlgSymbolPicker.open()
                         }
                     }
                 }
@@ -132,10 +135,7 @@ Item {
                             editForm.urlHersteller.trim(),
                             editForm.urlDatenblatt.trim()
                         )
-                        const symId = dlgBauteilBearbeiten.symGewIndex >= 0
-                            ? dlgBauteilBearbeiten.symEintraege[dlgBauteilBearbeiten.symGewIndex].id
-                            : ""
-                        bauteilModel.symbolSpeichern(dlgBauteilBearbeiten.itemId, symId)
+                        bauteilModel.symbolSpeichern(dlgBauteilBearbeiten.itemId, dlgBauteilBearbeiten.altSymbolId)
                         dlgBauteilBearbeiten.close()
                     }
                 }

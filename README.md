@@ -3,7 +3,7 @@
 Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771, erhebt aber keinen Anspruch auf zertifizierte Normkonformität.
 
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
-**Schema:** v60 · **Stand:** Juni 2026 · **Version:** v0.5
+**Schema:** v65 · **Stand:** Juni 2026 · **Version:** v0.5
 
 ## Download
 
@@ -48,8 +48,8 @@ cmake --build build -j$(nproc)
 Beim ersten Start wird das App-Datenverzeichnis automatisch angelegt:
 
 ```
-~/.local/share/Strömling Design/
-  stroemling.db   ← Launcher-DB (zuletzt geöffnete Projekte, Wiki-Pfad)
+~/.local/share/Stroemling_Design/
+  stroemling.db   ← Launcher-DB (zuletzt geöffnete Projekte)
   wiki.db         ← projektübergreifendes Wiki
   makros.db       ← Makro-Bibliothek
 ```
@@ -74,11 +74,17 @@ Projekte werden als eigenständige Ordner gespeichert:
 | Bauteilbibliothek (Kabel, Klemmen, Bauteile) | ✅ |
 | Klemmen-System (Klemmenreihen, Stegbrücken, Ebenenansicht) | ✅ |
 | Kabel (Kabellinie, Aderzuordnung 4 Modi, Verdrahtungsweg cross-page) | ✅ |
-| Automatische Listen (Stückliste, Klemmenplan, Kabelliste, CSV-Export) | ✅ |
+| Automatische Listen (Stückliste, Klemmenplan, Kabelliste, Klemmlistenauszug, CSV-Export) | ✅ |
+| PDF-Export (Vektor-PDF, alle Elementtypen, Kreuzungslücken) | ✅ |
+| Design Rule Check (doppelte BMK, offene Pins, fehlende Verbindungen u.a.) | ✅ |
+| Geräte (Schütz/Relais: BMK-Vererbung, Kontaktspiegel, Bauteil-first-Workflow) | ✅ |
+| SPS/PLS-Integration (I/O-Liste, Kanal-Zuweisung, CSV-Export) | ✅ |
 | Normblatt DIN 6771 (Rahmen + visueller Vorlagen-Editor) | ✅ |
 | Makros / Schaltplan-Vorlagen | ✅ |
 | Inbetriebnahme-Modus (Prüflisten, Messwerte, PDF-Protokoll) | ✅ |
+| Erfahrungs-Wiki (projektübergreifend, Bundle-Import) | ✅ |
 | Kabelquerschnitt-Rechner (VDE 0298-4) | ✅ |
+| Git-Integration (Snapshots, Projekt-History) | ✅ |
 | 3 Farbthemes (Dunkel / Hell / Blueprint) | ✅ |
 
 ---
@@ -90,7 +96,7 @@ QML (Oberfläche)
   │  Q_PROPERTY / Q_INVOKABLE / Signals
 C++ Backend (Database, ElementeModel, ProjektModel, SeitenModel, …)
   │  QSqlQuery / QtSql
-SQLite  ┬─ ~/.local/share/Strömling Design/stroemling.db  (Launcher-DB)
+SQLite  ┬─ ~/.local/share/Stroemling_Design/stroemling.db  (Launcher-DB)
         └─ [Projektordner]/projekt.strl                   (Projektdaten)
 ```
 

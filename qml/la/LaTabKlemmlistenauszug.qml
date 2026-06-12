@@ -152,7 +152,7 @@ ColumnLayout {
                 Rectangle {
                     visible: model.typ === "anschluss"
                     anchors.fill: parent
-                    color: root.theme.tableEven
+                    color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
 
                     // Daten-Row: Nr | A | sep | Qs | [Steg-Spalten] | Farbe | sep | B
                     Row {

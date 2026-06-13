@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import "../components"
 
 Dialog {
     id: root
@@ -42,15 +43,17 @@ Dialog {
                                 leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
         Label { text: qsTr("Bezeichnung"); color: root.theme.textPrimary }
-        TextField {
+        NavTextField {
             id: bgBezField; placeholderText: "SM 321"
+            tabTarget: bgArtNrField; backtabTarget: bgArtNrField
             Layout.fillWidth: true
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
             color: root.theme.textPrimary
         }
         Label { text: qsTr("Artikel-Nr."); color: root.theme.textPrimary }
-        TextField {
+        NavTextField {
             id: bgArtNrField; placeholderText: "6ES7 321-..."
+            tabTarget: bgBezField; backtabTarget: bgBezField
             Layout.fillWidth: true
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
             color: root.theme.textPrimary

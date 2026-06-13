@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import "../components"
 
 Dialog {
     id: root
@@ -43,17 +44,19 @@ Dialog {
                                 leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
         Label { text: qsTr("Bezeichnung"); color: root.theme.textPrimary }
-        TextField {
+        NavTextField {
             id: rackBezField
             placeholderText: "Rack 0"
+            tabTarget: rackHerstellerField; backtabTarget: rackHerstellerField
             Layout.fillWidth: true
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
             color: root.theme.textPrimary
         }
         Label { text: qsTr("Hersteller"); color: root.theme.textPrimary }
-        TextField {
+        NavTextField {
             id: rackHerstellerField
             placeholderText: "Siemens"
+            tabTarget: rackBezField; backtabTarget: rackBezField
             Layout.fillWidth: true
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
             color: root.theme.textPrimary

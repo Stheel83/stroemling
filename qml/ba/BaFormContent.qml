@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 ColumnLayout {
     id: root
@@ -22,8 +23,9 @@ ColumnLayout {
     spacing: 8
 
     Text { text: qsTr("Bezeichnung *"); color: theme.textMuted; font.pixelSize: 12 }
-    TextField {
+    NavTextField {
         id: fBez; Layout.fillWidth: true
+        tabTarget: fHer; backtabTarget: fUrlDat
         background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
         color: theme.textPrimary; font.pixelSize: 14
     }
@@ -33,47 +35,54 @@ ColumnLayout {
 
         Text { text: qsTr("Hersteller");    color: theme.textMuted; font.pixelSize: 12 }
         Text { text: qsTr("Artikelnummer"); color: theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: fHer; Layout.fillWidth: true
+            tabTarget: fArt; backtabTarget: fBez
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14
         }
-        TextField {
+        NavTextField {
             id: fArt; Layout.fillWidth: true
+            tabTarget: fLief; backtabTarget: fHer
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14
         }
 
         Text { text: qsTr("Lieferant");  color: theme.textMuted; font.pixelSize: 12 }
         Text { text: qsTr("Preis (€)"); color: theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: fLief; Layout.fillWidth: true
+            tabTarget: fPreis; backtabTarget: fArt
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14
         }
-        TextField {
+        NavTextField {
             id: fPreis; Layout.fillWidth: true; inputMethodHints: Qt.ImhFormattedNumbersOnly
+            tabTarget: fSpannung; backtabTarget: fLief
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14; placeholderText: "0.00"
         }
 
         Text { text: qsTr("Spannung (V)"); color: theme.textMuted; font.pixelSize: 12 }
         Text { text: qsTr("Strom (A)");    color: theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: fSpannung; Layout.fillWidth: true; inputMethodHints: Qt.ImhFormattedNumbersOnly
+            tabTarget: fStrom; backtabTarget: fPreis
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14; placeholderText: "0"
         }
-        TextField {
+        NavTextField {
             id: fStrom; Layout.fillWidth: true; inputMethodHints: Qt.ImhFormattedNumbersOnly
+            tabTarget: fLeistung; backtabTarget: fSpannung
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14; placeholderText: "0"
         }
 
         Text { text: qsTr("Leistung (W)"); color: theme.textMuted; font.pixelSize: 12; Layout.columnSpan: 2 }
-        TextField {
+        NavTextField {
             id: fLeistung; Layout.fillWidth: true; Layout.columnSpan: 2
             inputMethodHints: Qt.ImhFormattedNumbersOnly
+            tabTarget: fBem; backtabTarget: fStrom
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14; placeholderText: "0"
         }
@@ -85,6 +94,8 @@ ColumnLayout {
         wrapMode: TextArea.Wrap
         background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
         color: theme.textPrimary; font.pixelSize: 14; padding: 8
+        Keys.onTabPressed:     { event.accepted = true; fUrlHer.forceActiveFocus() }
+        Keys.onBacktabPressed: { event.accepted = true; fLeistung.forceActiveFocus() }
     }
 
     Text { text: qsTr("Links"); color: theme.accent; font.pixelSize: 12; font.bold: true; Layout.topMargin: 4 }
@@ -92,8 +103,9 @@ ColumnLayout {
     Text { text: qsTr("Hersteller-Website"); color: theme.textMuted; font.pixelSize: 12 }
     RowLayout {
         Layout.fillWidth: true; spacing: 6
-        TextField {
+        NavTextField {
             id: fUrlHer; Layout.fillWidth: true
+            tabTarget: fUrlDat; backtabTarget: fBem
             placeholderText: "https://..."
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 13
@@ -114,8 +126,9 @@ ColumnLayout {
     Text { text: qsTr("Datenblatt"); color: theme.textMuted; font.pixelSize: 12 }
     RowLayout {
         Layout.fillWidth: true; spacing: 6
-        TextField {
+        NavTextField {
             id: fUrlDat; Layout.fillWidth: true
+            tabTarget: fBez; backtabTarget: fUrlHer
             placeholderText: "https://..."
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 13

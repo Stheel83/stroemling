@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import "components"
 
 Dialog {
     id: root
@@ -51,32 +52,37 @@ Dialog {
         Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
         Text { text: qsTr("Projektname *");   color: root.theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: epName; Layout.fillWidth: true
+            tabTarget: epNummer; backtabTarget: epBearbeiter
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }
         Text { text: qsTr("Projektnummer");   color: root.theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: epNummer; Layout.fillWidth: true; placeholderText: qsTr("z.B. 2024-001")
+            tabTarget: epAuftragg; backtabTarget: epName
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }
         Text { text: qsTr("Auftraggeber");    color: root.theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: epAuftragg; Layout.fillWidth: true
+            tabTarget: epAuftragnehm; backtabTarget: epNummer
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }
         Text { text: qsTr("Auftragnehmer");   color: root.theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: epAuftragnehm; Layout.fillWidth: true
+            tabTarget: epBearbeiter; backtabTarget: epAuftragg
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }
         Text { text: qsTr("Bearbeiter");      color: root.theme.textMuted; font.pixelSize: 12 }
-        TextField {
+        NavTextField {
             id: epBearbeiter; Layout.fillWidth: true
+            tabTarget: epName; backtabTarget: epAuftragnehm
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }

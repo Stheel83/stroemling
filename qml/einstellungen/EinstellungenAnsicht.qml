@@ -235,6 +235,14 @@ Item {
                                 text:           qsTr("Die Strömlinge sind das lebendige Maskottchen-System von Strömling Design. Jeder Strömling repräsentiert einen elektrischen Leitertyp, ein Signal oder einen Systemzustand.")
                                 font.pixelSize: 11; color: root.theme.textMuted; wrapMode: Text.WordWrap
                             }
+                            Item { height: 6 }
+                            Text {
+                                width:   parent.width - 32
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text:           qsTr("© Stephan Theelke · CC BY 4.0 · Erstellt mit ChatGPT und Google Gemini")
+                                font.pixelSize: 10; color: root.theme.textMuted; wrapMode: Text.WordWrap
+                                horizontalAlignment: Text.AlignHCenter
+                            }
                             Item { height: 8 }
                         }
                     }

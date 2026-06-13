@@ -20,3 +20,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 The full text of the GNU General Public License version 3 is available at:
 https://www.gnu.org/licenses/gpl-3.0.txt
+
+-------------------------------------------------------------------------------
+
+EXCEPTION – Strömling character images
+---------------------------------------
+
+The Strömling character images (files under qml/assets/ matching
+*brauno*, *schwaerzchen*, *grausel*, *blaubertha*, *erdikus*, *impulsino*,
+*datinchen*, *isolus*, *linus*, *pokestroem*, *pokestrom*, *gruener_fisch*)
+are NOT covered by the GPL.  They are licensed separately under:
+
+  Creative Commons Attribution 4.0 International (CC BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+
+  © 2025–2026 Stephan Theelke
+  Created with the assistance of ChatGPT (OpenAI) and Google Gemini.
+
+You may share and adapt these images for any purpose, even commercially,
+as long as you give appropriate credit to Stephan Theelke and indicate the
+CC BY 4.0 license.

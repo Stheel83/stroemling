@@ -113,3 +113,14 @@ Das Verzeichnis `konzept/` enthält die persönlichen Arbeitsunterlagen des Proj
 ## Bewusste Abgrenzung
 
 Strömling Design ist kein EPLAN-Klon. Nicht geplant: ERP-Anbindung, Multiuser-Betrieb, 3D-Integration, Simulation.
+
+---
+
+## Lizenz
+
+**Quellcode:** GNU General Public License v3 (GPL-3.0-or-later) — siehe `LICENSE`.
+
+**Strömlinge-Bilder** (Charakter-Illustrationen unter `qml/assets/`):  
+© 2025–2026 Stephan Theelke · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)  
+Erstellt mit Unterstützung von ChatGPT (OpenAI) und Google Gemini.  
+Weitergabe und Bearbeitung erlaubt, auch kommerziell — mit Namensnennung.

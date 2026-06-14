@@ -455,7 +455,7 @@ MouseArea {
                 canvas.vorschau = null
                 if (_bauteilId) {
                     var newElId = db.letzteGrafikElementId(canvas.seiteId)
-                    canvas.bauteilNachPlatzierenAusfuehren(newElId, _bauteilBez)
+                    canvas.bauteilNachPlatzierenAusfuehren(newElId, _bauteilBez, _bauteilId)
                 }
             } else {
                 // CE-03: Symbol-Modus bleibt aktiv – Vorschau für nächste Platzierung neu aufbauen.

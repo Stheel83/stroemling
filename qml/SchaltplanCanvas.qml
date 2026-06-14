@@ -91,6 +91,7 @@ Item {
     property int    paletteSymbolRotation:    0    // 0 / 90 / 180 / 270 – Vorab-Rotation beim Platzieren
     property var    paletteExtraDaten:        ({})  // Extra-Daten für das nächste platzierte Symbol
     property int    paletteBetriebsmittelId:  0    // >0: Symbol wird nach Platzierung mit BM verknüpft
+    property int    _bmkBauteilId:           0    // bauteilId aus paletteExtraDaten – für BM-Anlegen
     property real   letzteMausWeltX:          0
     property real   letzteMausWeltY:          0
 
@@ -4318,10 +4319,11 @@ Item {
     property int    _bmkElementId:   -1
     property string _bmkBauteilBez:  ""
 
-    function bauteilNachPlatzierenAusfuehren(elementId, bauteilBez) {
+    function bauteilNachPlatzierenAusfuehren(elementId, bauteilBez, bauteilId) {
         if (elementId <= 0) return
         root._bmkElementId  = elementId
         root._bmkBauteilBez = bauteilBez
+        root._bmkBauteilId  = bauteilId || 0
         bmkNachPlatzierenDialog.open()
     }
 
@@ -4394,7 +4396,7 @@ Item {
         function bmkAnlegenUndSchliessen() {
             var kz = bmkField.text.trim()
             if (kz.length > 0 && root._bmkElementId > 0) {
-                var bmId = db.betriebsmittelAnlegen(root.projektId, kz, root._bmkBauteilBez)
+                var bmId = db.betriebsmittelAnlegen(root.projektId, kz, root._bmkBauteilBez, root._bmkBauteilId)
                 if (bmId > 0) {
                     db.grafikElementVerknuepfen(root._bmkElementId, bmId)
                     db.betriebsmittelHauptfunktionSetzen(bmId, root._bmkElementId)

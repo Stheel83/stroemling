@@ -166,6 +166,16 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE bauteil_klemme SET anschluss_typ='kaefig'  WHERE anschluss_typ='kaefigklemme')",
             R"(UPDATE bauteil_klemme SET anschluss_typ='schraube' WHERE anschluss_typ='stecker')",
         }},
+        { 67, "betriebsmittel: bauteil_id; neue Tabelle bauteil_anschluss (Kontaktbezeichnungen für Schütz/Relais)", {
+            R"(ALTER TABLE betriebsmittel ADD COLUMN bauteil_id INTEGER REFERENCES bauteil(id) ON DELETE SET NULL)",
+            R"(CREATE TABLE IF NOT EXISTS bauteil_anschluss (
+                id                    INTEGER PRIMARY KEY,
+                bauteil_id            INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
+                symbol_id             TEXT    NOT NULL,
+                pin_name              TEXT    NOT NULL,
+                anschluss_bezeichnung TEXT    NOT NULL
+            ))",
+        }},
     };
 }
 

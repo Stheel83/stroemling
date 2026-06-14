@@ -215,7 +215,8 @@ public:
     Q_INVOKABLE QVariantList betriebsmittelListe(int projektId);
     Q_INVOKABLE int          betriebsmittelAnlegen(int projektId,
                                                     const QString &kz,
-                                                    const QString &bezeichnung);
+                                                    const QString &bezeichnung,
+                                                    int bauteilId = -1);
     Q_INVOKABLE bool         grafikElementVerknuepfen(int elementId, int betriebsmittelId);
     Q_INVOKABLE bool         grafikElementEntknuepfen(int elementId);
     Q_INVOKABLE QVariantList betriebsmittelMitglieder(int betriebsmittelId);
@@ -227,6 +228,14 @@ public:
     Q_INVOKABLE bool         betriebsmittelBmkSynchronisieren(int betriebsmittelId);
     Q_INVOKABLE QVariantList betriebsmittelHfListe(int projektId);
     Q_INVOKABLE int          letzteGrafikElementId(int seiteId) const;
+
+    // Anschlussbelegung (Schütz/Relais-Kontakte)
+    Q_INVOKABLE QVariantList bauteilAnschlussListe(int bauteilId) const;
+    Q_INVOKABLE int          bauteilAnschlussHinzufuegen(int bauteilId, const QString &symbolId,
+                                                          const QString &pinName,
+                                                          const QString &anschlussBezeichnung);
+    Q_INVOKABLE bool         bauteilAnschlussLoeschen(int id);
+    Q_INVOKABLE int          betriebsmittelBauteilId(int betriebsmittelId) const;
 
     // Klemmenplan: alle Klemmen aller Leisten, mit Gruppen-Headern.
     // Gibt abwechselnd {typ:"leiste",...} und {typ:"klemme",...} zurück.

@@ -34,7 +34,7 @@ ColumnLayout {
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
     signal klemmenSequentiellStarten(string queueJson)
-    signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk)
+    signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk, string anschlussKz)
     signal bauteilPlatzieren(int bauteilId, string symbolId, string bezeichnung)
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
@@ -405,29 +405,83 @@ ColumnLayout {
                         width: parent.width; height: 32
                         color: geraetMA.containsMouse ? root.theme.hover : "transparent"
 
-                        // Picker-Popup: Kontakt-Symboltyp wählen
+                        // Picker-Popup: Anschlussbelegung (wenn vorhanden) oder generische Symbolliste
                         Popup {
                             id: kontaktPicker
                             x: 10; y: geraetZeile.height
-                            width: 180
+                            width: 220
                             padding: 4
                             background: Rectangle {
                                 color: root.theme.surface; radius: 4
                                 border.color: root.theme.border
                             }
+
+                            property var _anschluesse: []
+                            property bool _hatAnschluesse: _anschluesse.length > 0
+
+                            onOpened: {
+                                var bid = db.betriebsmittelBauteilId(geraetItem.bmId)
+                                _anschluesse = bid > 0 ? db.bauteilAnschlussListe(bid) : []
+                            }
+
                             Column {
                                 width: parent.width
                                 spacing: 1
-                                property var symbole: [
-                                    { id: "schliesser",  name: "Schließer (NO)" },
-                                    { id: "oeffner",     name: "Öffner (NC)" },
-                                    { id: "wechsler",    name: "Wechsler" },
-                                    { id: "taster_no",   name: "Taster (NO)" },
-                                    { id: "taster_nc",   name: "Taster (NC)" },
-                                    { id: "bimetall_nc", name: "Bimetall-Kontakt (NC)" }
-                                ]
+
+                                // ── Anschlussbelegung aus DB ──────────────────
                                 Repeater {
-                                    model: parent.symbole
+                                    model: kontaktPicker._hatAnschluesse ? kontaktPicker._anschluesse : []
+                                    delegate: Rectangle {
+                                        width: parent.width; height: 28; radius: 3
+                                        color: aMA.containsMouse ? root.theme.activeItem : "transparent"
+                                        RowLayout {
+                                            anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
+                                            Text {
+                                                text: modelData.anschlussBezeichnung
+                                                font.pixelSize: 11; font.weight: Font.Medium
+                                                color: root.theme.accent
+                                                Layout.preferredWidth: 50
+                                            }
+                                            Text {
+                                                text: modelData.symbolId
+                                                font.pixelSize: 10; color: root.theme.textMuted
+                                                Layout.fillWidth: true; elide: Text.ElideRight
+                                            }
+                                        }
+                                        MouseArea {
+                                            id: aMA; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                kontaktPicker.close()
+                                                root.betriebsmittelKontaktPlatzieren(
+                                                    geraetItem.bmId,
+                                                    modelData.symbolId,
+                                                    geraetItem.bmKz,
+                                                    modelData.anschlussBezeichnung
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Trennlinie zwischen Anschlussbelegung und generischer Liste
+                                Rectangle {
+                                    width: parent.width - 8; height: 1
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    color: root.theme.border
+                                    visible: kontaktPicker._hatAnschluesse
+                                }
+
+                                // ── Generische Symbolliste (immer sichtbar) ───
+                                Repeater {
+                                    model: [
+                                        { id: "schliesser",  name: qsTr("Schließer (NO)") },
+                                        { id: "oeffner",     name: qsTr("Öffner (NC)") },
+                                        { id: "wechsler",    name: qsTr("Wechsler") },
+                                        { id: "taster_no",   name: qsTr("Taster (NO)") },
+                                        { id: "taster_nc",   name: qsTr("Taster (NC)") },
+                                        { id: "bimetall_nc", name: qsTr("Bimetall-Kontakt (NC)") }
+                                    ]
                                     delegate: Rectangle {
                                         width: parent.width; height: 28; radius: 3
                                         color: pickerMA.containsMouse ? root.theme.activeItem : "transparent"
@@ -447,7 +501,8 @@ ColumnLayout {
                                                 root.betriebsmittelKontaktPlatzieren(
                                                     geraetItem.bmId,
                                                     modelData.id,
-                                                    geraetItem.bmKz
+                                                    geraetItem.bmKz,
+                                                    ""
                                                 )
                                             }
                                         }

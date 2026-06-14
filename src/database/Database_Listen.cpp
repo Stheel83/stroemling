@@ -434,11 +434,17 @@ QVariantList Database::betriebsmittelListe(int projektId)
     return result;
 }
 
-int Database::betriebsmittelAnlegen(int projektId, const QString &kz, const QString &bezeichnung)
+int Database::betriebsmittelAnlegen(int projektId, const QString &kz, const QString &bezeichnung, int bauteilId)
 {
     QSqlQuery q(m_db);
-    q.prepare("INSERT INTO betriebsmittel (projekt_id, betriebsmittel_kz, bezeichnung) "
-              "VALUES (:pid, :kz, :bez)");
+    if (bauteilId > 0) {
+        q.prepare("INSERT INTO betriebsmittel (projekt_id, betriebsmittel_kz, bezeichnung, bauteil_id) "
+                  "VALUES (:pid, :kz, :bez, :bid)");
+        q.bindValue(":bid", bauteilId);
+    } else {
+        q.prepare("INSERT INTO betriebsmittel (projekt_id, betriebsmittel_kz, bezeichnung) "
+                  "VALUES (:pid, :kz, :bez)");
+    }
     q.bindValue(":pid", projektId);
     q.bindValue(":kz",  kz);
     q.bindValue(":bez", bezeichnung);
@@ -447,6 +453,67 @@ int Database::betriebsmittelAnlegen(int projektId, const QString &kz, const QStr
         return -1;
     }
     return q.lastInsertId().toInt();
+}
+
+int Database::betriebsmittelBauteilId(int betriebsmittelId) const
+{
+    QSqlQuery q(m_db);
+    q.prepare("SELECT bauteil_id FROM betriebsmittel WHERE id = :id");
+    q.bindValue(":id", betriebsmittelId);
+    if (!q.exec() || !q.next()) return 0;
+    return q.value(0).toInt();
+}
+
+QVariantList Database::bauteilAnschlussListe(int bauteilId) const
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT id, symbol_id, pin_name, anschluss_bezeichnung "
+              "FROM bauteil_anschluss WHERE bauteil_id = :bid "
+              "ORDER BY symbol_id, pin_name");
+    q.bindValue(":bid", bauteilId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bauteilAnschlussListe Fehler:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("id")]                  = q.value(0).toInt();
+        m[QStringLiteral("symbolId")]            = q.value(1).toString();
+        m[QStringLiteral("pinName")]             = q.value(2).toString();
+        m[QStringLiteral("anschlussBezeichnung")] = q.value(3).toString();
+        result.append(m);
+    }
+    return result;
+}
+
+int Database::bauteilAnschlussHinzufuegen(int bauteilId, const QString &symbolId,
+                                           const QString &pinName, const QString &anschlussBezeichnung)
+{
+    QSqlQuery q(m_db);
+    q.prepare("INSERT INTO bauteil_anschluss (bauteil_id, symbol_id, pin_name, anschluss_bezeichnung) "
+              "VALUES (:bid, :sid, :pn, :abez)");
+    q.bindValue(":bid",  bauteilId);
+    q.bindValue(":sid",  symbolId);
+    q.bindValue(":pn",   pinName);
+    q.bindValue(":abez", anschlussBezeichnung);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bauteilAnschlussHinzufuegen Fehler:" << q.lastError().text();
+        return -1;
+    }
+    return q.lastInsertId().toInt();
+}
+
+bool Database::bauteilAnschlussLoeschen(int id)
+{
+    QSqlQuery q(m_db);
+    q.prepare("DELETE FROM bauteil_anschluss WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bauteilAnschlussLoeschen Fehler:" << q.lastError().text();
+        return false;
+    }
+    return true;
 }
 
 bool Database::grafikElementVerknuepfen(int elementId, int betriebsmittelId)

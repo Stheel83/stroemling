@@ -1418,7 +1418,11 @@ Item {
                             var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
                             var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
                             var symRot    = ((el.rotation || 0) % 360 + 360) % 360
-                            var senkrecht = (symRot === 90 || symRot === 270)
+                            var _symInfo  = symbolDefinitionModel.symbolInfo(el.symbolId || "")
+                            var _bmkSeite = (_symInfo && _symInfo.bmkSeite) ? _symInfo.bmkSeite : "auto"
+                            var senkrecht = _bmkSeite === "vertikal"
+                                            ? (symRot === 0 || symRot === 180)
+                                            : (symRot === 90 || symRot === 270)
                             ctx.save()
                             ctx.globalAlpha = 1.0
                             ctx.textAlign   = senkrecht ? "right" : "center"

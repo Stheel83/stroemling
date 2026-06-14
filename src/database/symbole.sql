@@ -1126,3 +1126,7 @@ VALUES
 -- Polungsmarkierungen (+ oben, - unten)
 ('brueckengleichrichter', 8, 'text',  0.5,  0.3,  0,    0,    0, 0, 0, 0, 0, 0, '+',  0.18, 1, 'center', 'middle', 'solid'),
 ('brueckengleichrichter', 9, 'text',  0.5,  0.7,  0,    0,    0, 0, 0, 0, 0, 0, '-',  0.18, 1, 'center', 'middle', 'solid');
+
+-- ── bmk_seite: Symbole mit vertikaler Hauptachse (BMK links statt oben) ──────
+-- Wird nach Migration v70 auch für bestehende DBs gesetzt.
+UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule';

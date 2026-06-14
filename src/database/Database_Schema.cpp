@@ -190,6 +190,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_primitiv SET x1=0.5, y1=0.75, x2=0.5, y2=1    WHERE symbol_id='spule' AND reihenfolge=1)",
             R"(UPDATE symbol_primitiv SET x1=0.0, y1=0.25, x2=1.0, y2=0.75 WHERE symbol_id='spule' AND reihenfolge=2)",
         }},
+        { 70, "symbol_definition: bmk_seite-Spalte; spule bekommt 'vertikal' (BMK links statt oben)", {
+            R"(ALTER TABLE symbol_definition ADD COLUMN bmk_seite TEXT NOT NULL DEFAULT 'auto')",
+            R"(UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule')",
+        }},
     };
 }
 

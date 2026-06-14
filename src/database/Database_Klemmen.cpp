@@ -490,7 +490,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             " JOIN klemmenleiste kl ON kl.id = ks.klemmenleiste_id"
             " LEFT JOIN verbindung v ON v.id = ks.verbindung_id"
             " WHERE kl.projekt_id = :pid"
-            " ORDER BY ks.klemmenleiste_id, kv.sortierung"
+            " ORDER BY ks.klemmenleiste_id, ks.ebene, kv.sortierung"
         );
         q.bindValue(":pid", projektId);
         if (q.exec()) {

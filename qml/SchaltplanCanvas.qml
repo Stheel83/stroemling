@@ -1412,15 +1412,20 @@ Item {
                                 var _pbPos = drawCanvas.pinViewportPos(el, _pbPin.x, _pbPin.y)
                                 var _pbOx  = _pbPin.offenX || 0
                                 var _pbOy  = _pbPin.offenY || 0
-                                var _pbOff = 5 * root.zoom
-                                var _pbX   = _pbPos.x + (-_pbOx) * _pbOff
-                                var _pbY   = _pbPos.y + (-_pbOy) * _pbOff
-                                if (Math.abs(_pbOx) >= Math.abs(_pbOy)) {
+                                var _pbOff = 4 * root.zoom
+                                var _pbX, _pbY
+                                // Vertikale Pins (oben/unten) → Label rechts neben dem Pin
+                                // Horizontale Pins (links/rechts) → Label oberhalb des Pins
+                                if (Math.abs(_pbOy) > Math.abs(_pbOx)) {
+                                    _pbX = _pbPos.x + _pbOff
+                                    _pbY = _pbPos.y
+                                    ctx.textAlign    = "left"
                                     ctx.textBaseline = "middle"
-                                    ctx.textAlign    = _pbOx < 0 ? "left" : "right"
                                 } else {
+                                    _pbX = _pbPos.x
+                                    _pbY = _pbPos.y - _pbOff
                                     ctx.textAlign    = "center"
-                                    ctx.textBaseline = _pbOy < 0 ? "top" : "bottom"
+                                    ctx.textBaseline = "bottom"
                                 }
                                 ctx.fillText(_pbLabel, _pbX, _pbY)
                             }

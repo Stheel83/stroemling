@@ -16,7 +16,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('lss',             'Leitungsschutzschalter',  'Schutz',       32, 16, 'durchleiter', 1),
 ('fi',              'FI-Schutzschalter',       'Schutz',       32, 16, 'durchleiter', 1),
 ('motor',           'Motor',                   'Antriebe',     32, 16, 'verbraucher', 1),
-('spule',           'Spule / Relais',          'Antriebe',     32, 16, 'verbraucher', 1),
+('spule',           'Spule / Relais',          'Antriebe',     16, 32, 'verbraucher', 1),
 ('spule_ansi',      'Coil / Relay (ANSI)',     'Antriebe',     32, 16, 'verbraucher', 1),
 ('lampe',           'Lampe',                   'Signalgeräte', 32, 16, 'verbraucher', 1),
 ('hupe',            'Hupe / Klingel',          'Signalgeräte', 32, 16, 'verbraucher', 1),
@@ -69,8 +69,8 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('motor',           'V',   0,    0.5,  -1,  0, 'power'),
 ('motor',           'W',   0,    0.75, -1,  0, 'power'),
 -- spule / spule_ansi
-('spule',           'A1',  0,    0.5,  -1,  0, 'power'),
-('spule',           'A2',  1,    0.5,   1,  0, 'power'),
+('spule',           'A1',  0.5,  0,    0,  -1, 'power'),
+('spule',           'A2',  0.5,  1,    0,   1, 'power'),
 ('spule_ansi',      '1',   0,    0.5,  -1,  0, 'power'),
 ('spule_ansi',      '2',   1,    0.5,   1,  0, 'power'),
 -- lampe / hupe / summer
@@ -201,10 +201,10 @@ VALUES
 ('motor',      4, 'text',           0.65,  0.46, 0,     0,    0, 0, 0,    0,   0,   0, 'M',  0.20,1, 'center', 'middle', 'solid'),
 ('motor',      5, 'text',           0.65,  0.61, 0,     0,    0, 0, 0,    0,   0,   0, '3~', 0.14,0, 'center', 'middle', 'solid'),
 
--- ── Spule IEC ──
-('spule',      0, 'linie',          0,     0.5,  0.2,   0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('spule',      1, 'linie',          0.8,   0.5,  1,     0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('spule',      2, 'rechteck',       0.2,   0.24, 0.8,   0.76, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── Spule IEC (A1 oben, A2 unten) ──
+('spule',      0, 'linie',          0.5,   0,    0.5,   0.2,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('spule',      1, 'linie',          0.5,   0.8,  0.5,   1,    0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('spule',      2, 'rechteck',       0.24,  0.2,  0.76,  0.8,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 -- ── Spule ANSI ──
 ('spule_ansi', 0, 'linie',          0,     0.5,  0.2,   0.5,  0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),

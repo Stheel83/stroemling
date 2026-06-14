@@ -176,6 +176,14 @@ static QList<SchemaMigration> alleMigrationen()
                 anschluss_bezeichnung TEXT    NOT NULL
             ))",
         }},
+        { 68, "spule-Symbol: A1 oben / A2 unten (vertikal statt horizontal)", {
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=32 WHERE id='spule')",
+            R"(UPDATE symbol_pin SET x=0.5, y=0, offen_x=0, offen_y=-1 WHERE symbol_id='spule' AND name='A1')",
+            R"(UPDATE symbol_pin SET x=0.5, y=1, offen_x=0, offen_y=1  WHERE symbol_id='spule' AND name='A2')",
+            R"(UPDATE symbol_primitiv SET x1=0.5, y1=0,   x2=0.5, y2=0.2 WHERE symbol_id='spule' AND reihenfolge=0)",
+            R"(UPDATE symbol_primitiv SET x1=0.5, y1=0.8, x2=0.5, y2=1   WHERE symbol_id='spule' AND reihenfolge=1)",
+            R"(UPDATE symbol_primitiv SET x1=0.24, y1=0.2, x2=0.76, y2=0.8 WHERE symbol_id='spule' AND reihenfolge=2)",
+        }},
     };
 }
 

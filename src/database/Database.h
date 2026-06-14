@@ -229,12 +229,15 @@ public:
     Q_INVOKABLE QVariantList betriebsmittelHfListe(int projektId);
     Q_INVOKABLE int          letzteGrafikElementId(int seiteId) const;
 
-    // Anschlussbelegung (Schütz/Relais-Kontakte)
-    Q_INVOKABLE QVariantList bauteilAnschlussListe(int bauteilId) const;
-    Q_INVOKABLE int          bauteilAnschlussHinzufuegen(int bauteilId, const QString &symbolId,
-                                                          const QString &pinName,
-                                                          const QString &anschlussBezeichnung);
-    Q_INVOKABLE bool         bauteilAnschlussLoeschen(int id);
+    // Kontaktbelegung (Schütz/Relais – ein Eintrag pro Kontakt/Gruppe)
+    Q_INVOKABLE QVariantList bauteilKontaktListe(int bauteilId) const;
+    Q_INVOKABLE int          bauteilKontaktHinzufuegen(int bauteilId, const QString &symbolId,
+                                                        const QString &bezeichnung,
+                                                        const QString &pinBez);
+    Q_INVOKABLE bool         bauteilKontaktAktualisieren(int id, const QString &symbolId,
+                                                          const QString &bezeichnung,
+                                                          const QString &pinBez);
+    Q_INVOKABLE bool         bauteilKontaktLoeschen(int id);
     Q_INVOKABLE int          betriebsmittelBauteilId(int betriebsmittelId) const;
 
     // Klemmenplan: alle Klemmen aller Leisten, mit Gruppen-Headern.

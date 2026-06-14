@@ -939,13 +939,14 @@ ApplicationWindow {
                             root._klemmeQueueAktiv = true
                             root._klemmeQueueNaechste()
                         }
-                        onBetriebsmittelKontaktPlatzieren: function(betriebsmittelId, symbolId, bmk, anschlussKz) {
+                        onBetriebsmittelKontaktPlatzieren: function(betriebsmittelId, symbolId, bmk, pinBez) {
                             if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
                             if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                             root.aktiverCanvas.paletteBetriebsmittelId = betriebsmittelId
                             root.aktiverCanvas.paletteSymbolId         = symbolId
                             var ed = { "bmk": bmk }
-                            if (anschlussKz !== "") ed["anschlusskennzeichnung"] = anschlussKz
+                            var pbKeys = pinBez ? Object.keys(pinBez) : []
+                            if (pbKeys.length > 0) ed["pinBez"] = pinBez
                             root.aktiverCanvas.paletteExtraDaten       = ed
                             root.aktiverCanvas.aktivesWerkzeug         = "symbol"
                             root.aktiverCanvas.forceActiveFocus()

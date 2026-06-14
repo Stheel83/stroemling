@@ -1388,6 +1388,47 @@ Item {
                     ctx.globalAlpha = op
                 }
 
+                // Pin-Bezeichnungen aus extraDaten.pinBez rendern
+                // Format: { "pinName": "Anzeige-Label" } – nur wenn gesetzt.
+                // Nicht für Verbindungshelfer (querverweis, winkel, treffpunkt, klemme_anschluss,
+                // geraeteanschluss, potenzial) – die haben eigene Beschriftungslogik.
+                if (!vorschau && !_skipText) {
+                    var _pbEd  = el.extraDaten || {}
+                    var _pbBez = _pbEd.pinBez
+                    var _pbSkip = { "querverweis":1,"winkel":1,"treffpunkt":1,"treffpunkt_l":1,
+                                    "klemme_anschluss":1,"geraeteanschluss":1,"potenzial":1,"aderdefinition":1 }
+                    if (_pbBez && !_pbSkip[el.symbolId || ""]) {
+                        var _pbPins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+                        if (_pbPins.length > 0) {
+                            var _pbFs = Math.max(6, Math.round(1.8 * root.mmToPx * root.zoom))
+                            ctx.save()
+                            ctx.font      = _pbFs + "px sans-serif"
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#8ac4e0"
+                            ctx.globalAlpha = 1.0
+                            for (var _pbI = 0; _pbI < _pbPins.length; _pbI++) {
+                                var _pbPin   = _pbPins[_pbI]
+                                var _pbLabel = _pbBez[_pbPin.name]
+                                if (!_pbLabel) continue
+                                var _pbPos = drawCanvas.pinViewportPos(el, _pbPin.x, _pbPin.y)
+                                var _pbOx  = _pbPin.offenX || 0
+                                var _pbOy  = _pbPin.offenY || 0
+                                var _pbOff = 5 * root.zoom
+                                var _pbX   = _pbPos.x + (-_pbOx) * _pbOff
+                                var _pbY   = _pbPos.y + (-_pbOy) * _pbOff
+                                if (Math.abs(_pbOx) >= Math.abs(_pbOy)) {
+                                    ctx.textBaseline = "middle"
+                                    ctx.textAlign    = _pbOx < 0 ? "left" : "right"
+                                } else {
+                                    ctx.textAlign    = "center"
+                                    ctx.textBaseline = _pbOy < 0 ? "top" : "bottom"
+                                }
+                                ctx.fillText(_pbLabel, _pbX, _pbY)
+                            }
+                            ctx.restore()
+                        }
+                    }
+                }
+
                 // BMK-Label und Freitexte am Symbol rendern (konzeptgemäß, Abschnitt 7).
                 // Text ist immer waagerecht.
                 // 0°/180° → über dem Symbol  (Anker: Oberkante, Mitte X)

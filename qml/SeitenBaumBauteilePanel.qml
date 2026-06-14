@@ -34,7 +34,7 @@ ColumnLayout {
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
     signal klemmenSequentiellStarten(string queueJson)
-    signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk, string anschlussKz)
+    signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk, var pinBez)
     signal bauteilPlatzieren(int bauteilId, string symbolId, string bezeichnung)
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
@@ -421,14 +421,14 @@ ColumnLayout {
 
                             onOpened: {
                                 var bid = db.betriebsmittelBauteilId(geraetItem.bmId)
-                                _anschluesse = bid > 0 ? db.bauteilAnschlussListe(bid) : []
+                                _anschluesse = bid > 0 ? db.bauteilKontaktListe(bid) : []
                             }
 
                             Column {
                                 width: parent.width
                                 spacing: 1
 
-                                // ── Anschlussbelegung aus DB ──────────────────
+                                // ── Kontaktbelegung aus DB ───────────────────
                                 Repeater {
                                     model: kontaktPicker._hatAnschluesse ? kontaktPicker._anschluesse : []
                                     delegate: Rectangle {
@@ -437,10 +437,10 @@ ColumnLayout {
                                         RowLayout {
                                             anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
                                             Text {
-                                                text: modelData.anschlussBezeichnung
+                                                text: modelData.bezeichnung || modelData.symbolId
                                                 font.pixelSize: 11; font.weight: Font.Medium
                                                 color: root.theme.accent
-                                                Layout.preferredWidth: 50
+                                                Layout.preferredWidth: 60
                                             }
                                             Text {
                                                 text: modelData.symbolId
@@ -453,11 +453,13 @@ ColumnLayout {
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 kontaktPicker.close()
+                                                var pb = {}
+                                                try { pb = JSON.parse(modelData.pinBez || "{}") } catch(e) {}
                                                 root.betriebsmittelKontaktPlatzieren(
                                                     geraetItem.bmId,
                                                     modelData.symbolId,
                                                     geraetItem.bmKz,
-                                                    modelData.anschlussBezeichnung
+                                                    pb
                                                 )
                                             }
                                         }
@@ -502,7 +504,7 @@ ColumnLayout {
                                                     geraetItem.bmId,
                                                     modelData.id,
                                                     geraetItem.bmKz,
-                                                    ""
+                                                    {}
                                                 )
                                             }
                                         }

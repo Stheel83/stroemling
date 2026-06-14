@@ -464,53 +464,69 @@ int Database::betriebsmittelBauteilId(int betriebsmittelId) const
     return q.value(0).toInt();
 }
 
-QVariantList Database::bauteilAnschlussListe(int bauteilId) const
+QVariantList Database::bauteilKontaktListe(int bauteilId) const
 {
     QVariantList result;
     QSqlQuery q(m_db);
-    q.prepare("SELECT id, symbol_id, pin_name, anschluss_bezeichnung "
-              "FROM bauteil_anschluss WHERE bauteil_id = :bid "
-              "ORDER BY symbol_id, pin_name");
+    q.prepare("SELECT id, symbol_id, bezeichnung, pin_bez "
+              "FROM bauteil_kontakt WHERE bauteil_id = :bid "
+              "ORDER BY symbol_id, bezeichnung");
     q.bindValue(":bid", bauteilId);
     if (!q.exec()) {
-        qCWarning(lcDb) << "bauteilAnschlussListe Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "bauteilKontaktListe Fehler:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
         QVariantMap m;
-        m[QStringLiteral("id")]                  = q.value(0).toInt();
-        m[QStringLiteral("symbolId")]            = q.value(1).toString();
-        m[QStringLiteral("pinName")]             = q.value(2).toString();
-        m[QStringLiteral("anschlussBezeichnung")] = q.value(3).toString();
+        m[QStringLiteral("id")]          = q.value(0).toInt();
+        m[QStringLiteral("symbolId")]    = q.value(1).toString();
+        m[QStringLiteral("bezeichnung")] = q.value(2).toString();
+        m[QStringLiteral("pinBez")]      = q.value(3).toString();
         result.append(m);
     }
     return result;
 }
 
-int Database::bauteilAnschlussHinzufuegen(int bauteilId, const QString &symbolId,
-                                           const QString &pinName, const QString &anschlussBezeichnung)
+int Database::bauteilKontaktHinzufuegen(int bauteilId, const QString &symbolId,
+                                          const QString &bezeichnung, const QString &pinBez)
 {
     QSqlQuery q(m_db);
-    q.prepare("INSERT INTO bauteil_anschluss (bauteil_id, symbol_id, pin_name, anschluss_bezeichnung) "
-              "VALUES (:bid, :sid, :pn, :abez)");
-    q.bindValue(":bid",  bauteilId);
-    q.bindValue(":sid",  symbolId);
-    q.bindValue(":pn",   pinName);
-    q.bindValue(":abez", anschlussBezeichnung);
+    q.prepare("INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez) "
+              "VALUES (:bid, :sid, :bez, :pb)");
+    q.bindValue(":bid", bauteilId);
+    q.bindValue(":sid", symbolId);
+    q.bindValue(":bez", bezeichnung);
+    q.bindValue(":pb",  pinBez.isEmpty() ? QStringLiteral("{}") : pinBez);
     if (!q.exec()) {
-        qCWarning(lcDb) << "bauteilAnschlussHinzufuegen Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "bauteilKontaktHinzufuegen Fehler:" << q.lastError().text();
         return -1;
     }
     return q.lastInsertId().toInt();
 }
 
-bool Database::bauteilAnschlussLoeschen(int id)
+bool Database::bauteilKontaktAktualisieren(int id, const QString &symbolId,
+                                             const QString &bezeichnung, const QString &pinBez)
 {
     QSqlQuery q(m_db);
-    q.prepare("DELETE FROM bauteil_anschluss WHERE id = :id");
+    q.prepare("UPDATE bauteil_kontakt SET symbol_id=:sid, bezeichnung=:bez, pin_bez=:pb WHERE id=:id");
+    q.bindValue(":sid", symbolId);
+    q.bindValue(":bez", bezeichnung);
+    q.bindValue(":pb",  pinBez.isEmpty() ? QStringLiteral("{}") : pinBez);
+    q.bindValue(":id",  id);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bauteilKontaktAktualisieren Fehler:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool Database::bauteilKontaktLoeschen(int id)
+{
+    QSqlQuery q(m_db);
+    q.prepare("DELETE FROM bauteil_kontakt WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qCWarning(lcDb) << "bauteilAnschlussLoeschen Fehler:" << q.lastError().text();
+        qCWarning(lcDb) << "bauteilKontaktLoeschen Fehler:" << q.lastError().text();
         return false;
     }
     return true;

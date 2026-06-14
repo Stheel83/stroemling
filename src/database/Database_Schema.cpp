@@ -194,6 +194,16 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE symbol_definition ADD COLUMN bmk_seite TEXT NOT NULL DEFAULT 'auto')",
             R"(UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule')",
         }},
+        { 71, "bauteil_anschluss → bauteil_kontakt (Bezeichnung + pin_bez JSON pro Kontakt)", {
+            R"(DROP TABLE IF EXISTS bauteil_anschluss)",
+            R"(CREATE TABLE IF NOT EXISTS bauteil_kontakt (
+                id         INTEGER PRIMARY KEY,
+                bauteil_id INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
+                symbol_id  TEXT    NOT NULL,
+                bezeichnung TEXT   NOT NULL DEFAULT '',
+                pin_bez    TEXT    NOT NULL DEFAULT '{}'
+            ))",
+        }},
     };
 }
 

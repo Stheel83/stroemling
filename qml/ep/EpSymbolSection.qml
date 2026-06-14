@@ -1,4 +1,6 @@
 import QtQuick
+import QtQuick.Layouts
+import stroemling
 import "../components"
 
 Item {
@@ -36,6 +38,34 @@ Item {
             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
             text: parent.text; font.pixelSize: 10; color: root.theme.panelMid
         }
+    }
+
+    // Symbole ohne Pin-Beschriftungsblock (haben eigene Logik oder keine sinnvollen Pins)
+    readonly property var _pinBezSkip: ({
+        "querverweis": true, "winkel": true, "treffpunkt": true, "treffpunkt_l": true,
+        "klemme_anschluss": true, "geraeteanschluss": true, "potenzial": true,
+        "aderdefinition": true
+    })
+
+    readonly property bool zeigtPinBez:
+        panel.el && panel.el.typ === "symbol"
+        && !_pinBezSkip[panel.el.symbolId || ""]
+
+    readonly property var _aktuellerPinBez:
+        (panel.el && panel.el.extraDaten && panel.el.extraDaten.pinBez)
+        ? panel.el.extraDaten.pinBez : ({})
+
+    function _pinBezSpeichern(pinName, label) {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        if (!ed.pinBez) ed.pinBez = {}
+        if (label === "") {
+            delete ed.pinBez[pinName]
+            if (Object.keys(ed.pinBez).length === 0) delete ed.pinBez
+        } else {
+            ed.pinBez[pinName] = label
+        }
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
     Column {
@@ -105,6 +135,70 @@ Item {
         Item {
             height: 4
             visible: symbolCol.zeigeSpiegelung
+        }
+
+        // ── Pin-Bezeichnungen ────────────────────────────────────────────────
+        // Sichtbar für alle Symbol-Typen die eigene Pin-Beschriftung unterstützen.
+        // Leeres Feld = kein Label auf dem Canvas.
+        Loader {
+            active: root.zeigtPinBez
+            width: parent.width
+
+            sourceComponent: Component {
+                Column {
+                    width: parent ? parent.width : 0; spacing: 0
+
+                    Rectangle {
+                        width: parent.width - 16; height: 1; color: root.theme.border
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Item {
+                        width: parent.width; height: 26
+                        Text {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            text: qsTr("PIN-BEZEICHNUNGEN"); font.pixelSize: 9; font.weight: Font.Bold
+                            font.letterSpacing: 1.5; color: root.theme.borderLight
+                        }
+                    }
+
+                    Repeater {
+                        model: panel.el ? symbolDefinitionModel.pinsForSymbol(panel.el.symbolId || "") : []
+                        delegate: RowLayout {
+                            width: parent.width; height: 28
+                            spacing: 0
+
+                            // Pin-Name (grau, links)
+                            Item {
+                                Layout.preferredWidth: 44; height: parent.height
+                                Text {
+                                    anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                    text: modelData.name; font.pixelSize: 10
+                                    color: root.theme.textMuted
+                                }
+                            }
+
+                            // Editierbares Label
+                            Rectangle {
+                                Layout.fillWidth: true; height: 24; radius: 3
+                                Layout.rightMargin: 12
+                                color: pinLabelTf.activeFocus ? root.theme.inputBgActive : root.theme.inputBg
+                                border.color: pinLabelTf.activeFocus ? root.theme.accent : root.theme.border
+
+                                TextInput {
+                                    id: pinLabelTf
+                                    anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                                    text: root._aktuellerPinBez[modelData.name] || ""
+                                    color: root.theme.accent; font.pixelSize: 11
+                                    verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
+                                    onEditingFinished: root._pinBezSpeichern(modelData.name, text.trim())
+                                    Keys.onEscapePressed: { text = root._aktuellerPinBez[modelData.name] || ""; focus = false }
+                                }
+                            }
+                        }
+                    }
+                    Item { height: 4; width: parent.width }
+                }
+            }
         }
     }
 }

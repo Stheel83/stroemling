@@ -184,6 +184,12 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_primitiv SET x1=0.5, y1=0.8, x2=0.5, y2=1   WHERE symbol_id='spule' AND reihenfolge=1)",
             R"(UPDATE symbol_primitiv SET x1=0.24, y1=0.2, x2=0.76, y2=0.8 WHERE symbol_id='spule' AND reihenfolge=2)",
         }},
+        { 69, "spule-Symbol: quadratisch 16x16mm, Rechteck volle Breite (wie Nutzer-Kopie)", {
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=16 WHERE id='spule')",
+            R"(UPDATE symbol_primitiv SET x1=0.5, y1=0,    x2=0.5, y2=0.25 WHERE symbol_id='spule' AND reihenfolge=0)",
+            R"(UPDATE symbol_primitiv SET x1=0.5, y1=0.75, x2=0.5, y2=1    WHERE symbol_id='spule' AND reihenfolge=1)",
+            R"(UPDATE symbol_primitiv SET x1=0.0, y1=0.25, x2=1.0, y2=0.75 WHERE symbol_id='spule' AND reihenfolge=2)",
+        }},
     };
 }
 

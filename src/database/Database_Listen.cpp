@@ -741,9 +741,10 @@ QVariantList Database::klemmenplan(int projektId)
         }
 
         QString typ = q.value(7).toString();
-        if      (typ == QLatin1String("schraube"))      typ = QStringLiteral("Schraube");
-        else if (typ == QLatin1String("feder"))         typ = QStringLiteral("Feder");
-        else if (typ == QLatin1String("push_in"))       typ = QStringLiteral("Push-In");
+        if      (typ == QLatin1String("schraube"))      typ = QStringLiteral("Schraubanschluss");
+        else if (typ == QLatin1String("feder"))         typ = QStringLiteral("Federkraft");
+        else if (typ == QLatin1String("kaefig"))        typ = QStringLiteral("Käfigzugfeder");
+        else if (typ == QLatin1String("push_in"))       typ = QStringLiteral("Steckanschluss");
         else if (typ == QLatin1String("schneidklemme")) typ = QStringLiteral("Schneidklemme");
 
         QVariantMap row;

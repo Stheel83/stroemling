@@ -96,10 +96,10 @@ Item {
             spacing: 4
             Repeater {
                 model: [
-                    { key: "schraube",   label: qsTr("Schraube") },
-                    { key: "feder",      label: qsTr("Feder")    },
-                    { key: "push_in",    label: "Push-in"        },
-                    { key: "klemmbügel", label: qsTr("Bügel")    }
+                    { key: "schraube", label: qsTr("Schraube")  },
+                    { key: "feder",    label: qsTr("Feder")     },
+                    { key: "push_in",  label: "Push-in"         },
+                    { key: "kaefig",   label: qsTr("Käfig")     }
                 ]
                 delegate: MiniButton {
                     theme:   root.theme

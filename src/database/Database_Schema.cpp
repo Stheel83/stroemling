@@ -161,6 +161,11 @@ static QList<SchemaMigration> alleMigrationen()
         { 65, "bauteil: hauptfunktion_symbol_id – Symbolzuweisung für einfache Geräte (Lampe, Motor …)", {
             R"(ALTER TABLE bauteil ADD COLUMN hauptfunktion_symbol_id TEXT REFERENCES symbol_definition(id) ON DELETE SET NULL)",
         }},
+        { 66, "bauteil_klemme: anschluss_typ vereinheitlicht (feder/kaefig/push_in statt federklemme/kaefigklemme/stecker)", {
+            R"(UPDATE bauteil_klemme SET anschluss_typ='feder'   WHERE anschluss_typ='federklemme')",
+            R"(UPDATE bauteil_klemme SET anschluss_typ='kaefig'  WHERE anschluss_typ='kaefigklemme')",
+            R"(UPDATE bauteil_klemme SET anschluss_typ='schraube' WHERE anschluss_typ='stecker')",
+        }},
     };
 }
 

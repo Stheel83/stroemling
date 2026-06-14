@@ -40,13 +40,11 @@ Canvas {
 
     // Breite richtet sich nach Anschluss-Punkten (wird für Hints genutzt)
     implicitWidth: {
-        var pA   = (klemme && klemme.punkteSeitenA !== undefined) ? klemme.punkteSeitenA : 1
-        var pB   = (klemme && klemme.punkteSeitenB !== undefined) ? klemme.punkteSeitenB : 1
-        var aW   = pA > 0 ? pA * 2 * _kreisR + (pA - 1) * _circGap : 0
-        var bW   = pB > 0 ? pB * 2 * _kreisR + (pB - 1) * _circGap : 0
-        var lblA = (pA > 0 && root.zeigeBezeichnungen) ? 24 : 0
-        var lblB = (pB > 0 && root.zeigeBezeichnungen) ? 24 : 0
-        return 2 * _margin + lblA + aW + _bodyW + bW + lblB
+        var pA = (klemme && klemme.punkteSeitenA !== undefined) ? klemme.punkteSeitenA : 1
+        var pB = (klemme && klemme.punkteSeitenB !== undefined) ? klemme.punkteSeitenB : 1
+        var aW = pA > 0 ? pA * 2 * _kreisR + (pA - 1) * _circGap : 0
+        var bW = pB > 0 ? pB * 2 * _kreisR + (pB - 1) * _circGap : 0
+        return 2 * _margin + aW + _bodyW + bW
     }
 
     onKlemmeChanged:      requestPaint()
@@ -90,14 +88,11 @@ Canvas {
         // b=0 ist der körpernächste rechte Kreis, b=pB-1 äußerster rechts.
         var aWidth   = pA > 0 ? pA * (2 * kreisR) + (pA - 1) * circGap : 0
         var bWidth   = pB > 0 ? pB * (2 * kreisR) + (pB - 1) * circGap : 0
-        var lblExtraA = (showLbl && pA > 0) ? 24 : 0
-        var lblExtraB = (showLbl && pB > 0) ? 24 : 0
-
         // Zeichnung horizontal zentrieren
-        var totalLogW = lblExtraA + aWidth + bodyW + bWidth + lblExtraB
+        var totalLogW = aWidth + bodyW + bWidth
         var startX    = (width - totalLogW) / 2
 
-        var bodyLeftX  = startX + lblExtraA + aWidth
+        var bodyLeftX  = startX + aWidth
         var bodyRightX = bodyLeftX + bodyW
         var busX       = (bodyLeftX + bodyRightX) / 2
 
@@ -163,10 +158,10 @@ Canvas {
 
                 if (showLbl) {
                     ctx.font         = "8px sans-serif"
-                    ctx.textAlign    = "right"
-                    ctx.textBaseline = "middle"
-                    ctx.fillStyle    = markA ? akzent : "#999999"
-                    ctx.fillText(bezA, ax - kreisR - 2, cy)
+                    ctx.textAlign    = "center"
+                    ctx.textBaseline = "bottom"
+                    ctx.fillStyle    = markA ? akzent : "#888888"
+                    ctx.fillText(bezA, ax, cy - kreisR - 3)
                 }
             }
 
@@ -190,10 +185,10 @@ Canvas {
 
                 if (showLbl) {
                     ctx.font         = "8px sans-serif"
-                    ctx.textAlign    = "left"
-                    ctx.textBaseline = "middle"
-                    ctx.fillStyle    = markB ? akzent : "#999999"
-                    ctx.fillText(bezB, bx + kreisR + 2, cy)
+                    ctx.textAlign    = "center"
+                    ctx.textBaseline = "bottom"
+                    ctx.fillStyle    = markB ? akzent : "#888888"
+                    ctx.fillText(bezB, bx, cy - kreisR - 3)
                 }
             }
 

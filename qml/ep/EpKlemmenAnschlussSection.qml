@@ -211,10 +211,10 @@ Item {
                         anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                         text: {
                             var t = panel.kaDetails ? (panel.kaDetails.anschlussTyp || "") : ""
-                            if (t === "schraube")     return qsTr("Schraubklemme")
-                            if (t === "federklemme")  return qsTr("Federklemme")
-                            if (t === "kaefigklemme") return qsTr("Käfigklemme")
-                            if (t === "stecker")      return qsTr("Stecker")
+                            if (t === "schraube") return qsTr("Schraubanschluss")
+                            if (t === "feder")    return qsTr("Federkraft")
+                            if (t === "kaefig")   return qsTr("Käfigzugfeder")
+                            if (t === "push_in")  return qsTr("Steckanschluss")
                             return t || "–"
                         }
                         font.pixelSize: 12; color: theme.textSecondary

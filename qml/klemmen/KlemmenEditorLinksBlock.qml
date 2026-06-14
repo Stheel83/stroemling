@@ -270,10 +270,10 @@ ScrollView {
                 id: cbTyp
                 Layout.fillWidth: true
                 model: ListModel {
-                    ListElement { text: "Schraube";    value: "schraube"     }
-                    ListElement { text: "Federklemme"; value: "federklemme"  }
-                    ListElement { text: "Käfigklemme"; value: "kaefigklemme" }
-                    ListElement { text: "Stecker";     value: "stecker"      }
+                    ListElement { text: "Schraubanschluss"; value: "schraube" }
+                    ListElement { text: "Federkraft";        value: "feder"   }
+                    ListElement { text: "Käfigzugfeder";     value: "kaefig"  }
+                    ListElement { text: "Steckanschluss";    value: "push_in" }
                 }
                 textRole:  "text"
                 valueRole: "value"

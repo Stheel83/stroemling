@@ -1034,7 +1034,7 @@ Item {
             var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
             var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
             // Kabeldefinitionslinie: dicke, orange gestrichelte Linie mit Pfeilspitzen
-            var klColor = gewaehlt ? "#f0a030" : (vorschau ? "#4a9effaa" : (el.strichFarbe || "#e07000"))
+            var klColor = gewaehlt ? "#f0a030" : (vorschau ? "#1a55cc" : (el.strichFarbe || "#e07000"))
             ctx.save()
             ctx.strokeStyle = klColor
             ctx.lineWidth   = gewaehlt ? 3.5 : 2.5
@@ -1757,10 +1757,26 @@ Item {
 
                 // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
                 if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss") {
-                    var kaed    = el.extraDaten || {}
-                    var kaAnz   = kaed.anschlussBezeichnung || ""
-                    var kaBmk   = kaed.bmk || ""
-                    var kaBmkVis = kaBmk !== "" && kaed.bmkSichtbar !== false
+                    var kaed     = el.extraDaten || {}
+                    var kaAnz    = kaed.anschlussBezeichnung || ""
+                    var kaBmkRaw = kaed.bmk || ""
+                    // Redundantes ":anschlussBezeichnung" am Ende entfernen – steht bereits auf Zeile 1
+                    var kaBmkBase = (kaAnz !== "" && kaBmkRaw.endsWith(":" + kaAnz))
+                                    ? kaBmkRaw.slice(0, kaBmkRaw.length - kaAnz.length - 1)
+                                    : kaBmkRaw
+                    // "BMK anzeigen" blendet nur das Leisten-Präfix (z.B. "-X1:") aus;
+                    // die Klemmen-Nummer (z.B. "2") bleibt immer sichtbar
+                    var kaBmkColon = kaBmkBase.lastIndexOf(":")
+                    var kaBmk, kaBmkVis
+                    if (kaBmkColon >= 0) {
+                        var kaBmkStrip = kaBmkBase.slice(0, kaBmkColon + 1)
+                        var kaBmkNr    = kaBmkBase.slice(kaBmkColon + 1)
+                        kaBmk    = (kaed.bmkSichtbar !== false ? kaBmkStrip : "") + kaBmkNr
+                        kaBmkVis = kaBmk !== ""
+                    } else {
+                        kaBmk    = kaBmkBase
+                        kaBmkVis = kaBmkBase !== "" && kaed.bmkSichtbar !== false
+                    }
                     var kaFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
                     var kaBmkFs = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
                     var kaRot   = ((el.rotation || 0) % 360 + 360) % 360

@@ -9,6 +9,29 @@ MouseArea {
 
     required property var canvas
 
+    property string tooltipText: ""
+
+    // Cursor-naher Tooltip für Klemmenanschlüsse
+    Rectangle {
+        id: kaTooltip
+        visible: false; z: 999
+        color: "#1e2233"; radius: 4
+        border.color: "#3a4060"; border.width: 1
+        width:  ttText.implicitWidth  + 16
+        height: ttText.implicitHeight + 10
+        Text {
+            id: ttText
+            anchors.centerIn: parent
+            text: root.tooltipText
+            font.pixelSize: 11; color: "#c8cfe4"
+            lineHeight: 1.4; wrapMode: Text.NoWrap
+        }
+        Timer {
+            id: ttTimer; interval: 700; repeat: false
+            onTriggered: kaTooltip.visible = (root.tooltipText !== "")
+        }
+    }
+
     enabled:         canvas.seiteId >= 0
     acceptedButtons: Qt.LeftButton
     hoverEnabled:    true
@@ -115,7 +138,37 @@ MouseArea {
             if (!canvas.amVerschieben && !canvas.amRubberband) {
                 canvas.mausUeberGriff   = (canvas.griffBeiPosition(vp.x, vp.y) >= 0)
                 canvas.mausUeberLabel   = !canvas.mausUeberGriff && (canvas.labelTreffenTest(vp.x, vp.y) >= 0)
-                canvas.mausUeberElement = !canvas.mausUeberGriff && (canvas.elementBeiPosition(vp.x, vp.y) >= 0)
+                var hIdx = canvas.elementBeiPosition(vp.x, vp.y)
+                canvas.mausUeberElement = !canvas.mausUeberGriff && (hIdx >= 0)
+                // Tooltip für klemme_anschluss
+                if (hIdx >= 0 && !canvas.mausUeberGriff) {
+                    var hEl = em.element(hIdx)
+                    if (hEl && hEl.typ === "symbol" && hEl.symbolId === "klemme_anschluss") {
+                        var hed    = hEl.extraDaten || {}
+                        var hBez   = hed.anschlussBezeichnung || ""
+                        var hRaw   = hed.bmk || ""
+                        var hBase  = (hBez !== "" && hRaw.endsWith(":" + hBez))
+                                     ? hRaw.slice(0, hRaw.length - hBez.length - 1) : hRaw
+                        var hColon  = hBase.lastIndexOf(":")
+                        var hLeiste = hColon >= 0 ? hBase.slice(0, hColon) : hBase
+                        var hNr     = hColon >= 0 ? hBase.slice(hColon + 1) : ""
+                        var hParts  = []
+                        if (hLeiste) hParts.push("Leiste    " + hLeiste)
+                        if (hNr)     hParts.push("Klemme    Nr. " + hNr)
+                        if (hBez)    hParts.push("Anschluss " + hBez)
+                        root.tooltipText = hParts.join("\n")
+                        kaTooltip.x = mouse.x + 14
+                        kaTooltip.y = mouse.y + 14
+                        kaTooltip.visible = false
+                        ttTimer.restart()
+                    } else {
+                        root.tooltipText = ""
+                        ttTimer.stop(); kaTooltip.visible = false
+                    }
+                } else {
+                    root.tooltipText = ""
+                    ttTimer.stop(); kaTooltip.visible = false
+                }
             }
 
             // Label-Drag: Beschriftung live verschieben
@@ -257,6 +310,8 @@ MouseArea {
 
     onExited: {
         canvas.mausUeberElement = false
+        root.tooltipText = ""
+        ttTimer.stop(); kaTooltip.visible = false
         if (canvas.aktivesWerkzeug !== "zeiger") canvas.koordinatenTextSetzen("")
         if (canvas.aktivesWerkzeug === "symbol" || canvas.aktivesWerkzeug === "bild")
             { canvas.vorschau = null; canvas.neuZeichnen() }

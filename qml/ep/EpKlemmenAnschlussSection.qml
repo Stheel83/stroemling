@@ -100,17 +100,72 @@ Item {
             }
         }
 
+        // VERKNÜPFT: strukturierte Kennung (Leiste / Klemme / Anschluss)
+        Item {
+            width: parent.width
+            height: (panel.el && (panel.el.extraDaten || {}).platziermodus === "verknuepft")
+                    ? kennungSpalte.implicitHeight : 0
+            clip: true
+            Column {
+                id: kennungSpalte
+                width: parent.width; spacing: 0
+                property var kp: {
+                    var ed  = panel.el ? (panel.el.extraDaten || {}) : {}
+                    var bez = ed.anschlussBezeichnung || ""
+                    var raw = ed.bmk || ""
+                    var base = (bez !== "" && raw.endsWith(":" + bez))
+                               ? raw.slice(0, raw.length - bez.length - 1) : raw
+                    var c = base.lastIndexOf(":")
+                    return { leiste: c >= 0 ? base.slice(0, c) : base,
+                             nr:     c >= 0 ? base.slice(c + 1) : "" }
+                }
+                AbschnittTitel { text: qsTr("KENNUNG") }
+                Item {
+                    width: parent.width; height: 22
+                    Row {
+                        anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                        spacing: 0
+                        Text { text: qsTr("Leiste"); width: 70; font.pixelSize: 10; color: theme.textMuted }
+                        Text { text: kennungSpalte.kp.leiste || "–"
+                               font.pixelSize: 11; font.weight: Font.Medium; color: theme.textSecondary }
+                    }
+                }
+                Item {
+                    width: parent.width; height: 22
+                    Row {
+                        anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                        spacing: 0
+                        Text { text: qsTr("Klemme"); width: 70; font.pixelSize: 10; color: theme.textMuted }
+                        Text { text: kennungSpalte.kp.nr ? qsTr("Nr. %1").arg(kennungSpalte.kp.nr) : "–"
+                               font.pixelSize: 11; color: theme.textSecondary }
+                    }
+                }
+                Item {
+                    width: parent.width; height: 22
+                    Row {
+                        anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                        spacing: 0
+                        Text { text: qsTr("Anschluss"); width: 70; font.pixelSize: 10; color: theme.textMuted }
+                        Text { text: panel.el ? ((panel.el.extraDaten || {}).anschlussBezeichnung || "–") : "–"
+                               font.pixelSize: 11; font.weight: Font.Medium; color: theme.accent }
+                    }
+                }
+            }
+        }
+
+        // SKIZZE: editierbares Bezeichner-Feld
         InputField {
-            label: qsTr("BMK / Bezeichner")
+            visible: !panel.el || (panel.el.extraDaten || {}).platziermodus !== "verknuepft"
+            label: qsTr("Bezeichner")
             value: panel.el ? ((panel.el.extraDaten || {}).bmk || "") : ""
             theme: root.theme
-            readOnly: panel.el ? ((panel.el.extraDaten || {}).platziermodus === "verknuepft") : false
             onCommit: function(t) { root.extraSetzen("bmk", t) }
         }
 
-        // BMK-Sichtbarkeit
+        // Leisten-BMK Sichtbarkeit (nur für verknüpfte Klemmen)
         Row {
             leftPadding: 12; height: 32; spacing: 8
+            visible: panel.el ? ((panel.el.extraDaten || {}).platziermodus === "verknuepft") : false
             property bool bmkAn: panel.el ? ((panel.el.extraDaten || {}).bmkSichtbar !== false) : true
             Rectangle {
                 width: 20; height: 20; radius: 4; anchors.verticalCenter: parent.verticalCenter
@@ -125,12 +180,12 @@ Item {
                         root.extraSetzen("bmkSichtbar", !cur)
                     }
                     ToolTip.visible: containsMouse
-                    ToolTip.text:    qsTr("BMK im Canvas anzeigen oder ausblenden")
+                    ToolTip.text:    qsTr("Leisten-BMK (z. B. \"-X1:\") im Canvas ein- oder ausblenden.\nKlemmen-Nummer bleibt immer sichtbar.")
                     ToolTip.delay:   500
                 }
             }
             Text {
-                text: qsTr("BMK anzeigen")
+                text: qsTr("Leiste anzeigen")
                 color: theme.textMuted; font.pixelSize: 11
                 anchors.verticalCenter: parent.verticalCenter
             }

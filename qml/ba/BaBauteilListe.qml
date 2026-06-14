@@ -149,7 +149,6 @@ Item {
                                 text: ansDaten.anschlussBezeichnung || ""
                                 color: theme.accent; font.pixelSize: 12; font.weight: Font.Medium
                                 verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
-                                placeholderText: "13/14"
                                 onEditingFinished: {
                                     db.bauteilAnschlussLoeschen(ansDaten.id)
                                     db.bauteilAnschlussHinzufuegen(dlgBauteilBearbeiten.itemId,
@@ -171,7 +170,6 @@ Item {
                                 text: ansDaten.symbolId || ""
                                 color: theme.textPrimary; font.pixelSize: 11
                                 verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
-                                placeholderText: qsTr("schliesser")
                                 onEditingFinished: {
                                     db.bauteilAnschlussLoeschen(ansDaten.id)
                                     db.bauteilAnschlussHinzufuegen(dlgBauteilBearbeiten.itemId,
@@ -193,7 +191,6 @@ Item {
                                 text: ansDaten.pinName || ""
                                 color: theme.textMuted; font.pixelSize: 11
                                 verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
-                                placeholderText: "A1"
                                 onEditingFinished: {
                                     db.bauteilAnschlussLoeschen(ansDaten.id)
                                     db.bauteilAnschlussHinzufuegen(dlgBauteilBearbeiten.itemId,

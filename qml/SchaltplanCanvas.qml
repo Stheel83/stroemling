@@ -1410,13 +1410,20 @@ Item {
                                 var _pbLabel = _pbBez[_pbPin.name]
                                 if (!_pbLabel) continue
                                 var _pbPos = drawCanvas.pinViewportPos(el, _pbPin.x, _pbPin.y)
-                                var _pbOx  = _pbPin.offenX || 0
-                                var _pbOy  = _pbPin.offenY || 0
+                                // Richtungsvektor mit Spiegelung + Rotation transformieren
+                                // (identisch zur Transformation in pinViewportPos)
+                                var _pbOx = _pbPin.offenX || 0
+                                var _pbOy = _pbPin.offenY || 0
+                                if (el.spiegelX) _pbOx = -_pbOx
+                                if (el.spiegelY) _pbOy = -_pbOy
+                                var _pbRad = ((el.rotation || 0) * Math.PI / 180)
+                                var _pbTx  = _pbOx * Math.cos(_pbRad) - _pbOy * Math.sin(_pbRad)
+                                var _pbTy  = _pbOx * Math.sin(_pbRad) + _pbOy * Math.cos(_pbRad)
                                 var _pbOff = 4 * root.zoom
                                 var _pbX, _pbY
-                                // Vertikale Pins (oben/unten) → Label rechts neben dem Pin
-                                // Horizontale Pins (links/rechts) → Label oberhalb des Pins
-                                if (Math.abs(_pbOy) > Math.abs(_pbOx)) {
+                                // Vertikal dominanter Richtungsvektor → Label rechts
+                                // Horizontal dominanter Richtungsvektor → Label oben
+                                if (Math.abs(_pbTy) > Math.abs(_pbTx)) {
                                     _pbX = _pbPos.x + _pbOff
                                     _pbY = _pbPos.y
                                     ctx.textAlign    = "left"

@@ -106,7 +106,8 @@ QtObject {
                         querv.push({ x: (nb.x1+nb.x2)/2, y: (nb.y1+nb.y2)/2,
                                      bezeichnung: _ed.signalname || "",
                                      nachSeiteId: _z.nachSeiteId !== undefined ? _z.nachSeiteId : -1,
-                                     zielX: _z.zielX || 0, zielY: _z.zielY || 0 })
+                                     zielX: _z.zielX || 0, zielY: _z.zielY || 0,
+                                     partnerId: _z.partnerId !== undefined ? _z.partnerId : -1 })
                         // Querverweis: nicht weiterverfolgen
                     } else {
                         var _rolle = symbolDefinitionModel.rolleForSymbol(_sid)

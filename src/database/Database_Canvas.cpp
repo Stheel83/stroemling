@@ -791,6 +791,7 @@ QVariantMap Database::fehlersuchQuerverweisZiel(int vonSeiteId, int qvElementId)
     result[QStringLiteral("nachSeiteId")] = -1;
     result[QStringLiteral("zielX")]       = 0.0;
     result[QStringLiteral("zielY")]       = 0.0;
+    result[QStringLiteral("partnerId")]   = -1;
 
     // 1. Mittelpunkt des Querverweis-Elements
     QSqlQuery elQ;
@@ -843,7 +844,7 @@ QVariantMap Database::fehlersuchQuerverweisZiel(int vonSeiteId, int qvElementId)
     QSqlQuery targetQ;
     if (!signalname.isEmpty()) {
         targetQ.prepare(R"(
-            SELECT (x1 + x2) / 2.0, (y1 + y2) / 2.0
+            SELECT id, (x1 + x2) / 2.0, (y1 + y2) / 2.0
             FROM grafik_element
             WHERE seite_id = :sid AND symbol_id = 'querverweis'
             AND json_extract(extra_daten, '$.signalname') = :sn
@@ -853,7 +854,7 @@ QVariantMap Database::fehlersuchQuerverweisZiel(int vonSeiteId, int qvElementId)
         targetQ.bindValue(":sn",  signalname);
     } else {
         targetQ.prepare(R"(
-            SELECT (x1 + x2) / 2.0, (y1 + y2) / 2.0
+            SELECT id, (x1 + x2) / 2.0, (y1 + y2) / 2.0
             FROM grafik_element
             WHERE seite_id = :sid AND symbol_id = 'querverweis'
             LIMIT 1
@@ -861,8 +862,9 @@ QVariantMap Database::fehlersuchQuerverweisZiel(int vonSeiteId, int qvElementId)
         targetQ.bindValue(":sid", nachSeiteId);
     }
     if (targetQ.exec() && targetQ.next()) {
-        result[QStringLiteral("zielX")] = targetQ.value(0).toDouble();
-        result[QStringLiteral("zielY")] = targetQ.value(1).toDouble();
+        result[QStringLiteral("partnerId")] = targetQ.value(0).toInt();
+        result[QStringLiteral("zielX")]     = targetQ.value(1).toDouble();
+        result[QStringLiteral("zielY")]     = targetQ.value(2).toDouble();
     }
 
     return result;

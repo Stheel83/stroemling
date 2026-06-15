@@ -1548,12 +1548,16 @@ ApplicationWindow {
 
                         onGeschlossen: root.aktiveAnsicht = "seiten"
 
-                        onQuerverweisNavigieren: function(sid, x, y) {
+                        onQuerverweisNavigieren: function(sid, x, y, partnerId) {
                             if (sid !== root.aktivSeiteId) {
                                 fehlersuchCanvas._querverweisZielPos = { x: x, y: y }
+                                if (partnerId > 0)
+                                    fehlersuchCanvas._fehlersuchAutoStartId = partnerId
                                 root.aktivSeiteId = sid
                             } else {
                                 fehlersuchCanvas._zoomZuWeltPosition(x, y)
+                                if (partnerId > 0)
+                                    fehlersuchCanvas.fehlersuchPfadBerechnen(partnerId)
                             }
                         }
                     }

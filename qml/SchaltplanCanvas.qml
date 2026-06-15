@@ -166,7 +166,9 @@ Item {
     // HF-Referenz: betriebsmittelId → {hauptElementId, blattnummer, seiteId}
     property var  _hfReferenzMap: ({})
     // Pending-Zielposition nach seitenübergreifender QV-Navigation
-    property var  _querverweisZielPos:   null
+    property var  _querverweisZielPos:      null
+    // Pending-Auto-Weiterverfolgen: BFS direkt nach Seitenladem starten
+    property int  _fehlersuchAutoStartId:   -1
     // Rubber-Band Mehrfachauswahl
     property bool amRubberband:        false
     property real rubberbandVpX:       0
@@ -3736,6 +3738,8 @@ Item {
             // Ansicht wiederherstellen oder zurücksetzen
             var _pendingZielPos = root._querverweisZielPos
             root._querverweisZielPos = null
+            var _pendingAutoStart = root._fehlersuchAutoStartId
+            root._fehlersuchAutoStartId = -1
             if (_pendingZielPos) {
                 ansichtZuruecksetzen()
                 Qt.callLater(function() { root._zoomZuWeltPosition(_pendingZielPos.x, _pendingZielPos.y) })
@@ -3750,6 +3754,8 @@ Item {
                     ansichtZuruecksetzen()
                 }
             }
+            if (_pendingAutoStart > 0)
+                Qt.callLater(function() { root.fehlersuchPfadBerechnen(_pendingAutoStart) })
         } else {
             root.normblattDaten   = null
             root.normblattLogoUrl = ""

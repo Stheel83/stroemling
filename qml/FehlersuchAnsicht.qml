@@ -19,8 +19,10 @@ Item {
     readonly property var    unterbrechungen:    canvas ? canvas.fehlersuchUnterbrechungen : {}
     readonly property var    unterbrechungsIds:  canvas ? Object.keys(canvas.fehlersuchUnterbrechungen) : []
 
-    signal querverweisNavigieren(int seiteId, real x, real y)
+    signal querverweisNavigieren(int seiteId, real x, real y, int partnerId)
     signal geschlossen()
+
+    property bool autoWeiterverfolgen: false
 
     // ── Escape: Pfad aufheben ─────────────────────────────────
     Keys.onEscapePressed: { if (canvas) canvas.fehlersuchPfadZuruecksetzen() }
@@ -44,6 +46,43 @@ Item {
                     font.pixelSize: 13; font.weight: Font.Medium
                     color: theme.textPrimary
                     Layout.fillWidth: true
+                }
+
+                // Toggle: Auto-Weiterverfolgen auf Zielseite
+                Rectangle {
+                    implicitWidth: autoToggleRow.implicitWidth + 12
+                    implicitHeight: 24
+                    radius: 4
+                    color: root.autoWeiterverfolgen ? theme.accent : "transparent"
+                    border.color: root.autoWeiterverfolgen ? theme.accent : theme.border
+                    ToolTip.visible: autoToggleMaus.containsMouse
+                    ToolTip.text: qsTr("Auto-Weiterverfolgen: BFS nach Querverweis-Sprung automatisch starten")
+                    ToolTip.delay: 600
+
+                    RowLayout {
+                        id: autoToggleRow
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        Text {
+                            text: "⇒"
+                            font.pixelSize: 11
+                            color: root.autoWeiterverfolgen ? "white" : theme.textMuted
+                        }
+                        Text {
+                            text: qsTr("Auto")
+                            font.pixelSize: 10
+                            color: root.autoWeiterverfolgen ? "white" : theme.textMuted
+                        }
+                    }
+
+                    MouseArea {
+                        id: autoToggleMaus
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.autoWeiterverfolgen = !root.autoWeiterverfolgen
+                    }
                 }
 
                 Button {
@@ -200,7 +239,8 @@ Item {
                                     root.querverweisNavigieren(
                                         nachId,
                                         modelData.zielX || 0,
-                                        modelData.zielY || 0)
+                                        modelData.zielY || 0,
+                                        root.autoWeiterverfolgen ? (modelData.partnerId || -1) : -1)
                             }
                         }
                     }

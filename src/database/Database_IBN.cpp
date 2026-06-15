@@ -159,6 +159,33 @@ bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &s
     return true;
 }
 
+QVariantMap Database::ibnEintragFuerBmk(int seiteId, const QString &bmk)
+{
+    if (bmk.isEmpty()) return {};
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT id, status, bauteil_id, geprueft_von, geprueft_am, notiz, symbol_kategorie
+        FROM inbetriebnahme
+        WHERE seite_id = :sid AND bmk = :bmk
+    )");
+    q.bindValue(":sid", seiteId);
+    q.bindValue(":bmk", bmk);
+    if (!q.exec() || !q.next()) return {};
+
+    int ibnId = q.value("id").toInt();
+    QVariantMap result{
+        { "ibnId",           ibnId                       },
+        { "status",          q.value("status")           },
+        { "bauteilId",       q.value("bauteil_id")       },
+        { "geprueftVon",     q.value("geprueft_von")     },
+        { "geprueftAm",      q.value("geprueft_am")      },
+        { "notiz",           q.value("notiz")            },
+        { "symbolKategorie", q.value("symbol_kategorie") },
+        { "felder",          ibnFeldwerteLaden(ibnId)    },
+    };
+    return result;
+}
+
 // ── IBN Kabel ────────────────────────────────────────────────────────────
 
 QVariantList Database::ibnKabelListeLaden(int projektId)

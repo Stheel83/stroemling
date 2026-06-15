@@ -288,6 +288,11 @@ public:
     // Alle BM mit BMK für ein Projekt laden; seiteId=-1 = alle Seiten.
     Q_INVOKABLE QVariantList ibnListeLaden(int projektId, int seiteId = -1);
 
+    // IBN-Eintrag für ein einzelnes BM (EP-Abschnitt, read-only).
+    // Gibt {ibnId, status, bauteilId, geprueftVon, geprueftAm, notiz, symbolKategorie, felder}
+    // oder leere Map zurück wenn kein Datensatz vorhanden.
+    Q_INVOKABLE QVariantMap ibnEintragFuerBmk(int seiteId, const QString &bmk);
+
     // IBN-Eintrag speichern (INSERT OR UPDATE, Schlüssel: seiteId+bmk).
     Q_INVOKABLE bool ibnEintragSpeichern(int projektId, int seiteId,
                                          const QString &bmk,

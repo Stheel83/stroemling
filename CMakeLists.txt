@@ -98,6 +98,7 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpKabelLinienBlock.qml
         qml/ep/EpKabelAdernBlock.qml
         qml/ep/EpBetriebsmittelSection.qml
+        qml/ep/EpIbnStatusSection.qml
         qml/ep/EpBmVerknuepfenDialog.qml
         qml/ep/EpBmVerknuepfungBlock.qml
         qml/ep/EpBmKontaktBlock.qml

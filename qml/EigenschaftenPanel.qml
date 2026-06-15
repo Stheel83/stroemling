@@ -53,6 +53,7 @@ Rectangle {
     // nicht zuverlässig (required property var canvas als Holder).
     readonly property int auswahlLaenge:       canvas ? canvas.auswahlLaenge       : 0
     readonly property int symbolAuswahlAnzahl: canvas ? canvas.symbolAuswahlAnzahl : 0
+    readonly property int seiteId:             canvas ? canvas.seiteId             : -1
 
     // Format-Pinsel-Zähler: hochzählen in formatKopieren() → reaktiver Proxy für Sections
     readonly property int formatZaehler: canvas ? canvas.formatZaehler : 0
@@ -298,6 +299,9 @@ Rectangle {
 
             // ABSCHNITT: BETRIEBSMITTEL → EpBetriebsmittelSection.qml
             EpBetriebsmittelSection { canvas: canvas; panel: panel; theme: panel.theme }
+
+            // ABSCHNITT: INBETRIEBNAHME-STATUS (read-only) → EpIbnStatusSection.qml
+            EpIbnStatusSection { panel: panel; theme: panel.theme }
 
             // ABSCHNITT: QUERVERWEIS → EpQuerverweisSection.qml
             EpQuerverweisSection { canvas: canvas; panel: panel; theme: panel.theme }

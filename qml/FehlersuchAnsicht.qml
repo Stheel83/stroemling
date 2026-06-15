@@ -75,6 +75,46 @@ Item {
                                    eintrag.cy || 0, eintrag.elementId || -1)
     }
 
+    // ── Pfad-History (§8.6) ───────────────────────────────────
+    property var _history:    []
+    property int _historyIdx: -1
+
+    signal historiNavigieren(int seiteId, int startElementId)
+
+    function _historiePushen(seiteId, startElementId) {
+        if (root._historyIdx >= 0) {
+            var curr = root._history[root._historyIdx]
+            if (curr && curr.seiteId === seiteId && curr.startElementId === startElementId) return
+        }
+        var neu = root._history.slice(0, root._historyIdx + 1)
+        neu.push({ seiteId: seiteId, startElementId: startElementId })
+        if (neu.length > 10) neu.shift()
+        root._history    = neu
+        root._historyIdx = neu.length - 1
+    }
+
+    function historiZurueck() {
+        if (root._historyIdx <= 0) return
+        root._historyIdx--
+        var e = root._history[root._historyIdx]
+        root.historiNavigieren(e.seiteId, e.startElementId)
+    }
+
+    function historiVor() {
+        if (root._historyIdx >= root._history.length - 1) return
+        root._historyIdx++
+        var e = root._history[root._historyIdx]
+        root.historiNavigieren(e.seiteId, e.startElementId)
+    }
+
+    Connections {
+        target: root.canvas
+        function onFehlersuchStartIdChanged() {
+            if (!root.canvas || root.canvas.fehlersuchStartId < 0) return
+            root._historiePushen(root.canvas.seiteId, root.canvas.fehlersuchStartId)
+        }
+    }
+
     // ── Escape: Pfad aufheben ─────────────────────────────────
     Keys.onEscapePressed: { if (canvas) canvas.fehlersuchPfadZuruecksetzen() }
 
@@ -299,6 +339,30 @@ Item {
                     font.pixelSize: 12
                     color: root.pfadAnzahl > 0 ? theme.textPrimary : theme.textMuted
                     Layout.fillWidth: true
+                }
+
+                // History-Navigation: ◁ Zurück
+                Button {
+                    visible: root._historyIdx > 0
+                    flat: true; implicitWidth: 24; implicitHeight: 24
+                    contentItem: Text { text: "◁"; color: theme.textMuted; font.pixelSize: 11;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                    ToolTip.visible: hovered; ToolTip.text: qsTr("Vorheriger Pfad")
+                    ToolTip.delay: 400
+                    onClicked: root.historiZurueck()
+                }
+
+                // History-Navigation: Vor ▷
+                Button {
+                    visible: root._historyIdx >= 0 && root._historyIdx < root._history.length - 1
+                    flat: true; implicitWidth: 24; implicitHeight: 24
+                    contentItem: Text { text: "▷"; color: theme.textMuted; font.pixelSize: 11;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                    ToolTip.visible: hovered; ToolTip.text: qsTr("Nächster Pfad")
+                    ToolTip.delay: 400
+                    onClicked: root.historiVor()
                 }
 
                 Button {

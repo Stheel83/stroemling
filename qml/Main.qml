@@ -1573,6 +1573,15 @@ ApplicationWindow {
                                     fehlersuchCanvas.fehlersuchPfadBerechnen(elementId)
                             }
                         }
+
+                        onHistoriNavigieren: function(sid, startId) {
+                            if (sid !== root.aktivSeiteId) {
+                                fehlersuchCanvas._fehlersuchAutoStartId = startId
+                                root.aktivSeiteId = sid
+                            } else {
+                                fehlersuchCanvas.fehlersuchPfadBerechnen(startId)
+                            }
+                        }
                     }
 
                     SchaltplanCanvas {

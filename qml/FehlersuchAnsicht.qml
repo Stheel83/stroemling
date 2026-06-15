@@ -19,6 +19,28 @@ Item {
     readonly property var    unterbrechungen:    canvas ? canvas.fehlersuchUnterbrechungen : {}
     readonly property var    unterbrechungsIds:  canvas ? Object.keys(canvas.fehlersuchUnterbrechungen) : []
 
+    // Elemente im Pfad gruppiert nach Rolle (reine QML-Logik, kein DB-Zugriff)
+    property bool elementeAusgeklappt: true
+    readonly property var pfadElemente: {
+        if (!canvas || pfadAnzahl === 0)
+            return { quellen: [], schalter: [], verbraucher: [] }
+        var alle     = canvas.elementeModel.snapshot()
+        var pfadSet  = canvas.fehlersuchPfadIds
+        var quellen  = [], schalter = [], verbraucher = []
+        for (var i = 0; i < alle.length; i++) {
+            var el  = alle[i]
+            if (!pfadSet[el.id || -1]) continue
+            if (el.typ !== "symbol")   continue
+            var bmk = (el.extraDaten || {}).bmk || ""
+            if (!bmk) continue
+            var rolle = symbolDefinitionModel.rolleForSymbol(el.symbolId || "")
+            if      (rolle === "quelle")     quellen.push(bmk)
+            else if (rolle === "trenner")    schalter.push(bmk)
+            else if (rolle === "verbraucher") verbraucher.push(bmk)
+        }
+        return { quellen: quellen, schalter: schalter, verbraucher: verbraucher }
+    }
+
     signal querverweisNavigieren(int seiteId, real x, real y, int partnerId)
     signal fehlersuchNavigieren(int seiteId, real cx, real cy, int elementId)
     signal geschlossen()
@@ -470,6 +492,135 @@ Item {
                         }
                     }
                 }
+
+                // ── Elemente im Pfad (aufklappbar) ───────────────────
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: theme.divider
+                    visible: root.pfadAnzahl > 0
+                    Layout.topMargin: 8
+                }
+
+                // Sektion-Kopfzeile
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 32
+                    color: elKopfMaus.containsMouse ? theme.hover : "transparent"
+                    visible: root.pfadAnzahl > 0
+
+                    RowLayout {
+                        anchors { fill: parent; leftMargin: 14; rightMargin: 10 }
+                        spacing: 6
+
+                        Text {
+                            text: root.elementeAusgeklappt ? "▾" : "▸"
+                            font.pixelSize: 10
+                            color: theme.textMuted
+                        }
+                        Text {
+                            text: qsTr("Elemente im Pfad")
+                            font.pixelSize: 11; font.weight: Font.Medium
+                            color: theme.textMuted
+                            Layout.fillWidth: true
+                        }
+                        // Anzahl-Badge
+                        Rectangle {
+                            visible: (root.pfadElemente.quellen.length +
+                                      root.pfadElemente.schalter.length +
+                                      root.pfadElemente.verbraucher.length) > 0
+                            implicitWidth: badgeText.implicitWidth + 10
+                            height: 16; radius: 8
+                            color: theme.accent
+                            opacity: 0.75
+                            Text {
+                                id: badgeText
+                                anchors.centerIn: parent
+                                text: root.pfadElemente.quellen.length +
+                                      root.pfadElemente.schalter.length +
+                                      root.pfadElemente.verbraucher.length
+                                font.pixelSize: 9; font.weight: Font.Bold
+                                color: "white"
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: elKopfMaus
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.elementeAusgeklappt = !root.elementeAusgeklappt
+                    }
+                }
+
+                // Gruppen (nur sichtbar wenn ausgeklappt)
+                Repeater {
+                    model: root.elementeAusgeklappt && root.pfadAnzahl > 0 ? [
+                        { icon: "⚡", label: qsTr("Quellen"),      bmks: root.pfadElemente.quellen },
+                        { icon: "◻",  label: qsTr("Schaltelemente"), bmks: root.pfadElemente.schalter },
+                        { icon: "◉",  label: qsTr("Verbraucher"),  bmks: root.pfadElemente.verbraucher }
+                    ].filter(function(g) { return g.bmks.length > 0 }) : []
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        // Gruppen-Header
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 14
+                            Layout.topMargin: 6
+                            implicitHeight: grpHeaderText.implicitHeight
+
+                            Text {
+                                id: grpHeaderText
+                                text: modelData.icon + "  " + modelData.label
+                                font.pixelSize: 10; font.weight: Font.Medium
+                                color: theme.textMuted
+                            }
+                        }
+
+                        // BMK-Einträge
+                        Repeater {
+                            model: modelData.bmks
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 26
+                                color: "transparent"
+
+                                Text {
+                                    anchors { left: parent.left; leftMargin: 28;
+                                              verticalCenter: parent.verticalCenter }
+                                    text: modelData
+                                    font.pixelSize: 11
+                                    color: theme.textPrimary
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Hinweis wenn keine BMK-Elemente im Pfad
+                Item {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 28
+                    implicitHeight: keineElText.implicitHeight + 4
+                    visible: root.elementeAusgeklappt && root.pfadAnzahl > 0 &&
+                             root.pfadElemente.quellen.length === 0 &&
+                             root.pfadElemente.schalter.length === 0 &&
+                             root.pfadElemente.verbraucher.length === 0
+
+                    Text {
+                        id: keineElText
+                        text: qsTr("Keine BMK-tragenden Elemente")
+                        font.pixelSize: 10
+                        color: theme.borderLight
+                    }
+                }
+
+                Item { Layout.fillWidth: true; implicitHeight: 8 }
             }
         }
 

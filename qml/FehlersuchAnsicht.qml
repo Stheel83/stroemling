@@ -333,9 +333,13 @@ Item {
                 }
 
                 Text {
-                    text: root.pfadAnzahl > 0
-                        ? qsTr("%1 Elemente im Pfad").arg(root.pfadAnzahl)
-                        : qsTr("Kein Pfad aktiv")
+                    text: {
+                        if (root.pfadAnzahl === 0) return qsTr("Kein Pfad aktiv")
+                        var n = canvas ? canvas.fehlersuchStartIds.length : 1
+                        if (n > 1)
+                            return qsTr("%1 Elemente in %2 Pfaden").arg(root.pfadAnzahl).arg(n)
+                        return qsTr("%1 Elemente im Pfad").arg(root.pfadAnzahl)
+                    }
                     font.pixelSize: 12
                     color: root.pfadAnzahl > 0 ? theme.textPrimary : theme.textMuted
                     Layout.fillWidth: true
@@ -696,7 +700,7 @@ Item {
 
             Text {
                 anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                text: qsTr("Klick auf Element → Pfad markieren  ·  Esc → löschen")
+                text: qsTr("Klick → Pfad  ·  Shift+Klick → addieren  ·  Strg+F → suchen  ·  Esc → löschen")
                 font.pixelSize: 10
                 color: theme.borderLight
             }

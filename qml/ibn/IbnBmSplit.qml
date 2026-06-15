@@ -221,14 +221,21 @@ SplitView {
 
                         // text / zahl
                         TextField {
+                            id: dynTf
                             visible: modelData.feldtyp === "text" || modelData.feldtyp === "zahl"
                             Layout.fillWidth: true; implicitHeight: 28
                             inputMethodHints: modelData.feldtyp === "zahl"
                                               ? Qt.ImhFormattedNumbersOnly : Qt.ImhNone
-                            text: panel._dynWerte[modelData.feldname] || ""
                             background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
                             color: theme.textPrimary; font.pixelSize: 12
+                            text: panel._dynWerte[modelData.feldname] || ""
+                            Binding on text {
+                                when:    !dynTf.activeFocus
+                                value:   panel._dynWerte[modelData.feldname] || ""
+                                delayed: true
+                            }
                             onTextChanged: {
+                                if (!dynTf.activeFocus) return
                                 var tmp = Object.assign({}, panel._dynWerte)
                                 tmp[modelData.feldname] = text
                                 panel._dynWerte = tmp
@@ -239,7 +246,7 @@ SplitView {
                         CheckBox {
                             visible: modelData.feldtyp === "boolean"
                             checked: (panel._dynWerte[modelData.feldname] || "") === "1"
-                            onCheckedChanged: {
+                            onToggled: {
                                 var tmp = Object.assign({}, panel._dynWerte)
                                 tmp[modelData.feldname] = checked ? "1" : "0"
                                 panel._dynWerte = tmp

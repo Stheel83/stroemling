@@ -1560,6 +1560,19 @@ ApplicationWindow {
                                     fehlersuchCanvas.fehlersuchPfadBerechnen(partnerId)
                             }
                         }
+
+                        onFehlersuchNavigieren: function(sid, cx, cy, elementId) {
+                            if (sid !== root.aktivSeiteId) {
+                                fehlersuchCanvas._querverweisZielPos  = { x: cx, y: cy }
+                                if (elementId > 0)
+                                    fehlersuchCanvas._fehlersuchAutoStartId = elementId
+                                root.aktivSeiteId = sid
+                            } else {
+                                fehlersuchCanvas._zoomZuWeltPosition(cx, cy)
+                                if (elementId > 0)
+                                    fehlersuchCanvas.fehlersuchPfadBerechnen(elementId)
+                            }
+                        }
                     }
 
                     SchaltplanCanvas {
@@ -1798,6 +1811,7 @@ ApplicationWindow {
     Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
     Shortcut { sequence: "Ctrl+M"; context: Shortcut.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
     Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: root.suchPanelOffen = !root.suchPanelOffen }
+    Shortcut { sequence: "Ctrl+F"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0 && root.aktiveAnsicht === "fehlersuche"; onActivated: fehlersuchAnsicht.suchfeldOeffnen() }
     // GIT-01: Explizites Speichern + Auto-Commit
     Shortcut {
         sequence: "Ctrl+S"

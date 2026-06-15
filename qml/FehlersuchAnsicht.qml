@@ -20,9 +20,38 @@ Item {
     readonly property var    unterbrechungsIds:  canvas ? Object.keys(canvas.fehlersuchUnterbrechungen) : []
 
     signal querverweisNavigieren(int seiteId, real x, real y, int partnerId)
+    signal fehlersuchNavigieren(int seiteId, real cx, real cy, int elementId)
     signal geschlossen()
 
     property bool autoWeiterverfolgen: false
+
+    // ── Strg+F Suche ─────────────────────────────────────────────
+    property bool   suchfeldAktiv: false
+    property var    _fsEintraege:  []
+    property string _fsSuchText:   ""
+
+    readonly property var _fsGefiltert: {
+        var q = root._fsSuchText.trim().toLowerCase()
+        if (q.length < 1) return []
+        return root._fsEintraege.filter(function(e) {
+            return e.label.toLowerCase().indexOf(q) >= 0
+        }).slice(0, 8)
+    }
+
+    function suchfeldOeffnen() {
+        if (root.projektId >= 0)
+            root._fsEintraege = db.spotlightEintraege(root.projektId).filter(
+                function(e) { return e.kategorie === "BMK" })
+        root._fsSuchText   = ""
+        root.suchfeldAktiv = true
+        fsTextInput.forceActiveFocus()
+    }
+
+    function _navigiereZuEintrag(eintrag) {
+        root.suchfeldAktiv = false
+        root.fehlersuchNavigieren(eintrag.seiteId || -1, eintrag.cx || 0,
+                                   eintrag.cy || 0, eintrag.elementId || -1)
+    }
 
     // ── Escape: Pfad aufheben ─────────────────────────────────
     Keys.onEscapePressed: { if (canvas) canvas.fehlersuchPfadZuruecksetzen() }
@@ -98,6 +127,133 @@ Item {
         }
 
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+
+        // ── Strg+F Suchbereich ────────────────────────────────
+        Rectangle {
+            Layout.fillWidth: true
+            visible: root.suchfeldAktiv
+            implicitHeight: fsCol.implicitHeight
+            color: theme.surfaceDeep
+            clip: true
+
+            Column {
+                id: fsCol
+                width: parent.width
+                spacing: 0
+
+                // Suchfeld
+                Rectangle {
+                    width: parent.width
+                    height: 36
+                    color: "transparent"
+
+                    Rectangle {
+                        anchors { fill: parent; margins: 6 }
+                        color: theme.inputBg
+                        radius: 4
+                        border.color: fsTextInput.activeFocus ? theme.accent : theme.border
+                        border.width: 1
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 8; rightMargin: 6 }
+                            spacing: 4
+
+                            Text {
+                                text: "🔍"
+                                font.pixelSize: 11
+                                color: theme.textMuted
+                            }
+
+                            TextInput {
+                                id: fsTextInput
+                                Layout.fillWidth: true
+                                font.pixelSize: 12
+                                color: theme.textPrimary
+                                selectedTextColor: "white"
+                                selectionColor: theme.accent
+                                clip: true
+                                onTextChanged:     root._fsSuchText = text
+                                Keys.onEscapePressed: {
+                                    root.suchfeldAktiv = false
+                                    root._fsSuchText   = ""
+                                }
+                                Keys.onReturnPressed: {
+                                    if (root._fsGefiltert.length > 0)
+                                        root._navigiereZuEintrag(root._fsGefiltert[0])
+                                }
+                                Keys.onDownPressed: {
+                                    if (root._fsGefiltert.length > 0)
+                                        root._navigiereZuEintrag(root._fsGefiltert[0])
+                                }
+                            }
+
+                            Text {
+                                text: "Esc"
+                                font.pixelSize: 9
+                                color: theme.borderLight
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: { root.suchfeldAktiv = false; root._fsSuchText = "" }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Ergebnisliste
+                Repeater {
+                    model: root._fsGefiltert
+
+                    Rectangle {
+                        width: fsCol.width
+                        height: 32
+                        color: fsMaus.containsMouse ? theme.hover : "transparent"
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 14; rightMargin: 10 }
+                            spacing: 6
+
+                            Text {
+                                text: modelData.label || ""
+                                font.pixelSize: 12; font.weight: Font.Medium
+                                color: theme.textPrimary
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                text: (modelData.blattnummer || "")
+                                font.pixelSize: 10
+                                color: theme.textMuted
+                            }
+                        }
+
+                        MouseArea {
+                            id: fsMaus
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root._navigiereZuEintrag(modelData)
+                        }
+                    }
+                }
+
+                // Hinweis wenn keine Ergebnisse und Suchtext vorhanden
+                Item {
+                    width: fsCol.width
+                    height: 28
+                    visible: root._fsSuchText.length > 0 && root._fsGefiltert.length === 0
+
+                    Text {
+                        anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
+                        text: qsTr("Kein BMK gefunden")
+                        font.pixelSize: 11
+                        color: theme.borderLight
+                    }
+                }
+
+                Rectangle { width: parent.width; height: 1; color: theme.border }
+            }
+        }
 
         // ── Pfad-Status ───────────────────────────────────────
         Rectangle {

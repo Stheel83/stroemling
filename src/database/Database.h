@@ -155,7 +155,7 @@ public:
     Q_INVOKABLE QVariantList alleSeitenFlach(int projektId);
 
     // Spotlight-Einträge: BMKs + platzierte Kabel für die Kommando-Palette.
-    // Gibt [{kategorie, label, info, seiteId, blattnummer, seiteBez, cx, cy}] zurück.
+    // Gibt [{kategorie, label, info, seiteId, blattnummer, seiteBez, cx, cy, elementId}] zurück.
     Q_INVOKABLE QVariantList spotlightEintraege(int projektId);
 
     // Alle Querverweis-Elemente eines Projekts liefern (seitenübergreifend).

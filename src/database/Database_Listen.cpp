@@ -61,7 +61,8 @@ QVariantList Database::spotlightEintraege(int projektId)
                s.blattnummer,
                COALESCE(s.bezeichnung, '') AS seite_bez,
                (ge.x1 + ge.x2) / 2.0     AS cx,
-               (ge.y1 + ge.y2) / 2.0     AS cy
+               (ge.y1 + ge.y2) / 2.0     AS cy,
+               ge.id                       AS element_id
         FROM grafik_element ge
         JOIN seite  s ON s.id  = ge.seite_id
         JOIN ort    o ON o.id  = s.ort_id
@@ -80,7 +81,8 @@ QVariantList Database::spotlightEintraege(int projektId)
                s.blattnummer,
                COALESCE(s.bezeichnung, '') AS seite_bez,
                (ge.x1 + ge.x2) / 2.0     AS cx,
-               (ge.y1 + ge.y2) / 2.0     AS cy
+               (ge.y1 + ge.y2) / 2.0     AS cy,
+               ge.id                       AS element_id
         FROM kabel k
         JOIN grafik_element ge ON ge.id = k.grafik_element_id
         JOIN seite  s ON s.id  = ge.seite_id
@@ -104,6 +106,7 @@ QVariantList Database::spotlightEintraege(int projektId)
         m[QStringLiteral("seiteBez")]    = q.value(5).toString();
         m[QStringLiteral("cx")]          = q.value(6).toDouble();
         m[QStringLiteral("cy")]          = q.value(7).toDouble();
+        m[QStringLiteral("elementId")]   = q.value(8).toInt();
         result.append(m);
     }
     return result;

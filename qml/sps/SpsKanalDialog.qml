@@ -235,12 +235,12 @@ Dialog {
                 felder["kanal_nr"]       = kNr
                 felder["pls_einheit"]    = plsEinheitField.text.trim() || null
                 felder["pls_protokoll"]  = plsProtokollCombo.currentText
-                if (plsMinField.text.trim()) felder["pls_bereich_min"] = parseFloat(plsMinField.text)
-                if (plsMaxField.text.trim()) felder["pls_bereich_max"] = parseFloat(plsMaxField.text)
-                if (plsAlllField.text.trim()) felder["pls_alarm_ll"] = parseFloat(plsAlllField.text)
-                if (plsAlloField.text.trim()) felder["pls_alarm_lo"] = parseFloat(plsAlloField.text)
-                if (plsAlhiField.text.trim()) felder["pls_alarm_hi"] = parseFloat(plsAlhiField.text)
-                if (plsAlhhField.text.trim()) felder["pls_alarm_hh"] = parseFloat(plsAlhhField.text)
+                if (plsMinField.text.trim()) felder["pls_bereich_min"] = parseFloat(plsMinField.text.replace(",","."))
+                if (plsMaxField.text.trim()) felder["pls_bereich_max"] = parseFloat(plsMaxField.text.replace(",","."))
+                if (plsAlllField.text.trim()) felder["pls_alarm_ll"] = parseFloat(plsAlllField.text.replace(",","."))
+                if (plsAlloField.text.trim()) felder["pls_alarm_lo"] = parseFloat(plsAlloField.text.replace(",","."))
+                if (plsAlhiField.text.trim()) felder["pls_alarm_hi"] = parseFloat(plsAlhiField.text.replace(",","."))
+                if (plsAlhhField.text.trim()) felder["pls_alarm_hh"] = parseFloat(plsAlhhField.text.replace(",","."))
             }
             if (!db.spsKanalAktualisieren(_editId, felder)) {
                 root.fehler(qsTr("Kanal konnte nicht gespeichert werden"))

@@ -66,7 +66,7 @@ ScrollView {
             "geschirmt":           swGeschirmt.checked,
             "paarweise_verdrillt": swPaarweise.checked,
             "aussenmantel_farbe":  tfMantelFarbe.text.trim(),
-            "aussenmantel_mm":     parseFloat(tfAussendm.text) || 0,
+            "aussenmantel_mm":     parseFloat(tfAussendm.text.replace(",",".")) || 0,
             "material_leiter":     tfMatLeiter.text.trim(),
             "material_isolierung": tfMatIso.text.trim(),
         }
@@ -485,10 +485,10 @@ ScrollView {
                 bauteilModel.bearbeiten(root.bauteilId,
                     tfKabBez.text.trim(), tfKabHer.text.trim(), tfKabArt.text.trim(),
                     tfKabLief.text.trim(),
-                    parseFloat(tfKabPreis.text) || 0,
-                    parseFloat(tfKabU.text)     || 0,
-                    parseFloat(tfKabI.text)     || 0,
-                    parseFloat(tfKabP.text)     || 0,
+                    parseFloat(tfKabPreis.text.replace(",",".")) || 0,
+                    parseFloat(tfKabU.text.replace(",","."))     || 0,
+                    parseFloat(tfKabI.text.replace(",","."))     || 0,
+                    parseFloat(tfKabP.text.replace(",","."))     || 0,
                     tfKabBem.text.trim(),
                     tfKabUrlHer.text.trim(), tfKabUrlDat.text.trim())
                 if (kabelModel.hatKabel)

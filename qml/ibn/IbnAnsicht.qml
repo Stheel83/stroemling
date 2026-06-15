@@ -28,8 +28,14 @@ Item {
 
     function _dynWerteAlsListe() {
         var result = []
-        for (var fn in root._dynWerte)
-            result.push({ "feldname": fn, "wert": root._dynWerte[fn] })
+        var feldMap = {}
+        for (var fi = 0; fi < root._dynFelder.length; fi++)
+            feldMap[root._dynFelder[fi].feldname] = root._dynFelder[fi].feldtyp
+        for (var fn in root._dynWerte) {
+            var wert = root._dynWerte[fn]
+            if (feldMap[fn] === "zahl") wert = wert.replace(",", ".")
+            result.push({ "feldname": fn, "wert": wert })
+        }
         return result
     }
 

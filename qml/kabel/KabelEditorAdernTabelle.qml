@@ -159,7 +159,7 @@ Item {
                         onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     text,
                             "farbe":           tfAderFarbe.text,
-                            "querschnitt_mm2": parseFloat(tfAderMm2.text) || 0
+                            "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
                         })
                     }
 
@@ -175,25 +175,45 @@ Item {
                         onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
                             "farbe":           text,
-                            "querschnitt_mm2": parseFloat(tfAderMm2.text) || 0
+                            "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
                         })
                     }
 
-                    NavTextField {
+                    ComboBox {
                         id: tfAderMm2
-                        tabTarget:     tfAderBez
-                        backtabTarget: tfAderFarbe
                         Layout.fillWidth: true
-                        text: modelData.querschnittMm2 > 0 ? modelData.querschnittMm2.toFixed(2) : ""
-                        placeholderText: "1.5"
-                        font.pixelSize: 11; implicitHeight: 26
-                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        implicitHeight: 26
+                        model: [0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
+                                10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
+                                185.0, 240.0, 300.0]
+                        currentIndex: {
+                            var q = modelData.querschnittMm2 || 0
+                            for (var i = 0; i < model.length; i++)
+                                if (Math.abs(model[i] - q) < 0.001) return i
+                            return -1
+                        }
+                        displayText: currentIndex >= 0 ? model[currentIndex] + "" : "—"
+                        font.pixelSize: 11
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
-                        color: root.theme.textPrimary
-                        onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
+                        contentItem: Text {
+                            leftPadding: 6
+                            text: tfAderMm2.displayText
+                            color: root.theme.textPrimary; font.pixelSize: 11
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        delegate: ItemDelegate {
+                            width: tfAderMm2.width; implicitHeight: 24
+                            contentItem: Text {
+                                leftPadding: 6; text: modelData + ""; font.pixelSize: 11
+                                color: root.theme.textPrimary; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
+                            highlighted: tfAderMm2.highlightedIndex === index
+                        }
+                        onActivated: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
                             "farbe":           tfAderFarbe.text,
-                            "querschnitt_mm2": parseFloat(text) || 0
+                            "querschnitt_mm2": currentIndex >= 0 ? model[currentIndex] : 0
                         })
                     }
 
@@ -272,14 +292,30 @@ Item {
                 ColumnLayout {
                     spacing: 2
                     Text { text: qsTr("mm²"); color: root.theme.textMuted; font.pixelSize: 10 }
-                    TextField {
+                    ComboBox {
                         id: bulkMm2
-                        implicitWidth:  70; implicitHeight: 24
+                        implicitWidth: 90; implicitHeight: 24
+                        model: ["—", 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
+                                10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
+                                185.0, 240.0, 300.0]
+                        currentIndex: 0
                         font.pixelSize: 11
-                        placeholderText: qsTr("leer = unveraendert")
-                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        property real gewaehlterWert: currentIndex > 0 ? model[currentIndex] : 0
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
-                        color: root.theme.textPrimary
+                        contentItem: Text {
+                            leftPadding: 6; text: bulkMm2.displayText
+                            color: root.theme.textPrimary; font.pixelSize: 11
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        delegate: ItemDelegate {
+                            width: bulkMm2.width; implicitHeight: 24
+                            contentItem: Text {
+                                leftPadding: 6; text: modelData + ""; font.pixelSize: 11
+                                color: root.theme.textPrimary; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
+                            highlighted: bulkMm2.highlightedIndex === index
+                        }
                     }
                 }
 
@@ -312,11 +348,11 @@ Item {
                     }
                     onClicked: {
                         var daten = {}
-                        if (bulkFarbe.text.trim() !== "") daten["farbe"]          = bulkFarbe.text.trim()
-                        if (bulkMm2.text.trim()   !== "") daten["querschnitt_mm2"] = bulkMm2.text.trim()
-                        if (bulkBez.text.trim()   !== "") daten["bezeichnung"]    = bulkBez.text.trim()
+                        if (bulkFarbe.text.trim() !== "") daten["farbe"]           = bulkFarbe.text.trim()
+                        if (bulkMm2.currentIndex  >  0)   daten["querschnitt_mm2"] = bulkMm2.model[bulkMm2.currentIndex]
+                        if (bulkBez.text.trim()   !== "") daten["bezeichnung"]     = bulkBez.text.trim()
                         kabelModel.aderMehrfachAktualisieren(root._ausgewaehlt, daten)
-                        bulkFarbe.text = ""; bulkMm2.text = ""; bulkBez.text = ""
+                        bulkFarbe.text = ""; bulkMm2.currentIndex = 0; bulkBez.text = ""
                     }
                     ToolTip.visible: hovered; ToolTip.delay: 500
                     ToolTip.text: qsTr("Ausgefüllte Felder auf alle markierten Adern anwenden")

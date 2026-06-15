@@ -272,7 +272,7 @@ Item {
                                 delayed: true
                             }
                             onEditingFinished: {
-                                var v = parseFloat(text)
+                                var v = parseFloat(text.replace(",","."))
                                 if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * panel.canvas.mmToPx)
                             }
                             Keys.onEscapePressed: focus = false
@@ -316,7 +316,7 @@ Item {
                                 delayed: true
                             }
                             onEditingFinished: {
-                                var v = parseFloat(text)
+                                var v = parseFloat(text.replace(",","."))
                                 if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * panel.canvas.mmToPx)
                             }
                             Keys.onEscapePressed: focus = false

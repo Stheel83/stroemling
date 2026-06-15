@@ -54,7 +54,7 @@ ScrollView {
             "punkteSeitenB":      sbPktB.value,
             "fussKontaktPe":      swPe.checked,
             "stegbrueckeFaehig":  swSteg.checked,
-            "breiteMm":           parseFloat(tfBreite.text) || 0,
+            "breiteMm":           parseFloat(tfBreite.text.replace(",",".")) || 0,
             "gehaeuseFarbeId":    farbCombo.currentFarbId,
             "bemerkung":          tfBemerkung.text
         }
@@ -473,7 +473,7 @@ ScrollView {
                     Button {
                         text: "✓"; font.pixelSize: 10
                         onClicked: klemmeModel.querschnittSetzen(
-                            adertyp, parseFloat(tfMin.text) || 0, parseFloat(tfMax.text) || 0)
+                            adertyp, parseFloat(tfMin.text.replace(",",".")) || 0, parseFloat(tfMax.text.replace(",",".")) || 0)
                         background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 3; border.color: root.theme.accent }
                         contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 10;
                                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -552,10 +552,10 @@ ScrollView {
                     bauteilModel.bearbeiten(root.bauteilId,
                         tfStamBez.text.trim(), tfStamHer.text.trim(), tfStamArt.text.trim(),
                         tfStamLief.text.trim(),
-                        parseFloat(tfStamPreis.text) || 0,
-                        parseFloat(tfStamU.text)     || 0,
-                        parseFloat(tfStamI.text)     || 0,
-                        parseFloat(tfStamP.text)     || 0,
+                        parseFloat(tfStamPreis.text.replace(",",".")) || 0,
+                        parseFloat(tfStamU.text.replace(",","."))     || 0,
+                        parseFloat(tfStamI.text.replace(",","."))     || 0,
+                        parseFloat(tfStamP.text.replace(",","."))     || 0,
                         tfStamBem.text.trim(),
                         tfStamUrlHer.text.trim(), tfStamUrlDat.text.trim())
                     if (klemmeModel.hatKlemme)

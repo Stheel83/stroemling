@@ -29,7 +29,7 @@ Item {
         var quellen  = [], schalter = [], verbraucher = []
         for (var i = 0; i < alle.length; i++) {
             var el  = alle[i]
-            if (!pfadSet[el.id || -1]) continue
+            if (pfadSet[el.id || -1] === undefined) continue
             if (el.typ !== "symbol")   continue
             var bmk = (el.extraDaten || {}).bmk || ""
             if (!bmk) continue

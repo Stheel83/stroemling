@@ -14,8 +14,10 @@ Item {
     property var canvas: null
 
     // Gültig sobald canvas eine Verbindung hat
-    readonly property int    pfadAnzahl:     canvas ? Object.keys(canvas.fehlersuchPfadIds).length : 0
-    readonly property var    querverweise:   canvas ? canvas.fehlersuchQuerverweise : []
+    readonly property int    pfadAnzahl:        canvas ? Object.keys(canvas.fehlersuchPfadIds).length : 0
+    readonly property var    querverweise:       canvas ? canvas.fehlersuchQuerverweise : []
+    readonly property var    unterbrechungen:    canvas ? canvas.fehlersuchUnterbrechungen : {}
+    readonly property var    unterbrechungsIds:  canvas ? Object.keys(canvas.fehlersuchUnterbrechungen) : []
 
     signal querverweisNavigieren(int seiteId, real x, real y)
     signal geschlossen()
@@ -223,6 +225,52 @@ Item {
                                   .arg(modelData.bezeichnung || "?")
                             font.pixelSize: 10
                             color: theme.borderLight
+                        }
+                    }
+                }
+
+                // ── Unterbrechungen (Trenner) ─────────────────────────
+                Item {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 12
+                    Layout.leftMargin: 14
+                    implicitHeight: ubrHeaderText.implicitHeight
+                    visible: root.pfadAnzahl > 0 && root.unterbrechungsIds.length > 0
+
+                    Text {
+                        id: ubrHeaderText
+                        text: qsTr("Pfad unterbrochen bei:")
+                        font.pixelSize: 11; font.weight: Font.Medium
+                        color: "#e04040"
+                    }
+                }
+
+                Repeater {
+                    model: root.unterbrechungsIds
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 36
+                        color: "transparent"
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 14; rightMargin: 10 }
+                            spacing: 8
+
+                            Rectangle {
+                                width: 10; height: 10; radius: 5
+                                color: "transparent"
+                                border.color: "#e04040"
+                                border.width: 2
+                            }
+
+                            Text {
+                                text: root.unterbrechungen[modelData] || qsTr("(Trenner)")
+                                font.pixelSize: 12
+                                color: "#e04040"
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
                         }
                     }
                 }

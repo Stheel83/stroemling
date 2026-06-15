@@ -6,9 +6,10 @@ QtObject {
     required property var cv
 
     function fehlersuchPfadZuruecksetzen() {
-        cv.fehlersuchPfadIds      = {}
-        cv.fehlersuchStartId      = -1
-        cv.fehlersuchQuerverweise = []
+        cv.fehlersuchPfadIds          = {}
+        cv.fehlersuchStartId          = -1
+        cv.fehlersuchQuerverweise     = []
+        cv.fehlersuchUnterbrechungen  = {}
         cv.fehlersuchPfadGefunden([])
         cv._drawCanvas.requestPaint()
     }
@@ -83,7 +84,7 @@ QtObject {
         }
 
         // BFS ab Startindex
-        var pfadIds = {}, besucht = {}, queue = [startIdx], querv = []
+        var pfadIds = {}, besucht = {}, queue = [startIdx], querv = [], unterbr = {}
         besucht[startIdx] = true
         pfadIds[elems[startIdx].id] = true
 
@@ -109,9 +110,14 @@ QtObject {
                         // Querverweis: nicht weiterverfolgen
                     } else {
                         var _rolle = symbolDefinitionModel.rolleForSymbol(_sid)
-                        if (_rolle !== "verbraucher" && _rolle !== "trenner")
+                        if (_rolle === "trenner") {
+                            // Unterbrechungspunkt: im Pfad, aber nicht weiterverfolgen
+                            var _uEd = nb.extraDaten || {}
+                            unterbr[nb.id] = _uEd.bmk || _uEd.bezeichnung || _sid
+                        } else if (_rolle !== "verbraucher") {
                             queue.push(nbIdx)
-                        // verbraucher/trenner: im Pfad, aber nicht weiterverfolgen
+                        }
+                        // verbraucher: im Pfad, aber nicht weiterverfolgen
                     }
                 } else {
                     queue.push(nbIdx)
@@ -119,9 +125,10 @@ QtObject {
             }
         }
 
-        cv.fehlersuchPfadIds      = pfadIds
-        cv.fehlersuchStartId      = startElementId
-        cv.fehlersuchQuerverweise = querv
+        cv.fehlersuchPfadIds         = pfadIds
+        cv.fehlersuchStartId         = startElementId
+        cv.fehlersuchQuerverweise    = querv
+        cv.fehlersuchUnterbrechungen = unterbr
         cv.fehlersuchPfadGefunden(querv)
         cv._drawCanvas.requestPaint()
     }

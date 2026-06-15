@@ -241,10 +241,11 @@ Item {
     property var  _spsKonfliktSet: ({})   // elementId → true  (mehr als 1 Kanal zugewiesen)
 
     // ── Fehlersuchmodus ──────────────────────────────────────
-    property bool fehlersuchModus:        false
-    property var  fehlersuchPfadIds:      ({})  // elementId → true (im Pfad)
-    property int  fehlersuchStartId:      -1
-    property var  fehlersuchQuerverweise: []    // [{x, y, bezeichnung}]
+    property bool fehlersuchModus:           false
+    property var  fehlersuchPfadIds:         ({})  // elementId → true (im Pfad)
+    property int  fehlersuchStartId:         -1
+    property var  fehlersuchQuerverweise:    []    // [{x, y, bezeichnung}]
+    property var  fehlersuchUnterbrechungen: ({})  // elementId → bmk-String (Trenner)
 
     // Aliases damit CanvasAktionenHandler auf interne IDs zugreifen kann
     property alias _drawCanvas:    drawCanvas
@@ -1454,6 +1455,22 @@ Item {
                     ctx.beginPath()
                     ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
                     ctx.strokeStyle = root.theme.accent
+                    ctx.lineWidth   = 2.5
+                    ctx.stroke()
+                    ctx.restore()
+                }
+
+                // ── Fehlersuch-Unterbrechungsmarker (Trenner) ────────
+                if (!vorschau && root.fehlersuchModus &&
+                        root.fehlersuchUnterbrechungen[(el.id || -1)] !== undefined) {
+                    var _fuR  = Math.max(5, 5 * root.zoom)
+                    var _fuCx = (vx1 + vx2) / 2
+                    var _fuCy = (vy1 + vy2) / 2
+                    ctx.save()
+                    ctx.globalAlpha = 0.9
+                    ctx.beginPath()
+                    ctx.arc(_fuCx, _fuCy, _fuR, 0, Math.PI * 2)
+                    ctx.strokeStyle = "#e04040"
                     ctx.lineWidth   = 2.5
                     ctx.stroke()
                     ctx.restore()
@@ -3664,9 +3681,10 @@ Item {
 
     onSeiteIdChanged: {
         if (root.fehlersuchModus) {
-            root.fehlersuchPfadIds      = {}
-            root.fehlersuchStartId      = -1
-            root.fehlersuchQuerverweise = []
+            root.fehlersuchPfadIds          = {}
+            root.fehlersuchStartId          = -1
+            root.fehlersuchQuerverweise     = []
+            root.fehlersuchUnterbrechungen  = {}
             root.fehlersuchPfadGefunden([])
         }
         if (seiteId < 0) {

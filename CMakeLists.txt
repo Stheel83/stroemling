@@ -154,6 +154,8 @@ qt_add_qml_module(stroemling_app
         qml/canvas/CanvasNavigationHandler.qml
         qml/canvas/CanvasDialogLayer.qml
         qml/canvas/CanvasAktionenHandler.qml
+        qml/canvas/CanvasFehlersuchHandler.qml
+        qml/canvas/CanvasVerdrahtungsHandler.qml
         qml/canvas/CanvasBildWerkzeug.qml
         qml/canvas/CanvasTextEditor.qml
         qml/canvas/CanvasMinimap.qml

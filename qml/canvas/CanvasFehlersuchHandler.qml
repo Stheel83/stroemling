@@ -131,6 +131,16 @@ QtObject {
         cv.fehlersuchQuerverweise    = querv
         cv.fehlersuchUnterbrechungen = unterbr
         cv.fehlersuchPfadGefunden(querv)
+
+        // §8.5: Startpunkt in den Viewport bringen wenn er außerhalb liegt
+        var _startEl = elems[startIdx]
+        var _swx = (_startEl.x1 + _startEl.x2) / 2
+        var _swy = (_startEl.y1 + _startEl.y2) / 2
+        var _svpX = _swx * cv.zoom + cv.worldX
+        var _svpY = _swy * cv.zoom + cv.worldY
+        if (_svpX < 0 || _svpX > cv.width || _svpY < 0 || _svpY > cv.height)
+            cv._zoomZuWeltPosition(_swx, _swy)
+
         cv._drawCanvas.requestPaint()
     }
 }

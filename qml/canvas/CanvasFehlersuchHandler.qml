@@ -8,13 +8,14 @@ QtObject {
     function fehlersuchPfadZuruecksetzen() {
         cv.fehlersuchPfadIds          = {}
         cv.fehlersuchStartId          = -1
+        cv.fehlersuchStartIds         = []
         cv.fehlersuchQuerverweise     = []
         cv.fehlersuchUnterbrechungen  = {}
         cv.fehlersuchPfadGefunden([])
         cv._drawCanvas.requestPaint()
     }
 
-    function fehlersuchPfadBerechnen(startElementId) {
+    function fehlersuchPfadBerechnen(startElementId, addierZuPfad) {
         var elems = cv.elementeModel.snapshot()
 
         var startIdx = -1
@@ -83,11 +84,19 @@ QtObject {
             adj[_b].push(_a)
         }
 
-        // BFS ab Startindex
-        var pfadIds = {}, besucht = {}, queue = [startIdx], querv = [], unterbr = {}
-        besucht[startIdx] = true
-        pfadIds[elems[startIdx].id] = true
+        // §8.7: pfadNr für diesen BFS-Lauf; bei additivem Modus vorhandene Pfade beibehalten
+        var pfadNr  = addierZuPfad ? cv.fehlersuchStartIds.length : 0
+        var pfadIds = addierZuPfad ? Object.assign({}, cv.fehlersuchPfadIds) : {}
+        var querv   = addierZuPfad ? cv.fehlersuchQuerverweise.slice()       : []
+        var unterbr = addierZuPfad ? Object.assign({}, cv.fehlersuchUnterbrechungen) : {}
 
+        // BFS ab Startindex – neue Elemente nur eintragen wenn noch nicht vorhanden
+        var besucht = {}
+        besucht[startIdx] = true
+        if (pfadIds[elems[startIdx].id] === undefined)
+            pfadIds[elems[startIdx].id] = pfadNr
+
+        var queue = [startIdx]
         while (queue.length > 0) {
             var curIdx = queue.shift()
             var nachbarn = adj[curIdx] || []
@@ -96,7 +105,8 @@ QtObject {
                 if (besucht[nbIdx]) continue
                 besucht[nbIdx] = true
                 var nb = elems[nbIdx]
-                pfadIds[nb.id] = true
+                // Bereits in anderem Pfad: weiterverfolgen, aber nicht überschreiben
+                if (pfadIds[nb.id] === undefined) pfadIds[nb.id] = pfadNr
 
                 if (nb.typ === "symbol") {
                     var _sid = nb.symbolId || ""
@@ -112,13 +122,11 @@ QtObject {
                     } else {
                         var _rolle = symbolDefinitionModel.rolleForSymbol(_sid)
                         if (_rolle === "trenner") {
-                            // Unterbrechungspunkt: im Pfad, aber nicht weiterverfolgen
                             var _uEd = nb.extraDaten || {}
                             unterbr[nb.id] = _uEd.bmk || _uEd.bezeichnung || _sid
                         } else if (_rolle !== "verbraucher") {
                             queue.push(nbIdx)
                         }
-                        // verbraucher: im Pfad, aber nicht weiterverfolgen
                     }
                 } else {
                     queue.push(nbIdx)
@@ -128,6 +136,9 @@ QtObject {
 
         cv.fehlersuchPfadIds         = pfadIds
         cv.fehlersuchStartId         = startElementId
+        cv.fehlersuchStartIds        = addierZuPfad
+            ? cv.fehlersuchStartIds.concat([startElementId])
+            : [startElementId]
         cv.fehlersuchQuerverweise    = querv
         cv.fehlersuchUnterbrechungen = unterbr
         cv.fehlersuchPfadGefunden(querv)

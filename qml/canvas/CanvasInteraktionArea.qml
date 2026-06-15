@@ -324,12 +324,14 @@ MouseArea {
 
         // ── Fehlersuchmodus: Klick wählt Startelement ────────
         if (canvas.fehlersuchModus) {
-            var fsvp = toViewport(mouse.x, mouse.y)
+            var fsvp  = toViewport(mouse.x, mouse.y)
             var fsIdx = canvas.elementBeiPosition(fsvp.x, fsvp.y)
+            var shift = !!(mouse.modifiers & Qt.ShiftModifier)
             if (fsIdx >= 0) {
                 var fsEl = canvas.elementeModel.element(fsIdx)
-                canvas.fehlersuchPfadBerechnen(fsEl.id || -1)
-            } else {
+                canvas.fehlersuchPfadBerechnen(fsEl.id || -1, shift)
+            } else if (!shift) {
+                // Shift + Klick ins Leere: nichts tun (Pfade bleiben)
                 canvas.fehlersuchPfadZuruecksetzen()
             }
             return

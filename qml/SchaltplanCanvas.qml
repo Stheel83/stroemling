@@ -244,10 +244,16 @@ Item {
 
     // ── Fehlersuchmodus ──────────────────────────────────────
     property bool fehlersuchModus:           false
-    property var  fehlersuchPfadIds:         ({})  // elementId → true (im Pfad)
-    property int  fehlersuchStartId:         -1
-    property var  fehlersuchQuerverweise:    []    // [{x, y, bezeichnung}]
+    property var  fehlersuchPfadIds:         ({})  // elementId → pfadNr (int, 0-indexed)
+    property int  fehlersuchStartId:         -1    // zuletzt gestarteter Pfad (für §8.6 History)
+    property var  fehlersuchStartIds:        []    // startElementId je Pfad (Index = pfadNr)
+    property var  fehlersuchQuerverweise:    []    // [{x, y, bezeichnung, ...}]
     property var  fehlersuchUnterbrechungen: ({})  // elementId → bmk-String (Trenner)
+
+    // Farbpalette für Parallelpfade (pfadNr 0 = accent, 1 = orange, …)
+    readonly property var _fehlersuchPfadFarben: [
+        theme.accent, "#e08030", "#30c060", "#c030c0", "#30c0c0"
+    ]
 
     // Aliases damit CanvasAktionenHandler auf interne IDs zugreifen kann
     property alias _drawCanvas:    drawCanvas
@@ -256,7 +262,7 @@ Item {
     signal fehlersuchPfadGefunden(var querverweise)
 
     function fehlersuchPfadZuruecksetzen() { fehlersuchHandler.fehlersuchPfadZuruecksetzen() }
-    function fehlersuchPfadBerechnen(startElementId) { fehlersuchHandler.fehlersuchPfadBerechnen(startElementId) }
+    function fehlersuchPfadBerechnen(startElementId, addierZuPfad) { fehlersuchHandler.fehlersuchPfadBerechnen(startElementId, addierZuPfad) }
 
     CanvasFehlersuchHandler { id: fehlersuchHandler; cv: root }
 
@@ -1446,20 +1452,24 @@ Item {
                     ctx.restore()
                 }
 
-                // ── Fehlersuch-Startpunkt-Marker ─────────────────────
-                if (!vorschau && root.fehlersuchModus &&
-                        (el.id || -1) === root.fehlersuchStartId) {
-                    var _fsR  = Math.max(4, 4 * root.zoom)
-                    var _fsCx = (vx1 + vx2) / 2
-                    var _fsCy = (vy1 + vy2) / 2
-                    ctx.save()
-                    ctx.globalAlpha = 0.85
-                    ctx.beginPath()
-                    ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
-                    ctx.strokeStyle = root.theme.accent
-                    ctx.lineWidth   = 2.5
-                    ctx.stroke()
-                    ctx.restore()
+                // ── Fehlersuch-Startpunkt-Marker (farbig je Pfad) ───
+                if (!vorschau && root.fehlersuchModus) {
+                    var _fsPfadNr = root.fehlersuchPfadIds[(el.id || -1)]
+                    if (_fsPfadNr !== undefined &&
+                            root.fehlersuchStartIds[_fsPfadNr] === (el.id || -1)) {
+                        var _fsR  = Math.max(4, 4 * root.zoom)
+                        var _fsCx = (vx1 + vx2) / 2
+                        var _fsCy = (vy1 + vy2) / 2
+                        ctx.save()
+                        ctx.globalAlpha = 0.85
+                        ctx.beginPath()
+                        ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
+                        ctx.strokeStyle = root._fehlersuchPfadFarben[
+                            _fsPfadNr % root._fehlersuchPfadFarben.length]
+                        ctx.lineWidth   = 2.5
+                        ctx.stroke()
+                        ctx.restore()
+                    }
                 }
 
                 // ── Fehlersuch-Unterbrechungsmarker (Trenner) ────────
@@ -3685,6 +3695,7 @@ Item {
         if (root.fehlersuchModus) {
             root.fehlersuchPfadIds          = {}
             root.fehlersuchStartId          = -1
+            root.fehlersuchStartIds         = []
             root.fehlersuchQuerverweise     = []
             root.fehlersuchUnterbrechungen  = {}
             root.fehlersuchPfadGefunden([])

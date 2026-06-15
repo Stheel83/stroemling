@@ -431,6 +431,208 @@ QVariantList Database::kabelAderListeMitVerbindung(int projektId)
 }
 
 // ============================================================
+// kabelAderEndpunkteBerechnenUndSpeichern
+// Berechnet von_gerat_pin / nach_gerat_pin für alle kabel_adern des Projekts
+// rein aus der DB (ohne Canvas). Nutzt verbindung_segment-Endpunkte und
+// sucht geometrisch benachbarte Endpunkt-Symbole (geraeteanschluss,
+// klemme_anschluss, potenzial, isoliert_gelegte_ader). Speichert direkt.
+// ============================================================
+bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
+{
+    // ── 1. Adern mit verbindung_id und Seite der Kabellinie ────────
+    struct AderInfo { int kabelId, aderNr, verbId, seiteId; };
+    QVector<AderInfo> adern;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT ka.kabel_id, ka.ader_nr, ka.verbindung_id, ge.seite_id
+            FROM kabel_ader ka
+            JOIN kabel k  ON k.id  = ka.kabel_id
+                          AND k.projekt_id = :pid
+            JOIN grafik_element ge ON ge.id = ka.kabellinie_grafik_element_id
+            WHERE ka.verbindung_id          > 0
+              AND ka.kabellinie_grafik_element_id > 0
+        )");
+        q.bindValue(":pid", projektId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelAderEndpunkteBerechnen (adern):" << q.lastError().text();
+            return false;
+        }
+        while (q.next())
+            adern.append({q.value(0).toInt(), q.value(1).toInt(),
+                          q.value(2).toInt(), q.value(3).toInt()});
+    }
+    if (adern.isEmpty()) return true;
+
+    // ── 2. Segment-Punkte aller relevanten Verbindungen ───────────
+    // Schlüssel: (verbindungId << 32) | seiteId
+    QHash<qint64, QVector<QPointF>> segPunkte;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT vs.verbindung_id, vs.seite_id,
+                   CAST(json_extract(vs.punkte,'$[0].x') AS REAL),
+                   CAST(json_extract(vs.punkte,'$[0].y') AS REAL),
+                   CAST(json_extract(vs.punkte,'$[1].x') AS REAL),
+                   CAST(json_extract(vs.punkte,'$[1].y') AS REAL)
+            FROM verbindung_segment vs
+            JOIN verbindung v ON v.id = vs.verbindung_id
+                              AND v.projekt_id = :pid
+        )");
+        q.bindValue(":pid", projektId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelAderEndpunkteBerechnen (segmente):" << q.lastError().text();
+            return false;
+        }
+        while (q.next()) {
+            qint64 key = ((qint64)q.value(0).toInt() << 32) | (quint32)q.value(1).toInt();
+            segPunkte[key].append({q.value(2).toDouble(), q.value(3).toDouble()});
+            segPunkte[key].append({q.value(4).toDouble(), q.value(5).toDouble()});
+        }
+    }
+
+    // ── 3. Endpunkt-Elemente nach Seite ───────────────────────────
+    struct EndEl { int idx; QString symbolId; double cx, cy; QJsonObject extra; };
+    QHash<int, QVector<EndEl>> endEls; // seiteId → []
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT ge.seite_id, ge.symbol_id,
+                   (ge.x1 + ge.x2) / 2.0, (ge.y1 + ge.y2) / 2.0,
+                   COALESCE(ge.extra_daten, '{}')
+            FROM grafik_element ge
+            JOIN seite s ON s.id = ge.seite_id AND s.projekt_id = :pid
+            WHERE ge.symbol_id IN ('geraeteanschluss','klemme_anschluss',
+                                   'potenzial','isoliert_gelegte_ader')
+        )");
+        q.bindValue(":pid", projektId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelAderEndpunkteBerechnen (endels):" << q.lastError().text();
+            return false;
+        }
+        while (q.next()) {
+            int sid = q.value(0).toInt();
+            EndEl el;
+            el.idx      = endEls[sid].size();
+            el.symbolId = q.value(1).toString();
+            el.cx       = q.value(2).toDouble();
+            el.cy       = q.value(3).toDouble();
+            auto doc    = QJsonDocument::fromJson(q.value(4).toString().toUtf8());
+            el.extra    = doc.isObject() ? doc.object() : QJsonObject{};
+            endEls[sid].append(el);
+        }
+    }
+
+    // ── 4. Gerätekasten nach Seite (für geraeteanschluss BMK) ─────
+    struct GkEl { double x1, y1, x2, y2; QString bmk; };
+    QHash<int, QVector<GkEl>> gkMap; // seiteId → []
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT ge.seite_id, ge.x1, ge.y1, ge.x2, ge.y2,
+                   COALESCE(json_extract(ge.extra_daten,'$.bmk'), '')
+            FROM grafik_element ge
+            JOIN seite s ON s.id = ge.seite_id AND s.projekt_id = :pid
+            WHERE ge.typ = 'geraetekasten'
+        )");
+        q.bindValue(":pid", projektId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelAderEndpunkteBerechnen (gk):" << q.lastError().text();
+            return false;
+        }
+        while (q.next()) {
+            int sid = q.value(0).toInt();
+            GkEl gk{ q.value(1).toDouble(), q.value(2).toDouble(),
+                     q.value(3).toDouble(), q.value(4).toDouble(),
+                     q.value(5).toString() };
+            gkMap[sid].append(gk);
+        }
+    }
+
+    // ── 5. Verbindungs-Bezeichnungen (für potenzial-Label) ────────
+    QHash<int, QString> verbBez;
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT id, COALESCE(bezeichnung,'') FROM verbindung WHERE projekt_id = :pid");
+        q.bindValue(":pid", projektId);
+        if (q.exec())
+            while (q.next())
+                verbBez[q.value(0).toInt()] = q.value(1).toString();
+    }
+
+    // ── Hilfsfunktion: Endpunkt-String formatieren ─────────────────
+    auto formatEndpunkt = [&](const EndEl &el, int seiteId, int verbId) -> QString {
+        if (el.symbolId == QLatin1String("geraeteanschluss")) {
+            const QString ank = el.extra[QStringLiteral("anschlussKennzeichnung")].toString();
+            const GkEl *best  = nullptr;
+            double bestArea   = std::numeric_limits<double>::max();
+            for (const GkEl &gk : gkMap.value(seiteId)) {
+                double xMin = std::min(gk.x1,gk.x2), xMax = std::max(gk.x1,gk.x2);
+                double yMin = std::min(gk.y1,gk.y2), yMax = std::max(gk.y1,gk.y2);
+                if (el.cx >= xMin && el.cx <= xMax && el.cy >= yMin && el.cy <= yMax) {
+                    double a = (xMax-xMin)*(yMax-yMin);
+                    if (a < bestArea) { bestArea = a; best = &gk; }
+                }
+            }
+            const QString bmk = best ? best->bmk : QString{};
+            return bmk.isEmpty() ? ank : (bmk + QLatin1Char(':') + ank);
+        }
+        if (el.symbolId == QLatin1String("klemme_anschluss")) {
+            const QString abez = el.extra[QStringLiteral("anschlussBezeichnung")].toString();
+            const QString bmk  = el.extra[QStringLiteral("bmk")].toString();
+            return bmk.isEmpty() ? abez : (bmk + QLatin1Char(':') + abez);
+        }
+        if (el.symbolId == QLatin1String("potenzial")) {
+            const QString sn = el.extra[QStringLiteral("signalname")].toString();
+            const QString bz = verbBez.value(verbId);
+            return bz.isEmpty() ? sn : bz;
+        }
+        if (el.symbolId == QLatin1String("isoliert_gelegte_ader"))
+            return QStringLiteral("isoliert");
+        return {};
+    };
+
+    // ── 6. Matching: Segment-Punkte ↔ Endpunkt-Elemente ──────────
+    // Toleranz 3 Einheiten (deckt Abstand Symbolzentrum ↔ Pin ab)
+    constexpr double TOL = 3.0;
+    QVariantList ergebnisse;
+
+    for (const AderInfo &ad : adern) {
+        qint64 key = ((qint64)ad.verbId << 32) | (quint32)ad.seiteId;
+        const QVector<QPointF> &punkte = segPunkte.value(key);
+        if (punkte.isEmpty()) continue;
+
+        const QVector<EndEl> &els = endEls.value(ad.seiteId);
+        QString von, nach;
+        int vonIdx = -1;
+
+        for (const QPointF &pt : punkte) {
+            for (const EndEl &el : els) {
+                if (std::abs(el.cx - pt.x()) > TOL || std::abs(el.cy - pt.y()) > TOL)
+                    continue;
+                if (von.isEmpty()) {
+                    von    = formatEndpunkt(el, ad.seiteId, ad.verbId);
+                    vonIdx = el.idx;
+                } else if (el.idx != vonIdx && nach.isEmpty()) {
+                    nach = formatEndpunkt(el, ad.seiteId, ad.verbId);
+                }
+                if (!von.isEmpty() && !nach.isEmpty()) break;
+            }
+            if (!von.isEmpty() && !nach.isEmpty()) break;
+        }
+
+        ergebnisse.append(QVariantMap{
+            { QStringLiteral("kabelId"), ad.kabelId },
+            { QStringLiteral("aderNr"),  ad.aderNr  },
+            { QStringLiteral("von"),     von         },
+            { QStringLiteral("nach"),    nach         },
+        });
+    }
+
+    return kabelAderEndpunkteBulkSetzen(projektId, ergebnisse);
+}
+
+// ============================================================
 // kabelAderEndpunkteBulkSetzen
 // Speichert Von/Nach-Gerät:Pin für eine Liste von kabel_adern.
 // adern: [{kabelId, aderNr, von, nach}]

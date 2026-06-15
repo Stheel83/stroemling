@@ -483,6 +483,10 @@ public:
     // adern: [{kabelId, aderNr, von, nach}]
     Q_INVOKABLE bool kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &adern);
 
+    // Von/Nach-Endpunkte für alle kabel_adern eines Projekts aus der DB berechnen und speichern.
+    // Läuft ohne Canvas; nutzt verbindung_segment + grafik_element für geometrisches Matching.
+    Q_INVOKABLE bool kabelAderEndpunkteBerechnenUndSpeichern(int projektId);
+
     // Kabel samt Adern und grafik_element löschen (wird beim Löschen der Kabellinie gerufen).
     Q_INVOKABLE bool kabelLoeschen(int kabelId);
 

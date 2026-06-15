@@ -337,7 +337,8 @@ Item {
                         id: refreshMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (panel.canvas) panel.canvas.verdrahtungswegeAktualisieren()
+                            if (panel.projektId >= 0)
+                                db.kabelAderEndpunkteBerechnenUndSpeichern(panel.projektId)
                             panel.laden()
                         }
                     }

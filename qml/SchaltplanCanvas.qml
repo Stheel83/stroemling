@@ -804,7 +804,7 @@ Item {
             if (!vorschau && root.fehlersuchModus) {
                 var pfadKeys = Object.keys(root.fehlersuchPfadIds)
                 if (pfadKeys.length > 0) {
-                    if (root.fehlersuchPfadIds[(el.id || -1)]) {
+                    if (root.fehlersuchPfadIds[(el.id || -1)] !== undefined) {
                         dimFaktor = 1.0
                     } else {
                         dimFaktor = 0.12
@@ -822,7 +822,7 @@ Item {
             var er  = el.eckenRadius      !== undefined ? el.eckenRadius      : 0
 
             // Leitungen im Pfad: Akzentfarbe + dickere Linie
-            if (!vorschau && root.fehlersuchModus && root.fehlersuchPfadIds[(el.id || -1)] &&
+            if (!vorschau && root.fehlersuchModus && root.fehlersuchPfadIds[(el.id || -1)] !== undefined &&
                     (el.typ === "linie" || el.typ === "polygonlinie")) {
                 sf = root.theme.accent
                 sb = sb + 0.8
@@ -2712,8 +2712,8 @@ Item {
                     if (_fsAktiv) {
                         var _eA = elementeModel.element(seg.elIdxA)
                         var _eB = elementeModel.element(seg.elIdxB)
-                        var _imPfad = !!(root.fehlersuchPfadIds[(_eA.id || -1)]
-                                      && root.fehlersuchPfadIds[(_eB.id || -1)])
+                        var _imPfad = root.fehlersuchPfadIds[(_eA.id || -1)] !== undefined
+                                   && root.fehlersuchPfadIds[(_eB.id || -1)] !== undefined
                         ctx.globalAlpha = _imPfad ? 1.0 : 0.12
                     } else {
                         ctx.globalAlpha = 1.0

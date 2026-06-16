@@ -42,8 +42,8 @@ Danach den relevanten Log-Ausschnitt einfügen (journalctl-Output).
 ```
 Build:            cd build && make -j$(nproc)
 Schema-Version:   wird über schema_migration-Tabelle verwaltet (SCHEMA_VERSION-Konstante entfällt)
-                  Neue Migration → alleMigrationen() in src/database/Database.cpp ergänzen
-DB-Pfad:          ~/.local/share/Strömling Design/stroemling.db
+                  Neue Migration → alleMigrationen() in src/database/Database_Schema.cpp ergänzen
+DB-Pfad:          ~/.local/share/Stroemling_Design/stroemling.db
 DB zurücksetzen:  Datei löschen → App neu starten (alle Migrationen laufen erneut)
 Neue QML-Datei:   1) CMakeLists.txt unter QML_FILES eintragen
                   2) cmake .. im build-Ordner ausführen
@@ -69,7 +69,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | **`konzept/architektur/`** | **Wie ist die App gebaut?** | |
 | `konzept/architektur/01_vision_architektur.md` | Projektziele, Stack, Schichtenmodell, Abgrenzung | ✅ |
 | `konzept/architektur/02_datenbankschema.md` | Alle Tabellen, Views, Relationen, Schema-Strategie | ✅ |
-| `konzept/architektur/03_canvas_zeichenfläche.md` | Canvas-Modi, Zoom/Pan, Raster, Hintergrundfarbe | ✅ |
+| `konzept/architektur/03_canvas_zeichenfläche.md` | Canvas-Modi, Zoom/Pan, Raster, Hintergrundfarbe, Mehrfachauswahl (Fenster/Schneiden) | ✅ |
 | `konzept/architektur/10_ui_terminologie.md` | Verbindliche Bezeichnungen für alle Fenster, Panels und Bereiche | ✅ |
 | `konzept/architektur/17_qml_struktur.md` | QML-Dateistruktur aller Unterordner, Architektur-Konventionen, EP-Auslöserbedingungen | ✅ |
 | `konzept/architektur/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund | ✅ |
@@ -160,10 +160,10 @@ UI-Konsistenz-Korrekturen – nicht nur für neue Features.
 
 ### Migrations-System (ab R4 aktiv)
 - Datenbankschema wird **nicht** mehr bei jedem Start neu aufgebaut
-- Schemaänderungen kommen als inkrementelle Migration in `alleMigrationen()` in `Database.cpp`
+- Schemaänderungen kommen als inkrementelle Migration in `alleMigrationen()` in `Database_Schema.cpp`
 - Jede Migration bekommt eine aufsteigende Versionsnummer und eine `QStringList` mit SQL-Statements
-- **Vollständiger Rebuild** nur noch durch manuelles Löschen der DB-Datei (`~/.local/share/Strömling Design/stroemling.db`)
-- Datenbankdatei liegt in `~/.local/share/Strömling Design/stroemling.db` (R3 erledigt)
+- **Vollständiger Rebuild** nur noch durch manuelles Löschen der DB-Datei (`~/.local/share/Stroemling_Design/stroemling.db`)
+- Datenbankdatei liegt in `~/.local/share/Stroemling_Design/stroemling.db` (R3 erledigt, PATH-01 normalisiert)
 - `SCHEMA_VERSION`-Konstante entfällt – Versionierung über `schema_migration`-Tabelle
 
 ### QML-Dateien: Pflichtregistrierung in CMakeLists.txt

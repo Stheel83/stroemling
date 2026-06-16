@@ -567,12 +567,16 @@ MouseArea {
             }
 
             // Rubber-Band abschließen
+            // AutoCAD-Konvention: links→rechts gezogen = Fenster (Element muss
+            // komplett umschlossen sein), rechts→links gezogen = Schneiden
+            // (Überlappung reicht). Richtung anhand x2 < x1 (Endpunkt vs. Startpunkt).
             if (canvas.amRubberband) {
                 canvas.amRubberband = false
                 var rb = canvas.rubberbandRect
                 if (rb && (Math.abs(rb.x2 - rb.x1) > 5 || Math.abs(rb.y2 - rb.y1) > 5)) {
                     var rx1 = Math.min(rb.x1, rb.x2), ry1 = Math.min(rb.y1, rb.y2)
                     var rx2 = Math.max(rb.x1, rb.x2), ry2 = Math.max(rb.y1, rb.y2)
+                    var _ueberlappModus = rb.x2 < rb.x1
                     var gefunden = []
                     var _rbEls = em.snapshot()
                     for (var ri = 0; ri < _rbEls.length; ri++) {
@@ -581,8 +585,10 @@ MouseArea {
                         var ey1 = Math.min(re.y1, re.y2) * canvas.zoom + canvas.worldY
                         var ex2 = Math.max(re.x1, re.x2) * canvas.zoom + canvas.worldX
                         var ey2 = Math.max(re.y1, re.y2) * canvas.zoom + canvas.worldY
-                        if (ex1 >= rx1 && ey1 >= ry1 && ex2 <= rx2 && ey2 <= ry2)
-                            gefunden.push(ri)
+                        var treffer = _ueberlappModus
+                            ? (ex1 <= rx2 && ex2 >= rx1 && ey1 <= ry2 && ey2 >= ry1)
+                            : (ex1 >= rx1 && ey1 >= ry1 && ex2 <= rx2 && ey2 <= ry2)
+                        if (treffer) gefunden.push(ri)
                     }
                     canvas.auswahl = gefunden
                 }

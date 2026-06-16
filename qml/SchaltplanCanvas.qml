@@ -2928,14 +2928,25 @@ Item {
                     drawCanvas.maleKabelSchnitte(ctx, elemente[kli], _repaintNetze)
             }
             // Rubber-Band Auswahlrahmen
+            // AutoCAD-Konvention: links→rechts = Fenster (komplett umschlossene
+            // Elemente), rechts→links = Schneiden (Überlappung reicht). Farbe/
+            // Linienart geben während des Ziehens visuelles Feedback zum Modus.
             if (root.amRubberband && root.rubberbandRect) {
                 var rb = root.rubberbandRect
                 var rx = Math.min(rb.x1, rb.x2), ry = Math.min(rb.y1, rb.y2)
                 var rw = Math.abs(rb.x2 - rb.x1), rh = Math.abs(rb.y2 - rb.y1)
+                var _ueberlapp = rb.x2 < rb.x1
                 ctx.save()
-                ctx.setLineDash([4, 3])
-                ctx.strokeStyle = "#4a9eff"; ctx.lineWidth = 1
-                ctx.fillStyle   = "rgba(74, 158, 255, 0.07)"
+                if (_ueberlapp) {
+                    ctx.setLineDash([4, 3])
+                    ctx.strokeStyle = "#00e5a0"
+                    ctx.fillStyle   = "rgba(0, 229, 160, 0.08)"
+                } else {
+                    ctx.setLineDash([])
+                    ctx.strokeStyle = "#4a9eff"
+                    ctx.fillStyle   = "rgba(74, 158, 255, 0.07)"
+                }
+                ctx.lineWidth = 1
                 ctx.fillRect(rx, ry, rw, rh)
                 ctx.strokeRect(rx, ry, rw, rh)
                 ctx.restore()

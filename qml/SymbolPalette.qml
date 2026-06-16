@@ -462,36 +462,44 @@ Rectangle {
 
                     function drawByPrimitivPalette(ctx, symbolId, w, h) {
                         var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
+                        // Einheitlicher Skalierungsfaktor statt getrennt w/h, damit Kreise/Bögen
+                        // nicht zu Ellipsen verzerrt werden, wenn die Vorschau-Box (56x32) ein
+                        // anderes Seitenverhältnis hat als die Symbolgröße (z.B. 16x16mm).
+                        var scale = Math.min(w, h)
+                        var offX  = (w - scale) / 2
+                        var offY  = (h - scale) / 2
+                        function sx(nx) { return nx * scale + offX }
+                        function sy(ny) { return ny * scale + offY }
                         for (var i = 0; i < prims.length; i++) {
                             var p = prims[i]
                             ctx.setLineDash([])
                             switch (p.typ) {
                                 case "linie":
                                     ctx.beginPath()
-                                    ctx.moveTo(p.x1 * w, p.y1 * h)
-                                    ctx.lineTo(p.x2 * w, p.y2 * h)
+                                    ctx.moveTo(sx(p.x1), sy(p.y1))
+                                    ctx.lineTo(sx(p.x2), sy(p.y2))
                                     ctx.stroke()
                                     break
                                 case "rechteck":
-                                    ctx.strokeRect(p.x1 * w, p.y1 * h,
-                                                   (p.x2 - p.x1) * w, (p.y2 - p.y1) * h)
+                                    ctx.strokeRect(sx(p.x1), sy(p.y1),
+                                                   (p.x2 - p.x1) * scale, (p.y2 - p.y1) * scale)
                                     break
                                 case "kreis_offen":
                                     ctx.beginPath()
-                                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
+                                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
                                     ctx.stroke()
                                     break
                                 case "kreis_gefuellt":
                                     ctx.save()
                                     ctx.fillStyle = ctx.strokeStyle
                                     ctx.beginPath()
-                                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
+                                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
                                     ctx.fill()
                                     ctx.restore()
                                     break
                                 case "bogen":
                                     ctx.beginPath()
-                                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w,
+                                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale,
                                             p.winkel_von * Math.PI / 180,
                                             p.winkel_bis * Math.PI / 180,
                                             p.bogen_gegen_uhrzeiger)
@@ -501,19 +509,19 @@ Rectangle {
                                     ctx.save()
                                     ctx.fillStyle    = ctx.strokeStyle
                                     ctx.font         = (p.schrift_fett ? "bold " : "") +
-                                                       Math.round(p.schrift_relativ * h) + "px sans-serif"
+                                                       Math.round(p.schrift_relativ * scale) + "px sans-serif"
                                     ctx.textAlign    = p.text_align    || "center"
                                     ctx.textBaseline = p.text_baseline || "middle"
-                                    ctx.fillText(p.text_inhalt, p.x1 * w, p.y1 * h)
+                                    ctx.fillText(p.text_inhalt, sx(p.x1), sy(p.y1))
                                     ctx.restore()
                                     break
                                 case "dreieck_gefuellt":
                                     ctx.save()
                                     ctx.fillStyle = ctx.strokeStyle
                                     ctx.beginPath()
-                                    ctx.moveTo(p.x1 * w, p.y1 * h)
-                                    ctx.lineTo(p.x2 * w, p.y2 * h)
-                                    ctx.lineTo(p.x3 * w, p.y3 * h)
+                                    ctx.moveTo(sx(p.x1), sy(p.y1))
+                                    ctx.lineTo(sx(p.x2), sy(p.y2))
+                                    ctx.lineTo(sx(p.x3), sy(p.y3))
                                     ctx.closePath()
                                     ctx.fill()
                                     ctx.restore()

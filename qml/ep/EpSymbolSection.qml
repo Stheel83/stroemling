@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import stroemling
 import "../components"
@@ -44,12 +45,26 @@ Item {
     readonly property var _pinBezSkip: ({
         "querverweis": true, "winkel": true, "treffpunkt": true, "treffpunkt_l": true,
         "klemme_anschluss": true, "geraeteanschluss": true, "potenzial": true,
-        "aderdefinition": true
+        "aderdefinition": true, "isoliert_gelegte_ader": true
     })
 
     readonly property bool zeigtPinBez:
         panel.el && panel.el.typ === "symbol"
         && !_pinBezSkip[panel.el.symbolId || ""]
+
+    readonly property bool istSteckerOderBuchse:
+        panel.el && (panel.el.symbolId === "stecker" || panel.el.symbolId === "buchse")
+
+    // Pin 2 von Stecker/Buchse ist die fiktive Steckverbindung – keine eigene
+    // Beschriftung, Status stattdessen als "Gesteckt"/"Nicht gesteckt" (s.u.).
+    function _pinsFuerBeschriftung(symbolId) {
+        var pins = symbolDefinitionModel.pinsForSymbol(symbolId)
+        if (symbolId !== "stecker" && symbolId !== "buchse") return pins
+        var r = []
+        for (var i = 0; i < pins.length; i++)
+            if (pins[i].name !== "2") r.push(pins[i])
+        return r
+    }
 
     readonly property var _aktuellerPinBez:
         (panel.el && panel.el.extraDaten && panel.el.extraDaten.pinBez)
@@ -139,7 +154,9 @@ Item {
 
         // ── Pin-Bezeichnungen ────────────────────────────────────────────────
         // Sichtbar für alle Symbol-Typen die eigene Pin-Beschriftung unterstützen.
-        // Leeres Feld = kein Label auf dem Canvas.
+        // Vorausgefüllt mit dem Pin-Namen aus der Pinbelegung (symbol_pin.name) –
+        // wird in dieser Form auch automatisch auf dem Canvas angezeigt. Feld
+        // bearbeiten überschreibt das Label je Instanz in extraDaten.pinBez.
         Loader {
             active: root.zeigtPinBez
             width: parent.width
@@ -161,8 +178,28 @@ Item {
                         }
                     }
 
+                    // Steckverbindungsstatus – nur Stecker/Buchse (Pin 2 ist die fiktive
+                    // Steckverbindung, keine eigene Pin-Zeile, s. _pinsFuerBeschriftung).
+                    // _refresh referenziert für AOT-Reaktivität (Muster wie panel.el).
+                    Item {
+                        id: steBuStatus
+                        visible: root.istSteckerOderBuchse
+                        width: parent.width; height: visible ? 28 : 0
+
+                        readonly property bool verbunden:
+                            root.istSteckerOderBuchse && (panel._refresh * 0 === 0) && panel.canvas
+                            ? panel.canvas.hatLogischeVerbindung(panel.canvas.ausgewaehlt) : false
+
+                        Text {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            text: steBuStatus.verbunden ? qsTr("● Gesteckt") : qsTr("● Nicht gesteckt")
+                            font.pixelSize: 11
+                            color: steBuStatus.verbunden ? "#00e5a0" : "#f0a030"
+                        }
+                    }
+
                     Repeater {
-                        model: panel.el ? symbolDefinitionModel.pinsForSymbol(panel.el.symbolId || "") : []
+                        model: panel.el ? root._pinsFuerBeschriftung(panel.el.symbolId || "") : []
                         delegate: RowLayout {
                             width: parent.width; height: 28
                             spacing: 0
@@ -187,11 +224,11 @@ Item {
                                 TextInput {
                                     id: pinLabelTf
                                     anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
-                                    text: root._aktuellerPinBez[modelData.name] || ""
+                                    text: root._aktuellerPinBez[modelData.name] || modelData.name
                                     color: root.theme.accent; font.pixelSize: 11
                                     verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
                                     onEditingFinished: root._pinBezSpeichern(modelData.name, text.trim())
-                                    Keys.onEscapePressed: { text = root._aktuellerPinBez[modelData.name] || ""; focus = false }
+                                    Keys.onEscapePressed: { text = root._aktuellerPinBez[modelData.name] || modelData.name; focus = false }
                                 }
                             }
                         }

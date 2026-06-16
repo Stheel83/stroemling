@@ -274,6 +274,22 @@ Item {
 
     function neuZeichnen() { drawCanvas.requestPaint() }
 
+    // Prüft ob das Element mit Index idx an einer "logischen" Auto-Verbindung
+    // teilnimmt (Querverweis-Brücke, Klemmen-Durchleitung oder Stecker/Buchse
+    // Pin-2-Kopplung). Für EP-Statusanzeige (z.B. "Verbunden"-Badge bei Pin 2).
+    function hatLogischeVerbindung(idx) {
+        if (idx < 0) return false
+        var netze = drawCanvas.autoNetzeBerechnenCached()
+        for (var n = 0; n < netze.length; n++) {
+            var segs = netze[n].segmente
+            for (var s = 0; s < segs.length; s++) {
+                var sg = segs[s]
+                if (sg.logisch && (sg.elIdxA === idx || sg.elIdxB === idx)) return true
+            }
+        }
+        return false
+    }
+
     // Brücken-Funktionen für CanvasInteraktionArea
     function verbindungBeiPosition(x, y)   { return drawCanvas.verbindungBeiPosition(x, y) }
     function koordinatenTextSetzen(text)   { footerBar.koordinatenText = text }
@@ -721,10 +737,15 @@ Item {
         // Liest Primitive aus symbol_primitiv über symbolDefinitionModel und
         // zeichnet sie in den Koordinaten 0..w × 0..h.
         // ctx.strokeStyle und ctx.lineWidth werden vom Aufrufer gesetzt.
-        function drawByPrimitiv(ctx, symbolId, w, h) {
+        // farbUeberschreibung (optional): { primitivIndex: "#farbe" } – überschreibt
+        // ctx.strokeStyle für einzelne Primitive (Reihenfolge-Index = Array-Index).
+        function drawByPrimitiv(ctx, symbolId, w, h, farbUeberschreibung) {
             var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
+            var _basisStroke = ctx.strokeStyle
             for (var i = 0; i < prims.length; i++) {
                 var p = prims[i]
+                ctx.strokeStyle = (farbUeberschreibung && farbUeberschreibung[i] !== undefined)
+                                   ? farbUeberschreibung[i] : _basisStroke
 
                 // Linienart
                 switch (p.linienart) {
@@ -791,6 +812,7 @@ Item {
                         break
                 }
             }
+            ctx.strokeStyle = _basisStroke
             ctx.setLineDash([])
         }
 
@@ -1241,6 +1263,9 @@ Item {
             var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
             var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
             var sw = vx2 - vx1, sh = vy2 - vy1
+            // Stecker/Buchse: Verbindungsstatus einmal ermitteln (Pin-Marker + Primitiv-Einfärbung)
+            var _istSteBu  = (el.symbolId === "stecker" || el.symbolId === "buchse")
+            var _steBuOk   = (!vorschau && _istSteBu) ? root.hatLogischeVerbindung(idx) : false
             if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {
                 var scx = vx1 + sw/2, scy = vy1 + sh/2
                 var rot = (el.rotation || 0) * Math.PI / 180
@@ -1251,7 +1276,10 @@ Item {
                 if (el.spiegelX) ctx.scale(-1, 1)
                 if (el.spiegelY) ctx.scale(1, -1)
                 ctx.translate(-Math.abs(sw)/2, -Math.abs(sh)/2)
-                drawCanvas.drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh))
+                // Bei gestecktem Zustand: Bogen der Buchse / Rechteck des Steckers
+                // (jeweils Primitiv-Index 1) grün einfärben.
+                var _steBuFarbe = _steBuOk ? { 1: "#00e5a0" } : undefined
+                drawCanvas.drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
                 // Erweiterungsmodifier im lokalen Koordinatensystem (dreht/spiegelt mit)
                 if (!vorschau) {
                     var erw = (el.extraDaten && Array.isArray(el.extraDaten.erweiterungen))
@@ -1271,6 +1299,17 @@ Item {
                         var pp = drawCanvas.pinViewportPos(el, pins[pi].x, pins[pi].y)
                         var pr = gewaehlt ? 2.5 : 1.5
                         ctx.globalAlpha = gewaehlt ? 1.0 : 0.55
+                        // Stecker/Buchse Pin 2 (fiktive Steckverbindung): grün = gesteckt,
+                        // orange = offen – unabhängig von der Auswahl-Hervorhebung.
+                        if (_istSteBu && pins[pi].name === "2") {
+                            pr = Math.max(pr, 2.0)
+                            ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
+                            ctx.fillStyle   = _steBuOk ? "#00e5a0" : "#f0a030"
+                            ctx.strokeStyle = _steBuOk ? "#004d35" : "#7a4400"
+                            ctx.lineWidth   = 1.0
+                            ctx.fill(); ctx.stroke()
+                            continue
+                        }
                         ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
                         ctx.fillStyle   = gewaehlt ? "#00e5a0" : "#4a9eff"
                         ctx.strokeStyle = gewaehlt ? "#004d35" : "#0a2040"
@@ -1280,16 +1319,18 @@ Item {
                     ctx.globalAlpha = op
                 }
 
-                // Pin-Bezeichnungen aus extraDaten.pinBez rendern
-                // Format: { "pinName": "Anzeige-Label" } – nur wenn gesetzt.
+                // Pin-Bezeichnungen rendern: Default = Pin-Name aus der Pinbelegung
+                // (symbol_pin.name), ueberschreibbar je Instanz via extraDaten.pinBez.
+                // Format pinBez: { "pinName": "Anzeige-Label" }.
                 // Nicht für Verbindungshelfer (querverweis, winkel, treffpunkt, klemme_anschluss,
                 // geraeteanschluss, potenzial) – die haben eigene Beschriftungslogik.
                 if (!vorschau && !_skipText) {
                     var _pbEd  = el.extraDaten || {}
-                    var _pbBez = _pbEd.pinBez
+                    var _pbBez = _pbEd.pinBez || {}
                     var _pbSkip = { "querverweis":1,"winkel":1,"treffpunkt":1,"treffpunkt_l":1,
-                                    "klemme_anschluss":1,"geraeteanschluss":1,"potenzial":1,"aderdefinition":1 }
-                    if (_pbBez && !_pbSkip[el.symbolId || ""]) {
+                                    "klemme_anschluss":1,"geraeteanschluss":1,"potenzial":1,"aderdefinition":1,
+                                    "isoliert_gelegte_ader":1 }
+                    if (!_pbSkip[el.symbolId || ""]) {
                         var _pbPins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
                         if (_pbPins.length > 0) {
                             var _pbFs = Math.max(6, Math.round(1.8 * root.mmToPx * root.zoom))
@@ -1299,8 +1340,12 @@ Item {
                             ctx.globalAlpha = 1.0
                             for (var _pbI = 0; _pbI < _pbPins.length; _pbI++) {
                                 var _pbPin   = _pbPins[_pbI]
-                                var _pbLabel = _pbBez[_pbPin.name]
-                                if (!_pbLabel) continue
+                                // Stecker/Buchse Pin 2 (fiktive Steckverbindung) braucht keine
+                                // Beschriftung – der Verbindungsstatus wird stattdessen farblich
+                                // am Pin-Punkt und an Bogen/Rechteck angezeigt (s.u.).
+                                if ((el.symbolId === "stecker" || el.symbolId === "buchse") &&
+                                    _pbPin.name === "2") continue
+                                var _pbLabel = _pbBez[_pbPin.name] || _pbPin.name
                                 var _pbPos = drawCanvas.pinViewportPos(el, _pbPin.x, _pbPin.y)
                                 // Richtungsvektor mit Spiegelung + Rotation transformieren
                                 // (identisch zur Transformation in pinViewportPos)

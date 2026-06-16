@@ -332,6 +332,8 @@ struct PinInfo {
     double  offenX   = 0.0, offenY = 0.0;
     QString rolle;
     QString quellSig;
+    QString symbolId;
+    QString pinName;
 };
 
 struct Unterbrechung { double cx, cy, hw, hh; };
@@ -381,12 +383,33 @@ static bool vBlockiert(double x, double ay, double by,
     return false;
 }
 
+// Stecker/Buchse Pin 2 ist die fiktive Steckverbindung (kein Kabelanschluss):
+// sie darf sich ausschliesslich mit dem jeweiligen Gegenstueck verbinden,
+// nie mit einem anderen Symbol. Erkannte Verbindung wird "logisch" markiert
+// (wie Querverweis-Bruecken) - nicht gezeichnet, nur fuer die Potenzialkette.
+static bool istSteckerBuchsePin2(const PinInfo &p)
+{
+    return (p.symbolId == QLatin1String("stecker") || p.symbolId == QLatin1String("buchse"))
+           && p.pinName == QLatin1String("2");
+}
+
+static bool sindSteckerBuchsePartner(const PinInfo &a, const PinInfo &b)
+{
+    return (a.symbolId == QLatin1String("stecker") && a.pinName == QLatin1String("2") &&
+            b.symbolId == QLatin1String("buchse")  && b.pinName == QLatin1String("2"))
+        || (a.symbolId == QLatin1String("buchse")  && a.pinName == QLatin1String("2") &&
+            b.symbolId == QLatin1String("stecker") && b.pinName == QLatin1String("2"));
+}
+
 } // namespace
 
 QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
     const QVariantList &snapshot, double gridPx, const QVariantMap &normblatt) const
 {
     const double eps = 0.1;
+    // Max. Abstand fuer die fiktive Stecker/Buchse-Pin-2-Kopplung: 16mm.
+    // gridPx entspricht 1 Rastereinheit (4mm), daher 4 * gridPx.
+    const double steckerBuchseMaxAbstand = 4.0 * gridPx;
 
     // ── 1. Pin-Weltpositionen + blockierende Elemente sammeln ────────────
     QVector<PinInfo>      allePins;
@@ -468,6 +491,8 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
             pi.richtung = pinEffektiveRichtung(pin["richtung"].toString(), rotation);
             pi.rolle    = rolle;
             pi.quellSig = quellSig;
+            pi.symbolId = symbolId;
+            pi.pinName  = pin["name"].toString();
 
             const QVariantMap offen = pin["offen"].toMap();
             if (!offen.isEmpty()) {
@@ -497,6 +522,10 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         for (int li = 0; li < lane.size() - 1; li++) {
             const PinInfo &a = lane[li], &b = lane[li + 1];
             if (a.elIdx == b.elIdx) continue;
+            if (istSteckerBuchsePin2(a) || istSteckerBuchsePin2(b)) {
+                if (!sindSteckerBuchsePartner(a, b)) continue;
+                if (b.x - a.x > steckerBuchseMaxAbstand) continue;
+            }
             if ((!a.hatOffen || a.offenX > eps) &&
                 (!b.hatOffen || b.offenX < -eps) &&
                 !hBlockiert(a.x, b.x, a.y, unterbrechungen, gridPx))
@@ -506,6 +535,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 v["elIdxA"] = a.elIdx; v["rolleA"] = a.rolle; v["quellSigA"] = a.quellSig;
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
                 v["signaltyp"] = QStringLiteral("neutral");
+                if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);
             }
         }
@@ -525,6 +555,10 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         for (int li = 0; li < lane.size() - 1; li++) {
             const PinInfo &a = lane[li], &b = lane[li + 1];
             if (a.elIdx == b.elIdx) continue;
+            if (istSteckerBuchsePin2(a) || istSteckerBuchsePin2(b)) {
+                if (!sindSteckerBuchsePartner(a, b)) continue;
+                if (b.y - a.y > steckerBuchseMaxAbstand) continue;
+            }
             if ((!a.hatOffen || a.offenY > eps) &&
                 (!b.hatOffen || b.offenY < -eps) &&
                 !vBlockiert(a.x, a.y, b.y, unterbrechungen, gridPx))
@@ -534,6 +568,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 v["elIdxA"] = a.elIdx; v["rolleA"] = a.rolle; v["quellSigA"] = a.quellSig;
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
                 v["signaltyp"] = QStringLiteral("neutral");
+                if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);
             }
         }

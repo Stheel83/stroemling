@@ -240,6 +240,29 @@ public:
     Q_INVOKABLE bool         bauteilKontaktLoeschen(int id);
     Q_INVOKABLE int          betriebsmittelBauteilId(int betriebsmittelId) const;
 
+    // Steckverbinder-Bibliothek (steckverbinder_typ / _kabeleinf / _kontakt_typ)
+    Q_INVOKABLE QVariantMap  steckverbinderTypLaden(int bauteilId) const;
+    Q_INVOKABLE int          steckverbinderTypSpeichern(int bauteilId, int polzahl,
+                                 const QString &ipGetrennt, const QString &ipGesteckt,
+                                 const QString &kodierung, const QString &verriegelung,
+                                 bool hatSchirmkontakt, bool geschirmt);
+    Q_INVOKABLE bool         steckverbinderTypLoeschen(int bauteilId);
+
+    Q_INVOKABLE QVariantList steckverbinderKableinfLaden(int steckverbinderTypId) const;
+    Q_INVOKABLE int          steckverbinderKableinfHinzufuegen(int steckverbinderTypId);
+    Q_INVOKABLE bool         steckverbinderKableinfAktualisieren(int id, double aussenMin,
+                                 double aussenMax, const QString &einfTyp,
+                                 const QString &zugentlastung);
+    Q_INVOKABLE bool         steckverbinderKableinfLoeschen(int id);
+
+    Q_INVOKABLE QVariantList steckverbinderKontaktLaden(int steckverbinderTypId) const;
+    Q_INVOKABLE int          steckverbinderKontaktHinzufuegen(int steckverbinderTypId);
+    Q_INVOKABLE bool         steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
+                                 const QString &kontaktgroesse, double qsMin, double qsMax,
+                                 double nennstrom, double nennspannung,
+                                 const QString &verbindungstechnik);
+    Q_INVOKABLE bool         steckverbinderKontaktLoeschen(int id);
+
     // Klemmenplan: alle Klemmen aller Leisten, mit Gruppen-Headern.
     // Gibt abwechselnd {typ:"leiste",...} und {typ:"klemme",...} zurück.
     Q_INVOKABLE QVariantList klemmenplan(int projektId);

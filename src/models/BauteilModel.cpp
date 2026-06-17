@@ -173,6 +173,12 @@ void BauteilListModel::setNurKabel(bool nurKabel)
     ladenIntern();
 }
 
+void BauteilListModel::setNurSteckverbinder(bool nurSteckverb)
+{
+    m_nurSteckverbinder = nurSteckverb;
+    ladenIntern();
+}
+
 void BauteilListModel::ladenIntern()
 {
     beginResetModel();
@@ -188,16 +194,22 @@ void BauteilListModel::ladenIntern()
         "CASE WHEN k.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN ka.id IS NOT NULL THEN 1 ELSE 0 END, "
         "COALESCE(ka.kabeltyp,''), "
-        "COALESCE(b.hauptfunktion_symbol_id,'') "
+        "COALESCE(b.hauptfunktion_symbol_id,''), "
+        "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END "
         "FROM bauteil b "
-        "LEFT JOIN bauteil_klemme k  ON k.bauteil_id  = b.id "
-        "LEFT JOIN bauteil_kabel  ka ON ka.bauteil_id = b.id ";
+        "LEFT JOIN bauteil_klemme k         ON k.bauteil_id  = b.id "
+        "LEFT JOIN bauteil_kabel  ka        ON ka.bauteil_id = b.id "
+        "LEFT JOIN steckverbinder_typ sv    ON sv.bauteil_id = b.id ";
 
     QString where;
     if (m_nurKlemmen)           where += "k.id IS NOT NULL ";
     if (m_nurKabel) {
         if (!where.isEmpty()) where += "AND ";
         where += "ka.id IS NOT NULL ";
+    }
+    if (m_nurSteckverbinder) {
+        if (!where.isEmpty()) where += "AND ";
+        where += "sv.id IS NOT NULL ";
     }
     if (m_aktiveKategorieId >= 0) {
         if (!where.isEmpty()) where += "AND ";
@@ -234,6 +246,7 @@ void BauteilListModel::ladenIntern()
         b.istKabel                = q.value(14).toInt() != 0;
         b.kabeltyp                = q.value(15).toString();
         b.hauptfunktionSymbolId   = q.value(16).toString();
+        b.istSteckverbinder       = q.value(17).toInt() != 0;
         m_bauteile.append(b);
     }
 
@@ -270,6 +283,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case UrlDatenblattRole:  return b.urlDatenblatt;
     case IstKlemmeRole:             return b.istKlemme;
     case IstKabelRole:              return b.istKabel;
+    case IstSteckverbinderRole:     return b.istSteckverbinder;
     case KabeltypRole:              return b.kabeltyp;
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     default:                        return {};
@@ -294,6 +308,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { UrlDatenblattRole,  "urlDatenblatt"  },
         { IstKlemmeRole,             "istKlemme"              },
         { IstKabelRole,              "istKabel"               },
+        { IstSteckverbinderRole,     "istSteckverbinder"      },
         { KabeltypRole,              "kabeltyp"               },
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
     };

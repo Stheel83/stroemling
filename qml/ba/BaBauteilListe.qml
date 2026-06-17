@@ -11,6 +11,12 @@ Item {
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
 
+    // ── Steckverbinder-Editor ────────────────────────────────
+    BaSteckverbinderEditorDialog {
+        id: dlgSteckverbinderEditor
+        theme: root.theme
+    }
+
     // ── Symbol-Picker ────────────────────────────────────────
     BaSymbolPickerDialog {
         id: dlgSymbolPicker
@@ -394,13 +400,25 @@ Item {
 
                         Rectangle {
                             Layout.preferredWidth: 70; height: 20; radius: 3
-                            color:        model.istKlemme ? "#1a4a2a" : model.istKabel ? "#1a3a4a" : "transparent"
-                            border.color: model.istKlemme ? "#2d7a4a" : model.istKabel ? "#2d6a8a" : "transparent"
+                            color: model.istKlemme ? "#1a4a2a"
+                                 : model.istKabel  ? "#1a3a4a"
+                                 : model.istSteckverbinder ? "#2a1a4a"
+                                 : "transparent"
+                            border.color: model.istKlemme ? "#2d7a4a"
+                                        : model.istKabel  ? "#2d6a8a"
+                                        : model.istSteckverbinder ? "#6a3a9a"
+                                        : "transparent"
                             Text {
                                 anchors.centerIn: parent
-                                text:  model.istKlemme ? qsTr("Klemme") : model.istKabel ? qsTr("Kabel") : ""
+                                text: model.istKlemme ? qsTr("Klemme")
+                                    : model.istKabel  ? qsTr("Kabel")
+                                    : model.istSteckverbinder ? qsTr("Stecker")
+                                    : ""
                                 font.pixelSize: 10
-                                color: model.istKlemme ? "#5dba7d" : model.istKabel ? "#5daacc" : "transparent"
+                                color: model.istKlemme ? "#5dba7d"
+                                     : model.istKabel  ? "#5daacc"
+                                     : model.istSteckverbinder ? "#aa7ddd"
+                                     : "transparent"
                             }
                         }
 
@@ -414,7 +432,7 @@ Item {
                             Layout.preferredWidth: 120; elide: Text.ElideRight
                         }
                         Rectangle {
-                            visible: !model.istKlemme && !model.istKabel && (model.hauptfunktionSymbolId || "") !== ""
+                            visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
                             Layout.preferredWidth: 70; height: 20; radius: 3
                             color: "#1a2a4a"; border.color: "#2d5a8a"
                             Text {
@@ -425,7 +443,7 @@ Item {
                                 horizontalAlignment: Text.AlignHCenter
                             }
                         }
-                        Item { visible: !model.istKlemme && !model.istKabel && (model.hauptfunktionSymbolId || "") === ""; Layout.preferredWidth: 70 }
+                        Item { visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") === ""; Layout.preferredWidth: 70 }
 
                         Text { text: model.preisEur > 0 ? model.preisEur.toFixed(2) : "–";
                                font.pixelSize: 13; color: theme.textMuted; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
@@ -467,7 +485,23 @@ Item {
                                 }
                             }
                             Button {
-                                visible: !model.istKlemme && !model.istKabel
+                                visible: model.istSteckverbinder; width: 24; height: 24; flat: true
+                                contentItem: Text { text: "⚙"; color: theme.accent; font.pixelSize: 13;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Steckverbinder-Editor öffnen")
+                                onClicked: {
+                                    panel.selectedBauteilId            = model.bauteilId
+                                    panel.selectedBauteilBezeichnung   = model.bezeichnung
+                                    panel.selectedBauteilHersteller    = model.hersteller
+                                    panel.selectedBauteilArtikelnummer = model.artikelnummer
+                                    dlgSteckverbinderEditor.bauteilId   = model.bauteilId
+                                    dlgSteckverbinderEditor.bezeichnung = model.bezeichnung
+                                    dlgSteckverbinderEditor.open()
+                                }
+                            }
+                            Button {
+                                visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: "✎"; color: theme.accent; font.pixelSize: 14;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }

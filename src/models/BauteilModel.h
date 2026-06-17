@@ -31,6 +31,7 @@ struct BauteilEintrag {
     QString urlDatenblatt;
     bool    istKlemme;
     bool    istKabel;
+    bool    istSteckverbinder;
     QString kabeltyp;
     QString hauptfunktionSymbolId;
 };
@@ -97,6 +98,7 @@ public:
         UrlDatenblattRole,
         IstKlemmeRole,
         IstKabelRole,
+        IstSteckverbinderRole,
         KabeltypRole,
         HauptfunktionSymbolIdRole
     };
@@ -110,8 +112,9 @@ public:
     Q_INVOKABLE void laden(int kategorieId);               // -1 = alle
     Q_INVOKABLE void aktualisieren();                     // Neu laden ohne Filter zu ändern
     Q_INVOKABLE void suchen(const QString &text);         // Suchtext setzen + neu laden
-    Q_INVOKABLE void setNurKlemmen(bool nurKlemmen);      // Filter: nur Klemmen-Bauteile
-    Q_INVOKABLE void setNurKabel(bool nurKabel);          // Filter: nur Kabel-Bauteile
+    Q_INVOKABLE void setNurKlemmen(bool nurKlemmen);           // Filter: nur Klemmen-Bauteile
+    Q_INVOKABLE void setNurKabel(bool nurKabel);               // Filter: nur Kabel-Bauteile
+    Q_INVOKABLE void setNurSteckverbinder(bool nurSteckverb);  // Filter: nur Steckverbinder
     Q_INVOKABLE int  anlegen(int kategorieId,
                               const QString &bezeichnung,
                               const QString &hersteller,
@@ -143,12 +146,14 @@ public:
     Q_INVOKABLE bool symbolSpeichern(int id, const QString &symbolId);
     Q_INVOKABLE QVariantList bauteileWithSymbol() const;
 
-    Q_PROPERTY(int  aktiveKategorieId READ aktiveKategorieId NOTIFY aktiveKategorieIdChanged)
-    Q_PROPERTY(bool nurKlemmen        READ nurKlemmen        NOTIFY aktiveKategorieIdChanged)
-    Q_PROPERTY(bool nurKabel          READ nurKabel          NOTIFY aktiveKategorieIdChanged)
+    Q_PROPERTY(int  aktiveKategorieId  READ aktiveKategorieId  NOTIFY aktiveKategorieIdChanged)
+    Q_PROPERTY(bool nurKlemmen         READ nurKlemmen         NOTIFY aktiveKategorieIdChanged)
+    Q_PROPERTY(bool nurKabel           READ nurKabel           NOTIFY aktiveKategorieIdChanged)
+    Q_PROPERTY(bool nurSteckverbinder  READ nurSteckverbinder  NOTIFY aktiveKategorieIdChanged)
     int  aktiveKategorieId() const { return m_aktiveKategorieId; }
     bool nurKlemmen()        const { return m_nurKlemmen; }
     bool nurKabel()          const { return m_nurKabel; }
+    bool nurSteckverbinder() const { return m_nurSteckverbinder; }
 
 signals:
     void aktiveKategorieIdChanged();
@@ -160,4 +165,5 @@ private:
     QString               m_suchtext;
     bool                  m_nurKlemmen        = false;
     bool                  m_nurKabel          = false;
+    bool                  m_nurSteckverbinder = false;
 };

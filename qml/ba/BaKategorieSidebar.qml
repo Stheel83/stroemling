@@ -144,6 +144,48 @@ Rectangle {
             }}
         }
 
+        // Steckverbinder
+        Rectangle {
+            Layout.fillWidth: true; height: 36
+            property bool sel: panel.aktiveSpezialAnsicht === "" && bauteilModel.nurSteckverbinder
+            color: sel ? theme.hover : (svlibH.hovered ? theme.hover : "transparent")
+            HoverHandler { id: svlibH }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 16; rightMargin: 4 }
+                spacing: 6
+                Text { text: "🔌"; font.pixelSize: 12 }
+                Text { text: qsTr("Steckverbinder"); font.pixelSize: 13; Layout.fillWidth: true
+                       color: parent.parent.sel ? theme.textPrimary : theme.textSecondary }
+                Button {
+                    visible: svlibH.hovered; width: 22; height: 22; flat: true
+                    contentItem: Text { text: "+"; color: theme.accent; font.pixelSize: 14;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
+                    onClicked: {
+                        var newId = bauteilModel.anlegen(-1, qsTr("Neuer Steckverbinder"), "", "", "", 0, 0, 0, 0, "")
+                        if (newId > 0) {
+                            db.steckverbinderTypSpeichern(newId, 0, "", "", "", "", false, false)
+                            bauteilModel.setNurSteckverbinder(true)
+                            bauteilModel.setNurKlemmen(false)
+                            bauteilModel.setNurKabel(false)
+                            bauteilModel.laden(-1)
+                            panel.selectedBauteilId            = newId
+                            panel.selectedBauteilBezeichnung   = qsTr("Neuer Steckverbinder")
+                            panel.selectedBauteilHersteller    = ""
+                            panel.selectedBauteilArtikelnummer = ""
+                            panel.aktiveSpezialAnsicht = ""
+                        }
+                    }
+                }
+            }
+            MouseArea { anchors.fill: parent; z: -1; onClicked: {
+                bauteilModel.setNurSteckverbinder(true)
+                bauteilModel.setNurKlemmen(false)
+                bauteilModel.setNurKabel(false)
+                bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
+            }}
+        }
+
         // Makros
         Rectangle {
             Layout.fillWidth: true; height: 36

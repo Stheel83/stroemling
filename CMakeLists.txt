@@ -26,6 +26,7 @@ qt_add_executable(stroemling_app
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp
+    src/database/Database_Steckverbinder.cpp
     src/database/Database_Archiv.cpp
     src/database/Database.h
     src/models/ProjektModel.cpp
@@ -137,6 +138,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml
+        qml/ba/BaSteckverbinderEditorDialog.qml
         qml/ba/BaMakroBibliothek.qml
 
         qml/la/LaCsvLeiste.qml
@@ -341,6 +343,7 @@ qt_add_executable(stroemling_test
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp
+    src/database/Database_Steckverbinder.cpp
     src/database/Database.h
 )
 

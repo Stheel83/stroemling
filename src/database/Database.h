@@ -242,6 +242,7 @@ public:
 
     // Steckverbinder-Bibliothek (steckverbinder_typ / _kabeleinf / _kontakt_typ)
     Q_INVOKABLE QVariantMap  steckverbinderTypLaden(int bauteilId) const;
+    Q_INVOKABLE QVariantList steckverbinderBausteineListe() const;
     Q_INVOKABLE int          steckverbinderTypSpeichern(int bauteilId, int polzahl,
                                  const QString &ipGetrennt, const QString &ipGesteckt,
                                  const QString &kodierung, const QString &verriegelung,

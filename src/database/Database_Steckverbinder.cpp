@@ -3,6 +3,35 @@
 #include <QSqlError>
 #include <QDebug>
 
+// ── steckverbinderBausteineListe ─────────────────────────────────────────────
+// Alle Bauteile mit einem steckverbinder_typ-Eintrag (für den EP-Picker).
+QVariantList Database::steckverbinderBausteineListe() const
+{
+    QVariantList liste;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT b.id, COALESCE(b.bezeichnung,''), COALESCE(b.hersteller,''),
+               COALESCE(b.artikelnummer,''), sv.polzahl
+        FROM bauteil b
+        JOIN steckverbinder_typ sv ON sv.bauteil_id = b.id
+        ORDER BY b.bezeichnung COLLATE NOCASE
+    )");
+    if (!q.exec()) {
+        qCWarning(lcDb) << "steckverbinderBausteineListe:" << q.lastError().text();
+        return liste;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]           = q.value(0).toInt();
+        m["bezeichnung"]  = q.value(1).toString();
+        m["hersteller"]   = q.value(2).toString();
+        m["artikelnummer"]= q.value(3).toString();
+        m["polzahl"]      = q.value(4).toInt();
+        liste.append(m);
+    }
+    return liste;
+}
+
 // ── steckverbinderTypLaden ───────────────────────────────────────────────────
 // Lädt den steckverbinder_typ-Datensatz für ein Bauteil.
 // Gibt eine leere Map zurück wenn kein Eintrag vorhanden.

@@ -124,144 +124,268 @@ Item {
         }
         Item { height: 4 }
 
-        // ── Gehäusedaten (einklappbar) ─────────────────────
+        // ── Gehäusedaten (read-only, verknüpftes Bauteil) ──────
         Trennlinie {}
-        Item {
-            width: parent.width; height: 26
-            Rectangle {
-                anchors.fill: parent
-                color: ghHdrMa.containsMouse ? root.theme.hover : "transparent"
-            }
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
-                spacing: 4
-                Text {
-                    text: qsTr("GEHÄUSEDATEN")
-                    font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.5
-                    color: root.theme.borderLight; Layout.fillWidth: true
-                }
-                Text {
-                    text: root._ghExpanded ? "▾" : "▸"
-                    font.pixelSize: 11; color: root.theme.borderLight
-                }
-            }
-            MouseArea {
-                id: ghHdrMa; anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root._ghExpanded = !root._ghExpanded
-            }
-        }
 
-        Item {
-            width: parent.width
-            height: root._ghExpanded ? ghInhaltCol.implicitHeight : 0
-            clip: true
-            Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+        // Picker-Popup für Bauteil-Auswahl
+        Popup {
+            id: svPicker
+            modal: true; focus: true
+            parent: Overlay.overlay
+            width: 360; height: Math.min(svPickerListe.count * 46 + 96, 380)
+            anchors.centerIn: parent
+            padding: 0
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+            background: Rectangle {
+                color: root.theme.sidebar; radius: 6
+                border.color: root.theme.border; border.width: 1
+            }
+
+            property var _liste: []
+
+            onOpened: _liste = db.steckverbinderBausteineListe()
 
             Column {
-                id: ghInhaltCol
                 width: parent.width; spacing: 0
 
-                InputField {
-                    label: qsTr("Hersteller")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_hersteller || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_hersteller", t.trim()) }
-                }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("Typ / Bezeichnung")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_typ || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_typ", t.trim()) }
-                }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("Polzahl")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_polzahl || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_polzahl", t.trim()) }
-                }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("IP gesteckt")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_ip_gesteckt || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_ip_gesteckt", t.trim()) }
-                }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("IP getrennt")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_ip_getrennt || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_ip_getrennt", t.trim()) }
-                }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("Kodierung")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_kodierung || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_kodierung", t.trim()) }
-                }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("Verriegelung")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_verriegelung || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_verriegelung", t.trim()) }
-                }
-                Item { height: 6 }
-
-                // Geschirmt – Ja/Nein Toggle
-                Item {
-                    width: parent.width; height: 48
-                    property bool _geschirmt: (panel.el && panel.el.extraDaten)
-                                              ? (panel.el.extraDaten.gh_geschirmt === true) : false
+                Rectangle {
+                    width: parent.width; height: 44; color: root.theme.surface
+                    radius: 6
+                    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: root.theme.border }
                     Text {
-                        anchors { left: parent.left; leftMargin: 12; top: parent.top; topMargin: 4 }
-                        text: qsTr("Geschirmt"); font.pixelSize: 10; color: root.theme.panelMid
+                        anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
+                        text: qsTr("Steckverbinder verknüpfen")
+                        font.pixelSize: 13; font.weight: Font.Medium; color: root.theme.textPrimary
                     }
-                    Row {
-                        anchors { left: parent.left; leftMargin: 12; bottom: parent.bottom; bottomMargin: 4 }
-                        spacing: 4
-                        Repeater {
-                            model: [{ label: qsTr("Nein"), val: false }, { label: qsTr("Ja"), val: true }]
-                            delegate: Rectangle {
-                                width: 52; height: 24; radius: 3
-                                property bool _aktiv: parent.parent.parent._geschirmt === modelData.val
-                                      && (panel.el && panel.el.extraDaten
-                                          && panel.el.extraDaten.gh_geschirmt !== undefined)
-                                color: _aktiv ? root.theme.accent : root.theme.inputBg
-                                border.color: _aktiv ? root.theme.accent : root.theme.border
-                                Text {
-                                    anchors.centerIn: parent; text: modelData.label
-                                    font.pixelSize: 11
-                                    color: parent._aktiv ? "#ffffff" : root.theme.textSecondary
+                    Rectangle {
+                        anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                        width: 28; height: 28; radius: 4
+                        color: svPickerSchliessen.containsMouse ? root.theme.hover : "transparent"
+                        Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 16; color: root.theme.textMuted }
+                        MouseArea { id: svPickerSchliessen; anchors.fill: parent; hoverEnabled: true; onClicked: svPicker.close() }
+                    }
+                }
+
+                Text {
+                    visible: svPicker._liste.length === 0
+                    width: parent.width; height: 60
+                    text: qsTr("Keine Steckverbinder in der Bibliothek.\nIm BAUTEILE-Panel unter Steckverbinder anlegen.")
+                    font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                ScrollView {
+                    width: parent.width
+                    height: Math.min(svPicker._liste.length * 46, 280)
+                    clip: true
+
+                    ListView {
+                        id: svPickerListe
+                        model: svPicker._liste
+                        delegate: Rectangle {
+                            width: svPickerListe.width; height: 46
+                            color: svPkH.containsMouse ? root.theme.hover : "transparent"
+                            MouseArea {
+                                id: svPkH; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.extraSetzen("bauteil_id", modelData.id)
+                                    svPicker.close()
                                 }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.extraSetzen("gh_geschirmt", modelData.val)
+                            }
+                            Column {
+                                anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
+                                spacing: 2
+                                Text { text: modelData.bezeichnung; font.pixelSize: 12; color: root.theme.textPrimary }
+                                Text {
+                                    text: [modelData.hersteller,
+                                           modelData.polzahl > 0 ? modelData.polzahl + "-polig" : ""].filter(Boolean).join(" · ")
+                                    font.pixelSize: 10; color: root.theme.textMuted
                                 }
                             }
                         }
                     }
                 }
+            }
+        }
 
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("Datenblatt-URL")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_datenblatt || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_datenblatt", t.trim()) }
+        // Steckverbinder-Editor (in-place, kein Navigations-Wechsel nötig)
+        BaSteckverbinderEditorDialog {
+            id: dlgSvEditor
+            theme: root.theme
+        }
+
+        Item {
+            id: ghSection
+            width: parent.width
+            property int _bauteilId: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bauteil_id > 0)
+                                     ? panel.el.extraDaten.bauteil_id : -1
+            property var  _bauteil:  _bauteilId > 0 ? bauteilModel.bauteilNachId(_bauteilId) : ({})
+            property var  _svTyp:    _bauteilId > 0 ? db.steckverbinderTypLaden(_bauteilId) : ({})
+
+            height: ghSectionCol.implicitHeight
+            clip: false
+
+            Column {
+                id: ghSectionCol
+                width: parent.width; spacing: 0
+
+                // Header
+                Item {
+                    width: parent.width; height: 26
+                    Rectangle { anchors.fill: parent; color: ghHdrMa.containsMouse ? root.theme.hover : "transparent" }
+                    RowLayout {
+                        anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
+                        spacing: 4
+                        Text {
+                            text: qsTr("GEHÄUSEDATEN")
+                            font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.5
+                            color: root.theme.borderLight; Layout.fillWidth: true
+                        }
+                        // Aufheben-Button (nur wenn verknüpft)
+                        Rectangle {
+                            visible: ghSection._bauteilId > 0
+                            width: 18; height: 18; radius: 3
+                            color: ghAufhebenMa.containsMouse ? "#662222" : "transparent"
+                            Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 13
+                                   color: parent.color !== "transparent" ? "#ffffff" : root.theme.borderDark }
+                            MouseArea {
+                                id: ghAufhebenMa; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.extraSetzen("bauteil_id", 0)
+                            }
+                        }
+                        Text {
+                            text: root._ghExpanded ? "▾" : "▸"
+                            font.pixelSize: 11; color: root.theme.borderLight
+                        }
+                    }
+                    MouseArea {
+                        id: ghHdrMa; anchors.fill: parent; hoverEnabled: true; z: -1
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root._ghExpanded = !root._ghExpanded
+                    }
                 }
-                Item { height: 4 }
-                InputField {
-                    label: qsTr("Notiz")
-                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_notiz || "") : ""
-                    theme: root.theme
-                    onCommit: function(t) { root.extraSetzen("gh_notiz", t.trim()) }
+
+                // Einklappbarer Inhalt
+                Item {
+                    width: parent.width
+                    height: root._ghExpanded ? ghInhaltCol.implicitHeight : 0
+                    clip: true
+                    Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+
+                    Column {
+                        id: ghInhaltCol
+                        width: parent.width; spacing: 0
+
+                        // Kein Bauteil verknüpft
+                        Item {
+                            visible: ghSection._bauteilId < 0
+                            width: parent.width; height: 52
+
+                            Text {
+                                anchors { left: parent.left; leftMargin: 12; top: parent.top; topMargin: 6 }
+                                text: qsTr("Kein Bauteil verknüpft")
+                                font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+                            }
+                            Rectangle {
+                                anchors { left: parent.left; leftMargin: 12; bottom: parent.bottom; bottomMargin: 6 }
+                                height: 26; width: 110; radius: 4
+                                color: svVerknuepfenMa.containsMouse ? root.theme.accent : root.theme.inputBg
+                                border.color: root.theme.accent
+                                Text { anchors.centerIn: parent; text: qsTr("Verknüpfen …")
+                                       font.pixelSize: 11
+                                       color: svVerknuepfenMa.containsMouse ? "#ffffff" : root.theme.accent }
+                                MouseArea {
+                                    id: svVerknuepfenMa; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: svPicker.open()
+                                }
+                            }
+                        }
+
+                        // Read-only Anzeige wenn Bauteil verknüpft
+                        Column {
+                            visible: ghSection._bauteilId >= 0
+                            width: parent.width; spacing: 0
+
+                            component InfoZeile: Item {
+                                property string label: ""
+                                property string wert:  ""
+                                width: parent ? parent.width : 0
+                                height: wert.length > 0 ? 20 : 0; clip: true; visible: height > 0
+                                RowLayout {
+                                    anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
+                                    spacing: 6
+                                    Text { text: label; font.pixelSize: 10; color: root.theme.textMuted; Layout.preferredWidth: 80 }
+                                    Text { text: wert;  font.pixelSize: 11; color: root.theme.textSecondary; Layout.fillWidth: true; elide: Text.ElideRight }
+                                }
+                            }
+
+                            Item { height: 4 }
+                            InfoZeile { label: qsTr("Bezeichnung"); wert: ghSection._bauteil.bezeichnung   || "" }
+                            InfoZeile { label: qsTr("Hersteller");  wert: ghSection._bauteil.hersteller    || "" }
+                            InfoZeile { label: qsTr("Artikel-Nr."); wert: ghSection._bauteil.artikelnummer || "" }
+                            InfoZeile {
+                                label: qsTr("Polzahl")
+                                wert: ghSection._svTyp.polzahl > 0 ? ghSection._svTyp.polzahl.toString() : ""
+                            }
+                            InfoZeile { label: qsTr("IP gesteckt"); wert: ghSection._svTyp.ipGesteckt  || "" }
+                            InfoZeile { label: qsTr("IP getrennt"); wert: ghSection._svTyp.ipGetrennt  || "" }
+                            InfoZeile { label: qsTr("Kodierung");   wert: ghSection._svTyp.kodierung   || "" }
+                            InfoZeile { label: qsTr("Verriegelung");wert: ghSection._svTyp.verriegelung|| "" }
+                            InfoZeile {
+                                label: qsTr("Geschirmt")
+                                wert: {
+                                    if (ghSection._svTyp.geschirmt === undefined) return ""
+                                    return ghSection._svTyp.geschirmt ? qsTr("Ja") : qsTr("Nein")
+                                }
+                            }
+                            Item { height: 4 }
+
+                            // Buttons: Verknüpfen / Im Editor öffnen
+                            Item {
+                                width: parent.width; height: 34
+                                Row {
+                                    anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                                    spacing: 6
+                                    Rectangle {
+                                        height: 24; width: 90; radius: 4
+                                        color: svAendernMa.containsMouse ? root.theme.hover : "transparent"
+                                        border.color: root.theme.border
+                                        Text { anchors.centerIn: parent; text: qsTr("Anderes …")
+                                               font.pixelSize: 10; color: root.theme.textSecondary }
+                                        MouseArea {
+                                            id: svAendernMa; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: svPicker.open()
+                                        }
+                                    }
+                                    Rectangle {
+                                        height: 24; width: 110; radius: 4
+                                        color: svEditorMa.containsMouse ? root.theme.accent : "transparent"
+                                        border.color: root.theme.accent
+                                        Text { anchors.centerIn: parent; text: qsTr("Im Editor öffnen →")
+                                               font.pixelSize: 10
+                                               color: svEditorMa.containsMouse ? "#ffffff" : root.theme.accent }
+                                        MouseArea {
+                                            id: svEditorMa; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                dlgSvEditor.bauteilId   = ghSection._bauteilId
+                                                dlgSvEditor.bezeichnung = ghSection._bauteil.bezeichnung || ""
+                                                dlgSvEditor.open()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Item { height: 4 }
+                        }
+                    }
                 }
-                Item { height: 6 }
             }
         }
 

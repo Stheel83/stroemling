@@ -45,6 +45,8 @@ Item {
 
         panel._kabelDaten    = db.kabelListeAufgeschluesselt(projektId)
         panel._kabelExpanded = {}
+
+        panel._svDaten = db.steckverbinderListe(projektId)
     }
 
     ListModel { id: stuecklisteModel }
@@ -61,6 +63,7 @@ Item {
 
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
+    property var _svDaten:       []
 
     function netzeNummerieren(praefix, start, schrittweite) {
         if (projektId < 0) return 0
@@ -158,6 +161,13 @@ Item {
         { header: "Adern",       w: 50  }, { header: "mm²",       w: 55  },
         { header: "Länge (m)",   w: 70  }, { header: "Von-Ort",   w: 100 },
         { header: "Nach-Ort",    w: 100 }, { header: "Linien",    w: 50  }
+    ]
+    readonly property var svCols: [
+        { header: "BMK",         w: 80  }, { header: "Bezeichnung", w: 120 },
+        { header: "Bauteil/Typ", w: 130 }, { header: "Hersteller",  w: 110 },
+        { header: "Polzahl",     w: 60  }, { header: "IP gesteckt", w: 75  },
+        { header: "Kodierung",   w: 70  }, { header: "Geschirmt",   w: 70  },
+        { header: "Seite",       w: 55  }
     ]
     readonly property var klAderCols: [
         { header: "Nr",          w: 40  }, { header: "Farbe",       w: 70  },
@@ -362,7 +372,8 @@ Item {
                         { label: qsTr("Aderliste  (")         + aderlisteModel.count      + ")",  tab: 2 },
                         { label: qsTr("Klemmenplan  (")       + klemmenplanZaehler        + ")",  tab: 3 },
                         { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler + ")", tab: 4 },
-                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 }
+                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
+                        { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5
@@ -398,6 +409,7 @@ Item {
             LaTabKlemmenplan       { panel: panel; theme: panel.theme }
             LaTabKlemmlistenauszug { panel: panel; theme: panel.theme }
             LaTabKabelliste        { panel: panel; theme: panel.theme }
+            LaTabSteckverbinder    { panel: panel; theme: panel.theme }
         }
     }
 

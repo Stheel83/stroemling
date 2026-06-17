@@ -2,6 +2,108 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
+#include <QFile>
+#include <QTextStream>
+#include <QUrl>
+
+// ── steckverbinderListe ──────────────────────────────────────────────────────
+// Alle Gerätekästen des Projekts mit verknüpftem Steckverbinder-Bauteil,
+// für die Steckverbinderliste in der ListenAnsicht.
+QVariantList Database::steckverbinderListe(int projektId) const
+{
+    QVariantList liste;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
+               COALESCE(json_extract(ge.extra_daten, '$.bezeichnung'), ''),
+               COALESCE(b.bezeichnung, ''),
+               COALESCE(b.hersteller, ''),
+               COALESCE(b.artikelnummer, ''),
+               COALESCE(sv.polzahl, 0),
+               COALESCE(sv.ip_gesteckt, ''),
+               COALESCE(sv.ip_getrennt, ''),
+               COALESCE(sv.kodierung, ''),
+               COALESCE(sv.verriegelung, ''),
+               sv.geschirmt,
+               sv.hat_schirmkontakt,
+               s.blattnummer,
+               COALESCE(s.bezeichnung, ''),
+               ge.id
+        FROM grafik_element ge
+        JOIN seite  s ON s.id = ge.seite_id
+        JOIN ort    o ON o.id = s.ort_id
+        JOIN anlage a ON a.id = o.anlage_id
+        JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
+        JOIN steckverbinder_typ sv ON sv.bauteil_id = b.id
+        WHERE a.projekt_id = :pid
+          AND ge.typ = 'geraetekasten'
+          AND CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) > 0
+        ORDER BY COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
+                 s.blattnummer
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "steckverbinderListe:" << q.lastError().text();
+        return liste;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["bmk"]             = q.value(0).toString();
+        m["gkBezeichnung"]   = q.value(1).toString();
+        m["bauteilBez"]      = q.value(2).toString();
+        m["hersteller"]      = q.value(3).toString();
+        m["artikelnummer"]   = q.value(4).toString();
+        m["polzahl"]         = q.value(5).toInt();
+        m["ipGesteckt"]      = q.value(6).toString();
+        m["ipGetrennt"]      = q.value(7).toString();
+        m["kodierung"]       = q.value(8).toString();
+        m["verriegelung"]    = q.value(9).toString();
+        m["geschirmt"]       = q.value(10).toInt() != 0;
+        m["hatSchirmkontakt"]= q.value(11).toInt() != 0;
+        m["blattnr"]         = q.value(12).toString();
+        m["seiteBez"]        = q.value(13).toString();
+        m["grafikElementId"] = q.value(14).toInt();
+        liste.append(m);
+    }
+    return liste;
+}
+
+// ── steckverbinderlisteCsvSpeichern ─────────────────────────────────────────
+bool Database::steckverbinderlisteCsvSpeichern(int projektId, const QString &pfad) const
+{
+    QString localPath = QUrl(pfad).toLocalFile();
+    if (localPath.isEmpty()) localPath = pfad;
+    QFile file(localPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qCWarning(lcDb) << "steckverbinderlisteCsvSpeichern: kann nicht öffnen:" << localPath;
+        return false;
+    }
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+    out << "\xEF\xBB\xBF";
+    out << "BMK;Bezeichnung;Bauteil/Typ;Hersteller;Artikelnr.;Polzahl;IP gesteckt;IP getrennt;Kodierung;Verriegelung;Geschirmt;Seite\n";
+    auto q = [](const QString &s) -> QString {
+        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
+            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
+        return s;
+    };
+    for (const QVariant &v : steckverbinderListe(projektId)) {
+        const QVariantMap row = v.toMap();
+        out << q(row["bmk"].toString())          << u';'
+            << q(row["gkBezeichnung"].toString()) << u';'
+            << q(row["bauteilBez"].toString())    << u';'
+            << q(row["hersteller"].toString())    << u';'
+            << q(row["artikelnummer"].toString()) << u';'
+            << row["polzahl"].toInt()             << u';'
+            << q(row["ipGesteckt"].toString())    << u';'
+            << q(row["ipGetrennt"].toString())    << u';'
+            << q(row["kodierung"].toString())     << u';'
+            << q(row["verriegelung"].toString())  << u';'
+            << (row["geschirmt"].toBool() ? "Ja" : "Nein") << u';'
+            << q(row["blattnr"].toString())       << u'\n';
+    }
+    return true;
+}
 
 // ── steckverbinderBausteineListe ─────────────────────────────────────────────
 // Alle Bauteile mit einem steckverbinder_typ-Eintrag (für den EP-Picker).

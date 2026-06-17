@@ -256,8 +256,82 @@ QVariantList Database::stueckliste(int projektId)
         }
         m[QStringLiteral("anlageUO")] = anlageUO;
         m[QStringLiteral("ortUO")]    = ortUO;
+        m[QStringLiteral("typ")]      = QStringLiteral("symbol");
         result.append(m);
     }
+
+    // Gerätekästen mit verknüpftem Bauteil als eigene Zeilen anhängen.
+    QSqlQuery qGk(m_db);
+    qGk.prepare(R"(
+        SELECT COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
+               COALESCE(b.bezeichnung, ''),
+               COALESCE(b.hersteller, ''),
+               COALESCE(b.artikelnummer, ''),
+               s.blattnummer,
+               COALESCE(s.bezeichnung, ''),
+               a.kuerzel,
+               o.kuerzel,
+               (SELECT sk.extra_daten
+                FROM grafik_element sk
+                WHERE sk.seite_id = ge.seite_id
+                  AND sk.typ = 'strukturkasten'
+                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
+                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
+                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
+                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
+                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                LIMIT 1)
+        FROM grafik_element ge
+        JOIN seite  s ON s.id = ge.seite_id
+        JOIN ort    o ON o.id = s.ort_id
+        JOIN anlage a ON a.id = o.anlage_id
+        JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
+        WHERE a.projekt_id = :pid
+          AND ge.typ = 'geraetekasten'
+          AND CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) > 0
+        ORDER BY a.kuerzel, o.kuerzel, s.blattnummer, ge.rowid
+    )");
+    qGk.bindValue(":pid", projektId);
+    if (!qGk.exec()) {
+        qCWarning(lcDb) << "stueckliste GK:" << qGk.lastError().text();
+    } else {
+        while (qGk.next()) {
+            QVariantMap m;
+            m[QStringLiteral("typ")]      = QStringLiteral("geraetekasten");
+            m[QStringLiteral("bmk")]      = qGk.value(0).toString();
+            m[QStringLiteral("symbolId")] = QStringLiteral("Gerätekasten");
+            m[QStringLiteral("freitext1")]= qGk.value(1).toString();
+            QString hersteller  = qGk.value(2).toString();
+            QString artikelnr   = qGk.value(3).toString();
+            m[QStringLiteral("freitext2")]= artikelnr.isEmpty() ? hersteller
+                                            : (hersteller.isEmpty() ? artikelnr
+                                               : hersteller + u' ' + artikelnr);
+            m[QStringLiteral("seite")]    = qGk.value(4).toString();
+            m[QStringLiteral("seiteBez")] = qGk.value(5).toString();
+            m[QStringLiteral("anlageKz")] = qGk.value(6).toString();
+            m[QStringLiteral("ortKz")]    = qGk.value(7).toString();
+
+            QString skExtra = qGk.value(8).toString();
+            QString anlageUO2, ortUO2;
+            if (!skExtra.isEmpty()) {
+                QJsonParseError err;
+                QJsonDocument doc = QJsonDocument::fromJson(skExtra.toUtf8(), &err);
+                if (!err.error && doc.isObject()) {
+                    QJsonObject obj = doc.object();
+                    anlageUO2 = obj[QStringLiteral("anlageUO")].toString();
+                    ortUO2    = obj[QStringLiteral("ortUO")].toString();
+                    QString skAnlage = obj[QStringLiteral("anlage")].toString();
+                    QString skOrt    = obj[QStringLiteral("ort")].toString();
+                    if (!skAnlage.isEmpty()) m[QStringLiteral("anlageKz")] = skAnlage;
+                    if (!skOrt.isEmpty())    m[QStringLiteral("ortKz")]    = skOrt;
+                }
+            }
+            m[QStringLiteral("anlageUO")] = anlageUO2;
+            m[QStringLiteral("ortUO")]    = ortUO2;
+            result.append(m);
+        }
+    }
+
     return result;
 }
 

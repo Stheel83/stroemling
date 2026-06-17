@@ -15,6 +15,8 @@ Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste.
 
 Keine Installation nötig. Linux: `chmod +x` und starten. Windows: ZIP entpacken, `stroemling_app.exe` starten.
 
+> **Hinweis Linux:** Das AppImage wurde unter openSUSE Tumbleweed gebaut und benötigt GLIBC ≥ 2.42. Es läuft daher **nicht** auf älteren Distributionen (z.B. openSUSE Leap 16, Ubuntu 22.04). Ab v0.6 soll ein kompatibleres Build-System eingesetzt werden.
+
 ---
 
 ## Entstehung

@@ -427,6 +427,40 @@ static QList<SchemaMigration> alleMigrationen()
                 ('ard_mega', 41, 'linie', 0.85, 0.8636, 1.0, 0.8636, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
                 ('ard_mega', 42, 'linie', 0.85, 0.9091, 1.0, 0.9091, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
         }},
+        { 75, "Steckverbinder-Bibliothek: steckverbinder_typ / _kabeleinf / _kontakt_typ", {
+            R"(CREATE TABLE IF NOT EXISTS steckverbinder_typ (
+                id                  INTEGER PRIMARY KEY,
+                bauteil_id          INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
+                polzahl             INTEGER,
+                ip_getrennt         TEXT,
+                ip_gesteckt         TEXT,
+                kodierung           TEXT,
+                verriegelung        TEXT,
+                hat_schirmkontakt   INTEGER DEFAULT 0,
+                geschirmt           INTEGER DEFAULT 0
+            ))",
+            R"(CREATE TABLE IF NOT EXISTS steckverbinder_kabeleinf (
+                id                      INTEGER PRIMARY KEY,
+                steckverbinder_typ_id   INTEGER NOT NULL REFERENCES steckverbinder_typ(id) ON DELETE CASCADE,
+                einf_nr                 INTEGER NOT NULL DEFAULT 1,
+                aussen_min_mm           REAL,
+                aussen_max_mm           REAL,
+                einf_typ                TEXT,
+                zugentlastung           TEXT
+            ))",
+            R"(CREATE TABLE IF NOT EXISTS steckverbinder_kontakt_typ (
+                id                      INTEGER PRIMARY KEY,
+                steckverbinder_typ_id   INTEGER NOT NULL REFERENCES steckverbinder_typ(id) ON DELETE CASCADE,
+                position_nr             INTEGER NOT NULL,
+                ist_schirmkontakt       INTEGER DEFAULT 0,
+                kontaktgroesse          TEXT,
+                querschnitt_kabel_min   REAL,
+                querschnitt_kabel_max   REAL,
+                nennstrom_a             REAL,
+                nennspannung_v          REAL,
+                verbindungstechnik      TEXT
+            ))",
+        }},
         { 74, "ard_hcsr04: Hoehe auf Vielfaches von 8mm vergroessert (ARD-GRID-03)", {
             // Gleicher Root-Cause wie ARD-GRID-02: Mittelpunkt-Snap aufs 4mm-Raster.
             // 20mm ist kein Vielfaches von 8mm → 24mm (3×8mm).
@@ -685,6 +719,9 @@ bool Database::dropAllTables()
         "leiter",
         "grafik_element",
         "betriebsmittel",
+        "steckverbinder_kontakt_typ",
+        "steckverbinder_kabeleinf",
+        "steckverbinder_typ",
         "bauteil_klemme_eigenschaft",
         "bauteil_klemme_bruecke",
         "bauteil_klemme_querschnitt",

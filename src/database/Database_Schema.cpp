@@ -427,6 +427,25 @@ static QList<SchemaMigration> alleMigrationen()
                 ('ard_mega', 41, 'linie', 0.85, 0.8636, 1.0, 0.8636, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
                 ('ard_mega', 42, 'linie', 0.85, 0.9091, 1.0, 0.9091, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
         }},
+        { 74, "ard_hcsr04: Hoehe auf Vielfaches von 8mm vergroessert (ARD-GRID-03)", {
+            // Gleicher Root-Cause wie ARD-GRID-02: Mittelpunkt-Snap aufs 4mm-Raster.
+            // 20mm ist kein Vielfaches von 8mm → 24mm (3×8mm).
+            // Pin-Positionen bleiben an absolut gleicher mm-Position (4/8/12/16mm),
+            // normierte y-Werte aendern sich durch groesseren Nenner: k/(N+2) statt k/(N+1).
+            R"(UPDATE symbol_definition SET hoehe_mm=24 WHERE id='ard_hcsr04' AND ist_builtin=1)",
+            R"(UPDATE symbol_pin SET y=0.1667 WHERE symbol_id='ard_hcsr04' AND name='VCC')",
+            R"(UPDATE symbol_pin SET y=0.3333 WHERE symbol_id='ard_hcsr04' AND name='TRIG')",
+            R"(UPDATE symbol_pin SET y=0.5000 WHERE symbol_id='ard_hcsr04' AND name='ECHO')",
+            R"(UPDATE symbol_pin SET y=0.6667 WHERE symbol_id='ard_hcsr04' AND name='GND')",
+            R"(UPDATE symbol_primitiv SET y1=0.1667, y2=0.1667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=2)",
+            R"(UPDATE symbol_primitiv SET y1=0.3333, y2=0.3333 WHERE symbol_id='ard_hcsr04' AND reihenfolge=3)",
+            R"(UPDATE symbol_primitiv SET y1=0.5000, y2=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=4)",
+            R"(UPDATE symbol_primitiv SET y1=0.6667, y2=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=5)",
+            R"(UPDATE symbol_primitiv SET y1=0.1667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=6)",
+            R"(UPDATE symbol_primitiv SET y1=0.3333 WHERE symbol_id='ard_hcsr04' AND reihenfolge=7)",
+            R"(UPDATE symbol_primitiv SET y1=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=8)",
+            R"(UPDATE symbol_primitiv SET y1=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=9)",
+        }},
     };
 }
 

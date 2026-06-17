@@ -736,7 +736,7 @@ VALUES
 -- ard_nano:   Arduino Nano 32x64mm  (14 links D0-D13 + 14 rechts)
 -- ard_mega:   Arduino Mega 32x88mm  (20 links D0-D19 + 20 rechts)
 -- ard_dht:    DHT Sensor   16x16mm  (3 links)
--- ard_hcsr04: HC-SR04      16x20mm  (4 links)
+-- ard_hcsr04: HC-SR04      16x24mm  (4 links)
 -- ard_pir:    PIR Sensor   16x16mm  (3 links)
 -- Pin-Formel: N Pins je Seite, Divisor=N+2 (statt N+1) → hoehe_mm = Divisor*4,
 -- y_norm = k/Divisor fuer k=1..N (1 Raster-Einheit Rand oben, 2 unten).
@@ -751,7 +751,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('ard_nano',   'Arduino Nano',   'Arduino', 32, 64, 'variabel', 1),
 ('ard_mega',   'Arduino Mega',   'Arduino', 32, 88, 'variabel', 1),
 ('ard_dht',    'DHT Sensor',     'Arduino', 16, 16, 'variabel', 1),
-('ard_hcsr04', 'HC-SR04 Sensor', 'Arduino', 16, 20, 'variabel', 1),
+('ard_hcsr04', 'HC-SR04 Sensor', 'Arduino', 16, 24, 'variabel', 1),
 ('ard_pir',    'PIR Sensor',     'Arduino', 16, 16, 'variabel', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
@@ -860,10 +860,10 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('ard_dht',    'VCC',  0, 0.25, -1, 0, 'neutral'),
 ('ard_dht',    'DATA', 0, 0.50, -1, 0, 'neutral'),
 ('ard_dht',    'GND',  0, 0.75, -1, 0, 'neutral'),
-('ard_hcsr04', 'VCC',  0, 0.20, -1, 0, 'neutral'),
-('ard_hcsr04', 'TRIG', 0, 0.40, -1, 0, 'neutral'),
-('ard_hcsr04', 'ECHO', 0, 0.60, -1, 0, 'neutral'),
-('ard_hcsr04', 'GND',  0, 0.80, -1, 0, 'neutral'),
+('ard_hcsr04', 'VCC',  0, 0.1667, -1, 0, 'neutral'),
+('ard_hcsr04', 'TRIG', 0, 0.3333, -1, 0, 'neutral'),
+('ard_hcsr04', 'ECHO', 0, 0.5000, -1, 0, 'neutral'),
+('ard_hcsr04', 'GND',  0, 0.6667, -1, 0, 'neutral'),
 ('ard_pir',    'VCC',  0, 0.25, -1, 0, 'neutral'),
 ('ard_pir',    'OUT',  0, 0.50, -1, 0, 'neutral'),
 ('ard_pir',    'GND',  0, 0.75, -1, 0, 'neutral');
@@ -991,17 +991,17 @@ VALUES
 ('ard_dht', 5, 'text',  0.2, 0.25, 0, 0, 0, 0, 0, 0, 0, 0, 'VCC',  0.11, 0, 'left', 'middle', 'solid'),
 ('ard_dht', 6, 'text',  0.2, 0.50, 0, 0, 0, 0, 0, 0, 0, 0, 'DATA', 0.11, 0, 'left', 'middle', 'solid'),
 ('ard_dht', 7, 'text',  0.2, 0.75, 0, 0, 0, 0, 0, 0, 0, 0, 'GND',  0.11, 0, 'left', 'middle', 'solid'),
--- ── ard_hcsr04 (16x20mm, 4 Pins links) ──
+-- ── ard_hcsr04 (16x24mm, 4 Pins links) ──
 ('ard_hcsr04', 0, 'rechteck', 0.15, 0.03, 0.85, 0.97, 0, 0, 0, 0, 0, 0, NULL,      0.5,  0, 'center', 'middle', 'solid'),
 ('ard_hcsr04', 1, 'text',     0.5,  0.12, 0,    0,    0, 0, 0, 0, 0, 0, 'HC-SR04', 0.10, 1, 'center', 'middle', 'solid'),
-('ard_hcsr04', 2, 'linie', 0, 0.20, 0.15, 0.20, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('ard_hcsr04', 3, 'linie', 0, 0.40, 0.15, 0.40, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('ard_hcsr04', 4, 'linie', 0, 0.60, 0.15, 0.60, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('ard_hcsr04', 5, 'linie', 0, 0.80, 0.15, 0.80, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('ard_hcsr04', 6, 'text',  0.2, 0.20, 0, 0, 0, 0, 0, 0, 0, 0, 'VCC',  0.09, 0, 'left', 'middle', 'solid'),
-('ard_hcsr04', 7, 'text',  0.2, 0.40, 0, 0, 0, 0, 0, 0, 0, 0, 'TRIG', 0.09, 0, 'left', 'middle', 'solid'),
-('ard_hcsr04', 8, 'text',  0.2, 0.60, 0, 0, 0, 0, 0, 0, 0, 0, 'ECHO', 0.09, 0, 'left', 'middle', 'solid'),
-('ard_hcsr04', 9, 'text',  0.2, 0.80, 0, 0, 0, 0, 0, 0, 0, 0, 'GND',  0.09, 0, 'left', 'middle', 'solid'),
+('ard_hcsr04', 2, 'linie', 0, 0.1667, 0.15, 0.1667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ard_hcsr04', 3, 'linie', 0, 0.3333, 0.15, 0.3333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ard_hcsr04', 4, 'linie', 0, 0.5000, 0.15, 0.5000, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ard_hcsr04', 5, 'linie', 0, 0.6667, 0.15, 0.6667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ard_hcsr04', 6, 'text',  0.2, 0.1667, 0, 0, 0, 0, 0, 0, 0, 0, 'VCC',  0.09, 0, 'left', 'middle', 'solid'),
+('ard_hcsr04', 7, 'text',  0.2, 0.3333, 0, 0, 0, 0, 0, 0, 0, 0, 'TRIG', 0.09, 0, 'left', 'middle', 'solid'),
+('ard_hcsr04', 8, 'text',  0.2, 0.5000, 0, 0, 0, 0, 0, 0, 0, 0, 'ECHO', 0.09, 0, 'left', 'middle', 'solid'),
+('ard_hcsr04', 9, 'text',  0.2, 0.6667, 0, 0, 0, 0, 0, 0, 0, 0, 'GND',  0.09, 0, 'left', 'middle', 'solid'),
 -- ── ard_pir (16x16mm, 3 Pins links) ──
 ('ard_pir', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
 ('ard_pir', 1, 'text',     0.5,  0.15, 0,    0,    0, 0, 0, 0, 0, 0, 'PIR', 0.15, 1, 'center', 'middle', 'solid'),

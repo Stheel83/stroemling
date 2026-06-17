@@ -21,11 +21,15 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
                COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
                COALESCE(json_extract(ge.extra_daten, '$.bezeichnung'), ''),
                (ge.x1 + ge.x2) / 2.0,
-               (ge.y1 + ge.y2) / 2.0
+               (ge.y1 + ge.y2) / 2.0,
+               COALESCE(CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER), 0),
+               COALESCE(b.bezeichnung, ''),
+               COALESCE(b.hersteller, '')
         FROM grafik_element ge
         JOIN seite   s ON s.id  = ge.seite_id
         JOIN ort     o ON o.id  = s.ort_id
         JOIN anlage  a ON a.id  = o.anlage_id
+        LEFT JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
         WHERE ge.typ = 'geraetekasten'
           AND a.projekt_id = :pid
         ORDER BY COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
@@ -44,11 +48,44 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
         m[QStringLiteral("seiteBez")]    = q.value(3).toString();
         m[QStringLiteral("bmk")]         = q.value(4).toString();
         m[QStringLiteral("bezeichnung")] = q.value(5).toString();
-        m[QStringLiteral("weltX")]       = q.value(6).toDouble();
-        m[QStringLiteral("weltY")]       = q.value(7).toDouble();
+        m[QStringLiteral("weltX")]            = q.value(6).toDouble();
+        m[QStringLiteral("weltY")]            = q.value(7).toDouble();
+        m[QStringLiteral("bauteilId")]        = q.value(8).toInt();
+        m[QStringLiteral("bauteilBez")]       = q.value(9).toString();
+        m[QStringLiteral("bauteilHersteller")]= q.value(10).toString();
         result.append(m);
     }
     return result;
+}
+
+// ============================================================
+// geraetekastenBauteilSetzen
+// Setzt oder löscht bauteil_id in extra_daten eines grafik_element.
+// bauteilId <= 0 entfernt den Eintrag (setzt auf 0).
+// ============================================================
+bool Database::geraetekastenBauteilSetzen(int grafikElementId, int bauteilId)
+{
+    QSqlQuery q(m_db);
+    if (bauteilId > 0) {
+        q.prepare(R"(
+            UPDATE grafik_element
+            SET extra_daten = json_set(COALESCE(extra_daten, '{}'), '$.bauteil_id', :bid)
+            WHERE id = :id
+        )");
+        q.bindValue(":bid", bauteilId);
+    } else {
+        q.prepare(R"(
+            UPDATE grafik_element
+            SET extra_daten = json_remove(COALESCE(extra_daten, '{}'), '$.bauteil_id')
+            WHERE id = :id
+        )");
+    }
+    q.bindValue(":id", grafikElementId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "geraetekastenBauteilSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
 }
 
 // ============================================================

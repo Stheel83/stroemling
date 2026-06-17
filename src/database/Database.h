@@ -359,6 +359,9 @@ public:
     // Alle Gerätekästen mit gegebenem BMK (für EP-Abschnitt "Weitere Kästen").
     Q_INVOKABLE QVariantList geraetekastenNachBmk(int projektId, const QString &bmk) const;
 
+    // bauteil_id in extra_daten eines Gerätekasten-Elements setzen (bauteilId<=0 = entfernen).
+    Q_INVOKABLE bool geraetekastenBauteilSetzen(int grafikElementId, int bauteilId);
+
     // Benutzerdefiniertes Feld aktualisieren (nur label, feldtyp, optionen, einheit, pflicht).
     Q_INVOKABLE bool ibnFeldVorlageAktualisieren(int id,
                                                   const QString &label,

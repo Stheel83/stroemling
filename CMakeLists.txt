@@ -149,6 +149,7 @@ qt_add_qml_module(stroemling_app
         qml/la/LaTabKlemmlistenauszug.qml
         qml/la/LaTabKabelliste.qml
         qml/la/LaTabSteckverbinder.qml
+        qml/la/LaTabBelegungsplan.qml
 
         qml/canvas/WerkzeugButton.qml
         qml/canvas/CanvasHeaderBar.qml

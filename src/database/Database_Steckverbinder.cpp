@@ -5,6 +5,9 @@
 #include <QFile>
 #include <QTextStream>
 #include <QUrl>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <cmath>
 
 // ── steckverbinderListe ──────────────────────────────────────────────────────
 // Alle Gerätekästen des Projekts mit verknüpftem Steckverbinder-Bauteil,
@@ -101,6 +104,205 @@ bool Database::steckverbinderlisteCsvSpeichern(int projektId, const QString &pfa
             << q(row["verriegelung"].toString())  << u';'
             << (row["geschirmt"].toBool() ? "Ja" : "Nein") << u';'
             << q(row["blattnr"].toString())       << u'\n';
+    }
+    return true;
+}
+
+// ── steckverbinderBelegungsplan ──────────────────────────────────────────────
+// Liefert eine gemischte Liste für die Belegungsplan-Ansicht:
+//   {typ:"gehaeuse", bmk, gkBez, bauteilBez, polzahl, geschirmt, blattnr}
+//   {typ:"kontakt",  gkBmk, kontaktTyp, kontaktBmk, kontaktBez,
+//                    signalBez, signalFarbe, querschnitt, blattnr}
+// Grundlage: Geometrische Enthaltung (Mittelpunkt des Symbols im GK-Rahmen).
+// Signalzuordnung: verbindung_segment-Endpunkte nahe der Pin-1-Weltposition.
+QVariantList Database::steckverbinderBelegungsplan(int projektId) const
+{
+    QVariantList result;
+
+    // Alle GKs mit Steckverbinder-Bauteil + enthaltene Kontaktsymbole
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT
+            gk.id,
+            COALESCE(json_extract(gk.extra_daten, '$.bmk'), ''),
+            COALESCE(json_extract(gk.extra_daten, '$.bezeichnung'), ''),
+            gk.seite_id,
+            COALESCE(b.bezeichnung, ''),
+            COALESCE(sv.polzahl, 0),
+            sv.geschirmt,
+            s.blattnummer,
+            ge2.id,
+            ge2.typ,
+            COALESCE(json_extract(ge2.extra_daten, '$.bmk'), ''),
+            COALESCE(json_extract(ge2.extra_daten, '$.pinBez'), ''),
+            ge2.rotation,
+            ge2.spiegel_x,
+            ge2.spiegel_y,
+            ge2.x1, ge2.y1, ge2.x2, ge2.y2
+        FROM grafik_element gk
+        JOIN seite  s  ON s.id  = gk.seite_id
+        JOIN ort    o  ON o.id  = s.ort_id
+        JOIN anlage a  ON a.id  = o.anlage_id
+        JOIN bauteil b ON b.id  = CAST(json_extract(gk.extra_daten, '$.bauteil_id') AS INTEGER)
+        JOIN steckverbinder_typ sv ON sv.bauteil_id = b.id
+        JOIN grafik_element ge2 ON ge2.seite_id = gk.seite_id
+          AND ge2.typ IN ('stecker', 'buchse', 'geraeteanschluss')
+          AND (ge2.x1 + ge2.x2) / 2.0 BETWEEN gk.x1 AND gk.x2
+          AND (ge2.y1 + ge2.y2) / 2.0 BETWEEN gk.y1 AND gk.y2
+        WHERE a.projekt_id = :pid
+          AND gk.typ = 'geraetekasten'
+          AND CAST(json_extract(gk.extra_daten, '$.bauteil_id') AS INTEGER) > 0
+        ORDER BY COALESCE(json_extract(gk.extra_daten, '$.bmk'), ''),
+                 gk.id,
+                 ge2.typ,
+                 COALESCE(json_extract(ge2.extra_daten, '$.bmk'), '')
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "steckverbinderBelegungsplan:" << q.lastError().text();
+        return result;
+    }
+
+    // Signal-Abfrage (vorbereitet, pro Kontakt wiederverwendet)
+    QSqlQuery sigQ(m_db);
+    sigQ.prepare(R"(
+        SELECT v.bezeichnung, v.farbe, v.querschnitt_mm2
+        FROM verbindung v
+        JOIN verbindung_segment vs ON vs.verbindung_id = v.id
+        WHERE vs.seite_id = :sid
+          AND (
+              (ABS(json_extract(vs.punkte, '$[0].x') - :px) < 0.5
+               AND ABS(json_extract(vs.punkte, '$[0].y') - :py) < 0.5)
+              OR
+              (ABS(json_extract(vs.punkte, '$[1].x') - :px) < 0.5
+               AND ABS(json_extract(vs.punkte, '$[1].y') - :py) < 0.5)
+          )
+        ORDER BY v.bezeichnung
+        LIMIT 1
+    )");
+
+    int lastGkId = -1;
+    QString lastGkBmk;
+
+    while (q.next()) {
+        const int     gkId       = q.value(0).toInt();
+        const QString gkBmk      = q.value(1).toString();
+        const QString gkBez      = q.value(2).toString();
+        const int     seiteId    = q.value(3).toInt();
+        const QString bauteilBez = q.value(4).toString();
+        const int     polzahl    = q.value(5).toInt();
+        const bool    geschirmt  = q.value(6).toInt() != 0;
+        const QString blattnr    = q.value(7).toString();
+
+        const QString kontaktTyp = q.value(9).toString();
+        const QString kontaktBmk = q.value(10).toString();
+        const QString pinBezJson = q.value(11).toString();
+        const double  rotation   = q.value(12).toDouble();
+        const bool    spiegelX   = q.value(13).toInt() != 0;
+        const bool    spiegelY   = q.value(14).toInt() != 0;
+        const double  kx1 = q.value(15).toDouble(), ky1 = q.value(16).toDouble();
+        const double  kx2 = q.value(17).toDouble(), ky2 = q.value(18).toDouble();
+
+        // Gehäuse-Kopfzeile bei GK-Wechsel
+        if (gkId != lastGkId) {
+            QVariantMap h;
+            h[QStringLiteral("typ")]        = QStringLiteral("gehaeuse");
+            h[QStringLiteral("bmk")]        = gkBmk;
+            h[QStringLiteral("gkBez")]      = gkBez;
+            h[QStringLiteral("bauteilBez")] = bauteilBez;
+            h[QStringLiteral("polzahl")]    = polzahl;
+            h[QStringLiteral("geschirmt")]  = geschirmt;
+            h[QStringLiteral("blattnr")]    = blattnr;
+            result.append(h);
+            lastGkId  = gkId;
+            lastGkBmk = gkBmk;
+        }
+
+        // Kontaktbezeichnung aus pinBez["1"] (Verdrahtungsseite)
+        QString kontaktBez = QStringLiteral("1");
+        if (!pinBezJson.isEmpty()) {
+            QJsonParseError err;
+            QJsonDocument doc = QJsonDocument::fromJson(pinBezJson.toUtf8(), &err);
+            if (!err.error && doc.isObject()) {
+                const QString v = doc.object()[QStringLiteral("1")].toString();
+                if (!v.isEmpty()) kontaktBez = v;
+            }
+        }
+
+        // Weltposition von Pin 1 (Verdrahtungsseite)
+        // stecker/buchse: (0.25, 0.5) · geraeteanschluss: (1.0, 0.5)
+        const double pin1x = (kontaktTyp == QLatin1String("geraeteanschluss")) ? 1.0 : 0.25;
+        const double sw = kx2 - kx1, sh = ky2 - ky1;
+        double cx = (pin1x - 0.5) * std::abs(sw);
+        double cy = 0.0; // pin1y = 0.5 → cy = 0
+        if (spiegelX) cx = -cx;
+        if (spiegelY) cy = -cy;
+        const double rot = rotation * M_PI / 180.0;
+        const double worldX = (kx1 + sw / 2.0) + cx * std::cos(rot) - cy * std::sin(rot);
+        const double worldY = (ky1 + sh / 2.0) + cx * std::sin(rot) + cy * std::cos(rot);
+
+        // Signal an dieser Position
+        QString signalBez, signalFarbe;
+        double  querschnitt = 0.0;
+        sigQ.bindValue(QStringLiteral(":sid"), seiteId);
+        sigQ.bindValue(QStringLiteral(":px"),  worldX);
+        sigQ.bindValue(QStringLiteral(":py"),  worldY);
+        if (sigQ.exec() && sigQ.next()) {
+            signalBez   = sigQ.value(0).toString();
+            signalFarbe = sigQ.value(1).toString();
+            querschnitt = sigQ.value(2).toDouble();
+        }
+
+        QVariantMap k;
+        k[QStringLiteral("typ")]         = QStringLiteral("kontakt");
+        k[QStringLiteral("gkBmk")]       = lastGkBmk;
+        k[QStringLiteral("kontaktTyp")]  = kontaktTyp;
+        k[QStringLiteral("kontaktBmk")]  = kontaktBmk;
+        k[QStringLiteral("kontaktBez")]  = kontaktBez;
+        k[QStringLiteral("signalBez")]   = signalBez;
+        k[QStringLiteral("signalFarbe")] = signalFarbe;
+        k[QStringLiteral("querschnitt")] = querschnitt;
+        k[QStringLiteral("blattnr")]     = blattnr;
+        result.append(k);
+    }
+    return result;
+}
+
+// ── steckverbinderBelegungsplanCsvSpeichern ──────────────────────────────────
+bool Database::steckverbinderBelegungsplanCsvSpeichern(int projektId, const QString &pfad) const
+{
+    QString localPath = QUrl(pfad).toLocalFile();
+    if (localPath.isEmpty()) localPath = pfad;
+    QFile file(localPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qCWarning(lcDb) << "steckverbinderBelegungsplanCsvSpeichern: kann nicht öffnen:" << localPath;
+        return false;
+    }
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+    out << "\xEF\xBB\xBF";
+    out << "GK-BMK;Typ;Symbol-BMK;Pin;Signal;Aderfarbe;Querschnitt mm²;Seite\n";
+    auto q = [](const QString &s) -> QString {
+        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
+            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
+        return s;
+    };
+    QString currentGkBmk;
+    for (const QVariant &v : steckverbinderBelegungsplan(projektId)) {
+        const QVariantMap row = v.toMap();
+        if (row[QStringLiteral("typ")] == QLatin1String("gehaeuse")) {
+            currentGkBmk = row[QStringLiteral("bmk")].toString();
+        } else {
+            const double qs = row[QStringLiteral("querschnitt")].toDouble();
+            out << q(currentGkBmk)                                   << u';'
+                << q(row[QStringLiteral("kontaktTyp")].toString())   << u';'
+                << q(row[QStringLiteral("kontaktBmk")].toString())   << u';'
+                << q(row[QStringLiteral("kontaktBez")].toString())   << u';'
+                << q(row[QStringLiteral("signalBez")].toString())    << u';'
+                << q(row[QStringLiteral("signalFarbe")].toString())  << u';'
+                << (qs > 0 ? QString::number(qs) : QString())        << u';'
+                << q(row[QStringLiteral("blattnr")].toString())      << u'\n';
+        }
     }
     return true;
 }

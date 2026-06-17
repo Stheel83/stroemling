@@ -47,6 +47,7 @@ Item {
         panel._kabelExpanded = {}
 
         panel._svDaten = db.steckverbinderListe(projektId)
+        panel._bpDaten = db.steckverbinderBelegungsplan(projektId)
     }
 
     ListModel { id: stuecklisteModel }
@@ -64,6 +65,14 @@ Item {
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
     property var _svDaten:       []
+    property var _bpDaten:       []
+
+    readonly property int _bpKontaktAnzahl: {
+        var n = 0
+        for (var i = 0; i < _bpDaten.length; i++)
+            if (_bpDaten[i] && _bpDaten[i].typ === "kontakt") n++
+        return n
+    }
 
     function netzeNummerieren(praefix, start, schrittweite) {
         if (projektId < 0) return 0
@@ -168,6 +177,12 @@ Item {
         { header: "Polzahl",     w: 60  }, { header: "IP gesteckt", w: 75  },
         { header: "Kodierung",   w: 70  }, { header: "Geschirmt",   w: 70  },
         { header: "Seite",       w: 55  }
+    ]
+    readonly property var bpCols: [
+        { header: qsTr("Pin"),        w: 45  }, { header: qsTr("Typ"),       w: 90  },
+        { header: qsTr("Symbol-BMK"), w: 100 }, { header: qsTr("Signal"),    w: 130 },
+        { header: qsTr("Farbe"),      w: 80  }, { header: qsTr("mm²"),       w: 60  },
+        { header: qsTr("Seite"),      w: 60  }
     ]
     readonly property var klAderCols: [
         { header: "Nr",          w: 40  }, { header: "Farbe",       w: 70  },
@@ -373,7 +388,8 @@ Item {
                         { label: qsTr("Klemmenplan  (")       + klemmenplanZaehler        + ")",  tab: 3 },
                         { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler + ")", tab: 4 },
                         { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
-                        { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 }
+                        { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 },
+                        { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl    + ")",  tab: 7 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5
@@ -410,6 +426,7 @@ Item {
             LaTabKlemmlistenauszug { panel: panel; theme: panel.theme }
             LaTabKabelliste        { panel: panel; theme: panel.theme }
             LaTabSteckverbinder    { panel: panel; theme: panel.theme }
+            LaTabBelegungsplan     { panel: panel; theme: panel.theme }
         }
     }
 

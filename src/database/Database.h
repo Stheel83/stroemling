@@ -240,9 +240,11 @@ public:
     Q_INVOKABLE bool         bauteilKontaktLoeschen(int id);
     Q_INVOKABLE int          betriebsmittelBauteilId(int betriebsmittelId) const;
 
-    // Steckverbinderliste (für ListenAnsicht)
+    // Steckverbinderliste + Belegungsplan (für ListenAnsicht)
     Q_INVOKABLE QVariantList steckverbinderListe(int projektId) const;
     Q_INVOKABLE bool         steckverbinderlisteCsvSpeichern(int projektId, const QString &pfad) const;
+    Q_INVOKABLE QVariantList steckverbinderBelegungsplan(int projektId) const;
+    Q_INVOKABLE bool         steckverbinderBelegungsplanCsvSpeichern(int projektId, const QString &pfad) const;
 
     // Steckverbinder-Bibliothek (steckverbinder_typ / _kabeleinf / _kontakt_typ)
     Q_INVOKABLE QVariantMap  steckverbinderTypLaden(int bauteilId) const;

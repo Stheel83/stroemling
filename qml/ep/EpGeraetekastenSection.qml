@@ -85,6 +85,8 @@ Item {
         }
     }
 
+    property bool _ghExpanded: false
+
     Column {
         id: gkCol
         width: parent.width; spacing: 0
@@ -121,6 +123,147 @@ Item {
             onWertGeaendert: function(v) { root.extraSetzen("schriftgroesse", v) }
         }
         Item { height: 4 }
+
+        // ── Gehäusedaten (einklappbar) ─────────────────────
+        Trennlinie {}
+        Item {
+            width: parent.width; height: 26
+            Rectangle {
+                anchors.fill: parent
+                color: ghHdrMa.containsMouse ? root.theme.hover : "transparent"
+            }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
+                spacing: 4
+                Text {
+                    text: qsTr("GEHÄUSEDATEN")
+                    font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.5
+                    color: root.theme.borderLight; Layout.fillWidth: true
+                }
+                Text {
+                    text: root._ghExpanded ? "▾" : "▸"
+                    font.pixelSize: 11; color: root.theme.borderLight
+                }
+            }
+            MouseArea {
+                id: ghHdrMa; anchors.fill: parent; hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root._ghExpanded = !root._ghExpanded
+            }
+        }
+
+        Item {
+            width: parent.width
+            height: root._ghExpanded ? ghInhaltCol.implicitHeight : 0
+            clip: true
+            Behavior on height { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+
+            Column {
+                id: ghInhaltCol
+                width: parent.width; spacing: 0
+
+                InputField {
+                    label: qsTr("Hersteller")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_hersteller || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_hersteller", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("Typ / Bezeichnung")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_typ || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_typ", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("Polzahl")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_polzahl || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_polzahl", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("IP gesteckt")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_ip_gesteckt || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_ip_gesteckt", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("IP getrennt")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_ip_getrennt || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_ip_getrennt", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("Kodierung")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_kodierung || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_kodierung", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("Verriegelung")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_verriegelung || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_verriegelung", t.trim()) }
+                }
+                Item { height: 6 }
+
+                // Geschirmt – Ja/Nein Toggle
+                Item {
+                    width: parent.width; height: 48
+                    property bool _geschirmt: (panel.el && panel.el.extraDaten)
+                                              ? (panel.el.extraDaten.gh_geschirmt === true) : false
+                    Text {
+                        anchors { left: parent.left; leftMargin: 12; top: parent.top; topMargin: 4 }
+                        text: qsTr("Geschirmt"); font.pixelSize: 10; color: root.theme.panelMid
+                    }
+                    Row {
+                        anchors { left: parent.left; leftMargin: 12; bottom: parent.bottom; bottomMargin: 4 }
+                        spacing: 4
+                        Repeater {
+                            model: [{ label: qsTr("Nein"), val: false }, { label: qsTr("Ja"), val: true }]
+                            delegate: Rectangle {
+                                width: 52; height: 24; radius: 3
+                                property bool _aktiv: parent.parent.parent._geschirmt === modelData.val
+                                      && (panel.el && panel.el.extraDaten
+                                          && panel.el.extraDaten.gh_geschirmt !== undefined)
+                                color: _aktiv ? root.theme.accent : root.theme.inputBg
+                                border.color: _aktiv ? root.theme.accent : root.theme.border
+                                Text {
+                                    anchors.centerIn: parent; text: modelData.label
+                                    font.pixelSize: 11
+                                    color: parent._aktiv ? "#ffffff" : root.theme.textSecondary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.extraSetzen("gh_geschirmt", modelData.val)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("Datenblatt-URL")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_datenblatt || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_datenblatt", t.trim()) }
+                }
+                Item { height: 4 }
+                InputField {
+                    label: qsTr("Notiz")
+                    value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.gh_notiz || "") : ""
+                    theme: root.theme
+                    onCommit: function(t) { root.extraSetzen("gh_notiz", t.trim()) }
+                }
+                Item { height: 6 }
+            }
+        }
 
         // ── Weitere Kästen mit gleichem BMK ────────────────
         Loader {

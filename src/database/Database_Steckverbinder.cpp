@@ -34,6 +34,8 @@ QVariantList Database::steckverbinderListe(int projektId) const
                ge.id,
                a.kuerzel,
                o.kuerzel,
+               COALESCE(a.anlage_uebergeordnet, ''),
+               COALESCE(o.standort_uebergeordnet, ''),
                (SELECT sk.extra_daten
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
@@ -82,8 +84,9 @@ QVariantList Database::steckverbinderListe(int projektId) const
 
         QString anlageKz = q.value(15).toString();
         QString ortKz    = q.value(16).toString();
-        QString anlageUO, ortUO;
-        strukturkastenOverrideAnwenden(q.value(17).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        QString anlageUO = q.value(17).toString();
+        QString ortUO    = q.value(18).toString();
+        strukturkastenOverrideAnwenden(q.value(19).toString(), anlageKz, ortKz, anlageUO, ortUO);
         m["anlageKz"] = anlageKz;
         m["ortKz"]    = ortKz;
         m["anlageUO"] = anlageUO;
@@ -165,6 +168,8 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
             ge2.x1, ge2.y1, ge2.x2, ge2.y2,
             a.kuerzel,
             o.kuerzel,
+            COALESCE(a.anlage_uebergeordnet, ''),
+            COALESCE(o.standort_uebergeordnet, ''),
             (SELECT sk.extra_daten
              FROM grafik_element sk
              WHERE sk.seite_id = gk.seite_id
@@ -244,8 +249,9 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
         if (gkId != lastGkId) {
             QString anlageKz = q.value(19).toString();
             QString ortKz    = q.value(20).toString();
-            QString anlageUO, ortUO;
-            strukturkastenOverrideAnwenden(q.value(21).toString(), anlageKz, ortKz, anlageUO, ortUO);
+            QString anlageUO = q.value(21).toString();
+            QString ortUO    = q.value(22).toString();
+            strukturkastenOverrideAnwenden(q.value(23).toString(), anlageKz, ortKz, anlageUO, ortUO);
 
             QVariantMap h;
             h[QStringLiteral("typ")]        = QStringLiteral("gehaeuse");

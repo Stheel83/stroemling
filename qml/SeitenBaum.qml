@@ -196,6 +196,12 @@ Item {
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 14
             }
+            Text { text: qsTr("Übergeordnete Anlage == (optional, z.B. Werk1)"); color: theme.textMuted; font.pixelSize: 12 }
+            TextField {
+                id: inpAnlageUO; Layout.fillWidth: true; placeholderText: qsTr("Werk1")
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                color: theme.textPrimary; font.pixelSize: 14
+            }
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
             RowLayout {
                 Layout.fillWidth: true; spacing: 8
@@ -218,8 +224,8 @@ Item {
                     }
                     onClicked: {
                         seitenModel.anlageAnlegen(dlgAnlage.fuerProjektId,
-                            inpAnlageKuerzel.text.trim(), inpAnlageBez.text.trim())
-                        inpAnlageKuerzel.text = ""; inpAnlageBez.text = ""
+                            inpAnlageKuerzel.text.trim(), inpAnlageBez.text.trim(), inpAnlageUO.text.trim())
+                        inpAnlageKuerzel.text = ""; inpAnlageBez.text = ""; inpAnlageUO.text = ""
                         dlgAnlage.close()
                     }
                 }
@@ -254,6 +260,12 @@ Item {
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 14
             }
+            Text { text: qsTr("Übergeordneter Ort ++ (optional, z.B. Halle2)"); color: theme.textMuted; font.pixelSize: 12 }
+            TextField {
+                id: inpOrtUO; Layout.fillWidth: true; placeholderText: qsTr("Halle2")
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                color: theme.textPrimary; font.pixelSize: 14
+            }
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
             RowLayout {
                 Layout.fillWidth: true; spacing: 8
@@ -276,8 +288,8 @@ Item {
                     }
                     onClicked: {
                         seitenModel.ortAnlegen(dlgOrt.fuerAnlageId,
-                            inpOrtKuerzel.text.trim(), inpOrtBez.text.trim())
-                        inpOrtKuerzel.text = ""; inpOrtBez.text = ""
+                            inpOrtKuerzel.text.trim(), inpOrtBez.text.trim(), inpOrtUO.text.trim())
+                        inpOrtKuerzel.text = ""; inpOrtBez.text = ""; inpOrtUO.text = ""
                         dlgOrt.close()
                     }
                 }
@@ -382,15 +394,17 @@ Item {
         width: 360
         padding: 20
 
-        property int    itemId:         -1
-        property string altKuerzel:     ""
-        property string altBezeichnung: ""
+        property int    itemId:             -1
+        property string altKuerzel:         ""
+        property string altBezeichnung:     ""
+        property string altUebergeordnet:   ""
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
         onOpened: {
             editAnlageKuerzel.text = dlgAnlageBearbeiten.altKuerzel
             editAnlageBez.text     = dlgAnlageBearbeiten.altBezeichnung
+            editAnlageUO.text      = dlgAnlageBearbeiten.altUebergeordnet
         }
 
         contentItem: ColumnLayout {
@@ -404,6 +418,12 @@ Item {
             Text { text: qsTr("Bezeichnung"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: editAnlageBez; Layout.fillWidth: true
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                color: theme.textPrimary; font.pixelSize: 14
+            }
+            Text { text: qsTr("Übergeordnete Anlage == (optional)"); color: theme.textMuted; font.pixelSize: 12 }
+            TextField {
+                id: editAnlageUO; Layout.fillWidth: true
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 14
             }
@@ -429,7 +449,7 @@ Item {
                     }
                     onClicked: {
                         seitenModel.anlageBearbeiten(dlgAnlageBearbeiten.itemId,
-                            editAnlageKuerzel.text.trim(), editAnlageBez.text.trim())
+                            editAnlageKuerzel.text.trim(), editAnlageBez.text.trim(), editAnlageUO.text.trim())
                         dlgAnlageBearbeiten.close()
                     }
                 }
@@ -446,15 +466,17 @@ Item {
         width: 360
         padding: 20
 
-        property int    itemId:         -1
-        property string altKuerzel:     ""
-        property string altBezeichnung: ""
+        property int    itemId:             -1
+        property string altKuerzel:         ""
+        property string altBezeichnung:     ""
+        property string altUebergeordnet:   ""
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
         onOpened: {
             editOrtKuerzel.text = dlgOrtBearbeiten.altKuerzel
             editOrtBez.text     = dlgOrtBearbeiten.altBezeichnung
+            editOrtUO.text      = dlgOrtBearbeiten.altUebergeordnet
         }
 
         contentItem: ColumnLayout {
@@ -468,6 +490,12 @@ Item {
             Text { text: qsTr("Bezeichnung"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
                 id: editOrtBez; Layout.fillWidth: true
+                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                color: theme.textPrimary; font.pixelSize: 14
+            }
+            Text { text: qsTr("Übergeordneter Ort ++ (optional)"); color: theme.textMuted; font.pixelSize: 12 }
+            TextField {
+                id: editOrtUO; Layout.fillWidth: true
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 14
             }
@@ -493,7 +521,7 @@ Item {
                     }
                     onClicked: {
                         seitenModel.ortBearbeiten(dlgOrtBearbeiten.itemId,
-                            editOrtKuerzel.text.trim(), editOrtBez.text.trim())
+                            editOrtKuerzel.text.trim(), editOrtBez.text.trim(), editOrtUO.text.trim())
                         dlgOrtBearbeiten.close()
                     }
                 }
@@ -1037,11 +1065,13 @@ Item {
                                         dlgAnlageBearbeiten.itemId = model.itemId
                                         dlgAnlageBearbeiten.altKuerzel = model.kuerzel
                                         dlgAnlageBearbeiten.altBezeichnung = model.rohBezeichnung
+                                        dlgAnlageBearbeiten.altUebergeordnet = model.uebergeordnet ?? ""
                                         dlgAnlageBearbeiten.open()
                                     } else if (model.knotenTyp === 1) {
                                         dlgOrtBearbeiten.itemId = model.itemId
                                         dlgOrtBearbeiten.altKuerzel = model.kuerzel
                                         dlgOrtBearbeiten.altBezeichnung = model.rohBezeichnung
+                                        dlgOrtBearbeiten.altUebergeordnet = model.uebergeordnet ?? ""
                                         dlgOrtBearbeiten.open()
                                     } else {
                                         dlgSeiteBearbeiten.itemId          = model.itemId

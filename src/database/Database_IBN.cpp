@@ -49,6 +49,8 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
             COALESCE(MAX(sd.ibn_kategorie), '')              AS symbol_kategorie,
             a.kuerzel                                        AS anlage_kz,
             o.kuerzel                                        AS ort_kz,
+            COALESCE(a.anlage_uebergeordnet, '')             AS anlage_uo,
+            COALESCE(o.standort_uebergeordnet, '')           AS ort_uo,
             (SELECT sk.extra_daten
              FROM grafik_element sk
              WHERE sk.seite_id = ge.seite_id
@@ -86,7 +88,8 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
     while (q.next()) {
         QString anlageKz = q.value("anlage_kz").toString();
         QString ortKz    = q.value("ort_kz").toString();
-        QString anlageUO, ortUO;
+        QString anlageUO = q.value("anlage_uo").toString();
+        QString ortUO    = q.value("ort_uo").toString();
         strukturkastenOverrideAnwenden(q.value("sk_extra").toString(), anlageKz, ortKz, anlageUO, ortUO);
 
         result.append(QVariantMap{

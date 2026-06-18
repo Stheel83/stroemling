@@ -78,19 +78,21 @@ CREATE TABLE changelog (
 
 -- Seitenbaum
 CREATE TABLE anlage (
-    id              INTEGER PRIMARY KEY,
-    projekt_id      INTEGER NOT NULL REFERENCES projekt(id),
-    kuerzel         TEXT NOT NULL,
-    bezeichnung     TEXT NOT NULL,
-    sortierung      INTEGER DEFAULT 0
+    id                      INTEGER PRIMARY KEY,
+    projekt_id              INTEGER NOT NULL REFERENCES projekt(id),
+    kuerzel                 TEXT NOT NULL,
+    bezeichnung             TEXT NOT NULL,
+    anlage_uebergeordnet    TEXT,
+    sortierung              INTEGER DEFAULT 0
 );
 
 CREATE TABLE ort (
-    id              INTEGER PRIMARY KEY,
-    anlage_id       INTEGER NOT NULL REFERENCES anlage(id),
-    kuerzel         TEXT NOT NULL,
-    bezeichnung     TEXT NOT NULL,
-    sortierung      INTEGER DEFAULT 0
+    id                      INTEGER PRIMARY KEY,
+    anlage_id               INTEGER NOT NULL REFERENCES anlage(id),
+    kuerzel                 TEXT NOT NULL,
+    bezeichnung             TEXT NOT NULL,
+    standort_uebergeordnet  TEXT,
+    sortierung              INTEGER DEFAULT 0
 );
 
 CREATE TABLE seite (
@@ -487,10 +489,14 @@ CREATE TABLE klemme_anschluss (
 CREATE VIEW seite_kennzeichen AS
     SELECT s.id, s.bezeichnung, s.blattnummer, s.seitentyp,
            s.breite_mm, s.hoehe_mm, s.sortierung, s.parent_id,
-           COALESCE('=' || s.anlage_kuerzel, '') ||
-           COALESCE('+' || s.ort_kuerzel, '') ||
+           COALESCE('==' || a.anlage_uebergeordnet, '') ||
+           COALESCE('++' || o.standort_uebergeordnet, '') ||
+           COALESCE('=' || a.kuerzel, '') ||
+           COALESCE('+' || o.kuerzel, '') ||
            '/' || s.blattnummer AS vollkennzeichen
-    FROM seite s;
+    FROM seite s
+    LEFT JOIN ort o ON s.ort_id = o.id
+    LEFT JOIN anlage a ON o.anlage_id = a.id;
 
 CREATE VIEW betriebsmittel_bmk AS
     SELECT id, bezeichnung,

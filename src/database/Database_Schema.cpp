@@ -480,6 +480,28 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_primitiv SET y1=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=8)",
             R"(UPDATE symbol_primitiv SET y1=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=9)",
         }},
+
+        // NKZ-02b: anlage_uebergeordnet (==) / standort_uebergeordnet (++) projektweit
+        // direkt an Anlage/Ort statt nur über Strukturkasten pro Seite. Analog zu
+        // klemmenleiste.anlage_uebergeordnet/standort_uebergeordnet (bereits seit Klemmenreihen-Feature).
+        // seite_kennzeichen-View korrigiert: nutzte bisher nie beschriebene seite.anlage_kuerzel/
+        // ort_kuerzel-Spalten statt der echten ort/anlage-Verknüpfung (toter Code, war unbenutzt).
+        { 76, "anlage/ort: anlage_uebergeordnet/standort_uebergeordnet (==/++ projektweit); seite_kennzeichen-View korrigiert", {
+            R"(ALTER TABLE anlage ADD COLUMN anlage_uebergeordnet TEXT)",
+            R"(ALTER TABLE ort ADD COLUMN standort_uebergeordnet TEXT)",
+            R"(DROP VIEW IF EXISTS seite_kennzeichen)",
+            R"(CREATE VIEW seite_kennzeichen AS
+                SELECT s.id, s.bezeichnung, s.blattnummer, s.seitentyp,
+                       s.breite_mm, s.hoehe_mm, s.sortierung, s.parent_id,
+                       COALESCE('==' || a.anlage_uebergeordnet, '') ||
+                       COALESCE('++' || o.standort_uebergeordnet, '') ||
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       '/' || s.blattnummer AS vollkennzeichen
+                FROM seite s
+                LEFT JOIN ort o ON s.ort_id = o.id
+                LEFT JOIN anlage a ON o.anlage_id = a.id)",
+        }},
     };
 }
 

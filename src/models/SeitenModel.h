@@ -31,6 +31,7 @@ struct OrtEintrag {
     int     anlageId;
     QString kuerzel;
     QString bezeichnung;
+    QString standortUebergeordnet;  // ++ : übergeordneter Ort, projektweit (NKZ-02b)
     int     sortierung;
     QList<SeiteEintrag> seiten;
 };
@@ -40,6 +41,7 @@ struct AnlageEintrag {
     int     projektId;
     QString kuerzel;
     QString bezeichnung;
+    QString anlageUebergeordnet;  // == : übergeordnete Anlage, projektweit (NKZ-02b)
     int     sortierung;
     QList<OrtEintrag> orte;
 };
@@ -106,7 +108,8 @@ public:
         RandObenMmRole,
         RandUntenMmRole,
         OrtIdRole,
-        SortierungRole
+        SortierungRole,
+        UebergeordnetRole   // Anlage: anlageUebergeordnet (==), Ort: standortUebergeordnet (++)
     };
 
     explicit SeitenModel(QObject *parent = nullptr);
@@ -132,12 +135,14 @@ public:
     // Anlage anlegen  → gibt neue ID zurück (-1 = Fehler)
     Q_INVOKABLE int anlageAnlegen(int projektId,
                                    const QString &kuerzel,
-                                   const QString &bezeichnung);
+                                   const QString &bezeichnung,
+                                   const QString &anlageUebergeordnet = QString());
 
     // Ort anlegen
     Q_INVOKABLE int ortAnlegen(int anlageId,
                                 const QString &kuerzel,
-                                const QString &bezeichnung);
+                                const QString &bezeichnung,
+                                const QString &standortUebergeordnet = QString());
 
     // Seite anlegen
     Q_INVOKABLE int seiteAnlegen(int ortId,
@@ -155,8 +160,10 @@ public:
     Q_INVOKABLE bool loeschen(int knotenTyp, int id);
 
     // Einträge bearbeiten
-    Q_INVOKABLE bool anlageBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung);
-    Q_INVOKABLE bool ortBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung);
+    Q_INVOKABLE bool anlageBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung,
+                                       const QString &anlageUebergeordnet = QString());
+    Q_INVOKABLE bool ortBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung,
+                                    const QString &standortUebergeordnet = QString());
     Q_INVOKABLE bool seiteBearbeiten(int id, const QString &blattnummer,
                                       const QString &bezeichnung, const QString &seitentyp,
                                       double breiteMm, double hoeheMm,

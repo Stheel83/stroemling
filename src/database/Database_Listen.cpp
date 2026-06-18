@@ -188,6 +188,8 @@ QVariantList Database::stueckliste(int projektId)
                COALESCE(s.bezeichnung, '') AS seite_bez,
                a.kuerzel AS anlage_kz,
                o.kuerzel AS ort_kz,
+               COALESCE(a.anlage_uebergeordnet, '')   AS anlage_uo,
+               COALESCE(o.standort_uebergeordnet, '') AS ort_uo,
                (SELECT sk.extra_daten
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
@@ -240,8 +242,9 @@ QVariantList Database::stueckliste(int projektId)
 
         QString anlageKz = m[QStringLiteral("anlageKz")].toString();
         QString ortKz    = m[QStringLiteral("ortKz")].toString();
-        QString anlageUO, ortUO;
-        strukturkastenOverrideAnwenden(q.value(6).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        QString anlageUO = q.value(6).toString();
+        QString ortUO    = q.value(7).toString();
+        strukturkastenOverrideAnwenden(q.value(8).toString(), anlageKz, ortKz, anlageUO, ortUO);
         m[QStringLiteral("anlageKz")] = anlageKz;
         m[QStringLiteral("ortKz")]    = ortKz;
         m[QStringLiteral("anlageUO")] = anlageUO;
@@ -261,6 +264,8 @@ QVariantList Database::stueckliste(int projektId)
                COALESCE(s.bezeichnung, ''),
                a.kuerzel,
                o.kuerzel,
+               COALESCE(a.anlage_uebergeordnet, ''),
+               COALESCE(o.standort_uebergeordnet, ''),
                (SELECT sk.extra_daten
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
@@ -303,8 +308,9 @@ QVariantList Database::stueckliste(int projektId)
 
             QString anlageKz2 = m[QStringLiteral("anlageKz")].toString();
             QString ortKz2    = m[QStringLiteral("ortKz")].toString();
-            QString anlageUO2, ortUO2;
-            strukturkastenOverrideAnwenden(qGk.value(8).toString(), anlageKz2, ortKz2, anlageUO2, ortUO2);
+            QString anlageUO2 = qGk.value(8).toString();
+            QString ortUO2    = qGk.value(9).toString();
+            strukturkastenOverrideAnwenden(qGk.value(10).toString(), anlageKz2, ortKz2, anlageUO2, ortUO2);
             m[QStringLiteral("anlageKz")] = anlageKz2;
             m[QStringLiteral("ortKz")]    = ortKz2;
             m[QStringLiteral("anlageUO")] = anlageUO2;
@@ -392,6 +398,8 @@ QVariantList Database::aderliste(int projektId)
                s.blattnummer,
                a.kuerzel AS anlage_kz,
                o.kuerzel AS ort_kz,
+               COALESCE(a.anlage_uebergeordnet, '')   AS anlage_uo,
+               COALESCE(o.standort_uebergeordnet, '') AS ort_uo,
                (SELECT sk.extra_daten
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
@@ -443,8 +451,9 @@ QVariantList Database::aderliste(int projektId)
 
         QString anlageKz = m[QStringLiteral("anlageKz")].toString();
         QString ortKz    = m[QStringLiteral("ortKz")].toString();
-        QString anlageUO, ortUO;
-        strukturkastenOverrideAnwenden(q.value(4).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        QString anlageUO = q.value(4).toString();
+        QString ortUO    = q.value(5).toString();
+        strukturkastenOverrideAnwenden(q.value(6).toString(), anlageKz, ortKz, anlageUO, ortUO);
         m[QStringLiteral("anlageKz")] = anlageKz;
         m[QStringLiteral("ortKz")]    = ortKz;
         m[QStringLiteral("anlageUO")] = anlageUO;
@@ -461,18 +470,22 @@ void Database::strukturkastenOverrideAnwenden(const QString &skExtraDaten,
                                                 QString &anlageKz, QString &ortKz,
                                                 QString &anlageUO, QString &ortUO)
 {
+    // anlageUO/ortUO kommen als Eingabe bereits mit dem projektweiten Default aus
+    // anlage.anlage_uebergeordnet/ort.standort_uebergeordnet (NKZ-02b) – Strukturkasten
+    // überschreibt nur, wenn er selbst einen Wert gesetzt hat.
     if (skExtraDaten.isEmpty()) return;
     QJsonParseError err;
     QJsonDocument doc = QJsonDocument::fromJson(skExtraDaten.toUtf8(), &err);
     if (err.error || !doc.isObject()) return;
     QJsonObject obj = doc.object();
-    anlageUO = obj[QStringLiteral("anlageUO")].toString();
-    ortUO    = obj[QStringLiteral("ortUO")].toString();
-    // = und + aus Strukturkasten überschreiben Seitenbaum-Werte
-    QString skAnlage = obj[QStringLiteral("anlage")].toString();
-    QString skOrt    = obj[QStringLiteral("ort")].toString();
-    if (!skAnlage.isEmpty()) anlageKz = skAnlage;
-    if (!skOrt.isEmpty())    ortKz    = skOrt;
+    QString skAnlageUO = obj[QStringLiteral("anlageUO")].toString();
+    QString skOrtUO    = obj[QStringLiteral("ortUO")].toString();
+    QString skAnlage   = obj[QStringLiteral("anlage")].toString();
+    QString skOrt      = obj[QStringLiteral("ort")].toString();
+    if (!skAnlageUO.isEmpty()) anlageUO = skAnlageUO;
+    if (!skOrtUO.isEmpty())    ortUO    = skOrtUO;
+    if (!skAnlage.isEmpty())   anlageKz = skAnlage;
+    if (!skOrt.isEmpty())      ortKz    = skOrt;
 }
 
 // ============================================================

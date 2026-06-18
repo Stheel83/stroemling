@@ -563,10 +563,13 @@ Item {
                 return fmt + (b > h ? " QF" : " HF")
             }
             function vollkz() {
+                var auo = nd.anlageUO || "", ouo = nd.ortUO || ""
                 var a = nd.anlageKuerzel || "", o = nd.ortKuerzel || "", bn = nd.blattnummer || ""
                 var kz = ""
-                if (a) kz += "=" + a
-                if (o) kz += "+" + o
+                if (auo) kz += "==" + auo
+                if (ouo) kz += "++" + ouo
+                if (a)   kz += "=" + a
+                if (o)   kz += "+" + o
                 if (kz) kz += "/"
                 return kz + bn
             }

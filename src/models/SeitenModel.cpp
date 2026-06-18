@@ -64,7 +64,8 @@ void SeitenModel::baumAufbauen()
 {
     // -- Anlagen laden --
     QSqlQuery q;
-    q.prepare("SELECT id, projekt_id, kuerzel, bezeichnung, sortierung "
+    q.prepare("SELECT id, projekt_id, kuerzel, bezeichnung, sortierung, "
+              "COALESCE(anlage_uebergeordnet,'') "
               "FROM anlage WHERE projekt_id = :pid ORDER BY sortierung, id");
     q.bindValue(":pid", m_projektId);
     q.exec();
@@ -76,10 +77,12 @@ void SeitenModel::baumAufbauen()
         a.kuerzel    = q.value(2).toString();
         a.bezeichnung= q.value(3).toString();
         a.sortierung = q.value(4).toInt();
+        a.anlageUebergeordnet = q.value(5).toString();
 
         // -- Orte für diese Anlage laden --
         QSqlQuery qo;
-        qo.prepare("SELECT id, anlage_id, kuerzel, bezeichnung, sortierung "
+        qo.prepare("SELECT id, anlage_id, kuerzel, bezeichnung, sortierung, "
+                   "COALESCE(standort_uebergeordnet,'') "
                    "FROM ort WHERE anlage_id = :aid ORDER BY sortierung, id");
         qo.bindValue(":aid", a.id);
         qo.exec();
@@ -91,6 +94,7 @@ void SeitenModel::baumAufbauen()
             o.kuerzel    = qo.value(2).toString();
             o.bezeichnung= qo.value(3).toString();
             o.sortierung = qo.value(4).toInt();
+            o.standortUebergeordnet = qo.value(5).toString();
 
             // -- Seiten für diesen Ort laden --
             QSqlQuery qs;
@@ -289,6 +293,11 @@ QVariant SeitenModel::data(const QModelIndex &index, int role) const
         if (knoten->typ == BaumKnoten::Ort)    return knoten->ort->sortierung;
         if (knoten->typ == BaumKnoten::Seite)  return knoten->seite->sortierung;
         return {};
+
+    case UebergeordnetRole:
+        if (knoten->typ == BaumKnoten::Anlage) return knoten->anlage->anlageUebergeordnet;
+        if (knoten->typ == BaumKnoten::Ort)    return knoten->ort->standortUebergeordnet;
+        return {};
     }
     return {};
 }
@@ -311,6 +320,7 @@ QHash<int, QByteArray> SeitenModel::roleNames() const
         { RandUntenMmRole,    "randUntenMm"    },
         { OrtIdRole,          "ortId"          },
         { SortierungRole,     "sortierung"     },
+        { UebergeordnetRole,  "uebergeordnet"  },
     };
 }
 
@@ -328,13 +338,16 @@ void SeitenModel::laden(int projektId)
     endResetModel();
 }
 
-int SeitenModel::anlageAnlegen(int projektId, const QString &kuerzel, const QString &bezeichnung)
+int SeitenModel::anlageAnlegen(int projektId, const QString &kuerzel, const QString &bezeichnung,
+                                const QString &anlageUebergeordnet)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (:pid, :kz, :bez)");
+    q.prepare("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung, anlage_uebergeordnet) "
+              "VALUES (:pid, :kz, :bez, :auo)");
     q.bindValue(":pid", projektId);
     q.bindValue(":kz",  kuerzel);
     q.bindValue(":bez", bezeichnung);
+    q.bindValue(":auo", anlageUebergeordnet.isEmpty() ? QVariant() : anlageUebergeordnet);
     if (!q.exec()) {
         qCWarning(lcModel) << "anlageAnlegen Fehler:" << q.lastError().text();
         return -1;
@@ -344,13 +357,16 @@ int SeitenModel::anlageAnlegen(int projektId, const QString &kuerzel, const QStr
     return newId;
 }
 
-int SeitenModel::ortAnlegen(int anlageId, const QString &kuerzel, const QString &bezeichnung)
+int SeitenModel::ortAnlegen(int anlageId, const QString &kuerzel, const QString &bezeichnung,
+                             const QString &standortUebergeordnet)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (:aid, :kz, :bez)");
+    q.prepare("INSERT INTO ort (anlage_id, kuerzel, bezeichnung, standort_uebergeordnet) "
+              "VALUES (:aid, :kz, :bez, :suo)");
     q.bindValue(":aid", anlageId);
     q.bindValue(":kz",  kuerzel);
     q.bindValue(":bez", bezeichnung);
+    q.bindValue(":suo", standortUebergeordnet.isEmpty() ? QVariant() : standortUebergeordnet);
     if (!q.exec()) {
         qCWarning(lcModel) << "ortAnlegen Fehler:" << q.lastError().text();
         return -1;
@@ -427,12 +443,15 @@ bool SeitenModel::loeschen(int knotenTyp, int id)
     return true;
 }
 
-bool SeitenModel::anlageBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung)
+bool SeitenModel::anlageBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung,
+                                    const QString &anlageUebergeordnet)
 {
     QSqlQuery q;
-    q.prepare("UPDATE anlage SET kuerzel = :kz, bezeichnung = :bez WHERE id = :id");
+    q.prepare("UPDATE anlage SET kuerzel = :kz, bezeichnung = :bez, "
+              "anlage_uebergeordnet = :auo WHERE id = :id");
     q.bindValue(":kz",  kuerzel);
     q.bindValue(":bez", bezeichnung);
+    q.bindValue(":auo", anlageUebergeordnet.isEmpty() ? QVariant() : anlageUebergeordnet);
     q.bindValue(":id",  id);
     if (!q.exec()) {
         qCWarning(lcModel) << "anlageBearbeiten Fehler:" << q.lastError().text();
@@ -442,12 +461,15 @@ bool SeitenModel::anlageBearbeiten(int id, const QString &kuerzel, const QString
     return true;
 }
 
-bool SeitenModel::ortBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung)
+bool SeitenModel::ortBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung,
+                                 const QString &standortUebergeordnet)
 {
     QSqlQuery q;
-    q.prepare("UPDATE ort SET kuerzel = :kz, bezeichnung = :bez WHERE id = :id");
+    q.prepare("UPDATE ort SET kuerzel = :kz, bezeichnung = :bez, "
+              "standort_uebergeordnet = :suo WHERE id = :id");
     q.bindValue(":kz",  kuerzel);
     q.bindValue(":bez", bezeichnung);
+    q.bindValue(":suo", standortUebergeordnet.isEmpty() ? QVariant() : standortUebergeordnet);
     q.bindValue(":id",  id);
     if (!q.exec()) {
         qCWarning(lcModel) << "ortBearbeiten Fehler:" << q.lastError().text();

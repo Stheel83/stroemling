@@ -27,6 +27,8 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
                COALESCE(b.hersteller, ''),
                a.kuerzel,
                o.kuerzel,
+               COALESCE(a.anlage_uebergeordnet, ''),
+               COALESCE(o.standort_uebergeordnet, ''),
                (SELECT sk.extra_daten
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
@@ -69,8 +71,9 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
 
         QString anlageKz = q.value(11).toString();
         QString ortKz    = q.value(12).toString();
-        QString anlageUO, ortUO;
-        strukturkastenOverrideAnwenden(q.value(13).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        QString anlageUO = q.value(13).toString();
+        QString ortUO    = q.value(14).toString();
+        strukturkastenOverrideAnwenden(q.value(15).toString(), anlageKz, ortKz, anlageUO, ortUO);
         m[QStringLiteral("anlageKz")] = anlageKz;
         m[QStringLiteral("ortKz")]    = ortKz;
         m[QStringLiteral("anlageUO")] = anlageUO;

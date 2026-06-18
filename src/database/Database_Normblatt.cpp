@@ -36,7 +36,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT s.blattnummer, s.bezeichnung, s.anlage_kuerzel, s.ort_kuerzel,
+        SELECT s.blattnummer, s.bezeichnung, a.kuerzel AS anlage_kuerzel, o.kuerzel AS ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
                s.revision_status, s.revision_kennung,
@@ -50,7 +50,9 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                COALESCE(s.rand_links_mm,  nv.rand_links_mm,  20) AS rand_links_mm,
                COALESCE(s.rand_rechts_mm, nv.rand_rechts_mm, 10) AS rand_rechts_mm,
                COALESCE(s.rand_oben_mm,   nv.rand_oben_mm,   10) AS rand_oben_mm,
-               COALESCE(s.rand_unten_mm,  nv.rand_unten_mm,  10) AS rand_unten_mm
+               COALESCE(s.rand_unten_mm,  nv.rand_unten_mm,  10) AS rand_unten_mm,
+               COALESCE(a.anlage_uebergeordnet, '')   AS anlage_uo,
+               COALESCE(o.standort_uebergeordnet, '') AS ort_uo
         FROM seite s
         JOIN ort     o  ON s.ort_id      = o.id
         JOIN anlage  a  ON o.anlage_id   = a.id
@@ -69,6 +71,8 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("bezeichnung")]      = q.value("bezeichnung");
     m[QStringLiteral("anlageKuerzel")]    = q.value("anlage_kuerzel");
     m[QStringLiteral("ortKuerzel")]       = q.value("ort_kuerzel");
+    m[QStringLiteral("anlageUO")]         = q.value("anlage_uo");
+    m[QStringLiteral("ortUO")]            = q.value("ort_uo");
     m[QStringLiteral("breiteMm")]         = q.value("breite_mm");
     m[QStringLiteral("hoeheMm")]          = q.value("hoehe_mm");
     m[QStringLiteral("normblattAnzeigen")] = q.value("normblatt_anzeigen");

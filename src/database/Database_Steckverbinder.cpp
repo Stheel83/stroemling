@@ -31,7 +31,19 @@ QVariantList Database::steckverbinderListe(int projektId) const
                sv.hat_schirmkontakt,
                s.blattnummer,
                COALESCE(s.bezeichnung, ''),
-               ge.id
+               ge.id,
+               a.kuerzel,
+               o.kuerzel,
+               (SELECT sk.extra_daten
+                FROM grafik_element sk
+                WHERE sk.seite_id = ge.seite_id
+                  AND sk.typ = 'strukturkasten'
+                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
+                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
+                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
+                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
+                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                LIMIT 1) AS sk_extra
         FROM grafik_element ge
         JOIN seite  s ON s.id = ge.seite_id
         JOIN ort    o ON o.id = s.ort_id
@@ -41,7 +53,8 @@ QVariantList Database::steckverbinderListe(int projektId) const
         WHERE a.projekt_id = :pid
           AND ge.typ = 'geraetekasten'
           AND CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) > 0
-        ORDER BY COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
+        ORDER BY a.kuerzel, o.kuerzel,
+                 COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
                  s.blattnummer
     )");
     q.bindValue(":pid", projektId);
@@ -66,6 +79,15 @@ QVariantList Database::steckverbinderListe(int projektId) const
         m["blattnr"]         = q.value(12).toString();
         m["seiteBez"]        = q.value(13).toString();
         m["grafikElementId"] = q.value(14).toInt();
+
+        QString anlageKz = q.value(15).toString();
+        QString ortKz    = q.value(16).toString();
+        QString anlageUO, ortUO;
+        strukturkastenOverrideAnwenden(q.value(17).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        m["anlageKz"] = anlageKz;
+        m["ortKz"]    = ortKz;
+        m["anlageUO"] = anlageUO;
+        m["ortUO"]    = ortUO;
         liste.append(m);
     }
     return liste;
@@ -84,7 +106,7 @@ bool Database::steckverbinderlisteCsvSpeichern(int projektId, const QString &pfa
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
     out << "\xEF\xBB\xBF";
-    out << "BMK;Bezeichnung;Bauteil/Typ;Hersteller;Artikelnr.;Polzahl;IP gesteckt;IP getrennt;Kodierung;Verriegelung;Geschirmt;Seite\n";
+    out << "BMK;Bezeichnung;Bauteil/Typ;Hersteller;Artikelnr.;Polzahl;IP gesteckt;IP getrennt;Kodierung;Verriegelung;Geschirmt;Anlage;Ort;Seite\n";
     auto q = [](const QString &s) -> QString {
         if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
             return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
@@ -103,6 +125,8 @@ bool Database::steckverbinderlisteCsvSpeichern(int projektId, const QString &pfa
             << q(row["kodierung"].toString())     << u';'
             << q(row["verriegelung"].toString())  << u';'
             << (row["geschirmt"].toBool() ? "Ja" : "Nein") << u';'
+            << q(row["anlageKz"].toString())      << u';'
+            << q(row["ortKz"].toString())         << u';'
             << q(row["blattnr"].toString())       << u'\n';
     }
     return true;
@@ -138,7 +162,19 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
             ge2.rotation,
             ge2.spiegel_x,
             ge2.spiegel_y,
-            ge2.x1, ge2.y1, ge2.x2, ge2.y2
+            ge2.x1, ge2.y1, ge2.x2, ge2.y2,
+            a.kuerzel,
+            o.kuerzel,
+            (SELECT sk.extra_daten
+             FROM grafik_element sk
+             WHERE sk.seite_id = gk.seite_id
+               AND sk.typ = 'strukturkasten'
+               AND (gk.x1 + gk.x2) / 2.0 >= sk.x1
+               AND (gk.x1 + gk.x2) / 2.0 <= sk.x2
+               AND (gk.y1 + gk.y2) / 2.0 >= sk.y1
+               AND (gk.y1 + gk.y2) / 2.0 <= sk.y2
+             ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+             LIMIT 1) AS sk_extra
         FROM grafik_element gk
         JOIN seite  s  ON s.id  = gk.seite_id
         JOIN ort    o  ON o.id  = s.ort_id
@@ -152,7 +188,8 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
         WHERE a.projekt_id = :pid
           AND gk.typ = 'geraetekasten'
           AND CAST(json_extract(gk.extra_daten, '$.bauteil_id') AS INTEGER) > 0
-        ORDER BY COALESCE(json_extract(gk.extra_daten, '$.bmk'), ''),
+        ORDER BY a.kuerzel, o.kuerzel,
+                 COALESCE(json_extract(gk.extra_daten, '$.bmk'), ''),
                  gk.id,
                  ge2.typ,
                  COALESCE(json_extract(ge2.extra_daten, '$.bmk'), '')
@@ -205,6 +242,11 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
 
         // Gehäuse-Kopfzeile bei GK-Wechsel
         if (gkId != lastGkId) {
+            QString anlageKz = q.value(19).toString();
+            QString ortKz    = q.value(20).toString();
+            QString anlageUO, ortUO;
+            strukturkastenOverrideAnwenden(q.value(21).toString(), anlageKz, ortKz, anlageUO, ortUO);
+
             QVariantMap h;
             h[QStringLiteral("typ")]        = QStringLiteral("gehaeuse");
             h[QStringLiteral("bmk")]        = gkBmk;
@@ -213,6 +255,10 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
             h[QStringLiteral("polzahl")]    = polzahl;
             h[QStringLiteral("geschirmt")]  = geschirmt;
             h[QStringLiteral("blattnr")]    = blattnr;
+            h[QStringLiteral("anlageKz")]   = anlageKz;
+            h[QStringLiteral("ortKz")]      = ortKz;
+            h[QStringLiteral("anlageUO")]   = anlageUO;
+            h[QStringLiteral("ortUO")]      = ortUO;
             result.append(h);
             lastGkId  = gkId;
             lastGkBmk = gkBmk;

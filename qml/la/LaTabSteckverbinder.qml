@@ -100,7 +100,11 @@ ColumnLayout {
                                 text: "–"; font.pixelSize: 12; color: root.theme.borderDark
                             }
                         }
-                        Text { width: panel.svCols[8].w; text: modelData.blattnr || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[8].w;  text: modelData.blattnr || "";  font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[9].w;  text: modelData.anlageUO || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[10].w; text: modelData.ortUO    || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[11].w; text: modelData.anlageKz || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[12].w; text: modelData.ortKz    || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
                     }
                 }
             }

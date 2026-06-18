@@ -95,7 +95,15 @@ ColumnLayout {
                             anchors.verticalCenter: parent.verticalCenter
                             width: gkBmkTxt.implicitWidth + 8; height: 16; radius: 3
                             color: "#0d2030"; border.color: "#0088aa"; border.width: 1
-                            Text { id: gkBmkTxt; anchors.centerIn: parent; text: modelData.bmk || ""; font.pixelSize: 10; color: "#44bbdd" }
+                            Text {
+                                id: gkBmkTxt; anchors.centerIn: parent
+                                text: (modelData.anlageUO ? ("==" + modelData.anlageUO) : "")
+                                      + (modelData.ortUO    ? ("++" + modelData.ortUO)    : "")
+                                      + (modelData.anlageKz ? ("=" + modelData.anlageKz)  : "")
+                                      + (modelData.ortKz    ? ("+" + modelData.ortKz)      : "")
+                                      + (modelData.bmk || "")
+                                font.pixelSize: 10; color: "#44bbdd"
+                            }
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter

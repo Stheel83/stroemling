@@ -772,6 +772,13 @@ private:
     // Blob-Dateien aller Nutzer-Artikel löschen (vor Replace-Import)
     void wikiBlobDateienAlleNutzerArtikelLoeschen();
 
+    // Strukturkasten-extra_daten (sk_extra-Spalte der Korrelations-Subquery)
+    // parsen: überschreibt anlageKz/ortKz falls im Strukturkasten gesetzt
+    // (= bzw. +), liefert anlageUO/ortUO (== bzw. ++, übergeordnete Ebenen).
+    static void strukturkastenOverrideAnwenden(const QString &skExtraDaten,
+                                                QString &anlageKz, QString &ortKz,
+                                                QString &anlageUO, QString &ortUO);
+
     QSqlDatabase m_db;
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_makroDb;

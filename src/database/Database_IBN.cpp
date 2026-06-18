@@ -46,7 +46,19 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
             COALESCE(ibn.geprueft_am, '')                    AS geprueft_am,
             MIN(ge.x1)                                       AS x1,
             MIN(ge.y1)                                       AS y1,
-            COALESCE(MAX(sd.ibn_kategorie), '')              AS symbol_kategorie
+            COALESCE(MAX(sd.ibn_kategorie), '')              AS symbol_kategorie,
+            a.kuerzel                                        AS anlage_kz,
+            o.kuerzel                                        AS ort_kz,
+            (SELECT sk.extra_daten
+             FROM grafik_element sk
+             WHERE sk.seite_id = ge.seite_id
+               AND sk.typ = 'strukturkasten'
+               AND (MIN(ge.x1) + MIN(ge.x2)) / 2.0 >= sk.x1
+               AND (MIN(ge.x1) + MIN(ge.x2)) / 2.0 <= sk.x2
+               AND (MIN(ge.y1) + MIN(ge.y2)) / 2.0 >= sk.y1
+               AND (MIN(ge.y1) + MIN(ge.y2)) / 2.0 <= sk.y2
+             ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+             LIMIT 1)                                         AS sk_extra
         FROM grafik_element ge
         JOIN seite   s ON ge.seite_id   = s.id
         JOIN ort     o ON s.ort_id      = o.id
@@ -61,7 +73,7 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
           AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
           AND json_extract(ge.extra_daten, '$.bmk') != ''
         GROUP BY ge.seite_id, json_extract(ge.extra_daten, '$.bmk')
-        ORDER BY s.blattnummer, bmk
+        ORDER BY a.kuerzel, o.kuerzel, s.blattnummer, bmk
     )");
     q.bindValue(":pid", projektId);
     q.bindValue(":sid", seiteId);
@@ -72,6 +84,11 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
         return result;
     }
     while (q.next()) {
+        QString anlageKz = q.value("anlage_kz").toString();
+        QString ortKz    = q.value("ort_kz").toString();
+        QString anlageUO, ortUO;
+        strukturkastenOverrideAnwenden(q.value("sk_extra").toString(), anlageKz, ortKz, anlageUO, ortUO);
+
         result.append(QVariantMap{
             { "elementId",        q.value("element_id")      },
             { "seiteId",          q.value("seite_id")        },
@@ -87,6 +104,10 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
             { "x1",               q.value("x1")              },
             { "y1",               q.value("y1")              },
             { "symbolKategorie",  q.value("symbol_kategorie") },
+            { "anlageKz",         anlageKz                    },
+            { "ortKz",            ortKz                       },
+            { "anlageUO",         anlageUO                    },
+            { "ortUO",            ortUO                       },
         });
     }
     return result;

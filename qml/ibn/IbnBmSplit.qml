@@ -67,7 +67,11 @@ SplitView {
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 1
                         Text {
-                            text: modelData.bmk
+                            text: (modelData.anlageUO ? ("==" + modelData.anlageUO) : "")
+                                  + (modelData.ortUO    ? ("++" + modelData.ortUO)    : "")
+                                  + (modelData.anlageKz ? ("=" + modelData.anlageKz)  : "")
+                                  + (modelData.ortKz    ? ("+" + modelData.ortKz)      : "")
+                                  + modelData.bmk
                             font.pixelSize: 13; font.bold: true
                             color: theme.textPrimary
                             elide: Text.ElideRight; Layout.fillWidth: true

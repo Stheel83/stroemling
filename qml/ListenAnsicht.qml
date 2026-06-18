@@ -176,7 +176,9 @@ Item {
         { header: "Bauteil/Typ", w: 130 }, { header: "Hersteller",  w: 110 },
         { header: "Polzahl",     w: 60  }, { header: "IP gesteckt", w: 75  },
         { header: "Kodierung",   w: 70  }, { header: "Geschirmt",   w: 70  },
-        { header: "Seite",       w: 55  }
+        { header: "Seite",       w: 55  }, { header: "==Anlage",    w: 65  },
+        { header: "++Ort",       w: 65  }, { header: "=Anlage",     w: 55  },
+        { header: "+Ort",        w: 55  }
     ]
     readonly property var bpCols: [
         { header: qsTr("Pin"),        w: 45  }, { header: qsTr("Typ"),       w: 90  },

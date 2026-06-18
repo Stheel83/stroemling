@@ -24,7 +24,19 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
                (ge.y1 + ge.y2) / 2.0,
                COALESCE(CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER), 0),
                COALESCE(b.bezeichnung, ''),
-               COALESCE(b.hersteller, '')
+               COALESCE(b.hersteller, ''),
+               a.kuerzel,
+               o.kuerzel,
+               (SELECT sk.extra_daten
+                FROM grafik_element sk
+                WHERE sk.seite_id = ge.seite_id
+                  AND sk.typ = 'strukturkasten'
+                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
+                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
+                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
+                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
+                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                LIMIT 1) AS sk_extra
         FROM grafik_element ge
         JOIN seite   s ON s.id  = ge.seite_id
         JOIN ort     o ON o.id  = s.ort_id
@@ -32,7 +44,8 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
         LEFT JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
         WHERE ge.typ = 'geraetekasten'
           AND a.projekt_id = :pid
-        ORDER BY COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
+        ORDER BY a.kuerzel, o.kuerzel,
+                 COALESCE(json_extract(ge.extra_daten, '$.bmk'), ''),
                  s.blattnummer
     )");
     q.bindValue(":pid", projektId);
@@ -53,6 +66,15 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
         m[QStringLiteral("bauteilId")]        = q.value(8).toInt();
         m[QStringLiteral("bauteilBez")]       = q.value(9).toString();
         m[QStringLiteral("bauteilHersteller")]= q.value(10).toString();
+
+        QString anlageKz = q.value(11).toString();
+        QString ortKz    = q.value(12).toString();
+        QString anlageUO, ortUO;
+        strukturkastenOverrideAnwenden(q.value(13).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        m[QStringLiteral("anlageKz")] = anlageKz;
+        m[QStringLiteral("ortKz")]    = ortKz;
+        m[QStringLiteral("anlageUO")] = anlageUO;
+        m[QStringLiteral("ortUO")]    = ortUO;
         result.append(m);
     }
     return result;

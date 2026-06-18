@@ -15,19 +15,28 @@ Item {
     property var _flachListe: []
     property int _pickerFuerElId: -1
 
+    // Gruppierung über Anlage+Ort+BMK (nicht nur BMK!), da derselbe kurze BMK
+    // in unterschiedlichen Anlagen/Orten verschiedene, eigenständige Geräte
+    // bezeichnen kann (Strukturkasten-Override).
     property var _gruppiert: {
         var gruppen = {}
         var reihenfolge = []
         for (var i = 0; i < root._flachListe.length; i++) {
             var gk = root._flachListe[i]
             var bmk = gk.bmk || ""
-            if (!gruppen[bmk]) {
-                gruppen[bmk] = { bmk: bmk, bezeichnung: gk.bezeichnung || "", instanzen: [] }
-                reihenfolge.push(bmk)
+            var anlage = gk.anlageKz || "", ort = gk.ortKz || ""
+            var key = anlage + "|" + ort + "|" + bmk
+            if (!gruppen[key]) {
+                var vk = (gk.anlageUO ? ("==" + gk.anlageUO) : "") +
+                         (gk.ortUO    ? ("++" + gk.ortUO)    : "") +
+                         (anlage      ? ("=" + anlage)        : "") +
+                         (ort         ? ("+" + ort)            : "") + bmk
+                gruppen[key] = { bmk: bmk, vollkennzeichen: vk, bezeichnung: gk.bezeichnung || "", instanzen: [] }
+                reihenfolge.push(key)
             }
-            gruppen[bmk].instanzen.push(gk)
+            gruppen[key].instanzen.push(gk)
         }
-        return reihenfolge.map(function(b) { return gruppen[b] })
+        return reihenfolge.map(function(k) { return gruppen[k] })
     }
 
     function laden() {
@@ -233,7 +242,7 @@ Item {
                                 spacing: 8
                                 Text { text: "📐"; font.pixelSize: 13 }
                                 Text {
-                                    text: modelData.bmk
+                                    text: modelData.vollkennzeichen
                                     font.pixelSize: 12; font.weight: Font.Medium
                                     color: root.theme.textPrimary
                                 }

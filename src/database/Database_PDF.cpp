@@ -835,12 +835,16 @@ static void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPer
     };
     // Vollkennzeichen
     auto vollkz = [&]() -> QString {
+        QString auo = nb.value("anlageUO").toString();
+        QString ouo = nb.value("ortUO").toString();
         QString a = nb.value("anlageKuerzel").toString();
         QString o = nb.value("ortKuerzel").toString();
         QString bn = nb.value("blattnummer").toString();
         QString kz;
-        if (!a.isEmpty()) kz += "=" + a;
-        if (!o.isEmpty()) kz += "+" + o;
+        if (!auo.isEmpty()) kz += "==" + auo;
+        if (!ouo.isEmpty()) kz += "++" + ouo;
+        if (!a.isEmpty())   kz += "=" + a;
+        if (!o.isEmpty())   kz += "+" + o;
         if (!kz.isEmpty()) kz += "/";
         return kz + bn;
     };
@@ -933,7 +937,10 @@ static void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPer
         zelle("BEARBEITER",   nb.value("bearbeiter").toString(),    cX[0],rY[2],cX[1]-cX[0],rowH);
         zelle("SEITENKENNZ.", vollkz(),                             cX[1],rY[2],cX[2]-cX[1],rowH);
         zelle("NORM",         nb.value("norm", "IEC").toString(),   cX[2],rY[2],cX[3]-cX[2],rowH);
-        zelle("INDEX",        QStringLiteral("–"),             cX[3],rY[2],cX[4]-cX[3],rowH);
+        {
+            QString rev = nb.value("revisionKennung").toString();
+            zelle("REV.", rev.isEmpty() ? QStringLiteral("–") : rev, cX[3],rY[2],cX[4]-cX[3],rowH);
+        }
 
         p.setPen(framePen);
         p.drawRect(QRectF(iX0, sfY0, iW, sfH));
@@ -1002,6 +1009,47 @@ static void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
     if (!bearbeiter.isEmpty()) rechts += QStringLiteral("  \xB7  ") + bearbeiter;
     p.drawText(QRectF(x2 + pad, tY, w - x2 - 2*pad, tH),
                Qt::AlignRight | Qt::AlignVCenter, rechts);
+}
+
+// ── Revisionsmarker-Wasserzeichen (analog SchaltplanCanvas.qml) ─────────────
+// Wird unabhängig von Normblatt/Infostreifen/vollCanvas auf jeder Seite gezeichnet,
+// sofern ein Revisionsstatus gesetzt ist.
+static void pdfRevisionswasserzeichenRendern(QPainter &p, const QVariantMap &nb,
+                                              double bMm, double hMm, double pxPerMm)
+{
+    QString status = nb.value("revisionStatus").toString();
+    if (status.isEmpty()) return;
+
+    QString text;
+    QColor  farbe;
+    if (status == QStringLiteral("entwurf")) {
+        text  = QStringLiteral("ENTWURF");
+        farbe = QColor(0xd9, 0x77, 0x06);
+    } else if (status == QStringLiteral("freigegeben")) {
+        QString kennung = nb.value("revisionKennung").toString();
+        text = QStringLiteral("FREIGEGEBEN") +
+               (kennung.isEmpty() ? QString() : QStringLiteral("  REV. ") + kennung);
+        farbe = QColor(0x16, 0xa3, 0x4a);
+    } else if (status == QStringLiteral("veraltet")) {
+        text  = QStringLiteral("VERALTET");
+        farbe = QColor(0xdc, 0x26, 0x26);
+    } else {
+        return;
+    }
+
+    p.save();
+    p.translate(bMm * pxPerMm / 2.0, hMm * pxPerMm / 2.0);
+    p.rotate(-30);
+    p.setOpacity(0.10);
+    QFont f; f.setFamily(QStringLiteral("sans-serif")); f.setBold(true);
+    f.setPixelSize(qMax(1, qRound(qMin(bMm, hMm) * pxPerMm / 5.0)));
+    p.setFont(f);
+    p.setPen(farbe);
+    QFontMetricsF fm(f);
+    QRectF bound = fm.boundingRect(text);
+    p.drawText(QRectF(-bound.width() / 2.0, -bound.height() / 2.0, bound.width(), bound.height()),
+               Qt::AlignCenter, text);
+    p.restore();
 }
 
 // ── Bounding-Box einer Seite berechnen (für vollCanvas-Modus) ───────────────
@@ -1143,6 +1191,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
             pdfNormblattRendern(painter, nb, pxPerMm);
         if (mitInfostreifen && !nb.value("normblattAnzeigen").toBool())
             pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
+        pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
     }
 
     painter.end();
@@ -1198,6 +1247,7 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
         pdfNormblattRendern(painter, nb, pxPerMm);
     if (mitInfostreifen && !nb.value("normblattAnzeigen").toBool())
         pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
+    pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
 
     painter.end();
     qCInfo(lcDb) << "canvasSeiteExportieren: PDF gespeichert:" << localPath

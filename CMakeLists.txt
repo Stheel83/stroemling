@@ -92,6 +92,7 @@ qt_add_qml_module(stroemling_app
         qml/components/MeldungToast.qml
 
         qml/AchievementsPanel.qml
+        qml/MeldungenPanel.qml
 
         qml/ep/EpGeraetekastenSection.qml
         qml/ep/EpStrukturkastenSection.qml

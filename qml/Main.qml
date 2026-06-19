@@ -600,6 +600,14 @@ ApplicationWindow {
                 }
                 SidebarButton {
                     theme:   appTheme
+                    icon:    "🔔"
+                    label:   qsTr("Meldungen")
+                    active:  root.aktiveAnsicht === "meldungen"
+                    tooltip: qsTr("Zuletzt angezeigte Meldungen dieser Session")
+                    onClicked: root.aktiveAnsicht = "meldungen"
+                }
+                SidebarButton {
+                    theme:   appTheme
                     icon:    "⚙"
                     label:   qsTr("Einstellungen")
                     active:  root.aktiveAnsicht === "einstellungen"
@@ -1530,6 +1538,14 @@ ApplicationWindow {
             AchievementsPanel {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "achievements"
+                theme:        appTheme
+                debug:        root.debugModeAktiv
+            }
+
+            // ── Meldungen ────────────────────────────────────────────
+            MeldungenPanel {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "meldungen"
                 theme:        appTheme
                 debug:        root.debugModeAktiv
             }

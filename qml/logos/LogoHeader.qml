@@ -3,50 +3,31 @@ import QtQuick
 Item {
     id: root
 
-    property int logoIndex: 0
     property var theme: null   // AppTheme-Objekt; optional, Fallback = dunkel
 
     width:  parent ? parent.width : 200
     height: 72
 
-    readonly property var _icons: [
-        "LogoIconSinus.qml",
-        "LogoIconAtom.qml",
-        "LogoIconBernstein.qml",
-        "LogoIconCee.qml",
-        "LogoIconOstsee.qml",
-        "LogoIconGruenerFisch.qml"
-    ]
-
-    readonly property color _iconBg:
-        root.theme ? root.theme.sidebar : "#0d1b2a"
     readonly property color _textMain:
         root.theme ? root.theme.textPrimary : "#e8f4f8"
     readonly property color _teal: "#3ecfcf"
 
-    // Icon (links)
-    Loader {
-        id: iconLoader
-        x: 4; y: 6
-        width: 52; height: 52
-        source: Qt.resolvedUrl(_icons[root.logoIndex % _icons.length])
-        onLoaded: {
-            if (item && item.hasOwnProperty("iconBg"))
-                item.iconBg = Qt.binding(function() { return root._iconBg })
-        }
-    }
-
-    // Hintergrund für Icon-Bereich (Theme-Farbe)
-    Rectangle {
-        x: 4; y: 6; width: 52; height: 52
-        color: root._iconBg
-        z: -1
+    // Logo (links), feste Bilddatei statt rotierender Icons
+    Image {
+        id: logoImage
+        x: 4
+        y: (root.height - height) / 2
+        height: 60
+        width: 88
+        fillMode: Image.PreserveAspectFit
+        source: "qrc:/assets/stroemling_logo.png"
+        smooth: true
     }
 
     // Text (rechts)
     Column {
         anchors {
-            left:           iconLoader.right
+            left:           logoImage.right
             leftMargin:     8
             verticalCenter: parent.verticalCenter
         }

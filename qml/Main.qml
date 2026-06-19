@@ -198,15 +198,6 @@ ApplicationWindow {
         property string gespraechTexte: "[]"
     }
 
-    Settings {
-        id:       logoSettings
-        category: "logo"
-        property int index: 0
-    }
-
-    // Zyklischer Logo-Index: bei jedem Start um 1 weiter (mod 9 Icons)
-    property int _logoIndex: 0
-
     // Reaktiver Zwischenspeicher: wird initial aus Settings gelesen, dann per Signal aus
     // EinstellungenAnsicht aktualisiert (mehrere Settings-Objekte teilen keine Bindings).
     property string _funGesprTexte: funModusSettings.gespraechTexte
@@ -244,15 +235,6 @@ ApplicationWindow {
 
             funOverlay.canvas  = c
             funOverlay.visible = true
-        }
-    }
-
-    // Logo-Index beim Start zyklisch weiterschalten (9 Icons)
-    Timer {
-        interval: 0; running: true; repeat: false
-        onTriggered: {
-            root._logoIndex = logoSettings.index % 9
-            logoSettings.index = (logoSettings.index + 1) % 9
         }
     }
 
@@ -451,8 +433,7 @@ ApplicationWindow {
 
                 Item { height: 4 }
                 LogoHeader {
-                    logoIndex: root._logoIndex
-                    theme:     appTheme
+                    theme: appTheme
                     Layout.fillWidth: true
                 }
 

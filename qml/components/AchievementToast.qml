@@ -12,9 +12,18 @@ Item {
     width:  320
     height: toast.height
 
+    property var _warteschlange: []
+
     function zeigen(titel, beschreibung) {
-        toastTitel.text       = titel
-        toastBeschreibung.text = beschreibung
+        _warteschlange.push({ titel: titel, beschreibung: beschreibung })
+        if (!slideAnim.running) _naechsteAnzeigen()
+    }
+
+    function _naechsteAnzeigen() {
+        if (_warteschlange.length === 0) return
+        var eintrag = _warteschlange.shift()
+        toastTitel.text       = eintrag.titel
+        toastBeschreibung.text = eintrag.beschreibung
         slideAnim.restart()
     }
 
@@ -32,6 +41,7 @@ Item {
         PauseAnimation  { duration: 4500 }
         NumberAnimation { target: root; property: "opacity"; to: 0; duration: 400 }
         PropertyAction  { target: root; property: "visible"; value: false }
+        ScriptAction    { script: root._naechsteAnzeigen() }
     }
 
     visible: false

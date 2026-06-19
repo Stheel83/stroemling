@@ -1103,6 +1103,12 @@ static PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,
 
 // ── Öffentliche Methoden ─────────────────────────────────────
 
+bool Database::dateiExistiert(const QString &pfad) const
+{
+    QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+    return QFile::exists(localPath);
+}
+
 bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
 {
     // Alle Seiten des Projekts in Anzeigereihenfolge laden

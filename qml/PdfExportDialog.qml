@@ -398,26 +398,94 @@ Dialog {
                 onClicked: {
                     statusText.text = ""
                     var pfad = tfPfad.text.trim()
-                    var nb   = cbNormblatt.checked
-                    var info = cbInfostreifen.checked
-                    var ok = false
-                    if (rbAlleVoll.checked)
-                        ok = db.canvasPdfExportieren(root.projektId, pfad, false, true, info)
-                    else if (rbVoll.checked)
-                        ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true, info)
-                    else if (rbAlle.checked)
-                        ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false, info)
-                    else
-                        ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false, info)
-
-                    if (ok) {
-                        var seiten = (rbAlle.checked || rbAlleVoll.checked)
-                            ? seitenModel.rowCount() : 1
-                        achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": seiten })
-                        meldungManager.zeigen(qsTr("PDF gespeichert."), true)
-                        root.accept()
+                    if (db.dateiExistiert(pfad)) {
+                        ueberschreibenDialog.pfad = pfad
+                        ueberschreibenDialog.open()
                     } else {
-                        statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")
+                        root._pdfSchreiben(pfad)
+                    }
+                }
+            }
+        }
+    }
+
+    // Eigentlicher Export-Aufruf, ausgelagert damit die Überschreiben-
+    // Bestätigung dazwischengeschaltet werden kann.
+    function _pdfSchreiben(pfad) {
+        var nb   = cbNormblatt.checked
+        var info = cbInfostreifen.checked
+        var ok = false
+        if (rbAlleVoll.checked)
+            ok = db.canvasPdfExportieren(root.projektId, pfad, false, true, info)
+        else if (rbVoll.checked)
+            ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true, info)
+        else if (rbAlle.checked)
+            ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false, info)
+        else
+            ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false, info)
+
+        if (ok) {
+            var seiten = (rbAlle.checked || rbAlleVoll.checked)
+                ? seitenModel.rowCount() : 1
+            achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": seiten })
+            meldungManager.zeigen(qsTr("PDF gespeichert."), true)
+            root.accept()
+        } else {
+            statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")
+        }
+    }
+
+    // ── Überschreiben-Bestätigung ──────────────────────────────────
+    Dialog {
+        id:      ueberschreibenDialog
+        title:   qsTr("Datei existiert bereits")
+        modal:   true
+        parent:  Overlay.overlay
+        anchors.centerIn: parent
+        width:   360
+        padding: 20
+
+        property string pfad: ""
+
+        background: Rectangle {
+            color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6
+        }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Text {
+                text: qsTr("Diese Datei existiert bereits und wird beim Exportieren überschrieben:")
+                color: root.theme.textSecondary; font.pixelSize: 13
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Text {
+                text: ueberschreibenDialog.pfad
+                color: root.theme.textMuted; font.pixelSize: 11
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Button {
+                    text: qsTr("Abbrechen"); Layout.fillWidth: true; implicitHeight: 32
+                    contentItem: Text {
+                        text: parent.text; color: root.theme.textSecondary; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                        radius: 4; border.color: root.theme.border }
+                    onClicked: ueberschreibenDialog.close()
+                }
+                Button {
+                    text: qsTr("Überschreiben"); Layout.fillWidth: true; implicitHeight: 32
+                    contentItem: Text {
+                        text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg
+                        radius: 4; border.color: root.theme.accent }
+                    onClicked: {
+                        var p = ueberschreibenDialog.pfad
+                        ueberschreibenDialog.close()
+                        root._pdfSchreiben(p)
                     }
                 }
             }

@@ -705,6 +705,8 @@ public:
     // pfad: lokaler Dateipfad oder file://-URL.
     Q_INVOKABLE bool canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false, bool mitInfostreifen = false);
     Q_INVOKABLE bool canvasSeiteExportieren(int seiteId,  const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false, bool mitInfostreifen = false);
+    // Existenzprüfung für Export-Überschreibwarnungen (akzeptiert lokalen Pfad oder file://-URL).
+    Q_INVOKABLE bool dateiExistiert(const QString &pfad) const;
 
     // ── Datensicherung / Komplettarchiv (BACKUP-01) ─────────────────────────
     // Ebene 1: Auto-Backup beim App-Start – makros.db + wiki.db → backups/,

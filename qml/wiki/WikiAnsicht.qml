@@ -28,19 +28,11 @@ Item {
     property string _neuArtTitel: ""
 
     property string _importPfad:       ""
-    property string _statusText:       ""
-    property bool   _statusOk:         true
     property string _bundleExportPfad: ""
     property string _bundleKennung:    ""
     property string _bundleTitel:      ""
     property int    _bundleVersion:    1
     property var    _bundleKatIds:     []
-
-    function _zeigeStatus(text, ok) {
-        _statusText = text
-        _statusOk   = (ok !== false)
-        statusTimer.restart()
-    }
 
     // Bilder des aktuellen Artikels — [{id, dateiname, mimeTyp, beschreibung, sortierung, tempPfad}]
     property var    _bilder:          []
@@ -1086,7 +1078,7 @@ Item {
         nameFilters:  [qsTr("JSON-Dateien (*.json)"), qsTr("Alle Dateien (*)")]
         onAccepted: {
             const ok = db.wikiExportJson(selectedFile.toString())
-            root._zeigeStatus(ok ? qsTr("Wiki erfolgreich exportiert") : qsTr("Export fehlgeschlagen"), ok)
+            meldungManager.zeigen(ok ? qsTr("Wiki erfolgreich exportiert") : qsTr("Export fehlgeschlagen"), ok)
         }
     }
 
@@ -1151,7 +1143,7 @@ Item {
                             importModePopup.close()
                             const ok = db.wikiImportJson(root._importPfad, true)
                             root._kategorienLaden()
-                            root._zeigeStatus(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
+                            meldungManager.zeigen(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
                         }
                     }
                 }
@@ -1174,7 +1166,7 @@ Item {
                             root._artIdx     = -1
                             root._aktArtikel = ({})
                             root._bilder     = []
-                            root._zeigeStatus(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
+                            meldungManager.zeigen(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
                         }
                     }
                 }
@@ -1194,30 +1186,6 @@ Item {
                 }
             }
         }
-    }
-
-    // ── Status-Toast ──────────────────────────────────────────
-    Rectangle {
-        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 20 }
-        width:   statusToastLabel.implicitWidth + 32
-        height:  36
-        radius:  6
-        color:   root._statusOk ? "#27ae60" : "#c0392b"
-        visible: root._statusText !== ""
-
-        Text {
-            id:             statusToastLabel
-            anchors.centerIn: parent
-            text:           root._statusText
-            font.pixelSize: 13
-            color:          "white"
-        }
-    }
-
-    Timer {
-        id:       statusTimer
-        interval: 3000
-        onTriggered: root._statusText = ""
     }
 
     // ── Bild-Import FileDialog ────────────────────────────────
@@ -1298,7 +1266,6 @@ Item {
         id: wikiBundle
         theme: root.theme
         kategorien: root._kategorien
-        onStatusMeldung: function(text, ok) { root._zeigeStatus(text, ok) }
         onBundleImportiert: {
             root._kategorienLaden()
             root._artIdx = -1

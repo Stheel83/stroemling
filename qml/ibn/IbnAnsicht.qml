@@ -385,32 +385,8 @@ Item {
             var ok  = db.ibnProtokollPdfSpeichern(root.projektId, sid,
                                                    selectedFile.toString())
             if (ok) achievementManager.ereignis("ibn_protokoll")
-            pdfMeldung.erfolg = ok
-            pdfMeldung.open()
+            meldungManager.zeigen(ok ? qsTr("PDF gespeichert.") : qsTr("PDF konnte nicht gespeichert werden."), ok)
         }
-    }
-
-    Popup {
-        id: pdfMeldung
-        property bool erfolg: true
-        modal: false; dim: false
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: 280; height: 64
-        padding: 0
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-        background: Rectangle {
-            color: pdfMeldung.erfolg ? "#1e4d2b" : "#4d1e1e"
-            radius: 6; border.color: pdfMeldung.erfolg ? "#2a8a4a" : "#aa3333"
-        }
-        contentItem: Text {
-            text: pdfMeldung.erfolg ? qsTr("✓ PDF gespeichert.") : qsTr("✗ PDF konnte nicht gespeichert werden.")
-            color: "white"; font.pixelSize: 12
-            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-        }
-
-        Timer { running: pdfMeldung.visible; interval: 2800; onTriggered: pdfMeldung.close() }
     }
 
     DebugLabel { panelName: qsTr("IBN-Ansicht"); visible: root.debug }

@@ -298,88 +298,6 @@ ApplicationWindow {
         if (suchPanelOffen) suchPanel.oeffnen()
     }
 
-    // ── Hilfsdialog: keine Seite aktiv ──────────────────────────
-    Dialog {
-        id:      keineSeiteMeldung
-        title:   qsTr("Keine Seite ausgewählt")
-        modal:   true
-        parent:  Overlay.overlay
-        anchors.centerIn: parent
-        width:   340
-        padding: 20
-        background: Rectangle {
-            color: appTheme.sidebar; border.color: appTheme.border; border.width: 1; radius: 6
-        }
-        contentItem: ColumnLayout {
-            spacing: 10
-            Text {
-                text:           qsTr("Bitte zuerst eine Seite auswählen.")
-                color:          appTheme.textSecondary; font.pixelSize: 13
-                wrapMode:       Text.Wrap
-                Layout.fillWidth: true
-            }
-            Text {
-                text:           qsTr("Klicke im Seitenbaum auf eine Seite (z.B. '001 Hauptstromkreis'), dann klappt die Platzierung auf dem Canvas auf.")
-                color:          appTheme.textMuted; font.pixelSize: 11
-                wrapMode:       Text.Wrap
-                Layout.fillWidth: true
-            }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: qsTr("OK"); implicitWidth: 80; implicitHeight: 32
-                    contentItem: Text {
-                        text: parent.text; color: appTheme.textPrimary; font.pixelSize: 13
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle { color: parent.hovered ? appTheme.accent : appTheme.inputBg; radius: 4; border.color: appTheme.accent }
-                    onClicked: keineSeiteMeldung.close()
-                }
-            }
-        }
-    }
-
-    // ── Hilfsdialog: Klemmenanschluss bereits platziert ─────────
-    Dialog {
-        id:      bereitsPlatzierMeldung
-        title:   qsTr("Bereits platziert")
-        modal:   true
-        parent:  Overlay.overlay
-        anchors.centerIn: parent
-        width:   340
-        padding: 20
-        background: Rectangle {
-            color: appTheme.sidebar; border.color: appTheme.border; border.width: 1; radius: 6
-        }
-        contentItem: ColumnLayout {
-            spacing: 10
-            Text {
-                text: qsTr("Dieser Klemmenanschluss ist bereits auf dem Canvas platziert.")
-                color: appTheme.textSecondary; font.pixelSize: 13
-                wrapMode: Text.Wrap; Layout.fillWidth: true
-            }
-            Text {
-                text: qsTr("Jeder Anschluss kann nur einmal im Projekt vorkommen.")
-                color: appTheme.textMuted; font.pixelSize: 11
-                wrapMode: Text.Wrap; Layout.fillWidth: true
-            }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: qsTr("OK"); implicitWidth: 80; implicitHeight: 32
-                    contentItem: Text {
-                        text: parent.text; color: appTheme.textPrimary; font.pixelSize: 13
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle { color: parent.hovered ? appTheme.accent : appTheme.inputBg; radius: 4; border.color: appTheme.accent }
-                    onClicked: bereitsPlatzierMeldung.close()
-                }
-            }
-        }
-    }
-
     // ── Eigene Titelleiste ───────────────────────────────────────
     Rectangle {
         id:      appTitelleiste
@@ -917,8 +835,8 @@ ApplicationWindow {
                             p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
                         }
                         onKlemmenAnschlussPlatzieren: function(klemmeId, bauteilKlemmeId, anschlussBezeichnung, bmk) {
-                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
-                            if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { bereitsPlatzierMeldung.open(); return }
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
+                            if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { meldungManager.zeigen(qsTr("Dieser Klemmenanschluss ist bereits platziert."), false); return }
                             root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                             root.aktiverCanvas.paletteExtraDaten = {
                                 "bauteilKlemmeId":      bauteilKlemmeId,
@@ -933,14 +851,14 @@ ApplicationWindow {
                         onKlemmenSequentiellStarten: function(queueJson) {
                             var queue = JSON.parse(queueJson)
                             if (!queue || queue.length === 0) return
-                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
                             if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                             root._klemmeQueue      = queue
                             root._klemmeQueueAktiv = true
                             root._klemmeQueueNaechste()
                         }
                         onBetriebsmittelKontaktPlatzieren: function(betriebsmittelId, symbolId, bmk, pinBez) {
-                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
                             if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                             root.aktiverCanvas.paletteBetriebsmittelId = betriebsmittelId
                             root.aktiverCanvas.paletteSymbolId         = symbolId
@@ -952,7 +870,7 @@ ApplicationWindow {
                             root.aktiverCanvas.forceActiveFocus()
                         }
                         onBauteilPlatzieren: function(bauteilId, symbolId, bezeichnung) {
-                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
                             if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                             root.aktiverCanvas.paletteSymbolId   = symbolId
                             root.aktiverCanvas.paletteExtraDaten = { "bauteilId": bauteilId, "bezeichnung": bezeichnung }
@@ -1007,7 +925,7 @@ ApplicationWindow {
                             root.aktiverCanvas.forceActiveFocus()
                         }
                         onMakroEinfuegenAngefordert: function(makroId, name) {
-                            if (root.aktivSeiteId < 0) { keineSeiteMeldung.open(); return }
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
                             root.aktiveAnsicht = "seiten"
                             root.aktiverCanvas.makroEinfuegenId   = makroId
                             root.aktiverCanvas.makroEinfuegenName = name
@@ -1234,10 +1152,10 @@ ApplicationWindow {
                 onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                 onKlemmeAnschlussModusAPlatzieren: function(bauteilKlemmeId, anschlussBezeichnung, bmk, klemmeId) {
                     if (root.aktivSeiteId < 0) {
-                        keineSeiteMeldung.open()
+                        meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
                         return
                     }
-                    if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { bereitsPlatzierMeldung.open(); return }
+                    if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { meldungManager.zeigen(qsTr("Dieser Klemmenanschluss ist bereits platziert."), false); return }
                     root.aktiveAnsicht = "seiten"
                     root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
                     root.aktiverCanvas.paletteExtraDaten = {
@@ -1328,7 +1246,7 @@ ApplicationWindow {
 
                         onAnschlussPlatzieren: function(bkId, bez, modus) {
                             if (root.aktivSeiteId < 0) {
-                                keineSeiteMeldung.open()
+                                meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
                                 return
                             }
                             root.aktiveAnsicht = "seiten"
@@ -1660,6 +1578,22 @@ ApplicationWindow {
         target: achievementManager
         function onAchievementFreigeschaltet(id, titel, beschreibung) {
             achievementToast.zeigen(titel, beschreibung)
+        }
+    }
+
+    // ── Status-Toast (Erfolg/Info, z.B. "PDF gespeichert") ────────
+    MeldungToast {
+        id:     meldungToast
+        z:      750
+        theme:  appTheme
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 20 + (achievementToast.visible ? achievementToast.height + 12 : 0)
+    }
+
+    Connections {
+        target: meldungManager
+        function onMeldungAnzuzeigen(text, erfolg) {
+            meldungToast.zeigen(text, erfolg)
         }
     }
 

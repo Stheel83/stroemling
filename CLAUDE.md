@@ -105,6 +105,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |
 | `konzept/features/45_steckverbinder.md` | Stecker und Buchsen: 4-Kombinations-Matrix, 3-Ebenen-Modell, Kontakteigenschaften, Steckpaar-Logik, BMK, DB-Schema-Entwurf | 🔄 Pin-2-Kopplung (§6.5) implementiert, Rest 📋 |
 | `konzept/features/46_schirmung.md` | Schirm-Oval (Canvas-Element `schirm`), SH-Kennzeichnung, Schirmanschluss via Geräteanschluss | 📋 Konzept |
+| `konzept/features/47_meldungen_toast.md` | Meldungs-Toast: `MeldungManager` (C++, analog AchievementManager), `MeldungToast.qml`, Abgrenzung Toast vs. Dialog, migrierte Stellen | ✅ |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** | |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen | ✅ |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten | ✅ |

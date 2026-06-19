@@ -13,15 +13,6 @@ Item {
     property var  theme
     property bool debug: false
 
-    property string _statusText: ""
-    property bool   _statusOk:   true
-
-    function _zeigeStatus(text, ok) {
-        _statusText = text
-        _statusOk   = (ok !== false)
-        statusTimer.restart()
-    }
-
     signal projektGewaehlt(int id, string name)
     signal projektMetaGeaendert(int id)
     signal projektGeloescht(int id)
@@ -33,7 +24,7 @@ Item {
         defaultSuffix: "strl"
         onAccepted: {
             if (!db.createProjekt(selectedFile.toString(), ""))
-                root._zeigeStatus(qsTr("Projekt konnte nicht angelegt werden."), false)
+                meldungManager.zeigen(qsTr("Projekt konnte nicht angelegt werden."), false)
         }
     }
 
@@ -56,7 +47,7 @@ Item {
         nameFilters: ["Strömling Projekte (*.strl)", qsTr("Alle Dateien (*)")]
         onAccepted: {
             if (!db.openProjekt(selectedFile.toString()))
-                root._zeigeStatus(qsTr("Projekt konnte nicht geöffnet werden"), false)
+                meldungManager.zeigen(qsTr("Projekt konnte nicht geöffnet werden"), false)
         }
     }
 
@@ -68,7 +59,7 @@ Item {
         defaultSuffix: "strl"
         onAccepted: {
             var ok = db.projektExportieren(selectedFile.toString())
-            root._zeigeStatus(
+            meldungManager.zeigen(
                 ok ? qsTr("Exportiert: ") + selectedFile.toString().split("/").pop()
                    : qsTr("Export fehlgeschlagen"),
                 ok
@@ -155,7 +146,7 @@ Item {
                                     var info = db.ersteProjektInfo()
                                     root.projektGewaehlt(info.id || 0, info.name || modelData.projektName)
                                 } else {
-                                    root._zeigeStatus(qsTr("Projekt konnte nicht geöffnet werden"), false)
+                                    meldungManager.zeigen(qsTr("Projekt konnte nicht geöffnet werden"), false)
                                 }
                             } else {
                                 var info2 = db.ersteProjektInfo()
@@ -259,26 +250,6 @@ Item {
                 }
             }
         }
-    }
-
-    Rectangle {
-        anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 16 }
-        width:   statusLabel.implicitWidth + 28; height: 34; radius: 6
-        color:   root._statusOk ? "#27ae60" : "#c0392b"
-        visible: root._statusText !== ""
-
-        Text {
-            id: statusLabel
-            anchors.centerIn: parent
-            text: root._statusText; font.pixelSize: 12; color: "white"
-            elide: Text.ElideRight; maximumLineCount: 1
-        }
-    }
-
-    Timer {
-        id:       statusTimer
-        interval: 3500
-        onTriggered: root._statusText = ""
     }
 
     DebugLabel { panelName: qsTr("Projektliste"); visible: root.debug }

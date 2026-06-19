@@ -16,8 +16,6 @@ Item {
 
     property bool _geaendert:    false
     property bool _ladevorgang:  false
-    property string _exportStatus: ""
-    property bool   _exportOk:     true
 
     function _kurzPfad(pfad) {
         return pfad.replace(/^\/home\/[^/]+/, "~")
@@ -285,17 +283,10 @@ Item {
         defaultSuffix: "strl"
         onAccepted: {
             var ok = db.projektExportieren(selectedFile.toString())
-            root._exportOk    = ok
-            root._exportStatus = ok
+            meldungManager.zeigen(ok
                 ? qsTr("Exportiert: ") + selectedFile.toString().split("/").pop()
-                : qsTr("Export fehlgeschlagen")
-            exportStatusTimer.restart()
+                : qsTr("Export fehlgeschlagen"), ok)
         }
-    }
-
-    Timer {
-        id: exportStatusTimer; interval: 4000
-        onTriggered: root._exportStatus = ""
     }
 
     // ── Fehler-Popup ──────────────────────────────────────────────────
@@ -749,16 +740,6 @@ Item {
                             ToolTip.visible: containsMouse; ToolTip.delay: 800
                             ToolTip.text: qsTr("Aus Projektliste entfernen — Datei bleibt auf der Festplatte erhalten")
                         }
-                    }
-
-
-// Export-Status
-                    Text {
-                        visible: root._exportStatus !== ""
-                        text: root._exportStatus
-                        font.pixelSize: 11
-                        color: root._exportOk ? root.theme.accent : "#cc4444"
-                        Layout.fillWidth: true; elide: Text.ElideRight
                     }
                 }
 

@@ -28,6 +28,7 @@
 #include "models/KabelRechnerModel.h"
 #include "canvas/ElementeModel.h"
 #include "achievements/AchievementManager.h"
+#include "MeldungManager.h"
 
 // ── Log-Handler ───────────────────────────────────────────────
 static QFile    s_logFile;
@@ -258,6 +259,7 @@ int main(int argc, char *argv[])
     KabelRechnerModel           kabelRechnerModel;
     AppHelper                   appHelper;
     AchievementManager          achievementManager;
+    MeldungManager               meldungManager;
     ElementeModel               elementeModel1;
     ElementeModel               elementeModel2;
     ElementeModel               elementeModel3;   // IBN-Canvas
@@ -281,6 +283,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("kabelRechnerModel",    &kabelRechnerModel);
     engine.rootContext()->setContextProperty("appHelper",            &appHelper);
     engine.rootContext()->setContextProperty("achievementManager",   &achievementManager);
+    engine.rootContext()->setContextProperty("meldungManager",       &meldungManager);
     engine.rootContext()->setContextProperty("elementeModel1",       &elementeModel1);
     engine.rootContext()->setContextProperty("elementeModel2",       &elementeModel2);
     engine.rootContext()->setContextProperty("elementeModel3",       &elementeModel3);

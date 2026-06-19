@@ -290,7 +290,7 @@ Item {
     // ── Speichern ──────────────────────────────────────────────────
     function speichern() {
         if (istBuiltin) {
-            builtinHinweisDialog.open()
+            meldungManager.zeigen(qsTr("Eingebaute Symbole können nicht verändert werden. Nutze «Als Vorlage kopieren»."), false)
             return
         }
 
@@ -453,18 +453,6 @@ Item {
                     linienart: "solid"})
             textFeld.text = ""
         }
-    }
-
-    Dialog {
-        id:    builtinHinweisDialog
-        title: qsTr("Eingebautes Symbol")
-        modal: true; parent: Overlay.overlay; anchors.centerIn: parent; width: 320; padding: 16
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-        contentItem: Text {
-            text: qsTr("Eingebaute Symbole können nicht verändert werden.\nNutze «Als Vorlage kopieren» um eine eigene Kopie zu erstellen.")
-            color: root.theme.textSecondary; font.pixelSize: 12; wrapMode: Text.Wrap
-        }
-        standardButtons: Dialog.Ok
     }
 
     Dialog {

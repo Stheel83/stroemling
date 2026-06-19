@@ -414,6 +414,7 @@ Dialog {
                         var seiten = (rbAlle.checked || rbAlleVoll.checked)
                             ? seitenModel.rowCount() : 1
                         achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": seiten })
+                        meldungManager.zeigen(qsTr("PDF gespeichert."), true)
                         root.accept()
                     } else {
                         statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")

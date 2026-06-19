@@ -9,7 +9,6 @@ Item {
     required property var theme
     property var          kategorien: []
 
-    signal statusMeldung(string text, bool ok)
     signal bundleImportiert()
 
     function open() { bundleMenuPopup.open() }
@@ -92,7 +91,7 @@ Item {
         nameFilters: [qsTr("Bundle-JSON (*.json)"), qsTr("Alle Dateien (*)")]
         onAccepted: {
             const res = db.wikiBundleAnwenden(selectedFile.toString())
-            root.statusMeldung(
+            meldungManager.zeigen(
                 res.erfolg
                     ? qsTr("Bundle eingespielt: %1").arg(res.meldung)
                     : qsTr("Bundle-Fehler: %1").arg(res.meldung),
@@ -271,7 +270,7 @@ Item {
                 root._katIds
             )
             if (ok) achievementManager.ereignis("wiki_bundle_exportiert")
-            root.statusMeldung(
+            meldungManager.zeigen(
                 ok ? qsTr("Bundle exportiert") : qsTr("Bundle-Export fehlgeschlagen"), ok
             )
         }

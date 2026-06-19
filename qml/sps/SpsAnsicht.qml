@@ -25,16 +25,6 @@ Item {
     property string _kanalFilter: "alle"
     property var _pendingAutoAnlegenBg: null
 
-    // ── Toast ────────────────────────────────────────────────────
-    property string _statusText: ""
-    property bool   _statusOk:   true
-
-    function _zeigeStatus(text, ok) {
-        _statusText = text
-        _statusOk   = ok
-        statusTimer.restart()
-    }
-
     function _ladeRacks() {
         if (root.projektId < 0) { _racks = []; return }
         _racks = db.spsRackListe(root.projektId)
@@ -75,7 +65,7 @@ Item {
         var keinIO = ["CPU", "PS", "CP", "FM", "andere"]
         for (var ki = 0; ki < keinIO.length; ki++) {
             if (bg.typ === keinIO[ki]) {
-                _zeigeStatus(qsTr("%1-Baugruppen haben keine I/O-Kanäle").arg(bg.typ), false)
+                meldungManager.zeigen(qsTr("%1-Baugruppen haben keine I/O-Kanäle").arg(bg.typ), false)
                 return
             }
         }
@@ -123,9 +113,9 @@ Item {
 
         root._ladeKanaele()
         if (count > 0)
-            root._zeigeStatus(count + " " + qsTr("Kanäle angelegt"), true)
+            meldungManager.zeigen(count + " " + qsTr("Kanäle angelegt"), true)
         else
-            root._zeigeStatus(qsTr("Keine neuen Kanäle – Adresskonflikte oder bereits vorhanden"), false)
+            meldungManager.zeigen(qsTr("Keine neuen Kanäle – Adresskonflikte oder bereits vorhanden"), false)
     }
 
     onProjektIdChanged: _ladeRacks()
@@ -144,7 +134,7 @@ Item {
                     if (_racks[i].id === newId) { _waehleRack(_racks[i]); break }
             }
         }
-        onFehler: function(meldung) { _zeigeStatus(meldung, false) }
+        onFehler: function(meldung) { meldungManager.zeigen(meldung, false) }
     }
 
     // ── Baugruppe-Dialog ──────────────────────────────────────────
@@ -156,7 +146,7 @@ Item {
             if (newId > 0) root._ausgewaehlterBaugruppeId = newId
             _ladeBaugruppen()
         }
-        onFehler: function(meldung) { _zeigeStatus(meldung, false) }
+        onFehler: function(meldung) { meldungManager.zeigen(meldung, false) }
     }
 
     // ── Auto-Anlegen Bestätigung ──────────────────────────────────
@@ -179,7 +169,7 @@ Item {
             if (newId > 0) root._ausgewaehlterKanalId = newId
             _ladeKanaele()
         }
-        onFehler: function(meldung) { _zeigeStatus(meldung, false) }
+        onFehler: function(meldung) { meldungManager.zeigen(meldung, false) }
     }
 
     // ── Export-Dialoge ────────────────────────────────────────────
@@ -190,7 +180,7 @@ Item {
         defaultSuffix: "csv"
         onAccepted: {
             var ok = db.spsIOListeCsvSpeichern(root.projektId, selectedFile)
-            _zeigeStatus(ok ? qsTr("I/O-Liste exportiert") : qsTr("Export fehlgeschlagen"), ok)
+            meldungManager.zeigen(ok ? qsTr("I/O-Liste exportiert") : qsTr("Export fehlgeschlagen"), ok)
         }
     }
 
@@ -792,26 +782,6 @@ Item {
             }
         }
 
-        // ── Status-Toast ──────────────────────────────────────────
-        Rectangle {
-            Layout.fillWidth: true
-            height: 32
-            color: root._statusOk ? "#1b5e20" : "#7f0000"
-            visible: _statusText.length > 0
-
-            Label {
-                anchors.centerIn: parent
-                text: root._statusText
-                color: "white"
-                font.pixelSize: 12
-            }
-
-            Timer {
-                id: statusTimer
-                interval: 3500
-                onTriggered: root._statusText = ""
-            }
-        }
     }
 
     DebugLabel { panelName: qsTr("SPS-Ansicht"); visible: root.debug }

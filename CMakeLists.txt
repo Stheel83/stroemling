@@ -50,6 +50,8 @@ qt_add_executable(stroemling_app
     src/canvas/ElementeModel.h
     src/achievements/AchievementManager.cpp
     src/achievements/AchievementManager.h
+    src/MeldungManager.cpp
+    src/MeldungManager.h
 )
 
 # Qt 6: pragma Singleton allein reicht nicht – qmldir bekommt "singleton"-Schlüsselwort
@@ -87,6 +89,7 @@ qt_add_qml_module(stroemling_app
         qml/components/StilSlider.qml
         qml/components/MassField.qml
         qml/components/AchievementToast.qml
+        qml/components/MeldungToast.qml
 
         qml/AchievementsPanel.qml
 

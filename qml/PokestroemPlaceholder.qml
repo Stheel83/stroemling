@@ -21,7 +21,7 @@ Item {
         id: fishImage
         width: 140; height: 100
         y: Math.max(6, root.height * 0.28 - 50) + root.bobOffset
-        source: "qrc:/assets/gruener_fisch_logo.png"
+        source: "qrc:/assets/stroemling_logo.png"
         fillMode: Image.PreserveAspectFit
         smooth: false
         mirror: true

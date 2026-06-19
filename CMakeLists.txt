@@ -249,7 +249,6 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/datinchen_uebersicht.png
         qml/assets/impulsino_uebersicht.png
         qml/assets/isolus_kampf.png
-        qml/assets/gruener_fisch_logo.png
         qml/assets/linus_uebersicht.png
         qml/assets/stroemling_logo.png
 )

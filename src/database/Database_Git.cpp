@@ -129,7 +129,7 @@ void Database::gitProjektInit(const QString &ordner)
                         });
                     commit->start("git", {"commit", "-m", "Projekt angelegt"});
                 });
-            add->start("git", {"add", "projekt.strl", "snapshot.json", ".gitignore"});
+            add->start("git", {"add", "projekt.strl", "snapshot.json", ".gitignore", "bilder"});
         });
     init->start("git", {"init"});
 }
@@ -180,7 +180,7 @@ void Database::gitAutoCommit(const QString &ordner, const QString &nachricht)
                 });
             commit->start("git", {"commit", "--allow-empty-message", "-m", nachricht});
         });
-    add->start("git", {"add", "projekt.strl", "snapshot.json"});
+    add->start("git", {"add", "projekt.strl", "snapshot.json", "bilder"});
 }
 
 // ── gitLog ───────────────────────────────────────────────────────────────────

@@ -17,7 +17,6 @@ CREATE TABLE normblatt_vorlage (
     rand_rechts_mm  REAL DEFAULT 10,
     rand_oben_mm    REAL DEFAULT 10,
     rand_unten_mm   REAL DEFAULT 10,
-    logo_data       BLOB,
     logo_mime       TEXT,
     logo_x_mm       REAL,
     logo_y_mm       REAL,
@@ -152,7 +151,7 @@ CREATE TABLE grafik_element (
     text_inhalt     TEXT DEFAULT NULL,
     text_ausrichtung TEXT DEFAULT 'links',
     text_einpassen  INTEGER NOT NULL DEFAULT 0,
-    bild_daten          BLOB DEFAULT NULL,
+    bild_pfad           TEXT NOT NULL DEFAULT '',
     bild_mime           TEXT DEFAULT NULL,
     extra_daten         TEXT DEFAULT NULL,
     betriebsmittel_id   INTEGER REFERENCES betriebsmittel(id),
@@ -202,7 +201,8 @@ CREATE TABLE symbol_definition (
     hoehe_mm       INTEGER NOT NULL DEFAULT 16,
     rolle          TEXT    NOT NULL DEFAULT 'durchleiter',
     ist_builtin    INTEGER NOT NULL DEFAULT 0,
-    ibn_kategorie  TEXT    NOT NULL DEFAULT ''
+    ibn_kategorie  TEXT    NOT NULL DEFAULT '',
+    bmk_seite      TEXT    NOT NULL DEFAULT 'auto'
 );
 
 CREATE TABLE symbol_primitiv (
@@ -269,7 +269,6 @@ CREATE TABLE bauteil (
     url_hersteller  TEXT,
     url_datenblatt  TEXT,
     hauptfunktion_symbol_id TEXT REFERENCES symbol_definition(id) ON DELETE SET NULL,
-    bild_data       BLOB,
     bild_mime       TEXT
 );
 

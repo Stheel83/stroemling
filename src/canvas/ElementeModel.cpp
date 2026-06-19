@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlDatabase>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -75,13 +78,14 @@ void ElementeModel::laden(int seiteId)
                opazitaet, ecken_radius,
                symbol_id, rotation, spiegel_x, spiegel_y,
                punkte, text_inhalt, text_ausrichtung, text_einpassen,
-               bild_daten, bild_mime, extra_daten, betriebsmittel_id,
+               bild_pfad, bild_mime, extra_daten, betriebsmittel_id,
                gruppe_id
         FROM grafik_element
         WHERE seite_id = :sid
         ORDER BY sortierung
     )");
     q.bindValue(QStringLiteral(":sid"), seiteId);
+    const QString grafikBilderDir = QFileInfo(QSqlDatabase::database().databaseName()).absolutePath() + "/bilder";
     if (!q.exec()) {
         qCWarning(lcApp) << "ElementeModel::laden:" << q.lastError().text();
         emit geaendert();
@@ -112,14 +116,20 @@ void ElementeModel::laden(int seiteId)
         el.textAusrichtung = q.value(20).toString();
         el.textEinpassen  = q.value(21).toInt() != 0;
 
-        QByteArray bildBytes = q.value(22).toByteArray();
-        if (!bildBytes.isEmpty()) {
-            QString bildMime = q.value(23).toString();
-            if (bildMime.isEmpty())
-                bildMime = QStringLiteral("image/png");
-            el.bildDaten = QStringLiteral("data:") + bildMime
-                           + QStringLiteral(";base64,")
-                           + QString::fromLatin1(bildBytes.toBase64());
+        QString bildPfad = q.value(22).toString();
+        if (!bildPfad.isEmpty()) {
+            QFile bf(grafikBilderDir + "/" + bildPfad);
+            if (bf.open(QIODevice::ReadOnly)) {
+                QByteArray bildBytes = bf.readAll();
+                QString bildMime = q.value(23).toString();
+                if (bildMime.isEmpty())
+                    bildMime = QStringLiteral("image/png");
+                el.bildDaten = QStringLiteral("data:") + bildMime
+                               + QStringLiteral(";base64,")
+                               + QString::fromLatin1(bildBytes.toBase64());
+            } else {
+                qCWarning(lcApp) << "ElementeModel::laden: Bilddatei fehlt:" << bildPfad;
+            }
         }
 
         QString extraDatenStr = q.value(24).toString();

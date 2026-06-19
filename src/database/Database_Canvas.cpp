@@ -15,7 +15,88 @@
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
+#include <QCryptographicHash>
 #include <algorithm>
+
+// MIME-Typ → Dateiendung für Canvas-Bilddateien in m_grafikBilderDir.
+// Gegenstück zur MIME-Ableitung aus der Dateiendung in bildAlsDataUrl().
+static QString _grafikBildExtensionFuerMime(const QString &mime)
+{
+    if (mime == QLatin1String("image/jpeg")) return QStringLiteral(".jpg");
+    if (mime == QLatin1String("image/bmp"))  return QStringLiteral(".bmp");
+    if (mime == QLatin1String("image/gif"))  return QStringLiteral(".gif");
+    if (mime == QLatin1String("image/webp")) return QStringLiteral(".webp");
+    return QStringLiteral(".png");
+}
+
+// ============================================================
+// migriereGrafikBilderAufDateien (D-02, Migration v77)
+// Lagert grafik_element.bild_daten (BLOB) in Dateien unter
+// m_grafikBilderDir aus. Idempotent via PRAGMA table_info-Check:
+// läuft bei frischen DBs (Spalte laut schema.sql schon final) als
+// No-Op durch, bei Altdaten konvertiert sie und dropt die Spalte.
+// ============================================================
+bool Database::migriereGrafikBilderAufDateien()
+{
+    bool hatBildDaten = false, hatBildPfad = false;
+    {
+        QSqlQuery pragma(m_db);
+        pragma.exec("PRAGMA table_info(grafik_element)");
+        while (pragma.next()) {
+            const QString col = pragma.value(1).toString();
+            if (col == QLatin1String("bild_daten")) hatBildDaten = true;
+            if (col == QLatin1String("bild_pfad"))  hatBildPfad  = true;
+        }
+    }
+
+    if (!hatBildDaten)
+        return true; // schon im finalen Zustand (frische DB über schema.sql)
+
+    if (!hatBildPfad) {
+        QSqlQuery alter(m_db);
+        if (!alter.exec("ALTER TABLE grafik_element ADD COLUMN bild_pfad TEXT NOT NULL DEFAULT ''")) {
+            qCWarning(lcDb) << "ALTER grafik_element ADD bild_pfad:" << alter.lastError().text();
+            return false;
+        }
+    }
+
+    QDir().mkpath(m_grafikBilderDir);
+
+    QSqlQuery sel(m_db);
+    sel.exec("SELECT id, bild_daten, bild_mime FROM grafik_element WHERE bild_pfad = '' AND bild_daten IS NOT NULL");
+    while (sel.next()) {
+        const int        elId  = sel.value(0).toInt();
+        const QByteArray bytes = sel.value(1).toByteArray();
+        const QString    mime  = sel.value(2).toString();
+        if (bytes.isEmpty()) continue;
+
+        const QString hash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha1).toHex();
+        const QString fn   = hash + _grafikBildExtensionFuerMime(mime);
+
+        QFile f(m_grafikBilderDir + "/" + fn);
+        if (!f.exists()) {
+            if (!f.open(QIODevice::WriteOnly)) {
+                qCWarning(lcDb) << "migriereGrafikBilderAufDateien: Datei nicht schreibbar:" << fn;
+                continue;
+            }
+            f.write(bytes);
+            f.close();
+        }
+
+        QSqlQuery upd(m_db);
+        upd.prepare("UPDATE grafik_element SET bild_pfad = :p WHERE id = :id");
+        upd.bindValue(":p",  fn);
+        upd.bindValue(":id", elId);
+        upd.exec();
+    }
+
+    QSqlQuery drop(m_db);
+    if (!drop.exec("ALTER TABLE grafik_element DROP COLUMN bild_daten")) {
+        qCWarning(lcDb) << "ALTER grafik_element DROP COLUMN bild_daten:" << drop.lastError().text();
+        return false;
+    }
+    return true;
+}
 
 QVariantList Database::grafikLaden(int seiteId)
 {
@@ -28,7 +109,7 @@ QVariantList Database::grafikLaden(int seiteId)
                opazitaet, ecken_radius,
                symbol_id, rotation, spiegel_x, spiegel_y,
                punkte, text_inhalt, text_ausrichtung, text_einpassen,
-               bild_daten, bild_mime, extra_daten, betriebsmittel_id,
+               bild_pfad, bild_mime, extra_daten, betriebsmittel_id,
                gruppe_id
         FROM grafik_element
         WHERE seite_id = :sid
@@ -69,15 +150,21 @@ QVariantList Database::grafikLaden(int seiteId)
                                                 ? QStringLiteral("links") : textAusrichtung;
         el[QStringLiteral("textEinpassen")] = q.value(21).toInt() != 0;
 
-        // bild_daten: BLOB-Bytes + bild_mime → Base64-Data-URL für QML-Canvas
-        QByteArray bildBytes = q.value(22).toByteArray();
-        if (!bildBytes.isEmpty()) {
-            QString bildMime = q.value(23).toString();
-            if (bildMime.isEmpty())
-                bildMime = QStringLiteral("image/png");
-            el[QStringLiteral("bildDaten")] = QStringLiteral("data:") + bildMime
-                + QStringLiteral(";base64,")
-                + QString::fromLatin1(bildBytes.toBase64());
+        // bild_pfad: Datei aus m_grafikBilderDir lesen + bild_mime → Base64-Data-URL für QML-Canvas
+        QString bildPfad = q.value(22).toString();
+        if (!bildPfad.isEmpty()) {
+            QFile bf(m_grafikBilderDir + "/" + bildPfad);
+            if (bf.open(QIODevice::ReadOnly)) {
+                QByteArray bildBytes = bf.readAll();
+                QString bildMime = q.value(23).toString();
+                if (bildMime.isEmpty())
+                    bildMime = QStringLiteral("image/png");
+                el[QStringLiteral("bildDaten")] = QStringLiteral("data:") + bildMime
+                    + QStringLiteral(";base64,")
+                    + QString::fromLatin1(bildBytes.toBase64());
+            } else {
+                qCWarning(lcDb) << "grafikLaden: Bilddatei fehlt:" << bildPfad;
+            }
         }
 
         // extra_daten: JSON → extraDaten-Map für symbol-spezifische Eigenschaften
@@ -201,14 +288,14 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
              opazitaet, ecken_radius, sortierung,
              symbol_id, rotation, spiegel_x, spiegel_y,
              punkte, text_inhalt, text_ausrichtung, text_einpassen,
-             bild_daten, bild_mime, extra_daten, betriebsmittel_id,
+             bild_pfad, bild_mime, extra_daten, betriebsmittel_id,
              gruppe_id)
         VALUES
             (:sid, :typ, :x1, :y1, :x2, :y2,
              :sf, :sb, :sa, :fu, :ff, :fo, :op, :er, :sort,
              :symid, :rot, :spx, :spy,
              :punkte, :textinhalt, :textausrichtung, :texteinpassen,
-             :bilddaten, :bildmime, :extradaten, :bmid,
+             :bildpfad, :bildmime, :extradaten, :bmid,
              :gid)
     )");
 
@@ -262,8 +349,10 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             qIns.bindValue(":punkte", QVariant(QMetaType::fromType<QString>()));
         }
 
-        // bild_daten: Data-URL aus QML → BLOB-Bytes + MIME für Datenbank
+        // bildDaten: Data-URL aus QML → Datei in m_grafikBilderDir (Dateiname = SHA-1-Hash
+        // der Bytes, stabil über DELETE+INSERT-Saves hinweg, siehe Plan-Begründung D-02)
         QVariant bildDatenVar = el.value(QStringLiteral("bildDaten"));
+        bool bildGesetzt = false;
         if (bildDatenVar.isValid() && !bildDatenVar.isNull()) {
             QString dataUrl = bildDatenVar.toString();
             // Format: "data:<mime>;base64,<daten>"
@@ -274,19 +363,25 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
                     QString    mime     = dataUrl.mid(5, semiPos - 5);
                     QByteArray rawBytes = QByteArray::fromBase64(
                                              dataUrl.mid(commaPos + 1).toLatin1());
-                    qIns.bindValue(":bilddaten", rawBytes);
-                    qIns.bindValue(":bildmime",  mime);
-                } else {
-                    qIns.bindValue(":bilddaten", QVariant(QMetaType::fromType<QByteArray>()));
-                    qIns.bindValue(":bildmime",  QVariant(QMetaType::fromType<QString>()));
+                    const QString hash = QCryptographicHash::hash(rawBytes, QCryptographicHash::Sha1).toHex();
+                    const QString fn   = hash + _grafikBildExtensionFuerMime(mime);
+                    QDir().mkpath(m_grafikBilderDir);
+                    QFile bf(m_grafikBilderDir + "/" + fn);
+                    if (!bf.exists()) {
+                        if (bf.open(QIODevice::WriteOnly)) {
+                            bf.write(rawBytes);
+                            bf.close();
+                        }
+                    }
+                    qIns.bindValue(":bildpfad", fn);
+                    qIns.bindValue(":bildmime", mime);
+                    bildGesetzt = true;
                 }
-            } else {
-                qIns.bindValue(":bilddaten", QVariant(QMetaType::fromType<QByteArray>()));
-                qIns.bindValue(":bildmime",  QVariant(QMetaType::fromType<QString>()));
             }
-        } else {
-            qIns.bindValue(":bilddaten", QVariant(QMetaType::fromType<QByteArray>()));
-            qIns.bindValue(":bildmime",  QVariant(QMetaType::fromType<QString>()));
+        }
+        if (!bildGesetzt) {
+            qIns.bindValue(":bildpfad", QStringLiteral(""));
+            qIns.bindValue(":bildmime", QVariant(QMetaType::fromType<QString>()));
         }
 
         // extra_daten: extraDaten-Map + bild-spezifische Felder als kompaktes JSON

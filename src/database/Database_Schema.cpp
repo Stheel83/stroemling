@@ -427,6 +427,25 @@ static QList<SchemaMigration> alleMigrationen()
                 ('ard_mega', 41, 'linie', 0.85, 0.8636, 1.0, 0.8636, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
                 ('ard_mega', 42, 'linie', 0.85, 0.9091, 1.0, 0.9091, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
         }},
+        { 74, "ard_hcsr04: Hoehe auf Vielfaches von 8mm vergroessert (ARD-GRID-03)", {
+            // Gleicher Root-Cause wie ARD-GRID-02: Mittelpunkt-Snap aufs 4mm-Raster.
+            // 20mm ist kein Vielfaches von 8mm → 24mm (3×8mm).
+            // Pin-Positionen bleiben an absolut gleicher mm-Position (4/8/12/16mm),
+            // normierte y-Werte aendern sich durch groesseren Nenner: k/(N+2) statt k/(N+1).
+            R"(UPDATE symbol_definition SET hoehe_mm=24 WHERE id='ard_hcsr04' AND ist_builtin=1)",
+            R"(UPDATE symbol_pin SET y=0.1667 WHERE symbol_id='ard_hcsr04' AND name='VCC')",
+            R"(UPDATE symbol_pin SET y=0.3333 WHERE symbol_id='ard_hcsr04' AND name='TRIG')",
+            R"(UPDATE symbol_pin SET y=0.5000 WHERE symbol_id='ard_hcsr04' AND name='ECHO')",
+            R"(UPDATE symbol_pin SET y=0.6667 WHERE symbol_id='ard_hcsr04' AND name='GND')",
+            R"(UPDATE symbol_primitiv SET y1=0.1667, y2=0.1667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=2)",
+            R"(UPDATE symbol_primitiv SET y1=0.3333, y2=0.3333 WHERE symbol_id='ard_hcsr04' AND reihenfolge=3)",
+            R"(UPDATE symbol_primitiv SET y1=0.5000, y2=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=4)",
+            R"(UPDATE symbol_primitiv SET y1=0.6667, y2=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=5)",
+            R"(UPDATE symbol_primitiv SET y1=0.1667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=6)",
+            R"(UPDATE symbol_primitiv SET y1=0.3333 WHERE symbol_id='ard_hcsr04' AND reihenfolge=7)",
+            R"(UPDATE symbol_primitiv SET y1=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=8)",
+            R"(UPDATE symbol_primitiv SET y1=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=9)",
+        }},
         { 75, "Steckverbinder-Bibliothek: steckverbinder_typ / _kabeleinf / _kontakt_typ", {
             R"(CREATE TABLE IF NOT EXISTS steckverbinder_typ (
                 id                  INTEGER PRIMARY KEY,
@@ -461,25 +480,6 @@ static QList<SchemaMigration> alleMigrationen()
                 verbindungstechnik      TEXT
             ))",
         }},
-        { 74, "ard_hcsr04: Hoehe auf Vielfaches von 8mm vergroessert (ARD-GRID-03)", {
-            // Gleicher Root-Cause wie ARD-GRID-02: Mittelpunkt-Snap aufs 4mm-Raster.
-            // 20mm ist kein Vielfaches von 8mm → 24mm (3×8mm).
-            // Pin-Positionen bleiben an absolut gleicher mm-Position (4/8/12/16mm),
-            // normierte y-Werte aendern sich durch groesseren Nenner: k/(N+2) statt k/(N+1).
-            R"(UPDATE symbol_definition SET hoehe_mm=24 WHERE id='ard_hcsr04' AND ist_builtin=1)",
-            R"(UPDATE symbol_pin SET y=0.1667 WHERE symbol_id='ard_hcsr04' AND name='VCC')",
-            R"(UPDATE symbol_pin SET y=0.3333 WHERE symbol_id='ard_hcsr04' AND name='TRIG')",
-            R"(UPDATE symbol_pin SET y=0.5000 WHERE symbol_id='ard_hcsr04' AND name='ECHO')",
-            R"(UPDATE symbol_pin SET y=0.6667 WHERE symbol_id='ard_hcsr04' AND name='GND')",
-            R"(UPDATE symbol_primitiv SET y1=0.1667, y2=0.1667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=2)",
-            R"(UPDATE symbol_primitiv SET y1=0.3333, y2=0.3333 WHERE symbol_id='ard_hcsr04' AND reihenfolge=3)",
-            R"(UPDATE symbol_primitiv SET y1=0.5000, y2=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=4)",
-            R"(UPDATE symbol_primitiv SET y1=0.6667, y2=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=5)",
-            R"(UPDATE symbol_primitiv SET y1=0.1667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=6)",
-            R"(UPDATE symbol_primitiv SET y1=0.3333 WHERE symbol_id='ard_hcsr04' AND reihenfolge=7)",
-            R"(UPDATE symbol_primitiv SET y1=0.5000 WHERE symbol_id='ard_hcsr04' AND reihenfolge=8)",
-            R"(UPDATE symbol_primitiv SET y1=0.6667 WHERE symbol_id='ard_hcsr04' AND reihenfolge=9)",
-        }},
 
         // NKZ-02b: anlage_uebergeordnet (==) / standort_uebergeordnet (++) projektweit
         // direkt an Anlage/Ort statt nur über Strukturkasten pro Seite. Analog zu
@@ -501,6 +501,20 @@ static QList<SchemaMigration> alleMigrationen()
                 FROM seite s
                 LEFT JOIN ort o ON s.ort_id = o.id
                 LEFT JOIN anlage a ON o.anlage_id = a.id)",
+        }},
+
+        // D-02: Canvas-Bilder (grafik_element.bild_daten, BLOB) verdoppelten bei jedem
+        // Speichern (DELETE+INSERT aller Elemente) die vollen Bild-Bytes und bliesen
+        // jeden Git-Auto-Commit auf. Auslagerung in Dateien (m_grafikBilderDir/<hash>.<ext>),
+        // analog zum Wiki-Vorbild (wiki_bild.daten → blob_pfad, Schema v11). Leere
+        // statements-Liste: läuft über den Sonderfall migriereGrafikBilderAufDateien()
+        // in der Dispatch-Schleife unten (braucht Datei-I/O, nicht reines SQL).
+        { 77, "Canvas-Bilder (grafik_element.bild_daten) aus BLOB in bilder/-Dateien ausgelagert", {} },
+
+        // Tote BLOB-Spalten ohne jegliche Code-Referenz – beim D-02-Blast-Radius-Check gefunden.
+        { 78, "Tote BLOB-Spalten gedroppt (normblatt_vorlage.logo_data, bauteil.bild_data)", {
+            R"(ALTER TABLE normblatt_vorlage DROP COLUMN logo_data)",
+            R"(ALTER TABLE bauteil DROP COLUMN bild_data)",
         }},
     };
 }
@@ -585,6 +599,9 @@ bool Database::checkAndApplySchema()
             ok = dropAllTables() && createSchema()
                  && seedSymbolKatalog() && seedBuiltinSymbolDefinitionen()
                  && seedIbnFeldvorlagen() && seedStandardKlemmen();
+        } else if (mig.version == 77) {
+            // D-02: braucht Datei-I/O (Bild-Bytes auslagern) – nicht über reines SQL möglich.
+            ok = migriereGrafikBilderAufDateien();
         } else {
             ok = applyMigrationStatements(mig.statements);
         }
@@ -635,6 +652,16 @@ bool Database::applyMigrationStatements(const QStringList &statements)
                                 .contains("duplicate column name");
             if (isAddColumn && isDupCol) {
                 qCInfo(lcDb) << "ADD COLUMN bereits vorhanden (idempotent):" << stmt.left(120);
+                continue;
+            }
+
+            // DROP COLUMN ist idempotent: bei einer frisch aus schema.sql
+            // erzeugten DB fehlt die Spalte ggf. schon von Anfang an.
+            bool isDropColumn = stmt.trimmed().toUpper().contains("DROP COLUMN");
+            bool isNoSuchCol  = q.lastError().databaseText().toLower()
+                                .contains("no such column");
+            if (isDropColumn && isNoSuchCol) {
+                qCInfo(lcDb) << "DROP COLUMN bereits entfernt (idempotent):" << stmt.left(120);
                 continue;
             }
             qCWarning(lcDb) << "Migration-Statement fehlgeschlagen:" << q.lastError().text();

@@ -763,6 +763,10 @@ private:
     // Wiki-Tabellen in wiki.db anlegen
     bool createWikiSchema();
 
+    // Migration v77: grafik_element.bild_daten (BLOB) → Dateien in m_grafikBilderDir.
+    // Idempotent (PRAGMA table_info-Check), läuft auch bei frischen DBs sauber durch.
+    bool migriereGrafikBilderAufDateien();
+
     // Pfad + Name eines geöffneten Projekts in die zuletzt_geoeffnet-Tabelle eintragen
     void zuletzGeoeffnetEintragen(const QString &path, const QString &name);
 
@@ -790,4 +794,5 @@ private:
     QString      m_wikiBlobDir;
     QString      m_wikiPfad;
     QString      m_makroPfad;
+    QString      m_grafikBilderDir;  // <Projektordner>/bilder – Canvas-Bild-BLOBs als Dateien
 };

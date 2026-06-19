@@ -166,6 +166,9 @@ bool Database::openProjekt(const QString &path)
         pragma.exec("PRAGMA journal_mode = WAL");
     }
 
+    m_grafikBilderDir = QFileInfo(localPath).absolutePath() + "/bilder";
+    QDir().mkpath(m_grafikBilderDir);
+
     if (!checkAndApplySchema()) {
         m_db.close();
         m_db = QSqlDatabase();
@@ -231,6 +234,9 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         pragma.exec("PRAGMA foreign_keys = ON");
         pragma.exec("PRAGMA journal_mode = WAL");
     }
+
+    m_grafikBilderDir = QFileInfo(localPath).absolutePath() + "/bilder";
+    QDir().mkpath(m_grafikBilderDir);
 
     // schema_migration-Tabelle anlegen (außerhalb der Transaktion)
     {
@@ -317,6 +323,23 @@ void Database::closeProjekt()
     emit projektOffenChanged();
 }
 
+// Verzeichnis rekursiv kopieren (für m_grafikBilderDir beim Projekt-Export).
+// Eigenständige kleine Kopie analog zum gleichnamigen Helfer in
+// Database_Archiv.cpp (dort static/dateilokal, kein gemeinsamer Header nötig).
+static void _verzeichnisKopieren(const QString &von, const QString &nach)
+{
+    QDir().mkpath(nach);
+    QDirIterator it(von, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        QString rel = QDir(von).relativeFilePath(it.filePath());
+        QString dst = nach + "/" + rel;
+        QDir().mkpath(QFileInfo(dst).absolutePath());
+        QFile::remove(dst);
+        QFile::copy(it.filePath(), dst);
+    }
+}
+
 bool Database::projektExportieren(const QString &destPfad)
 {
     const QString localPfad = QUrl(destPfad).isLocalFile() ? QUrl(destPfad).toLocalFile() : destPfad;
@@ -339,6 +362,13 @@ bool Database::projektExportieren(const QString &destPfad)
         qCWarning(lcDb) << "projektExportieren:" << q.lastError().text();
         return false;
     }
+
+    // Ausgelagerte Canvas-Bilder (D-02) mitkopieren
+    if (!m_grafikBilderDir.isEmpty() && QDir(m_grafikBilderDir).exists()) {
+        QString zielBilderDir = QFileInfo(localPfad).absolutePath() + "/bilder";
+        _verzeichnisKopieren(m_grafikBilderDir, zielBilderDir);
+    }
+
     qCInfo(lcDb) << "Projekt exportiert nach:" << localPfad;
     return true;
 }

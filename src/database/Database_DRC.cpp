@@ -15,34 +15,81 @@
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
+#include <QMap>
 #include <algorithm>
 
+// NKZ-03: betriebsmittel.funktion/einbauort/anlage_uebergeordnet/standort_uebergeordnet
+// (und damit die betriebsmittel_bmk-View) werden nirgends beschrieben – der frühere
+// GROUP BY bv.bmk_vollstaendig verglich faktisch nur die nackte Kennzeichnung ohne
+// Anlage/Ort-Scope. Stattdessen wird hier – analog zu stueckliste()/aderliste() in
+// Database_Listen.cpp – die Anlage/Ort-Zugehörigkeit über das (Haupt-)grafik_element
+// des Betriebsmittels aufgelöst, inkl. Strukturkasten-Override, und erst danach
+// gruppiert. Siehe konzept/features/07_normkennzeichnung.md §5.2.
 QVariantList Database::drcDoppelteBmk(int projektId)
 {
     QVariantList ergebnis;
     QSqlQuery q(m_db);
-    q.prepare(
-        "SELECT bv.bmk_vollstaendig, COUNT(*) AS anzahl, GROUP_CONCAT(b.id) AS ids "
-        "FROM betriebsmittel b "
-        "JOIN betriebsmittel_bmk bv ON b.id = bv.id "
-        "WHERE b.projekt_id = :pid "
-        "GROUP BY bv.bmk_vollstaendig "
-        "HAVING COUNT(*) > 1 "
-        "ORDER BY bv.bmk_vollstaendig"
-    );
+    q.prepare(R"(
+        SELECT b.id, b.betriebsmittel_kz,
+               a.kuerzel, o.kuerzel,
+               COALESCE(a.anlage_uebergeordnet, ''),
+               COALESCE(o.standort_uebergeordnet, ''),
+               (SELECT sk.extra_daten
+                FROM grafik_element sk
+                WHERE sk.seite_id = ge.seite_id
+                  AND sk.typ = 'strukturkasten'
+                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
+                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
+                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
+                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
+                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                LIMIT 1) AS sk_extra
+        FROM betriebsmittel b
+        JOIN grafik_element ge ON ge.id = COALESCE(
+            b.haupt_element_id,
+            (SELECT MIN(g2.id) FROM grafik_element g2 WHERE g2.betriebsmittel_id = b.id)
+        )
+        JOIN seite  s ON s.id = ge.seite_id
+        JOIN ort    o ON o.id = s.ort_id
+        JOIN anlage a ON a.id = o.anlage_id
+        WHERE b.projekt_id = :pid
+    )");
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
         qCWarning(lcDb) << "drcDoppelteBmk:" << q.lastError().text();
         return ergebnis;
     }
+
+    struct Gruppe { int anzahl = 0; QVariantList ids; };
+    QMap<QString, Gruppe> gruppen; // Vollkennzeichen -> Treffer (QMap sortiert nach Schlüssel)
+
     while (q.next()) {
-        QVariantList ids;
-        for (const QString &s : q.value(2).toString().split(','))
-            ids << s.trimmed().toInt();
+        const int     id       = q.value(0).toInt();
+        const QString kz       = q.value(1).toString();
+        QString anlageKz = q.value(2).toString();
+        QString ortKz    = q.value(3).toString();
+        QString anlageUO = q.value(4).toString();
+        QString ortUO    = q.value(5).toString();
+        strukturkastenOverrideAnwenden(q.value(6).toString(), anlageKz, ortKz, anlageUO, ortUO);
+
+        QString vollkz;
+        if (!anlageUO.isEmpty()) vollkz += "==" + anlageUO;
+        if (!ortUO.isEmpty())    vollkz += "++" + ortUO;
+        if (!anlageKz.isEmpty()) vollkz += "=" + anlageKz;
+        if (!ortKz.isEmpty())    vollkz += "+" + ortKz;
+        vollkz += "-" + kz;
+
+        Gruppe &g = gruppen[vollkz];
+        g.anzahl++;
+        g.ids << id;
+    }
+
+    for (auto it = gruppen.constBegin(); it != gruppen.constEnd(); ++it) {
+        if (it.value().anzahl <= 1) continue;
         QVariantMap fund;
-        fund["bmk"]    = q.value(0).toString();
-        fund["anzahl"] = q.value(1).toInt();
-        fund["ids"]    = ids;
+        fund["bmk"]    = it.key();
+        fund["anzahl"] = it.value().anzahl;
+        fund["ids"]    = it.value().ids;
         ergebnis << fund;
     }
     return ergebnis;

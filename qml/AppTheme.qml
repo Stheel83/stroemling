@@ -33,6 +33,7 @@ Item {
             textSubtle:    "#7a9ab8",
             accent:        "#4a9eff",
             accentLight:   "#7aaddd",
+            logoGruen:     "#55d400",
             panelMid:      "#5577aa",
             hover:         "#0f2540",
             hoverSidebar:  "#162d4a",
@@ -62,6 +63,7 @@ Item {
             textSubtle:    "#506070",
             accent:        "#1a6fd8",
             accentLight:   "#4a90c8",
+            logoGruen:     "#000000",
             panelMid:      "#3a6090",
             hover:         "#c8dced",
             hoverSidebar:  "#bccfe0",
@@ -91,6 +93,7 @@ Item {
             textSubtle:    "#6080c0",
             accent:        "#40d0ff",
             accentLight:   "#80e0ff",
+            logoGruen:     "#55d400",
             panelMid:      "#4070c0",
             hover:         "#102570",
             hoverSidebar:  "#102060",
@@ -123,6 +126,7 @@ Item {
     readonly property string textSubtle:    _t.textSubtle
     readonly property string accent:        _t.accent
     readonly property string accentLight:   _t.accentLight
+    readonly property string logoGruen:     _t.logoGruen
     readonly property string panelMid:      _t.panelMid
     readonly property string hover:         _t.hover
     readonly property string hoverSidebar:  _t.hoverSidebar

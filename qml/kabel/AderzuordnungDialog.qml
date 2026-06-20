@@ -126,20 +126,26 @@ Dialog {
         return txt
     }
 
-    // Initialzustand laden: primär via netKey (stabil), Fallback via verbindungId
+    // Initialzustand laden: primär via aderKey (lokal, NETZ-02), dann netKey
+    // (NETZ-01, ganzes Potenzial-Netz), dann legacyNetKey (positionsbasiert)
+    // als ältere Übergangs-Fallbacks, zuletzt Fallback via verbindungId
     function _initialisieren() {
         var ef = root._effektiveAdern()
         var a  = []
         for (var i = 0; i < root.schnittNetze.length; i++) {
-            var nk    = root.schnittNetze[i].netKey || ""
-            var nkAlt = root.schnittNetze[i].legacyNetKey || ""
+            var nkAder = root.schnittNetze[i].aderKey      || ""
+            var nk     = root.schnittNetze[i].netKey       || ""
+            var nkAlt  = root.schnittNetze[i].legacyNetKey || ""
             var found = 0
 
-            // 1) Primär: netKey → aderNr aus aderZuordnung (in extraDaten gespeichert)
-            //    legacyNetKey als Fallback (NETZ-01: ältere Zuordnung kann noch
-            //    unter dem alten, positionsbasierten Key gespeichert sein)
-            var nkTreffer = (nk && root.aderZuordnung[nk] !== undefined) ? nk
-                          : (nkAlt && root.aderZuordnung[nkAlt] !== undefined) ? nkAlt : ""
+            // 1) Primär: aderKey (lokal) → netKey (ganzes Netz) → legacyNetKey
+            //    (positionsbasiert) → aderNr aus aderZuordnung (in extraDaten
+            //    gespeichert). Die zwei älteren Stufen sind Übergangshilfen
+            //    für Zuordnungen, die noch unter einem älteren Key-Format
+            //    gespeichert sind.
+            var nkTreffer = (nkAder && root.aderZuordnung[nkAder] !== undefined) ? nkAder
+                          : (nk     && root.aderZuordnung[nk]     !== undefined) ? nk
+                          : (nkAlt  && root.aderZuordnung[nkAlt]  !== undefined) ? nkAlt : ""
             if (nkTreffer) {
                 var zielNr = root.aderZuordnung[nkTreffer]
                 for (var j = 0; j < ef.length; j++) {
@@ -171,7 +177,7 @@ Dialog {
             var n = root.schnittNetze[i]
             schnittModel.append({
                 position:    i + 1,
-                bezeichnung: n.bezeichnung || (n.netKey ? n.netKey.substring(0, 16) : "?"),
+                bezeichnung: n.bezeichnung || ((n.aderKey || n.netKey) ? (n.aderKey || n.netKey).substring(0, 16) : "?"),
                 signaltyp:   n.signaltyp   || ""
             })
         }
@@ -509,7 +515,12 @@ Dialog {
                         var wIdx = (i < root._auswahl.length) ? root._auswahl[i] : 0
                         if (wIdx > 0 && (wIdx - 1) < ef.length) {
                             aderVerbMap[wIdx - 1] = root.schnittNetze[i].verbindungId || 0
-                            var nk = root.schnittNetze[i].netKey || ""
+                            // NETZ-02: bevorzugt lokalen Ader-Schlüssel speichern (überlebt
+                            // Topologie-Änderungen anderswo im selben Potenzial-Netz);
+                            // nur wenn dafür kein stabiler Punkt existiert, auf die
+                            // gröberen Schlüssel zurückfallen.
+                            var nk = root.schnittNetze[i].aderKey || root.schnittNetze[i].netKey ||
+                                     root.schnittNetze[i].legacyNetKey || ""
                             if (nk) {
                                 var aderNr = ef[wIdx - 1].aderNr !== undefined
                                              ? ef[wIdx - 1].aderNr : wIdx

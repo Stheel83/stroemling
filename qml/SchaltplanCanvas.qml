@@ -2187,13 +2187,70 @@ Item {
             return "SYM:" + bmk2 + ":" + pinName
         }
 
-        // Schlägt einen Wert per netKey nach, mit legacyNetKey als Fallback
-        // (NETZ-01: persistierte Daten können noch unter dem alten,
-        // positionsbasierten Key liegen, bis sie einmal neu gespeichert wurden).
-        function _netLookup(map, key, legacyKey) {
+        // Reine Routing-Elemente ohne eigene Identität (NETZ-02): dürfen bei
+        // der lokalen Ader-Suche transparent übersprungen werden. Gewöhnliche
+        // (auch unbeschriftete) Bauteile gehören NICHT dazu.
+        property var _routingSymbolTypen: ({
+            "winkel": true, "treffpunkt": true, "treffpunkt_l": true,
+            "aderdefinition": true
+        })
+
+        // Läuft von elIdx aus (kommend von vonIdx) durch reine Routing-
+        // Elemente, bis ein Element mit eigenem stabilen Punkt-Schlüssel
+        // gefunden wird, oder gibt "" zurück (kein stabiler Punkt in
+        // erreichbarer Nähe / echtes, aber unbeschriftetes Bauteil).
+        function _naechsterStabilerPunkt(elIdx, vonIdx, pinName, adj, elemente, tiefe) {
+            if (tiefe <= 0) return ""
+            var el = elemente[elIdx]
+            if (!el) return ""
+            var stabil = _stabilerPunktSchluessel(el, pinName, elemente)
+            if (stabil) return stabil
+            if (!_routingSymbolTypen[el.symbolId || ""]) return ""
+            var nbList = adj[elIdx] || []
+            for (var i = 0; i < nbList.length; i++) {
+                if (nbList[i].nb !== vonIdx)
+                    return _naechsterStabilerPunkt(nbList[i].nb, elIdx, nbList[i].pinSelf, adj, elemente, tiefe - 1)
+            }
+            return ""
+        }
+
+        // NETZ-02: lokaler, positionsunabhängiger Schlüssel für EINEN
+        // Kreuzungspunkt einer Kabellinie mit einem Netz — anders als
+        // net.netKey beschreibt er nur die zwei nächsten "echten" Anschlüsse
+        // links/rechts der Kreuzung, nicht das ganze (ggf. über mehrere
+        // Bauteile transitiv verschmolzene) Potenzial-Netz. Dadurch bleibt
+        // die Kabel-Aderzuordnung stabil, auch wenn sich an einer anderen
+        // Stelle desselben Potenzial-Netzes die Topologie ändert.
+        function _lokalerAderSchluessel(seg, net, elemente) {
+            var adj = {}
+            for (var si = 0; si < net.segmente.length; si++) {
+                var s = net.segmente[si]
+                if (s.logisch) continue
+                if (!adj[s.elIdxA]) adj[s.elIdxA] = []
+                if (!adj[s.elIdxB]) adj[s.elIdxB] = []
+                adj[s.elIdxA].push({ nb: s.elIdxB, pinSelf: s.pinNameB })
+                adj[s.elIdxB].push({ nb: s.elIdxA, pinSelf: s.pinNameA })
+            }
+            var seiteA = _naechsterStabilerPunkt(seg.elIdxA, seg.elIdxB, seg.pinNameA, adj, elemente, 20)
+            var seiteB = _naechsterStabilerPunkt(seg.elIdxB, seg.elIdxA, seg.pinNameB, adj, elemente, 20)
+            var teile = []
+            if (seiteA) teile.push(seiteA)
+            if (seiteB) teile.push(seiteB)
+            if (teile.length === 0) return ""
+            teile.sort()
+            return teile.join("|")
+        }
+
+        // Schlägt einen Wert nacheinander unter mehreren Keys nach (erster
+        // Treffer gewinnt). Für Übergangs-Fallbacks: NETZ-01 (legacyNetKey,
+        // positionsbasiert) und NETZ-02 (aderKey vor netKey, lokal statt
+        // ganzes Potenzial-Netz) — persistierte Daten können noch unter
+        // einem älteren Key-Format liegen, bis sie einmal neu gespeichert wurden.
+        function _netLookup(map, keys) {
             if (!map) return undefined
-            if (key && map[key] !== undefined) return map[key]
-            if (legacyKey && map[legacyKey] !== undefined) return map[legacyKey]
+            for (var i = 0; i < keys.length; i++) {
+                if (keys[i] && map[keys[i]] !== undefined) return map[keys[i]]
+            }
             return undefined
         }
 
@@ -2348,7 +2405,7 @@ Item {
                 var stabilKeys = Object.keys(stabilSet).sort()
                 net.netKey = stabilKeys.length > 0 ? stabilKeys.join("|") : net.legacyNetKey
 
-                var ann = _netLookup(root.verbindungAnnotationenCache, net.netKey, net.legacyNetKey) || {}
+                var ann = _netLookup(root.verbindungAnnotationenCache, [net.netKey, net.legacyNetKey]) || {}
                 if (ann.bezeichnung && !net.bezeichnung) net.bezeichnung = ann.bezeichnung
                 net.verbindungId  = ann.verbindungId  || 0
                 net.farbe         = ann.farbe         || ""
@@ -2665,7 +2722,7 @@ Item {
 
                 // Ader-Label: aderZuordnung (netKey→aderNr) hat Vorrang, sonst positionsbasiert
                 var aderNr = sci + 1
-                var zugeordnet = _netLookup(aderZuordnung, sc.netKey, sc.legacyNetKey)
+                var zugeordnet = _netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
                 if (zugeordnet !== undefined) aderNr = zugeordnet
                 var labelText = "" + aderNr
                 // Farbe aus klAdern holen (Suche nach aderNr)
@@ -2710,6 +2767,7 @@ Item {
             var kDxW = kx2 - kx1, kDyW = ky2 - ky1
             var kLenW = Math.sqrt(kDxW * kDxW + kDyW * kDyW)
             if (kLenW < 0.5) return []
+            var elemente = elementeModel.snapshot()
             var gesehen = {}
             var schnitte = []
             for (var ni = 0; ni < netze.length; ni++) {
@@ -2728,6 +2786,7 @@ Item {
                             t:            Math.max(0, Math.min(1, t)),
                             netKey:       net.netKey,
                             legacyNetKey: net.legacyNetKey,
+                            aderKey:      _lokalerAderSchluessel(seg, net, elemente),
                             verbindungId: net.verbindungId || 0,
                             bezeichnung:  net.bezeichnung  || "",
                             signaltyp:    net.signaltyp    || "neutral"

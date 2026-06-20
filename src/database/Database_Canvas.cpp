@@ -633,6 +633,7 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
     for (const QVariant &netVar : netze) {
         const QVariantMap net = netVar.toMap();
         const QString netKey      = net.value(QStringLiteral("netKey")).toString();
+        const QString legacyKey   = net.value(QStringLiteral("legacyNetKey")).toString();
         const QString bezeichnung = net.value(QStringLiteral("bezeichnung")).toString();
         const QString signaltyp   = net.value(QStringLiteral("signaltyp"),  QStringLiteral("neutral")).toString();
         const QString farbe       = net.value(QStringLiteral("farbe")).toString();
@@ -647,12 +648,38 @@ bool Database::verbindungenSynchronisieren(int seiteId, int projektId, const QVa
             lookup.prepare("SELECT id FROM verbindung WHERE projekt_id = :pid AND potenzial = :key LIMIT 1");
             lookup.bindValue(":pid", projektId);
             lookup.bindValue(":key", netKey);
-            if (lookup.exec() && lookup.next()) {
-                verbId = lookup.value(0).toInt();
-                // Nur signaltyp aktualisieren; Annotation (bezeichnung, farbe, querschnitt)
-                // wird nur durch expliziten Nutzeraktion via verbindungAktualisieren geändert
+            bool gefunden = lookup.exec() && lookup.next();
+            bool ueberLegacyKey = false;
+            if (gefunden) verbId = lookup.value(0).toInt();
+
+            // NETZ-01: Fallback über legacyNetKey (alter, positionsbasierter
+            // Key). Greift z.B. wenn ein verbundenes Element verschoben wurde
+            // und das Netz dadurch jetzt einen neuen netKey hat, aber sonst
+            // unverändert ist — verhindert eine verwaiste Alt-Zeile samt
+            // Verlust von Bezeichnung/Farbe/Querschnitt/Aderzuordnung.
+            if (!gefunden && !legacyKey.isEmpty() && legacyKey != netKey) {
+                QSqlQuery lookupAlt;
+                lookupAlt.prepare("SELECT id FROM verbindung WHERE projekt_id = :pid AND potenzial = :key LIMIT 1");
+                lookupAlt.bindValue(":pid", projektId);
+                lookupAlt.bindValue(":key", legacyKey);
+                if (lookupAlt.exec() && lookupAlt.next()) {
+                    verbId = lookupAlt.value(0).toInt();
+                    gefunden = true;
+                    ueberLegacyKey = true;
+                }
+            }
+
+            if (gefunden) {
+                // Nur signaltyp (+ ggf. Key-Migration) aktualisieren; Annotation
+                // (bezeichnung, farbe, querschnitt) wird nur durch expliziten
+                // Nutzeraktion via verbindungAktualisieren geändert
                 QSqlQuery upd;
-                upd.prepare("UPDATE verbindung SET signaltyp = :sig WHERE id = :id");
+                if (ueberLegacyKey) {
+                    upd.prepare("UPDATE verbindung SET potenzial = :key, signaltyp = :sig WHERE id = :id");
+                    upd.bindValue(":key", netKey);
+                } else {
+                    upd.prepare("UPDATE verbindung SET signaltyp = :sig WHERE id = :id");
+                }
                 upd.bindValue(":sig", signaltyp);
                 upd.bindValue(":id",  verbId);
                 if (!upd.exec()) {

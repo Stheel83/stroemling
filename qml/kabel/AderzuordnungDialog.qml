@@ -132,11 +132,16 @@ Dialog {
         var a  = []
         for (var i = 0; i < root.schnittNetze.length; i++) {
             var nk    = root.schnittNetze[i].netKey || ""
+            var nkAlt = root.schnittNetze[i].legacyNetKey || ""
             var found = 0
 
             // 1) Primär: netKey → aderNr aus aderZuordnung (in extraDaten gespeichert)
-            if (nk && root.aderZuordnung[nk] !== undefined) {
-                var zielNr = root.aderZuordnung[nk]
+            //    legacyNetKey als Fallback (NETZ-01: ältere Zuordnung kann noch
+            //    unter dem alten, positionsbasierten Key gespeichert sein)
+            var nkTreffer = (nk && root.aderZuordnung[nk] !== undefined) ? nk
+                          : (nkAlt && root.aderZuordnung[nkAlt] !== undefined) ? nkAlt : ""
+            if (nkTreffer) {
+                var zielNr = root.aderZuordnung[nkTreffer]
                 for (var j = 0; j < ef.length; j++) {
                     var nr = ef[j].aderNr !== undefined ? ef[j].aderNr : (j + 1)
                     if (nr === zielNr) { found = j + 1; break }

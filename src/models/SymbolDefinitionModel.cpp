@@ -533,7 +533,9 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 QVariantMap v;
                 v["x1"] = a.x; v["y1"] = a.y; v["x2"] = b.x; v["y2"] = b.y;
                 v["elIdxA"] = a.elIdx; v["rolleA"] = a.rolle; v["quellSigA"] = a.quellSig;
+                v["pinNameA"] = a.pinName;
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
+                v["pinNameB"] = b.pinName;
                 v["signaltyp"] = QStringLiteral("neutral");
                 if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);
@@ -566,7 +568,9 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 QVariantMap v;
                 v["x1"] = a.x; v["y1"] = a.y; v["x2"] = b.x; v["y2"] = b.y;
                 v["elIdxA"] = a.elIdx; v["rolleA"] = a.rolle; v["quellSigA"] = a.quellSig;
+                v["pinNameA"] = a.pinName;
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
+                v["pinNameB"] = b.pinName;
                 v["signaltyp"] = QStringLiteral("neutral");
                 if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);

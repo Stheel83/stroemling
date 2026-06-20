@@ -2139,9 +2139,68 @@ Item {
         }
 
 
+        // Liefert einen stabilen, positionsunabhängigen Bezeichner für einen
+        // Netzpunkt (Endpunkt-Element + Pin) — oder "" wenn keiner verfügbar
+        // ist (unbeschriftetes Bauteil, reines Routing-Element). Grundlage
+        // für netKey (NETZ-01): BMK/Anschlusskennzeichnung ändern sich beim
+        // Verschieben nicht, Koordinaten schon.
+        function _stabilerPunktSchluessel(el, pinName, elemente) {
+            if (!el || el.typ !== "symbol") return ""
+            var sid = el.symbolId || ""
+            var ed  = el.extraDaten || {}
+
+            if (sid === "geraeteanschluss") {
+                var ank = ed.anschlusskennzeichnung || ""
+                if (!ank) return ""
+                var cx = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
+                var bestGk = null, bestGkA = Infinity
+                for (var gi = 0; gi < elemente.length; gi++) {
+                    var gke = elemente[gi]
+                    if (gke.typ !== "geraetekasten") continue
+                    var gkx1 = Math.min(gke.x1, gke.x2), gkx2 = Math.max(gke.x1, gke.x2)
+                    var gky1 = Math.min(gke.y1, gke.y2), gky2 = Math.max(gke.y1, gke.y2)
+                    if (cx >= gkx1 && cx <= gkx2 && cy >= gky1 && cy <= gky2) {
+                        var gkA = (gkx2 - gkx1) * (gky2 - gky1)
+                        if (gkA < bestGkA) { bestGkA = gkA; bestGk = gke }
+                    }
+                }
+                var bmk = bestGk ? ((bestGk.extraDaten || {}).bmk || "") : ""
+                if (!bmk) return ""
+                return "GA:" + bmk + ":" + ank
+            }
+
+            if (sid === "klemme_anschluss") {
+                var kaBmk = ed.bmk || "", kaAnz = ed.anschlussBezeichnung || ""
+                if (!kaBmk || !kaAnz) return ""
+                return "KA:" + kaBmk + ":" + kaAnz
+            }
+
+            if (sid === "potenzial") {
+                var sig = ed.signalname || ""
+                if (!sig) return ""
+                return "POT:" + sig
+            }
+
+            // Gewöhnliches Symbol mit eigener BMK (Relais, Klemme, Sensor, ...)
+            var bmk2 = ed.bmk || ""
+            if (!bmk2 || !pinName) return ""
+            return "SYM:" + bmk2 + ":" + pinName
+        }
+
+        // Schlägt einen Wert per netKey nach, mit legacyNetKey als Fallback
+        // (NETZ-01: persistierte Daten können noch unter dem alten,
+        // positionsbasierten Key liegen, bis sie einmal neu gespeichert wurden).
+        function _netLookup(map, key, legacyKey) {
+            if (!map) return undefined
+            if (key && map[key] !== undefined) return map[key]
+            if (legacyKey && map[legacyKey] !== undefined) return map[legacyKey]
+            return undefined
+        }
+
         // Gruppiert Auto-Verbindungssegmente zu elektrischen Netzen.
-        // Gibt [{netKey, bezeichnung, signaltyp, farbe, querschnitt,
-        //        verbindungId, segmente:[{x1,y1,x2,y2}], querverweise:[...]}] zurück.
+        // Gibt [{netKey, legacyNetKey, bezeichnung, signaltyp, farbe,
+        //        querschnitt, verbindungId, segmente:[{x1,y1,x2,y2}],
+        //        querverweise:[...]}] zurück.
         function autoNetzeBerechnen() {
             var vbs      = autoVerbindungenBerechnen()
             var elemente = elementeModel.snapshot()
@@ -2242,6 +2301,7 @@ Item {
                 var net = netMap[rid]
                 net.segmente.push({ x1: v.x1, y1: v.y1, x2: v.x2, y2: v.y2,
                                     elIdxA: v.elIdxA, elIdxB: v.elIdxB,
+                                    pinNameA: v.pinNameA || "", pinNameB: v.pinNameB || "",
                                     logisch: v.logisch || false })
                 if (!v.logisch) {
                     var g = root.gridPx > 0 ? root.gridPx : 1
@@ -2270,9 +2330,25 @@ Item {
             for (var rid in netMap) {
                 var net = netMap[rid]
                 var pins = Object.keys(net.pinSet).sort()
-                net.netKey = pins.join("|")
+                net.legacyNetKey = pins.join("|")
                 delete net.pinSet
-                var ann = root.verbindungAnnotationenCache[net.netKey] || {}
+
+                // Stabiler Key (NETZ-01): aus BMK/Anschlusskennzeichnung der
+                // "echten" Endpunkte statt aus Koordinaten. Fällt auf
+                // legacyNetKey zurück, wenn kein Endpunkt im Netz einen
+                // stabilen Bezeichner hat (z.B. unbeschriftete Bauteile).
+                var stabilSet = {}
+                for (var spi = 0; spi < net.segmente.length; spi++) {
+                    var seg = net.segmente[spi]
+                    var sa = _stabilerPunktSchluessel(elemente[seg.elIdxA], seg.pinNameA, elemente)
+                    if (sa) stabilSet[sa] = true
+                    var sb = _stabilerPunktSchluessel(elemente[seg.elIdxB], seg.pinNameB, elemente)
+                    if (sb) stabilSet[sb] = true
+                }
+                var stabilKeys = Object.keys(stabilSet).sort()
+                net.netKey = stabilKeys.length > 0 ? stabilKeys.join("|") : net.legacyNetKey
+
+                var ann = _netLookup(root.verbindungAnnotationenCache, net.netKey, net.legacyNetKey) || {}
                 if (ann.bezeichnung && !net.bezeichnung) net.bezeichnung = ann.bezeichnung
                 net.verbindungId  = ann.verbindungId  || 0
                 net.farbe         = ann.farbe         || ""
@@ -2589,8 +2665,8 @@ Item {
 
                 // Ader-Label: aderZuordnung (netKey→aderNr) hat Vorrang, sonst positionsbasiert
                 var aderNr = sci + 1
-                if (aderZuordnung && sc.netKey && aderZuordnung[sc.netKey] !== undefined)
-                    aderNr = aderZuordnung[sc.netKey]
+                var zugeordnet = _netLookup(aderZuordnung, sc.netKey, sc.legacyNetKey)
+                if (zugeordnet !== undefined) aderNr = zugeordnet
                 var labelText = "" + aderNr
                 // Farbe aus klAdern holen (Suche nach aderNr)
                 for (var ai = 0; ai < klAdern.length; ai++) {
@@ -2651,6 +2727,7 @@ Item {
                         schnitte.push({
                             t:            Math.max(0, Math.min(1, t)),
                             netKey:       net.netKey,
+                            legacyNetKey: net.legacyNetKey,
                             verbindungId: net.verbindungId || 0,
                             bezeichnung:  net.bezeichnung  || "",
                             signaltyp:    net.signaltyp    || "neutral"

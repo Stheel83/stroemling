@@ -116,6 +116,11 @@ bool Database::openLauncher(const QString &path)
             schluessel  TEXT    PRIMARY KEY,
             wert        INTEGER NOT NULL DEFAULT 0
         ))");
+        // Rosi Röhrenaal: Zustand der Maskottchen-Assistentin (global, nicht projektspezifisch)
+        q.exec(R"(CREATE TABLE IF NOT EXISTS rosi_zustand (
+            schluessel  TEXT    PRIMARY KEY,
+            wert        INTEGER NOT NULL DEFAULT 0
+        ))");
 
         if (!q.exec(R"(
             CREATE TABLE IF NOT EXISTS bekannte_projekte (

@@ -52,6 +52,8 @@ qt_add_executable(stroemling_app
     src/achievements/AchievementManager.h
     src/MeldungManager.cpp
     src/MeldungManager.h
+    src/rosi/RosiManager.cpp
+    src/rosi/RosiManager.h
 )
 
 # Qt 6: pragma Singleton allein reicht nicht – qmldir bekommt "singleton"-Schlüsselwort
@@ -210,6 +212,7 @@ qt_add_qml_module(stroemling_app
         qml/einstellungen/EinDatenbankpfadeBlock.qml
         qml/einstellungen/EinDatensicherungBlock.qml
         qml/einstellungen/EinFunModusBlock.qml
+        qml/einstellungen/EinRosiBlock.qml
         qml/einstellungen/EinMitwirkendeBlock.qml
         qml/einstellungen/EinEntstehungBlock.qml
         qml/sps/SpsAnsicht.qml
@@ -230,6 +233,9 @@ qt_add_qml_module(stroemling_app
         qml/fun/FunSzeneGespraech.qml
         qml/fun/FunSzeneFall.qml
         qml/fun/FunSzeneImpulsino.qml
+
+        qml/rosi/RosiSprechblase.qml
+        qml/rosi/RosiPostkarte.qml
         qml/logos/LogoHeader.qml
         qml/SymbolKlassen.js
 )

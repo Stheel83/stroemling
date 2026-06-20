@@ -105,6 +105,10 @@ Item {
                         onGespraechTexteGeaendert: function(json) { root.gespraechTexteGeaendert(json) }
                     }
 
+                    EinRosiBlock {
+                        theme: root.theme
+                    }
+
                     EinDatensicherungBlock {
                         theme: root.theme
                         infos: root._infos

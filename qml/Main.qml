@@ -8,6 +8,7 @@ import "einstellungen"
 import "sps"
 import "fun"
 import "logos"
+import "rosi"
 import stroemling
 
 // ProjektStartAnsicht ist direkt im qml/-Ordner, kein Unterordner-Import nötig
@@ -1594,6 +1595,35 @@ ApplicationWindow {
         target: meldungManager
         function onMeldungAnzuzeigen(text, erfolg) {
             meldungToast.zeigen(text, erfolg)
+        }
+    }
+
+    // ── Rosi Röhrenaal ─────────────────────────────────────────────
+    RosiSprechblase {
+        id:     rosiSprechblase
+        z:      750
+        theme:  appTheme
+        anchors.bottom: parent.bottom
+        anchors.left:   parent.left
+    }
+
+    RosiPostkarte {
+        id:     rosiPostkarte
+        z:      750
+        theme:  appTheme
+        anchors.bottom: parent.bottom
+        anchors.left:   parent.left
+        anchors.bottomMargin: 20
+        anchors.leftMargin:   16
+    }
+
+    Connections {
+        target: rosiManager
+        function onAuftauchen(text) {
+            rosiSprechblase.zeigen(text)
+        }
+        function onPostkarteAngekommen(text) {
+            rosiPostkarte.zeigen(text)
         }
     }
 

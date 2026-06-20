@@ -492,13 +492,25 @@ bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
     }
 
     // ── 3. Endpunkt-Elemente nach Seite ───────────────────────────
-    struct EndEl { int idx; QString symbolId; double cx, cy; QJsonObject extra; };
+    // KAB-VN-01: Pin-Weltposition statt Symbol-Bbox-Zentrum verwenden –
+    // identische Formel wie in Database_DRC.cpp (D-05/D-06) und
+    // SchaltplanCanvas.qml. Die vier Endpunkt-Symbole haben ihren (einzigen)
+    // Pin jeweils an einer Bbox-Kante, nicht im Zentrum (z.B.
+    // geraeteanschluss: symbol_pin x=1, y=0.5 → rechter Rand,
+    // klemme_anschluss: x=0.5, y=0 → oberer Rand) – bei Default-Größe
+    // (8×8) liegt der Pin damit ~4 Einheiten vom Zentrum entfernt, also
+    // außerhalb der bisherigen 3-Einheiten-Toleranz. Das bisherige
+    // Zentrum-Matching schlug dadurch im Regelfall fehl, nicht nur in
+    // Randfällen.
+    struct EndEl { int geId; QString symbolId; double cx, cy, wx, wy; QJsonObject extra; };
     QHash<int, QVector<EndEl>> endEls; // seiteId → []
+    QHash<QString, QVector<QPointF>> pinDefs; // symbol_id → [(x,y) normiert 0..1]
     {
         QSqlQuery q(m_db);
         q.prepare(R"(
-            SELECT ge.seite_id, ge.symbol_id,
-                   (ge.x1 + ge.x2) / 2.0, (ge.y1 + ge.y2) / 2.0,
+            SELECT ge.id, ge.seite_id, ge.symbol_id,
+                   ge.x1, ge.y1, ge.x2, ge.y2,
+                   ge.rotation, ge.spiegel_x, ge.spiegel_y,
                    COALESCE(ge.extra_daten, '{}')
             FROM grafik_element ge
             JOIN seite s ON s.id = ge.seite_id AND s.projekt_id = :pid
@@ -511,15 +523,50 @@ bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
             return false;
         }
         while (q.next()) {
-            int sid = q.value(0).toInt();
-            EndEl el;
-            el.idx      = endEls[sid].size();
-            el.symbolId = q.value(1).toString();
-            el.cx       = q.value(2).toDouble();
-            el.cy       = q.value(3).toDouble();
-            auto doc    = QJsonDocument::fromJson(q.value(4).toString().toUtf8());
-            el.extra    = doc.isObject() ? doc.object() : QJsonObject{};
-            endEls[sid].append(el);
+            const int     geId  = q.value(0).toInt();
+            const int     sid   = q.value(1).toInt();
+            const QString symId = q.value(2).toString();
+            const double  x1    = q.value(3).toDouble();
+            const double  y1    = q.value(4).toDouble();
+            const double  x2    = q.value(5).toDouble();
+            const double  y2    = q.value(6).toDouble();
+            const double  rad   = q.value(7).toDouble() * M_PI / 180.0;
+            const bool    spX   = q.value(8).toInt() != 0;
+            const bool    spY   = q.value(9).toInt() != 0;
+            auto doc = QJsonDocument::fromJson(q.value(10).toString().toUtf8());
+            const QJsonObject extra = doc.isObject() ? doc.object() : QJsonObject{};
+
+            if (!pinDefs.contains(symId)) {
+                QVector<QPointF> pins;
+                QSqlQuery pq(m_db);
+                pq.prepare("SELECT x, y FROM symbol_pin WHERE symbol_id = :sid");
+                pq.bindValue(":sid", symId);
+                if (pq.exec())
+                    while (pq.next())
+                        pins.append({pq.value(0).toDouble(), pq.value(1).toDouble()});
+                pinDefs[symId] = pins;
+            }
+
+            const double sw   = x2 - x1, sh = y2 - y1;
+            const double scx  = x1 + sw / 2.0, scy = y1 + sh / 2.0;
+            const double cosR = std::cos(rad), sinR = std::sin(rad);
+
+            for (const QPointF &pin : pinDefs.value(symId)) {
+                double cx = (pin.x() - 0.5) * std::abs(sw);
+                double cy = (pin.y() - 0.5) * std::abs(sh);
+                if (spX) cx = -cx;
+                if (spY) cy = -cy;
+
+                EndEl el;
+                el.geId     = geId;
+                el.symbolId = symId;
+                el.cx       = scx;
+                el.cy       = scy;
+                el.wx       = scx + cx * cosR - cy * sinR;
+                el.wy       = scy + cx * sinR + cy * cosR;
+                el.extra    = extra;
+                endEls[sid].append(el);
+            }
         }
     }
 
@@ -592,9 +639,11 @@ bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
         return {};
     };
 
-    // ── 6. Matching: Segment-Punkte ↔ Endpunkt-Elemente ──────────
-    // Toleranz 3 Einheiten (deckt Abstand Symbolzentrum ↔ Pin ab)
-    constexpr double TOL = 3.0;
+    // ── 6. Matching: Segment-Punkte ↔ Pin-Weltpositionen ─────────
+    // Toleranz 0.5 (identisch zu D-05/D-06) – Pin-Weltposition und
+    // Segment-Endpunkt sollten exakt übereinanderliegen, kein Bbox-Abstand
+    // mehr zu kompensieren.
+    constexpr double kPinMatchEps = 0.5;
     QVariantList ergebnisse;
 
     for (const AderInfo &ad : adern) {
@@ -604,16 +653,16 @@ bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
 
         const QVector<EndEl> &els = endEls.value(ad.seiteId);
         QString von, nach;
-        int vonIdx = -1;
+        int vonGeId = -1;
 
         for (const QPointF &pt : punkte) {
             for (const EndEl &el : els) {
-                if (std::abs(el.cx - pt.x()) > TOL || std::abs(el.cy - pt.y()) > TOL)
+                if (std::abs(el.wx - pt.x()) > kPinMatchEps || std::abs(el.wy - pt.y()) > kPinMatchEps)
                     continue;
                 if (von.isEmpty()) {
-                    von    = formatEndpunkt(el, ad.seiteId, ad.verbId);
-                    vonIdx = el.idx;
-                } else if (el.idx != vonIdx && nach.isEmpty()) {
+                    von     = formatEndpunkt(el, ad.seiteId, ad.verbId);
+                    vonGeId = el.geId;
+                } else if (el.geId != vonGeId && nach.isEmpty()) {
                     nach = formatEndpunkt(el, ad.seiteId, ad.verbId);
                 }
                 if (!von.isEmpty() && !nach.isEmpty()) break;

@@ -193,6 +193,7 @@ qt_add_qml_module(stroemling_app
         qml/kabel/KabellinieDialog.qml
         qml/kabel/BauteilKabelPickerDialog.qml
         qml/kabel/AderzuordnungDialog.qml
+        qml/kabel/AderKreuzungPicker.qml
         qml/MakrobenennDialog.qml
         qml/MakroPalette.qml
         qml/MakroBibliothekDialog.qml

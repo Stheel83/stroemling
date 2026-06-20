@@ -41,6 +41,7 @@ MouseArea {
         if (canvas.amVerschieben)                 return Qt.SizeAllCursor
         if (canvas.labelDragAktiv)                return Qt.SizeAllCursor
         if (canvas.mausUeberGriff)                return Qt.SizeAllCursor
+        if (canvas.mausUeberAderKreuzung)         return Qt.PointingHandCursor
         if (canvas.mausUeberLabel)                return Qt.SizeAllCursor
         if (canvas.mausUeberElement)              return Qt.SizeAllCursor
         return Qt.ArrowCursor
@@ -137,7 +138,10 @@ MouseArea {
             // Hover-Cursor: Griff, Label oder Element unter Maus?
             if (!canvas.amVerschieben && !canvas.amRubberband) {
                 canvas.mausUeberGriff   = (canvas.griffBeiPosition(vp.x, vp.y) >= 0)
-                canvas.mausUeberLabel   = !canvas.mausUeberGriff && (canvas.labelTreffenTest(vp.x, vp.y) >= 0)
+                canvas.mausUeberAderKreuzung = !canvas.mausUeberGriff
+                                               && (canvas.kabelKreuzungBeiPosition(vp.x, vp.y) !== null)
+                canvas.mausUeberLabel   = !canvas.mausUeberGriff && !canvas.mausUeberAderKreuzung
+                                          && (canvas.labelTreffenTest(vp.x, vp.y) >= 0)
                 var hIdx = canvas.elementBeiPosition(vp.x, vp.y)
                 canvas.mausUeberElement = !canvas.mausUeberGriff && (hIdx >= 0)
                 // Tooltip für klemme_anschluss
@@ -347,6 +351,16 @@ MouseArea {
                 if (griff >= 0) {
                     canvas.aktiverGriff      = griff
                     canvas.schnapshotVorMove = em.snapshot()
+                    return
+                }
+            }
+
+            // Klick auf Ader-Nr. an Kabel-Kreuzung: Inline-Picker öffnen
+            // statt Auswahl/Drag (Canvas-Redesign §6.5.2).
+            if ((mouse.modifiers & Qt.ControlModifier) === 0) {
+                var kreuzTreffer = canvas.kabelKreuzungBeiPosition(vp.x, vp.y)
+                if (kreuzTreffer !== null) {
+                    canvas.aderKreuzungPickerOeffnen(kreuzTreffer)
                     return
                 }
             }

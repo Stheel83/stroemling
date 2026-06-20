@@ -41,6 +41,18 @@ Item {
         aderzuordnungDialog.open()
     }
 
+    // ── Inline-Ader-Picker öffnen (Aufruf via canvas.aderKreuzungPickerOeffnen) ──
+    // vpX/vpY sind Canvas-lokale Viewport-Koordinaten – das Popup hängt an
+    // Overlay.overlay, deshalb auf Szenen-Koordinaten umrechnen (gleiche
+    // mapToItem(null, ...)-Konvention wie in MakroPalette.qml).
+    function aderKreuzungPickerOeffnen(kabelId, kabelGeid, aderKey, verbindungId,
+                                        aktuelleAderNr, istLeer, alteAder, freieAdern,
+                                        vpX, vpY) {
+        var p = canvas.mapToItem(null, vpX, vpY)
+        aderKreuzungPicker.oeffnen(kabelId, kabelGeid, aderKey, verbindungId,
+            aktuelleAderNr, istLeer, alteAder, freieAdern, p.x, p.y)
+    }
+
     // ── Makrobenennen-Dialog öffnen (Aufruf via canvas.makrobenennDialogFuerNeuOeffnen) ──
     function makrobenennNeuOeffnen(elIdx) {
         makrobenennDialog.elementIndex = elIdx
@@ -183,6 +195,42 @@ Item {
             canvas.kabelLinienCacheAktualisieren()
             elementeModel.laden(canvas.seiteId)
             canvas.verdrahtungswegeAktualisieren()
+        }
+    }
+
+    // ── Inline-Ader-Picker (Canvas-Redesign §6.5.2) ─────────────────────────
+    AderKreuzungPicker {
+        id:    aderKreuzungPicker
+        theme: root.theme
+
+        onAderZugewiesen: function(kabelId, kabelGeid, aderKey, verbindungId,
+                                    neueNr, neueFarbe, neueBezeichnung,
+                                    alteNr, alteFarbe, alteBezeichnung) {
+            var idx = -1
+            for (var i = 0; i < elementeModel.anzahl; i++) {
+                var e = elementeModel.element(i)
+                if (e && e.typ === "kabellinie" && (e.id || 0) === kabelGeid) { idx = i; break }
+            }
+            if (idx < 0) return
+
+            var el2 = Object.assign({}, elementeModel.element(idx))
+            el2.extraDaten = Object.assign({}, el2.extraDaten || {})
+            el2.extraDaten.aderZuordnung = Object.assign({}, el2.extraDaten.aderZuordnung || {})
+            el2.extraDaten.aderZuordnung[aderKey] = neueNr
+            elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
+
+            // Alte Ader (falls abweichend) freigeben, neue Ader zuordnen
+            if (alteNr > 0 && alteNr !== neueNr)
+                db.kabelAderZuordnen(kabelId, alteNr, alteFarbe, alteBezeichnung, 0, 0)
+            if (neueNr > 0)
+                db.kabelAderZuordnen(kabelId, neueNr, neueFarbe, neueBezeichnung,
+                                      verbindungId, kabelGeid)
+
+            canvas.grafikSpeichernJetzt()
+            canvas.kabelLinienCacheAktualisieren()
+            elementeModel.laden(canvas.seiteId)
+            canvas.verdrahtungswegeAktualisieren()
+            canvas.neuZeichnen()
         }
     }
 

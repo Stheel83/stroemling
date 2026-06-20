@@ -236,6 +236,7 @@ Item {
     property real labelDragStartOx:  0.0
     property real labelDragStartOy:  0.0
     property bool mausUeberLabel:    false
+    property bool mausUeberAderKreuzung: false  // Hover über klickbarer Ader-Nr. an Kabel-Kreuzung
 
     // ── Inbetriebnahme-Modus ─────────────────────────────────
     property bool ibnModus:    false
@@ -292,6 +293,7 @@ Item {
 
     // Brücken-Funktionen für CanvasInteraktionArea
     function verbindungBeiPosition(x, y)   { return drawCanvas.verbindungBeiPosition(x, y) }
+    function kabelKreuzungBeiPosition(x, y) { return drawCanvas.kabelKreuzungBeiPosition(x, y) }
     function koordinatenTextSetzen(text)   { footerBar.koordinatenText = text }
     function bildLaden(url)                { drawCanvas.loadImage(url) }
 
@@ -2720,17 +2722,24 @@ Item {
                 ctx.lineTo(vx + nx * kTickLen, vy + ny * kTickLen)
                 ctx.stroke()
 
-                // Ader-Label: aderZuordnung (netKey→aderNr) hat Vorrang, sonst positionsbasiert
+                // Ader-Label: aderZuordnung (aderKey→aderNr, 0 = explizit leer) hat
+                // Vorrang, sonst positionsbasiert
                 var aderNr = sci + 1
+                var explizitLeer = false
                 var zugeordnet = _netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-                if (zugeordnet !== undefined) aderNr = zugeordnet
-                var labelText = "" + aderNr
+                if (zugeordnet !== undefined) {
+                    if (zugeordnet === 0) explizitLeer = true
+                    else aderNr = zugeordnet
+                }
+                var labelText = explizitLeer ? "–" : ("" + aderNr)
                 // Farbe aus klAdern holen (Suche nach aderNr)
-                for (var ai = 0; ai < klAdern.length; ai++) {
-                    var klAd = klAdern[ai]
-                    if ((klAd.aderNr !== undefined ? klAd.aderNr : (ai + 1)) === aderNr && klAd.farbe) {
-                        labelText += "  " + klAd.farbe
-                        break
+                if (!explizitLeer) {
+                    for (var ai = 0; ai < klAdern.length; ai++) {
+                        var klAd = klAdern[ai]
+                        if ((klAd.aderNr !== undefined ? klAd.aderNr : (ai + 1)) === aderNr && klAd.farbe) {
+                            labelText += "  " + klAd.farbe
+                            break
+                        }
                     }
                 }
 
@@ -2756,6 +2765,93 @@ Item {
                 }
             }
             ctx.restore()
+        }
+
+        // Viewport-Hit-Test auf die Ader-Nummer-Beschriftung an Kabel-
+        // Kreuzungspunkten (Klickziel für die Inline-Aderzuordnung).
+        // Nutzt dieselbe Geometrie wie maleKabelSchnitte(). Gibt bei Treffer
+        // {kabelEl, aderKey, verbindungId, aktuelleAderNr, istLeer, vpX, vpY}
+        // zurück (vpX/vpY = Anker-Position für das Popup), sonst null.
+        function kabelKreuzungBeiPosition(vpX, vpY) {
+            var elemente = elementeModel.snapshot()
+            var netze    = autoNetzeBerechnen()
+            var ctxM     = getContext("2d")
+            var kLabelFs = Math.max(6, Math.round(1.8 * root.mmToPx * root.zoom))
+            ctxM.font = kLabelFs + "px sans-serif"
+
+            for (var ei = 0; ei < elemente.length; ei++) {
+                var el = elemente[ei]
+                if (el.typ !== "kabellinie") continue
+                var kx1 = el.x1, ky1 = el.y1, kx2 = el.x2, ky2 = el.y2
+                var kDxW = kx2 - kx1, kDyW = ky2 - ky1
+                var kLenW = Math.sqrt(kDxW*kDxW + kDyW*kDyW)
+                if (kLenW < 0.5) continue
+
+                var schnitte = kabelSchnittNetzeBerechnenCached(el, netze)
+                if (schnitte.length === 0) continue
+
+                var klAdern       = (el.extraDaten && Array.isArray(el.extraDaten.adern))
+                                    ? el.extraDaten.adern : []
+                var aderZuordnung = (el.extraDaten && el.extraDaten.aderZuordnung)
+                                    ? el.extraDaten.aderZuordnung : null
+
+                var nx = -kDyW/kLenW, ny = kDxW/kLenW
+                if (ny > 0) { nx = -nx; ny = -ny }
+                var kTickLen = 5 * root.zoom / 10
+
+                for (var sci = 0; sci < schnitte.length; sci++) {
+                    var sc = schnitte[sci]
+                    var wx = kx1 + sc.t * kDxW, wy = ky1 + sc.t * kDyW
+                    var vx = wx * root.zoom + root.worldX
+                    var vy = wy * root.zoom + root.worldY
+
+                    var aderNr = sci + 1
+                    var istLeer = false
+                    var zugeordnet = _netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
+                    if (zugeordnet !== undefined) {
+                        if (zugeordnet === 0) istLeer = true
+                        else aderNr = zugeordnet
+                    }
+                    var labelText = istLeer ? "–" : ("" + aderNr)
+                    if (!istLeer) {
+                        for (var ai = 0; ai < klAdern.length; ai++) {
+                            var klAd = klAdern[ai]
+                            if ((klAd.aderNr !== undefined ? klAd.aderNr : (ai + 1)) === aderNr && klAd.farbe) {
+                                labelText += "  " + klAd.farbe
+                                break
+                            }
+                        }
+                    }
+
+                    var labelAbstand = kTickLen + Math.max(5, kLabelFs * 0.4)
+                    var lx, ly, alignLeft
+                    if (Math.abs(ny) < 0.1 || Math.abs(nx) < 0.1) {
+                        lx = vx + labelAbstand; ly = vy + ny * labelAbstand; alignLeft = true
+                    } else {
+                        lx = vx + nx * labelAbstand; ly = vy + ny * labelAbstand
+                        alignLeft = nx >= 0
+                    }
+
+                    var tw  = ctxM.measureText(labelText).width
+                    var pad = 6
+                    var bx1 = alignLeft ? lx - pad : lx - tw - pad
+                    var bx2 = alignLeft ? lx + tw + pad : lx + pad
+                    var by1 = ly - kLabelFs - pad
+                    var by2 = ly + pad
+
+                    if (vpX >= bx1 && vpX <= bx2 && vpY >= by1 && vpY <= by2) {
+                        return {
+                            kabelEl:       el,
+                            aderKey:       sc.aderKey || sc.netKey || sc.legacyNetKey || "",
+                            verbindungId:  sc.verbindungId || 0,
+                            aktuelleAderNr: istLeer ? 0 : aderNr,
+                            istLeer:       istLeer,
+                            vpX: lx, vpY: ly
+                        }
+                    }
+                }
+            }
+            return null
         }
 
         // Gibt die kreuzenden Verbindungsnetze einer Kabellinie zurück –
@@ -3587,6 +3683,70 @@ Item {
         dialogLayer.aderzuordnungOeffnen(kabelId, ed.bezeichnung || "", ed.kabeltyp || "",
             aderzahl, fullAdern, schnitte, ed.aderZuordnung || {},
             freshGeid, _pinNummernFuerNetze(netze))
+    }
+
+    // Liefert die Ader-Nummern 1..aderzahl, die NICHT bereits an einer
+    // ANDEREN Kreuzung derselben Kabellinie vergeben sind (eigenerAderKey
+    // wird ausgenommen, damit die aktuell zugeordnete Ader selbst nicht
+    // fälschlich als "belegt" gilt).
+    function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey) {
+        var belegt = {}
+        for (var i = 0; i < schnitte.length; i++) {
+            var sc  = schnitte[i]
+            var key = sc.aderKey || sc.netKey || sc.legacyNetKey || ""
+            if (key === eigenerAderKey) continue
+            var zugeordnet = drawCanvas._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
+            if (zugeordnet !== undefined && zugeordnet !== 0) belegt[zugeordnet] = true
+        }
+        var frei = []
+        for (var nr = 1; nr <= aderzahl; nr++)
+            if (!belegt[nr]) frei.push(nr)
+        return frei
+    }
+
+    // Öffnet das Inline-Popup zur Korrektur EINER Ader-Zuordnung am
+    // Kreuzungspunkt (treffer = Rückgabe von kabelKreuzungBeiPosition()).
+    function aderKreuzungPickerOeffnen(treffer) {
+        if (!treffer || !treffer.kabelEl) return
+        var el      = treffer.kabelEl
+        var ed      = el.extraDaten || {}
+        var kabelId = ed.kabelId || 0
+        if (kabelId <= 0) return
+
+        var savedAuswahl = root.auswahl.slice()
+        elementeModel.laden(root.seiteId)
+        root.auswahl = savedAuswahl
+        var reloaded = elementeModel.snapshot()
+
+        var elId = el.id || 0
+        var freshEl = null
+        for (var i = 0; i < reloaded.length; i++) {
+            if (reloaded[i].id === elId) { freshEl = reloaded[i]; break }
+        }
+        var currentEl = freshEl || el
+        var freshGeid = currentEl.id || 0
+        var freshEd   = currentEl.extraDaten || {}
+
+        var details  = db.kabelLinieDetails(freshGeid)
+        var aderzahl = details.aderzahl || freshEd.aderzahl || 0
+        var rawAdern = details.adern || []
+        var aderMap  = {}
+        for (var ai = 0; ai < rawAdern.length; ai++) aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
+
+        var netze    = drawCanvas.autoNetzeBerechnen()
+        var schnitte = drawCanvas.kabelSchnittNetzeBerechnen(currentEl, netze)
+        var freieNrn = _freieAdernFuerKreuzung(aderzahl, freshEd.aderZuordnung || {}, schnitte, treffer.aderKey)
+
+        var freieAdern = []
+        for (var fi = 0; fi < freieNrn.length; fi++) {
+            var nr = freieNrn[fi]
+            freieAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "" })
+        }
+        var alteAder = aderMap[treffer.aktuelleAderNr] || { aderNr: treffer.aktuelleAderNr, farbe: "", bezeichnung: "" }
+
+        dialogLayer.aderKreuzungPickerOeffnen(kabelId, freshGeid, treffer.aderKey,
+            treffer.verbindungId, treffer.aktuelleAderNr, treffer.istLeer,
+            alteAder, freieAdern, treffer.vpX, treffer.vpY)
     }
 
     // --------------------------------------------------------

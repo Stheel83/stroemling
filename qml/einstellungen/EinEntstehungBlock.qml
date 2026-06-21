@@ -29,7 +29,7 @@ ColumnLayout {
         color:              root.theme.surface
         radius:             6
         border.color:       root.theme.border
-        height:             entstehungCol.implicitHeight + 24
+        implicitHeight:     entstehungCol.implicitHeight + 24
 
         ColumnLayout {
             id:      entstehungCol

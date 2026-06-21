@@ -1,11 +1,14 @@
 import QtQuick
 import QtQuick.Layouts
 
-// Sektion "Mitwirkende": Dankliste nach Kategorien.
+// Sektion "Mitwirkende": kurzer Dank + Link zur Danke-Seite auf der Website
+// (Namen werden dort gepflegt, nicht mehr hartkodiert im QML — kein Rebuild
+// mehr nötig, wenn jemand Neues hinzukommt).
 ColumnLayout {
     id: root
 
     required property var theme
+    readonly property string dankeUrl: "https://stheelke.de/danke"
 
     Layout.fillWidth: true
     spacing: 0
@@ -32,127 +35,49 @@ ColumnLayout {
         radius:             6
         border.color:       root.theme.border
 
-        // ── Namen hier eintragen ──────────────────────
-        property var _fehlersuche: []
-        property var _tests:       ["Big B. hat fleißig das Programm missbraucht", "P.S. war sehr gründlich"]
-        property var _design:      ["S.Z. hat des Strömling Design grundlegend definiert", "H.C. hat den **Schluss Jetzt** Button entwickelt", "S.Z., M.M., J.T., M.T., A.R., K.K., Big B., K.M., A.K., P.S. haben mich grundlegend bei der rotierenden Logo Auswahl beeinflusst"]
-        property var _sonstiges:   []
-        // Beispiel: property var _fehlersuche: ["Max Muster", "Anna Beispiel"]
-
         ColumnLayout {
             id: mitwCol
-            anchors {
-                left:  parent.left;  leftMargin:  16
-                right: parent.right; rightMargin: 16
-                top:   parent.top;   topMargin:   16
-            }
-            spacing: 0
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
+            spacing: 10
 
             Text {
-                Layout.fillWidth:    true
-                Layout.bottomMargin: 16
+                Layout.fillWidth: true
                 text:     qsTr("Herzlichen Dank an alle, die durch Fehlermeldungen, Tests, Designfeedback und andere Beiträge zu diesem Projekt beitragen.")
-                font.pixelSize: 11
-                color:    root.theme.textMuted
+                font.pixelSize: 12
+                color:    root.theme.textPrimary
                 wrapMode: Text.WordWrap
             }
 
-            // ── Fehlersuche ───────────────────────────
-            Text {
-                Layout.bottomMargin: 6
-                text:                qsTr("Fehlersuche")
-                font.pixelSize:      9; font.weight: Font.Medium
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing:  1.2; color: root.theme.textMuted
-            }
-            Repeater {
-                id:    fehlerRep
-                model: mitwCard._fehlersuche
-                delegate: Text {
-                    Layout.fillWidth: true; Layout.bottomMargin: 4
-                    text: modelData; font.pixelSize: 12; color: root.theme.textPrimary
+            RowLayout {
+                spacing: 6
+                Text {
+                    text:           qsTr("Wer dabei mitgeholfen hat, steht auf der")
+                    font.pixelSize: 12; color: root.theme.textPrimary
+                }
+                Text {
+                    id:             dankeLink
+                    text:           qsTr("Danke-Seite")
+                    font.pixelSize: 12; font.underline: dankeMa.containsMouse
+                    color:          root.theme.accent
+                    MouseArea {
+                        id:           dankeMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape:  Qt.PointingHandCursor
+                        onClicked:    Qt.openUrlExternally(root.dankeUrl)
+                    }
+                }
+                Text {
+                    text:           qsTr("meiner Website.")
+                    font.pixelSize: 12; color: root.theme.textPrimary
                 }
             }
-            Text {
-                Layout.bottomMargin: 4
-                visible:        fehlerRep.count === 0
-                text:           qsTr("(noch keine Einträge)")
-                font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
-            }
 
-            // ── Tests ────────────────────────────────
-            Rectangle { Layout.fillWidth: true; Layout.topMargin: 10; Layout.bottomMargin: 10; height: 1; color: root.theme.divider }
             Text {
-                Layout.bottomMargin: 6
-                text:                qsTr("Tests")
-                font.pixelSize:      9; font.weight: Font.Medium
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing:  1.2; color: root.theme.textMuted
+                Layout.fillWidth: true
+                text:           root.dankeUrl
+                font.pixelSize: 11; color: root.theme.textMuted
             }
-            Repeater {
-                id:    testsRep
-                model: mitwCard._tests
-                delegate: Text {
-                    Layout.fillWidth: true; Layout.bottomMargin: 4
-                    text: modelData; font.pixelSize: 12; color: root.theme.textPrimary
-                }
-            }
-            Text {
-                Layout.bottomMargin: 4
-                visible:        testsRep.count === 0
-                text:           qsTr("(noch keine Einträge)")
-                font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
-            }
-
-            // ── Design ───────────────────────────────
-            Rectangle { Layout.fillWidth: true; Layout.topMargin: 10; Layout.bottomMargin: 10; height: 1; color: root.theme.divider }
-            Text {
-                Layout.bottomMargin: 6
-                text:                qsTr("Design")
-                font.pixelSize:      9; font.weight: Font.Medium
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing:  1.2; color: root.theme.textMuted
-            }
-            Repeater {
-                id:    designRep
-                model: mitwCard._design
-                delegate: Text {
-                    Layout.fillWidth: true; Layout.bottomMargin: 4
-                    text: modelData; font.pixelSize: 12; color: root.theme.textPrimary
-                }
-            }
-            Text {
-                Layout.bottomMargin: 4
-                visible:        designRep.count === 0
-                text:           qsTr("(noch keine Einträge)")
-                font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
-            }
-
-            // ── Sonstiges ────────────────────────────
-            Rectangle { Layout.fillWidth: true; Layout.topMargin: 10; Layout.bottomMargin: 10; height: 1; color: root.theme.divider }
-            Text {
-                Layout.bottomMargin: 6
-                text:                qsTr("Sonstiges")
-                font.pixelSize:      9; font.weight: Font.Medium
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing:  1.2; color: root.theme.textMuted
-            }
-            Repeater {
-                id:    sonstigesRep
-                model: mitwCard._sonstiges
-                delegate: Text {
-                    Layout.fillWidth: true; Layout.bottomMargin: 4
-                    text: modelData; font.pixelSize: 12; color: root.theme.textPrimary
-                }
-            }
-            Text {
-                Layout.bottomMargin: 4
-                visible:        sonstigesRep.count === 0
-                text:           qsTr("(noch keine Einträge)")
-                font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
-            }
-
-            Item { implicitHeight: 8 }
         }
     }
 }

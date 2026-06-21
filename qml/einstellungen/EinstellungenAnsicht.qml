@@ -274,7 +274,7 @@ Item {
                         color:              root.theme.surface
                         radius:             6
                         border.color:       root.theme.border
-                        height:             lizenzCol.implicitHeight + 24
+                        implicitHeight:     lizenzCol.implicitHeight + 24
 
                         ColumnLayout {
                             id:      lizenzCol

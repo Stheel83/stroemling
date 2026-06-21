@@ -16,7 +16,7 @@ ColumnLayout {
         root._normblattVorlagen = db.normblattVorlagenListe()
         var nd = db.normblattDatenLaden(seiteId)
         if (nd) {
-            chkNormblatt.checked       = nd.normblattAnzeigen !== false
+            chkNormblatt.checked       = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true
             tfHintergrundFarbe.text    = nd.hintergrundFarbe  || ""
             chkAussenOverlay.checked   = nd.aussenOverlay === 1 || nd.aussenOverlay === true
             if (nd.normblattVorlageId) {

@@ -24,6 +24,12 @@ Item {
     property real _rohrOpazitaetBasis: 0.45
     property real _rohrOpazitaet:      _rohrOpazitaetBasis
 
+    // Anteil der Rohr-Bildhöhe, ab dem sich die Öffnung zum Rand schließt
+    // (per Pixel-Scan von rosi_rohroeffnung.png ermittelt: opak ab Zeile
+    // ~108 von 403 Bildzeilen) — bestimmt, wie tief der Körper "in die
+    // Röhre eintaucht" statt nur lose darüber zu schweben.
+    readonly property real _rohrOeffnungAnteil: 108 / 403
+
     function zeigen(text) {
         if (root._sichtbar) return // schon dabei, kein Überlagern
         root._sichtbar = true
@@ -33,6 +39,8 @@ Item {
 
     function vorwarnen(sekunden) {
         rohrRueckgangAnim.stop()
+        rohrVerschwindenTimer.stop()
+        rohrVerschwindenAnim.stop()
         rohrFadeAnim.duration = Math.max(500, sekunden * 1000)
         rohrFadeAnim.restart()
     }
@@ -44,7 +52,10 @@ Item {
         retreatAnim.restart()
         rohrFadeAnim.stop()
         rohrRueckgangAnim.restart()
+        rohrVerschwindenTimer.restart()
     }
+
+    Component.onCompleted: rohrVerschwindenTimer.restart()
 
     NumberAnimation {
         id:       rohrFadeAnim
@@ -61,6 +72,24 @@ Item {
         duration: 2000
     }
 
+    // Ist 2 Min lang nichts passiert (kein Auftritt, keine Vorwarnung), fadet
+    // die Rohröffnung komplett aus — sie muss nicht dauerhaft sichtbar sein,
+    // solange Rosi noch lange nicht wiederkommt (vorwarnen() bricht das ab).
+    Timer {
+        id:       rohrVerschwindenTimer
+        interval: 120000
+        repeat:   false
+        onTriggered: rohrVerschwindenAnim.restart()
+    }
+
+    NumberAnimation {
+        id:       rohrVerschwindenAnim
+        target:   root
+        property: "_rohrOpazitaet"
+        to:       0.0
+        duration: 3000
+    }
+
     // ── Rohröffnung (immer sichtbar, dezent, fadet vor dem Auftritt ein) ──
     Image {
         id:       rohr
@@ -75,17 +104,19 @@ Item {
     }
 
     // ── Clip-Bereich: lässt den Körper aus der Öffnung im Rohr-Bild
-    //    kommen (Öffnung sitzt oben mittig im Bild, daher negativer
-    //    bottomMargin, um in das Rohr-Bild einzutauchen) ───────────
+    //    kommen. Direkte x/y-Berechnung statt Anchor-Margin, damit das
+    //    untere Ende der Maske exakt auf die Stelle trifft, an der sich
+    //    die Öffnung im Bild zum Rand schließt (_rohrOeffnungAnteil) —
+    //    sonst schwebt der Körper sichtbar über dem Rohr statt daraus
+    //    aufzutauchen. ─────────────────────────────────────────────
     Item {
         id: clipArea
-        anchors.horizontalCenter: rohr.horizontalCenter
-        anchors.bottom:           rohr.top
-        anchors.bottomMargin:     -18
         width:  56
-        height: 130
+        height: 120
         clip:   true
         z: 1
+        x: rohr.x + (rohr.width - width) / 2
+        y: rohr.y + rohr.height * root._rohrOeffnungAnteil - height
 
         Image {
             id:       koerper
@@ -159,7 +190,9 @@ Item {
 
     SequentialAnimation {
         id: emergeAnim
-        NumberAnimation { target: koerper; property: "y";       to: 0; duration: 500; easing.type: Easing.OutBack }
+        // to: clipArea.height - koerper.height statt 0 – damit der Schwanz
+        // bis zur Klemmlinie der Maske reicht statt mit Lücke darüber zu enden.
+        NumberAnimation { target: koerper; property: "y";       to: clipArea.height - koerper.height; duration: 500; easing.type: Easing.OutBack }
         NumberAnimation { target: blase;   property: "opacity"; to: 1; duration: 250 }
         PauseAnimation  { duration: 12000 }
         ScriptAction    { script: root._zurueckziehen() }

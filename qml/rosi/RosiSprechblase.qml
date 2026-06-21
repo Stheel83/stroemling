@@ -22,7 +22,7 @@ Item {
 
     property bool _sichtbar:          false
     property real _rohrOpazitaetBasis: 0.45
-    property real _rohrOpazitaet:      _rohrOpazitaetBasis
+    property real _rohrOpazitaet:      0.0 // beim Programmstart unsichtbar, fadet erst vor Auftritt ein
 
     // Anteil der Rohr-Bildhöhe, ab dem sich die Öffnung zum Rand schließt
     // (per Pixel-Scan von rosi_rohroeffnung.png ermittelt: opak ab Zeile
@@ -54,8 +54,6 @@ Item {
         rohrRueckgangAnim.restart()
         rohrVerschwindenTimer.restart()
     }
-
-    Component.onCompleted: rohrVerschwindenTimer.restart()
 
     NumberAnimation {
         id:       rohrFadeAnim
@@ -90,7 +88,7 @@ Item {
         duration: 3000
     }
 
-    // ── Rohröffnung (immer sichtbar, dezent, fadet vor dem Auftritt ein) ──
+    // ── Rohröffnung (beim Start unsichtbar, fadet vor dem Auftritt ein) ──
     Image {
         id:       rohr
         source:   "qrc:/assets/rosi_rohroeffnung.png"

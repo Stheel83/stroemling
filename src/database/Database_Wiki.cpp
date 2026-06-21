@@ -177,6 +177,29 @@ bool Database::checkAndApplyWikiSchema()
         }
     }
 
+    // v13: Schwärzchen-Wiki-Bild aktualisiert (neues Charakterblatt). seedWikiStarterInhalte()
+    // legt Bilder nur an, wenn der Artikel noch keines hat — bestehende BLOB-Datei am
+    // festen blob_pfad daher direkt mit den aktuellen QRC-Bytes überschreiben.
+    if (storedVersion >= 1 && storedVersion < 13) {
+        QSqlQuery qSel(m_wikiDb);
+        qSel.exec(R"(
+            SELECT wb.blob_pfad FROM wiki_bild wb
+            JOIN wiki_artikel wa ON wa.id = wb.artikel_id
+            WHERE wa.titel = 'Schwärzchen – Systemfisch L2'
+        )");
+        if (qSel.next()) {
+            const QString blobPfad = qSel.value(0).toString();
+            QFile qrc(":/assets/schwaerzchen_sheet.png");
+            if (!blobPfad.isEmpty() && qrc.open(QIODevice::ReadOnly)) {
+                QFile out(m_wikiBlobDir + "/" + blobPfad);
+                if (out.open(QIODevice::WriteOnly | QIODevice::Truncate))
+                    out.write(qrc.readAll());
+                else
+                    qCWarning(lcDb) << "Schwärzchen-Bild-Update: Datei nicht schreibbar:" << blobPfad;
+            }
+        }
+    }
+
     if (!createWikiSchema() || !seedWikiStarterInhalte()) {
         m_wikiDb.rollback();
         return false;

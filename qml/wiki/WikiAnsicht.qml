@@ -1200,61 +1200,84 @@ Item {
     }
 
     // ── Vollbild-Popup ────────────────────────────────────────
+    // Echtes Vollbild über das gesamte Fenster (Overlay.overlay statt
+    // begrenztem Karten-Popup) + Zoom/Pan, damit auch dichte Infografiken
+    // (z.B. Charakter-Übersichtsblätter) auf kleinen Bildschirmen lesbar
+    // bleiben. Mausrad zoomt, gezogen wird mit der Maus, Doppelklick wechselt
+    // zwischen "einpassen" und 2,5×-Zoom.
     Popup {
         id:           vollbildPopup
-        anchors.centerIn: parent
-        width:        Math.min(root.width  * 0.88, 1200)
-        height:       Math.min(root.height * 0.88, 900)
+        parent:       Overlay.overlay
+        x:            0
+        y:            0
+        width:        parent ? parent.width  : 0
+        height:       parent ? parent.height : 0
         modal:        true
-        closePolicy:  Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        closePolicy:  Popup.CloseOnEscape
         padding:      0
 
-        background: Rectangle {
-            color:        root.theme.surface
-            radius:       6
-            border.color: root.theme.border
-            border.width: 1
-        }
+        property real _zoom: 1.0
 
-        ColumnLayout {
-            anchors.fill:    parent
-            anchors.margins: 12
-            spacing:         8
+        onOpened: vollbildPopup._zoom = 1.0
 
-            // Bild
+        background: Rectangle { color: "#000000" }
+
+        Flickable {
+            id:    vollbildFlick
+            anchors.fill: parent
+            anchors.bottomMargin: 40
+            clip:  true
+            boundsBehavior: Flickable.StopAtBounds
+            contentWidth:  vollbildImg.width  * vollbildPopup._zoom
+            contentHeight: vollbildImg.height * vollbildPopup._zoom
+
             Image {
-                Layout.fillWidth:  true
-                Layout.fillHeight: true
-                source:            root._vollbildPfad
-                fillMode:          Image.PreserveAspectFit
-                smooth:            true
-                asynchronous:      true
+                id:               vollbildImg
+                transformOrigin:  Item.TopLeft
+                width:            vollbildFlick.width
+                height:           vollbildFlick.height
+                scale:            vollbildPopup._zoom
+                source:           root._vollbildPfad
+                fillMode:         Image.PreserveAspectFit
+                smooth:           true
+                asynchronous:     true
+
+                TapHandler {
+                    onDoubleTapped: vollbildPopup._zoom = (vollbildPopup._zoom > 1.0 ? 1.0 : 2.5)
+                }
             }
 
-            // Beschriftung + Schließen-Button
-            RowLayout {
+            WheelHandler {
+                onWheel: (event) => {
+                    const faktor = event.angleDelta.y > 0 ? 1.2 : (1 / 1.2)
+                    vollbildPopup._zoom = Math.max(1.0, Math.min(6.0, vollbildPopup._zoom * faktor))
+                }
+            }
+        }
+
+        // Unterleiste: Beschriftung + Zoom-Hinweis + Schließen-Button
+        RowLayout {
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 8 }
+            spacing: 8
+            Text {
                 Layout.fillWidth: true
-                spacing: 8
+                text:           root._vollbildBeschr + qsTr("  ·  Mausrad: Zoom · Ziehen: Verschieben · Doppelklick: Zoom an/aus")
+                font.pixelSize: 11
+                color:          "#cccccc"
+                elide:          Text.ElideRight
+            }
+            Rectangle {
+                width: 70; height: 24; radius: 3
+                color: closeHover.hovered ? "#33ffffff" : "transparent"
+                border.color: "#666666"
                 Text {
-                    Layout.fillWidth: true
-                    text:           root._vollbildBeschr
-                    font.pixelSize: 11
-                    color:          root.theme.textMuted
-                    elide:          Text.ElideRight
+                    anchors.centerIn: parent
+                    text:           qsTr("✕ Schließen")
+                    font.pixelSize: 10
+                    color:          "#eeeeee"
                 }
-                Rectangle {
-                    width: 70; height: 24; radius: 3
-                    color: closeHover.hovered ? root.theme.hover : "transparent"
-                    border.color: root.theme.border
-                    Text {
-                        anchors.centerIn: parent
-                        text:           qsTr("✕ Schließen")
-                        font.pixelSize: 10
-                        color:          root.theme.textMuted
-                    }
-                    HoverHandler { id: closeHover }
-                    TapHandler   { onTapped: vollbildPopup.close() }
-                }
+                HoverHandler { id: closeHover }
+                TapHandler   { onTapped: vollbildPopup.close() }
             }
         }
     }

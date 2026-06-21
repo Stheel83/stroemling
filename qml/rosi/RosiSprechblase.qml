@@ -6,8 +6,8 @@ import QtQuick.Layouts
 // in einer Sprechblase, zieht sich nach ~12s oder per Klick wieder zurück.
 // Verwendung: rosiSprechblase.zeigen(text) – ausgelöst von rosiManager.auftauchen.
 //
-// Körper-Asset (rosi_roehrenaal.png) ist seit ROSI-01 echtes Bild.
-// Rohröffnung ist weiterhin Platzhalter, bis rosi_rohroeffnung.png existiert.
+// Körper-Asset (rosi_roehrenaal.png) und Rohröffnung (rosi_rohroeffnung.png)
+// sind seit ROSI-01 echte Bilder.
 
 Item {
     id: root
@@ -33,25 +33,27 @@ Item {
         retreatAnim.restart()
     }
 
-    // ── Rohröffnung (Platzhalter, immer sichtbar, dezent) ─────────
-    Rectangle {
-        id: rohr
-        width:  64; height: 18
-        radius: 9
+    // ── Rohröffnung (immer sichtbar, dezent) ──────────────────────
+    Image {
+        id:       rohr
+        source:   "qrc:/assets/rosi_rohroeffnung.png"
+        width:    100; height: width * 403 / 443 // Bild-Seitenverhältnis
+        fillMode: Image.PreserveAspectFit
         anchors.bottom: parent.bottom
         anchors.left:   parent.left
-        anchors.leftMargin: 20
-        color:        "#3a3a3a"
-        border.color: "#222222"
+        anchors.leftMargin: 12
         z: 2
     }
 
-    // ── Clip-Bereich: lässt den Körper "aus der Röhre" kommen ─────
+    // ── Clip-Bereich: lässt den Körper aus der Öffnung im Rohr-Bild
+    //    kommen (Öffnung sitzt oben mittig im Bild, daher negativer
+    //    bottomMargin, um in das Rohr-Bild einzutauchen) ───────────
     Item {
         id: clipArea
-        anchors.bottom: rohr.verticalCenter
-        anchors.left:   rohr.left
-        width:  rohr.width
+        anchors.horizontalCenter: rohr.horizontalCenter
+        anchors.bottom:           rohr.top
+        anchors.bottomMargin:     -18
+        width:  56
         height: 130
         clip:   true
         z: 1

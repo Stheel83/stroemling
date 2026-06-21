@@ -258,6 +258,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/isolus_kampf.png
         qml/assets/linus_uebersicht.png
         qml/assets/stroemling_logo.png
+        qml/assets/rosi_roehrenaal.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

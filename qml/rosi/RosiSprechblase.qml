@@ -6,10 +6,8 @@ import QtQuick.Layouts
 // in einer Sprechblase, zieht sich nach ~12s oder per Klick wieder zurück.
 // Verwendung: rosiSprechblase.zeigen(text) – ausgelöst von rosiManager.auftauchen.
 //
-// PLATZHALTER-GRAFIK: Körper und Rohröffnung sind einfache gezeichnete Formen,
-// bis die echten Assets (rosi_roehrenaal.png / rosi_rohroeffnung.png) aus dem
-// Bild-Prompt in stroemling-alle-bildprompts.md existieren. Dann hier die
-// Rectangle-Platzhalter durch Image-Elemente ersetzen, siehe §6 im Konzept.
+// Körper-Asset (rosi_roehrenaal.png) ist seit ROSI-01 echtes Bild.
+// Rohröffnung ist weiterhin Platzhalter, bis rosi_rohroeffnung.png existiert.
 
 Item {
     id: root
@@ -58,23 +56,13 @@ Item {
         clip:   true
         z: 1
 
-        Rectangle {
-            id:     koerper
-            width:  48; height: 90
-            radius: 24
-            color:  "#E91E63"
+        Image {
+            id:       koerper
+            source:   "qrc:/assets/rosi_roehrenaal.png"
+            width:    56; height: 112
+            fillMode: Image.PreserveAspectFit
             x: (clipArea.width - width) / 2
             y: clipArea.height // startet unterhalb des sichtbaren Bereichs
-
-            Rectangle {
-                width: 8; height: 8; radius: 4; color: "white"
-                x: 12; y: 14
-                Rectangle { width: 4; height: 4; radius: 2; color: "black"; anchors.centerIn: parent }
-            }
-            Rectangle {
-                width: 8; height: 2; radius: 1; color: "black"
-                x: 28; y: 17
-            }
 
             MouseArea {
                 anchors.fill: parent

@@ -34,6 +34,7 @@ Item {
             accent:        "#4a9eff",
             accentLight:   "#7aaddd",
             logoGruen:     "#55d400",
+            akzentGold:    "#f0c040",
             panelMid:      "#5577aa",
             hover:         "#0f2540",
             hoverSidebar:  "#162d4a",
@@ -64,6 +65,7 @@ Item {
             accent:        "#1a6fd8",
             accentLight:   "#4a90c8",
             logoGruen:     "#000000",
+            akzentGold:    "#3d7a00",
             panelMid:      "#3a6090",
             hover:         "#c8dced",
             hoverSidebar:  "#bccfe0",
@@ -94,6 +96,7 @@ Item {
             accent:        "#40d0ff",
             accentLight:   "#80e0ff",
             logoGruen:     "#55d400",
+            akzentGold:    "#f0c040",
             panelMid:      "#4070c0",
             hover:         "#102570",
             hoverSidebar:  "#102060",
@@ -127,6 +130,7 @@ Item {
     readonly property string accent:        _t.accent
     readonly property string accentLight:   _t.accentLight
     readonly property string logoGruen:     _t.logoGruen
+    readonly property string akzentGold:    _t.akzentGold
     readonly property string panelMid:      _t.panelMid
     readonly property string hover:         _t.hover
     readonly property string hoverSidebar:  _t.hoverSidebar

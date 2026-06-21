@@ -407,7 +407,7 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: label; font.pixelSize: 11
-                color: highlight ? "#f0c040" : theme.textSecondary
+                color: highlight ? theme.akzentGold : theme.textSecondary
                 elide: Text.ElideRight
             }
             Text {
@@ -554,7 +554,7 @@ Rectangle {
                 Text {
                     text: (sym && sym.favorit) ? "\u2605" : "\u2606"
                     font.pixelSize: 13
-                    color: (sym && sym.favorit) ? "#f0c040" : theme.borderDark
+                    color: (sym && sym.favorit) ? theme.akzentGold : theme.borderDark
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                         onClicked: favKlick()

@@ -23,6 +23,7 @@ oder einen **Systemzustand** – erkennbar an Farbe, Körpermerkmalen und Persö
 |---|---|---|
 | Netzleiter | Brauno (L1), Schwärzchen (L2), Grausel (L3), Blaubertha (N), Erdikus (PE) | IEC 60446 |
 | Leitung & Kabelbrücke | Linus (Kabelbrücke) + Farbvarianten | DIN VDE 0293 |
+| Kabel & Kabeleditor | Kabeljau (mehradriges Kabel) | IEC 60446 (Aderfarben im Querschnitt) |
 | Signale & Bus | Impulsino (Signal), Datinchen (Bus) | – |
 | Schutz & Isolierung | Isolus (Dunkleosteus-Panzerfish) | IEC Klasse II |
 | Fehlerzustände | Krizzo (Kurzschluss), Errinka (Fehler), Fusia (Überlast), Stoppius (Not-Aus) | – |

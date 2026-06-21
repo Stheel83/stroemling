@@ -227,6 +227,13 @@
           "datei": "stroemlinge/rosi.md",
           "bild_qrc": ":/assets/rosi_roehrenaal_uebersicht.png",
           "bild_dateiname": "rosi_roehrenaal_uebersicht.png"
+        },
+        {
+          "titel": "Kabeljau – der Verbinder",
+          "tags": "kabeljau kabel mehradrig kabeleditor kabelberechnung kabelbibliothek querschnitt",
+          "datei": "stroemlinge/kabeljau.md",
+          "bild_qrc": ":/assets/kabeljau_uebersicht.png",
+          "bild_dateiname": "kabeljau_uebersicht.png"
         }
       ]
     },

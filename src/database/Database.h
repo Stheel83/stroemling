@@ -31,7 +31,7 @@ public:
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION       = 56;
     static const int CURRENT_SCHEMA_VERSION = 61;
-    static const int WIKI_SCHEMA_VERSION    = 13;
+    static const int WIKI_SCHEMA_VERSION    = 14;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     static const int BASELINE_TABLE_COUNT   = 42;

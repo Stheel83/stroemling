@@ -260,6 +260,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/stroemling_logo.png
         qml/assets/rosi_roehrenaal.png
         qml/assets/rosi_rohroeffnung.png
+        qml/assets/rosi_roehrenaal_uebersicht.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"
@@ -306,6 +307,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/stroemlinge/errinka.md
         src/wiki_seed/stroemlinge/fusia.md
         src/wiki_seed/stroemlinge/stoppius.md
+        src/wiki_seed/stroemlinge/rosi.md
         src/wiki_seed/tester/testanleitung.md
 )
 
@@ -394,6 +396,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/stroemlinge/errinka.md
         src/wiki_seed/stroemlinge/fusia.md
         src/wiki_seed/stroemlinge/stoppius.md
+        src/wiki_seed/stroemlinge/rosi.md
         src/wiki_seed/tester/testanleitung.md
 )
 

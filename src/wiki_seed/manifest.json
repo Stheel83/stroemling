@@ -220,6 +220,13 @@
           "titel": "Stoppius – der Not-Aus",
           "tags": "stoppius not-aus notstop rot sicherheit held",
           "datei": "stroemlinge/stoppius.md"
+        },
+        {
+          "titel": "Rosi Röhrenaal – die Begleiterin",
+          "tags": "rosi röhrenaal maskottchen begleiterin klippy sprechblase berlinerisch kiez",
+          "datei": "stroemlinge/rosi.md",
+          "bild_qrc": ":/assets/rosi_roehrenaal_uebersicht.png",
+          "bild_dateiname": "rosi_roehrenaal_uebersicht.png"
         }
       ]
     },

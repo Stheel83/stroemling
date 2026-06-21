@@ -167,6 +167,12 @@ QtObject {
                 var vl = {}; for (var sk in cv.stilVorlage) vl[sk] = cv.stilVorlage[sk]
                 vl[key] = value; cv.stilVorlage = vl
             }
+            // Schriftgröße liegt in extraDaten (eigenständig von strichBreite/Strichstärke,
+            // siehe SCHRIFT-STRICH-01) — separat in die Stilvorlage übernehmen
+            if (key === "extraDaten" && value && value.schriftgroesse !== undefined) {
+                var vl2 = {}; for (var sk2 in cv.stilVorlage) vl2[sk2] = cv.stilVorlage[sk2]
+                vl2.schriftgroesse = value.schriftgroesse; cv.stilVorlage = vl2
+            }
         }
         // Kabel-DB-Metadaten aktualisieren wenn Kabellinie-extraDaten geändert wurden
         if (key === "extraDaten" && cv.auswahl.length === 1) {

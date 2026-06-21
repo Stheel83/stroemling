@@ -29,12 +29,22 @@ Rectangle {
         if (alleAuswaehlen) textEditor.selectAll()
     }
 
-    function textBboxBerechnen(inhalt, strichBreite) {
+    // Schriftgröße (mm) für laufende Bearbeitung: bestehendes Element → dessen
+    // extraDaten.schriftgroesse, neuer Text → letzter Stilvorlage-Wert.
+    function aktiveSchriftgroesse() {
+        if (canvas.textEditElIdx >= 0) {
+            var elS = canvas.elementeModel.element(canvas.textEditElIdx)
+            return (elS.extraDaten && elS.extraDaten.schriftgroesse) || 3.5
+        }
+        return canvas.stilVorlage.schriftgroesse || 3.5
+    }
+
+    function textBboxBerechnen(inhalt, schriftGroesse) {
         var lines = inhalt.split("\n")
         var longestLen = 1
         for (var li = 0; li < lines.length; li++)
             if (lines[li].length > longestLen) longestLen = lines[li].length
-        var fsPx = (strichBreite || 3.5) * canvas.mmToPx
+        var fsPx = (schriftGroesse || 3.5) * canvas.mmToPx
         return { w: longestLen * fsPx * 0.62, h: lines.length * fsPx * 1.3 }
     }
 
@@ -50,7 +60,7 @@ Rectangle {
 
             var updEl = {}; for (var k in el) updEl[k] = el[k]
             if (inhalt !== "") {
-                var bb = textBboxBerechnen(inhalt, el.strichBreite)
+                var bb = textBboxBerechnen(inhalt, (el.extraDaten && el.extraDaten.schriftgroesse) || 3.5)
                 updEl.x2 = updEl.x1 + bb.w
                 updEl.y2 = updEl.y1 + bb.h
             }
@@ -61,7 +71,7 @@ Rectangle {
             if (inhalt === "") {
                 canvas.vorschau = null
             } else {
-                var bb2 = textBboxBerechnen(inhalt, canvas.stilVorlage.strichBreite)
+                var bb2 = textBboxBerechnen(inhalt, canvas.stilVorlage.schriftgroesse)
                 canvas.vorschau = {
                     typ:             "text",
                     x1:              canvas.textEditWeltX,
@@ -79,7 +89,8 @@ Rectangle {
                     fuellFarbe:      canvas.stilVorlage.fuellFarbe,
                     fuellOpazitaet:  canvas.stilVorlage.fuellOpazitaet,
                     opazitaet:       canvas.stilVorlage.opazitaet,
-                    eckenRadius:     0
+                    eckenRadius:     0,
+                    extraDaten:      { schriftgroesse: canvas.stilVorlage.schriftgroesse || 3.5 }
                 }
             }
             canvas.neuZeichnen()
@@ -106,7 +117,7 @@ Rectangle {
             canvas.auswahl = [idx]
             canvas.grafikSpeichernJetzt()
         } else {
-            var bb = textBboxBerechnen(inhalt, canvas.stilVorlage.strichBreite)
+            var bb = textBboxBerechnen(inhalt, canvas.stilVorlage.schriftgroesse)
             var textEl = {
                 typ:             "text",
                 x1:              canvas.textEditWeltX,
@@ -124,7 +135,8 @@ Rectangle {
                 fuellFarbe:      canvas.stilVorlage.fuellFarbe,
                 fuellOpazitaet:  canvas.stilVorlage.fuellOpazitaet,
                 opazitaet:       canvas.stilVorlage.opazitaet,
-                eckenRadius:     0
+                eckenRadius:     0,
+                extraDaten:      { schriftgroesse: canvas.stilVorlage.schriftgroesse || 3.5 }
             }
             canvas.elementeModel.undoCheckpointFromSnapshot(canvas.textEditSnapshot)
             canvas.elementeModel.fromVariantList(canvas.elementeModel.snapshot().concat([textEl]))
@@ -147,7 +159,7 @@ Rectangle {
         id: textEditor
         anchors { fill: parent; margins: 5 }
         color:             theme.textSecondary
-        font.pixelSize:    Math.max(10, (canvas.stilVorlage.strichBreite || 3.5) * canvas.mmToPx * canvas.zoom)
+        font.pixelSize:    Math.max(10, root.aktiveSchriftgroesse() * canvas.mmToPx * canvas.zoom)
         font.bold:         true
         selectionColor:    theme.activeItemAlt
         selectedTextColor: "#ffffff"

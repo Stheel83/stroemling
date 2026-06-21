@@ -354,7 +354,8 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     } else if (typ == "text") {
         QString inhalt = el.value("textInhalt").toString();
         if (inhalt.isEmpty()) return;
-        double fsMm = el.value("strichBreite", 3.5).toDouble();
+        QVariantMap edTxt = el.value("extraDaten").toMap();
+        double fsMm = edTxt.value("schriftgroesse", 3.5).toDouble();
         double fsDev = fsMm * 0.25 * pxPerMm;
         QFont font;
         font.setFamily(QStringLiteral("sans-serif"));
@@ -415,7 +416,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         QString text = el.value("textInhalt").toString();
         if (text.isEmpty()) return;
         QVariantMap ed = el.value("extraDaten").toMap();
-        double fsMm  = ed.value("schriftGroesse", 3.5).toDouble();
+        double fsMm  = ed.value("schriftgroesse", 3.5).toDouble();
         double fsDev = fsMm * pxPerMm;
         QFont font;
         font.setFamily(QStringLiteral("sans-serif"));

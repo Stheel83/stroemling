@@ -146,9 +146,11 @@ Item {
                 width: parent.width; spacing: 0
                 FeldLabel { text: qsTr("Schriftgröße") }
                 SchriftgrosseSelektor {
-                    wert: panel.s("strichBreite", 3.5)
+                    wert: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.schriftgroesse || 3.5) : 3.5
                     onWertGeaendert: function(v) {
-                        panel.canvas.eigenschaftAktualisieren("strichBreite", v)
+                        var ed = JSON.parse(JSON.stringify(panel.el ? (panel.el.extraDaten || {}) : {}))
+                        ed.schriftgroesse = v
+                        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
                     }
                 }
                 Item { height: 8 }

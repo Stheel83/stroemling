@@ -221,7 +221,8 @@ Item {
         fuellFarbe:     "#1a3a6a",
         fuellOpazitaet: 0.3,
         opazitaet:      1.0,
-        eckenRadius:    0
+        eckenRadius:    0,
+        schriftgroesse: 3.5
     })
 
     // Format-Pinsel: gespeichertes Stilformat (null = noch nichts kopiert)
@@ -1095,7 +1096,7 @@ Item {
                     txtFsPx = Math.min(txtBwPx / (longestChars * 0.62),
                                        txtBhPx / (txtLines.length * 1.3))
                 } else {
-                    txtFsPx = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
+                    txtFsPx = ((el.extraDaten && el.extraDaten.schriftgroesse) || 3.5) * root.mmToPx * root.zoom
                 }
                 var txtLineH = txtFsPx * 1.3
                 var txtColor = gewaehlt ? "#f0a030"
@@ -1218,7 +1219,7 @@ Item {
                 // Text mit automatischem Zeilenumbruch
                 var nText = el.textInhalt || ""
                 if (nText !== "" && !_skipText) {
-                    var nFsPx  = (el.strichBreite || 3.5) * root.mmToPx * root.zoom
+                    var nFsPx  = ((el.extraDaten && el.extraDaten.schriftgroesse) || 3.5) * root.mmToPx * root.zoom
                     var nLineH = nFsPx * 1.3
                     var nPad   = Math.max(4, nFsPx * 0.35)
                     var nMaxW  = nRw - 2 * nPad

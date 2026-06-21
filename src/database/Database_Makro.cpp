@@ -76,6 +76,16 @@ bool Database::openMakro(const QString &path)
         if (!cols.contains("ecken_radius"))   m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN ecken_radius   REAL    DEFAULT 0");
     }
 
+    // SCHRIFT-STRICH-01: Schriftgröße (Text/Notiz) lag bislang in strich_breite,
+    // jetzt in extra_daten.schriftgroesse. Bestehende Makro-Elemente einmalig
+    // migrieren (idempotent über die IS NULL-Bedingung, kein Versionszähler nötig).
+    m_makroDb.exec(R"(
+        UPDATE makro_element
+        SET extra_daten = json_set(COALESCE(extra_daten, '{}'), '$.schriftgroesse', strich_breite)
+        WHERE typ IN ('text', 'notiz')
+          AND json_extract(COALESCE(extra_daten, '{}'), '$.schriftgroesse') IS NULL
+    )");
+
     qCInfo(lcDb) << "Makro-DB geöffnet:" << path;
     return true;
 }

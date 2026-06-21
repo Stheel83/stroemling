@@ -516,6 +516,17 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE normblatt_vorlage DROP COLUMN logo_data)",
             R"(ALTER TABLE bauteil DROP COLUMN bild_data)",
         }},
+
+        // SCHRIFT-STRICH-01: Schriftgröße (Text/Notiz) missbrauchte bislang strich_breite
+        // (Strichstärke). Wird jetzt in extra_daten.schriftgroesse gespeichert. Bestehende
+        // Text/Notiz-Elemente einmalig migrieren, damit ihre bisherige Schriftgröße optisch
+        // erhalten bleibt (idempotent über die IS NULL-Bedingung).
+        { 79, "Schriftgröße (Text/Notiz) von strich_breite nach extra_daten.schriftgroesse migriert", {
+            R"(UPDATE grafik_element
+               SET extra_daten = json_set(COALESCE(extra_daten, '{}'), '$.schriftgroesse', strich_breite)
+               WHERE typ IN ('text', 'notiz')
+                 AND json_extract(COALESCE(extra_daten, '{}'), '$.schriftgroesse') IS NULL)",
+        }},
     };
 }
 

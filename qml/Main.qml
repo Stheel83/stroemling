@@ -1628,6 +1628,9 @@ ApplicationWindow {
         function onPostkarteAngekommen(text) {
             rosiPostkarte.zeigen(text)
         }
+        function onVorwarnung(sekunden) {
+            rosiSprechblase.vorwarnen(sekunden)
+        }
     }
 
     // ── Shortcut-Übersicht ────────────────────────────────────────

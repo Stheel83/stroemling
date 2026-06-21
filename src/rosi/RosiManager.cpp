@@ -20,6 +20,9 @@ constexpr int  kUrlaubsspracheAbnahmeMax   = 20;
 constexpr int  kBesuchChanceProzent        = 5;
 constexpr double kUrlaubChanceProStart       = 0.015; // 1,5 % außerhalb des Sommers
 constexpr double kUrlaubChanceSommerProStart = 0.04;  // 4 % Juni–August
+constexpr int  kVorwarnMinutenMin          = 2;
+constexpr int  kVorwarnMinutenMax          = 7;
+constexpr int  kTestVorwarnSekunden        = 3;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -225,6 +228,19 @@ void RosiManager::_pruefePostkarte()
     emit postkarteAngekommen(_zufall(_poolH_Postkarte()));
 }
 
+// Stellt sicher, dass für den aktuellen Wiederkehr-Zyklus ein zufälliger
+// Vorwarn-Vorlauf (2-7 Min) feststeht. Wird auf 0 zurückgesetzt, sobald der
+// zugehörige Auftritt stattgefunden hat — der nächste Aufruf würfelt dann neu.
+int RosiManager::_vorwarnMinutenSicherstellen()
+{
+    int v = static_cast<int>(_zaehlerGet("vorwarn_minuten"));
+    if (v < kVorwarnMinutenMin || v > kVorwarnMinutenMax) {
+        v = QRandomGenerator::global()->bounded(kVorwarnMinutenMin, kVorwarnMinutenMax + 1);
+        _zaehlerSet("vorwarn_minuten", v);
+    }
+    return v;
+}
+
 void RosiManager::_pruefeAuftritt(int nutzungsminuten)
 {
     const qint64 jetzt = QDateTime::currentSecsSinceEpoch();
@@ -233,15 +249,27 @@ void RosiManager::_pruefeAuftritt(int nutzungsminuten)
         ? kErstAuftrittMinuten
         : _zaehlerGet("naechste_erscheinung_ab_minute");
 
-    if (nutzungsminuten < schwelle) return;
     if (jetzt < _zaehlerGet("naechste_erscheinung_nicht_vor")) return;
     if (jetzt < _zaehlerGet("urlaub_bis")) return;
+
+    // Vorwarnung: Rohröffnung fadet 2-7 Min vor dem Auftritt langsam ein,
+    // damit sich der Nutzer auf Rosi einstellen kann (konzept §4/§6).
+    const int vorwarnMinuten = _vorwarnMinutenSicherstellen();
+    const qint64 vorwarnSchwelle = schwelle - vorwarnMinuten;
+    if (!m_vorwarnungAktiv && nutzungsminuten >= vorwarnSchwelle && nutzungsminuten < schwelle) {
+        m_vorwarnungAktiv = true;
+        emit vorwarnung(static_cast<int>((schwelle - nutzungsminuten) * 60));
+    }
+
+    if (nutzungsminuten < schwelle) return;
 
     const QString text = _spruchWaehlen(erschienenAnzahl);
 
     const int intervall = QRandomGenerator::global()->bounded(kWiederkehrMinMin, kWiederkehrMinMax + 1);
     _zaehlerSet("naechste_erscheinung_ab_minute", nutzungsminuten + intervall);
     _zaehlerSet("erschienen_anzahl", erschienenAnzahl + 1);
+    _zaehlerSet("vorwarn_minuten", 0); // nächster Zyklus würfelt neu (s.o.)
+    m_vorwarnungAktiv = false;
 
     emit auftauchen(text);
 }
@@ -294,6 +322,16 @@ void RosiManager::nervNicht()
 {
     const QDateTime morgen(QDate::currentDate().addDays(1), QTime(0, 0));
     _zaehlerSet("naechste_erscheinung_nicht_vor", morgen.toSecsSinceEpoch());
+}
+
+// Stateless Testtrigger (analog Fun-Modus "Jetzt testen") — verändert keine
+// rosi_zustand-Zähler, zeigt nur eine kurze Vorwarnung + einen Auftritt.
+void RosiManager::jetztTesten()
+{
+    emit vorwarnung(kTestVorwarnSekunden);
+    QTimer::singleShot(kTestVorwarnSekunden * 1000, this, [this]() {
+        emit auftauchen(_zufall(_poolA_Begruessung()));
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

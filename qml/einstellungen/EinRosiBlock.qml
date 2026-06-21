@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import QtCore
 
@@ -88,6 +89,31 @@ ColumnLayout {
                         cursorShape:  Qt.PointingHandCursor
                         onClicked:    rosiSettings.aktiviert = !rosiSettings.aktiviert
                     }
+                }
+            }
+
+            // ── Jetzt testen ──────────────────────────
+            Rectangle {
+                Layout.fillWidth: true
+                height:       34; radius: 4
+                color:        testMaus.containsMouse ? root.theme.accent : root.theme.inputBg
+                border.color: root.theme.border
+
+                Text {
+                    anchors.centerIn: parent
+                    text:           qsTr("Jetzt testen")
+                    font.pixelSize: 12; font.weight: Font.Medium
+                    color:          testMaus.containsMouse ? "white" : root.theme.textPrimary
+                }
+                MouseArea {
+                    id:           testMaus
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape:  Qt.PointingHandCursor
+                    onClicked:    rosiManager.jetztTesten()
+                    ToolTip.visible: containsMouse
+                    ToolTip.text:    qsTr("Rohröffnung fadet kurz ein, dann taucht Rosi mit einem Spruch auf – unabhängig vom „Aktiviert“-Schalter")
+                    ToolTip.delay:   500
                 }
             }
 

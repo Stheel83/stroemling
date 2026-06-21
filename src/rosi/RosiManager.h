@@ -22,9 +22,18 @@ public:
     // Aus der Sprechblase aufgerufen: sperrt Erscheinen bis morgen 00:00.
     Q_INVOKABLE void nervNicht();
 
+    // Aus den Einstellungen aufgerufen ("Jetzt testen"): löst eine kurze
+    // Vorwarnung + Auftritt aus, ohne den normalen Rhythmus (Zähler in
+    // rosi_zustand) zu beeinflussen — analog zum Fun-Modus-Testknopf.
+    Q_INVOKABLE void jetztTesten();
+
 signals:
     void auftauchen(const QString &text);
     void postkarteAngekommen(const QString &text);
+    // Feuert einmalig 2-7 (echte/simulierte) Minuten vor dem Auftritt, damit
+    // die Rohröffnung in QML langsam einfaden kann. sekunden = verbleibende
+    // Zeit bis zum Auftritt, für die Dauer der Einfaden-Animation.
+    void vorwarnung(int sekunden);
 
 private:
     void _tick();
@@ -32,6 +41,7 @@ private:
     void _pruefePostkarte();
     void _pruefeAuftritt(int nutzungsminuten);
     QString _spruchWaehlen(int erschienenAnzahl);
+    int _vorwarnMinutenSicherstellen();
 
     qint64 _zaehlerGet(const QString &schluessel) const;
     void   _zaehlerSet(const QString &schluessel, qint64 wert);
@@ -54,4 +64,5 @@ private:
     static QStringList _poolD3_Reisesprache(int zielId);
 
     QTimer m_timer;
+    bool   m_vorwarnungAktiv = false;
 };

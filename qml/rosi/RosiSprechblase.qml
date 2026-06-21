@@ -5,6 +5,9 @@ import QtQuick.Layouts
 // Taucht aus einer Rohröffnung am unteren Fensterrand auf, zeigt einen Spruch
 // in einer Sprechblase, zieht sich nach ~12s oder per Klick wieder zurück.
 // Verwendung: rosiSprechblase.zeigen(text) – ausgelöst von rosiManager.auftauchen.
+// rosiSprechblase.vorwarnen(sekunden) – ausgelöst von rosiManager.vorwarnung,
+// lässt die Rohröffnung über die angegebene Dauer langsam einfaden, damit
+// sich der Nutzer auf den Auftritt einstellen kann (konzept §4/§6).
 //
 // Körper-Asset (rosi_roehrenaal.png) und Rohröffnung (rosi_rohroeffnung.png)
 // sind seit ROSI-01 echte Bilder.
@@ -17,7 +20,9 @@ Item {
     width:  240
     height: 180
 
-    property bool _sichtbar: false
+    property bool _sichtbar:          false
+    property real _rohrOpazitaetBasis: 0.45
+    property real _rohrOpazitaet:      _rohrOpazitaetBasis
 
     function zeigen(text) {
         if (root._sichtbar) return // schon dabei, kein Überlagern
@@ -26,19 +31,43 @@ Item {
         emergeAnim.restart()
     }
 
+    function vorwarnen(sekunden) {
+        rohrRueckgangAnim.stop()
+        rohrFadeAnim.duration = Math.max(500, sekunden * 1000)
+        rohrFadeAnim.restart()
+    }
+
     function _zurueckziehen() {
         if (!root._sichtbar) return
         root._sichtbar = false
         emergeAnim.stop()
         retreatAnim.restart()
+        rohrFadeAnim.stop()
+        rohrRueckgangAnim.restart()
     }
 
-    // ── Rohröffnung (immer sichtbar, dezent) ──────────────────────
+    NumberAnimation {
+        id:       rohrFadeAnim
+        target:   root
+        property: "_rohrOpazitaet"
+        to:       1.0
+    }
+
+    NumberAnimation {
+        id:       rohrRueckgangAnim
+        target:   root
+        property: "_rohrOpazitaet"
+        to:       root._rohrOpazitaetBasis
+        duration: 2000
+    }
+
+    // ── Rohröffnung (immer sichtbar, dezent, fadet vor dem Auftritt ein) ──
     Image {
         id:       rohr
         source:   "qrc:/assets/rosi_rohroeffnung.png"
         width:    100; height: width * 403 / 443 // Bild-Seitenverhältnis
         fillMode: Image.PreserveAspectFit
+        opacity:  root._rohrOpazitaet
         anchors.bottom: parent.bottom
         anchors.left:   parent.left
         anchors.leftMargin: 12

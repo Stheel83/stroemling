@@ -82,7 +82,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation; Domain-Symbole Arduino (§9) | ✅ |
 | `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas | ✅ |
 | `konzept/features/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen | ✅ |
-| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771 | 🔄 NKZ-03 offen |
+| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771, NKZ-04 Default-Anlage/Ort | 🔄 NKZ-01 offen (DIN EN 81346 alt vs. IEC 81346 neu) |
 | `konzept/features/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung | ✅ |
 | `konzept/features/11_symboleditor.md` | Symbole visuell erstellen und bearbeiten | ✅ |
 | `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen (IP/IK/VDE/IEC) | ✅ |

@@ -271,6 +271,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
            && seedIbnFeldvorlagen()
            && seedStandardKlemmen();
 
+    int neueProjektId = -1;
     if (ok) {
         // Projektzeile mit Nutzernamen anlegen
         QSqlQuery qp;
@@ -285,6 +286,32 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         ok = qp.exec();
         if (!ok)
             qCWarning(lcDb) << "Projekt-Eintrag anlegen:" << qp.lastError().text();
+        else
+            neueProjektId = qp.lastInsertId().toInt();
+    }
+
+    if (ok) {
+        // Default-Anlage + Default-Ort anlegen, damit "+Seite" sofort ohne
+        // manuellen Anlage/Ort-Bootstrap nutzbar ist (Schnelleinstieg für Tests).
+        QSqlQuery qa;
+        qa.prepare("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (:pid, :kz, :bez)");
+        qa.bindValue(":pid", neueProjektId);
+        qa.bindValue(":kz",  "AQ");
+        qa.bindValue(":bez", "Pokeströms Aquarium");
+        ok = qa.exec();
+        if (!ok) {
+            qCWarning(lcDb) << "Default-Anlage anlegen:" << qa.lastError().text();
+        } else {
+            int anlageId = qa.lastInsertId().toInt();
+            QSqlQuery qo;
+            qo.prepare("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (:aid, :kz, :bez)");
+            qo.bindValue(":aid", anlageId);
+            qo.bindValue(":kz",  "TR");
+            qo.bindValue(":bez", "Technikraum");
+            ok = qo.exec();
+            if (!ok)
+                qCWarning(lcDb) << "Default-Ort anlegen:" << qo.lastError().text();
+        }
     }
 
     if (ok) {

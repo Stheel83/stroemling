@@ -8,7 +8,7 @@ Item {
 
     // ── Konfiguration ──────────────────────────────────────────────────────
     property int     projektId:        -1
-    property string  hintergrundFarbe: "#080f1c"
+    property string  hintergrundFarbe: "#fdf8e8"
     required property var theme
     required property var elementeModel
     property bool    debug:            false

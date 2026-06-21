@@ -56,6 +56,32 @@ private slots:
                  qPrintable(QString("Schema-Version zu niedrig: %1 (erwartet >= 48)").arg(version)));
     }
 
+    void test_02b_defaultAnlageOrt()
+    {
+        // createProjekt() legt eine Default-Anlage + Default-Ort an, damit
+        // "+Seite" ohne manuellen Anlage/Ort-Bootstrap nutzbar ist.
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("SELECT kuerzel, bezeichnung FROM anlage"));
+        QVERIFY2(q.next(), "Keine Default-Anlage nach createProjekt() angelegt");
+        QCOMPARE(q.value(0).toString(), QStringLiteral("AQ"));
+        QCOMPARE(q.value(1).toString(), QStringLiteral("Pokeströms Aquarium"));
+
+        QVERIFY(q.exec("SELECT kuerzel, bezeichnung FROM ort"));
+        QVERIFY2(q.next(), "Kein Default-Ort nach createProjekt() angelegt");
+        QCOMPARE(q.value(0).toString(), QStringLiteral("TR"));
+        QCOMPARE(q.value(1).toString(), QStringLiteral("Technikraum"));
+    }
+
+    void test_02c_defaultCanvasHintergrundPapier()
+    {
+        // Neue Projekte sollen mit Canvas-Hintergrund "Papier" (#fdf8e8) starten,
+        // nicht mit dem dunklen Theme-Hintergrund (#080f1c).
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("SELECT canvas_hintergrund FROM projekt"));
+        QVERIFY2(q.next(), "Keine Projektzeile gefunden");
+        QCOMPARE(q.value(0).toString(), QStringLiteral("#fdf8e8"));
+    }
+
     void test_03_alleTabellen()
     {
         static const QStringList erwartet = {

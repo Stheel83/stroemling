@@ -67,6 +67,25 @@ Item {
         _editModus = false
     }
 
+    // Für F1-Kontexthilfe: öffnet den Artikel mit exaktem Titel-Match,
+    // unabhängig von dessen Kategorie. Liefert false wenn nicht gefunden.
+    function oeffneArtikelNachTitel(titel) {
+        _kategorienLaden()
+        for (var i = 0; i < _kategorien.length; i++) {
+            var arts = db.wikiArtikelFuerKategorie(_kategorien[i].id)
+            for (var j = 0; j < arts.length; j++) {
+                if (arts[j].titel === titel) {
+                    _katIdx = i
+                    _artikel = arts
+                    _artIdx = j
+                    _artikelInhaltLaden(arts[j].id)
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     function _bilderLaden(artId) {
         var liste = db.wikiBilderFuerArtikel(artId)
         var result = []

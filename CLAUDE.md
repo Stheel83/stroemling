@@ -95,7 +95,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System | ✅ |
 | `konzept/features/35_drc.md` | Design Rule Check: 8 Checks (D-01 bis D-08) | ✅ |
 | `konzept/features/36_minimap.md` | Canvas Minimap: Strg+M Übersichtsfenster, CanvasMinimap.qml | ✅ |
-| `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding | 🔄 Phase 2 📋 |
+| `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding, F1-Kontexthilfe | 🔄 F1-Kontexthilfe Teilumfang (5 Ansichten ✅) |
 | `konzept/features/39_fehlersuchmodus.md` | Fehlersuchmodus (L9): Strompfad-BFS, seitenübergreifend, Symbol-Rollen | ✅ |
 | `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow | ✅ |
 | `konzept/features/41_git_integration.md` | Git-Integration: Auto-Commit, Remote-Push, Projekt-History | ✅ |

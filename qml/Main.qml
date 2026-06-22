@@ -31,6 +31,16 @@ ApplicationWindow {
     property string aktivProjektName: ""
     property string aktiveAnsicht:    "projekte"
 
+    // F1-Kontexthilfe: aktiveAnsicht -> Titel des passenden Wiki-Artikels.
+    // Ansichten ohne Eintrag fallen auf die Shortcut-Übersicht zurück.
+    readonly property var f1KontextArtikel: ({
+        "projekte":     "Programmübersicht",
+        "seiten":       "Schaltplan – Erste Schritte",
+        "kabelrechner": "Kabelrechner",
+        "ibn":          "IBN – Inbetriebnahme",
+        "fehlersuche":  "Fehlersuchmodus"
+    })
+
     property int    aktivSeiteId:   -1
     property string aktivSeiteName: ""
 
@@ -1421,6 +1431,7 @@ ApplicationWindow {
 
             // ── Wiki ───────────────────────────────────────────────────
             WikiAnsicht {
+                id:           wikiAnsicht
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "wiki"
                 theme:        appTheme
@@ -1873,8 +1884,17 @@ ApplicationWindow {
         }
     }
 
-    // Shortcut-Übersicht
-    Shortcut { sequence: "F1"; context: Shortcut.ApplicationShortcut; onActivated: shortcutUebersicht.visible = !shortcutUebersicht.visible }
+    // F1: Wiki-Artikel zur aktuellen Ansicht, sonst Shortcut-Übersicht
+    Shortcut {
+        sequence: "F1"; context: Shortcut.ApplicationShortcut
+        onActivated: {
+            var titel = root.f1KontextArtikel[root.aktiveAnsicht]
+            if (titel && wikiAnsicht.oeffneArtikelNachTitel(titel))
+                root.aktiveAnsicht = "wiki"
+            else
+                shortcutUebersicht.visible = !shortcutUebersicht.visible
+        }
+    }
     Shortcut { sequence: "Ctrl+P"; context: Shortcut.ApplicationShortcut; onActivated: root.aktiveAnsicht = "projekte" }
 
     // ── Datenbank-Fehler-Dialog ───────────────────────────────────

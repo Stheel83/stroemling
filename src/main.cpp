@@ -15,6 +15,7 @@
 #include <QtGlobal>
 #include <QStandardPaths>
 #include <QDir>
+#include <QIcon>
 #include <cstdio>
 
 #include "database/Database.h"
@@ -185,6 +186,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName("Stroemling_Design");
     app.setApplicationDisplayName("Strömling Design");
+    app.setWindowIcon(QIcon(":/assets/stroemling_icon.png"));
 
     // Gespeicherte Sprache laden (gesetzt vom QML-Sprachpicker)
     QSettings settings;

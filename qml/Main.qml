@@ -22,7 +22,6 @@ ApplicationWindow {
     title:      qsTr("Strömling Design")
     color:      appTheme.surface
     flags:      Qt.Window | Qt.FramelessWindowHint
-    icon.source: "qrc:/assets/stroemling_logo.png"
 
     // Globale Palette: sorgt dafür dass TextField-Hintergründe im Theme-Farbton erscheinen
     palette.base: appTheme.inputBg

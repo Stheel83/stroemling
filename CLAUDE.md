@@ -86,7 +86,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung | ✅ |
 | `konzept/features/11_symboleditor.md` | Symbole visuell erstellen und bearbeiten | ✅ |
 | `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen (IP/IK/VDE/IEC) | ✅ |
-| `konzept/features/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll | 🔄 offene Designfragen |
+| `konzept/features/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll | 🔄 offene Designfragen (§13), IBN-05 ✅ |
 | `konzept/features/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema, UX-Ablauf, C++-API | ✅ |
 | `konzept/features/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: `normblatt_feld`, C++ API, Canvas-Renderer | ✅ |
 | `konzept/features/25_wiki.md` | Erfahrungs-Wiki + Inhalts-Bundles: Schema v40/WIKI_SCHEMA v10, `WikiModel`, Bundle-JSON | ✅ |

@@ -12,8 +12,6 @@ SplitView {
 
     signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1)
 
-    function openFeldEditor() { feldEditorDialog.open() }
-
     orientation: Qt.Horizontal
 
     handle: Rectangle {
@@ -454,18 +452,4 @@ SplitView {
             }
         }
     }
-
-    IbnFeldEditorDialog {
-        id: feldEditorDialog
-        theme: root.theme
-        debug: root.debug
-        onFelderGeaendert: {
-            var fl = bmListe._gelistet
-            if (!fl || panel.ausgewaehlterIndex < 0 || panel.ausgewaehlterIndex >= fl.length) return
-            var e = fl[panel.ausgewaehlterIndex]
-            var kat = e.symbolKategorie || ""
-            panel._dynFelder = kat !== "" ? db.ibnFeldvorlagenLaden(kat) : []
-        }
-    }
-
 }

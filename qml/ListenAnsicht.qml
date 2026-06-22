@@ -139,7 +139,7 @@ Item {
         { header: "Freitext 1", w: 130 }, { header: "Freitext 2", w: 130 },
         { header: "Seite",      w: 65  }, { header: "==Anlage",   w: 65  },
         { header: "++Ort",      w: 65  }, { header: "=Anlage",    w: 55  },
-        { header: "+Ort",       w: 55  }
+        { header: "+Ort",       w: 55  }, { header: "",           w: 28  }
     ]
     readonly property var qvCols: [
         { header: "Signalname", w: 160 }, { header: "Richtung",  w: 100 },

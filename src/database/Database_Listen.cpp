@@ -199,7 +199,10 @@ QVariantList Database::stueckliste(int projektId)
                   AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
                   AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
                 ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
-                LIMIT 1) AS sk_extra
+                LIMIT 1) AS sk_extra,
+               s.id AS seite_id,
+               (ge.x1 + ge.x2) / 2.0 AS welt_x,
+               (ge.y1 + ge.y2) / 2.0 AS welt_y
         FROM grafik_element ge
         JOIN seite  s ON s.id  = ge.seite_id
         JOIN ort    o ON o.id  = s.ort_id
@@ -223,6 +226,9 @@ QVariantList Database::stueckliste(int projektId)
         m[QStringLiteral("seiteBez")]  = q.value(3).toString();
         m[QStringLiteral("anlageKz")]  = q.value(4).toString();
         m[QStringLiteral("ortKz")]     = q.value(5).toString();
+        m[QStringLiteral("seiteId")]   = q.value(9).toInt();
+        m[QStringLiteral("weltX")]     = q.value(10).toDouble();
+        m[QStringLiteral("weltY")]     = q.value(11).toDouble();
 
         QString extra = q.value(0).toString();
         QString bmk, ft1, ft2;
@@ -275,7 +281,10 @@ QVariantList Database::stueckliste(int projektId)
                   AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
                   AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
                 ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
-                LIMIT 1)
+                LIMIT 1),
+               s.id AS seite_id,
+               (ge.x1 + ge.x2) / 2.0 AS welt_x,
+               (ge.y1 + ge.y2) / 2.0 AS welt_y
         FROM grafik_element ge
         JOIN seite  s ON s.id = ge.seite_id
         JOIN ort    o ON o.id = s.ort_id
@@ -315,6 +324,9 @@ QVariantList Database::stueckliste(int projektId)
             m[QStringLiteral("ortKz")]    = ortKz2;
             m[QStringLiteral("anlageUO")] = anlageUO2;
             m[QStringLiteral("ortUO")]    = ortUO2;
+            m[QStringLiteral("seiteId")]  = qGk.value(11).toInt();
+            m[QStringLiteral("weltX")]    = qGk.value(12).toDouble();
+            m[QStringLiteral("weltY")]    = qGk.value(13).toDouble();
             result.append(m);
         }
     }

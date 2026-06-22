@@ -97,14 +97,14 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/36_minimap.md` | Canvas Minimap: Strg+M Übersichtsfenster, CanvasMinimap.qml | ✅ |
 | `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding | 🔄 Phase 2 📋 |
 | `konzept/features/39_fehlersuchmodus.md` | Fehlersuchmodus (L9): Strompfad-BFS, seitenübergreifend, Symbol-Rollen | ✅ |
-| `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow | 🔄 Platzier-Workflow offen |
+| `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow | ✅ |
 | `konzept/features/41_git_integration.md` | Git-Integration: Auto-Commit, Remote-Push, Projekt-History | ✅ |
 | `konzept/features/41_sprungfunktion.md` | Sprungfunktion: Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette | 🔄 Phase 3+4 offen |
 | `konzept/features/42_makro_palette.md` | Makro-Schnellpalette: Kategorie-Akzentstreifen, Overlay-Vorschau, Bibliotheks-Dialog | ✅ |
-| `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3; GK-2/3/4 offen | 🔄 |
+| `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3 | ✅ |
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |
 | `konzept/features/45_steckverbinder.md` | Stecker und Buchsen: 4-Kombinations-Matrix, 3-Ebenen-Modell, Kontakteigenschaften, Steckpaar-Logik, BMK, DB-Schema-Entwurf | 🔄 Pin-2-Kopplung (§6.5) implementiert, Rest 📋 |
-| `konzept/features/46_schirmung.md` | Schirm-Oval (Canvas-Element `schirm`), SH-Kennzeichnung, Schirmanschluss via Geräteanschluss | 📋 Konzept |
+| `konzept/features/46_schirmung.md` | Schirm-Oval (Canvas-Element `schirm`), SH-Kennzeichnung, Schirmanschluss via Geräteanschluss | 🔄 SCH-02 (DRC-Warnung) offen |
 | `konzept/features/47_meldungen_toast.md` | Meldungs-Toast: `MeldungManager` (C++, analog AchievementManager), `MeldungToast.qml`, Abgrenzung Toast vs. Dialog, migrierte Stellen | ✅ |
 | `konzept/features/48_rosi_roehrenaal.md` | Rosi Röhrenaal: Maskottchen-Assistentin (Klippy-Hommage), `RosiManager`, Timing/Persistenz, Berlinerisch-Sprüche-Pools, Urlaub/Besuch | 🔄 Backend+QML implementiert, Bild-Asset offen |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** | |

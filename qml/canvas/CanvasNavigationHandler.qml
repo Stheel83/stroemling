@@ -89,14 +89,17 @@ Item {
             text: "Drehen 90 Grad"
             enabled: {
                 if (canvas.auswahl.length === 0) return false
-                for (var i = 0; i < canvas.auswahl.length; i++)
-                    if (canvas.elementeModel.element(canvas.auswahl[i]).typ === "symbol") return true
+                for (var i = 0; i < canvas.auswahl.length; i++) {
+                    var elT = canvas.elementeModel.element(canvas.auswahl[i]).typ
+                    if (elT === "symbol" || elT === "schirm") return true
+                }
                 return false
             }
             onTriggered: {
                 if (canvas.auswahl.length === 1) {
                     var el = canvas.elementeModel.element(canvas.ausgewaehlt)
-                    canvas.eigenschaftAktualisieren("rotation", ((el.rotation || 0) + 90) % 360)
+                    if (el.typ === "schirm") canvas.schirmDrehen()
+                    else canvas.eigenschaftAktualisieren("rotation", ((el.rotation || 0) + 90) % 360)
                 } else {
                     canvas.multiRotationUmPivot(90)
                 }

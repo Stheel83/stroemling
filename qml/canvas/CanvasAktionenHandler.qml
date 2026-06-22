@@ -193,6 +193,30 @@ QtObject {
         cv._drawCanvas.requestPaint()
     }
 
+    // Schirm-Symbol um 90° (im Uhrzeigersinn) drehen: Kapselform hat kein
+    // eigenes rotation-Feld — Breite/Höhe der Bbox um den Mittelpunkt tauschen
+    // (exakt äquivalent zu einer echten 90°-Drehung eines achsenparallelen
+    // Rechtecks) + Anschluss-Seite zyklisch weiterschalten.
+    function schirmDrehen() {
+        if (cv.auswahl.length === 0) return
+        var seiteNachCW = { links: "oben", oben: "rechts", rechts: "unten", unten: "links" }
+        cv.elementeModel.undoCheckpoint()
+        cv.auswahl.forEach(function(i) {
+            var el = cv.elementeModel.element(i)
+            if (!el || el.typ !== "schirm") return
+            var cx = (el.x1 + el.x2) / 2, cy = (el.y1 + el.y2) / 2
+            var hw = Math.abs(el.x2 - el.x1) / 2, hh = Math.abs(el.y2 - el.y1) / 2
+            var ed = el.extraDaten ? JSON.parse(JSON.stringify(el.extraDaten)) : {}
+            ed.anschlussSeite = seiteNachCW[ed.anschlussSeite || "links"] || "links"
+            cv.elementeModel.elementAktualisieren(i, {
+                x1: cx - hh, x2: cx + hh, y1: cy - hw, y2: cy + hw,
+                extraDaten: ed
+            })
+        })
+        cv.grafikSpeichernJetzt()
+        cv._drawCanvas.requestPaint()
+    }
+
     // Viewport-Hit-Test auf BMK-Beschriftung eines Symbols.
     // Gibt Element-Index zurück oder -1 wenn kein Label getroffen.
     function labelTreffenTest(vpX, vpY) {

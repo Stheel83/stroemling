@@ -84,6 +84,19 @@ Item {
         }
         Item { height: 6 }
 
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4
+            MiniButton {
+                theme:   root.theme
+                label:   qsTr("↻ 90° drehen")
+                breite:  110
+                tooltip: qsTr("Kapselform um 90° im Uhrzeigersinn drehen (Breite/Höhe tauschen + Anschluss-Seite weiterschalten)")
+                onKlick: panel.canvas.schirmDrehen()
+            }
+        }
+        Item { height: 6 }
+
         // SCH-01: Schirmtyp (Geflecht/Folie/kombiniert) – reines Freitextfeld genügt fürs Erste
         InputField {
             label: qsTr("Schirmtyp (frei, z.B. Geflecht, Folie)")

@@ -3833,6 +3833,7 @@ Item {
     function formatKopieren()                        { aktionenHandler.formatKopieren() }
     function formatZuweisen()                        { aktionenHandler.formatZuweisen() }
     function multiRotationUmPivot(delta)             { aktionenHandler.multiRotationUmPivot(delta) }
+    function schirmDrehen()                          { aktionenHandler.schirmDrehen() }
     function eigenschaftenSetzen(updates)            { aktionenHandler.eigenschaftenSetzen(updates) }
     function zReihenfolgeAendern(richtung)           { aktionenHandler.zReihenfolgeAendern(richtung) }
     function undo()                                  { aktionenHandler.undo() }

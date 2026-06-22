@@ -445,6 +445,7 @@ int ElementeModel::elementBeiPosition(double vpX, double vpY,
                    || el.typ == QLatin1String("geraetekasten")
                    || el.typ == QLatin1String("strukturkasten")
                    || el.typ == QLatin1String("makrokasten")
+                   || el.typ == QLatin1String("schirm")
                    || el.typ == QLatin1String("notiz")) {
             if (el.typ == QLatin1String("notiz")) {
                 double nx1 = std::min(vx1,vx2)-s, ny1 = std::min(vy1,vy2)-s;

@@ -99,6 +99,7 @@ qt_add_qml_module(stroemling_app
         qml/ep/EpGeraetekastenSection.qml
         qml/ep/EpStrukturkastenSection.qml
         qml/ep/EpMakrokastenSection.qml
+        qml/ep/EpSchirmSection.qml
         qml/ep/EpKlemmenAnschlussSection.qml
         qml/ep/EpKabelDefinitionSection.qml
         qml/ep/EpKabelStammdatenBlock.qml

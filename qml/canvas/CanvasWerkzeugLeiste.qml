@@ -61,6 +61,7 @@ Rectangle {
         WerkzeugButton { canvas: root.canvas; werkzeug: "geraetekasten";  symbol: "⊡"; tooltip: qsTr("Gerätekasten  [G]") }
         WerkzeugButton { canvas: root.canvas; werkzeug: "strukturkasten"; symbol: "☐"; tooltip: qsTr("Strukturkasten  [U]") }
         WerkzeugButton { canvas: root.canvas; werkzeug: "makrokasten";    symbol: "⬜"; tooltip: qsTr("Makrokasten  [M]") }
+        WerkzeugButton { canvas: root.canvas; werkzeug: "schirm";        symbol: "⬭"; tooltip: qsTr("Schirm-Oval  [O]") }
         Rectangle { width: 32; height: 1; color: AppTheme.border; anchors.horizontalCenter: parent.horizontalCenter }
         WerkzeugButton { canvas: root.canvas; werkzeug: "text";  symbol: "T"; tooltip: qsTr("Text platzieren  [T]") }
         WerkzeugButton { canvas: root.canvas; werkzeug: "notiz"; symbol: "✎"; tooltip: qsTr("Notiz / Annotation  [N]") }

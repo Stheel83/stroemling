@@ -324,6 +324,9 @@ Rectangle {
             // ABSCHNITT: MAKROKASTEN
             EpMakrokastenSection { canvas: canvas; panel: panel; theme: panel.theme }
 
+            // ABSCHNITT: SCHIRM
+            EpSchirmSection { canvas: canvas; panel: panel; theme: panel.theme }
+
             // ================================================
             // ABSCHNITT: KABELDEFINITIONSLINIE
             EpKabelDefinitionSection { canvas: canvas; panel: panel; theme: panel.theme }

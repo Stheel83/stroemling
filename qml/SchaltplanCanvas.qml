@@ -433,6 +433,20 @@ Item {
             ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath()
         }
 
+        // Kapsel-/Stadium-Form: zwei echte Halbkreise (Radius = halbe Höhe) an
+        // den Seiten, verbunden durch zwei parallele Geraden (kein echtes Oval).
+        // Für das Schirm-Symbol (§2 in 46_schirmung.md).
+        function stadiumPfad(ctx, x, y, w, h, r) {
+            r = Math.min(Math.abs(r), Math.abs(w)/2, Math.abs(h)/2)
+            var cy = y + h/2, lcx = x + r, rcx = x + w - r
+            ctx.beginPath()
+            ctx.moveTo(lcx, y); ctx.lineTo(rcx, y)
+            ctx.arc(rcx, cy, r, -Math.PI/2, Math.PI/2, false)
+            ctx.lineTo(lcx, y+h)
+            ctx.arc(lcx, cy, r, Math.PI/2, 3*Math.PI/2, false)
+            ctx.closePath()
+        }
+
         // ── Normblattrahmen (DIN 6771, vereinfacht) ──────────────────────
         function drawNormblatt(ctx) {
             if (!root.normblattDaten) return
@@ -897,6 +911,7 @@ Item {
             else if (el.typ === "geraetekasten")  _renderGeraetekasten(ctx, el, rc)
             else if (el.typ === "strukturkasten") _renderStrukturkasten(ctx, el, rc)
             else if (el.typ === "makrokasten")    _renderMakrokasten(ctx, el, rc)
+            else if (el.typ === "schirm")         _renderSchirm(ctx, el, rc)
 
             ctx.setLineDash([]); ctx.lineCap="butt"; ctx.globalAlpha=1.0
 
@@ -904,6 +919,7 @@ Item {
                          && el.typ !== "rechteck" && el.typ !== "kreis"
                          && el.typ !== "geraetekasten"
                          && el.typ !== "strukturkasten" && el.typ !== "makrokasten"
+                         && el.typ !== "schirm"
                          && el.typ !== "bild"  && el.typ !== "notiz") {
                 ctx.fillStyle = gewaehlt ? "#f0a030" : sf
                 ctx.beginPath(); ctx.arc(vx1,vy1,2.5,0,2*Math.PI); ctx.fill()
@@ -2058,6 +2074,58 @@ Item {
             }
         }
 
+        function _renderSchirm(ctx, el, rc) {
+            var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+            var sf = rc.sf, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op
+            var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2
+            // Schirm-Symbol: Kapsel-/Stadium-Form (kein echtes Oval) — zwei echte
+            // Halbkreise links/rechts (Radius = halbe Höhe), verbunden durch zwei
+            // parallele Geraden. Strichart (gestrichelt) kommt aus dem gemeinsamen
+            // Dash-Setup in maleElement. Pin sitzt am gewählten Rand (anschlussSeite).
+            ctx.lineCap = "butt"
+            var shCx = (vx1 + vx2) / 2, shCy = (vy1 + vy2) / 2
+            var shRx = Math.abs(vx2 - vx1) / 2, shRy = Math.abs(vy2 - vy1) / 2
+            var shX  = Math.min(vx1, vx2), shY = Math.min(vy1, vy2)
+            var shW  = shRx * 2, shH = shRy * 2
+            var shFarbe = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
+            if (fu && !vorschau) {
+                ctx.fillStyle  = ff
+                ctx.globalAlpha = op * fo
+                drawCanvas.stadiumPfad(ctx, shX, shY, shW, shH, shH/2); ctx.fill()
+                ctx.globalAlpha = op
+            }
+            ctx.strokeStyle = shFarbe
+            drawCanvas.stadiumPfad(ctx, shX, shY, shW, shH, shH/2); ctx.stroke()
+
+            var shEd    = el.extraDaten || {}
+            var shSeite = shEd.anschlussSeite || "links"
+            var shPx = shCx, shPy = shCy
+            if      (shSeite === "links")  shPx = Math.min(vx1, vx2)
+            else if (shSeite === "rechts") shPx = Math.max(vx1, vx2)
+            else if (shSeite === "oben")   shPy = Math.min(vy1, vy2)
+            else if (shSeite === "unten")  shPy = Math.max(vy1, vy2)
+
+            if (!vorschau && !_skipText) {
+                ctx.save(); ctx.setLineDash([])
+                ctx.fillStyle = shFarbe; ctx.globalAlpha = op
+                ctx.beginPath(); ctx.arc(shPx, shPy, 2.5, 0, 2 * Math.PI); ctx.fill()
+                ctx.restore()
+            }
+
+            if (!vorschau && !_skipText && shRx > 10 && shRy > 6) {
+                var shBez = shEd.bezeichnung || ""
+                if (shBez !== "") {
+                    ctx.save(); ctx.setLineDash([])
+                    ctx.textAlign = "center"; ctx.textBaseline = "middle"
+                    ctx.font = Math.max(8, Math.round(2.5 * root.mmToPx * root.zoom)) + "px sans-serif"
+                    ctx.fillStyle  = shFarbe
+                    ctx.globalAlpha = op
+                    ctx.fillText(shBez, shCx, shCy)
+                    ctx.restore()
+                }
+            }
+        }
+
 
         // Gibt den korrekten Pin für ein Querverweis-Element zurück.
         // Ausgang: Pin am Schwanz (x=0), Eingang: Pin an der Spitze (x=1).
@@ -2103,7 +2171,7 @@ Item {
                 return plGriffe.map(function(p) { return Qt.point(p.x, p.y) })
             }
             if (el.typ==="rechteck" || el.typ==="geraetekasten" || el.typ==="strukturkasten"
-                    || el.typ==="makrokasten" || el.typ==="bild" || el.typ==="notiz")
+                    || el.typ==="makrokasten" || el.typ==="schirm" || el.typ==="bild" || el.typ==="notiz")
                 return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y1),
                         Qt.point(el.x2,el.y2), Qt.point(el.x1,el.y2)]
             if (el.typ==="kreis")    return [Qt.point(el.x1,el.y1), Qt.point(el.x2,el.y2)]

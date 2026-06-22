@@ -432,6 +432,31 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
             });
             continue;
         }
+        // Schirm-Oval (kein Symbol, kein Pinkatalog): synthetischer Einzel-Pin am
+        // gewählten Bbox-Rand, reiner Durchleiter fuer die Potenzial-Propagation.
+        if (typ == QLatin1String("schirm")) {
+            const QVariantMap ed    = el["extraDaten"].toMap();
+            const QString     seite = ed.value("anschlussSeite", QStringLiteral("links")).toString();
+            const double x1 = el["x1"].toDouble(), y1 = el["y1"].toDouble();
+            const double x2 = el["x2"].toDouble(), y2 = el["y2"].toDouble();
+
+            PinInfo pi;
+            pi.elIdx    = i;
+            pi.rolle    = QStringLiteral("durchleiter");
+            pi.quellSig = QStringLiteral("neutral");
+            pi.pinName  = QStringLiteral("1");
+            if (seite == QLatin1String("rechts")) {
+                pi.x = std::max(x1, x2); pi.y = (y1 + y2) / 2.0; pi.richtung = QStringLiteral("H");
+            } else if (seite == QLatin1String("oben")) {
+                pi.x = (x1 + x2) / 2.0; pi.y = std::min(y1, y2); pi.richtung = QStringLiteral("V");
+            } else if (seite == QLatin1String("unten")) {
+                pi.x = (x1 + x2) / 2.0; pi.y = std::max(y1, y2); pi.richtung = QStringLiteral("V");
+            } else {
+                pi.x = std::min(x1, x2); pi.y = (y1 + y2) / 2.0; pi.richtung = QStringLiteral("H");
+            }
+            allePins.append(pi);
+            continue;
+        }
         if (typ != QLatin1String("symbol")) continue;
 
         const QString symbolId = el["symbolId"].toString();

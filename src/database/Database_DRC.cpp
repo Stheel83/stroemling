@@ -393,6 +393,31 @@ QVariantList Database::drcLeitungsenden(int projektId)
             }
         }
 
+        // Schirm-Pins dieser Seite (kein Symbol, kein Pinkatalog-Eintrag, vgl.
+        // SymbolDefinitionModel::autoVerbindungenBerechnen) – sonst würde eine
+        // an einem Schirm-Pin endende freie Linie fälschlich als "Leitungsende
+        // ohne Verbindung" gemeldet.
+        {
+            QSqlQuery shQ;
+            shQ.prepare("SELECT x1,y1,x2,y2,extra_daten FROM grafik_element "
+                        "WHERE seite_id=:sid AND typ='schirm'");
+            shQ.bindValue(":sid", seiteId);
+            if (shQ.exec()) {
+                while (shQ.next()) {
+                    const double x1 = shQ.value(0).toDouble(), y1 = shQ.value(1).toDouble();
+                    const double x2 = shQ.value(2).toDouble(), y2 = shQ.value(3).toDouble();
+                    const QJsonObject ext  = QJsonDocument::fromJson(shQ.value(4).toString().toUtf8()).object();
+                    const QString     seite = ext.value("anschlussSeite").toString(QStringLiteral("links"));
+                    double px, py;
+                    if      (seite == QLatin1String("rechts")) { px = std::max(x1, x2); py = (y1 + y2) / 2.0; }
+                    else if (seite == QLatin1String("oben"))   { px = (x1 + x2) / 2.0;  py = std::min(y1, y2); }
+                    else if (seite == QLatin1String("unten"))  { px = (x1 + x2) / 2.0;  py = std::max(y1, y2); }
+                    else                                       { px = std::min(x1, x2); py = (y1 + y2) / 2.0; }
+                    pinWeltPos.push_back({px, py});
+                }
+            }
+        }
+
         // Jedes Leitungsende prüfen
         QSet<int> gemeldet; // elId deduplizieren (ein Element max. einmal)
         for (int i = 0; i < liniePunkte.size(); i++) {

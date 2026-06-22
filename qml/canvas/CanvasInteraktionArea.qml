@@ -82,7 +82,7 @@ MouseArea {
                     else         { upd.x2 = wg.x; upd.y2 = wg.y }
                 } else if (eg.typ === "rechteck" || eg.typ === "geraetekasten"
                            || eg.typ === "strukturkasten" || eg.typ === "makrokasten"
-                           || eg.typ === "notiz") {
+                           || eg.typ === "schirm" || eg.typ === "notiz") {
                     if      (g === 0) { upd.x1 = wg.x; upd.y1 = wg.y }
                     else if (g === 1) { upd.x2 = wg.x; upd.y1 = wg.y }
                     else if (g === 2) { upd.x2 = wg.x; upd.y2 = wg.y }
@@ -656,6 +656,7 @@ MouseArea {
             else if (elR.typ === "geraetekasten")  { elR.x2 = elR.x1 + defS * 3;   elR.y2 = elR.y1 + defS * 2 }
             else if (elR.typ === "strukturkasten") { elR.x2 = elR.x1 + defS * 5;   elR.y2 = elR.y1 + defS * 4 }
             else if (elR.typ === "makrokasten")    { elR.x2 = elR.x1 + defS * 5;   elR.y2 = elR.y1 + defS * 4 }
+            else if (elR.typ === "schirm")         { elR.x2 = elR.x1 + defS * 2;   elR.y2 = elR.y1 + defS }
             else if (elR.typ === "notiz")          { elR.x2 = elR.x1 + defS * 4;   elR.y2 = elR.y1 + defS * 3 }
         }
         // Starteigenschaften nach Element-Typ
@@ -672,6 +673,9 @@ MouseArea {
         } else if (elR.typ === "makrokasten") {
             elR.strichFarbe = "#aa44cc"; elR.strichArt = "gestrichelt"; elR.fuell = false
             elR.extraDaten  = { name: "", beschreibung: "", kategorie: "", makroId: 0 }
+        } else if (elR.typ === "schirm") {
+            elR.strichFarbe = "#888888"; elR.strichArt = "gestrichelt"; elR.fuell = false
+            elR.extraDaten  = { bezeichnung: "SH", anschlussSeite: "links", schirmtyp: "" }
         } else if (elR.typ === "notiz") {
             elR.strichFarbe = "#cccc22"; elR.fuell = true
             elR.fuellFarbe  = "#1a1a00"; elR.fuellOpazitaet = 0.9

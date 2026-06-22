@@ -1784,6 +1784,7 @@ ApplicationWindow {
     Shortcut { sequence: "G"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="geraetekasten"} } }
     Shortcut { sequence: "U"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="strukturkasten"} } }
     Shortcut { sequence: "M"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="makrokasten"} } }
+    Shortcut { sequence: "O"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="schirm"} } }
     Shortcut { sequence: "C"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="kabellinie"} } }
     Shortcut { sequence: "N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="notiz"} } }
     Shortcut { sequence: "S"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv&&c.paletteSymbolId!==""){c.abbruch();c.aktivesWerkzeug="symbol"} } }

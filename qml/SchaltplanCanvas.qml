@@ -1075,16 +1075,22 @@ Item {
             var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
             var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
             var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
-            var rr = er * root.mmToPx * root.zoom
+            var rr  = er * root.mmToPx * root.zoom
+            // Eckenradius (roundRect) setzt positive Breite/Höhe voraus – anders als
+            // fillRect/strokeRect, die mit negativer Breite/Höhe (Aufziehen in beliebiger
+            // Richtung) bereits korrekt umgehen. Daher hier immer normalisieren, analog zu
+            // _renderGeraetekasten/_renderStrukturkasten/_renderMakrokasten.
+            var rrx = Math.min(vx1, vx2), rry = Math.min(vy1, vy2)
+            var rrw = Math.abs(vx2 - vx1), rrh = Math.abs(vy2 - vy1)
             if (fu && !vorschau) {
                 ctx.fillStyle = ff; ctx.globalAlpha = fo
-                if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.fill() }
-                else          ctx.fillRect(vx1,vy1,vx2-vx1,vy2-vy1)
+                if (rr>0.5) { drawCanvas.roundRect(ctx,rrx,rry,rrw,rrh,rr); ctx.fill() }
+                else          ctx.fillRect(rrx,rry,rrw,rrh)
                 ctx.globalAlpha = op
             }
             ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
-            if (rr>0.5) { drawCanvas.roundRect(ctx,vx1,vy1,vx2-vx1,vy2-vy1,rr); ctx.stroke() }
-            else          ctx.strokeRect(vx1,vy1,vx2-vx1,vy2-vy1)
+            if (rr>0.5) { drawCanvas.roundRect(ctx,rrx,rry,rrw,rrh,rr); ctx.stroke() }
+            else          ctx.strokeRect(rrx,rry,rrw,rrh)
         }
 
         function _renderKreis(ctx, el, rc) {

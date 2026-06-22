@@ -661,8 +661,9 @@ MouseArea {
         }
         // Starteigenschaften nach Element-Typ
         if (elR.typ === "geraetekasten") {
-            elR.strichFarbe = "#cc7700"; elR.strichArt = "gestrichelt"
-            elR.fuell = true; elR.fuellFarbe = "#331a00"; elR.fuellOpazitaet = 0.15
+            // GK-1: Teal statt Orange-Braun – kollidierte visuell mit Kabellinie (#e07000)
+            elR.strichFarbe = "#0088aa"; elR.strichArt = "gestrichelt"
+            elR.fuell = true; elR.fuellFarbe = "#003344"; elR.fuellOpazitaet = 0.15
             elR.extraDaten = { bmk: "", bezeichnung: "" }
         } else if (elR.typ === "strukturkasten") {
             elR.strichFarbe = "#00aacc"; elR.strichArt = "gestrichelt"; elR.fuell = false

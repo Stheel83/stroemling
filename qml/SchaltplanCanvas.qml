@@ -1942,6 +1942,9 @@ Item {
             var gkRx = Math.min(vx1, vx2), gkRy = Math.min(vy1, vy2)
             var gkRw = Math.abs(vx2 - vx1), gkRh = Math.abs(vy2 - vy1)
             var gkR  = er > 0 ? er * root.mmToPx * root.zoom : 4 * root.zoom
+            // GK-1: eigene Standardfarbe Teal statt generischem Blau, unterscheidet sich
+            // von Strukturkasten (Grau) und Makrokasten (Violett)
+            var gkFarbe = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : (el.strichFarbe || "#0088aa"))
             if (fu && !vorschau) {
                 ctx.fillStyle  = ff
                 ctx.globalAlpha = op * fo
@@ -1949,7 +1952,7 @@ Item {
                 ctx.fill()
                 ctx.globalAlpha = op
             }
-            ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
+            ctx.strokeStyle = gkFarbe
             drawCanvas.roundRect(ctx, gkRx, gkRy, gkRw, gkRh, gkR)
             ctx.stroke()
             if (!vorschau && !_skipText && gkRw > 20 && gkRh > 12) {
@@ -1965,7 +1968,7 @@ Item {
                     var gkPad = Math.round(5 * root.zoom)
                     ctx.textAlign    = "left"
                     ctx.textBaseline = "top"
-                    ctx.fillStyle    = gewaehlt ? "#f0a030" : sf
+                    ctx.fillStyle    = gkFarbe
                     ctx.globalAlpha  = op
                     var gkTy = gkRy + gkPad
                     if (gkBmk !== "") {

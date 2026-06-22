@@ -433,17 +433,27 @@ Item {
             ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath()
         }
 
-        // Kapsel-/Stadium-Form: zwei echte Halbkreise (Radius = halbe Höhe) an
-        // den Seiten, verbunden durch zwei parallele Geraden (kein echtes Oval).
-        // Für das Schirm-Symbol (§2 in 46_schirmung.md).
-        function stadiumPfad(ctx, x, y, w, h, r) {
-            r = Math.min(Math.abs(r), Math.abs(w)/2, Math.abs(h)/2)
-            var cy = y + h/2, lcx = x + r, rcx = x + w - r
+        // Kapsel-/Stadium-Form: zwei echte Halbkreise an den kürzeren Seiten,
+        // verbunden durch zwei parallele Geraden (kein echtes Oval). Radius
+        // = halbe Breite ODER halbe Höhe, je nachdem welche Dimension kleiner
+        // ist — orientierungsabhängig, damit eine hochkant gedrehte Form (z.B.
+        // Schirm-Symbol nach 90°-Drehung) korrekt mit Kappen oben/unten statt
+        // links/rechts gezeichnet wird. Für das Schirm-Symbol (§2 in 46_schirmung.md).
+        function stadiumPfad(ctx, x, y, w, h) {
             ctx.beginPath()
-            ctx.moveTo(lcx, y); ctx.lineTo(rcx, y)
-            ctx.arc(rcx, cy, r, -Math.PI/2, Math.PI/2, false)
-            ctx.lineTo(lcx, y+h)
-            ctx.arc(lcx, cy, r, Math.PI/2, 3*Math.PI/2, false)
+            if (w >= h) {
+                var r = h/2, lcx = x+r, rcx = x+w-r, cy = y+h/2
+                ctx.moveTo(lcx, y); ctx.lineTo(rcx, y)
+                ctx.arc(rcx, cy, r, -Math.PI/2, Math.PI/2, false)
+                ctx.lineTo(lcx, y+h)
+                ctx.arc(lcx, cy, r, Math.PI/2, 3*Math.PI/2, false)
+            } else {
+                var r2 = w/2, tcy = y+r2, bcy = y+h-r2, cx = x+w/2
+                ctx.moveTo(x+w, tcy); ctx.lineTo(x+w, bcy)
+                ctx.arc(cx, bcy, r2, 0, Math.PI, false)
+                ctx.lineTo(x, tcy)
+                ctx.arc(cx, tcy, r2, Math.PI, 2*Math.PI, false)
+            }
             ctx.closePath()
         }
 
@@ -2094,11 +2104,11 @@ Item {
             if (fu && !vorschau) {
                 ctx.fillStyle  = ff
                 ctx.globalAlpha = op * fo
-                drawCanvas.stadiumPfad(ctx, shX, shY, shW, shH, shH/2); ctx.fill()
+                drawCanvas.stadiumPfad(ctx, shX, shY, shW, shH); ctx.fill()
                 ctx.globalAlpha = op
             }
             ctx.strokeStyle = shFarbe
-            drawCanvas.stadiumPfad(ctx, shX, shY, shW, shH, shH/2); ctx.stroke()
+            drawCanvas.stadiumPfad(ctx, shX, shY, shW, shH); ctx.stroke()
 
             var shEd    = el.extraDaten || {}
             var shSeite = shEd.anschlussSeite || "links"

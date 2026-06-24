@@ -37,6 +37,7 @@ public:
     Q_INVOKABLE bool loeschen(int id);
     Q_INVOKABLE bool umbenennen(int id, const QString &bezeichnung);
     Q_INVOKABLE void beispielLeistenAnlegen(int projektId);
+    Q_INVOKABLE int  duplizieren(int id);
 
 signals:
     void geladen();
@@ -82,6 +83,7 @@ public:
     // Klemmen-Instanzen verwalten
     Q_INVOKABLE int  klemmeAnlegen(int bauteilId);
     Q_INVOKABLE bool klemmeLoeschen(int klemmeId);
+    Q_INVOKABLE int  klemmeKopieren(int klemmeId);
     Q_INVOKABLE bool klemmeSchieben(int klemmeId, int richtung); // -1 = hoch, +1 = runter
 
     // Klemmen-Nummer ändern

@@ -367,6 +367,33 @@ Item {
                     ToolTip.text: qsTr("Klemme nach rechts verschieben")
                 }
 
+                // Kopieren-Button (nur wenn Klemme ausgewählt)
+                Button {
+                    visible: panel.aktivKlemmeIdx >= 0
+                    text: qsTr("⧉ Kopieren")
+                    implicitHeight: 28
+                    contentItem: Text {
+                        text: parent.text; font.pixelSize: 12; color: theme.textSecondary
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? theme.hover : "transparent"; border.color: theme.border; border.width: 1; radius: 4
+                    }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Klemme duplizieren – gleiches Bauteil, eigene Nummer, direkt danach einsortiert")
+                    onClicked: {
+                        var k = klemmenreiheModel.klemmen[panel.aktivKlemmeIdx]
+                        if (!k) return
+                        var newId = klemmenreiheModel.klemmeKopieren(k.klemmeId)
+                        if (newId > 0) {
+                            var kl = klemmenreiheModel.klemmen
+                            for (var i = 0; i < kl.length; i++) {
+                                if (kl[i].klemmeId === newId) { panel.aktivKlemmeIdx = i; break }
+                            }
+                        }
+                    }
+                }
+
                 // Löschen-Button (nur wenn Klemme ausgewählt)
                 Button {
                     visible: panel.aktivKlemmeIdx >= 0

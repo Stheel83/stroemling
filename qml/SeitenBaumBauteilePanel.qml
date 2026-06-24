@@ -53,6 +53,48 @@ ColumnLayout {
         return !!root._platziert[klemmeId + "_" + bezeichnung]
     }
 
+    // Lädt alle aktuell aufgeklappten Knoten neu, ohne den Baum einzuklappen
+    // (anders als der Öffnen-Handler, der *Aufgeklappt-Maps zurücksetzt).
+    function neuLaden() {
+        var klemmenCache = {}
+        for (var lid in root._leistenAufgeklappt) {
+            if (root._leistenAufgeklappt[lid])
+                klemmenCache[lid] = db.klemmenFuerLeiste(parseInt(lid))
+        }
+        root._klemmenCache = klemmenCache
+
+        var bauteilIdByKId = {}
+        for (var lid2 in klemmenCache) {
+            var liste = klemmenCache[lid2]
+            for (var i = 0; i < liste.length; i++)
+                bauteilIdByKId[liste[i].id] = liste[i].bauteilId
+        }
+        var anschluesseCache = {}
+        for (var kid in root._klemmenAufgeklappt) {
+            if (!root._klemmenAufgeklappt[kid]) continue
+            var bid = bauteilIdByKId[kid]
+            if (bid > 0) anschluesseCache[bid] = db.anschluesseFuerKlemme(bid)
+        }
+        root._anschluesseCache = anschluesseCache
+
+        var mitgliederCache = {}
+        for (var gbid in root._geraeteAufgeklappt) {
+            if (root._geraeteAufgeklappt[gbid])
+                mitgliederCache[gbid] = db.betriebsmittelMitgliederMitPos(parseInt(gbid))
+        }
+        root._mitgliederCache = mitgliederCache
+        root._geraeteVersion++
+
+        var kabellinienCache = {}
+        for (var kkid in root._kabelAufgeklappt) {
+            if (root._kabelAufgeklappt[kkid])
+                kabellinienCache[kkid] = db.kabellinienMitPos(parseInt(kkid))
+        }
+        root._kabellinienCache = kabellinienCache
+
+        root.aktualisiereStatus()
+    }
+
     function reset() {
         root._klemmenCache        = {}
         root._anschluesseCache    = {}
@@ -88,15 +130,9 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true; height: 36
         color: bauteilHeaderArea.containsMouse ? root.theme.hover : "transparent"
-        RowLayout {
-            anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
-            spacing: 6
-            Text {
-                text: qsTr("BAUTEILE"); font.pixelSize: 10; font.weight: Font.Medium
-                color: root.theme.textMuted; Layout.fillWidth: true
-            }
-            Text { text: root._bauteilBereichOffen ? "▲" : "▼"; font.pixelSize: 9; color: root.theme.textMuted }
-        }
+
+        // bauteilHeaderArea zuerst → liegt im Z-Stack unter dem RowLayout,
+        // damit der ↻-Button seine Klicks selbst abfangen kann.
         MouseArea {
             id: bauteilHeaderArea; anchors.fill: parent; hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
@@ -110,6 +146,30 @@ ColumnLayout {
                 }
                 root._bauteilBereichOffen = !root._bauteilBereichOffen
             }
+        }
+
+        RowLayout {
+            anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
+            spacing: 6
+            Text {
+                text: qsTr("BAUTEILE"); font.pixelSize: 10; font.weight: Font.Medium
+                color: root.theme.textMuted; Layout.fillWidth: true
+            }
+            Rectangle {
+                width: 22; height: 22; radius: 3
+                visible: root._bauteilBereichOffen
+                color: refreshBauteilBtn.containsMouse ? root.theme.activeItemAlt : "transparent"
+                Text { anchors.centerIn: parent; text: "↻"; font.pixelSize: 13; color: root.theme.accent }
+                ToolTip.visible: refreshBauteilBtn.containsMouse
+                ToolTip.text:    qsTr("Neu laden")
+                ToolTip.delay:   400
+                MouseArea {
+                    id: refreshBauteilBtn; anchors.fill: parent
+                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.neuLaden()
+                }
+            }
+            Text { text: root._bauteilBereichOffen ? "▲" : "▼"; font.pixelSize: 9; color: root.theme.textMuted }
         }
         DebugLabel { panelName: qsTr("BAUTEILE-Bereich (Seitenbaum)"); visible: root.debug }
     }

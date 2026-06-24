@@ -126,6 +126,98 @@ void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
     laden(projektId);
 }
 
+int KlemmenleistenModel::duplizieren(int id)
+{
+    QSqlQuery q;
+    q.prepare(
+        "SELECT projekt_id, bezeichnung, ausrichtung, anlage_uebergeordnet, "
+        "standort_uebergeordnet, bemerkung, ort_id FROM klemmenleiste WHERE id = :id"
+    );
+    q.bindValue(":id", id);
+    if (!q.exec() || !q.next()) {
+        qCWarning(lcModel) << "KlemmenleistenModel::duplizieren – Leiste nicht gefunden:" << id;
+        return -1;
+    }
+    int     projektId   = q.value(0).toInt();
+    QString bezeichnung = q.value(1).toString() + QStringLiteral(" (Kopie)");
+    QVariant ausrichtung = q.value(2);
+    QVariant anlage      = q.value(3);
+    QVariant standort     = q.value(4);
+    QVariant bemerkung   = q.value(5);
+    QVariant ortId        = q.value(6);
+
+    QSqlQuery qi;
+    qi.prepare(
+        "INSERT INTO klemmenleiste (projekt_id, bezeichnung, ausrichtung, "
+        "anlage_uebergeordnet, standort_uebergeordnet, bemerkung, ort_id) "
+        "VALUES (:pid, :bez, :aus, :anl, :sta, :bem, :ort)"
+    );
+    qi.bindValue(":pid", projektId);
+    qi.bindValue(":bez", bezeichnung);
+    qi.bindValue(":aus", ausrichtung);
+    qi.bindValue(":anl", anlage);
+    qi.bindValue(":sta", standort);
+    qi.bindValue(":bem", bemerkung);
+    qi.bindValue(":ort", ortId);
+    if (!qi.exec()) {
+        qCWarning(lcModel) << "KlemmenleistenModel::duplizieren – klemmenleiste:" << qi.lastError().text();
+        return -1;
+    }
+    int neueLeisteId = qi.lastInsertId().toInt();
+
+    // Klemmen kopieren, alt→neu-ID-Map aufbauen
+    QHash<int, int> klemmeIdMap;
+    QSqlQuery qk;
+    qk.prepare("SELECT id, bauteil_id, nummer, sortierung, bemerkung FROM klemme "
+               "WHERE klemmenleiste_id = :lid ORDER BY sortierung");
+    qk.bindValue(":lid", id);
+    if (qk.exec()) {
+        QSqlQuery qki;
+        qki.prepare("INSERT INTO klemme (klemmenleiste_id, bauteil_id, nummer, sortierung, bemerkung) "
+                    "VALUES (:lid, :bid, :nr, :srt, :bem)");
+        while (qk.next()) {
+            int altId = qk.value(0).toInt();
+            qki.bindValue(":lid", neueLeisteId);
+            qki.bindValue(":bid", qk.value(1));
+            qki.bindValue(":nr",  qk.value(2));
+            qki.bindValue(":srt", qk.value(3));
+            qki.bindValue(":bem", qk.value(4));
+            if (qki.exec())
+                klemmeIdMap[altId] = qki.lastInsertId().toInt();
+            else
+                qCWarning(lcModel) << "KlemmenleistenModel::duplizieren – klemme:" << qki.lastError().text();
+        }
+    }
+
+    // Stegbrücken kopieren (remappt auf neue Klemmen-IDs; verbindung_id und
+    // Konflikt-Status bewusst NICHT übernommen – das wäre dieselbe Phantom-
+    // Verdopplung wie bei KLEMME-DUP-01, nur auf Stegbrücken-Ebene)
+    QSqlQuery qs;
+    qs.prepare("SELECT ebene, von_klemme_id, bis_klemme_id, potenzial_text FROM klemme_stegbruecke "
+               "WHERE klemmenleiste_id = :lid");
+    qs.bindValue(":lid", id);
+    if (qs.exec()) {
+        QSqlQuery qsi;
+        qsi.prepare("INSERT INTO klemme_stegbruecke (klemmenleiste_id, ebene, von_klemme_id, "
+                    "bis_klemme_id, potenzial_text) VALUES (:lid, :eb, :von, :bis, :pot)");
+        while (qs.next()) {
+            int vonAlt = qs.value(1).toInt();
+            int bisAlt = qs.value(2).toInt();
+            if (!klemmeIdMap.contains(vonAlt) || !klemmeIdMap.contains(bisAlt)) continue;
+            qsi.bindValue(":lid", neueLeisteId);
+            qsi.bindValue(":eb",  qs.value(0));
+            qsi.bindValue(":von", klemmeIdMap[vonAlt]);
+            qsi.bindValue(":bis", klemmeIdMap[bisAlt]);
+            qsi.bindValue(":pot", qs.value(3));
+            if (!qsi.exec())
+                qCWarning(lcModel) << "KlemmenleistenModel::duplizieren – stegbruecke:" << qsi.lastError().text();
+        }
+    }
+
+    laden(projektId);
+    return neueLeisteId;
+}
+
 bool KlemmenleistenModel::loeschen(int id)
 {
     // Klemmen-Instanzen zuerst löschen
@@ -444,6 +536,52 @@ bool KlemmenreiheModel::klemmeLoeschen(int klemmeId)
     ladeKlemmen();
     emit leisteGeladen();
     return true;
+}
+
+int KlemmenreiheModel::klemmeKopieren(int klemmeId)
+{
+    if (m_leisteId < 0) return -1;
+
+    QSqlQuery q;
+    q.prepare("SELECT bauteil_id, sortierung, bemerkung FROM klemme WHERE id = :id");
+    q.bindValue(":id", klemmeId);
+    if (!q.exec() || !q.next()) {
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeKopieren – Klemme nicht gefunden:" << klemmeId;
+        return -1;
+    }
+    QVariant bauteilId  = q.value(0);
+    int      quellSort  = q.value(1).toInt();
+    QVariant bemerkung  = q.value(2);
+
+    // Platz für die Kopie direkt nach dem Original schaffen
+    q.prepare("UPDATE klemme SET sortierung = sortierung + 1 "
+              "WHERE klemmenleiste_id = :lid AND sortierung > :s");
+    q.bindValue(":lid", m_leisteId);
+    q.bindValue(":s", quellSort);
+    q.exec();
+
+    // Nächste freie numerische Nummer (gleiche Logik wie klemmeAnlegen)
+    q.prepare("SELECT COALESCE(MAX(CAST(nummer AS INTEGER)), 0) + 1 "
+              "FROM klemme WHERE klemmenleiste_id = :lid");
+    q.bindValue(":lid", m_leisteId);
+    QString nextNr = QString::number((q.exec() && q.next()) ? q.value(0).toInt() : 1);
+
+    q.prepare("INSERT INTO klemme (klemmenleiste_id, bauteil_id, nummer, sortierung, bemerkung) "
+              "VALUES (:lid, :bid, :nr, :srt, :bem)");
+    q.bindValue(":lid", m_leisteId);
+    q.bindValue(":bid", bauteilId);
+    q.bindValue(":nr",  nextNr);
+    q.bindValue(":srt", quellSort + 1);
+    q.bindValue(":bem", bemerkung);
+
+    if (!q.exec()) {
+        qCWarning(lcModel) << "KlemmenreiheModel::klemmeKopieren:" << q.lastError().text();
+        return -1;
+    }
+    int newId = q.lastInsertId().toInt();
+    ladeKlemmen();
+    emit leisteGeladen();
+    return newId;
 }
 
 bool KlemmenreiheModel::klemmeSchieben(int klemmeId, int richtung)

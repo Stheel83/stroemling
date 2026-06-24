@@ -570,6 +570,38 @@ Item {
                         }
                         Rectangle {
                             width: 26; height: 26; radius: 4
+                            color: duplizierLeisteBtn.containsMouse ? theme.hover : "transparent"
+                            border.color: theme.border
+                            opacity: duplizierLeisteBtn.enabled ? 1.0 : 0.4
+                            Text { anchors.centerIn: parent; text: "⧉"; font.pixelSize: 13; color: theme.textSecondary }
+                            ToolTip.visible: duplizierLeisteBtn.containsMouse
+                            ToolTip.text:    qsTr("Ausgewählte Klemmenleiste duplizieren (alle Klemmen + Stegbrücken)")
+                            ToolTip.delay:   500
+                            MouseArea {
+                                id:            duplizierLeisteBtn
+                                anchors.fill:  parent
+                                hoverEnabled:  true
+                                cursorShape:   Qt.PointingHandCursor
+                                enabled:       leisteListView.currentIndex >= 0
+                                onClicked: {
+                                    var newId = klemmenleistenModel.duplizieren(aktivLeistenId)
+                                    if (newId > 0) {
+                                        for (var i = 0; i < klemmenleistenModel.rowCount(); ++i) {
+                                            var idx = klemmenleistenModel.index(i, 0)
+                                            if (klemmenleistenModel.data(idx, Qt.UserRole + 1) === newId) {
+                                                leisteListView.currentIndex = i
+                                                break
+                                            }
+                                        }
+                                        aktivLeistenId = newId
+                                        klemmenreiheModel.laden(newId)
+                                        aktivKlemmeIdx = -1
+                                    }
+                                }
+                            }
+                        }
+                        Rectangle {
+                            width: 26; height: 26; radius: 4
                             color: addLeistenBtn.containsMouse ? theme.accent : theme.inputBg
                             border.color: theme.accent
                             Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 18; color: theme.textPrimary }

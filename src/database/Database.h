@@ -699,6 +699,10 @@ public:
     // D-08: Netze auf denen mehr als eine Quelle (Ausgang) liegt.
     // Rückgabe: [{verbindungId, name, quellenAnzahl, seiteNamen}]
     Q_INVOKABLE QVariantList drcParallelQuellen(int projektId);
+    // D-09: Klemmenanschluss-Geister (KLEMME-DUP-01/Makro-Fall) – noch nicht
+    // zu einer echten Klemme hochgestuft.
+    // Rückgabe: [{elementId, seiteId, seiteName, anschlussBezeichnung, bmk}]
+    Q_INVOKABLE QVariantList drcKlemmeGeister(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

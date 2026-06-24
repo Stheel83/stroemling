@@ -699,26 +699,41 @@ QtObject {
         if (!elsRoh || n < 1) { abbruch(); return }
 
         // KLEMME-DUP-01: verknüpfte Klemmenanschlüsse (Modus A) sind reale
-        // Bauteil-Anschlüsse und lassen sich grundsätzlich nicht kopieren –
-        // unabhängig von n, da jede Kopie denselben klemmeId+anschlussBezeichnung
-        // trüge wie das Original. Restliche Auswahl wird trotzdem eingefügt.
+        // Bauteil-Anschlüsse und lassen sich nicht als Zweitexemplar verknüpfen
+        // – jede Kopie trüge denselben klemmeId+anschlussBezeichnung wie das
+        // Original. Statt die Kopie zu verwerfen, wird sie zu einem deutlich
+        // markierten "Geist" entkoppelt (Modus C/Skizze, extraDaten.geist=true,
+        // grau+gestrichelt) – Nutzer hat dadurch eine Orientierung an Position
+        // und Bezeichnung, muss aber im Klemmenreihen-Editor eine echte Klemme
+        // nachziehen und verknüpfen.
         var els = []
-        var anzahlBlockiert = 0
+        var anzahlGeister = 0
         for (var b = 0; b < elsRoh.length; b++) {
             var elQ = elsRoh[b]
             if (elQ.typ === "symbol" && elQ.symbolId === "klemme_anschluss"
                 && elQ.extraDaten && elQ.extraDaten.platziermodus === "verknuepft") {
-                anzahlBlockiert++
+                var edGeist = Object.assign({}, elQ.extraDaten)
+                delete edGeist.klemmeId
+                delete edGeist.bauteilKlemmeId
+                edGeist.platziermodus = "skizze"
+                edGeist.geist = true
+                var elGeist = Object.assign({}, elQ)
+                elGeist.extraDaten  = edGeist
+                elGeist.strichFarbe = "#888888"
+                elGeist.strichArt   = "gestrichelt"
+                elGeist.opazitaet   = 0.55
+                els.push(elGeist)
+                anzahlGeister++
             } else {
                 els.push(elQ)
             }
         }
-        if (anzahlBlockiert > 0) {
+        if (anzahlGeister > 0) {
             meldungManager.zeigen(
-                anzahlBlockiert === 1
-                    ? qsTr("Klemmenanschlüsse können nicht kopiert werden – im Klemmenreihen-Editor weitere Klemmen anlegen und von dort platzieren.")
-                    : qsTr("%1 Klemmenanschlüsse übersprungen – sie können nicht kopiert werden. Weitere Klemmen im Klemmenreihen-Editor anlegen und von dort platzieren.").arg(anzahlBlockiert),
-                false
+                anzahlGeister === 1
+                    ? qsTr("Klemmenanschluss als Platzhalter eingefügt – im Klemmenreihen-Editor eine echte Klemme anlegen und verknüpfen.")
+                    : qsTr("%1 Klemmenanschlüsse als Platzhalter eingefügt – im Klemmenreihen-Editor echte Klemmen anlegen und verknüpfen.").arg(anzahlGeister),
+                true
             )
         }
         if (els.length === 0) { abbruch(); return }

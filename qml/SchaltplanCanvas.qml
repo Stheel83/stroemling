@@ -1811,6 +1811,7 @@ Item {
                 // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
                 if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss") {
                     var kaed     = el.extraDaten || {}
+                    var kaIstGeist = kaed.geist === true
                     var kaAnz    = kaed.anschlussBezeichnung || ""
                     var kaBmkRaw = kaed.bmk || ""
                     // Redundantes ":anschlussBezeichnung" am Ende entfernen – steht bereits auf Zeile 1
@@ -1858,7 +1859,7 @@ Item {
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
                             var kaAy = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
                             ctx.strokeText(kaAnz, kaX, kaAy)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#90e0a0")
                             ctx.fillText(kaAnz, kaX, kaAy)
                         }
                         if (kaBmkVis) {
@@ -1866,7 +1867,7 @@ Item {
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
                             var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
                             ctx.strokeText(kaBmk, kaX, kaBmkY)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#a0c0e0")
                             ctx.fillText(kaBmk, kaX, kaBmkY)
                         }
                     } else {
@@ -1880,7 +1881,7 @@ Item {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl
                             ctx.strokeText(kaAnz, kaCxO, kaY)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#90e0a0"
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#90e0a0")
                             ctx.fillText(kaAnz, kaCxO, kaY)
                         }
                         if (kaBmkVis) {
@@ -1888,7 +1889,7 @@ Item {
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl
                             var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
                             ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : "#a0c0e0"
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#a0c0e0")
                             ctx.fillText(kaBmk, kaCxO, kaBmkYh)
                         }
                     }

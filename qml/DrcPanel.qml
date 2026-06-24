@@ -132,6 +132,18 @@ Item {
                 "elementId": -1
             })
         }
+        var d09 = db.drcKlemmeGeister(root.projektId)
+        for (var r = 0; r < d09.length; r++) {
+            var kg = d09[r]
+            ergebnisModel.append({
+                "typ":       "klemme_geist",
+                "meldung":   qsTr("Klemmenanschluss-Platzhalter: %1").arg(kg.anschlussBezeichnung || kg.bmk || "?"),
+                "detail":    qsTr("Seite: %1 – noch keine echte Klemme zugewiesen").arg(kg.seiteName),
+                "seiteId":   kg.seiteId,
+                "elementId": kg.elementId
+            })
+        }
+
         root.hatGeprueft = true
         achievementManager.ereignis("drc_ausgefuehrt", { "fehlerAnzahl": ergebnisModel.count })
     }

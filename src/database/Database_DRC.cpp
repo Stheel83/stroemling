@@ -635,6 +635,42 @@ QVariantList Database::drcParallelQuellen(int projektId)
     return ergebnis;
 }
 
+QVariantList Database::drcKlemmeGeister(int projektId)
+{
+    // KLEMME-DUP-01/Makro-Fall: aus Copy/Paste oder Makro-Einfügen entstandene
+    // Klemmenanschluss-Platzhalter (extra_daten.geist=true) – noch nicht zu
+    // einer echten Klemme im Klemmenreihen-Editor hochgestuft.
+    QVariantList ergebnis;
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT ge.id, ge.seite_id, s.bezeichnung, "
+        "COALESCE(json_extract(ge.extra_daten,'$.anschlussBezeichnung'),''), "
+        "COALESCE(json_extract(ge.extra_daten,'$.bmk'),'') "
+        "FROM grafik_element ge "
+        "JOIN seite s ON ge.seite_id = s.id "
+        "WHERE s.projekt_id = :pid "
+        "  AND ge.typ = 'symbol' "
+        "  AND ge.symbol_id = 'klemme_anschluss' "
+        "  AND json_extract(ge.extra_daten,'$.geist') = 1 "
+        "ORDER BY s.blattnummer, ge.id"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "drcKlemmeGeister:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap fund;
+        fund["elementId"]            = q.value(0).toInt();
+        fund["seiteId"]              = q.value(1).toInt();
+        fund["seiteName"]            = q.value(2).toString();
+        fund["anschlussBezeichnung"] = q.value(3).toString();
+        fund["bmk"]                  = q.value(4).toString();
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

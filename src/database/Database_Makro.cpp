@@ -216,18 +216,43 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     )");
 
     while (qe.next()) {
-        // Bauteil-Snapshot in extra_daten einbetten (falls Bauteil verknüpft)
+        const QString symbolId       = qe.value(6).toString();
         const QString bauteilBezeich = qe.value(19).toString();
         QString edJson = qe.value(5).toString();
+        QJsonObject edObj = QJsonDocument::fromJson(edJson.toUtf8()).object();
+        bool edGeaendert = false;
+
+        // Bauteil-Snapshot in extra_daten einbetten (falls Bauteil verknüpft)
         if (!bauteilBezeich.isEmpty()) {
-            QJsonObject edObj = QJsonDocument::fromJson(edJson.toUtf8()).object();
             QJsonObject snap;
             snap[QStringLiteral("bezeichnung")]   = bauteilBezeich;
             snap[QStringLiteral("hersteller")]    = qe.value(20).toString();
             snap[QStringLiteral("artikelnummer")] = qe.value(21).toString();
             edObj[QStringLiteral("bauteilSnapshot")] = snap;
-            edJson = QString::fromUtf8(QJsonDocument(edObj).toJson(QJsonDocument::Compact));
+            edGeaendert = true;
         }
+
+        // KLEMME-DUP-01 (Makro-Fall): verknüpfte Klemmenanschlüsse dürfen mit
+        // ihrem echten klemmeId nicht in die projektübergreifende Makro-
+        // Bibliothek wandern – sonst entsteht bei jedem Einfügen (auch in
+        // anderen Projekten, wo die klemmeId gar nicht existiert) ein
+        // Geister-Duplikat bzw. ein kaputter Verweis. Wird beim Speichern zu
+        // einem deutlich markierten Geist entkoppelt (Modus C/Skizze,
+        // extra_daten.geist=true) – Bezeichnung/BMK bleiben als Orientierung
+        // erhalten, klemmeId/bauteilKlemmeId entfallen.
+        bool istKlemmenGeist = false;
+        if (symbolId == QStringLiteral("klemme_anschluss")
+            && edObj.value(QStringLiteral("platziermodus")).toString() == QStringLiteral("verknuepft")) {
+            edObj.remove(QStringLiteral("klemmeId"));
+            edObj.remove(QStringLiteral("bauteilKlemmeId"));
+            edObj[QStringLiteral("platziermodus")] = QStringLiteral("skizze");
+            edObj[QStringLiteral("geist")]         = true;
+            edGeaendert    = true;
+            istKlemmenGeist = true;
+        }
+
+        if (edGeaendert)
+            edJson = QString::fromUtf8(QJsonDocument(edObj).toJson(QJsonDocument::Compact));
 
         qi.bindValue(":mid",  makroId);
         qi.bindValue(":typ",  qe.value(0).toString());
@@ -241,13 +266,13 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
         qi.bindValue(":rot",  qe.value(8));
         qi.bindValue(":spx",  qe.value(9));
         qi.bindValue(":spy",  qe.value(10));
-        qi.bindValue(":sf",   qe.value(11));
+        qi.bindValue(":sf",   istKlemmenGeist ? QVariant(QStringLiteral("#888888"))   : qe.value(11));
         qi.bindValue(":sb",   qe.value(12));
-        qi.bindValue(":sa",   qe.value(13));
+        qi.bindValue(":sa",   istKlemmenGeist ? QVariant(QStringLiteral("gestrichelt")) : qe.value(13));
         qi.bindValue(":fl",   qe.value(14));
         qi.bindValue(":ff",   qe.value(15));
         qi.bindValue(":fo",   qe.value(16));
-        qi.bindValue(":op",   qe.value(17));
+        qi.bindValue(":op",   istKlemmenGeist ? QVariant(0.55) : qe.value(17));
         qi.bindValue(":er",   qe.value(18));
         if (!qi.exec()) {
             qCWarning(lcDb) << "makroSpeichern INSERT makro_element:" << qi.lastError().text();

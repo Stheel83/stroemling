@@ -90,13 +90,15 @@ Item {
             width: parent.width; height: 20
             Text {
                 anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                property bool istGeist: panel.el ? ((panel.el.extraDaten || {}).geist === true) : false
                 text: {
+                    if (istGeist) return qsTr("⚠ Platzhalter – echte Klemme im Klemmenreihen-Editor zuweisen")
                     var m = panel.el ? ((panel.el.extraDaten || {}).platziermodus || "") : ""
                     if (m === "skizze")      return qsTr("Modus: Skizze")
                     if (m === "verknuepft") return qsTr("Modus: Verknüpft")
                     return m || ""
                 }
-                font.pixelSize: 10; color: theme.textSubtle
+                font.pixelSize: 10; color: istGeist ? "#e0a030" : theme.textSubtle
             }
         }
 

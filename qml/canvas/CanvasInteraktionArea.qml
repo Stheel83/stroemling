@@ -59,6 +59,15 @@ MouseArea {
 
     onPositionChanged: function(mouse) {
         var em = canvas.elementeModel
+
+        // Koordinatenanzeige (Fußzeile): für alle Werkzeuge einheitlich, auch
+        // den Zeiger – vorher griff der unbedingte "return" am Ende des
+        // Zeiger-Zweigs zu früh, sodass die Anzeige nur beim Zeichnen lief.
+        var w = toWelt(mouse.x, mouse.y)
+        canvas.koordinatenTextSetzen(
+            "X " + Math.round(w.x / canvas.mmToPx) + " mm "
+            + "Y " + Math.round(w.y / canvas.mmToPx) + " mm")
+
         if (canvas.aktivesWerkzeug === "zeiger") {
             var vp = toViewport(mouse.x, mouse.y)
 
@@ -260,11 +269,7 @@ MouseArea {
             return
         }
 
-        // Zeichenwerkzeug: Koordinatenanzeige + Vorschau
-        var w = toWelt(mouse.x, mouse.y)
-        canvas.koordinatenTextSetzen(
-            "X " + Math.round(w.x / canvas.mmToPx) + " mm "
-            + "Y " + Math.round(w.y / canvas.mmToPx) + " mm")
+        // Zeichenwerkzeug: Vorschau (Koordinatenanzeige läuft bereits oben für alle Werkzeuge)
 
         if (canvas.aktivesWerkzeug === "duplizieren" && canvas.duplizierVorlage) {
             canvas._duplizierVorschauAktualisieren(w.x, w.y)

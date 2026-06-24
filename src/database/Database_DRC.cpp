@@ -103,8 +103,10 @@ QVariantList Database::drcSymboleOhneBmk(int projektId)
         "SELECT ge.id, ge.symbol_id, ge.seite_id, s.bezeichnung "
         "FROM grafik_element ge "
         "JOIN seite s ON ge.seite_id = s.id "
+        "JOIN ort o ON o.id = s.ort_id "
+        "JOIN anlage a ON a.id = o.anlage_id "
         "LEFT JOIN betriebsmittel b ON ge.betriebsmittel_id = b.id "
-        "WHERE s.projekt_id = :pid "
+        "WHERE a.projekt_id = :pid "
         "  AND ge.typ = 'symbol' "
         "  AND ge.symbol_id NOT IN ("
         "    'winkel','treffpunkt','treffpunkt_l','geraeteanschluss',"
@@ -134,10 +136,12 @@ QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
     QVariantList ergebnis;
     QSqlQuery q(m_db);
     q.prepare(
-        "SELECT id, blattnummer FROM seite "
-        "WHERE projekt_id = :pid "
-        "  AND TRIM(COALESCE(bezeichnung,'')) = '' "
-        "ORDER BY blattnummer"
+        "SELECT s.id, s.blattnummer FROM seite s "
+        "JOIN ort o ON o.id = s.ort_id "
+        "JOIN anlage a ON a.id = o.anlage_id "
+        "WHERE a.projekt_id = :pid "
+        "  AND TRIM(COALESCE(s.bezeichnung,'')) = '' "
+        "ORDER BY s.blattnummer"
     );
     q.bindValue(":pid", projektId);
     if (!q.exec()) {
@@ -201,7 +205,10 @@ QVariantList Database::drcUnverbundenePins(int projektId)
 
     // Alle Seiten des Projekts laden
     QSqlQuery seitenQ;
-    seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
+    seitenQ.prepare("SELECT s.id, s.bezeichnung FROM seite s "
+                     "JOIN ort o ON o.id = s.ort_id "
+                     "JOIN anlage a ON a.id = o.anlage_id "
+                     "WHERE a.projekt_id = :pid ORDER BY s.blattnummer");
     seitenQ.bindValue(":pid", projektId);
     if (!seitenQ.exec()) {
         qCWarning(lcDb) << "drcUnverbundenePins seiten:" << seitenQ.lastError().text();
@@ -316,7 +323,10 @@ QVariantList Database::drcLeitungsenden(int projektId)
     QVariantList ergebnis;
 
     QSqlQuery seitenQ;
-    seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
+    seitenQ.prepare("SELECT s.id, s.bezeichnung FROM seite s "
+                     "JOIN ort o ON o.id = s.ort_id "
+                     "JOIN anlage a ON a.id = o.anlage_id "
+                     "WHERE a.projekt_id = :pid ORDER BY s.blattnummer");
     seitenQ.bindValue(":pid", projektId);
     if (!seitenQ.exec()) {
         qCWarning(lcDb) << "drcLeitungsenden seiten:" << seitenQ.lastError().text();
@@ -496,7 +506,10 @@ QVariantList Database::drcParallelQuellen(int projektId)
 
     // Alle Seiten des Projekts
     QSqlQuery seitenQ;
-    seitenQ.prepare("SELECT id, bezeichnung FROM seite WHERE projekt_id = :pid ORDER BY blattnummer");
+    seitenQ.prepare("SELECT s.id, s.bezeichnung FROM seite s "
+                     "JOIN ort o ON o.id = s.ort_id "
+                     "JOIN anlage a ON a.id = o.anlage_id "
+                     "WHERE a.projekt_id = :pid ORDER BY s.blattnummer");
     seitenQ.bindValue(":pid", projektId);
     if (!seitenQ.exec()) {
         qCWarning(lcDb) << "drcParallelQuellen seiten:" << seitenQ.lastError().text();
@@ -648,7 +661,9 @@ QVariantList Database::drcKlemmeGeister(int projektId)
         "COALESCE(json_extract(ge.extra_daten,'$.bmk'),'') "
         "FROM grafik_element ge "
         "JOIN seite s ON ge.seite_id = s.id "
-        "WHERE s.projekt_id = :pid "
+        "JOIN ort o ON o.id = s.ort_id "
+        "JOIN anlage a ON a.id = o.anlage_id "
+        "WHERE a.projekt_id = :pid "
         "  AND ge.typ = 'symbol' "
         "  AND ge.symbol_id = 'klemme_anschluss' "
         "  AND json_extract(ge.extra_daten,'$.geist') = 1 "

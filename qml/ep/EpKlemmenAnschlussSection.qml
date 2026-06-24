@@ -87,9 +87,12 @@ Item {
 
         // Platziermodus
         Item {
-            width: parent.width; height: 20
+            width: parent.width
+            height: modusText.implicitHeight + 8
             Text {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                id: modusText
+                anchors { left: parent.left; leftMargin: 12; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                wrapMode: Text.WordWrap
                 property bool istGeist: panel.el ? ((panel.el.extraDaten || {}).geist === true) : false
                 text: {
                     if (istGeist) return qsTr("⚠ Platzhalter – echte Klemme im Klemmenreihen-Editor zuweisen")

@@ -695,8 +695,34 @@ QtObject {
     }
 
     function _duplizierAnzahlPlatzieren(n) {
-        var els = cv.duplizierVorlage
-        if (!els || n < 1) { abbruch(); return }
+        var elsRoh = cv.duplizierVorlage
+        if (!elsRoh || n < 1) { abbruch(); return }
+
+        // KLEMME-DUP-01: verknüpfte Klemmenanschlüsse (Modus A) sind reale
+        // Bauteil-Anschlüsse und lassen sich grundsätzlich nicht kopieren –
+        // unabhängig von n, da jede Kopie denselben klemmeId+anschlussBezeichnung
+        // trüge wie das Original. Restliche Auswahl wird trotzdem eingefügt.
+        var els = []
+        var anzahlBlockiert = 0
+        for (var b = 0; b < elsRoh.length; b++) {
+            var elQ = elsRoh[b]
+            if (elQ.typ === "symbol" && elQ.symbolId === "klemme_anschluss"
+                && elQ.extraDaten && elQ.extraDaten.platziermodus === "verknuepft") {
+                anzahlBlockiert++
+            } else {
+                els.push(elQ)
+            }
+        }
+        if (anzahlBlockiert > 0) {
+            meldungManager.zeigen(
+                anzahlBlockiert === 1
+                    ? qsTr("Klemmenanschlüsse können nicht kopiert werden – im Klemmenreihen-Editor weitere Klemmen anlegen und von dort platzieren.")
+                    : qsTr("%1 Klemmenanschlüsse übersprungen – sie können nicht kopiert werden. Weitere Klemmen im Klemmenreihen-Editor anlegen und von dort platzieren.").arg(anzahlBlockiert),
+                false
+            )
+        }
+        if (els.length === 0) { abbruch(); return }
+
         var neueEl = []
         for (var c = 1; c <= n; c++) {
             var dx = cv.duplizierOffsetX * c

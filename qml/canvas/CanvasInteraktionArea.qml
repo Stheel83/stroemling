@@ -169,6 +169,7 @@ MouseArea {
                         if (hLeiste) hParts.push("Leiste    " + hLeiste)
                         if (hNr)     hParts.push("Klemme    Nr. " + hNr)
                         if (hBez)    hParts.push("Anschluss " + hBez)
+                        if (hed.geist === true) hParts.push("⚠ Platzhalter – echten Anschluss direkt darauf setzen")
                         root.tooltipText = hParts.join("\n")
                         kaTooltip.x = mouse.x + 14
                         kaTooltip.y = mouse.y + 14
@@ -444,9 +445,32 @@ MouseArea {
         } else if (canvas.aktivesWerkzeug === "symbol" && canvas.paletteSymbolId !== "") {
             var wSym = toWelt(mouse.x, mouse.y)
             var prev = canvas.symbolVorschauErstellen(wSym.x, wSym.y)
+
+            // Geist-Erkennung: verknüpfter Klemmenanschluss auf Geist-Platzhalter abgelegt?
+            var _geist = null
+            var _snap  = em.snapshot()
+            if (canvas.paletteSymbolId === "klemme_anschluss"
+                    && canvas.paletteExtraDaten
+                    && canvas.paletteExtraDaten.platziermodus === "verknuepft") {
+                var _ncx = (prev.x1 + prev.x2) / 2, _ncy = (prev.y1 + prev.y2) / 2
+                for (var _gi = 0; _gi < _snap.length; _gi++) {
+                    var _ge = _snap[_gi]
+                    if (_ge.typ !== "symbol" || _ge.symbolId !== "klemme_anschluss") continue
+                    if (!(_ge.extraDaten && _ge.extraDaten.geist === true)) continue
+                    var _gcx = (_ge.x1 + _ge.x2) / 2, _gcy = (_ge.y1 + _ge.y2) / 2
+                    var _tol = Math.max(Math.abs(_ge.x2 - _ge.x1), Math.abs(_ge.y2 - _ge.y1))
+                    if (Math.sqrt((_ncx-_gcx)*(_ncx-_gcx) + (_ncy-_gcy)*(_ncy-_gcy)) <= _tol) {
+                        _geist = { idx: _gi, el: _ge }; break
+                    }
+                }
+            }
+
             var elSym = {
                 typ:              "symbol",
-                x1: prev.x1, y1: prev.y1, x2: prev.x2, y2: prev.y2,
+                x1: _geist ? _geist.el.x1 : prev.x1,
+                y1: _geist ? _geist.el.y1 : prev.y1,
+                x2: _geist ? _geist.el.x2 : prev.x2,
+                y2: _geist ? _geist.el.y2 : prev.y2,
                 symbolId:         canvas.paletteSymbolId,
                 rotation:         canvas.paletteSymbolRotation,
                 spiegelX:         false, spiegelY: false,
@@ -462,7 +486,13 @@ MouseArea {
                 opazitaet:        canvas.stilVorlage.opazitaet,
                 eckenRadius:      0
             }
-            canvas.aktionAusfuehren(em.snapshot().concat([elSym]))
+            if (_geist) {
+                var _ohneGeist = _snap.filter(function(_, i) { return i !== _geist.idx })
+                canvas.aktionAusfuehren(_ohneGeist.concat([elSym]))
+                meldungManager.zeigen(qsTr("Geist-Anschluss ersetzt – Verdrahtung am neuen Anschluss prüfen."), true)
+            } else {
+                canvas.aktionAusfuehren(_snap.concat([elSym]))
+            }
             achievementManager.ereignis("element_platziert",
                 { "typ": "symbol", "elementeAufSeite": em.anzahl })
             if (canvas.paletteSymbolId === "klemme_anschluss"

@@ -95,7 +95,7 @@ Item {
                 wrapMode: Text.WordWrap
                 property bool istGeist: panel.el ? ((panel.el.extraDaten || {}).geist === true) : false
                 text: {
-                    if (istGeist) return qsTr("⚠ Platzhalter – echte Klemme im Klemmenreihen-Editor zuweisen")
+                    if (istGeist) return qsTr("⚠ Platzhalter – echten Anschluss aus dem Klemmenreihen-Editor direkt auf diesen setzen; der Platzhalter wird automatisch ersetzt. Kein Löschen nötig.")
                     var m = panel.el ? ((panel.el.extraDaten || {}).platziermodus || "") : ""
                     if (m === "skizze")      return qsTr("Modus: Skizze")
                     if (m === "verknuepft") return qsTr("Modus: Verknüpft")

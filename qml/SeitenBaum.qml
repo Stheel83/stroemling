@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtCore
 import "components"
 
 // ============================================================
@@ -18,7 +19,14 @@ Item {
     property string projektName: ""
     property int    aktivSeiteId: -1   // von außen gesetzt; -1 = keine Seite aktiv
 
-    property int _dragSeiteId: -1
+    property int  _dragSeiteId:   -1
+    property real _bauteileHoehe: seitenBaumSettings.bauteileHoehe
+
+    Settings {
+        id: seitenBaumSettings
+        category: "seitenbaum"
+        property real bauteileHoehe: 280
+    }
 
     // Wird ausgelöst wenn der Benutzer eine Seite anklickt
     signal seiteGewaehlt(int id, string blattnummer, string bezeichnung)
@@ -1131,10 +1139,58 @@ Item {
             }
         }
 
+        // ── Drag-Teiler zwischen Seitenbaum und Bauteile-Panel ──
+        Rectangle {
+            Layout.fillWidth: true
+            height: bauteilePanel.offen ? 5 : 0
+            visible: bauteilePanel.offen
+            color: bauteileTeilerMA.containsMouse || bauteileTeilerMA.pressed
+                   ? theme.accent : theme.borderDark
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 4
+                Repeater {
+                    model: 4
+                    Rectangle {
+                        width: 3; height: 3; radius: 1.5
+                        color: bauteileTeilerMA.containsMouse || bauteileTeilerMA.pressed
+                               ? "#ffffff" : theme.borderLight
+                    }
+                }
+            }
+
+            MouseArea {
+                id: bauteileTeilerMA
+                anchors.fill: parent
+                cursorShape: Qt.SizeVerCursor
+                hoverEnabled: true
+
+                property real _pressGlobalY: 0
+                property real _pressH:       0
+
+                onPressed: (mouse) => {
+                    _pressGlobalY = mapToGlobal(mouse.x, mouse.y).y
+                    _pressH       = root._bauteileHoehe
+                }
+                onPositionChanged: (mouse) => {
+                    if (!pressed) return
+                    var delta = _pressGlobalY - mapToGlobal(mouse.x, mouse.y).y
+                    root._bauteileHoehe = Math.max(80, Math.min(root.height - 160, _pressH + delta))
+                }
+                onReleased: {
+                    seitenBaumSettings.bauteileHoehe = root._bauteileHoehe
+                }
+            }
+
+            ToolTip.visible: bauteileTeilerMA.containsMouse && !bauteileTeilerMA.pressed
+            ToolTip.text:    qsTr("Höhe des Bauteile-Bereichs durch Ziehen anpassen")
+            ToolTip.delay:   700
+        }
+
         SeitenBaumBauteilePanel {
             id: bauteilePanel
-            Layout.fillHeight: bauteilePanel.offen
-            Layout.maximumHeight: bauteilePanel.offen ? Math.floor((root.height - 53) / 2) : -1
+            Layout.preferredHeight: bauteilePanel.offen ? root._bauteileHoehe : -1
             theme: root.theme
             aktivSeiteId: root.aktivSeiteId
             projektId: root.projektId

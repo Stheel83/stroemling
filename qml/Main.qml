@@ -222,16 +222,11 @@ ApplicationWindow {
     property string aktivSprache: langSettings.language
 
     // ── Fun-Modus Idle-Detection ─────────────────────────────────
-    // Beobachtet Mausbewegungen im gesamten Fenster; stört andere Elemente nicht.
-    // WICHTIG: running-Binding auf idleTimer vermeiden – restart() bricht Bindings.
-    MouseArea {
-        id:                      idleMouseWatcher
-        anchors.fill:            parent
-        z:                       -999
-        hoverEnabled:            true
-        propagateComposedEvents: true
-        acceptedButtons:         Qt.NoButton
-        onPositionChanged: {
+    // C++ Event-Filter erkennt Mausbewegung, Klicks, Tastatur und Scrollrad –
+    // zuverlässiger als MouseArea (z=-999 bekommt keine Klicks von höheren Elementen).
+    Connections {
+        target: aktivitaetsMonitor
+        function onAktivitaet() {
             if (funModusSettings.aktiv && root.aktivProjektId >= 0 && !funOverlay.visible)
                 idleTimer.restart()
         }

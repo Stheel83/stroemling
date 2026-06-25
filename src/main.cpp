@@ -31,6 +31,7 @@
 #include "achievements/AchievementManager.h"
 #include "MeldungManager.h"
 #include "rosi/RosiManager.h"
+#include "utils/AktivitaetsMonitor.h"
 
 // ── Log-Handler ───────────────────────────────────────────────
 static QFile    s_logFile;
@@ -264,6 +265,7 @@ int main(int argc, char *argv[])
     AchievementManager          achievementManager;
     MeldungManager               meldungManager;
     RosiManager                  rosiManager;
+    AktivitaetsMonitor           aktivitaetsMonitor;
     ElementeModel               elementeModel1;
     ElementeModel               elementeModel2;
     ElementeModel               elementeModel3;   // IBN-Canvas
@@ -288,7 +290,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("appHelper",            &appHelper);
     engine.rootContext()->setContextProperty("achievementManager",   &achievementManager);
     engine.rootContext()->setContextProperty("meldungManager",       &meldungManager);
-    engine.rootContext()->setContextProperty("rosiManager",          &rosiManager);
+    engine.rootContext()->setContextProperty("rosiManager",           &rosiManager);
+    engine.rootContext()->setContextProperty("aktivitaetsMonitor",   &aktivitaetsMonitor);
     engine.rootContext()->setContextProperty("elementeModel1",       &elementeModel1);
     engine.rootContext()->setContextProperty("elementeModel2",       &elementeModel2);
     engine.rootContext()->setContextProperty("elementeModel3",       &elementeModel3);

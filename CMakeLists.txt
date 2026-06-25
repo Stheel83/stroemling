@@ -46,6 +46,8 @@ qt_add_executable(stroemling_app
     src/models/KabelRechnerModel.cpp
     src/models/KabelRechnerModel.h
     src/utils/KabelTabellen.h
+    src/utils/AktivitaetsMonitor.h
+    src/utils/AktivitaetsMonitor.cpp
     src/canvas/ElementeModel.cpp
     src/canvas/ElementeModel.h
     src/achievements/AchievementManager.cpp

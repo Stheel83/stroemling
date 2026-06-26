@@ -12,6 +12,7 @@ Rectangle {
     signal bauteilWaehlenAngefordert(int klemmeId)
     signal modusAPlatzierenAngefordert(int klemmeId, int bauteilKlemmeId, string bmkPrefix)
     signal leisteGeloescht()
+    signal leisteKanvasAktualisiert()
 
     color: theme.sidebar
 
@@ -569,8 +570,38 @@ Rectangle {
                 }
             }
 
+            // Platzierte Klemmen synchronisieren
+            Item { height: 8 }
+            Rectangle { height: 1; Layout.fillWidth: true; color: theme.divider }
+            Button {
+                Layout.fillWidth: true
+                implicitHeight: 28
+                text: qsTr("Platzierte Klemmen synchronisieren")
+                contentItem: Text {
+                    text: parent.text; font.pixelSize: 11; color: theme.textPrimary
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: parent.hovered ? theme.accent : theme.inputBg
+                    border.color: theme.accent; border.width: 1; radius: 4
+                }
+                ToolTip.visible: hovered; ToolTip.delay: 500
+                ToolTip.text: qsTr("Bauteil-Artikel aller platzierten Klemmenanschlüsse\ndieser Leiste auf die aktuelle Zuweisung aktualisieren.\nNötig wenn ein Bauteil nach dem Platzieren gewechselt wurde.")
+                onClicked: {
+                    var n = klemmenreiheModel.leisteKanvasAktualisieren()
+                    if (n < 0) {
+                        meldungManager.zeigen(qsTr("Fehler beim Aktualisieren der platzierten Klemmen."), false)
+                    } else if (n === 0) {
+                        meldungManager.zeigen(qsTr("Keine platzierten Anschlüsse dieser Leiste gefunden."), true)
+                    } else {
+                        meldungManager.zeigen(qsTr("%1 Klemmenanschluss/-anschlüsse auf neues Bauteil aktualisiert.").arg(n), true)
+                        root.leisteKanvasAktualisiert()
+                    }
+                }
+            }
+
             // Leiste löschen
-            Item { height: 16 }
+            Item { height: 8 }
             Rectangle { height: 1; Layout.fillWidth: true; color: theme.divider }
             Button {
                 Layout.fillWidth: true

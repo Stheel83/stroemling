@@ -101,6 +101,11 @@ public:
     // Klemmen-Bauteile für Suchdialog (nur Bauteile mit bauteil_klemme-Eintrag)
     Q_INVOKABLE QVariantList klemmeBauteileHolen(const QString &suchtext) const;
 
+    // bauteilKlemmeId in grafik_element.extra_daten für alle platzierten Anschlüsse
+    // dieser Leiste auf den aktuellen Wert synchronisieren.
+    // Gibt die Anzahl aktualisierter Elemente zurück, -1 bei Fehler.
+    Q_INVOKABLE int  leisteKanvasAktualisieren();
+
     // Stegbrücken verwalten
     Q_INVOKABLE int  stegbrueckeAnlegen(int ebene, int vonKlemmeId, int bisKlemmeId);
     Q_INVOKABLE bool stegbrueckeLoeschen(int id);

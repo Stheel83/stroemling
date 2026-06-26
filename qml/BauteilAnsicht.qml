@@ -18,6 +18,7 @@ Item {
 
     signal klemmeAnschlussModusAPlatzieren(int bauteilKlemmeId, string anschlussBezeichnung, string bmk, int klemmeId)
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
+    signal leisteKanvasAktualisiert()
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal makroListeGeaendert()
@@ -54,6 +55,7 @@ Item {
                 onKlemmeAnschlussModusAPlatzieren: function(bkId, bez, bmk, kId) {
                     root.klemmeAnschlussModusAPlatzieren(bkId, bez, bmk, kId)
                 }
+                onLeisteKanvasAktualisiert: root.leisteKanvasAktualisiert()
             }
 
             BaGeraetekastenAnsicht {

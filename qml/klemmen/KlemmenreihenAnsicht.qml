@@ -12,6 +12,8 @@ Item {
 
     // Modus-A-Platzierung: Klemme aus Klemmenreihe direkt im Canvas platzieren
     signal klemmeAnschlussModusAPlatzieren(int bauteilKlemmeId, string anschlussBezeichnung, string bmk, int klemmeId)
+    // Platzierte Canvas-Elemente wurden mit aktuellem Bauteil synchronisiert → Canvas neu laden
+    signal leisteKanvasAktualisiert()
 
     onProjektIdChanged: {
         aktivLeistenId  = -1
@@ -759,7 +761,8 @@ Item {
                 modusAPlatzierDlg.bmkPrefix       = prefix
                 modusAPlatzierDlg.open()
             }
-            onLeisteGeloescht: leisteListView.currentIndex = -1
+            onLeisteGeloescht:           leisteListView.currentIndex = -1
+            onLeisteKanvasAktualisiert:  panel.leisteKanvasAktualisiert()
         }
     }
 }

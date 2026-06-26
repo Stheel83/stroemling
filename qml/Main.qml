@@ -1151,6 +1151,10 @@ ApplicationWindow {
                     p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
                 }
                 onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
+                onLeisteKanvasAktualisiert: {
+                    if (panel1.aktivSeiteId >= 0) elementeModel1.laden(panel1.aktivSeiteId)
+                    if (panel2.aktivSeiteId >= 0) elementeModel2.laden(panel2.aktivSeiteId)
+                }
                 onKlemmeAnschlussModusAPlatzieren: function(bauteilKlemmeId, anschlussBezeichnung, bmk, klemmeId) {
                     if (root.aktivSeiteId < 0) {
                         meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)

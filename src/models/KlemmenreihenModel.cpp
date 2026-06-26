@@ -718,6 +718,32 @@ QVariantList KlemmenreiheModel::klemmeBauteileHolen(const QString &suchtext) con
     return liste;
 }
 
+int KlemmenreiheModel::leisteKanvasAktualisieren()
+{
+    if (m_leisteId < 0) return 0;
+
+    QSqlQuery q;
+    q.prepare(
+        "UPDATE grafik_element "
+        "SET extra_daten = json_set(extra_daten, '$.bauteilKlemmeId', "
+        "    (SELECT bk.id "
+        "     FROM klemme k "
+        "     LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
+        "     WHERE k.id = CAST(json_extract(grafik_element.extra_daten,'$.klemmeId') AS INTEGER))) "
+        "WHERE symbol_id = 'klemme_anschluss' "
+        "  AND json_extract(extra_daten,'$.platziermodus') = 'verknuepft' "
+        "  AND CAST(json_extract(extra_daten,'$.klemmeId') AS INTEGER) IN "
+        "      (SELECT id FROM klemme WHERE klemmenleiste_id = :lid)"
+    );
+    q.bindValue(":lid", m_leisteId);
+
+    if (!q.exec()) {
+        qCWarning(lcModel) << "KlemmenreiheModel::leisteKanvasAktualisieren:" << q.lastError().text();
+        return -1;
+    }
+    return q.numRowsAffected();
+}
+
 int KlemmenreiheModel::stegbrueckeAnlegen(int ebene, int vonKlemmeId, int bisKlemmeId)
 {
     if (m_leisteId < 0) return -1;

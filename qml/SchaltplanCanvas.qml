@@ -1983,19 +1983,29 @@ Item {
                     var gkFs  = Math.max(5, Math.round(gkSch * root.mmToPx * root.zoom))
                     var gkFsB = Math.max(4, Math.round(gkSch * 0.85 * root.mmToPx * root.zoom))
                     var gkPad = Math.round(5 * root.zoom)
+                    var gkOx  = (gkEd.bmkOffsetX !== undefined ? gkEd.bmkOffsetX : 0) * root.zoom
+                    var gkOy  = (gkEd.bmkOffsetY !== undefined ? gkEd.bmkOffsetY : 0) * root.zoom
                     ctx.textAlign    = "left"
                     ctx.textBaseline = "top"
                     ctx.fillStyle    = gkFarbe
                     ctx.globalAlpha  = op
-                    var gkTy = gkRy + gkPad
+                    var gkTx = gkRx + gkPad + gkOx
+                    var gkTy = gkRy + gkPad + gkOy
                     if (gkBmk !== "") {
                         ctx.font = "bold " + gkFs + "px sans-serif"
-                        ctx.fillText(gkBmk, gkRx + gkPad, gkTy)
-                        gkTy += gkFs * 1.3
+                        var gkBmkZ = gkBmk.split("\n")
+                        for (var gki = 0; gki < gkBmkZ.length; gki++) {
+                            ctx.fillText(gkBmkZ[gki], gkTx, gkTy)
+                            gkTy += gkFs * 1.3
+                        }
                     }
                     if (gkBez !== "") {
                         ctx.font = gkFsB + "px sans-serif"
-                        ctx.fillText(gkBez, gkRx + gkPad, gkTy)
+                        var gkBezZ = gkBez.split("\n")
+                        for (var gkj = 0; gkj < gkBezZ.length; gkj++) {
+                            ctx.fillText(gkBezZ[gkj], gkTx, gkTy)
+                            gkTy += gkFsB * 1.3
+                        }
                     }
                     ctx.restore()
                 }
@@ -2035,7 +2045,9 @@ Item {
                 ctx.textBaseline = "top"
                 ctx.fillStyle   = gewaehlt ? "#f0a030" : sf
                 ctx.globalAlpha = op
-                var skOff = Math.round(4 * root.zoom)
+                var skOx  = (skEd.bmkOffsetX !== undefined ? skEd.bmkOffsetX : 0) * root.zoom
+                var skOy  = (skEd.bmkOffsetY !== undefined ? skEd.bmkOffsetY : 0) * root.zoom
+                var skOff = Math.round(4 * root.zoom) + skOy
                 // Anlage/Ort-Label oben rechts
                 var skLbl = ""
                 if (skAUO) skLbl += "==" + skAUO + " "
@@ -2044,13 +2056,18 @@ Item {
                 if (skOrt) skLbl += "+"  + skOrt
                 if (skLbl !== "") {
                     ctx.textAlign = "right"
-                    ctx.fillText(skLbl.trim(), skRx + skRw - Math.round(5 * root.zoom), skRy + skOff)
+                    ctx.fillText(skLbl.trim(), skRx + skRw - Math.round(5 * root.zoom) + skOx, skRy + skOff)
                 }
-                // Bezeichnung oben links
+                // Bezeichnung oben links (Zeilenumbrüche via \n)
                 if (skBez !== "") {
                     ctx.textAlign = "left"
                     ctx.font      = skFs + "px sans-serif"
-                    ctx.fillText(skBez, skRx + Math.round(5 * root.zoom), skRy + skOff)
+                    var skBezZ = skBez.split("\n")
+                    var skBezY = skRy + skOff
+                    for (var ski = 0; ski < skBezZ.length; ski++) {
+                        ctx.fillText(skBezZ[ski], skRx + Math.round(5 * root.zoom) + skOx, skBezY)
+                        skBezY += skFs * 1.3
+                    }
                 }
                 ctx.restore()
             }
@@ -2087,9 +2104,16 @@ Item {
                 ctx.textAlign    = "center"
                 ctx.fillStyle   = mkFarbe
                 ctx.globalAlpha = op
+                var mkOx   = (mkEd.bmkOffsetX !== undefined ? mkEd.bmkOffsetX : 0) * root.zoom
+                var mkOy   = (mkEd.bmkOffsetY !== undefined ? mkEd.bmkOffsetY : 0) * root.zoom
                 var mkPfx  = mkSaved ? "✓ " : "⬜ "
                 var mkName = mkEd.name || qsTr("Makro")
-                ctx.fillText(mkPfx + mkName, mkRx + mkRw / 2, mkRy + Math.round(4 * root.zoom))
+                var mkNameZ = mkName.split("\n")
+                var mkTy = mkRy + Math.round(4 * root.zoom) + mkOy
+                for (var mki = 0; mki < mkNameZ.length; mki++) {
+                    ctx.fillText((mki === 0 ? mkPfx : "  ") + mkNameZ[mki], mkRx + mkRw / 2 + mkOx, mkTy)
+                    mkTy += mkFs * 1.3
+                }
                 ctx.restore()
             }
         }

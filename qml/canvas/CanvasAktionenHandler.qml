@@ -221,6 +221,51 @@ QtObject {
     // Gibt Element-Index zurück oder -1 wenn kein Label getroffen.
     function labelTreffenTest(vpX, vpY) {
         var n = cv.elementeModel.anzahl
+        var pad = 8
+
+        // Durchlauf 1: Kastenbeschriftungen haben Vorrang vor Symbolbeschriftungen
+        // (Symbole im Kasten haben höhere Indizes und würden sonst fälschlich treffen)
+        for (var bi = n - 1; bi >= 0; bi--) {
+            var bel = cv.elementeModel.element(bi)
+            if (bel.typ !== "geraetekasten" && bel.typ !== "strukturkasten" && bel.typ !== "makrokasten") continue
+            var bed  = bel.extraDaten || {}
+            var bvx1 = bel.x1 * cv.zoom + cv.worldX, bvy1 = bel.y1 * cv.zoom + cv.worldY
+            var bvx2 = bel.x2 * cv.zoom + cv.worldX, bvy2 = bel.y2 * cv.zoom + cv.worldY
+            var bRx  = Math.min(bvx1, bvx2), bRy = Math.min(bvy1, bvy2)
+            var bOx  = (bed.bmkOffsetX !== undefined ? bed.bmkOffsetX : 0) * cv.zoom
+            var bOy  = (bed.bmkOffsetY !== undefined ? bed.bmkOffsetY : 0) * cv.zoom
+            var bPad = Math.round(5 * cv.zoom)
+            var bSch = bed.schriftgroesse !== undefined ? bed.schriftgroesse : 2.5
+            var bFs  = Math.max(5, Math.round(bSch * cv.mmToPx * cv.zoom))
+            var bTx  = bRx + bPad + bOx
+            var bTy  = bRy + bPad + bOy
+            var bhx1, bhy1, bhx2, bhy2
+            if (bel.typ === "geraetekasten") {
+                var gkBmkH = bed.bmk || "", gkBezH = bed.bezeichnung || ""
+                if (gkBmkH === "" && gkBezH === "") continue
+                var gkLines = (gkBmkH ? gkBmkH.split("\n").length : 0) + (gkBezH ? gkBezH.split("\n").length : 0)
+                bhx1 = bTx - pad; bhx2 = bTx + Math.max(60, bFs * 6)
+                bhy1 = bTy - pad; bhy2 = bTy + Math.max(gkLines, 1) * bFs * 1.4 + pad
+            } else if (bel.typ === "strukturkasten") {
+                var skBezH = bed.bezeichnung || ""
+                var skLblH = ((bed.anlageUO ? "==" + bed.anlageUO + " " : "") +
+                              (bed.ortUO    ? "++" + bed.ortUO    + " " : "") +
+                              (bed.anlage   ? "="  + bed.anlage   + " " : "") +
+                              (bed.ort      ? "+"  + bed.ort            : "")).trim()
+                if (skBezH === "" && skLblH === "") continue
+                bhx1 = bRx + bOx - pad; bhx2 = Math.max(bvx1, bvx2) + bOx + pad
+                bhy1 = bRy + bOy - pad; bhy2 = bRy + bOy + bFs * 2.5 + pad
+            } else {
+                var mkNameH = bed.name || "Makro"
+                var mkCxH = (Math.min(bvx1, bvx2) + Math.max(bvx1, bvx2)) / 2 + bOx
+                bhx1 = mkCxH - Math.max(40, bFs * 4); bhx2 = mkCxH + Math.max(40, bFs * 4)
+                bhy1 = bTy - pad; bhy2 = bTy + mkNameH.split("\n").length * bFs * 1.4 + pad
+            }
+            if (vpX >= bhx1 && vpX <= bhx2 && vpY >= bhy1 && vpY <= bhy2)
+                return bi
+        }
+
+        // Durchlauf 2: Symbolbeschriftungen (klemme_anschluss, geraeteanschluss, potenzial, BMK)
         for (var i = n - 1; i >= 0; i--) {
             var el = cv.elementeModel.element(i)
             if (el.typ !== "symbol") continue
@@ -229,7 +274,6 @@ QtObject {
             var vy1 = el.y1 * cv.zoom + cv.worldY
             var vx2 = el.x2 * cv.zoom + cv.worldX
             var vy2 = el.y2 * cv.zoom + cv.worldY
-            var pad   = 8
             var symRot = ((el.rotation || 0) % 360 + 360) % 360
             var senkrecht = (symRot === 90 || symRot === 270)
             var hx1, hy1, hx2, hy2

@@ -383,7 +383,9 @@ MouseArea {
                     canvas.labelDragMausVpY  = vp.y
                     canvas.labelDragStartOx  = lEd.bmkOffsetX !== undefined ? lEd.bmkOffsetX : 0
                     var lSid = lEl.symbolId || ""
-                    var lDefOy = (lSid === "potenzial" || lSid === "geraeteanschluss" || lSid === "klemme_anschluss") ? 0 : -14
+                    var lTyp = lEl.typ || ""
+                    var lIsBox = (lTyp === "geraetekasten" || lTyp === "strukturkasten" || lTyp === "makrokasten")
+                    var lDefOy = (lSid === "potenzial" || lSid === "geraeteanschluss" || lSid === "klemme_anschluss" || lIsBox) ? 0 : -14
                     canvas.labelDragStartOy  = lEd.bmkOffsetY !== undefined ? lEd.bmkOffsetY : lDefOy
                     canvas.schnapshotVorMove = em.snapshot()
                     canvas.auswahl = canvas.auswahlFuerElement(labelIdx)

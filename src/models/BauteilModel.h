@@ -140,6 +140,7 @@ public:
                                  const QString &urlHersteller = QString(),
                                  const QString &urlDatenblatt = QString());
     Q_INVOKABLE bool loeschen(int id);
+    Q_INVOKABLE int  duplizieren(int bauteilId);
     Q_INVOKABLE QVariantMap bauteilNachId(int id) const;
     Q_INVOKABLE bool bauteilTitelSpeichern(int id, const QString &bezeichnung,
                                             const QString &hersteller, const QString &artikelnummer);

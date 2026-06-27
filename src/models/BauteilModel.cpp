@@ -394,6 +394,240 @@ bool BauteilListModel::loeschen(int id)
     return true;
 }
 
+int BauteilListModel::duplizieren(int bauteilId)
+{
+    // ── Bauteil-Zeile lesen ──────────────────────────────────────────────────
+    QSqlQuery qSrc;
+    qSrc.prepare("SELECT kategorie_id, bezeichnung, hersteller, artikelnummer, lieferant, "
+                 "preis_eur, spannung_v, strom_a, leistung_w, bemerkung, "
+                 "url_hersteller, url_datenblatt "
+                 "FROM bauteil WHERE id = :id");
+    qSrc.bindValue(":id", bauteilId);
+    if (!qSrc.exec() || !qSrc.next()) {
+        qCWarning(lcModel) << "duplizieren: Bauteil" << bauteilId << "nicht gefunden";
+        return -1;
+    }
+
+    const QString neueBezeichnung = qSrc.value(1).toString() + QStringLiteral(" (Kopie)");
+
+    // ── Neue Bauteil-Zeile anlegen ───────────────────────────────────────────
+    QSqlQuery qIns;
+    qIns.prepare("INSERT INTO bauteil "
+                 "(kategorie_id, bezeichnung, hersteller, artikelnummer, lieferant, "
+                 " preis_eur, spannung_v, strom_a, leistung_w, bemerkung, url_hersteller, url_datenblatt) "
+                 "VALUES (:kid, :bez, :her, :art, :lief, :preis, :u, :i, :p, :bem, :uh, :ud)");
+    qIns.bindValue(":kid",   qSrc.value(0));
+    qIns.bindValue(":bez",   neueBezeichnung);
+    qIns.bindValue(":her",   qSrc.value(2));
+    qIns.bindValue(":art",   qSrc.value(3));
+    qIns.bindValue(":lief",  qSrc.value(4));
+    qIns.bindValue(":preis", qSrc.value(5));
+    qIns.bindValue(":u",     qSrc.value(6));
+    qIns.bindValue(":i",     qSrc.value(7));
+    qIns.bindValue(":p",     qSrc.value(8));
+    qIns.bindValue(":bem",   qSrc.value(9));
+    qIns.bindValue(":uh",    qSrc.value(10));
+    qIns.bindValue(":ud",    qSrc.value(11));
+    if (!qIns.exec()) {
+        qCWarning(lcModel) << "duplizieren: bauteil INSERT Fehler:" << qIns.lastError().text();
+        return -1;
+    }
+    const int newId = qIns.lastInsertId().toInt();
+
+    // ── Typ: Klemme ──────────────────────────────────────────────────────────
+    {
+        QSqlQuery qk;
+        qk.prepare("SELECT id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, "
+                   "fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id, bemerkung "
+                   "FROM bauteil_klemme WHERE bauteil_id = :bid");
+        qk.bindValue(":bid", bauteilId);
+        if (qk.exec() && qk.next()) {
+            const int srcKlemmeId = qk.value(0).toInt();
+            QSqlQuery qi;
+            qi.prepare("INSERT INTO bauteil_klemme "
+                       "(bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, "
+                       " fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id, bemerkung) "
+                       "VALUES (:bid, :norm, :atyp, :anz, :pa, :pb, :pe, :sb, :br, :gf, :bem)");
+            qi.bindValue(":bid",  newId);
+            qi.bindValue(":norm", qk.value(1));
+            qi.bindValue(":atyp", qk.value(2));
+            qi.bindValue(":anz",  qk.value(3));
+            qi.bindValue(":pa",   qk.value(4));
+            qi.bindValue(":pb",   qk.value(5));
+            qi.bindValue(":pe",   qk.value(6));
+            qi.bindValue(":sb",   qk.value(7));
+            qi.bindValue(":br",   qk.value(8));
+            qi.bindValue(":gf",   qk.value(9));
+            qi.bindValue(":bem",  qk.value(10));
+            if (qi.exec()) {
+                const int newKlemmeId = qi.lastInsertId().toInt();
+                // Querschnitte
+                QSqlQuery qq;
+                qq.prepare("SELECT adertyp, min_mm2, max_mm2 FROM bauteil_klemme_querschnitt WHERE klemme_id = :kid");
+                qq.bindValue(":kid", srcKlemmeId);
+                if (qq.exec()) {
+                    while (qq.next()) {
+                        QSqlQuery qi2;
+                        qi2.prepare("INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2) VALUES (:kid, :at, :mn, :mx)");
+                        qi2.bindValue(":kid", newKlemmeId);
+                        qi2.bindValue(":at",  qq.value(0));
+                        qi2.bindValue(":mn",  qq.value(1));
+                        qi2.bindValue(":mx",  qq.value(2));
+                        qi2.exec();
+                    }
+                }
+                // Brückenebenen
+                QSqlQuery qb;
+                qb.prepare("SELECT von_ebene, nach_ebene, ist_pe_fuss FROM bauteil_klemme_bruecke WHERE klemme_id = :kid");
+                qb.bindValue(":kid", srcKlemmeId);
+                if (qb.exec()) {
+                    while (qb.next()) {
+                        QSqlQuery qi3;
+                        qi3.prepare("INSERT INTO bauteil_klemme_bruecke (klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, :ve, :ne, :pe)");
+                        qi3.bindValue(":kid", newKlemmeId);
+                        qi3.bindValue(":ve",  qb.value(0));
+                        qi3.bindValue(":ne",  qb.value(1));
+                        qi3.bindValue(":pe",  qb.value(2));
+                        qi3.exec();
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Typ: Kabel ───────────────────────────────────────────────────────────
+    {
+        QSqlQuery qk;
+        qk.prepare("SELECT id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, "
+                   "aussenmantel_mm, material_leiter, material_isolierung "
+                   "FROM bauteil_kabel WHERE bauteil_id = :bid");
+        qk.bindValue(":bid", bauteilId);
+        if (qk.exec() && qk.next()) {
+            const int srcKabelId = qk.value(0).toInt();
+            QSqlQuery qi;
+            qi.prepare("INSERT INTO bauteil_kabel "
+                       "(bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, "
+                       " aussenmantel_mm, material_leiter, material_isolierung) "
+                       "VALUES (:bid, :kt, :gs, :pv, :af, :am, :ml, :mi)");
+            qi.bindValue(":bid", newId);
+            qi.bindValue(":kt",  qk.value(1));
+            qi.bindValue(":gs",  qk.value(2));
+            qi.bindValue(":pv",  qk.value(3));
+            qi.bindValue(":af",  qk.value(4));
+            qi.bindValue(":am",  qk.value(5));
+            qi.bindValue(":ml",  qk.value(6));
+            qi.bindValue(":mi",  qk.value(7));
+            if (qi.exec()) {
+                const int newKabelId = qi.lastInsertId().toInt();
+                // Adern — alte ID → neue ID für Paar-Remap
+                QMap<int, int> aderIdMap;
+                QSqlQuery qa;
+                qa.prepare("SELECT id, ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2 FROM bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr");
+                qa.bindValue(":kid", srcKabelId);
+                if (qa.exec()) {
+                    while (qa.next()) {
+                        QSqlQuery qi2;
+                        qi2.prepare("INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2) VALUES (:kid, :nr, :fa, :nu, :bez, :qs)");
+                        qi2.bindValue(":kid", newKabelId);
+                        qi2.bindValue(":nr",  qa.value(1));
+                        qi2.bindValue(":fa",  qa.value(2));
+                        qi2.bindValue(":nu",  qa.value(3));
+                        qi2.bindValue(":bez", qa.value(4));
+                        qi2.bindValue(":qs",  qa.value(5));
+                        if (qi2.exec())
+                            aderIdMap[qa.value(0).toInt()] = qi2.lastInsertId().toInt();
+                    }
+                }
+                // Paare (Ader-IDs ummappen)
+                QSqlQuery qp;
+                qp.prepare("SELECT paar_nr, ader_a, ader_b FROM bauteil_kabel_paar WHERE kabel_id = :kid ORDER BY paar_nr");
+                qp.bindValue(":kid", srcKabelId);
+                if (qp.exec()) {
+                    while (qp.next()) {
+                        const int na = aderIdMap.value(qp.value(1).toInt(), -1);
+                        const int nb = aderIdMap.value(qp.value(2).toInt(), -1);
+                        if (na > 0 && nb > 0) {
+                            QSqlQuery qi3;
+                            qi3.prepare("INSERT INTO bauteil_kabel_paar (kabel_id, paar_nr, ader_a, ader_b) VALUES (:kid, :nr, :a, :b)");
+                            qi3.bindValue(":kid", newKabelId);
+                            qi3.bindValue(":nr",  qp.value(0));
+                            qi3.bindValue(":a",   na);
+                            qi3.bindValue(":b",   nb);
+                            qi3.exec();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Typ: Steckverbinder ──────────────────────────────────────────────────
+    {
+        QSqlQuery qsv;
+        qsv.prepare("SELECT id, polzahl, ip_getrennt, ip_gesteckt, kodierung, verriegelung, hat_schirmkontakt, geschirmt "
+                    "FROM steckverbinder_typ WHERE bauteil_id = :bid");
+        qsv.bindValue(":bid", bauteilId);
+        if (qsv.exec() && qsv.next()) {
+            const int srcSvId = qsv.value(0).toInt();
+            QSqlQuery qi;
+            qi.prepare("INSERT INTO steckverbinder_typ "
+                       "(bauteil_id, polzahl, ip_getrennt, ip_gesteckt, kodierung, verriegelung, hat_schirmkontakt, geschirmt) "
+                       "VALUES (:bid, :pz, :igt, :igs, :ko, :vr, :hs, :gs)");
+            qi.bindValue(":bid", newId);
+            qi.bindValue(":pz",  qsv.value(1));
+            qi.bindValue(":igt", qsv.value(2));
+            qi.bindValue(":igs", qsv.value(3));
+            qi.bindValue(":ko",  qsv.value(4));
+            qi.bindValue(":vr",  qsv.value(5));
+            qi.bindValue(":hs",  qsv.value(6));
+            qi.bindValue(":gs",  qsv.value(7));
+            if (qi.exec()) {
+                const int newSvId = qi.lastInsertId().toInt();
+                // Kabeleinführungen
+                QSqlQuery qke;
+                qke.prepare("SELECT einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung FROM steckverbinder_kabeleinf WHERE steckverbinder_typ_id = :svid ORDER BY einf_nr");
+                qke.bindValue(":svid", srcSvId);
+                if (qke.exec()) {
+                    while (qke.next()) {
+                        QSqlQuery qi2;
+                        qi2.prepare("INSERT INTO steckverbinder_kabeleinf (steckverbinder_typ_id, einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung) VALUES (:svid, :nr, :mn, :mx, :et, :ze)");
+                        qi2.bindValue(":svid", newSvId);
+                        qi2.bindValue(":nr",   qke.value(0));
+                        qi2.bindValue(":mn",   qke.value(1));
+                        qi2.bindValue(":mx",   qke.value(2));
+                        qi2.bindValue(":et",   qke.value(3));
+                        qi2.bindValue(":ze",   qke.value(4));
+                        qi2.exec();
+                    }
+                }
+                // Kontakttypen
+                QSqlQuery qkt;
+                qkt.prepare("SELECT position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik FROM steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :svid ORDER BY position_nr");
+                qkt.bindValue(":svid", srcSvId);
+                if (qkt.exec()) {
+                    while (qkt.next()) {
+                        QSqlQuery qi3;
+                        qi3.prepare("INSERT INTO steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik) VALUES (:svid, :pos, :sk, :kg, :qmn, :qmx, :ia, :uv, :vt)");
+                        qi3.bindValue(":svid", newSvId);
+                        qi3.bindValue(":pos",  qkt.value(0));
+                        qi3.bindValue(":sk",   qkt.value(1));
+                        qi3.bindValue(":kg",   qkt.value(2));
+                        qi3.bindValue(":qmn",  qkt.value(3));
+                        qi3.bindValue(":qmx",  qkt.value(4));
+                        qi3.bindValue(":ia",   qkt.value(5));
+                        qi3.bindValue(":uv",   qkt.value(6));
+                        qi3.bindValue(":vt",   qkt.value(7));
+                        qi3.exec();
+                    }
+                }
+            }
+        }
+    }
+
+    laden(m_aktiveKategorieId);
+    return newId;
+}
+
 QVariantMap BauteilListModel::bauteilNachId(int id) const
 {
     QVariantMap m;

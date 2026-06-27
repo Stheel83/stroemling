@@ -575,7 +575,7 @@ Item {
                             color: duplizierLeisteBtn.containsMouse ? theme.hover : "transparent"
                             border.color: theme.border
                             opacity: duplizierLeisteBtn.enabled ? 1.0 : 0.4
-                            Text { anchors.centerIn: parent; text: "⧉"; font.pixelSize: 13; color: theme.textSecondary }
+                            Text { anchors.centerIn: parent; text: "❐"; font.pixelSize: 13; color: theme.textSecondary }
                             ToolTip.visible: duplizierLeisteBtn.containsMouse
                             ToolTip.text:    qsTr("Ausgewählte Klemmenleiste duplizieren (alle Klemmen + Stegbrücken)")
                             ToolTip.delay:   500

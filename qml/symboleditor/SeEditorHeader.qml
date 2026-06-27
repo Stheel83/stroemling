@@ -132,7 +132,7 @@ Rectangle {
         }
 
         Button {
-            text: qsTr("⧉ Kopie")
+            text: qsTr("❐ Kopie")
             visible: editor.editSymbolId !== ""
             implicitHeight: 28; implicitWidth: 78
             onClicked: editor.kopieErstellen()

@@ -528,6 +528,26 @@ Item {
                             }
                             Button {
                                 width: 24; height: 24; flat: true
+                                contentItem: Text { text: "❐"; color: theme.textMuted; font.pixelSize: 13;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.delay: 700; ToolTip.text: qsTr("Kopieren")
+                                onClicked: {
+                                    var newId = bauteilModel.duplizieren(model.bauteilId)
+                                    if (newId > 0) {
+                                        panel.selectedBauteilId            = newId
+                                        panel.selectedBauteilBezeichnung   = model.bezeichnung + qsTr(" (Kopie)")
+                                        panel.selectedBauteilHersteller    = model.hersteller
+                                        panel.selectedBauteilArtikelnummer = model.artikelnummer
+                                        if (model.istKlemme)
+                                            root.klemmenEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
+                                        else if (model.istKabel)
+                                            root.kabelEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
+                                    }
+                                }
+                            }
+                            Button {
+                                width: 24; height: 24; flat: true
                                 contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 16;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }

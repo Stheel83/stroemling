@@ -136,7 +136,7 @@ Rectangle {
                                 color:   listeKopHover.hovered ? root.editor.theme.badge : "transparent"
                                 ToolTip.visible: listeKopHover.hovered; ToolTip.delay: 600
                                 ToolTip.text: qsTr("Als Vorlage kopieren")
-                                Text { anchors.centerIn: parent; text: "⧉"; font.pixelSize: 13; color: root.editor.theme.textSecondary }
+                                Text { anchors.centerIn: parent; text: "❐"; font.pixelSize: 13; color: root.editor.theme.textSecondary }
                                 HoverHandler { id: listeKopHover }
                                 TapHandler {
                                     onTapped: {

@@ -370,7 +370,7 @@ Item {
                 // Kopieren-Button (nur wenn Klemme ausgewählt)
                 Button {
                     visible: panel.aktivKlemmeIdx >= 0
-                    text: qsTr("⧉ Kopieren")
+                    text: qsTr("❐ Kopieren")
                     implicitHeight: 28
                     contentItem: Text {
                         text: parent.text; font.pixelSize: 12; color: theme.textSecondary

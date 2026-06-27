@@ -296,8 +296,9 @@ Item {
             RowLayout {
                 anchors { fill: parent; leftMargin: 20; rightMargin: 16 }
                 Text {
-                    text: bauteilModel.nurKlemmen ? qsTr("Klemmen")
-                        : bauteilModel.nurKabel   ? qsTr("Kabel")
+                    text: bauteilModel.nurKlemmen       ? qsTr("Klemmen")
+                        : bauteilModel.nurKabel          ? qsTr("Kabel")
+                        : bauteilModel.nurSteckverbinder ? qsTr("Steckverbinder")
                         : qsTr("Alle Bauteile")
                     font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary
                     Layout.fillWidth: true
@@ -372,7 +373,9 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: suchfeld.text.length > 0
                               ? qsTr("Keine Ergebnisse für \"%1\"").arg(suchfeld.text)
-                              : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
+                              : bauteilModel.nurSteckverbinder
+                                ? qsTr("Noch keine Steckverbinder – mit '+ Neu' anlegen.")
+                                : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
                         color:          theme.textMuted
                         font.pixelSize: 13
                     }

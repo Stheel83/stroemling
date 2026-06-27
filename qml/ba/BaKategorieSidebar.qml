@@ -32,7 +32,7 @@ Rectangle {
         // Bauteile
         Rectangle {
             Layout.fillWidth: true; height: 36
-            property bool sel: panel.aktiveSpezialAnsicht === "" && !bauteilModel.nurKlemmen && !bauteilModel.nurKabel
+            property bool sel: panel.aktiveSpezialAnsicht === "" && !bauteilModel.nurKlemmen && !bauteilModel.nurKabel && !bauteilModel.nurSteckverbinder
             color: sel ? theme.hover : (baulibH.hovered ? theme.hover : "transparent")
             HoverHandler { id: baulibH }
             RowLayout {
@@ -58,7 +58,7 @@ Rectangle {
                 }
             }
             MouseArea { anchors.fill: parent; z: -1; onClicked: {
-                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(false)
+                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(false); bauteilModel.setNurSteckverbinder(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }
@@ -98,7 +98,7 @@ Rectangle {
                 }
             }
             MouseArea { anchors.fill: parent; z: -1; onClicked: {
-                bauteilModel.setNurKlemmen(true); bauteilModel.setNurKabel(false)
+                bauteilModel.setNurKlemmen(true); bauteilModel.setNurKabel(false); bauteilModel.setNurSteckverbinder(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }
@@ -139,7 +139,7 @@ Rectangle {
                 }
             }
             MouseArea { anchors.fill: parent; z: -1; onClicked: {
-                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(true)
+                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(true); bauteilModel.setNurSteckverbinder(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }

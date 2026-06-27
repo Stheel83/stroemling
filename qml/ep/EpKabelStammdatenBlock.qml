@@ -76,7 +76,11 @@ Column {
 
             var ed0 = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
             var kabelId = ed0.kabelId || 0
-            if (kabelId > 0) db.kabelBauteilKabelSetzen(kabelId, bkId)
+            if (kabelId > 0) {
+                var bkResult = db.kabelBauteilKabelSetzen(kabelId, bkId)
+                if (bkResult && bkResult.adern && bkResult.adern.length > 0)
+                    felder.adern = bkResult.adern
+            }
 
             root.extraSetzenMehrfach(felder)
         }

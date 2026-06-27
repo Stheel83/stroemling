@@ -152,6 +152,43 @@ void ElementeModel::laden(int seiteId)
                 popDouble(QStringLiteral("ausschnittOben"),   el.ausschnittOben);
                 popDouble(QStringLiteral("ausschnittUnten"),  el.ausschnittUnten);
                 el.extraDaten = em;
+
+                // Enrich kabellinie: fill adern with bauteil wire colors if missing
+                if (el.typ == QLatin1String("kabellinie")) {
+                    auto bkIdIt = em.constFind(QStringLiteral("bauteilKabelId"));
+                    if (bkIdIt != em.cend() && bkIdIt->toInt() > 0) {
+                        auto adernIt = em.constFind(QStringLiteral("adern"));
+                        bool needsEnrichment = (adernIt == em.cend());
+                        if (!needsEnrichment) {
+                            const auto adernList = adernIt->toList();
+                            needsEnrichment = adernList.isEmpty()
+                                || std::all_of(adernList.cbegin(), adernList.cend(),
+                                    [](const QVariant &v) {
+                                        return v.toMap().value(QStringLiteral("farbe")).toString().isEmpty();
+                                    });
+                        }
+                        if (needsEnrichment) {
+                            QSqlQuery qa;
+                            qa.prepare(QStringLiteral(
+                                "SELECT ader_nr, farbe, bezeichnung, querschnitt_mm2 "
+                                "FROM bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr"));
+                            qa.bindValue(QStringLiteral(":kid"), bkIdIt->toInt());
+                            QVariantList bkAdern;
+                            if (qa.exec()) {
+                                while (qa.next()) {
+                                    QVariantMap a;
+                                    a[QStringLiteral("aderNr")]         = qa.value(0).toInt();
+                                    a[QStringLiteral("farbe")]          = qa.value(1).toString();
+                                    a[QStringLiteral("bezeichnung")]    = qa.value(2).toString();
+                                    a[QStringLiteral("querschnittMm2")] = qa.value(3).toDouble();
+                                    bkAdern.append(a);
+                                }
+                            }
+                            if (!bkAdern.isEmpty())
+                                el.extraDaten[QStringLiteral("adern")] = bkAdern;
+                        }
+                    }
+                }
             }
         }
 

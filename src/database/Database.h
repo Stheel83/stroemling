@@ -758,6 +758,9 @@ private:
     // 6 repräsentative Klemmen-Bauteile (Durchgang/PE/N/Doppelstock/Trenn)
     bool seedStandardKlemmen();
 
+    // Nutzer-eigene Bauteile aus src/database/bauteile_nutzer.sql (Klemmen, Kabel …)
+    bool seedNutzerBauteile();
+
     // Wiki-Starter-Kategorien anlegen (einmalig nach frischem Wiki-Schema-Aufbau)
     bool seedWikiStarterInhalte();
 

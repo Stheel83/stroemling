@@ -269,7 +269,8 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
            && seedSymbolKatalog()
            && seedBuiltinSymbolDefinitionen()
            && seedIbnFeldvorlagen()
-           && seedStandardKlemmen();
+           && seedStandardKlemmen()
+           && seedNutzerBauteile();
 
     int neueProjektId = -1;
     if (ok) {

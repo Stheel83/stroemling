@@ -609,7 +609,8 @@ bool Database::checkAndApplySchema()
             // Baseline: vollständiger Neuaufbau
             ok = dropAllTables() && createSchema()
                  && seedSymbolKatalog() && seedBuiltinSymbolDefinitionen()
-                 && seedIbnFeldvorlagen() && seedStandardKlemmen();
+                 && seedIbnFeldvorlagen() && seedStandardKlemmen()
+                 && seedNutzerBauteile();
         } else if (mig.version == 77) {
             // D-02: braucht Datei-I/O (Bild-Bytes auslagern) – nicht über reines SQL möglich.
             ok = migriereGrafikBilderAufDateien();
@@ -1165,5 +1166,46 @@ bool Database::seedBuiltinSymbolDefinitionen()
     }
 
     qCInfo(lcDb) << "Builtin-Symboldefinitionen aus symbole.sql geladen.";
+    return true;
+}
+
+// seedNutzerBauteile
+// Liest src/database/bauteile_nutzer.sql als Qt-Ressource ein und führt
+// alle darin enthaltenen INSERT-Statements aus.
+// Die Datei enthält projektübergreifende Bauteil-Seeds (Klemmen, Kabel …),
+// die bei jedem neuen Projekt einmalig angelegt werden.
+// Alle Statements sind idempotent (WHERE NOT EXISTS-Guard auf Bezeichnung).
+// ============================================================
+bool Database::seedNutzerBauteile()
+{
+    QFile f(QStringLiteral(":/database/bauteile_nutzer.sql"));
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qCWarning(lcDb) << "seedNutzerBauteile: bauteile_nutzer.sql nicht gefunden";
+        return false;
+    }
+    const QString sql = QString::fromUtf8(f.readAll());
+    f.close();
+
+    QStringList cleanLines;
+    for (const QString &line : sql.split(QLatin1Char('\n'))) {
+        if (!line.trimmed().startsWith(QLatin1String("--")))
+            cleanLines << line;
+    }
+    const QString cleanSql = cleanLines.join(QLatin1Char('\n'));
+
+    QSqlQuery q(m_db);
+    const QStringList statements = cleanSql.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+    for (const QString &raw : statements) {
+        const QString stmt = raw.trimmed();
+        if (stmt.isEmpty())
+            continue;
+        if (!q.exec(stmt)) {
+            qCWarning(lcDb) << "seedNutzerBauteile:" << q.lastError().text()
+                            << "\nStatement:" << stmt.left(120);
+            return false;
+        }
+    }
+
+    qCInfo(lcDb) << "Nutzer-Bauteile aus bauteile_nutzer.sql geladen.";
     return true;
 }

@@ -273,6 +273,7 @@ qt_add_resources(stroemling_app "database_seeds"
     FILES
         src/database/schema.sql
         src/database/symbole.sql
+        src/database/bauteile_nutzer.sql
 )
 
 qt_add_resources(stroemling_app "wiki_seed_res"

@@ -2807,8 +2807,8 @@ Item {
             var schnitte = kabelSchnittNetzeBerechnenCached(el, netze)
             if (schnitte.length === 0) return
 
-            var klAdern       = (el.extraDaten && Array.isArray(el.extraDaten.adern))
-                                ? el.extraDaten.adern : []
+            var _rawAdn       = el.extraDaten ? el.extraDaten.adern : null
+            var klAdern       = (_rawAdn && _rawAdn.length > 0) ? _rawAdn : []
             var aderZuordnung = (el.extraDaten && el.extraDaten.aderZuordnung)
                                 ? el.extraDaten.aderZuordnung : null
             var klColor = el.strichFarbe || "#e07000"
@@ -2903,8 +2903,8 @@ Item {
                 var schnitte = kabelSchnittNetzeBerechnenCached(el, netze)
                 if (schnitte.length === 0) continue
 
-                var klAdern       = (el.extraDaten && Array.isArray(el.extraDaten.adern))
-                                    ? el.extraDaten.adern : []
+                var _rawAdn2      = el.extraDaten ? el.extraDaten.adern : null
+                var klAdern       = (_rawAdn2 && _rawAdn2.length > 0) ? _rawAdn2 : []
                 var aderZuordnung = (el.extraDaten && el.extraDaten.aderZuordnung)
                                     ? el.extraDaten.aderZuordnung : null
 

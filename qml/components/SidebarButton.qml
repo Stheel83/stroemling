@@ -41,28 +41,33 @@ Item {
             }
         }
 
-        Row {
+        RowLayout {
             spacing: 10
             anchors {
                 left:           parent.left
                 leftMargin:     16
+                right:          parent.right
+                rightMargin:    8
                 verticalCenter: parent.verticalCenter
             }
 
             Text {
                 text:              root.icon
                 font.pixelSize:    16
+                width:             20
                 height:            24
                 verticalAlignment: Text.AlignVCenter
                 color:             root.active ? theme.accent : theme.textMuted
             }
             Text {
+                Layout.fillWidth:  true
                 text:              root.label
                 font.pixelSize:    13
                 height:            24
                 verticalAlignment: Text.AlignVCenter
                 font.weight:       root.active ? Font.Medium : Font.Normal
                 color:             root.active ? theme.textPrimary : theme.textMuted
+                elide:             Text.ElideRight
             }
         }
 

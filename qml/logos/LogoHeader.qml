@@ -30,32 +30,38 @@ Item {
         anchors {
             left:           logoImage.right
             leftMargin:     8
+            right:          parent.right
             verticalCenter: parent.verticalCenter
         }
         spacing: 2
 
         Text {
+            width:              parent.width
             text:               "Strömling"
             font.family:        "Courier New"
             font.pixelSize:     22
             font.weight:        Font.Bold
             color:              root._textMain
+            elide:              Text.ElideRight
         }
         Text {
+            width:              parent.width
             text:               "DESIGN"
             font.family:        "Courier New"
             font.pixelSize:     14
             font.letterSpacing: 4
             color:              root._fischGruen
             opacity:            0.9
+            elide:              Text.ElideRight
         }
         Rectangle {
-            width:   130
+            width:   parent.width
             height:  1
             color:   root._fischGruen
             opacity: 0.25
         }
         Text {
+            width:              parent.width
             text:               "CAE · OPEN SOURCE"
             font.family:        "Courier New"
             font.pixelSize:     10
@@ -65,6 +71,7 @@ Item {
             elide:              Text.ElideRight
         }
         Text {
+            width:              parent.width
             text:               "NORDDEUTSCH"
             font.family:        "Courier New"
             font.pixelSize:     10

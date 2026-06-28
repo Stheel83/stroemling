@@ -136,6 +136,26 @@ QVariantMap Database::klemmeAnschlussPosition(int klemmeId, const QString &ansch
     return m;
 }
 
+QVariantMap Database::leisteInfoFuerKlemme(int klemmeId) const
+{
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT kl.id, kl.bezeichnung,"
+        "       COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung)"
+        " FROM klemme k"
+        " JOIN klemmenleiste kl ON kl.id = k.klemmenleiste_id"
+        " LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id"
+        " WHERE k.id = :kid"
+        " LIMIT 1");
+    q.bindValue(":kid", klemmeId);
+    if (!q.exec() || !q.next()) return {};
+    QVariantMap m;
+    m[QStringLiteral("leisteId")]   = q.value(0).toInt();
+    m[QStringLiteral("bezeichnung")] = q.value(1).toString();
+    m[QStringLiteral("bmkKurz")]    = q.value(2).toString();
+    return m;
+}
+
 bool Database::klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlussBezeichnung) const
 {
     QSqlQuery q(m_db);

@@ -28,8 +28,62 @@ ColumnLayout {
     property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
 
     property var  _gkAufgeklappt:     ({})    // bmk → bool
+    property int  _highlightKlemmeId: -1
 
     readonly property bool offen: _bauteilBereichOffen
+
+    Timer {
+        id: highlightTimer
+        interval: 2000
+        onTriggered: root._highlightKlemmeId = -1
+    }
+
+    function navigiereZuKlemme(klemmeId, anschlussBezeichnung) {
+        var info = db.leisteInfoFuerKlemme(klemmeId)
+        if (!info || !info.leisteId) return
+        var leisteId = info.leisteId
+
+        // Bauteilbereich öffnen falls geschlossen
+        if (!root._bauteilBereichOffen) {
+            root._klemmenCache       = {}
+            root._anschluesseCache   = {}
+            root._leistenAufgeklappt = {}
+            root._klemmenAufgeklappt = {}
+            root._bauteilBereichOffen = true
+            root.aktualisiereStatus()
+        }
+
+        // Leiste aufklappen + Klemmen laden
+        var auf = Object.assign({}, root._leistenAufgeklappt)
+        auf[leisteId] = true
+        if (root._klemmenCache[leisteId] === undefined) {
+            var kc = Object.assign({}, root._klemmenCache)
+            kc[leisteId] = db.klemmenFuerLeiste(leisteId)
+            root._klemmenCache = kc
+        }
+        root._leistenAufgeklappt = auf
+
+        // Klemme aufklappen + Anschlüsse laden
+        var kauf = Object.assign({}, root._klemmenAufgeklappt)
+        kauf[klemmeId] = true
+        root._klemmenAufgeklappt = kauf
+        var klemmenListe = root._klemmenCache[leisteId] || []
+        for (var i = 0; i < klemmenListe.length; i++) {
+            var kl = klemmenListe[i]
+            if (kl.id === klemmeId && kl.bauteilId > 0) {
+                if (root._anschluesseCache[kl.bauteilId] === undefined) {
+                    var ac = Object.assign({}, root._anschluesseCache)
+                    ac[kl.bauteilId] = db.anschluesseFuerKlemme(kl.bauteilId)
+                    root._anschluesseCache = ac
+                }
+                break
+            }
+        }
+
+        // Klemme-Zeile hervorheben
+        root._highlightKlemmeId = klemmeId
+        highlightTimer.restart()
+    }
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
                                       string anschlussBezeichnung, string bmk)
@@ -305,8 +359,11 @@ ColumnLayout {
 
                                 // Klemmen-Zeile
                                 Rectangle {
+                                    id: klemmeZeile
                                     width: parent.width; height: 30
-                                    color: klemmeMA.containsMouse && klemmeItem.hatBauteil ? root.theme.hover : "transparent"
+                                    color: root._highlightKlemmeId === klemmeItem.kId
+                                        ? root.theme.activeItem
+                                        : (klemmeMA.containsMouse && klemmeItem.hatBauteil ? root.theme.hover : "transparent")
                                     RowLayout {
                                         anchors { fill: parent; leftMargin: 22; rightMargin: 6 }
                                         spacing: 4

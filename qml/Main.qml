@@ -1000,6 +1000,9 @@ ApplicationWindow {
                                 if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                                 panel1.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
                             }
+                            onKlemmeImSeitenBaumAnzeigen: function(klemmeId, anschlussBezeichnung) {
+                                seitenBaum.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
+                            }
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
@@ -1057,6 +1060,9 @@ ApplicationWindow {
                             onGkSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
                                 if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                                 panel2.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
+                            }
+                            onKlemmeImSeitenBaumAnzeigen: function(klemmeId, anschlussBezeichnung) {
+                                seitenBaum.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
                             }
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {

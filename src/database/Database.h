@@ -438,6 +438,9 @@ public:
     Q_INVOKABLE QVariantList platzierteKlemmenAnschluesse() const;
     Q_INVOKABLE bool         klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlussBezeichnung) const;
     Q_INVOKABLE QVariantMap  klemmeAnschlussPosition(int klemmeId, const QString &anschlussBezeichnung) const;
+    // Leisten-Info für eine Klemme (für Seitenbaum-Navigation vom Canvas).
+    // Gibt {leisteId, bezeichnung, bmkKurz} zurück, leere Map wenn nicht gefunden.
+    Q_INVOKABLE QVariantMap  leisteInfoFuerKlemme(int klemmeId) const;
     // Alle Klemmen-IDs je Stegbrücke im Projekt (für Potenzialverfolgung KLEMME-NET-01).
     // Gibt [{stegId, ebene, klemmeIds:[id,...]}] zurück.
     Q_INVOKABLE QVariantList klemmenStegbrueckenGruppen(int projektId) const;

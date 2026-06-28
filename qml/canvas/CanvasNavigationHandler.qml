@@ -177,6 +177,24 @@ Item {
         }
         MenuSeparator {}
         MenuItem {
+            text: "Im Bauteilbereich anzeigen"
+            enabled: {
+                if (canvas.auswahl.length !== 1) return false
+                var el = canvas.elementeModel.element(canvas.auswahl[0])
+                return el && el.symbolId === "klemme_anschluss"
+                    && el.extraDaten && el.extraDaten.klemmeId > 0
+                    && el.extraDaten.platziermodus === "verknuepft"
+            }
+            onTriggered: {
+                var el = canvas.elementeModel.element(canvas.auswahl[0])
+                canvas.klemmeImSeitenBaumAnzeigen(
+                    el.extraDaten.klemmeId,
+                    el.extraDaten.anschlussBezeichnung || ""
+                )
+            }
+        }
+        MenuSeparator {}
+        MenuItem {
             text:      "Alles auswaehlen\t(Strg+A)"
             onTriggered: canvas.alleAuswaehlen()
         }

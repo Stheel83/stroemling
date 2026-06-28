@@ -50,6 +50,11 @@ Item {
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
                              real weltX, real weltY)
 
+    // Vom Canvas-Kontextmenü: Sprung zum Klemmenanschluss im Bauteilbereich.
+    function navigiereZuKlemme(klemmeId, anschlussBezeichnung) {
+        bauteilePanel.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
+    }
+
     // Hilfsfunktion: Listenindex für bekannte DIN-Formate ermitteln
     function formatIndex(b, h) {
         var fmts = [

@@ -36,6 +36,7 @@ Item {
     signal panelAngeklickt()
     signal querverweisNavigieren(int seiteId)
     signal gkSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
+    signal klemmeImSeitenBaumAnzeigen(int klemmeId, string anschlussBezeichnung)
     signal hintergrundGeaendert(string farbe)
     signal makroListeGeaendert()
     signal aktivesWerkzeugGeaendert(string werkzeug)
@@ -302,6 +303,9 @@ Item {
             }
             onGkSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
                 root.gkSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
+            }
+            onKlemmeImSeitenBaumAnzeigen: function(klemmeId, anschlussBezeichnung) {
+                root.klemmeImSeitenBaumAnzeigen(klemmeId, anschlussBezeichnung)
             }
             onMakroListeGeaendert: root.makroListeGeaendert()
             onDrcKlick:  root.drcKlick()

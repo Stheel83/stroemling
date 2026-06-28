@@ -618,6 +618,28 @@ bool KlemmenreiheModel::klemmeSchieben(int klemmeId, int richtung)
     return true;
 }
 
+void KlemmenreiheModel::aktualisiereKanvasBmk(int klemmeId)
+{
+    QSqlQuery q;
+    q.prepare(
+        "UPDATE grafik_element "
+        "SET extra_daten = json_set(extra_daten, '$.bmk', "
+        "    (SELECT COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung) "
+        "            || ':' || k.nummer "
+        "            || ':' || json_extract(grafik_element.extra_daten, '$.anschlussBezeichnung') "
+        "     FROM klemme k "
+        "     JOIN klemmenleiste kl ON kl.id = k.klemmenleiste_id "
+        "     LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id "
+        "     WHERE k.id = :kid)) "
+        "WHERE symbol_id = 'klemme_anschluss' "
+        "  AND json_extract(extra_daten, '$.platziermodus') = 'verknuepft' "
+        "  AND CAST(json_extract(extra_daten, '$.klemmeId') AS INTEGER) = :kid"
+    );
+    q.bindValue(":kid", klemmeId);
+    if (!q.exec())
+        qCWarning(lcModel) << "aktualisiereKanvasBmk:" << q.lastError().text();
+}
+
 bool KlemmenreiheModel::klemmeNummerSetzen(int klemmeId, const QString &nummer)
 {
     QSqlQuery q;
@@ -628,8 +650,10 @@ bool KlemmenreiheModel::klemmeNummerSetzen(int klemmeId, const QString &nummer)
         qCWarning(lcModel) << "KlemmenreiheModel::klemmeNummerSetzen:" << q.lastError().text();
         return false;
     }
+    aktualisiereKanvasBmk(klemmeId);
     ladeKlemmen();
     emit leisteGeladen();
+    emit kanvasGeaendert();
     return true;
 }
 
@@ -677,8 +701,11 @@ bool KlemmenreiheModel::klemmeMehrfachNummerieren(const QVariantList &ids, int s
         q.bindValue(":id", v.toInt());
         if (!q.exec()) { qCWarning(lcModel) << "klemmeMehrfachNummerieren:" << q.lastError().text(); ok = false; }
     }
+    for (const QVariant &v : ids)
+        aktualisiereKanvasBmk(v.toInt());
     ladeKlemmen();
     emit leisteGeladen();
+    emit kanvasGeaendert();
     return ok;
 }
 

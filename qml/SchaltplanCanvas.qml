@@ -4337,6 +4337,40 @@ Item {
         onOpened: { anzahlField.text = "1"; anzahlField.selectAll(); anzahlField.forceActiveFocus() }
     }
 
+    // ── Sprungziel-Markierung ─────────────────────────────────────────────────
+    property real _markerWeltX: 0
+    property real _markerWeltY: 0
+
+    function _zeigeMarker(wx, wy) {
+        root._markerWeltX = wx
+        root._markerWeltY = wy
+        sprungMarker.visible = true
+        sprungMarker.opacity = 1.0
+        sprungMarkerAnim.restart()
+    }
+
+    Rectangle {
+        id: sprungMarker
+        visible: false
+        x: root.worldX + root._markerWeltX * root.zoom - width  / 2
+        y: root.worldY + root._markerWeltY * root.zoom - height / 2
+        width: 64; height: 64; radius: 32
+        color: "transparent"
+        border.color: root.theme.accent
+        border.width: 3
+        opacity: 0
+
+        SequentialAnimation {
+            id: sprungMarkerAnim
+            NumberAnimation { target: sprungMarker; property: "opacity"; to: 0.15; duration: 220; easing.type: Easing.OutCubic }
+            NumberAnimation { target: sprungMarker; property: "opacity"; to: 1.0;  duration: 140 }
+            NumberAnimation { target: sprungMarker; property: "opacity"; to: 0.15; duration: 220; easing.type: Easing.OutCubic }
+            NumberAnimation { target: sprungMarker; property: "opacity"; to: 1.0;  duration: 140 }
+            NumberAnimation { target: sprungMarker; property: "opacity"; to: 0.0;  duration: 700; easing.type: Easing.InQuart }
+            ScriptAction { script: sprungMarker.visible = false }
+        }
+    }
+
     // ── BMK-Eingabe nach Bauteil-Platzierung ─────────────────────────────────
     property int    _bmkElementId:   -1
     property string _bmkBauteilBez:  ""

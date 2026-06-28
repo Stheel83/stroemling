@@ -37,6 +37,9 @@ Item {
             var ungueltig = panel._ausgewaehlt.some(function(id) { return ids.indexOf(id) < 0 })
             if (ungueltig) panel._ausgewaehlt = []
         }
+        function onKanvasGeaendert() {
+            panel.leisteKanvasAktualisiert()
+        }
     }
 
     readonly property var aktivKlemme:

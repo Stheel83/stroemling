@@ -101,7 +101,10 @@ Item {
     Timer {
         id: zentriereTimer
         interval: 80
-        onTriggered: innerCanvas._zoomZuWeltPosition(root._zentriereX, root._zentriereY)
+        onTriggered: {
+            innerCanvas._zoomZuWeltPosition(root._zentriereX, root._zentriereY)
+            innerCanvas._zeigeMarker(root._zentriereX, root._zentriereY)
+        }
     }
     function seiteOeffnenUndZentrieren(seiteId, blattnummer, bezeichnung, wx, wy) {
         seiteOeffnen(seiteId, blattnummer, bezeichnung)

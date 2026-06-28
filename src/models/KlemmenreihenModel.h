@@ -113,10 +113,12 @@ public:
 
 signals:
     void leisteGeladen();
+    void kanvasGeaendert();
 
 private:
     void ladeKlemmen();
     void ladeStegbruecken();
+    void aktualisiereKanvasBmk(int klemmeId);
     QString pruefUeberlappung(int ebene, int vonKlemmeId, int bisKlemmeId, int skipId = -1) const;
 
     int          m_leisteId = -1;

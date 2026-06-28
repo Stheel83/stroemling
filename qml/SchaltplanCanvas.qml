@@ -4060,14 +4060,18 @@ Item {
         var vy1 = el.y1 * root.zoom + root.worldY
         var vx2 = el.x2 * root.zoom + root.worldX
         var vy2 = el.y2 * root.zoom + root.worldY
-        var elCx = (vx1 + vx2) / 2
-        var elCy = (vy1 + vy2) / 2
+        var elMinX = Math.min(vx1, vx2), elMaxX = Math.max(vx1, vx2)
+        var elMinY = Math.min(vy1, vy2), elMaxY = Math.max(vy1, vy2)
+        var elCx = (elMinX + elMaxX) / 2
+        var elCy = (elMinY + elMaxY) / 2
         var pad = 20
         var visRight = width - epBreite - pad
         var visLeft  = tlW + pad
         var visTop   = topH + pad
         var visBot   = height - botH - pad
-        // Nur pan wenn Element wirklich verdeckt oder außerhalb
+        // Kein Pan wenn Element bereits teilweise sichtbar (z.B. Rahmen eines großen Kastens)
+        if (elMinX < visRight && elMaxX > visLeft && elMinY < visBot && elMaxY > visTop) return
+        // Nur pan wenn Element vollständig außerhalb: Mittelpunkt in Viewport bringen
         var dx = 0, dy = 0
         if (elCx > visRight)  dx = elCx - visRight
         if (elCx < visLeft)   dx = elCx - visLeft

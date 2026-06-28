@@ -287,12 +287,16 @@ ColumnLayout {
                 delegate: Item {
                     id: tabDelegate
                     width: parent.width / 4; height: 26
+                    clip: true
                     property bool aktiv: root._aktiveTab === modelData.tab
 
                     Text {
-                        anchors.centerIn: parent
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        anchors.verticalCenter: parent.verticalCenter
                         text: modelData.label
                         font.pixelSize: 10
+                        elide: Text.ElideRight
                         color: tabDelegate.aktiv ? root.theme.accent : root.theme.textMuted
                         font.weight: tabDelegate.aktiv ? Font.Medium : Font.Normal
                     }
@@ -534,7 +538,7 @@ ColumnLayout {
                                                 // Sprung-Button: nur wenn platziert
                                                 Rectangle {
                                                     visible: platziert
-                                                    width: 20; height: 20; radius: 3
+                                                    implicitWidth: 20; Layout.minimumWidth: 0; height: 20; radius: 3
                                                     color: sprungMA.containsMouse ? root.theme.accent : "transparent"
                                                     Text {
                                                         anchors.centerIn: parent
@@ -812,9 +816,10 @@ ColumnLayout {
                                     Text {
                                         text: md.blattnr || ""
                                         font.pixelSize: 10; color: root.theme.textMuted
+                                        elide: Text.ElideRight; Layout.minimumWidth: 0
                                     }
                                     Rectangle {
-                                        width: 20; height: 20; radius: 3
+                                        implicitWidth: 20; Layout.minimumWidth: 0; height: 20; radius: 3
                                         color: sprungGMA.containsMouse ? root.theme.accent : "transparent"
                                         Text {
                                             anchors.centerIn: parent; text: "→"; font.pixelSize: 11
@@ -915,7 +920,8 @@ ColumnLayout {
                             Text {
                                 text: kabelItem.kTyp
                                 font.pixelSize: 10; color: root.theme.textMuted
-                                elide: Text.ElideRight; Layout.maximumWidth: 90
+                                elide: Text.ElideRight
+                                Layout.maximumWidth: 90; Layout.minimumWidth: 0
                             }
                         }
                     }
@@ -950,10 +956,11 @@ ColumnLayout {
                                     Text {
                                         text: ld.seiteBez || ""
                                         font.pixelSize: 10; color: root.theme.textMuted
+                                        Layout.minimumWidth: 0
                                         elide: Text.ElideRight; Layout.maximumWidth: 80
                                     }
                                     Rectangle {
-                                        width: 20; height: 20; radius: 3
+                                        implicitWidth: 20; Layout.minimumWidth: 0; height: 20; radius: 3
                                         color: kabelSprungMA.containsMouse ? root.theme.accent : "transparent"
                                         Text {
                                             anchors.centerIn: parent; text: "→"; font.pixelSize: 11
@@ -1099,7 +1106,7 @@ ColumnLayout {
                                         Layout.maximumWidth: 80
                                     }
                                     Rectangle {
-                                        width: 20; height: 20; radius: 3
+                                        implicitWidth: 20; Layout.minimumWidth: 0; height: 20; radius: 3
                                         color: gkSprungMA.containsMouse ? root.theme.accent : "transparent"
                                         Text {
                                             anchors.centerIn: parent; text: "→"; font.pixelSize: 11

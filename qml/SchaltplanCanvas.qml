@@ -433,6 +433,7 @@ Item {
             ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath()
         }
 
+
         // Weißes Hintergrundfeld hinter einem einzelnen Text-Label.
         // Muss VOR ctx.strokeText/fillText aufgerufen werden.
         // ctx.textAlign und ctx.textBaseline müssen bereits gesetzt sein.
@@ -1056,24 +1057,12 @@ Item {
                     var klOff = klFs * 0.5 + 4
                     var klAX  = vx1 + klNxL * klOff
                     var klAY  = vy1 + klNyL * klOff
-                    ctx.textAlign    = klNxL >= 0 ? "left" : "right"
-                    ctx.textBaseline = "bottom"
-                    // Hintergrundfeld über alle Zeilen
-                    var bgMaxW = 0
-                    for (var kzB = 0; kzB < klZeilen.length; kzB++) {
-                        ctx.font = (klZeilen[kzB].bold ? "bold " : "") + klFs + "px sans-serif"
-                        bgMaxW = Math.max(bgMaxW, ctx.measureText(klZeilen[kzB].text).width)
-                    }
-                    var bgPad  = 3
-                    var bgN    = klZeilen.length
-                    var bgLeft = (klNxL >= 0) ? klAX - bgPad : klAX - bgMaxW - bgPad
-                    var bgTop  = klAY - (bgN - 1) * klLH - klFs - bgPad
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.7)"
-                    ctx.fillRect(bgLeft, bgTop, bgMaxW + 2 * bgPad, (bgN - 1) * klLH + klFs + 2 * bgPad)
                     ctx.globalAlpha  = 1.0
                     ctx.strokeStyle  = "#000000"
                     ctx.lineWidth    = 3
                     ctx.lineJoin     = "round"
+                    ctx.textAlign    = klNxL >= 0 ? "left" : "right"
+                    ctx.textBaseline = "bottom"
                     var klY = klAY
                     for (var kzI = klZeilen.length - 1; kzI >= 0; kzI--) {
                         ctx.font = (klZeilen[kzI].bold ? "bold " : "") + klFs + "px sans-serif"
@@ -1885,23 +1874,8 @@ Item {
                                     : Math.max(vx1, vx2) + 4 * root.zoom + kaOy
                         var kaAlg = kaPinRechts ? "right" : "left"
                         var kaCyO = kaCy + kaOx
-                        // Positionen vorberechnen für gemeinsames Hintergrundfeld
                         var kaAy   = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
                         var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
-                        // Breiten messen
-                        ctx.font = "bold " + kaFs + "px sans-serif"
-                        var kaWAnz = kaAnz !== "" ? ctx.measureText(kaAnz).width : 0
-                        ctx.font = kaBmkFs + "px sans-serif"
-                        var kaWBmk = kaBmkVis ? ctx.measureText(kaBmk).width : 0
-                        var kaBgMaxW = Math.max(kaWAnz, kaWBmk)
-                        // Gemeinsames Rect (textBaseline = "middle")
-                        var kaBgPad = 2
-                        var kaBgTop = (kaAnz !== "" ? kaAy - kaFs * 0.5 : kaBmkY - kaBmkFs * 0.5) - kaBgPad
-                        var kaBgBot = (kaBmkVis ? kaBmkY + kaBmkFs * 0.5 : kaAy + kaFs * 0.5) + kaBgPad
-                        var kaBgX   = kaPinRechts ? kaX - kaBgMaxW - kaBgPad : kaX - kaBgPad
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.65)"
-                        ctx.fillRect(kaBgX, kaBgTop, kaBgMaxW + 2 * kaBgPad, kaBgBot - kaBgTop)
-                        // Texte zeichnen
                         if (kaAnz !== "") {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
@@ -1923,28 +1897,7 @@ Item {
                                     : Math.max(vy1, vy2) + 3 * root.zoom + kaOy
                         var kaBl  = kaPinUnten ? "bottom" : "top"
                         var kaCxO = kaCx + kaOx
-                        // Positionen vorberechnen für gemeinsames Hintergrundfeld
                         var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
-                        // Breiten messen
-                        ctx.font = "bold " + kaFs + "px sans-serif"
-                        var kaWAnz2 = kaAnz !== "" ? ctx.measureText(kaAnz).width : 0
-                        ctx.font = kaBmkFs + "px sans-serif"
-                        var kaWBmk2 = kaBmkVis ? ctx.measureText(kaBmk).width : 0
-                        var kaBgMaxW2 = Math.max(kaWAnz2, kaWBmk2)
-                        var kaBgPad2  = 2
-                        // Y-Grenzen abhängig von textBaseline
-                        var kaBgTop2, kaBgBot2
-                        if (kaBl === "bottom") {
-                            kaBgTop2 = (kaBmkVis ? kaBmkYh - kaBmkFs : kaY - kaFs) - kaBgPad2
-                            kaBgBot2 = kaY + kaBgPad2
-                        } else {
-                            kaBgTop2 = kaY - kaBgPad2
-                            kaBgBot2 = (kaBmkVis ? kaBmkYh + kaBmkFs : kaY + kaFs) + kaBgPad2
-                        }
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.65)"
-                        ctx.fillRect(kaCxO - kaBgMaxW2 / 2 - kaBgPad2, kaBgTop2,
-                                     kaBgMaxW2 + 2 * kaBgPad2, kaBgBot2 - kaBgTop2)
-                        // Texte zeichnen
                         if (kaAnz !== "") {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl

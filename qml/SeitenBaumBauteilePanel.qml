@@ -28,7 +28,8 @@ ColumnLayout {
     property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
 
     property var  _gkAufgeklappt:     ({})    // bmk → bool
-    property int  _highlightKlemmeId: -1
+    property int    _highlightKlemmeId: -1
+    property string _aktiveTab:         "alles"   // "alles" | "klemmen" | "kabel" | "sonstiges"
 
     readonly property bool offen: _bauteilBereichOffen
 
@@ -228,6 +229,52 @@ ColumnLayout {
         DebugLabel { panelName: qsTr("BAUTEILE-Bereich (Seitenbaum)"); visible: root.debug }
     }
 
+    // ── Tab-Filter ───────────────────────────────────────────
+    Rectangle {
+        Layout.fillWidth: true; height: 26
+        visible: root._bauteilBereichOffen
+        color: root.theme.surfaceDeep
+
+        Row {
+            anchors.fill: parent
+
+            Repeater {
+                model: [
+                    { tab: "alles",     label: qsTr("Alles") },
+                    { tab: "klemmen",   label: qsTr("Klemmen") },
+                    { tab: "kabel",     label: qsTr("Kabel") },
+                    { tab: "sonstiges", label: qsTr("Sonstiges") }
+                ]
+                delegate: Item {
+                    id: tabDelegate
+                    width: parent.width / 4; height: 26
+                    property bool aktiv: root._aktiveTab === modelData.tab
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        font.pixelSize: 10
+                        color: tabDelegate.aktiv ? root.theme.accent : root.theme.textMuted
+                        font.weight: tabDelegate.aktiv ? Font.Medium : Font.Normal
+                    }
+
+                    Rectangle {
+                        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+                        height: 2; radius: 1
+                        color: root.theme.accent
+                        visible: tabDelegate.aktiv
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root._aktiveTab = modelData.tab
+                    }
+                }
+            }
+        }
+    }
+
     // ── BAUTEILE: Warnung wenn keine Seite aktiv ────────────
     Rectangle {
         Layout.fillWidth: true
@@ -251,9 +298,13 @@ ColumnLayout {
         Layout.fillWidth: true; Layout.fillHeight: true
         visible: root._bauteilBereichOffen; clip: true
         Column {
+            id: inhaltSpalte
             width: parent.width
 
             // ─── Klemmenleisten ───────────────────────────────
+            Column {
+            visible: root._aktiveTab === "alles" || root._aktiveTab === "klemmen"
+            width: parent.width
             Repeater {
                 model: klemmenleistenModel
                 delegate: Column {
@@ -493,7 +544,12 @@ ColumnLayout {
                 }
             }
 
+            } // end klemmen Column
+
             // ── GERÄTE ───────────────────────────────────
+            Column {
+            visible: root._aktiveTab === "alles" || root._aktiveTab === "sonstiges"
+            width: parent.width
             property var _geraeteListe: {
                 var _v = root._geraeteVersion;
                 return root._bauteilBereichOffen && root.projektId >= 0
@@ -743,7 +799,12 @@ ColumnLayout {
                 }
             }
 
+            } // end geraete Column
+
             // ── KABEL ────────────────────────────────────
+            Column {
+            visible: root._aktiveTab === "alles" || root._aktiveTab === "kabel"
+            width: parent.width
             property var _kabelListe: root._bauteilBereichOffen && root.projektId >= 0
                 ? db.kabelListeMitPos(root.projektId)
                 : []
@@ -873,7 +934,13 @@ ColumnLayout {
                     }
                 }
             }
+            } // end kabel Column
+
             // ── GERÄTEKÄSTEN ─────────────────────────────────────
+            Column {
+            id: gkWrapper
+            visible: root._aktiveTab === "alles" || root._aktiveTab === "sonstiges"
+            width: parent.width
             property var _gkFlachListe: root._bauteilBereichOffen && root.projektId >= 0
                 ? db.geraetekastenListeMitPos(root.projektId)
                 : []
@@ -881,7 +948,7 @@ ColumnLayout {
             property var _gkGruppiert: {
                 var gruppen = {}
                 var reihenfolge = []
-                var liste = parent._gkFlachListe
+                var liste = gkWrapper._gkFlachListe
                 for (var i = 0; i < liste.length; i++) {
                     var gk = liste[i]
                     var bmk = gk.bmk || ""
@@ -1012,7 +1079,12 @@ ColumnLayout {
                 }
             }
 
+            } // end gk Column
+
             // ── BIBLIOTHEK: plain Bauteile mit Symbol ────────────
+            Column {
+            visible: root._aktiveTab === "alles" || root._aktiveTab === "sonstiges"
+            width: parent.width
             property var _bibliothekListe: root._bauteilBereichOffen
                 ? bauteilModel.bauteileWithSymbol()
                 : []
@@ -1083,6 +1155,7 @@ ColumnLayout {
                     }
                 }
             }
+            } // end bibliothek Column
         }
     }
 }

@@ -203,16 +203,15 @@ ColumnLayout {
         root._gkAufgeklappt       = {}
     }
 
-    Connections {
-        target: elementeModel
-        function onGeaendert() {
-            if (root._bauteilBereichOffen) {
-                root.aktualisiereStatus()
-                root._mitgliederCache = {}
-                root._geraeteVersion++
-            }
+    function _onElementeGeaendert() {
+        if (root._bauteilBereichOffen) {
+            root.aktualisiereStatus()
+            root._mitgliederCache = {}
+            root._geraeteVersion++
         }
     }
+    Connections { target: elementeModel1; function onGeaendert() { root._onElementeGeaendert() } }
+    Connections { target: elementeModel2; function onGeaendert() { root._onElementeGeaendert() } }
 
     Layout.fillWidth: true
     spacing: 0

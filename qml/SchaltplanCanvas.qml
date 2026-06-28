@@ -1862,8 +1862,8 @@ Item {
                         kaBmk    = kaBmkBase
                         kaBmkVis = kaBmkBase !== "" && kaed.bmkSichtbar !== false
                     }
-                    var kaFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
-                    var kaBmkFs = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
+                    var kaFs    = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
+                    var kaBmkFs = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
                     var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
                     var kaSenk  = (kaRot === 90 || kaRot === 270)
                     var kaCx    = (vx1 + vx2) / 2

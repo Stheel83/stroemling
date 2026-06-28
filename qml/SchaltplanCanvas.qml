@@ -2070,26 +2070,32 @@ Item {
                 ctx.globalAlpha = op
                 var skOx  = (skEd.bmkOffsetX !== undefined ? skEd.bmkOffsetX : 0) * root.zoom
                 var skOy  = (skEd.bmkOffsetY !== undefined ? skEd.bmkOffsetY : 0) * root.zoom
-                var skOff = Math.round(4 * root.zoom) + skOy
-                // Anlage/Ort-Label oben rechts
+                var skFsB = Math.max(4, Math.round(skSch * 0.85 * root.mmToPx * root.zoom))
+                var skPad = Math.round(5 * root.zoom)
+                var skTx  = skRx + skPad + skOx
+                var skTy  = skRy + skPad + skOy
+                // Anlage/Ort-Label oben links (bold) – wie Gerätekasten
                 var skLbl = ""
                 if (skAUO) skLbl += "==" + skAUO + " "
                 if (skOUO) skLbl += "++" + skOUO + " "
                 if (skAnl) skLbl += "="  + skAnl + " "
                 if (skOrt) skLbl += "+"  + skOrt
+                ctx.textAlign = "left"
                 if (skLbl !== "") {
-                    ctx.textAlign = "right"
-                    ctx.fillText(skLbl.trim(), skRx + skRw - Math.round(5 * root.zoom) + skOx, skRy + skOff)
+                    ctx.font = "bold " + skFs + "px sans-serif"
+                    var skLblZ = skLbl.trim().split("\n")
+                    for (var skli = 0; skli < skLblZ.length; skli++) {
+                        ctx.fillText(skLblZ[skli], skTx, skTy)
+                        skTy += skFs * 1.3
+                    }
                 }
-                // Bezeichnung oben links (Zeilenumbrüche via \n)
+                // Bezeichnung darunter (kleiner) – wie Gerätekasten
                 if (skBez !== "") {
-                    ctx.textAlign = "left"
-                    ctx.font      = skFs + "px sans-serif"
+                    ctx.font = skFsB + "px sans-serif"
                     var skBezZ = skBez.split("\n")
-                    var skBezY = skRy + skOff
                     for (var ski = 0; ski < skBezZ.length; ski++) {
-                        ctx.fillText(skBezZ[ski], skRx + Math.round(5 * root.zoom) + skOx, skBezY)
-                        skBezY += skFs * 1.3
+                        ctx.fillText(skBezZ[ski], skTx, skTy)
+                        skTy += skFsB * 1.3
                     }
                 }
                 ctx.restore()

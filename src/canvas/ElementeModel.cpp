@@ -461,14 +461,24 @@ int ElementeModel::elementBeiPosition(double vpX, double vpY,
                                        double zoom, double worldX, double worldY) const
 {
     const double s = 7.0;
-    for (int i = static_cast<int>(m_elemente.size()) - 1; i >= 0; --i) {
-        const GrafikElement &el = m_elemente[i];
+
+    // Kasten-Randtypen: bei Überlappung mit einem präzisen Element immer nachrangig.
+    auto istKastenRand = [](const QString &typ) {
+        return typ == QLatin1String("rechteck")
+            || typ == QLatin1String("geraetekasten")
+            || typ == QLatin1String("strukturkasten")
+            || typ == QLatin1String("makrokasten")
+            || typ == QLatin1String("schirm");
+    };
+
+    // Hilfslambda: trifft ein Element?
+    auto trifft = [&](const GrafikElement &el) -> bool {
         double vx1 = el.x1 * zoom + worldX, vy1 = el.y1 * zoom + worldY;
         double vx2 = el.x2 * zoom + worldX, vy2 = el.y2 * zoom + worldY;
-
         if (el.typ == QLatin1String("linie") || el.typ == QLatin1String("kabellinie")) {
-            if (punktZuStrecke(vpX, vpY, vx1, vy1, vx2, vy2) < s) return i;
-        } else if (el.typ == QLatin1String("polygonlinie")) {
+            return punktZuStrecke(vpX, vpY, vx1, vy1, vx2, vy2) < s;
+        }
+        if (el.typ == QLatin1String("polygonlinie")) {
             for (int pi = 0; pi + 1 < el.punkte.size(); ++pi) {
                 const QVariantMap p1 = el.punkte[pi].toMap();
                 const QVariantMap p2 = el.punkte[pi+1].toMap();
@@ -476,35 +486,42 @@ int ElementeModel::elementBeiPosition(double vpX, double vpY,
                 double phy1 = p1.value(QStringLiteral("y")).toDouble() * zoom + worldY;
                 double phx2 = p2.value(QStringLiteral("x")).toDouble() * zoom + worldX;
                 double phy2 = p2.value(QStringLiteral("y")).toDouble() * zoom + worldY;
-                if (punktZuStrecke(vpX, vpY, phx1, phy1, phx2, phy2) < s) return i;
+                if (punktZuStrecke(vpX, vpY, phx1, phy1, phx2, phy2) < s) return true;
             }
-        } else if (el.typ == QLatin1String("rechteck")
-                   || el.typ == QLatin1String("geraetekasten")
-                   || el.typ == QLatin1String("strukturkasten")
-                   || el.typ == QLatin1String("makrokasten")
-                   || el.typ == QLatin1String("schirm")
-                   || el.typ == QLatin1String("notiz")) {
-            if (el.typ == QLatin1String("notiz")) {
-                double nx1 = std::min(vx1,vx2)-s, ny1 = std::min(vy1,vy2)-s;
-                double nx2 = std::max(vx1,vx2)+s, ny2 = std::max(vy1,vy2)+s;
-                if (vpX >= nx1 && vpX <= nx2 && vpY >= ny1 && vpY <= ny2) return i;
-            } else {
-                if (punktZuStrecke(vpX, vpY, vx1,vy1, vx2,vy1) < s) return i;
-                if (punktZuStrecke(vpX, vpY, vx2,vy1, vx2,vy2) < s) return i;
-                if (punktZuStrecke(vpX, vpY, vx2,vy2, vx1,vy2) < s) return i;
-                if (punktZuStrecke(vpX, vpY, vx1,vy2, vx1,vy1) < s) return i;
-            }
-        } else if (el.typ == QLatin1String("kreis")) {
+            return false;
+        }
+        if (el.typ == QLatin1String("notiz")) {
+            double nx1 = std::min(vx1,vx2)-s, ny1 = std::min(vy1,vy2)-s;
+            double nx2 = std::max(vx1,vx2)+s, ny2 = std::max(vy1,vy2)+s;
+            return vpX >= nx1 && vpX <= nx2 && vpY >= ny1 && vpY <= ny2;
+        }
+        if (istKastenRand(el.typ)) {
+            return punktZuStrecke(vpX, vpY, vx1,vy1, vx2,vy1) < s
+                || punktZuStrecke(vpX, vpY, vx2,vy1, vx2,vy2) < s
+                || punktZuStrecke(vpX, vpY, vx2,vy2, vx1,vy2) < s
+                || punktZuStrecke(vpX, vpY, vx1,vy2, vx1,vy1) < s;
+        }
+        if (el.typ == QLatin1String("kreis")) {
             double dx = el.x2 - el.x1, dy = el.y2 - el.y1;
             double r   = std::sqrt(dx*dx + dy*dy) * zoom;
             double dcx = vpX - vx1, dcy = vpY - vy1;
-            if (std::abs(std::sqrt(dcx*dcx + dcy*dcy) - r) < s) return i;
-        } else {
-            // bild, symbol, text: Bounding-Box
-            double bx1 = std::min(vx1,vx2)-s, by1 = std::min(vy1,vy2)-s;
-            double bx2 = std::max(vx1,vx2)+s, by2 = std::max(vy1,vy2)+s;
-            if (vpX >= bx1 && vpX <= bx2 && vpY >= by1 && vpY <= by2) return i;
+            return std::abs(std::sqrt(dcx*dcx + dcy*dcy) - r) < s;
         }
+        // bild, symbol, text: Bounding-Box
+        double bx1 = std::min(vx1,vx2)-s, by1 = std::min(vy1,vy2)-s;
+        double bx2 = std::max(vx1,vx2)+s, by2 = std::max(vy1,vy2)+s;
+        return vpX >= bx1 && vpX <= bx2 && vpY >= by1 && vpY <= by2;
+    };
+
+    // Pass 1: alles außer Kasten-Rändern (Symbole, Linien, Kreise, Notizen …)
+    for (int i = static_cast<int>(m_elemente.size()) - 1; i >= 0; --i) {
+        const GrafikElement &el = m_elemente[i];
+        if (!istKastenRand(el.typ) && trifft(el)) return i;
+    }
+    // Pass 2: Kasten-Ränder (nur wenn kein präziseres Element getroffen)
+    for (int i = static_cast<int>(m_elemente.size()) - 1; i >= 0; --i) {
+        const GrafikElement &el = m_elemente[i];
+        if (istKastenRand(el.typ) && trifft(el)) return i;
     }
     return -1;
 }

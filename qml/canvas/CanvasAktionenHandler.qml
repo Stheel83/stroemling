@@ -253,8 +253,9 @@ QtObject {
                               (bed.anlage   ? "="  + bed.anlage   + " " : "") +
                               (bed.ort      ? "+"  + bed.ort            : "")).trim()
                 if (skBezH === "" && skLblH === "") continue
-                bhx1 = bRx + bOx - pad; bhx2 = Math.max(bvx1, bvx2) + bOx + pad
-                bhy1 = bRy + bOy - pad; bhy2 = bRy + bOy + bFs * 2.5 + pad
+                var skLines = (skLblH ? skLblH.split("\n").length : 0) + (skBezH ? skBezH.split("\n").length : 0)
+                bhx1 = bTx - pad; bhx2 = bTx + Math.max(60, bFs * 6)
+                bhy1 = bTy - pad; bhy2 = bTy + Math.max(skLines, 1) * bFs * 1.4 + pad
             } else {
                 var mkNameH = bed.name || "Makro"
                 var mkCxH = (Math.min(bvx1, bvx2) + Math.max(bvx1, bvx2)) / 2 + bOx

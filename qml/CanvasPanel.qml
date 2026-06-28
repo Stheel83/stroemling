@@ -37,6 +37,8 @@ Item {
     signal querverweisNavigieren(int seiteId)
     signal gkSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal klemmeImSeitenBaumAnzeigen(int klemmeId, string anschlussBezeichnung)
+    signal kabelImSeitenBaumAnzeigen(int kabelId)
+    signal geraetekastenImSeitenBaumAnzeigen(int gkId, string gkBmk)
     signal hintergrundGeaendert(string farbe)
     signal makroListeGeaendert()
     signal aktivesWerkzeugGeaendert(string werkzeug)
@@ -306,6 +308,12 @@ Item {
             }
             onKlemmeImSeitenBaumAnzeigen: function(klemmeId, anschlussBezeichnung) {
                 root.klemmeImSeitenBaumAnzeigen(klemmeId, anschlussBezeichnung)
+            }
+            onKabelImSeitenBaumAnzeigen: function(kabelId) {
+                root.kabelImSeitenBaumAnzeigen(kabelId)
+            }
+            onGeraetekastenImSeitenBaumAnzeigen: function(gkId, gkBmk) {
+                root.geraetekastenImSeitenBaumAnzeigen(gkId, gkBmk)
             }
             onMakroListeGeaendert: root.makroListeGeaendert()
             onDrcKlick:  root.drcKlick()

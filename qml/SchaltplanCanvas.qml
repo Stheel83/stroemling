@@ -38,6 +38,8 @@ Item {
     signal querverweisNavigieren(int seiteId)
     signal gkSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal klemmeImSeitenBaumAnzeigen(int klemmeId, string anschlussBezeichnung)
+    signal kabelImSeitenBaumAnzeigen(int kabelId)
+    signal geraetekastenImSeitenBaumAnzeigen(int gkId, string gkBmk)
     signal makroListeGeaendert()
 
     function bmElementSprungAnfordern(seiteId, blattnr, seiteBez, wx, wy) {

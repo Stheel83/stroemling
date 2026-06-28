@@ -1003,6 +1003,12 @@ ApplicationWindow {
                             onKlemmeImSeitenBaumAnzeigen: function(klemmeId, anschlussBezeichnung) {
                                 seitenBaum.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
                             }
+                            onKabelImSeitenBaumAnzeigen: function(kabelId) {
+                                seitenBaum.navigiereZuKabel(kabelId)
+                            }
+                            onGeraetekastenImSeitenBaumAnzeigen: function(gkId, gkBmk) {
+                                seitenBaum.navigiereZuGeraetekasten(gkId, gkBmk)
+                            }
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
@@ -1063,6 +1069,12 @@ ApplicationWindow {
                             }
                             onKlemmeImSeitenBaumAnzeigen: function(klemmeId, anschlussBezeichnung) {
                                 seitenBaum.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
+                            }
+                            onKabelImSeitenBaumAnzeigen: function(kabelId) {
+                                seitenBaum.navigiereZuKabel(kabelId)
+                            }
+                            onGeraetekastenImSeitenBaumAnzeigen: function(gkId, gkBmk) {
+                                seitenBaum.navigiereZuGeraetekasten(gkId, gkBmk)
                             }
                             onMakroListeGeaendert: symbolPalette.makroListeAktualisieren()
                             onAktivesWerkzeugGeaendert: function(wkz) {

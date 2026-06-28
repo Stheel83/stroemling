@@ -29,6 +29,8 @@ ColumnLayout {
 
     property var  _gkAufgeklappt:     ({})    // bmk → bool
     property int    _highlightKlemmeId: -1
+    property int    _highlightKabelId:  -1
+    property int    _highlightGkId:     -1
     property string _aktiveTab:         "alles"   // "alles" | "klemmen" | "kabel" | "sonstiges"
 
     readonly property bool offen: _bauteilBereichOffen
@@ -37,6 +39,16 @@ ColumnLayout {
         id: highlightTimer
         interval: 2000
         onTriggered: root._highlightKlemmeId = -1
+    }
+    Timer {
+        id: highlightKabelTimer
+        interval: 2000
+        onTriggered: root._highlightKabelId = -1
+    }
+    Timer {
+        id: highlightGkTimer
+        interval: 2000
+        onTriggered: root._highlightGkId = -1
     }
 
     function navigiereZuKlemme(klemmeId, anschlussBezeichnung) {
@@ -84,6 +96,33 @@ ColumnLayout {
         // Klemme-Zeile hervorheben
         root._highlightKlemmeId = klemmeId
         highlightTimer.restart()
+    }
+
+    function navigiereZuKabel(kabelId) {
+        root._bauteilBereichOffen = true
+        if (root._aktiveTab !== "alles" && root._aktiveTab !== "kabel")
+            root._aktiveTab = "kabel"
+        var auf = Object.assign({}, root._kabelAufgeklappt)
+        auf[kabelId] = true
+        if (root._kabellinienCache[kabelId] === undefined) {
+            var c = Object.assign({}, root._kabellinienCache)
+            c[kabelId] = db.kabellinienMitPos(kabelId)
+            root._kabellinienCache = c
+        }
+        root._kabelAufgeklappt = auf
+        root._highlightKabelId = kabelId
+        highlightKabelTimer.restart()
+    }
+
+    function navigiereZuGeraetekasten(gkId, gkBmk) {
+        root._bauteilBereichOffen = true
+        if (root._aktiveTab !== "alles" && root._aktiveTab !== "sonstiges")
+            root._aktiveTab = "sonstiges"
+        var auf = Object.assign({}, root._gkAufgeklappt)
+        auf[gkBmk] = true
+        root._gkAufgeklappt = auf
+        root._highlightGkId = gkId
+        highlightGkTimer.restart()
     }
 
     signal klemmenAnschlussPlatzieren(int klemmeId, int bauteilKlemmeId,
@@ -842,7 +881,9 @@ ColumnLayout {
                     // Kabel-Kopfzeile
                     Rectangle {
                         width: parent.width; height: 32
-                        color: kabelKopfMA.containsMouse ? root.theme.hover : "transparent"
+                        color: root._highlightKabelId === kabelItem.kId
+                            ? root.theme.activeItem
+                            : (kabelKopfMA.containsMouse ? root.theme.hover : "transparent")
 
                         // kabelKopfMA zuerst → RowLayout-Kinder liegen darüber
                         MouseArea {
@@ -1033,7 +1074,9 @@ ColumnLayout {
                             model: gkGruppeItem.gkInst
                             delegate: Rectangle {
                                 width: parent.width; height: 26
-                                color: gkInstMA.containsMouse ? root.theme.hover : "transparent"
+                                color: root._highlightGkId === gkd.id
+                                    ? root.theme.activeItem
+                                    : (gkInstMA.containsMouse ? root.theme.hover : "transparent")
                                 property var gkd: modelData
 
                                 MouseArea {

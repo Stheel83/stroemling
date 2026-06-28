@@ -181,16 +181,28 @@ Item {
             enabled: {
                 if (canvas.auswahl.length !== 1) return false
                 var el = canvas.elementeModel.element(canvas.auswahl[0])
-                return el && el.symbolId === "klemme_anschluss"
-                    && el.extraDaten && el.extraDaten.klemmeId > 0
-                    && el.extraDaten.platziermodus === "verknuepft"
+                if (!el) return false
+                if (el.symbolId === "klemme_anschluss" && el.extraDaten
+                        && el.extraDaten.klemmeId > 0
+                        && el.extraDaten.platziermodus === "verknuepft") return true
+                if (el.typ === "kabellinie" && el.extraDaten
+                        && el.extraDaten.kabelId > 0) return true
+                if (el.typ === "geraetekasten" && el.extraDaten
+                        && el.extraDaten.bmk) return true
+                return false
             }
             onTriggered: {
                 var el = canvas.elementeModel.element(canvas.auswahl[0])
-                canvas.klemmeImSeitenBaumAnzeigen(
-                    el.extraDaten.klemmeId,
-                    el.extraDaten.anschlussBezeichnung || ""
-                )
+                if (el.symbolId === "klemme_anschluss") {
+                    canvas.klemmeImSeitenBaumAnzeigen(
+                        el.extraDaten.klemmeId,
+                        el.extraDaten.anschlussBezeichnung || ""
+                    )
+                } else if (el.typ === "kabellinie") {
+                    canvas.kabelImSeitenBaumAnzeigen(el.extraDaten.kabelId)
+                } else if (el.typ === "geraetekasten") {
+                    canvas.geraetekastenImSeitenBaumAnzeigen(el.id, el.extraDaten.bmk)
+                }
             }
         }
         MenuSeparator {}

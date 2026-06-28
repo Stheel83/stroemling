@@ -55,6 +55,14 @@ Item {
         bauteilePanel.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
     }
 
+    function navigiereZuKabel(kabelId) {
+        bauteilePanel.navigiereZuKabel(kabelId)
+    }
+
+    function navigiereZuGeraetekasten(gkId, gkBmk) {
+        bauteilePanel.navigiereZuGeraetekasten(gkId, gkBmk)
+    }
+
     // Hilfsfunktion: Listenindex für bekannte DIN-Formate ermitteln
     function formatIndex(b, h) {
         var fmts = [

@@ -433,6 +433,24 @@ Item {
             ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath()
         }
 
+        // Weißes Hintergrundfeld hinter einem einzelnen Text-Label.
+        // Muss VOR ctx.strokeText/fillText aufgerufen werden.
+        // ctx.textAlign und ctx.textBaseline müssen bereits gesetzt sein.
+        function textHintergrundFeld(ctx, text, x, y, fs) {
+            var w   = ctx.measureText(text).width
+            var pad = 2
+            var bx  = ctx.textAlign === "center" ? x - w / 2 - pad
+                    : ctx.textAlign === "right"  ? x - w - pad
+                    :                              x - pad
+            var by  = ctx.textBaseline === "bottom" ? y - fs - pad
+                    : ctx.textBaseline === "top"    ? y - pad
+                    :                                 y - fs * 0.5 - pad
+            var savedFill = ctx.fillStyle
+            ctx.fillStyle = "rgba(255, 255, 255, 0.65)"
+            ctx.fillRect(bx, by, w + 2 * pad, fs + 2 * pad)
+            ctx.fillStyle = savedFill
+        }
+
         // Kapsel-/Stadium-Form: zwei echte Halbkreise an den kürzeren Seiten,
         // verbunden durch zwei parallele Geraden (kein echtes Oval). Radius
         // = halbe Breite ODER halbe Höhe, je nachdem welche Dimension kleiner
@@ -1024,7 +1042,7 @@ Item {
                     var klWeitere = klGesamtLinien - 1
                     klZeilen.push({ text: "→ +" + klWeitere + " " + (klWeitere === 1 ? qsTr("Linie") : qsTr("Linien")), bold: false })
                 }
-                if (klZeilen.length > 0) {
+                if (klZeilen.length > 0 && 2.5 * root.mmToPx * root.zoom >= 7) {
                     // Senkrechte zur Linie, auf der "oben"-Seite (negativstes y in Viewport)
                     var klDxL = vx2 - vx1, klDyL = vy2 - vy1
                     var klLLen = Math.sqrt(klDxL*klDxL + klDyL*klDyL) || 1
@@ -1038,12 +1056,24 @@ Item {
                     var klOff = klFs * 0.5 + 4
                     var klAX  = vx1 + klNxL * klOff
                     var klAY  = vy1 + klNyL * klOff
+                    ctx.textAlign    = klNxL >= 0 ? "left" : "right"
+                    ctx.textBaseline = "bottom"
+                    // Hintergrundfeld über alle Zeilen
+                    var bgMaxW = 0
+                    for (var kzB = 0; kzB < klZeilen.length; kzB++) {
+                        ctx.font = (klZeilen[kzB].bold ? "bold " : "") + klFs + "px sans-serif"
+                        bgMaxW = Math.max(bgMaxW, ctx.measureText(klZeilen[kzB].text).width)
+                    }
+                    var bgPad  = 3
+                    var bgN    = klZeilen.length
+                    var bgLeft = (klNxL >= 0) ? klAX - bgPad : klAX - bgMaxW - bgPad
+                    var bgTop  = klAY - (bgN - 1) * klLH - klFs - bgPad
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.7)"
+                    ctx.fillRect(bgLeft, bgTop, bgMaxW + 2 * bgPad, (bgN - 1) * klLH + klFs + 2 * bgPad)
                     ctx.globalAlpha  = 1.0
                     ctx.strokeStyle  = "#000000"
                     ctx.lineWidth    = 3
                     ctx.lineJoin     = "round"
-                    ctx.textAlign    = klNxL >= 0 ? "left" : "right"
-                    ctx.textBaseline = "bottom"
                     var klY = klAY
                     for (var kzI = klZeilen.length - 1; kzI >= 0; kzI--) {
                         ctx.font = (klZeilen[kzI].bold ? "bold " : "") + klFs + "px sans-serif"
@@ -1809,7 +1839,8 @@ Item {
                 }
 
                 // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
-                if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss") {
+                if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss"
+                        && 2.0 * root.mmToPx * root.zoom >= 7) {
                     var kaed     = el.extraDaten || {}
                     var kaIstGeist = kaed.geist === true
                     var kaAnz    = kaed.anschlussBezeichnung || ""
@@ -1854,10 +1885,26 @@ Item {
                                     : Math.max(vx1, vx2) + 4 * root.zoom + kaOy
                         var kaAlg = kaPinRechts ? "right" : "left"
                         var kaCyO = kaCy + kaOx
+                        // Positionen vorberechnen für gemeinsames Hintergrundfeld
+                        var kaAy   = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
+                        var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
+                        // Breiten messen
+                        ctx.font = "bold " + kaFs + "px sans-serif"
+                        var kaWAnz = kaAnz !== "" ? ctx.measureText(kaAnz).width : 0
+                        ctx.font = kaBmkFs + "px sans-serif"
+                        var kaWBmk = kaBmkVis ? ctx.measureText(kaBmk).width : 0
+                        var kaBgMaxW = Math.max(kaWAnz, kaWBmk)
+                        // Gemeinsames Rect (textBaseline = "middle")
+                        var kaBgPad = 2
+                        var kaBgTop = (kaAnz !== "" ? kaAy - kaFs * 0.5 : kaBmkY - kaBmkFs * 0.5) - kaBgPad
+                        var kaBgBot = (kaBmkVis ? kaBmkY + kaBmkFs * 0.5 : kaAy + kaFs * 0.5) + kaBgPad
+                        var kaBgX   = kaPinRechts ? kaX - kaBgMaxW - kaBgPad : kaX - kaBgPad
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.65)"
+                        ctx.fillRect(kaBgX, kaBgTop, kaBgMaxW + 2 * kaBgPad, kaBgBot - kaBgTop)
+                        // Texte zeichnen
                         if (kaAnz !== "") {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
-                            var kaAy = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
                             ctx.strokeText(kaAnz, kaX, kaAy)
                             ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#90e0a0")
                             ctx.fillText(kaAnz, kaX, kaAy)
@@ -1865,7 +1912,6 @@ Item {
                         if (kaBmkVis) {
                             ctx.font = kaBmkFs + "px sans-serif"
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
-                            var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
                             ctx.strokeText(kaBmk, kaX, kaBmkY)
                             ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#a0c0e0")
                             ctx.fillText(kaBmk, kaX, kaBmkY)
@@ -1877,6 +1923,28 @@ Item {
                                     : Math.max(vy1, vy2) + 3 * root.zoom + kaOy
                         var kaBl  = kaPinUnten ? "bottom" : "top"
                         var kaCxO = kaCx + kaOx
+                        // Positionen vorberechnen für gemeinsames Hintergrundfeld
+                        var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
+                        // Breiten messen
+                        ctx.font = "bold " + kaFs + "px sans-serif"
+                        var kaWAnz2 = kaAnz !== "" ? ctx.measureText(kaAnz).width : 0
+                        ctx.font = kaBmkFs + "px sans-serif"
+                        var kaWBmk2 = kaBmkVis ? ctx.measureText(kaBmk).width : 0
+                        var kaBgMaxW2 = Math.max(kaWAnz2, kaWBmk2)
+                        var kaBgPad2  = 2
+                        // Y-Grenzen abhängig von textBaseline
+                        var kaBgTop2, kaBgBot2
+                        if (kaBl === "bottom") {
+                            kaBgTop2 = (kaBmkVis ? kaBmkYh - kaBmkFs : kaY - kaFs) - kaBgPad2
+                            kaBgBot2 = kaY + kaBgPad2
+                        } else {
+                            kaBgTop2 = kaY - kaBgPad2
+                            kaBgBot2 = (kaBmkVis ? kaBmkYh + kaBmkFs : kaY + kaFs) + kaBgPad2
+                        }
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.65)"
+                        ctx.fillRect(kaCxO - kaBgMaxW2 / 2 - kaBgPad2, kaBgTop2,
+                                     kaBgMaxW2 + 2 * kaBgPad2, kaBgBot2 - kaBgTop2)
+                        // Texte zeichnen
                         if (kaAnz !== "") {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl
@@ -1887,7 +1955,6 @@ Item {
                         if (kaBmkVis) {
                             ctx.font = kaBmkFs + "px sans-serif"
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl
-                            var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
                             ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
                             ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#a0c0e0")
                             ctx.fillText(kaBmk, kaCxO, kaBmkYh)
@@ -2870,7 +2937,7 @@ Item {
                     ly = vy + ny * labelAbstand
                     ctx.textAlign = nx >= 0 ? "left" : "right"
                 }
-                if (!root.bewegungAktiv) {
+                if (!root.bewegungAktiv && 1.8 * root.mmToPx * root.zoom >= 7) {
                     ctx.strokeStyle = "#000000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"
                     ctx.strokeText(labelText, lx, ly)
                     ctx.fillStyle = klColor

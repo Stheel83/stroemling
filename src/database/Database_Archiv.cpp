@@ -350,7 +350,7 @@ int Database::csvBauteileImportieren(const QString &pfad, int kategorieId,
     }
     if (!dbFelder.contains("bezeichnung")) return -1;
 
-    QString sql = QString("INSERT INTO bauteil (kategorie_id, %1) VALUES (:katId, %2)")
+    QString sql = QString("INSERT INTO bibliothek.bauteil (kategorie_id, %1) VALUES (:katId, %2)")
                       .arg(dbFelder.join(", "), bindVars.join(", "));
 
     if (!m_db.transaction()) {

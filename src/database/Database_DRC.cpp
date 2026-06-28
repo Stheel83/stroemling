@@ -690,7 +690,7 @@ QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;
     QSqlQuery q(m_db);
-    q.exec("SELECT id, name FROM bauteil_kategorie ORDER BY sortierung, name");
+    q.exec("SELECT id, name FROM bibliothek.bauteil_kategorie ORDER BY sortierung, name");
     while (q.next()) {
         QVariantMap m;
         m["id"]   = q.value(0).toInt();

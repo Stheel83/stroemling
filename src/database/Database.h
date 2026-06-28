@@ -29,17 +29,21 @@ public:
     // Squash (keine Produktivdatenbanken) wird diese Konstante auf die nächste
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
-    static const int BASELINE_VERSION       = 56;
-    static const int CURRENT_SCHEMA_VERSION = 61;
-    static const int WIKI_SCHEMA_VERSION    = 15;
+    static const int BASELINE_VERSION        = 56;
+    static const int CURRENT_SCHEMA_VERSION  = 80;
+    static const int WIKI_SCHEMA_VERSION     = 15;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 1;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
-    static const int BASELINE_TABLE_COUNT   = 42;
+    static const int BASELINE_TABLE_COUNT   = 32;
 
     explicit Database(QObject *parent = nullptr);
 
     // Launcher-DB öffnen (stroemling.db – nur zuletzt-geöffnet-Liste + Wiki-DB-Pfad)
     bool openLauncher(const QString &path);
+
+    // Bibliothek-DB öffnen (bibliothek.db – projektübergreifende Bauteil-Bibliothek)
+    bool openBibliothek(const QString &path);
 
     // Projektdatei öffnen (existierende .stroemling-Datei)
     Q_INVOKABLE bool openProjekt(const QString &path);
@@ -764,6 +768,9 @@ private:
     // Wiki-Starter-Kategorien anlegen (einmalig nach frischem Wiki-Schema-Aufbau)
     bool seedWikiStarterInhalte();
 
+    // Bibliothek-Schema prüfen und ggf. anlegen (analog checkAndApplyWikiSchema)
+    bool checkAndApplyBibliothekSchema();
+
     // Wiki-Schema prüfen und ggf. anlegen (analog checkAndApplySchema)
     bool checkAndApplyWikiSchema();
 
@@ -796,10 +803,12 @@ private:
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_makroDb;
     QSqlDatabase m_launcherDb;
+    QSqlDatabase m_bibliothekDb;
     bool         m_projektOffen  = false;
     bool         m_fts5Verfuegbar = false;
     QString      m_wikiBlobDir;
     QString      m_wikiPfad;
     QString      m_makroPfad;
+    QString      m_bibliothekPfad;
     QString      m_grafikBilderDir;  // <Projektordner>/bilder – Canvas-Bild-BLOBs als Dateien
 };

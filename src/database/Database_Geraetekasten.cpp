@@ -43,7 +43,7 @@ QVariantList Database::geraetekastenListeMitPos(int projektId) const
         JOIN seite   s ON s.id  = ge.seite_id
         JOIN ort     o ON o.id  = s.ort_id
         JOIN anlage  a ON a.id  = o.anlage_id
-        LEFT JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
+        LEFT JOIN bibliothek.bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
         WHERE ge.typ = 'geraetekasten'
           AND a.projekt_id = :pid
         ORDER BY a.kuerzel, o.kuerzel,

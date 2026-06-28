@@ -35,7 +35,7 @@ void BauteilKategorieModel::laden()
     QList<KategorieEintrag> alle;
     QSqlQuery q;
     q.exec("SELECT id, COALESCE(parent_id, -1), name, sortierung "
-           "FROM bauteil_kategorie ORDER BY sortierung, name");
+           "FROM bibliothek.bauteil_kategorie ORDER BY sortierung, name");
     while (q.next()) {
         KategorieEintrag k;
         k.id         = q.value(0).toInt();
@@ -92,9 +92,9 @@ int BauteilKategorieModel::anlegen(int parentId, const QString &name)
 {
     QSqlQuery q;
     if (parentId < 0) {
-        q.prepare("INSERT INTO bauteil_kategorie (name) VALUES (:name)");
+        q.prepare("INSERT INTO bibliothek.bauteil_kategorie (name) VALUES (:name)");
     } else {
-        q.prepare("INSERT INTO bauteil_kategorie (name, parent_id) VALUES (:name, :pid)");
+        q.prepare("INSERT INTO bibliothek.bauteil_kategorie (name, parent_id) VALUES (:name, :pid)");
         q.bindValue(":pid", parentId);
     }
     q.bindValue(":name", name);
@@ -110,7 +110,7 @@ int BauteilKategorieModel::anlegen(int parentId, const QString &name)
 bool BauteilKategorieModel::bearbeiten(int id, const QString &name)
 {
     QSqlQuery q;
-    q.prepare("UPDATE bauteil_kategorie SET name = :name WHERE id = :id");
+    q.prepare("UPDATE bibliothek.bauteil_kategorie SET name = :name WHERE id = :id");
     q.bindValue(":name", name);
     q.bindValue(":id",   id);
     if (!q.exec()) {
@@ -124,7 +124,7 @@ bool BauteilKategorieModel::bearbeiten(int id, const QString &name)
 bool BauteilKategorieModel::loeschen(int id)
 {
     QSqlQuery q;
-    q.prepare("DELETE FROM bauteil_kategorie WHERE id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_kategorie WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcModel) << "Kategorie löschen Fehler:" << q.lastError().text();
@@ -196,10 +196,10 @@ void BauteilListModel::ladenIntern()
         "COALESCE(ka.kabeltyp,''), "
         "COALESCE(b.hauptfunktion_symbol_id,''), "
         "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END "
-        "FROM bauteil b "
-        "LEFT JOIN bauteil_klemme k         ON k.bauteil_id  = b.id "
-        "LEFT JOIN bauteil_kabel  ka        ON ka.bauteil_id = b.id "
-        "LEFT JOIN steckverbinder_typ sv    ON sv.bauteil_id = b.id ";
+        "FROM bibliothek.bauteil b "
+        "LEFT JOIN bibliothek.bauteil_klemme k         ON k.bauteil_id  = b.id "
+        "LEFT JOIN bibliothek.bauteil_kabel  ka        ON ka.bauteil_id = b.id "
+        "LEFT JOIN bibliothek.steckverbinder_typ sv    ON sv.bauteil_id = b.id ";
 
     QString where;
     if (m_nurKlemmen)           where += "k.id IS NOT NULL ";
@@ -322,7 +322,7 @@ int BauteilListModel::anlegen(int kategorieId, const QString &bezeichnung,
                                const QString &urlHersteller, const QString &urlDatenblatt)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO bauteil "
+    q.prepare("INSERT INTO bibliothek.bauteil "
               "(kategorie_id, bezeichnung, hersteller, artikelnummer, lieferant, "
               " preis_eur, spannung_v, strom_a, leistung_w, bemerkung, url_hersteller, url_datenblatt) "
               "VALUES (:kid, :bez, :her, :art, :lief, :preis, :u, :i, :p, :bem, :uh, :ud)");
@@ -355,7 +355,7 @@ bool BauteilListModel::bearbeiten(int id, const QString &bezeichnung,
                                    const QString &urlHersteller, const QString &urlDatenblatt)
 {
     QSqlQuery q;
-    q.prepare("UPDATE bauteil SET "
+    q.prepare("UPDATE bibliothek.bauteil SET "
               "bezeichnung = :bez, hersteller = :her, artikelnummer = :art, "
               "lieferant = :lief, preis_eur = :preis, spannung_v = :u, "
               "strom_a = :i, leistung_w = :p, bemerkung = :bem, "
@@ -384,7 +384,7 @@ bool BauteilListModel::bearbeiten(int id, const QString &bezeichnung,
 bool BauteilListModel::loeschen(int id)
 {
     QSqlQuery q;
-    q.prepare("DELETE FROM bauteil WHERE id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcModel) << "Bauteil löschen Fehler:" << q.lastError().text();
@@ -401,7 +401,7 @@ int BauteilListModel::duplizieren(int bauteilId)
     qSrc.prepare("SELECT kategorie_id, bezeichnung, hersteller, artikelnummer, lieferant, "
                  "preis_eur, spannung_v, strom_a, leistung_w, bemerkung, "
                  "url_hersteller, url_datenblatt "
-                 "FROM bauteil WHERE id = :id");
+                 "FROM bibliothek.bauteil WHERE id = :id");
     qSrc.bindValue(":id", bauteilId);
     if (!qSrc.exec() || !qSrc.next()) {
         qCWarning(lcModel) << "duplizieren: Bauteil" << bauteilId << "nicht gefunden";
@@ -412,7 +412,7 @@ int BauteilListModel::duplizieren(int bauteilId)
 
     // ── Neue Bauteil-Zeile anlegen ───────────────────────────────────────────
     QSqlQuery qIns;
-    qIns.prepare("INSERT INTO bauteil "
+    qIns.prepare("INSERT INTO bibliothek.bauteil "
                  "(kategorie_id, bezeichnung, hersteller, artikelnummer, lieferant, "
                  " preis_eur, spannung_v, strom_a, leistung_w, bemerkung, url_hersteller, url_datenblatt) "
                  "VALUES (:kid, :bez, :her, :art, :lief, :preis, :u, :i, :p, :bem, :uh, :ud)");
@@ -439,12 +439,12 @@ int BauteilListModel::duplizieren(int bauteilId)
         QSqlQuery qk;
         qk.prepare("SELECT id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, "
                    "fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id, bemerkung "
-                   "FROM bauteil_klemme WHERE bauteil_id = :bid");
+                   "FROM bibliothek.bauteil_klemme WHERE bauteil_id = :bid");
         qk.bindValue(":bid", bauteilId);
         if (qk.exec() && qk.next()) {
             const int srcKlemmeId = qk.value(0).toInt();
             QSqlQuery qi;
-            qi.prepare("INSERT INTO bauteil_klemme "
+            qi.prepare("INSERT INTO bibliothek.bauteil_klemme "
                        "(bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, "
                        " fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id, bemerkung) "
                        "VALUES (:bid, :norm, :atyp, :anz, :pa, :pb, :pe, :sb, :br, :gf, :bem)");
@@ -463,12 +463,12 @@ int BauteilListModel::duplizieren(int bauteilId)
                 const int newKlemmeId = qi.lastInsertId().toInt();
                 // Querschnitte
                 QSqlQuery qq;
-                qq.prepare("SELECT adertyp, min_mm2, max_mm2 FROM bauteil_klemme_querschnitt WHERE klemme_id = :kid");
+                qq.prepare("SELECT adertyp, min_mm2, max_mm2 FROM bibliothek.bauteil_klemme_querschnitt WHERE klemme_id = :kid");
                 qq.bindValue(":kid", srcKlemmeId);
                 if (qq.exec()) {
                     while (qq.next()) {
                         QSqlQuery qi2;
-                        qi2.prepare("INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2) VALUES (:kid, :at, :mn, :mx)");
+                        qi2.prepare("INSERT INTO bibliothek.bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2) VALUES (:kid, :at, :mn, :mx)");
                         qi2.bindValue(":kid", newKlemmeId);
                         qi2.bindValue(":at",  qq.value(0));
                         qi2.bindValue(":mn",  qq.value(1));
@@ -478,12 +478,12 @@ int BauteilListModel::duplizieren(int bauteilId)
                 }
                 // Brückenebenen
                 QSqlQuery qb;
-                qb.prepare("SELECT von_ebene, nach_ebene, ist_pe_fuss FROM bauteil_klemme_bruecke WHERE klemme_id = :kid");
+                qb.prepare("SELECT von_ebene, nach_ebene, ist_pe_fuss FROM bibliothek.bauteil_klemme_bruecke WHERE klemme_id = :kid");
                 qb.bindValue(":kid", srcKlemmeId);
                 if (qb.exec()) {
                     while (qb.next()) {
                         QSqlQuery qi3;
-                        qi3.prepare("INSERT INTO bauteil_klemme_bruecke (klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, :ve, :ne, :pe)");
+                        qi3.prepare("INSERT INTO bibliothek.bauteil_klemme_bruecke (klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, :ve, :ne, :pe)");
                         qi3.bindValue(":kid", newKlemmeId);
                         qi3.bindValue(":ve",  qb.value(0));
                         qi3.bindValue(":ne",  qb.value(1));
@@ -500,12 +500,12 @@ int BauteilListModel::duplizieren(int bauteilId)
         QSqlQuery qk;
         qk.prepare("SELECT id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, "
                    "aussenmantel_mm, material_leiter, material_isolierung "
-                   "FROM bauteil_kabel WHERE bauteil_id = :bid");
+                   "FROM bibliothek.bauteil_kabel WHERE bauteil_id = :bid");
         qk.bindValue(":bid", bauteilId);
         if (qk.exec() && qk.next()) {
             const int srcKabelId = qk.value(0).toInt();
             QSqlQuery qi;
-            qi.prepare("INSERT INTO bauteil_kabel "
+            qi.prepare("INSERT INTO bibliothek.bauteil_kabel "
                        "(bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, "
                        " aussenmantel_mm, material_leiter, material_isolierung) "
                        "VALUES (:bid, :kt, :gs, :pv, :af, :am, :ml, :mi)");
@@ -522,12 +522,12 @@ int BauteilListModel::duplizieren(int bauteilId)
                 // Adern — alte ID → neue ID für Paar-Remap
                 QMap<int, int> aderIdMap;
                 QSqlQuery qa;
-                qa.prepare("SELECT id, ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2 FROM bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr");
+                qa.prepare("SELECT id, ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2 FROM bibliothek.bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr");
                 qa.bindValue(":kid", srcKabelId);
                 if (qa.exec()) {
                     while (qa.next()) {
                         QSqlQuery qi2;
-                        qi2.prepare("INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2) VALUES (:kid, :nr, :fa, :nu, :bez, :qs)");
+                        qi2.prepare("INSERT INTO bibliothek.bauteil_kabel_ader (kabel_id, ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2) VALUES (:kid, :nr, :fa, :nu, :bez, :qs)");
                         qi2.bindValue(":kid", newKabelId);
                         qi2.bindValue(":nr",  qa.value(1));
                         qi2.bindValue(":fa",  qa.value(2));
@@ -540,7 +540,7 @@ int BauteilListModel::duplizieren(int bauteilId)
                 }
                 // Paare (Ader-IDs ummappen)
                 QSqlQuery qp;
-                qp.prepare("SELECT paar_nr, ader_a, ader_b FROM bauteil_kabel_paar WHERE kabel_id = :kid ORDER BY paar_nr");
+                qp.prepare("SELECT paar_nr, ader_a, ader_b FROM bibliothek.bauteil_kabel_paar WHERE kabel_id = :kid ORDER BY paar_nr");
                 qp.bindValue(":kid", srcKabelId);
                 if (qp.exec()) {
                     while (qp.next()) {
@@ -548,7 +548,7 @@ int BauteilListModel::duplizieren(int bauteilId)
                         const int nb = aderIdMap.value(qp.value(2).toInt(), -1);
                         if (na > 0 && nb > 0) {
                             QSqlQuery qi3;
-                            qi3.prepare("INSERT INTO bauteil_kabel_paar (kabel_id, paar_nr, ader_a, ader_b) VALUES (:kid, :nr, :a, :b)");
+                            qi3.prepare("INSERT INTO bibliothek.bauteil_kabel_paar (kabel_id, paar_nr, ader_a, ader_b) VALUES (:kid, :nr, :a, :b)");
                             qi3.bindValue(":kid", newKabelId);
                             qi3.bindValue(":nr",  qp.value(0));
                             qi3.bindValue(":a",   na);
@@ -565,12 +565,12 @@ int BauteilListModel::duplizieren(int bauteilId)
     {
         QSqlQuery qsv;
         qsv.prepare("SELECT id, polzahl, ip_getrennt, ip_gesteckt, kodierung, verriegelung, hat_schirmkontakt, geschirmt "
-                    "FROM steckverbinder_typ WHERE bauteil_id = :bid");
+                    "FROM bibliothek.steckverbinder_typ WHERE bauteil_id = :bid");
         qsv.bindValue(":bid", bauteilId);
         if (qsv.exec() && qsv.next()) {
             const int srcSvId = qsv.value(0).toInt();
             QSqlQuery qi;
-            qi.prepare("INSERT INTO steckverbinder_typ "
+            qi.prepare("INSERT INTO bibliothek.steckverbinder_typ "
                        "(bauteil_id, polzahl, ip_getrennt, ip_gesteckt, kodierung, verriegelung, hat_schirmkontakt, geschirmt) "
                        "VALUES (:bid, :pz, :igt, :igs, :ko, :vr, :hs, :gs)");
             qi.bindValue(":bid", newId);
@@ -585,12 +585,12 @@ int BauteilListModel::duplizieren(int bauteilId)
                 const int newSvId = qi.lastInsertId().toInt();
                 // Kabeleinführungen
                 QSqlQuery qke;
-                qke.prepare("SELECT einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung FROM steckverbinder_kabeleinf WHERE steckverbinder_typ_id = :svid ORDER BY einf_nr");
+                qke.prepare("SELECT einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung FROM bibliothek.steckverbinder_kabeleinf WHERE steckverbinder_typ_id = :svid ORDER BY einf_nr");
                 qke.bindValue(":svid", srcSvId);
                 if (qke.exec()) {
                     while (qke.next()) {
                         QSqlQuery qi2;
-                        qi2.prepare("INSERT INTO steckverbinder_kabeleinf (steckverbinder_typ_id, einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung) VALUES (:svid, :nr, :mn, :mx, :et, :ze)");
+                        qi2.prepare("INSERT INTO bibliothek.steckverbinder_kabeleinf (steckverbinder_typ_id, einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung) VALUES (:svid, :nr, :mn, :mx, :et, :ze)");
                         qi2.bindValue(":svid", newSvId);
                         qi2.bindValue(":nr",   qke.value(0));
                         qi2.bindValue(":mn",   qke.value(1));
@@ -602,12 +602,12 @@ int BauteilListModel::duplizieren(int bauteilId)
                 }
                 // Kontakttypen
                 QSqlQuery qkt;
-                qkt.prepare("SELECT position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik FROM steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :svid ORDER BY position_nr");
+                qkt.prepare("SELECT position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik FROM bibliothek.steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :svid ORDER BY position_nr");
                 qkt.bindValue(":svid", srcSvId);
                 if (qkt.exec()) {
                     while (qkt.next()) {
                         QSqlQuery qi3;
-                        qi3.prepare("INSERT INTO steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik) VALUES (:svid, :pos, :sk, :kg, :qmn, :qmx, :ia, :uv, :vt)");
+                        qi3.prepare("INSERT INTO bibliothek.steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik) VALUES (:svid, :pos, :sk, :kg, :qmn, :qmx, :ia, :uv, :vt)");
                         qi3.bindValue(":svid", newSvId);
                         qi3.bindValue(":pos",  qkt.value(0));
                         qi3.bindValue(":sk",   qkt.value(1));
@@ -637,7 +637,7 @@ QVariantMap BauteilListModel::bauteilNachId(int id) const
               "COALESCE(lieferant,''), COALESCE(preis_eur,0), COALESCE(spannung_v,0), "
               "COALESCE(strom_a,0), COALESCE(leistung_w,0), COALESCE(bemerkung,''), "
               "COALESCE(url_hersteller,''), COALESCE(url_datenblatt,'') "
-              "FROM bauteil WHERE id = :id");
+              "FROM bibliothek.bauteil WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec() || !q.next()) return m;
     m["bezeichnung"]   = q.value(0).toString();
@@ -658,7 +658,7 @@ bool BauteilListModel::bauteilTitelSpeichern(int id, const QString &bezeichnung,
                                               const QString &hersteller, const QString &artikelnummer)
 {
     QSqlQuery q;
-    q.prepare("UPDATE bauteil SET bezeichnung=:b, hersteller=:h, artikelnummer=:a WHERE id=:id");
+    q.prepare("UPDATE bibliothek.bauteil SET bezeichnung=:b, hersteller=:h, artikelnummer=:a WHERE id=:id");
     q.bindValue(":b",  bezeichnung);
     q.bindValue(":h",  hersteller);
     q.bindValue(":a",  artikelnummer);
@@ -674,7 +674,7 @@ bool BauteilListModel::bauteilTitelSpeichern(int id, const QString &bezeichnung,
 bool BauteilListModel::symbolSpeichern(int id, const QString &symbolId)
 {
     QSqlQuery q;
-    q.prepare("UPDATE bauteil SET hauptfunktion_symbol_id = :sid WHERE id = :id");
+    q.prepare("UPDATE bibliothek.bauteil SET hauptfunktion_symbol_id = :sid WHERE id = :id");
     q.bindValue(":sid", symbolId.isEmpty() ? QVariant() : symbolId);
     q.bindValue(":id",  id);
     if (!q.exec()) {
@@ -689,7 +689,7 @@ QVariantList BauteilListModel::bauteileWithSymbol() const
 {
     QSqlQuery q;
     q.prepare("SELECT id, bezeichnung, hauptfunktion_symbol_id "
-              "FROM bauteil "
+              "FROM bibliothek.bauteil "
               "WHERE hauptfunktion_symbol_id IS NOT NULL AND hauptfunktion_symbol_id != '' "
               "ORDER BY bezeichnung COLLATE NOCASE");
     QVariantList liste;

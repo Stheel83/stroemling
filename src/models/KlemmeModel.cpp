@@ -21,7 +21,7 @@ void FarbDefinitionModel::laden()
 
     QSqlQuery q;
     q.exec("SELECT id, COALESCE(hex_wert,''), bezeichnung, ist_standard "
-           "FROM farb_definition ORDER BY sortierung, bezeichnung");
+           "FROM bibliothek.farb_definition ORDER BY sortierung, bezeichnung");
     while (q.next()) {
         FarbEintrag f;
         f.id          = q.value(0).toInt();
@@ -93,7 +93,7 @@ void KlemmeModel::laden(int bauteilId)
               "fuss_kontakt_pe, stegbruecke_faehig, "
               "COALESCE(breite_mm, 0.0), COALESCE(gehaeuse_farbe_id, -1), "
               "COALESCE(bemerkung,'') "
-              "FROM bauteil_klemme WHERE bauteil_id = :bid LIMIT 1");
+              "FROM bibliothek.bauteil_klemme WHERE bauteil_id = :bid LIMIT 1");
     q.bindValue(":bid", bauteilId);
 
     if (q.exec() && q.next()) {
@@ -120,7 +120,7 @@ void KlemmeModel::laden(int bauteilId)
 int KlemmeModel::anlegen(int bauteilId)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO bauteil_klemme "
+    q.prepare("INSERT INTO bibliothek.bauteil_klemme "
               "(bauteil_id, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b) "
               "VALUES (:bid, 'schraube', 1, 1, 1)");
     q.bindValue(":bid", bauteilId);
@@ -138,7 +138,7 @@ bool KlemmeModel::speichern(const QVariantMap &daten)
     if (m_klemmeId < 0) return false;
 
     QSqlQuery q;
-    q.prepare("UPDATE bauteil_klemme SET "
+    q.prepare("UPDATE bibliothek.bauteil_klemme SET "
               "norm = :norm, anschluss_typ = :typ, "
               "ebenen_anzahl = :eb, punkte_seite_a = :pa, punkte_seite_b = :pb, "
               "fuss_kontakt_pe = :pe, stegbruecke_faehig = :steg, "
@@ -169,14 +169,14 @@ bool KlemmeModel::speichern(const QVariantMap &daten)
     bool peFuss = daten["fussKontaktPe"].toBool();
     if (peFuss) {
         QSqlQuery qpe;
-        qpe.prepare("INSERT OR IGNORE INTO bauteil_klemme_bruecke "
+        qpe.prepare("INSERT OR IGNORE INTO bibliothek.bauteil_klemme_bruecke "
                     "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) "
                     "VALUES (:kid, 1, 1, 1)");
         qpe.bindValue(":kid", m_klemmeId);
         qpe.exec();
     } else {
         QSqlQuery qpe;
-        qpe.prepare("DELETE FROM bauteil_klemme_bruecke "
+        qpe.prepare("DELETE FROM bibliothek.bauteil_klemme_bruecke "
                     "WHERE klemme_id = :kid AND ist_pe_fuss = 1");
         qpe.bindValue(":kid", m_klemmeId);
         qpe.exec();
@@ -192,16 +192,16 @@ bool KlemmeModel::loeschen()
 
     QSqlQuery q;
     // Abhängige Daten zuerst löschen (kein CASCADE im Schema)
-    q.prepare("DELETE FROM bauteil_klemme_eigenschaft WHERE klemme_id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_klemme_eigenschaft WHERE klemme_id = :id");
     q.bindValue(":id", m_klemmeId); q.exec();
 
-    q.prepare("DELETE FROM bauteil_klemme_bruecke WHERE klemme_id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_klemme_bruecke WHERE klemme_id = :id");
     q.bindValue(":id", m_klemmeId); q.exec();
 
-    q.prepare("DELETE FROM bauteil_klemme_querschnitt WHERE klemme_id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_klemme_querschnitt WHERE klemme_id = :id");
     q.bindValue(":id", m_klemmeId); q.exec();
 
-    q.prepare("DELETE FROM bauteil_klemme WHERE id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_klemme WHERE id = :id");
     q.bindValue(":id", m_klemmeId);
     if (!q.exec()) {
         qCWarning(lcModel) << "KlemmeModel::loeschen:" << q.lastError().text();
@@ -216,7 +216,7 @@ void KlemmeModel::ladeQuerschnitte()
     m_querschnitte.clear();
     QSqlQuery q;
     q.prepare("SELECT id, adertyp, min_mm2, max_mm2 "
-              "FROM bauteil_klemme_querschnitt WHERE klemme_id = :kid "
+              "FROM bibliothek.bauteil_klemme_querschnitt WHERE klemme_id = :kid "
               "ORDER BY adertyp");
     q.bindValue(":kid", m_klemmeId);
     if (!q.exec()) return;
@@ -236,7 +236,7 @@ void KlemmeModel::ladeBruecken()
     m_bruecken.clear();
     QSqlQuery q;
     q.prepare("SELECT id, von_ebene, nach_ebene, ist_pe_fuss "
-              "FROM bauteil_klemme_bruecke "
+              "FROM bibliothek.bauteil_klemme_bruecke "
               "WHERE klemme_id = :kid AND (ist_pe_fuss IS NULL OR ist_pe_fuss = 0) "
               "ORDER BY von_ebene, nach_ebene");
     q.bindValue(":kid", m_klemmeId);
@@ -258,18 +258,18 @@ bool KlemmeModel::querschnittSetzen(const QString &adertyp, double min, double m
 
     QSqlQuery q;
     // UPSERT: update falls vorhanden, sonst insert
-    q.prepare("SELECT id FROM bauteil_klemme_querschnitt "
+    q.prepare("SELECT id FROM bibliothek.bauteil_klemme_querschnitt "
               "WHERE klemme_id = :kid AND adertyp = :typ");
     q.bindValue(":kid", m_klemmeId);
     q.bindValue(":typ", adertyp);
 
     if (q.exec() && q.next()) {
         int eid = q.value(0).toInt();
-        q.prepare("UPDATE bauteil_klemme_querschnitt "
+        q.prepare("UPDATE bibliothek.bauteil_klemme_querschnitt "
                   "SET min_mm2 = :min, max_mm2 = :max WHERE id = :id");
         q.bindValue(":min", min); q.bindValue(":max", max); q.bindValue(":id", eid);
     } else {
-        q.prepare("INSERT INTO bauteil_klemme_querschnitt "
+        q.prepare("INSERT INTO bibliothek.bauteil_klemme_querschnitt "
                   "(klemme_id, adertyp, min_mm2, max_mm2) VALUES (:kid, :typ, :min, :max)");
         q.bindValue(":kid", m_klemmeId); q.bindValue(":typ", adertyp);
         q.bindValue(":min", min); q.bindValue(":max", max);
@@ -289,7 +289,7 @@ bool KlemmeModel::querschnittLoeschen(const QString &adertyp)
     if (m_klemmeId < 0) return false;
 
     QSqlQuery q;
-    q.prepare("DELETE FROM bauteil_klemme_querschnitt "
+    q.prepare("DELETE FROM bibliothek.bauteil_klemme_querschnitt "
               "WHERE klemme_id = :kid AND adertyp = :typ");
     q.bindValue(":kid", m_klemmeId);
     q.bindValue(":typ", adertyp);
@@ -308,14 +308,14 @@ bool KlemmeModel::brueckeAnlegen(int vonEbene, int nachEbene)
 
     // Doppelte Einträge verhindern
     QSqlQuery q;
-    q.prepare("SELECT id FROM bauteil_klemme_bruecke "
+    q.prepare("SELECT id FROM bibliothek.bauteil_klemme_bruecke "
               "WHERE klemme_id = :kid AND von_ebene = :v AND nach_ebene = :n");
     q.bindValue(":kid", m_klemmeId);
     q.bindValue(":v",   vonEbene);
     q.bindValue(":n",   nachEbene);
     if (q.exec() && q.next()) return true; // bereits vorhanden
 
-    q.prepare("INSERT INTO bauteil_klemme_bruecke (klemme_id, von_ebene, nach_ebene) "
+    q.prepare("INSERT INTO bibliothek.bauteil_klemme_bruecke (klemme_id, von_ebene, nach_ebene) "
               "VALUES (:kid, :v, :n)");
     q.bindValue(":kid", m_klemmeId);
     q.bindValue(":v",   vonEbene);
@@ -332,7 +332,7 @@ bool KlemmeModel::brueckeAnlegen(int vonEbene, int nachEbene)
 bool KlemmeModel::brueckeLoeschen(int id)
 {
     QSqlQuery q;
-    q.prepare("DELETE FROM bauteil_klemme_bruecke WHERE id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_klemme_bruecke WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcModel) << "brueckeLoeschen:" << q.lastError().text();
@@ -391,7 +391,7 @@ QVariantMap KlemmeModel::klemmeDetailsHolen(int klemmeId, const QString &anschlu
     q.prepare("SELECT COALESCE(norm,''), anschluss_typ, ebenen_anzahl, "
               "punkte_seite_a, punkte_seite_b, fuss_kontakt_pe, "
               "stegbruecke_faehig, COALESCE(breite_mm, 0.0) "
-              "FROM bauteil_klemme WHERE id = :id");
+              "FROM bibliothek.bauteil_klemme WHERE id = :id");
     q.bindValue(":id", klemmeId);
     if (!q.exec() || !q.next()) return result;
 
@@ -411,7 +411,7 @@ QVariantMap KlemmeModel::klemmeDetailsHolen(int klemmeId, const QString &anschlu
 
     // Interne Ebenenbrücken (für Vorschau-Rendering)
     QSqlQuery qB;
-    qB.prepare("SELECT von_ebene, nach_ebene FROM bauteil_klemme_bruecke WHERE klemme_id = :id ORDER BY id");
+    qB.prepare("SELECT von_ebene, nach_ebene FROM bibliothek.bauteil_klemme_bruecke WHERE klemme_id = :id ORDER BY id");
     qB.bindValue(":id", klemmeId);
     QVariantList bruecken;
     if (qB.exec()) {
@@ -426,7 +426,7 @@ QVariantMap KlemmeModel::klemmeDetailsHolen(int klemmeId, const QString &anschlu
 
     // Querschnitte
     QSqlQuery qQ;
-    qQ.prepare("SELECT adertyp, min_mm2, max_mm2 FROM bauteil_klemme_querschnitt "
+    qQ.prepare("SELECT adertyp, min_mm2, max_mm2 FROM bibliothek.bauteil_klemme_querschnitt "
                "WHERE klemme_id = :id ORDER BY id");
     qQ.bindValue(":id", klemmeId);
     QVariantList querschnitte;

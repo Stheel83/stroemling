@@ -240,122 +240,11 @@ CREATE TABLE symbol_pin (
     kontext    TEXT
 );
 
--- Bauteil-Datenbank
-CREATE TABLE bauteil_kategorie (
-    id          INTEGER PRIMARY KEY,
-    name        TEXT NOT NULL,
-    parent_id   INTEGER REFERENCES bauteil_kategorie(id),
-    sortierung  INTEGER DEFAULT 0
-);
-
-CREATE TABLE bauteil (
-    id              INTEGER PRIMARY KEY,
-    kategorie_id    INTEGER REFERENCES bauteil_kategorie(id),
-    bezeichnung     TEXT NOT NULL,
-    hersteller      TEXT,
-    artikelnummer   TEXT,
-    artikelnummer_2 TEXT,
-    lieferant       TEXT,
-    bestellnummer   TEXT,
-    preis_eur       REAL,
-    spannung_v      REAL,
-    strom_a         REAL,
-    leistung_w      REAL,
-    schutzart       TEXT,
-    norm            TEXT,
-    symbol_code     TEXT,
-    bmk_vorlage     TEXT,
-    bemerkung       TEXT,
-    url_hersteller  TEXT,
-    url_datenblatt  TEXT,
-    hauptfunktion_symbol_id TEXT REFERENCES symbol_definition(id) ON DELETE SET NULL,
-    bild_mime       TEXT
-);
-
--- Klemmen-Bibliothek
-CREATE TABLE farb_definition (
-    id           INTEGER PRIMARY KEY,
-    hex_wert     TEXT,
-    bezeichnung  TEXT NOT NULL,
-    ist_standard INTEGER DEFAULT 0,
-    sortierung   INTEGER DEFAULT 0
-);
-
-CREATE TABLE bauteil_klemme (
-    id                 INTEGER PRIMARY KEY,
-    bauteil_id         INTEGER NOT NULL REFERENCES bauteil(id),
-    norm               TEXT,
-    anschluss_typ      TEXT NOT NULL,
-    ebenen_anzahl      INTEGER NOT NULL DEFAULT 1,
-    punkte_seite_a     INTEGER NOT NULL DEFAULT 1,
-    punkte_seite_b     INTEGER NOT NULL DEFAULT 1,
-    fuss_kontakt_pe    INTEGER DEFAULT 0,
-    stegbruecke_faehig INTEGER DEFAULT 0,
-    breite_mm          REAL,
-    gehaeuse_farbe_id  INTEGER REFERENCES farb_definition(id),
-    bemerkung          TEXT
-);
-
-CREATE TABLE bauteil_klemme_querschnitt (
-    id        INTEGER PRIMARY KEY,
-    klemme_id INTEGER NOT NULL REFERENCES bauteil_klemme(id),
-    adertyp   TEXT NOT NULL,
-    min_mm2   REAL NOT NULL,
-    max_mm2   REAL NOT NULL
-);
-
-CREATE TABLE bauteil_klemme_bruecke (
-    id          INTEGER PRIMARY KEY,
-    klemme_id   INTEGER NOT NULL REFERENCES bauteil_klemme(id),
-    von_ebene   INTEGER NOT NULL,
-    nach_ebene  INTEGER NOT NULL,
-    ist_pe_fuss INTEGER DEFAULT 0
-);
-
-CREATE TABLE bauteil_klemme_eigenschaft (
-    id           INTEGER PRIMARY KEY,
-    klemme_id    INTEGER NOT NULL REFERENCES bauteil_klemme(id),
-    schluessel   TEXT NOT NULL,
-    wert         TEXT NOT NULL,
-    beschreibung TEXT
-);
-
--- Kabel-Bibliothek
-CREATE TABLE bauteil_kabel (
-    id                  INTEGER PRIMARY KEY,
-    bauteil_id          INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
-    kabeltyp            TEXT,
-    geschirmt           INTEGER NOT NULL DEFAULT 0,
-    paarweise_verdrillt INTEGER NOT NULL DEFAULT 0,
-    aussenmantel_farbe  TEXT,
-    aussenmantel_mm     REAL,
-    material_leiter     TEXT,
-    material_isolierung TEXT
-);
-
-CREATE TABLE bauteil_kabel_ader (
-    id              INTEGER PRIMARY KEY,
-    kabel_id        INTEGER NOT NULL REFERENCES bauteil_kabel(id) ON DELETE CASCADE,
-    ader_nr         INTEGER NOT NULL,
-    farbe           TEXT,
-    nummer          TEXT,
-    bezeichnung     TEXT,
-    querschnitt_mm2 REAL
-);
-
-CREATE TABLE bauteil_kabel_paar (
-    id       INTEGER PRIMARY KEY,
-    kabel_id INTEGER NOT NULL REFERENCES bauteil_kabel(id) ON DELETE CASCADE,
-    paar_nr  INTEGER NOT NULL,
-    ader_a   INTEGER NOT NULL,
-    ader_b   INTEGER NOT NULL
-);
-
 -- Betriebsmittel
 CREATE TABLE betriebsmittel (
     id                      INTEGER PRIMARY KEY,
     projekt_id              INTEGER NOT NULL REFERENCES projekt(id),
-    bauteil_id              INTEGER REFERENCES bauteil(id),
+    bauteil_id              INTEGER,
     symbol_code             TEXT,
     anlage_uebergeordnet    TEXT,
     standort_uebergeordnet  TEXT,
@@ -409,7 +298,7 @@ CREATE TABLE kabel (
     von_ort             TEXT,
     nach_ort            TEXT,
     bemerkung           TEXT,
-    bauteil_kabel_id    INTEGER REFERENCES bauteil_kabel(id) ON DELETE SET NULL,
+    bauteil_kabel_id    INTEGER,
     grafik_element_id   INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL
 );
 
@@ -440,7 +329,7 @@ CREATE TABLE klemmenleiste (
 CREATE TABLE klemme (
     id                  INTEGER PRIMARY KEY,
     klemmenleiste_id    INTEGER NOT NULL REFERENCES klemmenleiste(id),
-    bauteil_id          INTEGER REFERENCES bauteil(id),
+    bauteil_id          INTEGER,
     nummer              TEXT NOT NULL DEFAULT '',
     sortierung          INTEGER DEFAULT 0,
     bemerkung           TEXT

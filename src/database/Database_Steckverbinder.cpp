@@ -50,8 +50,8 @@ QVariantList Database::steckverbinderListe(int projektId) const
         JOIN seite  s ON s.id = ge.seite_id
         JOIN ort    o ON o.id = s.ort_id
         JOIN anlage a ON a.id = o.anlage_id
-        JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
-        JOIN steckverbinder_typ sv ON sv.bauteil_id = b.id
+        JOIN bibliothek.bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
+        JOIN bibliothek.steckverbinder_typ sv ON sv.bauteil_id = b.id
         WHERE a.projekt_id = :pid
           AND ge.typ = 'geraetekasten'
           AND CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) > 0
@@ -184,8 +184,8 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
         JOIN seite  s  ON s.id  = gk.seite_id
         JOIN ort    o  ON o.id  = s.ort_id
         JOIN anlage a  ON a.id  = o.anlage_id
-        JOIN bauteil b ON b.id  = CAST(json_extract(gk.extra_daten, '$.bauteil_id') AS INTEGER)
-        JOIN steckverbinder_typ sv ON sv.bauteil_id = b.id
+        JOIN bibliothek.bauteil b ON b.id  = CAST(json_extract(gk.extra_daten, '$.bauteil_id') AS INTEGER)
+        JOIN bibliothek.steckverbinder_typ sv ON sv.bauteil_id = b.id
         JOIN grafik_element ge2 ON ge2.seite_id = gk.seite_id
           AND ge2.typ IN ('stecker', 'buchse', 'geraeteanschluss')
           AND (ge2.x1 + ge2.x2) / 2.0 BETWEEN gk.x1 AND gk.x2
@@ -368,8 +368,8 @@ QVariantList Database::steckverbinderBausteineListe() const
     q.prepare(R"(
         SELECT b.id, COALESCE(b.bezeichnung,''), COALESCE(b.hersteller,''),
                COALESCE(b.artikelnummer,''), sv.polzahl
-        FROM bauteil b
-        JOIN steckverbinder_typ sv ON sv.bauteil_id = b.id
+        FROM bibliothek.bauteil b
+        JOIN bibliothek.steckverbinder_typ sv ON sv.bauteil_id = b.id
         ORDER BY b.bezeichnung COLLATE NOCASE
     )");
     if (!q.exec()) {
@@ -399,7 +399,7 @@ QVariantMap Database::steckverbinderTypLaden(int bauteilId) const
     q.prepare(R"(
         SELECT id, polzahl, ip_getrennt, ip_gesteckt, kodierung,
                verriegelung, hat_schirmkontakt, geschirmt
-        FROM steckverbinder_typ WHERE bauteil_id = :bid
+        FROM bibliothek.steckverbinder_typ WHERE bauteil_id = :bid
     )");
     q.bindValue(":bid", bauteilId);
     if (!q.exec() || !q.next()) return m;
@@ -423,7 +423,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
     bool hatSchirmkontakt, bool geschirmt)
 {
     QSqlQuery sel(m_db);
-    sel.prepare("SELECT id FROM steckverbinder_typ WHERE bauteil_id = :bid");
+    sel.prepare("SELECT id FROM bibliothek.steckverbinder_typ WHERE bauteil_id = :bid");
     sel.bindValue(":bid", bauteilId);
     if (!sel.exec()) {
         qCWarning(lcDb) << "steckverbinderTypSpeichern SELECT:" << sel.lastError().text();
@@ -434,7 +434,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
     if (sel.next()) {
         int existingId = sel.value(0).toInt();
         q.prepare(R"(
-            UPDATE steckverbinder_typ
+            UPDATE bibliothek.steckverbinder_typ
             SET polzahl=:pz, ip_getrennt=:ipg, ip_gesteckt=:ipgs,
                 kodierung=:kod, verriegelung=:ver,
                 hat_schirmkontakt=:hsk, geschirmt=:gsch
@@ -455,7 +455,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
         return existingId;
     } else {
         q.prepare(R"(
-            INSERT INTO steckverbinder_typ
+            INSERT INTO bibliothek.steckverbinder_typ
                 (bauteil_id, polzahl, ip_getrennt, ip_gesteckt,
                  kodierung, verriegelung, hat_schirmkontakt, geschirmt)
             VALUES (:bid, :pz, :ipg, :ipgs, :kod, :ver, :hsk, :gsch)
@@ -480,7 +480,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
 bool Database::steckverbinderTypLoeschen(int bauteilId)
 {
     QSqlQuery q(m_db);
-    q.prepare("DELETE FROM steckverbinder_typ WHERE bauteil_id = :bid");
+    q.prepare("DELETE FROM bibliothek.steckverbinder_typ WHERE bauteil_id = :bid");
     q.bindValue(":bid", bauteilId);
     if (!q.exec()) {
         qCWarning(lcDb) << "steckverbinderTypLoeschen:" << q.lastError().text();
@@ -497,7 +497,7 @@ QVariantList Database::steckverbinderKableinfLaden(int steckverbinderTypId) cons
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, einf_nr, aussen_min_mm, aussen_max_mm, einf_typ, zugentlastung
-        FROM steckverbinder_kabeleinf
+        FROM bibliothek.steckverbinder_kabeleinf
         WHERE steckverbinder_typ_id = :tid
         ORDER BY einf_nr
     )");
@@ -524,10 +524,10 @@ int Database::steckverbinderKableinfHinzufuegen(int steckverbinderTypId)
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        INSERT INTO steckverbinder_kabeleinf (steckverbinder_typ_id, einf_nr)
+        INSERT INTO bibliothek.steckverbinder_kabeleinf (steckverbinder_typ_id, einf_nr)
         VALUES (:tid,
             (SELECT COALESCE(MAX(einf_nr), 0) + 1
-             FROM steckverbinder_kabeleinf WHERE steckverbinder_typ_id = :tid2))
+             FROM bibliothek.steckverbinder_kabeleinf WHERE steckverbinder_typ_id = :tid2))
     )");
     q.bindValue(":tid",  steckverbinderTypId);
     q.bindValue(":tid2", steckverbinderTypId);
@@ -544,7 +544,7 @@ bool Database::steckverbinderKableinfAktualisieren(int id, double aussenMin, dou
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        UPDATE steckverbinder_kabeleinf
+        UPDATE bibliothek.steckverbinder_kabeleinf
         SET aussen_min_mm=:amin, aussen_max_mm=:amax,
             einf_typ=:ety, zugentlastung=:zug
         WHERE id=:id
@@ -565,7 +565,7 @@ bool Database::steckverbinderKableinfAktualisieren(int id, double aussenMin, dou
 bool Database::steckverbinderKableinfLoeschen(int id)
 {
     QSqlQuery q(m_db);
-    q.prepare("DELETE FROM steckverbinder_kabeleinf WHERE id=:id");
+    q.prepare("DELETE FROM bibliothek.steckverbinder_kabeleinf WHERE id=:id");
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcDb) << "steckverbinderKableinfLoeschen:" << q.lastError().text();
@@ -584,7 +584,7 @@ QVariantList Database::steckverbinderKontaktLaden(int steckverbinderTypId) const
         SELECT id, position_nr, ist_schirmkontakt, kontaktgroesse,
                querschnitt_kabel_min, querschnitt_kabel_max,
                nennstrom_a, nennspannung_v, verbindungstechnik
-        FROM steckverbinder_kontakt_typ
+        FROM bibliothek.steckverbinder_kontakt_typ
         WHERE steckverbinder_typ_id = :tid
         ORDER BY position_nr
     )");
@@ -614,10 +614,10 @@ int Database::steckverbinderKontaktHinzufuegen(int steckverbinderTypId)
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        INSERT INTO steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr)
+        INSERT INTO bibliothek.steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr)
         VALUES (:tid,
             (SELECT COALESCE(MAX(position_nr), 0) + 1
-             FROM steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :tid2))
+             FROM bibliothek.steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :tid2))
     )");
     q.bindValue(":tid",  steckverbinderTypId);
     q.bindValue(":tid2", steckverbinderTypId);
@@ -635,7 +635,7 @@ bool Database::steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        UPDATE steckverbinder_kontakt_typ
+        UPDATE bibliothek.steckverbinder_kontakt_typ
         SET ist_schirmkontakt=:isk, kontaktgroesse=:kg,
             querschnitt_kabel_min=:qmin, querschnitt_kabel_max=:qmax,
             nennstrom_a=:ns, nennspannung_v=:nv, verbindungstechnik=:vt
@@ -660,7 +660,7 @@ bool Database::steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
 bool Database::steckverbinderKontaktLoeschen(int id)
 {
     QSqlQuery q(m_db);
-    q.prepare("DELETE FROM steckverbinder_kontakt_typ WHERE id=:id");
+    q.prepare("DELETE FROM bibliothek.steckverbinder_kontakt_typ WHERE id=:id");
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcDb) << "steckverbinderKontaktLoeschen:" << q.lastError().text();

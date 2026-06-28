@@ -140,7 +140,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
                b.artikelnummer AS bauteil_artikelnummer
         FROM grafik_element ge
         LEFT JOIN betriebsmittel bm ON bm.id = ge.betriebsmittel_id
-        LEFT JOIN bauteil b         ON b.id  = bm.bauteil_id
+        LEFT JOIN bibliothek.bauteil b ON b.id  = bm.bauteil_id
         WHERE ge.seite_id = :sid
           AND ge.id != :kid
           AND ge.typ != 'makrokasten'
@@ -445,13 +445,13 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
             int bauteilId = -1;
             if (!artikelnummer.isEmpty()) {
                 QSqlQuery qb(m_db);
-                qb.prepare("SELECT id FROM bauteil WHERE artikelnummer = :an LIMIT 1");
+                qb.prepare("SELECT id FROM bibliothek.bauteil WHERE artikelnummer = :an LIMIT 1");
                 qb.bindValue(":an", artikelnummer);
                 if (qb.exec() && qb.next()) bauteilId = qb.value(0).toInt();
             }
             if (bauteilId < 0 && !bezeichnung.isEmpty()) {
                 QSqlQuery qins(m_db);
-                qins.prepare("INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer) "
+                qins.prepare("INSERT INTO bibliothek.bauteil (bezeichnung, hersteller, artikelnummer) "
                              "VALUES (:bez, :her, :art)");
                 qins.bindValue(":bez", bezeichnung);
                 qins.bindValue(":her", hersteller.isEmpty() ? QVariant() : QVariant(hersteller));

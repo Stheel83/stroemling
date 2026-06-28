@@ -212,9 +212,10 @@ int main(int argc, char *argv[])
     // Log-Datei bleibt neben dem Binary (Debug-Output, kein Nutzerdaten-Ordner).
     QString dataDir      = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir().mkpath(dataDir);
-    QString launcherPath = dataDir + "/stroemling.db";  // Launcher-DB (nur zuletzt_geoeffnet)
-    QString wikiPath     = dataDir + "/wiki.db";
-    QString makroPath    = dataDir + "/makros.db";       // Makro-Bibliothek (projektübergreifend)
+    QString launcherPath    = dataDir + "/stroemling.db";  // Launcher-DB (nur zuletzt_geoeffnet)
+    QString wikiPath        = dataDir + "/wiki.db";
+    QString makroPath       = dataDir + "/makros.db";       // Makro-Bibliothek (projektübergreifend)
+    QString bibliothekPath  = dataDir + "/bibliothek.db";   // Bauteil-Bibliothek (projektübergreifend)
 
     // Datenbankverbindungen aufbauen
     Database db;
@@ -228,6 +229,10 @@ int main(int argc, char *argv[])
     }
     if (!db.openMakro(makroPath)) {
         qCCritical(lcApp) << "Makro-DB konnte nicht geöffnet werden:" << db.lastError();
+        return 1;
+    }
+    if (!db.openBibliothek(bibliothekPath)) {
+        qCCritical(lcApp) << "Bibliothek-DB konnte nicht geöffnet werden:" << db.lastError();
         return 1;
     }
 

@@ -753,7 +753,7 @@ QVariantList Database::bauteilKabelListe()
     QVariantList result;
     {
         QSqlQuery cnt;
-        cnt.exec("SELECT COUNT(*) FROM bauteil_kabel");
+        cnt.exec("SELECT COUNT(*) FROM bibliothek.bauteil_kabel");
         if (cnt.next())
             qCDebug(lcDb) << "bauteilKabelListe: bauteil_kabel Zeilen=" << cnt.value(0).toInt();
         else
@@ -764,9 +764,9 @@ QVariantList Database::bauteilKabelListe()
         SELECT bk.id, bk.bauteil_id, b.bezeichnung, bk.kabeltyp,
                COUNT(ba.id) AS aderzahl,
                MAX(ba.querschnitt_mm2) AS quer
-        FROM bauteil_kabel bk
-        JOIN bauteil b ON b.id = bk.bauteil_id
-        LEFT JOIN bauteil_kabel_ader ba ON ba.kabel_id = bk.id
+        FROM bibliothek.bauteil_kabel bk
+        JOIN bibliothek.bauteil b ON b.id = bk.bauteil_id
+        LEFT JOIN bibliothek.bauteil_kabel_ader ba ON ba.kabel_id = bk.id
         GROUP BY bk.id
         ORDER BY b.bezeichnung, bk.kabeltyp
     )")) {
@@ -785,7 +785,7 @@ QVariantList Database::bauteilKabelListe()
         // Aderfarben für Farbvorschau laden
         QSqlQuery qa;
         qa.prepare(R"(
-            SELECT farbe, querschnitt_mm2 FROM bauteil_kabel_ader
+            SELECT farbe, querschnitt_mm2 FROM bibliothek.bauteil_kabel_ader
             WHERE kabel_id = :kid ORDER BY ader_nr
         )");
         qa.bindValue(":kid", bkId);
@@ -824,8 +824,8 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
         QSqlQuery qbk;
         qbk.prepare(R"(
             SELECT bk.kabeltyp, COUNT(ba.id), MAX(ba.querschnitt_mm2)
-            FROM bauteil_kabel bk
-            LEFT JOIN bauteil_kabel_ader ba ON ba.kabel_id = bk.id
+            FROM bibliothek.bauteil_kabel bk
+            LEFT JOIN bibliothek.bauteil_kabel_ader ba ON ba.kabel_id = bk.id
             WHERE bk.id = :id GROUP BY bk.id
         )");
         qbk.bindValue(":id", bauteilKabelId);
@@ -862,7 +862,7 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
         QSqlQuery qa;
         qa.prepare(R"(
             SELECT ader_nr, farbe, bezeichnung, querschnitt_mm2
-            FROM bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr
+            FROM bibliothek.bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr
         )");
         qa.bindValue(":kid", bauteilKabelId);
         if (qa.exec()) {

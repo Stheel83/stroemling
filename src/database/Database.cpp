@@ -44,9 +44,10 @@ bool Database::open(const QString &path)
 void Database::close()
 {
     m_db.close();
-    if (m_wikiDb.isValid())    m_wikiDb.close();
-    if (m_makroDb.isValid())   m_makroDb.close();
-    if (m_launcherDb.isValid()) m_launcherDb.close();
+    if (m_wikiDb.isValid())       m_wikiDb.close();
+    if (m_makroDb.isValid())      m_makroDb.close();
+    if (m_launcherDb.isValid())   m_launcherDb.close();
+    if (m_bibliothekDb.isValid()) m_bibliothekDb.close();
 }
 
 // ============================================================
@@ -182,6 +183,12 @@ bool Database::openProjekt(const QString &path)
         return false;
     }
 
+    if (m_bibliothekDb.isOpen()) {
+        QSqlQuery att(m_db);
+        att.exec(QString("ATTACH DATABASE '%1' AS bibliothek")
+                     .arg(m_bibliothekPfad));
+    }
+
     m_projektOffen = true;
 
     QString projektName;
@@ -268,9 +275,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
     bool ok = createSchema()
            && seedSymbolKatalog()
            && seedBuiltinSymbolDefinitionen()
-           && seedIbnFeldvorlagen()
-           && seedStandardKlemmen()
-           && seedNutzerBauteile();
+           && seedIbnFeldvorlagen();
 
     int neueProjektId = -1;
     if (ok) {
@@ -330,6 +335,12 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
         QFile::remove(localPath);
         return false;
+    }
+
+    if (m_bibliothekDb.isOpen()) {
+        QSqlQuery att(m_db);
+        att.exec(QString("ATTACH DATABASE '%1' AS bibliothek")
+                     .arg(m_bibliothekPfad));
     }
 
     m_projektOffen = true;
@@ -634,6 +645,7 @@ QVariantMap Database::datenbankInfos() const
     m["hauptDb"]           = projektDatei;
     m["wikiDb"]            = wikiPfad;
     m["makrosDb"]          = m_makroPfad;
+    m["bibliothekDb"]      = m_bibliothekPfad;
     QStringList backupDateien = backupDir.isEmpty()
         ? QStringList()
         : QDir(backupDir).entryList({"makros_*.db"}, QDir::Files, QDir::Name);

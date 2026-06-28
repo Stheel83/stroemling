@@ -28,6 +28,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Geraetekasten.cpp
     src/database/Database_Steckverbinder.cpp
     src/database/Database_Archiv.cpp
+    src/database/Database_Bibliothek.cpp
     src/database/Database.h
     src/models/ProjektModel.cpp
     src/models/ProjektModel.h
@@ -351,6 +352,7 @@ qt_add_executable(stroemling_test
     src/database/Database_SPS.cpp
     src/database/Database_PDF.cpp
     src/database/Database_Archiv.cpp
+    src/database/Database_Bibliothek.cpp
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp

@@ -34,7 +34,7 @@ void KlemmenleistenModel::laden(int projektId)
         "FROM klemmenleiste kl "
         "LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id "
         "LEFT JOIN klemme k ON k.klemmenleiste_id = kl.id "
-        "LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
+        "LEFT JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
         "WHERE kl.projekt_id = :pid "
         "GROUP BY kl.id "
         "ORDER BY kl.bezeichnung"
@@ -82,7 +82,7 @@ void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
 {
     auto bauteilIdFuer = [](const QString &bez) -> int {
         QSqlQuery q;
-        q.prepare("SELECT id FROM bauteil WHERE bezeichnung = :bez LIMIT 1");
+        q.prepare("SELECT id FROM bibliothek.bauteil WHERE bezeichnung = :bez LIMIT 1");
         q.bindValue(":bez", bez);
         if (q.exec() && q.next()) return q.value(0).toInt();
         return -1;
@@ -435,8 +435,8 @@ void KlemmenreiheModel::ladeKlemmen()
         "    || ': ' || bkq.min_mm2 || '\xe2\x80\x93' || bkq.max_mm2 || ' mm\xc2\xb2', ', ') "
         " FROM bauteil_klemme_querschnitt bkq WHERE bkq.klemme_id = bk.id) "
         "FROM klemme k "
-        "LEFT JOIN bauteil b ON b.id = k.bauteil_id "
-        "LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
+        "LEFT JOIN bibliothek.bauteil b ON b.id = k.bauteil_id "
+        "LEFT JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
         "WHERE k.klemmenleiste_id = :lid "
         "ORDER BY k.sortierung, k.id"
     );
@@ -690,8 +690,8 @@ QVariantList KlemmenreiheModel::klemmeBauteileHolen(const QString &suchtext) con
     QString sql =
         "SELECT b.id, b.bezeichnung, COALESCE(b.hersteller,''), "
         "COALESCE(bk.anschluss_typ,''), COALESCE(bk.breite_mm, 0.0) "
-        "FROM bauteil b "
-        "INNER JOIN bauteil_klemme bk ON bk.bauteil_id = b.id ";
+        "FROM bibliothek.bauteil b "
+        "INNER JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = b.id ";
     if (!such.isEmpty())
         sql += "WHERE LOWER(b.bezeichnung || ' ' || COALESCE(b.hersteller,'')) LIKE LOWER(:s) ";
     sql += "ORDER BY b.bezeichnung LIMIT 100";
@@ -728,7 +728,7 @@ int KlemmenreiheModel::leisteKanvasAktualisieren()
         "SET extra_daten = json_set(extra_daten, '$.bauteilKlemmeId', "
         "    (SELECT bk.id "
         "     FROM klemme k "
-        "     LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
+        "     LEFT JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
         "     WHERE k.id = CAST(json_extract(grafik_element.extra_daten,'$.klemmeId') AS INTEGER))) "
         "WHERE symbol_id = 'klemme_anschluss' "
         "  AND json_extract(extra_daten,'$.platziermodus') = 'verknuepft' "

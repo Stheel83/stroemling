@@ -19,8 +19,8 @@ QVariantList Database::klemmenFuerLeiste(int leisteId) const
         "       COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung) "
         "FROM klemme k "
         "JOIN klemmenleiste kl ON kl.id = k.klemmenleiste_id "
-        "LEFT JOIN bauteil b ON b.id = k.bauteil_id "
-        "LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
+        "LEFT JOIN bibliothek.bauteil b ON b.id = k.bauteil_id "
+        "LEFT JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
         "LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id "
         "WHERE k.klemmenleiste_id = :lid "
         "ORDER BY k.sortierung, k.id"
@@ -47,7 +47,7 @@ QVariantList Database::anschluesseFuerKlemme(int bauteilId) const
     QSqlQuery q(m_db);
     q.prepare(
         "SELECT ebenen_anzahl, punkte_seite_a, punkte_seite_b, fuss_kontakt_pe "
-        "FROM bauteil_klemme WHERE bauteil_id = :bid"
+        "FROM bibliothek.bauteil_klemme WHERE bauteil_id = :bid"
     );
     q.bindValue(":bid", bauteilId);
     if (!q.exec() || !q.next()) return result;
@@ -199,7 +199,7 @@ QVariantList Database::klemmenInterneBruecken(int /*projektId*/) const
         "SELECT DISTINCT CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER), "
         "       bkb.von_ebene, bkb.nach_ebene "
         "FROM grafik_element ge "
-        "JOIN bauteil_klemme_bruecke bkb "
+        "JOIN bibliothek.bauteil_klemme_bruecke bkb "
         "  ON bkb.klemme_id = CAST(json_extract(ge.extra_daten,'$.bauteilKlemmeId') AS INTEGER) "
         "WHERE ge.symbol_id = 'klemme_anschluss' "
         "  AND (bkb.ist_pe_fuss IS NULL OR bkb.ist_pe_fuss = 0)")) {
@@ -520,14 +520,14 @@ QVariantList Database::klemmlistenauszug(int projektId)
         "       COALESCE(fd.bezeichnung,''), COALESCE(fd.hex_wert,''),"
         "       COALESCE("
         "           (SELECT MIN(bkq.min_mm2)||'\xe2\x80\x93'||MAX(bkq.max_mm2)||' mm\xc2\xb2'"
-        "            FROM bauteil_klemme_querschnitt bkq WHERE bkq.klemme_id = bk.id)"
+        "            FROM bibliothek.bauteil_klemme_querschnitt bkq WHERE bkq.klemme_id = bk.id)"
         "       ,'')"
         " FROM klemmenleiste kl"
         " LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id"
         " JOIN klemme k ON k.klemmenleiste_id = kl.id"
-        " LEFT JOIN bauteil b ON b.id = k.bauteil_id"
-        " LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id"
-        " LEFT JOIN farb_definition fd ON fd.id = bk.gehaeuse_farbe_id"
+        " LEFT JOIN bibliothek.bauteil b ON b.id = k.bauteil_id"
+        " LEFT JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id"
+        " LEFT JOIN bibliothek.farb_definition fd ON fd.id = bk.gehaeuse_farbe_id"
         " WHERE kl.projekt_id = :pid"
         " ORDER BY kl.bezeichnung, k.sortierung, k.id"
     );

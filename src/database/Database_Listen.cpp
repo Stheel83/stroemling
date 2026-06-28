@@ -289,7 +289,7 @@ QVariantList Database::stueckliste(int projektId)
         JOIN seite  s ON s.id = ge.seite_id
         JOIN ort    o ON o.id = s.ort_id
         JOIN anlage a ON a.id = o.anlage_id
-        JOIN bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
+        JOIN bibliothek.bauteil b ON b.id = CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER)
         WHERE a.projekt_id = :pid
           AND ge.typ = 'geraetekasten'
           AND CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) > 0
@@ -563,7 +563,7 @@ QVariantList Database::bauteilKontaktListe(int bauteilId) const
     QVariantList result;
     QSqlQuery q(m_db);
     q.prepare("SELECT id, symbol_id, bezeichnung, pin_bez "
-              "FROM bauteil_kontakt WHERE bauteil_id = :bid "
+              "FROM bibliothek.bauteil_kontakt WHERE bauteil_id = :bid "
               "ORDER BY symbol_id, bezeichnung");
     q.bindValue(":bid", bauteilId);
     if (!q.exec()) {
@@ -585,7 +585,7 @@ int Database::bauteilKontaktHinzufuegen(int bauteilId, const QString &symbolId,
                                           const QString &bezeichnung, const QString &pinBez)
 {
     QSqlQuery q(m_db);
-    q.prepare("INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez) "
+    q.prepare("INSERT INTO bibliothek.bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez) "
               "VALUES (:bid, :sid, :bez, :pb)");
     q.bindValue(":bid", bauteilId);
     q.bindValue(":sid", symbolId);
@@ -602,7 +602,7 @@ bool Database::bauteilKontaktAktualisieren(int id, const QString &symbolId,
                                              const QString &bezeichnung, const QString &pinBez)
 {
     QSqlQuery q(m_db);
-    q.prepare("UPDATE bauteil_kontakt SET symbol_id=:sid, bezeichnung=:bez, pin_bez=:pb WHERE id=:id");
+    q.prepare("UPDATE bibliothek.bauteil_kontakt SET symbol_id=:sid, bezeichnung=:bez, pin_bez=:pb WHERE id=:id");
     q.bindValue(":sid", symbolId);
     q.bindValue(":bez", bezeichnung);
     q.bindValue(":pb",  pinBez.isEmpty() ? QStringLiteral("{}") : pinBez);
@@ -617,7 +617,7 @@ bool Database::bauteilKontaktAktualisieren(int id, const QString &symbolId,
 bool Database::bauteilKontaktLoeschen(int id)
 {
     QSqlQuery q(m_db);
-    q.prepare("DELETE FROM bauteil_kontakt WHERE id = :id");
+    q.prepare("DELETE FROM bibliothek.bauteil_kontakt WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcDb) << "bauteilKontaktLoeschen Fehler:" << q.lastError().text();
@@ -883,7 +883,7 @@ QVariantList Database::klemmenplan(int projektId)
         "COALESCE(fd.hex_wert,''), "
         "COALESCE(kl.standort_uebergeordnet,''), "
         "(SELECT MIN(bkq.min_mm2) || '\xe2\x80\x93' || MAX(bkq.max_mm2) || ' mm\xc2\xb2' "
-        "   FROM bauteil_klemme_querschnitt bkq WHERE bkq.klemme_id = bk.id), "
+        "   FROM bibliothek.bauteil_klemme_querschnitt bkq WHERE bkq.klemme_id = bk.id), "
         "(SELECT ks.potenzial_text FROM klemme_stegbruecke ks "
         " WHERE ks.klemmenleiste_id = kl.id "
         " AND (ks.von_klemme_id = k.id OR ks.bis_klemme_id = k.id) "
@@ -891,9 +891,9 @@ QVariantList Database::klemmenplan(int projektId)
         "FROM klemmenleiste kl "
         "LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id "
         "JOIN klemme k ON k.klemmenleiste_id = kl.id "
-        "LEFT JOIN bauteil b ON b.id = k.bauteil_id "
-        "LEFT JOIN bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
-        "LEFT JOIN farb_definition fd ON fd.id = bk.gehaeuse_farbe_id "
+        "LEFT JOIN bibliothek.bauteil b ON b.id = k.bauteil_id "
+        "LEFT JOIN bibliothek.bauteil_klemme bk ON bk.bauteil_id = k.bauteil_id "
+        "LEFT JOIN bibliothek.farb_definition fd ON fd.id = bk.gehaeuse_farbe_id "
         "WHERE kl.projekt_id = :pid "
         "ORDER BY kl.bezeichnung, k.sortierung, k.id"
     );

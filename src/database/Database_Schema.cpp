@@ -527,6 +527,83 @@ static QList<SchemaMigration> alleMigrationen()
                WHERE typ IN ('text', 'notiz')
                  AND json_extract(COALESCE(extra_daten, '{}'), '$.schriftgroesse') IS NULL)",
         }},
+
+        // ARCH-01: Bauteil-Tabellen in projektübergreifende bibliothek.db ausgelagert.
+        // betriebsmittel/klemme/kabel werden neu gebaut (FK-Constraints zu Bauteil-Tabellen
+        // entfernt); danach alle bauteil*- und steckverbinder*-Tabellen gedroppt.
+        { 80, "ARCH-01: bauteil*-Tabellen aus Projekt-DB in bibliothek.db ausgelagert", {
+            // Läuft mit PRAGMA foreign_keys = OFF (checkAndApplySchema setzt es vor der
+            // Transaktion zurück) → DROP TABLE der Parents trotz Child-Rows möglich.
+            // legacy_alter_table = ON → ALTER TABLE RENAME validiert keine Views
+            // (betriebsmittel_bmk bleibt erhalten, zeigt nach Rename auf neue Tabelle).
+            R"(PRAGMA legacy_alter_table = ON)",
+            // betriebsmittel: bauteil_id INTEGER (kein FK zu bauteil mehr)
+            R"(CREATE TABLE betriebsmittel_new (
+                id                      INTEGER PRIMARY KEY,
+                projekt_id              INTEGER NOT NULL REFERENCES projekt(id),
+                bauteil_id              INTEGER,
+                symbol_code             TEXT,
+                anlage_uebergeordnet    TEXT,
+                standort_uebergeordnet  TEXT,
+                funktion                TEXT,
+                einbauort               TEXT,
+                betriebsmittel_kz       TEXT NOT NULL,
+                bezeichnung             TEXT,
+                bemerkung               TEXT,
+                haupt_element_id        INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL
+            ))",
+            R"(INSERT INTO betriebsmittel_new SELECT * FROM betriebsmittel)",
+            R"(DROP TABLE betriebsmittel)",
+            R"(ALTER TABLE betriebsmittel_new RENAME TO betriebsmittel)",
+            // klemme: bauteil_id INTEGER (kein FK zu bauteil mehr)
+            R"(CREATE TABLE klemme_new (
+                id               INTEGER PRIMARY KEY,
+                klemmenleiste_id INTEGER NOT NULL REFERENCES klemmenleiste(id),
+                bauteil_id       INTEGER,
+                nummer           TEXT NOT NULL DEFAULT '',
+                sortierung       INTEGER DEFAULT 0,
+                bemerkung        TEXT
+            ))",
+            R"(INSERT INTO klemme_new SELECT * FROM klemme)",
+            R"(DROP TABLE klemme)",
+            R"(ALTER TABLE klemme_new RENAME TO klemme)",
+            // kabel: bauteil_kabel_id INTEGER (kein FK zu bauteil_kabel mehr)
+            R"(CREATE TABLE kabel_new (
+                id                INTEGER PRIMARY KEY,
+                projekt_id        INTEGER NOT NULL REFERENCES projekt(id),
+                bezeichnung       TEXT NOT NULL,
+                kabeltyp          TEXT,
+                aderzahl          INTEGER,
+                querschnitt_mm2   REAL,
+                laenge_m          REAL,
+                farbe_mantel      TEXT,
+                von_ort           TEXT,
+                nach_ort          TEXT,
+                bemerkung         TEXT,
+                bauteil_kabel_id  INTEGER,
+                grafik_element_id INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL
+            ))",
+            R"(INSERT INTO kabel_new SELECT * FROM kabel)",
+            R"(DROP TABLE kabel)",
+            R"(ALTER TABLE kabel_new RENAME TO kabel)",
+            R"(PRAGMA legacy_alter_table = OFF)",
+            // Alle Bauteil-Tabellen aus dem Projekt droppen (in Abhängigkeitsreihenfolge)
+            R"(DROP TABLE IF EXISTS bauteil_kontakt)",
+            R"(DROP TABLE IF EXISTS bauteil_anschluss)",
+            R"(DROP TABLE IF EXISTS bauteil_klemme_eigenschaft)",
+            R"(DROP TABLE IF EXISTS bauteil_klemme_bruecke)",
+            R"(DROP TABLE IF EXISTS bauteil_klemme_querschnitt)",
+            R"(DROP TABLE IF EXISTS bauteil_klemme)",
+            R"(DROP TABLE IF EXISTS bauteil_kabel_paar)",
+            R"(DROP TABLE IF EXISTS bauteil_kabel_ader)",
+            R"(DROP TABLE IF EXISTS bauteil_kabel)",
+            R"(DROP TABLE IF EXISTS steckverbinder_kabeleinf)",
+            R"(DROP TABLE IF EXISTS steckverbinder_kontakt_typ)",
+            R"(DROP TABLE IF EXISTS steckverbinder_typ)",
+            R"(DROP TABLE IF EXISTS bauteil)",
+            R"(DROP TABLE IF EXISTS farb_definition)",
+            R"(DROP TABLE IF EXISTS bauteil_kategorie)",
+        }},
     };
 }
 
@@ -599,18 +676,26 @@ bool Database::checkAndApplySchema()
 
         qCInfo(lcDb) << "Wende Migration" << mig.version << "an:" << mig.beschreibung;
 
+        // Migrationen die Tabellen mit FK-abhängigen Children rebuilden müssen:
+        // PRAGMA foreign_keys darf nur außerhalb einer Transaktion geändert werden.
+        const bool brauchtFkAus = (mig.version == 80);
+        if (brauchtFkAus) {
+            QSqlQuery q(m_db);
+            q.exec("PRAGMA foreign_keys = OFF");
+        }
+
         if (!m_db.transaction()) {
+            if (brauchtFkAus) { QSqlQuery q(m_db); q.exec("PRAGMA foreign_keys = ON"); }
             qCWarning(lcDb) << "Transaktion fehlgeschlagen:" << m_db.lastError().text();
             return false;
         }
 
         bool ok = false;
         if (mig.version == BASELINE_VERSION) {
-            // Baseline: vollständiger Neuaufbau
+            // Baseline: vollständiger Neuaufbau (Bauteil-Seeds jetzt in checkAndApplyBibliothekSchema)
             ok = dropAllTables() && createSchema()
                  && seedSymbolKatalog() && seedBuiltinSymbolDefinitionen()
-                 && seedIbnFeldvorlagen() && seedStandardKlemmen()
-                 && seedNutzerBauteile();
+                 && seedIbnFeldvorlagen();
         } else if (mig.version == 77) {
             // D-02: braucht Datei-I/O (Bild-Bytes auslagern) – nicht über reines SQL möglich.
             ok = migriereGrafikBilderAufDateien();
@@ -620,6 +705,7 @@ bool Database::checkAndApplySchema()
 
         if (!ok) {
             m_db.rollback();
+            if (brauchtFkAus) { QSqlQuery q(m_db); q.exec("PRAGMA foreign_keys = ON"); }
             emit dbFehler(QString("Migration v%1 fehlgeschlagen. Die Datenbank wurde nicht verändert "
                                   "(Backup vorhanden).").arg(mig.version));
             return false;
@@ -632,13 +718,20 @@ bool Database::checkAndApplySchema()
         if (!ins.exec()) {
             qCWarning(lcDb) << "schema_migration schreiben:" << ins.lastError().text();
             m_db.rollback();
+            if (brauchtFkAus) { QSqlQuery q(m_db); q.exec("PRAGMA foreign_keys = ON"); }
             return false;
         }
 
         if (!m_db.commit()) {
             qCWarning(lcDb) << "Commit fehlgeschlagen:" << m_db.lastError().text();
             m_db.rollback();
+            if (brauchtFkAus) { QSqlQuery q(m_db); q.exec("PRAGMA foreign_keys = ON"); }
             return false;
+        }
+
+        if (brauchtFkAus) {
+            QSqlQuery q(m_db);
+            q.exec("PRAGMA foreign_keys = ON");
         }
 
         qCInfo(lcDb) << "Migration" << mig.version << "erfolgreich angewendet.";
@@ -972,51 +1065,8 @@ bool Database::seedSymbolKatalog()
         }
     }
 
+
     qCInfo(lcDb) << "Symbol-Katalog befüllt:" << symbole.size() << "Symbole.";
-
-    // ----------------------------------------------------------
-    // Vordefinierte Gehäusefarben (farb_definition, ist_standard=1)
-    // ----------------------------------------------------------
-    struct Farbe { QString hex; QString bez; int sort; };
-    const QList<Farbe> farben = {
-        { "#808080", "Grau",                         1 },
-        { "#0000CC", "Blau \u2013 N-Leiter (DIN VDE 0100)",          2 },
-        { "#66AAFF", "Blau \u2013 Eigensicher (IEC 60079-14)",        3 },
-        { "#3366CC", "Blau \u2013 ohne Definition",                   4 },
-        { "#88AA00", "Gr\u00fcn-Gelb \u2013 PE (normverpflichtend)",  5 },
-        { "#FF8800", "Orange \u2013 Trennstelle / Potenzialgruppe",   6 },
-        { "#CC0000", "Rot \u2013 L-Leiter / Sonderkreis",            7 },
-        { "#222222", "Schwarz \u2013 L-Leiter (\u00e4ltere Norm)",    8 },
-        { "#EEEEEE", "Wei\u00df \u2013 Sonderkreis",                  9 },
-        { "#FFCC00", "Gelb \u2013 Sicherheitskreis",                 10 },
-        { "#E8D8B0", "Beige \u2013 \u00e4ltere Installation",         11 },
-        // DIN 72551 KFZ-Leitungsfarben
-        { "#CC0000", "Rot - DIN 72551 (rt)",     100 },
-        { "#222222", "Schwarz - DIN 72551 (sw)", 101 },
-        { "#FFCC00", "Gelb - DIN 72551 (ge)",    102 },
-        { "#663300", "Braun - DIN 72551 (br)",   103 },
-        { "#0044CC", "Blau - DIN 72551 (bl)",    104 },
-        { "#228B22", "Gruen - DIN 72551 (gn)",   105 },
-        { "#888888", "Grau - DIN 72551 (gr)",    106 },
-        { "#EEEEEE", "Weiss - DIN 72551 (ws)",   107 },
-        { "#8B008B", "Violett - DIN 72551 (vi)", 108 },
-        { "#FF6600", "Orange - DIN 72551 (or)",  109 },
-    };
-
-    QSqlQuery fq;
-    fq.prepare("INSERT INTO farb_definition (hex_wert, bezeichnung, ist_standard, sortierung) "
-               "VALUES (:hex, :bez, 1, :sort)");
-    for (const Farbe &f : farben) {
-        fq.bindValue(":hex",  f.hex);
-        fq.bindValue(":bez",  f.bez);
-        fq.bindValue(":sort", f.sort);
-        if (!fq.exec()) {
-            qCWarning(lcDb) << "seedFarbDefinition:" << f.bez << fq.lastError().text();
-            return false;
-        }
-    }
-    qCInfo(lcDb) << "Farb-Katalog befüllt:" << farben.size() << "Einträge.";
-
     return true;
 }
 
@@ -1028,8 +1078,8 @@ bool Database::seedSymbolKatalog()
 bool Database::seedStandardKlemmen()
 {
     // Farb-ID anhand Hex-Wert aus farb_definition holen
-    auto farbId = [](const QString &hex) -> QVariant {
-        QSqlQuery q;
+    auto farbId = [this](const QString &hex) -> QVariant {
+        QSqlQuery q(m_bibliothekDb);
         q.prepare("SELECT id FROM farb_definition WHERE hex_wert = :hex AND ist_standard = 1 LIMIT 1");
         q.bindValue(":hex", hex);
         if (q.exec() && q.next()) return q.value(0);
@@ -1061,7 +1111,7 @@ bool Database::seedStandardKlemmen()
     };
 
     for (const KlemmTyp &t : typen) {
-        QSqlQuery qb;
+        QSqlQuery qb(m_bibliothekDb);
         qb.prepare("INSERT INTO bauteil (bezeichnung, norm, bemerkung) "
                    "VALUES (:bez, :norm, :bem)");
         qb.bindValue(":bez",  t.bez);
@@ -1073,7 +1123,7 @@ bool Database::seedStandardKlemmen()
         }
         int bId = qb.lastInsertId().toInt();
 
-        QSqlQuery qk;
+        QSqlQuery qk(m_bibliothekDb);
         qk.prepare("INSERT INTO bauteil_klemme "
                    "(bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, "
                    " fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id) "
@@ -1099,7 +1149,7 @@ bool Database::seedStandardKlemmen()
             { "aenh_blank",    t.blankMin, t.blankMax },
             { "aenh_isoliert", t.isoMin,   t.isoMax   },
         };
-        QSqlQuery qq;
+        QSqlQuery qq(m_bibliothekDb);
         qq.prepare("INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2) "
                    "VALUES (:kid, :typ, :min, :max)");
         for (const QS &s : qs) {
@@ -1114,7 +1164,7 @@ bool Database::seedStandardKlemmen()
         }
 
         if (t.peFuss) {
-            QSqlQuery qbr;
+            QSqlQuery qbr(m_bibliothekDb);
             qbr.prepare("INSERT INTO bauteil_klemme_bruecke "
                         "(klemme_id, von_ebene, nach_ebene, ist_pe_fuss) VALUES (:kid, 1, 1, 1)");
             qbr.bindValue(":kid", kId);
@@ -1193,7 +1243,7 @@ bool Database::seedNutzerBauteile()
     }
     const QString cleanSql = cleanLines.join(QLatin1Char('\n'));
 
-    QSqlQuery q(m_db);
+    QSqlQuery q(m_bibliothekDb);
     const QStringList statements = cleanSql.split(QLatin1Char(';'), Qt::SkipEmptyParts);
     for (const QString &raw : statements) {
         const QString stmt = raw.trimmed();

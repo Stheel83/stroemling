@@ -200,7 +200,20 @@ Item {
         width: 360
         padding: 20
 
-        property int fuerProjektId: -1
+        property int  fuerProjektId:    -1
+        property var  _cache:           []   // [{kuerzel, bezeichnung}] aller vorhandenen Anlagen
+        property bool _duplikat:        false
+
+        onOpened: {
+            inpAnlageKuerzel.text = ""; inpAnlageBez.text = ""; inpAnlageUO.text = ""
+            anlageVorschlaegeModel.clear(); _duplikat = false
+            var list = seitenModel.strukturListe()
+            _cache = []
+            for (var i = 0; i < list.length; i++)
+                _cache.push({ kuerzel: list[i].anlageKuerzel, bezeichnung: list[i].anlageBez })
+        }
+
+        ListModel { id: anlageVorschlaegeModel }
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -211,6 +224,52 @@ Item {
                 id: inpAnlageKuerzel; Layout.fillWidth: true; placeholderText: "EG"
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 14
+                onTextChanged: {
+                    var t = text.trim().toUpperCase()
+                    anlageVorschlaegeModel.clear(); dlgAnlage._duplikat = false
+                    if (t.length === 0) return
+                    for (var i = 0; i < dlgAnlage._cache.length; i++) {
+                        var kz = dlgAnlage._cache[i].kuerzel.toUpperCase()
+                        if (kz.startsWith(t)) {
+                            anlageVorschlaegeModel.append(dlgAnlage._cache[i])
+                            if (kz === t) dlgAnlage._duplikat = true
+                        }
+                    }
+                }
+                onActiveFocusChanged: {
+                    if (!activeFocus) Qt.callLater(() => { anlageVorschlaegeModel.clear() })
+                }
+            }
+            // Vorschlagsliste
+            Rectangle {
+                Layout.fillWidth: true; Layout.topMargin: -6
+                height: Math.min(anlageVorschlaegeModel.count * 30, 90)
+                visible: anlageVorschlaegeModel.count > 0
+                color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4; clip: true; z: 10
+                ListView {
+                    anchors.fill: parent; clip: true
+                    model: anlageVorschlaegeModel
+                    delegate: ItemDelegate {
+                        width: parent.width; height: 30
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent" }
+                        contentItem: Text {
+                            text: model.kuerzel + "   " + model.bezeichnung
+                            color: theme.textPrimary; font.pixelSize: 12; font.family: "monospace"
+                            verticalAlignment: Text.AlignVCenter; leftPadding: 6
+                        }
+                        onClicked: {
+                            inpAnlageKuerzel.text = model.kuerzel
+                            inpAnlageBez.text = model.bezeichnung
+                            anlageVorschlaegeModel.clear()
+                        }
+                    }
+                }
+            }
+            // Duplikat-Warnung
+            Text {
+                visible: dlgAnlage._duplikat
+                text: "⚠ " + qsTr("Kürzel bereits vorhanden")
+                color: "#cc6600"; font.pixelSize: 11; Layout.topMargin: -4
             }
             Text { text: qsTr("Bezeichnung (z.B. Erdgeschoss)"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {
@@ -264,7 +323,24 @@ Item {
         width: 360
         padding: 20
 
-        property int fuerAnlageId: -1
+        property int  fuerAnlageId: -1
+        property var  _cache:       []   // [{kuerzel, bezeichnung}] aller vorhandenen Orte
+        property bool _duplikat:    false
+
+        onOpened: {
+            inpOrtKuerzel.text = ""; inpOrtBez.text = ""; inpOrtUO.text = ""
+            ortVorschlaegeModel.clear(); _duplikat = false
+            var list = seitenModel.strukturListe()
+            _cache = []
+            for (var i = 0; i < list.length; i++) {
+                var orte = list[i].orte
+                for (var j = 0; j < orte.length; j++)
+                    _cache.push({ kuerzel: orte[j].ortKuerzel, bezeichnung: orte[j].ortBez,
+                                  anlageId: list[i].anlageId })
+            }
+        }
+
+        ListModel { id: ortVorschlaegeModel }
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
 
@@ -275,6 +351,53 @@ Item {
                 id: inpOrtKuerzel; Layout.fillWidth: true; placeholderText: "A1"
                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                 color: theme.textPrimary; font.pixelSize: 14
+                onTextChanged: {
+                    var t = text.trim().toUpperCase()
+                    ortVorschlaegeModel.clear(); dlgOrt._duplikat = false
+                    if (t.length === 0) return
+                    for (var i = 0; i < dlgOrt._cache.length; i++) {
+                        var kz = dlgOrt._cache[i].kuerzel.toUpperCase()
+                        if (kz.startsWith(t)) {
+                            ortVorschlaegeModel.append(dlgOrt._cache[i])
+                            if (kz === t && dlgOrt._cache[i].anlageId === dlgOrt.fuerAnlageId)
+                                dlgOrt._duplikat = true
+                        }
+                    }
+                }
+                onActiveFocusChanged: {
+                    if (!activeFocus) Qt.callLater(() => { ortVorschlaegeModel.clear() })
+                }
+            }
+            // Vorschlagsliste
+            Rectangle {
+                Layout.fillWidth: true; Layout.topMargin: -6
+                height: Math.min(ortVorschlaegeModel.count * 30, 90)
+                visible: ortVorschlaegeModel.count > 0
+                color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4; clip: true; z: 10
+                ListView {
+                    anchors.fill: parent; clip: true
+                    model: ortVorschlaegeModel
+                    delegate: ItemDelegate {
+                        width: parent.width; height: 30
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent" }
+                        contentItem: Text {
+                            text: model.kuerzel + "   " + model.bezeichnung
+                            color: theme.textPrimary; font.pixelSize: 12; font.family: "monospace"
+                            verticalAlignment: Text.AlignVCenter; leftPadding: 6
+                        }
+                        onClicked: {
+                            inpOrtKuerzel.text = model.kuerzel
+                            inpOrtBez.text = model.bezeichnung
+                            ortVorschlaegeModel.clear()
+                        }
+                    }
+                }
+            }
+            // Duplikat-Warnung (nur wenn Kürzel in dieser Anlage schon existiert)
+            Text {
+                visible: dlgOrt._duplikat
+                text: "⚠ " + qsTr("Kürzel in dieser Anlage bereits vorhanden")
+                color: "#cc6600"; font.pixelSize: 11; Layout.topMargin: -4
             }
             Text { text: qsTr("Bezeichnung (z.B. Hauptverteiler)"); color: theme.textMuted; font.pixelSize: 12 }
             TextField {

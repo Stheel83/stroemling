@@ -140,12 +140,12 @@ Item {
                         Rectangle {
                             id: anlageRow
                             width: parent.width; height: 32
-                            color: anlageRowMA.containsMouse ? root.theme.hover : root.theme.surfaceDeep
+                            color: anlageHover.hovered ? root.theme.hover : root.theme.surfaceDeep
 
-                            // MA zuerst (unter RowLayout)
+                            HoverHandler { id: anlageHover }
+
                             MouseArea {
-                                id: anlageRowMA
-                                anchors.fill: parent; hoverEnabled: true
+                                anchors.fill: parent
                                 cursorShape: anlageDelegate.anlage.orte.length > 0
                                              ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked: {
@@ -198,7 +198,7 @@ Item {
                                 // Aktions-Buttons (nur bei Hover sichtbar)
                                 Row {
                                     spacing: 2
-                                    visible: anlageRowMA.containsMouse
+                                    visible: anlageHover.hovered
 
                                     Button {
                                         width: 24; height: 24; flat: true
@@ -269,14 +269,11 @@ Item {
                             delegate: Rectangle {
                                 id: ortRow
                                 width: anlageDelegate.width; height: 28
-                                color: ortRowMA.containsMouse ? root.theme.hover : root.theme.surface
+                                color: ortHover.hovered ? root.theme.hover : root.theme.surface
 
                                 property var ort: modelData
 
-                                MouseArea {
-                                    id: ortRowMA
-                                    anchors.fill: parent; hoverEnabled: true
-                                }
+                                HoverHandler { id: ortHover }
 
                                 RowLayout {
                                     anchors { fill: parent; leftMargin: 26; rightMargin: 4 }
@@ -309,7 +306,7 @@ Item {
                                     // Aktions-Buttons (Hover)
                                     Row {
                                         spacing: 2
-                                        visible: ortRowMA.containsMouse
+                                        visible: ortHover.hovered
 
                                         Button {
                                             width: 24; height: 24; flat: true

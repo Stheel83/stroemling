@@ -109,7 +109,8 @@ public:
         RandUntenMmRole,
         OrtIdRole,
         SortierungRole,
-        UebergeordnetRole   // Anlage: anlageUebergeordnet (==), Ort: standortUebergeordnet (++)
+        UebergeordnetRole,  // Anlage: anlageUebergeordnet (==), Ort: standortUebergeordnet (++)
+        HatSeitenRole       // true wenn dieser Knoten (direkt oder indirekt) mind. eine Seite hat
     };
 
     explicit SeitenModel(QObject *parent = nullptr);
@@ -188,6 +189,7 @@ public:
     Q_INVOKABLE QVariantList anlagenListe() const;
     Q_INVOKABLE QVariantList orteListe(int anlageId) const;
     Q_INVOKABLE QVariantMap  ortInfo(int ortId) const;
+    Q_INVOKABLE QVariantList strukturListe() const;
 
 private:
     void baumAufbauen();

@@ -20,7 +20,8 @@ Item {
     property int    aktivSeiteId: -1   // von außen gesetzt; -1 = keine Seite aktiv
 
     property int  _dragSeiteId:   -1
-    property real _bauteileHoehe: seitenBaumSettings.bauteileHoehe
+    property real   _bauteileHoehe: seitenBaumSettings.bauteileHoehe
+    property string _aktiveTab:     "seiten"   // "seiten" | "struktur"
 
     Settings {
         id: seitenBaumSettings
@@ -919,9 +920,56 @@ Item {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
+        // ── Seiten / Struktur – Tabs ─────────────────────────
+        Rectangle {
+            Layout.fillWidth: true; height: 26
+            color: theme.surfaceDeep
+
+            Row {
+                anchors.fill: parent
+
+                Repeater {
+                    model: [
+                        { tab: "seiten",   label: qsTr("Seiten") },
+                        { tab: "struktur", label: qsTr("Struktur") }
+                    ]
+                    delegate: Item {
+                        id: seitenStrukturTab
+                        width: parent.width / 2; height: 26
+                        property bool aktiv: root._aktiveTab === modelData.tab
+
+                        Text {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData.label
+                            font.pixelSize: 10
+                            color: seitenStrukturTab.aktiv ? theme.accent : theme.textMuted
+                            font.weight: seitenStrukturTab.aktiv ? Font.Medium : Font.Normal
+                        }
+
+                        Rectangle {
+                            anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+                            height: 2; radius: 1
+                            color: theme.accent
+                            visible: seitenStrukturTab.aktiv
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: root._aktiveTab = modelData.tab
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            visible: root._aktiveTab === "seiten"
             clip: true
 
             TreeView {
@@ -937,8 +985,11 @@ Item {
 
                 delegate: TreeViewDelegate {
                     id: delegateItem
-                    implicitHeight: 36
+                    // Anlage/Ort ohne Seiten werden im Hauptbaum ausgeblendet (→ STRUKTUR-Panel)
+                    property bool _zeigeZeile: model.knotenTyp === 2 || (model.hatSeiten ?? true)
+                    implicitHeight: _zeigeZeile ? 36 : 0
                     implicitWidth: treeView.width
+                    visible: _zeigeZeile
 
                     property real _savedY: 0
                     z: dragHandle.drag.active ? 10 : 0
@@ -1149,6 +1200,39 @@ Item {
                         }
                     }
                 }
+            }
+        }
+
+        // ── Struktur-Tab ─────────────────────────────────────────
+        SeitenBaumStrukturPanel {
+            id: strukturPanel
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root._aktiveTab === "struktur"
+            theme: root.theme
+            projektId: root.projektId
+
+            onAnlageAnlegenAngefordert: {
+                dlgAnlage.fuerProjektId = root.projektId
+                dlgAnlage.open()
+            }
+            onAnlageBearbeitenAngefordert: function(id, kuerzel, bez, uo) {
+                dlgAnlageBearbeiten.itemId           = id
+                dlgAnlageBearbeiten.altKuerzel       = kuerzel
+                dlgAnlageBearbeiten.altBezeichnung   = bez
+                dlgAnlageBearbeiten.altUebergeordnet = uo
+                dlgAnlageBearbeiten.open()
+            }
+            onOrtAnlegenAngefordert: function(anlageId) {
+                dlgOrt.fuerAnlageId = anlageId
+                dlgOrt.open()
+            }
+            onOrtBearbeitenAngefordert: function(id, kuerzel, bez, uo) {
+                dlgOrtBearbeiten.itemId           = id
+                dlgOrtBearbeiten.altKuerzel       = kuerzel
+                dlgOrtBearbeiten.altBezeichnung   = bez
+                dlgOrtBearbeiten.altUebergeordnet = uo
+                dlgOrtBearbeiten.open()
             }
         }
 

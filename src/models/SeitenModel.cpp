@@ -298,6 +298,16 @@ QVariant SeitenModel::data(const QModelIndex &index, int role) const
         if (knoten->typ == BaumKnoten::Anlage) return knoten->anlage->anlageUebergeordnet;
         if (knoten->typ == BaumKnoten::Ort)    return knoten->ort->standortUebergeordnet;
         return {};
+
+    case HatSeitenRole:
+        if (knoten->typ == BaumKnoten::Seite) return true;
+        if (knoten->typ == BaumKnoten::Ort)   return !knoten->kinder.isEmpty();
+        if (knoten->typ == BaumKnoten::Anlage) {
+            for (const auto *k : knoten->kinder)
+                if (!k->kinder.isEmpty()) return true;
+            return false;
+        }
+        return false;
     }
     return {};
 }
@@ -321,6 +331,7 @@ QHash<int, QByteArray> SeitenModel::roleNames() const
         { OrtIdRole,          "ortId"          },
         { SortierungRole,     "sortierung"     },
         { UebergeordnetRole,  "uebergeordnet"  },
+        { HatSeitenRole,      "hatSeiten"      },
     };
 }
 
@@ -696,4 +707,33 @@ QVariantMap SeitenModel::ortInfo(int ortId) const
         }
     }
     return m;
+}
+
+QVariantList SeitenModel::strukturListe() const
+{
+    QVariantList result;
+    for (const auto &a : m_anlagen) {
+        int totalSeiten = 0;
+        QVariantList orteList;
+        for (const auto &o : a.orte) {
+            int n = o.seiten.size();
+            totalSeiten += n;
+            QVariantMap om;
+            om["ortId"]        = o.id;
+            om["ortKuerzel"]   = o.kuerzel;
+            om["ortBez"]       = o.bezeichnung;
+            om["ortUO"]        = o.standortUebergeordnet;
+            om["seitenAnzahl"] = n;
+            orteList.append(om);
+        }
+        QVariantMap am;
+        am["anlageId"]      = a.id;
+        am["anlageKuerzel"] = a.kuerzel;
+        am["anlageBez"]     = a.bezeichnung;
+        am["anlageUO"]      = a.anlageUebergeordnet;
+        am["seitenAnzahl"]  = totalSeiten;
+        am["orte"]          = orteList;
+        result.append(am);
+    }
+    return result;
 }

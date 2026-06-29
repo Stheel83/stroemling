@@ -175,6 +175,10 @@ Rectangle {
                 }
             }
 
+            // Verhindert dass onLeisteGeladen nach eigenem Speichern die
+            // Combo-Auswahl zurücksetzt (leisteAktualisieren → laden → leisteGeladen).
+            property bool _ortSaving: false
+
             function _applyOrt() {
                 if (!klemmenreiheModel.hatLeiste) return
                 var ortIdx = ortCombo.currentIndex
@@ -182,6 +186,7 @@ Rectangle {
                               ? ortCombo._orteListe[ortIdx - 1].itemId : -1
                 var d = Object.assign({}, klemmenreiheModel.leiste)
                 d["ortId"] = newOrtId
+                _ortSaving = true
                 klemmenreiheModel.leisteAktualisieren(d)
             }
 
@@ -190,6 +195,7 @@ Rectangle {
             Connections {
                 target: klemmenreiheModel
                 function onLeisteGeladen() {
+                    if (eigenCol._ortSaving) { eigenCol._ortSaving = false; return }
                     var oid = klemmenreiheModel.hatLeiste
                              ? (klemmenreiheModel.leiste["ortId"] || -1) : -1
                     var anlageIdx = 0

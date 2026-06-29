@@ -211,7 +211,7 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
     QString sid = el.value("symbolId").toString();
     static const QStringList kNoLabel = {
         "winkel","treffpunkt","treffpunkt_l","geraeteanschluss","unterbrechung",
-        "aderdefinition","querverweis","klemme_anschluss"
+        "aderdefinition","querverweis","klemme_anschluss","potenzial"
     };
     if (kNoLabel.contains(sid)) return;
 
@@ -737,6 +737,131 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                 }
                 p.restore();
             }
+        }
+
+        // ── potenzial: BMK + Freitext am Pin-gegenüber (bmkOffset, strichFarbe) ──
+        if (el.value("symbolId").toString() == QStringLiteral("potenzial")) {
+            QVariantMap paed = el.value("extraDaten").toMap();
+            QString paBmk    = paed.value("bmk").toString();
+
+            // textReihenfolge + *Sichtbar-Flags auswerten
+            QStringList reihe;
+            QVariant rv = paed.value("textReihenfolge");
+            if (rv.isValid()) {
+                const auto arr = rv.toList();
+                for (const QVariant &v : arr) reihe << v.toString();
+            }
+            if (reihe.isEmpty()) reihe << QStringLiteral("freitext1")
+                                       << QStringLiteral("freitext2");
+
+            QStringList paFt;
+            for (const QString &k : reihe) {
+                if (paed.value(k + QStringLiteral("Sichtbar"), QVariant(true)).toBool()) {
+                    QString v = paed.value(k).toString();
+                    if (!v.isEmpty()) paFt << v;
+                }
+            }
+
+            if (paBmk.isEmpty() && paFt.isEmpty())
+                goto paDone;
+
+            {
+                double schrift  = paed.value("schriftgroesse", 2.5).toDouble();
+                double bmkFsDev = schrift * pxPerMm;
+                double ftFsDev  = schrift * 0.85 * pxPerMm;
+
+                double paOx = paed.value("bmkOffsetX", 0.0).toDouble() * C;
+                double paOy = paed.value("bmkOffsetY", 0.0).toDouble() * C;
+
+                int  paRot  = ((el.value("rotation").toInt() % 360) + 360) % 360;
+                bool paSenk = (paRot == 90 || paRot == 270);
+                double paCx = (x1 + x2) / 2.0;
+                double paCy = (y1 + y2) / 2.0;
+
+                // BMK-Farbe aus strichFarbe des Elements, Freitext heller
+                QString sfStr = el.value("strichFarbe").toString();
+                QColor colBmk = sfStr.isEmpty() ? QColor(0x4a, 0x9e, 0xff)
+                                                 : QColor(sfStr);
+                QColor colFt(0x8a, 0xb4, 0xd4);
+
+                QFont fBmk; fBmk.setFamily(QStringLiteral("sans-serif"));
+                fBmk.setPixelSize(qMax(1, qRound(bmkFsDev))); fBmk.setBold(true);
+                QFont fFt;  fFt.setFamily(QStringLiteral("sans-serif"));
+                fFt.setPixelSize(qMax(1, qRound(ftFsDev)));
+
+                double tw = 20.0 * pxPerMm;
+
+                p.save();
+                if (paSenk) {
+                    // 90°: Pin unten → Text oben | 270°: Pin oben → Text unten
+                    bool pinUnten  = (paRot == 90);
+                    double gapDev  = 0.75 * pxPerMm;
+                    double paCxO   = paCx + paOx;
+
+                    if (pinUnten) {
+                        // Text wächst nach oben vom Symbolrand
+                        double curY = qMin(y1, y2) - gapDev + paOy;
+                        for (int i = paFt.size() - 1; i >= 0; --i) {
+                            curY -= ftFsDev * 1.3;
+                            p.setFont(fFt); p.setPen(colFt);
+                            p.drawText(QRectF(paCxO - tw/2, curY, tw, ftFsDev * 1.3),
+                                       Qt::AlignHCenter | Qt::AlignTop, paFt[i]);
+                        }
+                        if (!paBmk.isEmpty()) {
+                            curY -= bmkFsDev * 1.2;
+                            p.setFont(fBmk); p.setPen(colBmk);
+                            p.drawText(QRectF(paCxO - tw/2, curY, tw, bmkFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, paBmk);
+                        }
+                    } else {
+                        // Text wächst nach unten vom Symbolrand
+                        double curY = qMax(y1, y2) + gapDev + paOy;
+                        if (!paBmk.isEmpty()) {
+                            p.setFont(fBmk); p.setPen(colBmk);
+                            p.drawText(QRectF(paCxO - tw/2, curY, tw, bmkFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, paBmk);
+                            curY += bmkFsDev * 1.2;
+                        }
+                        for (const QString &ft : paFt) {
+                            p.setFont(fFt); p.setPen(colFt);
+                            p.drawText(QRectF(paCxO - tw/2, curY, tw, ftFsDev * 1.3),
+                                       Qt::AlignHCenter | Qt::AlignTop, ft);
+                            curY += ftFsDev * 1.3;
+                        }
+                    }
+                } else {
+                    // 0°: Pin rechts → Text links | 180°: Pin links → Text rechts
+                    bool pinRechts = (paRot == 0);
+                    double gapDev  = 1.0 * pxPerMm;
+                    double paX     = pinRechts
+                                     ? qMin(x1, x2) - gapDev + paOx
+                                     : qMax(x1, x2) + gapDev + paOx;
+                    double paCyO   = paCy + paOy;
+                    Qt::Alignment ha = pinRechts ? Qt::AlignRight : Qt::AlignLeft;
+
+                    // Gesamthöhe für vertikale Zentrierung
+                    double totalH = (!paBmk.isEmpty() ? bmkFsDev * 1.1 : 0.0)
+                                  + paFt.size() * ftFsDev * 1.3;
+                    double curY = paCyO - totalH / 2.0;
+
+                    if (!paBmk.isEmpty()) {
+                        p.setFont(fBmk); p.setPen(colBmk);
+                        QRectF r = pinRechts ? QRectF(paX - tw, curY, tw, bmkFsDev * 1.2)
+                                             : QRectF(paX, curY, tw, bmkFsDev * 1.2);
+                        p.drawText(r, ha | Qt::AlignTop, paBmk);
+                        curY += bmkFsDev * 1.1;
+                    }
+                    for (const QString &ft : paFt) {
+                        p.setFont(fFt); p.setPen(colFt);
+                        QRectF r = pinRechts ? QRectF(paX - tw, curY, tw, ftFsDev * 1.3)
+                                             : QRectF(paX, curY, tw, ftFsDev * 1.3);
+                        p.drawText(r, ha | Qt::AlignTop, ft);
+                        curY += ftFsDev * 1.3;
+                    }
+                }
+                p.restore();
+            }
+            paDone:;
         }
     }
 }

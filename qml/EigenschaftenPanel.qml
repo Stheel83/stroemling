@@ -331,32 +331,6 @@ Rectangle {
             // ABSCHNITT: KABELDEFINITIONSLINIE
             EpKabelDefinitionSection { canvas: canvas; panel: panel; theme: panel.theme }
 
-            // ABSCHNITT: REIHENFOLGE
-            // ================================================
-            Trennlinie     { visible: panel.el !== null && canvas.auswahl.length === 1 }
-            AbschnittTitel { text: qsTr("REIHENFOLGE")
-                             visible: panel.el !== null && canvas.auswahl.length === 1 }
-
-            Grid {
-                visible: panel.el !== null && canvas.auswahl.length === 1
-                anchors.horizontalCenter: parent.horizontalCenter
-                columns: 2; spacing: 4; bottomPadding: 4
-
-                Repeater {
-                    model: [
-                        { anzeige: "\u2912 Ganz vorne",  richt: "ganzVorne",  tip: qsTr("In den Vordergrund (vor alle anderen)")  },
-                        { anzeige: "\u2913 Ganz hinten", richt: "ganzHinten", tip: qsTr("In den Hintergrund (hinter alle anderen)") },
-                        { anzeige: "\u2191 Eine vor",    richt: "vorne1",     tip: qsTr("Eine Ebene nach vorne")  },
-                        { anzeige: "\u2193 Eine zurück", richt: "hinten1",    tip: qsTr("Eine Ebene nach hinten") }
-                    ]
-                    MiniButton { theme: panel.theme;
-                        label:   modelData.anzeige
-                        tooltip: modelData.tip
-                        breite:  90; hoehe: 26
-                        onKlick: canvas.zReihenfolgeAendern(modelData.richt)
-                    }
-                }
-            }
 
         }
     }

@@ -70,6 +70,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/architektur/01_vision_architektur.md` | Projektziele, Stack, Schichtenmodell, Abgrenzung | ✅ |
 | `konzept/architektur/02_datenbankschema.md` | Alle Tabellen, Views, Relationen, Schema-Strategie | ✅ |
 | `konzept/architektur/03_canvas_zeichenfläche.md` | Canvas-Modi, Zoom/Pan, Raster, Hintergrundfarbe, Mehrfachauswahl (Fenster/Schneiden) | ✅ |
+| `konzept/architektur/50_strukturkennzeichen.md` | Zentrales Strukturkennzeichen-System: ==, =, ++, + — Seitenbaum als Struktureditor, Dropdowns in allen Elementen, Implementierungsreihenfolge | 📋 Konzept |
 | `konzept/architektur/10_ui_terminologie.md` | Verbindliche Bezeichnungen für alle Fenster, Panels und Bereiche | ✅ |
 | `konzept/architektur/17_qml_struktur.md` | QML-Dateistruktur aller Unterordner, Architektur-Konventionen, EP-Auslöserbedingungen | ✅ |
 | `konzept/architektur/19_farben_theming.md` | UI-Theme-System (3 Themes, theme-Objekt-Struktur, Weitergabe), Canvas-Hintergrund | ✅ |

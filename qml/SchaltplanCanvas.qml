@@ -1750,8 +1750,7 @@ Item {
                         ctx.save()
                         ctx.globalAlpha = 1.0
                         ctx.font = "bold " + gaFs + "px sans-serif"
-                        ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                        ctx.fillStyle = gewaehlt ? "#f0a030" : "#c0d8f0"
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : "#4488cc"
                         if (gaSenk) {
                             // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
                             var gaPinUnten = (gaRot === 90)
@@ -1760,7 +1759,6 @@ Item {
                                       : Math.max(vy1, vy2) + 3 * root.zoom + gaOy
                             ctx.textAlign = "center"
                             ctx.textBaseline = gaPinUnten ? "bottom" : "top"
-                            ctx.strokeText(gaLabel, gaCx + gaOx, gaY)
                             ctx.fillText(gaLabel, gaCx + gaOx, gaY)
                         } else {
                             // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
@@ -1770,7 +1768,6 @@ Item {
                                       : Math.max(vx1, vx2) + 4 * root.zoom + gaOx
                             ctx.textAlign = gaPinRechts ? "right" : "left"
                             ctx.textBaseline = "middle"
-                            ctx.strokeText(gaLabel, gaX, gaCy + gaOy)
                             ctx.fillText(gaLabel, gaX, gaCy + gaOy)
                         }
                         ctx.restore()
@@ -1803,7 +1800,6 @@ Item {
                         var paFtClr  = gewaehlt ? "#f0a030" : "#8ab4d4"
                         ctx.save()
                         ctx.globalAlpha = 1.0
-                        ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
                         if (paSenk) {
                             // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
                             var paPinUnten = (paRot === 90)
@@ -1817,7 +1813,6 @@ Item {
                             if (paBmk !== "") {
                                 ctx.font = "bold " + paFs + "px sans-serif"
                                 ctx.textBaseline = paBl
-                                ctx.strokeText(paBmk, paCxO, paY)
                                 ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paCxO, paY)
                             }
                             if (paFt.length > 0) {
@@ -1826,7 +1821,6 @@ Item {
                                 var paFtY = paY + paDir * (paBmk !== "" ? paFs + 2 : 0)
                                 for (var pfi2 = 0; pfi2 < paFt.length; pfi2++) {
                                     ctx.textBaseline = paBl
-                                    ctx.strokeText(paFt[pfi2], paCxO, paFtY)
                                     ctx.fillText(paFt[pfi2], paCxO, paFtY)
                                     paFtY += paDir * paFtFs * 1.3
                                 }
@@ -1845,7 +1839,6 @@ Item {
                             if (paBmk !== "") {
                                 ctx.font = "bold " + paFs + "px sans-serif"
                                 ctx.textAlign = paAl
-                                ctx.strokeText(paBmk, paX, paCurY)
                                 ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paX, paCurY)
                                 paCurY += paFs * 1.1
                             }
@@ -1853,7 +1846,6 @@ Item {
                                 ctx.font = paFtFs + "px sans-serif"
                                 ctx.textAlign = paAl; ctx.fillStyle = paFtClr
                                 for (var pfi3 = 0; pfi3 < paFt.length; pfi3++) {
-                                    ctx.strokeText(paFt[pfi3], paX, paCurY)
                                     ctx.fillText(paFt[pfi3], paX, paCurY)
                                     paCurY += paFtFs * 1.3
                                 }

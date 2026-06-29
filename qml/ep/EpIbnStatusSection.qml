@@ -91,22 +91,6 @@ Item {
             }
         }
 
-        // ── Bauteil-ID ───────────────────────────────────
-        Item {
-            width: parent.width
-            height: _bauteilId !== "" ? 22 : 0
-            visible: height > 0
-            readonly property string _bauteilId:
-                root._ibnDaten ? (root._ibnDaten.bauteilId || "") : ""
-            Row {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                spacing: 6
-                Text { text: qsTr("Bauteil-ID:"); font.pixelSize: 10; color: root.theme.panelMid }
-                Text { text: parent.parent._bauteilId; font.pixelSize: 10
-                       color: root.theme.textSecondary; font.family: "monospace" }
-            }
-        }
-
         // ── Geprüft von / am ─────────────────────────────
         Item {
             width: parent.width

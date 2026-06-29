@@ -20,13 +20,11 @@ Item {
     property int    aktivSeiteId: -1   // von außen gesetzt; -1 = keine Seite aktiv
 
     property int  _dragSeiteId:   -1
-    property real   _bauteileHoehe: seitenBaumSettings.bauteileHoehe
-    property string _aktiveTab:     "seiten"   // "seiten" | "struktur"
+    property string _aktiveTab:     "seiten"   // "seiten" | "struktur" | "bauteile"
 
     Settings {
         id: seitenBaumSettings
         category: "seitenbaum"
-        property real bauteileHoehe: 280
     }
 
     // Wird ausgelöst wenn der Benutzer eine Seite anklickt
@@ -1054,11 +1052,12 @@ Item {
                 Repeater {
                     model: [
                         { tab: "seiten",   label: qsTr("Seiten") },
-                        { tab: "struktur", label: qsTr("Struktur") }
+                        { tab: "struktur", label: qsTr("Struktur") },
+                        { tab: "bauteile", label: qsTr("Bauteile") }
                     ]
                     delegate: Item {
                         id: seitenStrukturTab
-                        width: parent.width / 2; height: 26
+                        width: parent.width / 3; height: 26
                         property bool aktiv: root._aktiveTab === modelData.tab
 
                         Text {
@@ -1363,58 +1362,11 @@ Item {
             }
         }
 
-        // ── Drag-Teiler zwischen Seitenbaum und Bauteile-Panel ──
-        Rectangle {
-            Layout.fillWidth: true
-            height: bauteilePanel.offen ? 5 : 0
-            visible: bauteilePanel.offen
-            color: bauteileTeilerMA.containsMouse || bauteileTeilerMA.pressed
-                   ? theme.accent : theme.borderDark
-
-            Row {
-                anchors.centerIn: parent
-                spacing: 4
-                Repeater {
-                    model: 4
-                    Rectangle {
-                        width: 3; height: 3; radius: 1.5
-                        color: bauteileTeilerMA.containsMouse || bauteileTeilerMA.pressed
-                               ? "#ffffff" : theme.borderLight
-                    }
-                }
-            }
-
-            MouseArea {
-                id: bauteileTeilerMA
-                anchors.fill: parent
-                cursorShape: Qt.SizeVerCursor
-                hoverEnabled: true
-
-                property real _pressGlobalY: 0
-                property real _pressH:       0
-
-                onPressed: (mouse) => {
-                    _pressGlobalY = mapToGlobal(mouse.x, mouse.y).y
-                    _pressH       = root._bauteileHoehe
-                }
-                onPositionChanged: (mouse) => {
-                    if (!pressed) return
-                    var delta = _pressGlobalY - mapToGlobal(mouse.x, mouse.y).y
-                    root._bauteileHoehe = Math.max(80, Math.min(root.height - 160, _pressH + delta))
-                }
-                onReleased: {
-                    seitenBaumSettings.bauteileHoehe = root._bauteileHoehe
-                }
-            }
-
-            ToolTip.visible: bauteileTeilerMA.containsMouse && !bauteileTeilerMA.pressed
-            ToolTip.text:    qsTr("Höhe des Bauteile-Bereichs durch Ziehen anpassen")
-            ToolTip.delay:   700
-        }
-
         SeitenBaumBauteilePanel {
             id: bauteilePanel
-            Layout.preferredHeight: bauteilePanel.offen ? root._bauteileHoehe : -1
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: root._aktiveTab === "bauteile"
             theme: root.theme
             aktivSeiteId: root.aktivSeiteId
             projektId: root.projektId

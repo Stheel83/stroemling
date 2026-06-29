@@ -14,6 +14,8 @@ ColumnLayout {
     property bool debug: false
 
     property bool _bauteilBereichOffen: false
+
+    onVisibleChanged: if (visible) _bauteilBereichOffen = true
     property var  _leistenAufgeklappt:  ({})
     property var  _klemmenAufgeklappt:  ({})
     property var  _klemmenCache:        ({})

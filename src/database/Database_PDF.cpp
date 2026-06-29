@@ -446,19 +446,78 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         p.drawEllipse(QPointF(x1, y1), cr, cr);
         p.drawEllipse(QPointF(x2, y2), cr, cr);
         p.setBrush(Qt::NoBrush);
-        // Kabelkopf-Label (nur Bezeichnung, kompakt)
-        QVariantMap ed = el.value("extraDaten").toMap();
-        QString bez = ed.value("bezeichnung").toString();
-        if (!bez.isEmpty()) {
-            double fsDev = 2.5 * pxPerMm;
-            QFont font;
-            font.setFamily(QStringLiteral("sans-serif"));
-            font.setPixelSize(qMax(1, qRound(fsDev)));
-            font.setBold(true);
-            p.setFont(font);
-            p.setPen(kPen.color());
-            p.drawText(QRectF(x1 + cr + 2, y1 - fsDev, 200 * 0.25 * pxPerMm, fsDev * 1.4),
-                       Qt::AlignLeft | Qt::AlignBottom, bez);
+        // Kabelkopf-Label: mehrzeilig, senkrecht zur Linie auf der "oberen" Seite
+        {
+            QVariantMap ed  = el.value("extraDaten").toMap();
+            QString bez     = ed.value("bezeichnung").toString();
+            QString klTyp   = ed.value("kabeltyp").toString();
+            int     adz     = ed.value("aderzahl").toInt();
+            double  que     = ed.value("querschnittMm2").toDouble();
+            double  len     = ed.value("laenge_m").toDouble();
+
+            struct Zeile { QString text; bool bold; };
+            QVector<Zeile> zeilen;
+            if (!bez.isEmpty())   zeilen.append({bez,   true});
+            if (!klTyp.isEmpty()) zeilen.append({klTyp, false});
+            // Aderanzahl×Querschnitt nur wenn kabeltyp kein '×' enthält
+            bool typHatX = klTyp.contains(QLatin1Char('x'), Qt::CaseInsensitive)
+                        || klTyp.contains(QChar(0x00D7));
+            if (!typHatX && (adz > 0 || que > 0)) {
+                QString z3;
+                if (adz > 0 && que > 0)
+                    z3 = QString::number(adz) + QStringLiteral(" × ")
+                         + QString::number(que, 'f', que == qFloor(que) ? 0 : 1)
+                               .replace(QLatin1Char('.'), QLatin1Char(','))
+                         + QStringLiteral(" mm²");
+                else if (adz > 0)
+                    z3 = QString::number(adz) + QStringLiteral(" Adern");
+                else
+                    z3 = QString::number(que, 'f', que == qFloor(que) ? 0 : 1)
+                             .replace(QLatin1Char('.'), QLatin1Char(','))
+                         + QStringLiteral(" mm²");
+                zeilen.append({z3, false});
+            }
+            if (len > 0)
+                zeilen.append({QStringLiteral("→ ")
+                               + QString::number(len, 'f', 1)
+                                     .replace(QLatin1Char('.'), QLatin1Char(','))
+                               + QStringLiteral(" m"), false});
+
+            if (!zeilen.isEmpty()) {
+                double fsDev = 2.5 * pxPerMm;
+                double lineH = fsDev * 1.3;
+                // Normalvektor senkrecht zur Linie, auf der "oberen" Seite (kleinstes y)
+                double dx = x2 - x1, dy = y2 - y1;
+                double len2 = std::sqrt(dx*dx + dy*dy);
+                if (len2 < 0.001) len2 = 0.001;
+                double ccwX = -dy/len2, ccwY = dx/len2;
+                double cwX  =  dy/len2, cwY  = -dx/len2;
+                bool useCC  = (ccwY < cwY) || (ccwY == cwY && ccwX < cwX);
+                double nx   = useCC ? ccwX : cwX;
+                double ny   = useCC ? ccwY : cwY;
+                double off  = fsDev * 0.5 + 4.0 * 0.25 * pxPerMm;
+                double ax   = x1 + nx * off;
+                double ay   = y1 + ny * off;
+                double tw   = 40.0 * pxPerMm;
+                Qt::Alignment ha = (nx >= 0) ? Qt::AlignLeft : Qt::AlignRight;
+                QColor colBold  = kPen.color();
+                QColor colNorm(0xbb, 0x88, 0x00);
+
+                // Zeilen von unten nach oben (baseline=bottom, rückwärts iterieren)
+                double curY = ay;
+                for (int zi = zeilen.size() - 1; zi >= 0; --zi) {
+                    QFont f; f.setFamily(QStringLiteral("sans-serif"));
+                    f.setPixelSize(qMax(1, qRound(fsDev)));
+                    f.setBold(zeilen[zi].bold);
+                    p.setFont(f);
+                    p.setPen(zeilen[zi].bold ? colBold : colNorm);
+                    QRectF r = (nx >= 0)
+                        ? QRectF(ax, curY - fsDev * 1.2, tw, fsDev * 1.2)
+                        : QRectF(ax - tw, curY - fsDev * 1.2, tw, fsDev * 1.2);
+                    p.drawText(r, ha | Qt::AlignBottom, zeilen[zi].text);
+                    curY -= lineH;
+                }
+            }
         }
 
     } else if (typ == "geraetekasten") {
@@ -863,6 +922,159 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             }
             paDone:;
         }
+    }
+}
+
+// Aderbezeichnungen an Kabellinie-Schnittpunkten rendern
+static void pdfKabelAderBeschriftungRendern(QPainter &p, int seiteId, double C, double pxPerMm,
+                                           const QSqlDatabase &db)
+{
+    // Kabellinie-Elemente laden
+    QSqlQuery qk(db);
+    qk.prepare(R"(
+        SELECT x1, y1, x2, y2, extra_daten, strich_farbe
+        FROM grafik_element
+        WHERE seite_id = :sid AND typ = 'kabellinie'
+    )");
+    qk.bindValue(":sid", seiteId);
+    if (!qk.exec()) return;
+
+    struct KabelEl {
+        double kx1, ky1, kx2, ky2;
+        QJsonObject aderZuordnung;
+        QJsonArray  adern;
+        QColor      klColor;
+    };
+    QVector<KabelEl> kabel;
+    while (qk.next()) {
+        KabelEl ke;
+        ke.kx1 = qk.value(0).toDouble();
+        ke.ky1 = qk.value(1).toDouble();
+        ke.kx2 = qk.value(2).toDouble();
+        ke.ky2 = qk.value(3).toDouble();
+        QString exStr = qk.value(4).toString();
+        if (!exStr.isEmpty()) {
+            QJsonDocument doc = QJsonDocument::fromJson(exStr.toUtf8());
+            if (doc.isObject()) {
+                QJsonObject obj = doc.object();
+                if (obj.contains(QStringLiteral("aderZuordnung")))
+                    ke.aderZuordnung = obj.value(QStringLiteral("aderZuordnung")).toObject();
+                if (obj.contains(QStringLiteral("adern")))
+                    ke.adern = obj.value(QStringLiteral("adern")).toArray();
+            }
+        }
+        QString sf = qk.value(5).toString();
+        ke.klColor = (!sf.isEmpty() && QColor(sf).isValid()) ? QColor(sf)
+                                                              : QColor(0xe0, 0x70, 0x00);
+        kabel.append(ke);
+    }
+    if (kabel.isEmpty()) return;
+
+    // Verbindungssegmente laden
+    struct VSeg { double x1, y1, x2, y2; int verbId; };
+    QVector<VSeg> vsegs;
+    QSqlQuery qv(db);
+    qv.prepare(R"(SELECT punkte, verbindung_id FROM verbindung_segment WHERE seite_id = :sid)");
+    qv.bindValue(":sid", seiteId);
+    if (!qv.exec()) return;
+    while (qv.next()) {
+        QJsonDocument doc = QJsonDocument::fromJson(qv.value(0).toString().toUtf8());
+        if (!doc.isArray()) continue;
+        QJsonArray arr = doc.array();
+        int vId = qv.value(1).toInt();
+        // Iterate consecutive point pairs
+        for (int i = 0; i < arr.size() - 1; ++i) {
+            QJsonObject a = arr[i].toObject();
+            QJsonObject b = arr[i+1].toObject();
+            vsegs.append({a["x"].toDouble(), a["y"].toDouble(),
+                          b["x"].toDouble(), b["y"].toDouble(), vId});
+        }
+    }
+
+    // Für jede Kabellinie: Schnittpunkte berechnen und Aderbezeichnungen rendern
+    for (const KabelEl &ke : kabel) {
+        double kdx = ke.kx2 - ke.kx1, kdy = ke.ky2 - ke.ky1;
+        double kLen = std::sqrt(kdx*kdx + kdy*kdy);
+        if (kLen < 0.5) continue;
+
+        // Schnitte pro verbindung_id (einer pro verbindung)
+        struct Schnitt { double t; int verbId; };
+        QVector<Schnitt> schnitte;
+        QSet<int> gesehen;
+
+        for (const VSeg &vs : vsegs) {
+            if (gesehen.contains(vs.verbId)) continue;
+            double dax = vs.x2 - vs.x1, day = vs.y2 - vs.y1;
+            double D = kdx * day - kdy * dax;
+            if (std::abs(D) < 0.001) continue;
+            double t = ((vs.x1 - ke.kx1) * day - (vs.y1 - ke.ky1) * dax) / D;
+            double s = ((vs.x1 - ke.kx1) * kdy - (vs.y1 - ke.ky1) * kdx) / D;
+            if (t >= -0.005 && t <= 1.005 && s >= -0.005 && s <= 1.005) {
+                schnitte.append({qBound(0.0, t, 1.0), vs.verbId});
+                gesehen.insert(vs.verbId);
+            }
+        }
+        if (schnitte.isEmpty()) continue;
+        std::sort(schnitte.begin(), schnitte.end(),
+                  [](const Schnitt &a, const Schnitt &b){ return a.t < b.t; });
+
+        // Normalvektor senkrecht zur Kabellinie, nach "oben" (kleinstes y)
+        double nx = -kdy/kLen, ny = kdx/kLen;
+        if (ny > 0.0) { nx = -nx; ny = -ny; }
+
+        double fsDev   = 1.8 * pxPerMm;
+        double tickLen = 0.5 * pxPerMm;
+        double lblOff  = tickLen + 0.4 * pxPerMm;
+
+        QFont f; f.setFamily(QStringLiteral("sans-serif"));
+        f.setPixelSize(qMax(1, qRound(fsDev)));
+
+        p.save();
+        p.setBrush(Qt::NoBrush);
+
+        for (int sci = 0; sci < schnitte.size(); ++sci) {
+            double t  = schnitte[sci].t;
+            double wx = ke.kx1 + t * kdx;
+            double wy = ke.ky1 + t * kdy;
+            double vx = wx * C, vy = wy * C;
+
+            // Aderfarbe + nummer aus adern-Array (sequenziell)
+            int aderNr = sci + 1;
+            QString farbe;
+            for (int ai = 0; ai < ke.adern.size(); ++ai) {
+                QJsonObject ad = ke.adern[ai].toObject();
+                int nr = ad.contains(QStringLiteral("aderNr")) ? ad[QStringLiteral("aderNr")].toInt() : (ai + 1);
+                if (nr == aderNr) { farbe = ad[QStringLiteral("farbe")].toString(); break; }
+            }
+
+            QString label = QString::number(aderNr);
+            if (!farbe.isEmpty()) label += QStringLiteral("  ") + farbe;
+
+            // Kurzer Querstrich
+            QPen tickPen(ke.klColor, 0.4 * pxPerMm, Qt::SolidLine, Qt::FlatCap);
+            p.setPen(tickPen);
+            p.drawLine(QLineF(vx - nx * tickLen, vy - ny * tickLen,
+                              vx + nx * tickLen, vy + ny * tickLen));
+
+            // Label — achsenparallele Kabellinie: rechts neben dem Tick (wie QML)
+            p.setFont(f);
+            p.setPen(ke.klColor);
+            bool achsenParallel = (std::abs(nx) < 0.1 || std::abs(ny) < 0.1);
+            double lx, ly;
+            if (achsenParallel) {
+                lx = vx + lblOff;           // immer rechts
+                ly = vy + ny * lblOff;      // Offset senkrecht zur Linie
+            } else {
+                lx = vx + nx * lblOff;
+                ly = vy + ny * lblOff;
+            }
+            Qt::Alignment ha = Qt::AlignLeft;
+            double tw = 15.0 * pxPerMm;
+            // Rect mit textBaseline "bottom" (QML-Konvention: Text wächst nach oben von ly)
+            QRectF r(lx, ly - fsDev * 1.2, tw, fsDev * 1.2);
+            p.drawText(r, ha | Qt::AlignBottom, label);
+        }
+        p.restore();
     }
 }
 
@@ -1436,6 +1648,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         for (const QVariant &ev : elemente)
             pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
         pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
+        pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
         // Normblatt + Infostreifen in absoluten Koordinaten (kein Translate aktiv)
@@ -1493,6 +1706,7 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     for (const QVariant &ev : elemente)
         pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
     pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
+    pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
     painter.restore();
 
     if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool())

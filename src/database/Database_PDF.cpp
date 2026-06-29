@@ -211,7 +211,7 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
     QString sid = el.value("symbolId").toString();
     static const QStringList kNoLabel = {
         "winkel","treffpunkt","treffpunkt_l","geraeteanschluss","unterbrechung",
-        "aderdefinition","querverweis"
+        "aderdefinition","querverweis","klemme_anschluss"
     };
     if (kNoLabel.contains(sid)) return;
 
@@ -613,6 +613,126 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                         oy -= lineH;
                         p.drawText(QRectF(cx - tw / 2.0, oy, tw, lineH * 1.2),
                                    Qt::AlignHCenter | Qt::AlignTop, zeilen[zi]);
+                    }
+                }
+                p.restore();
+            }
+        }
+
+        // ── klemme_anschluss: Bezeichnung + BMK (Pin-gegenüber, bmkOffset) ──
+        if (el.value("symbolId").toString() == QStringLiteral("klemme_anschluss")) {
+            QVariantMap kaed = el.value("extraDaten").toMap();
+            QString kaAnz    = kaed.value("anschlussBezeichnung").toString();
+            QString kaBmkRaw = kaed.value("bmk").toString();
+
+            // Redundantes ":anschlussBezeichnung" am Ende kürzen
+            QString kaBmkBase = (!kaAnz.isEmpty()
+                                 && kaBmkRaw.endsWith(QLatin1Char(':') + kaAnz))
+                                ? kaBmkRaw.left(kaBmkRaw.length() - kaAnz.length() - 1)
+                                : kaBmkRaw;
+
+            // bmkSichtbar: false → nur Klemmen-Nr (ohne Leisten-Präfix)
+            QString kaBmk;
+            bool kaBmkVis = false;
+            {
+                int col = kaBmkBase.lastIndexOf(QLatin1Char(':'));
+                if (col >= 0) {
+                    bool vis = kaed.value("bmkSichtbar", QVariant(true)).toBool();
+                    kaBmk    = (vis ? kaBmkBase.left(col + 1) : QString())
+                               + kaBmkBase.mid(col + 1);
+                    kaBmkVis = !kaBmk.isEmpty();
+                } else {
+                    kaBmk    = kaBmkBase;
+                    kaBmkVis = !kaBmkBase.isEmpty()
+                               && kaed.value("bmkSichtbar", QVariant(true)).toBool();
+                }
+            }
+
+            if (!kaAnz.isEmpty() || kaBmkVis) {
+                double anzFsDev = 1.5 * pxPerMm;
+                double bmkFsDev = 2.2 * pxPerMm;
+
+                double kaOx = kaed.value("bmkOffsetX", 0.0).toDouble() * C;
+                double kaOy = kaed.value("bmkOffsetY", 0.0).toDouble() * C;
+
+                int  kaRot  = ((el.value("rotation").toInt() % 360) + 360) % 360;
+                bool kaSenk = (kaRot == 90 || kaRot == 270);
+                double kaCx = (x1 + x2) / 2.0;
+                double kaCy = (y1 + y2) / 2.0;
+
+                QFont fAnz; fAnz.setFamily(QStringLiteral("sans-serif"));
+                fAnz.setPixelSize(qMax(1, qRound(anzFsDev))); fAnz.setBold(true);
+                QFont fBmk; fBmk.setFamily(QStringLiteral("sans-serif"));
+                fBmk.setPixelSize(qMax(1, qRound(bmkFsDev))); fBmk.setBold(true);
+
+                QColor colAnz(0x33, 0xbb, 0x66);
+                QColor colBmk(0x44, 0x88, 0xcc);
+                double tw = 20.0 * pxPerMm;
+
+                p.save();
+                if (kaSenk) {
+                    // 90°: Pin rechts → Text links | 270°: Pin links → Text rechts
+                    bool pinRechts = (kaRot == 90);
+                    double gapDev  = 1.0 * pxPerMm;
+                    double kaX     = pinRechts
+                                     ? qMin(x1, x2) - gapDev + kaOy
+                                     : qMax(x1, x2) + gapDev + kaOy;
+                    double kaCyO   = kaCy + kaOx;
+
+                    // Bezeichnung oben, BMK darunter, beide um Mittelpunkt zentriert
+                    double totalH = (!kaAnz.isEmpty() ? anzFsDev * 1.2 : 0.0)
+                                  + (kaBmkVis ? bmkFsDev * 1.2 : 0.0);
+                    double curY   = kaCyO - totalH / 2.0;
+                    Qt::Alignment ha = pinRechts ? Qt::AlignRight : Qt::AlignLeft;
+
+                    if (!kaAnz.isEmpty()) {
+                        p.setFont(fAnz); p.setPen(colAnz);
+                        QRectF r = pinRechts ? QRectF(kaX - tw, curY, tw, anzFsDev * 1.2)
+                                             : QRectF(kaX, curY, tw, anzFsDev * 1.2);
+                        p.drawText(r, ha | Qt::AlignVCenter, kaAnz);
+                        curY += anzFsDev * 1.2;
+                    }
+                    if (kaBmkVis) {
+                        p.setFont(fBmk); p.setPen(colBmk);
+                        QRectF r = pinRechts ? QRectF(kaX - tw, curY, tw, bmkFsDev * 1.2)
+                                             : QRectF(kaX, curY, tw, bmkFsDev * 1.2);
+                        p.drawText(r, ha | Qt::AlignVCenter, kaBmk);
+                    }
+                } else {
+                    // 0°: Pin oben → Text unten | 180°: Pin unten → Text oben
+                    bool pinUnten = (kaRot == 180);
+                    double gapDev = 0.75 * pxPerMm;
+                    double kaCxO  = kaCx + kaOx;
+
+                    if (!pinUnten) {
+                        // Text wächst nach unten (anz näher am Symbol)
+                        double curY = qMax(y1, y2) + gapDev + kaOy;
+                        if (!kaAnz.isEmpty()) {
+                            p.setFont(fAnz); p.setPen(colAnz);
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, anzFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, kaAnz);
+                            curY += anzFsDev * 1.2;
+                        }
+                        if (kaBmkVis) {
+                            p.setFont(fBmk); p.setPen(colBmk);
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, bmkFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, kaBmk);
+                        }
+                    } else {
+                        // Text wächst nach oben (anz näher am Symbol)
+                        double curY = qMin(y1, y2) - gapDev + kaOy;
+                        if (!kaAnz.isEmpty()) {
+                            curY -= anzFsDev * 1.2;
+                            p.setFont(fAnz); p.setPen(colAnz);
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, anzFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, kaAnz);
+                        }
+                        if (kaBmkVis) {
+                            curY -= bmkFsDev * 1.2;
+                            p.setFont(fBmk); p.setPen(colBmk);
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, bmkFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, kaBmk);
+                        }
                     }
                 }
                 p.restore();

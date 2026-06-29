@@ -18,6 +18,9 @@ Rectangle {
 
     DebugLabel { panelName: qsTr("Klemmen-Eigenschaften"); visible: panel.debug }
 
+    ListModel { id: anlageModel }
+    ListModel { id: orteModel }
+
     Flickable {
         anchors.fill:        parent
         contentHeight:       eigenCol.implicitHeight + 16
@@ -111,26 +114,34 @@ Rectangle {
                 }
             }
 
-            // Ort-Picker: Zustands-Eigenschaften auf eigenCol, damit beide Combos
-            // und alle Connections darauf zugreifen können.
-            property var  _orteListe: []
             property bool _ortSaving: false
 
-            function _updateOrteListe() {
-                var idx = anlageCombo.currentIndex
-                if (idx <= 0 || idx > anlageCombo._anlagenListe.length) { _orteListe = []; return }
-                _orteListe = seitenModel.orteListe(anlageCombo._anlagenListe[idx - 1].itemId)
+            function refreshAnlagen() {
+                anlageModel.clear()
+                anlageModel.append({itemId: -1, label: qsTr("(keine)")})
+                var al = seitenModel.anlagenListe()
+                for (var i = 0; i < al.length; i++) anlageModel.append(al[i])
             }
-            function _applyOrt() {
+            function refreshOrte() {
+                orteModel.clear()
+                orteModel.append({itemId: -1, label: qsTr("(kein)")})
+                if (anlageCombo.currentIndex <= 0 || anlageModel.count <= 1) return
+                var aId = anlageModel.get(anlageCombo.currentIndex).itemId
+                if (aId < 0) return
+                var ol = seitenModel.orteListe(aId)
+                for (var i = 0; i < ol.length; i++) orteModel.append(ol[i])
+            }
+            function applyOrt() {
                 if (!klemmenreiheModel.hatLeiste) return
-                var ortIdx = ortCombo.currentIndex
-                var newOrtId = (ortIdx > 0 && _orteListe.length >= ortIdx)
-                              ? _orteListe[ortIdx - 1].itemId : -1
+                var newOrtId = ortCombo.currentIndex > 0
+                               ? orteModel.get(ortCombo.currentIndex).itemId : -1
                 var d = Object.assign({}, klemmenreiheModel.leiste)
                 d["ortId"] = newOrtId
                 _ortSaving = true
                 klemmenreiheModel.leisteAktualisieren(d)
             }
+
+            Component.onCompleted: refreshAnlagen()
 
             // Ort-Zuweisung (DIN 81346: =Anlage +Ort)
             RowLayout {
@@ -140,14 +151,9 @@ Rectangle {
                     id: anlageCombo
                     Layout.fillWidth: true
                     font.pixelSize: 12
-                    property var _anlagenListe: []
-                    Component.onCompleted: _anlagenListe = seitenModel.anlagenListe()
+                    model: anlageModel
+                    textRole: "label"
                     currentIndex: 0
-                    model: {
-                        var items = [qsTr("(keine)")]
-                        for (var i = 0; i < _anlagenListe.length; i++) items.push(_anlagenListe[i].label)
-                        return items
-                    }
                     contentItem: Text {
                         text: anlageCombo.displayText; font: anlageCombo.font
                         color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
@@ -155,13 +161,13 @@ Rectangle {
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
                     popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
                     delegate: ItemDelegate {
+                        required property var model
                         width: anlageCombo.width
-                        contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Text { text: model.label; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
                     }
-                    // onCurrentIndexChanged feuert synchron für jede Änderung (Nutzer + Code)
-                    onCurrentIndexChanged: eigenCol._updateOrteListe()
-                    onActivated: { ortCombo.currentIndex = 0; eigenCol._applyOrt() }
+                    onCurrentIndexChanged: eigenCol.refreshOrte()
+                    onActivated: { ortCombo.currentIndex = 0; eigenCol.applyOrt() }
                 }
             }
             RowLayout {
@@ -171,13 +177,11 @@ Rectangle {
                     id: ortCombo
                     Layout.fillWidth: true
                     font.pixelSize: 12
+                    enabled: anlageCombo.currentIndex > 0
+                    opacity: enabled ? 1.0 : 0.4
+                    model: orteModel
+                    textRole: "label"
                     currentIndex: 0
-                    model: {
-                        var items = [qsTr("(kein)")]
-                        for (var i = 0; i < eigenCol._orteListe.length; i++)
-                            items.push(eigenCol._orteListe[i].label)
-                        return items
-                    }
                     contentItem: Text {
                         text: ortCombo.displayText; font: ortCombo.font
                         color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
@@ -185,37 +189,38 @@ Rectangle {
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
                     popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
                     delegate: ItemDelegate {
+                        required property var model
                         width: ortCombo.width
-                        contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Text { text: model.label; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
                     }
-                    onActivated: eigenCol._applyOrt()
+                    onActivated: eigenCol.applyOrt()
                 }
             }
 
-            // Wenn eine andere Leiste geladen wird: Combos auf gespeicherten Ort setzen.
-            // _ortSaving verhindert Reset nach eigenem Speichern.
             Connections {
                 target: klemmenreiheModel
                 function onLeisteGeladen() {
                     if (eigenCol._ortSaving) { eigenCol._ortSaving = false; return }
                     var oid = klemmenreiheModel.hatLeiste
                              ? (klemmenreiheModel.leiste["ortId"] || -1) : -1
+                    eigenCol.refreshAnlagen()
                     var anlageIdx = 0
                     if (oid > 0) {
-                        var al = anlageCombo._anlagenListe
-                        outer: for (var k = 0; k < al.length; k++) {
-                            var lo = seitenModel.orteListe(al[k].itemId)
-                            for (var m = 0; m < lo.length; m++)
-                                if (lo[m].itemId === oid) { anlageIdx = k + 1; break outer }
+                        for (var k = 1; k < anlageModel.count; k++) {
+                            var lo = seitenModel.orteListe(anlageModel.get(k).itemId)
+                            for (var m = 0; m < lo.length; m++) {
+                                if (lo[m].itemId === oid) { anlageIdx = k; break }
+                            }
+                            if (anlageIdx > 0) break
                         }
                     }
-                    // currentIndex-Zuweisung löst onCurrentIndexChanged → _updateOrteListe() aus
-                    anlageCombo.currentIndex = anlageIdx
+                    anlageCombo.currentIndex = anlageIdx  // löst refreshOrte() via onCurrentIndexChanged aus
                     var ortIdx = 0
                     if (oid > 0) {
-                        for (var i = 0; i < eigenCol._orteListe.length; i++)
-                            if (eigenCol._orteListe[i].itemId === oid) { ortIdx = i + 1; break }
+                        for (var i = 1; i < orteModel.count; i++) {
+                            if (orteModel.get(i).itemId === oid) { ortIdx = i; break }
+                        }
                     }
                     ortCombo.currentIndex = ortIdx
                 }
@@ -223,8 +228,8 @@ Rectangle {
             Connections {
                 target: seitenModel
                 function onModelReset() {
-                    anlageCombo._anlagenListe = seitenModel.anlagenListe()
-                    eigenCol._updateOrteListe()
+                    eigenCol.refreshAnlagen()
+                    eigenCol.refreshOrte()
                 }
             }
 

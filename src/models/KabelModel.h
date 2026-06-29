@@ -70,10 +70,12 @@ public:
 
 signals:
     void geladen();
+    void kanvasGeaendert();
 
 private:
     void ladeAdern();
     void ladePaare();
+    void aktualisiereKanvasBauteilKabel();
 
     int          m_bauteilId = -1;
     int          m_kabelId   = -1;

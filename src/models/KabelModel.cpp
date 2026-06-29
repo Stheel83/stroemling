@@ -99,6 +99,57 @@ void KabelModel::ladePaare()
     }
 }
 
+void KabelModel::aktualisiereKanvasBauteilKabel()
+{
+    if (m_kabelId < 0) return;
+
+    // Aktuelle Werte aus Bibliothek lesen
+    QSqlQuery qv;
+    qv.prepare(R"(
+        SELECT bk.kabeltyp,
+               COUNT(ba.id),
+               COALESCE(MAX(ba.querschnitt_mm2), 0.0)
+        FROM bibliothek.bauteil_kabel bk
+        LEFT JOIN bibliothek.bauteil_kabel_ader ba ON ba.kabel_id = bk.id
+        WHERE bk.id = :bkid GROUP BY bk.id
+    )");
+    qv.bindValue(":bkid", m_kabelId);
+    if (!qv.exec() || !qv.next()) return;
+
+    QString typ = qv.value(0).toString();
+    int     anz = qv.value(1).toInt();
+    double  qs  = qv.value(2).toDouble();
+
+    // kabel-Tabelle für alle Instanzen dieses Bauteil-Kabels aktualisieren
+    QSqlQuery qu;
+    qu.prepare(R"(
+        UPDATE kabel SET kabeltyp=:typ, aderzahl=:anz, querschnitt_mm2=:qs
+        WHERE bauteil_kabel_id = :bkid
+    )");
+    qu.bindValue(":typ",  typ.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : typ);
+    qu.bindValue(":anz",  anz > 0 ? anz : QVariant(QMetaType(QMetaType::Int)));
+    qu.bindValue(":qs",   qs  > 0 ? qs  : QVariant(QMetaType(QMetaType::Double)));
+    qu.bindValue(":bkid", m_kabelId);
+    qu.exec();
+
+    // grafik_element.extra_daten für platzierte Kabellinien aktualisieren
+    QSqlQuery qe;
+    qe.prepare(R"(
+        UPDATE grafik_element
+        SET extra_daten = json_set(extra_daten,
+            '$.kabeltyp',       :typ,
+            '$.aderzahl',       :anz,
+            '$.querschnittMm2', :qs)
+        WHERE CAST(json_extract(extra_daten, '$.kabelId') AS INTEGER) IN
+              (SELECT id FROM kabel WHERE bauteil_kabel_id = :bkid)
+    )");
+    qe.bindValue(":typ",  typ);
+    qe.bindValue(":anz",  anz);
+    qe.bindValue(":qs",   qs);
+    qe.bindValue(":bkid", m_kabelId);
+    qe.exec();
+}
+
 bool KabelModel::stammdatenSpeichern(const QVariantMap &daten)
 {
     if (m_bauteilId <= 0) return false;
@@ -148,6 +199,8 @@ bool KabelModel::stammdatenSpeichern(const QVariantMap &daten)
                  << "neueId=" << m_kabelId;
     }
 
+    aktualisiereKanvasBauteilKabel();
+    emit kanvasGeaendert();
     laden(m_bauteilId);
     return true;
 }
@@ -184,6 +237,8 @@ int KabelModel::aderAnlegen()
         return -1;
     }
     int newId = q.lastInsertId().toInt();
+    aktualisiereKanvasBauteilKabel();
+    emit kanvasGeaendert();
     ladeAdern();
     emit geladen();
     return newId;
@@ -215,6 +270,8 @@ bool KabelModel::aderLoeschen(int aderId)
         upd.exec();
     }
 
+    aktualisiereKanvasBauteilKabel();
+    emit kanvasGeaendert();
     ladeAdern();
     emit geladen();
     return true;
@@ -247,6 +304,8 @@ bool KabelModel::aderAktualisieren(int aderId, const QVariantMap &daten)
         qCWarning(lcModel) << "KabelModel::aderAktualisieren:" << q.lastError().text();
         return false;
     }
+    aktualisiereKanvasBauteilKabel();
+    emit kanvasGeaendert();
     ladeAdern();
     emit geladen();
     return true;
@@ -358,6 +417,8 @@ bool KabelModel::aderMehrfachAktualisieren(const QVariantList &ids, const QVaria
         qCWarning(lcModel) << "KabelModel::aderMehrfachAktualisieren:" << q.lastError().text();
         return false;
     }
+    aktualisiereKanvasBauteilKabel();
+    emit kanvasGeaendert();
     ladeAdern();
     emit geladen();
     return true;

@@ -23,6 +23,11 @@ Item {
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal makroListeGeaendert()
 
+    Connections {
+        target: kabelModel
+        function onKanvasGeaendert() { root.leisteKanvasAktualisiert() }
+    }
+
     RowLayout {
         anchors.fill: parent; spacing: 0
 

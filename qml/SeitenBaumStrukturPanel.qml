@@ -22,6 +22,7 @@ Item {
     signal anlageAnlegenAngefordert()
     signal anlageBearbeitenAngefordert(int id, string kuerzel, string bez, string uo)
     signal ortAnlegenAngefordert(int anlageId)
+    signal ortSeiteAnlegenAngefordert(int ortId)
     signal ortBearbeitenAngefordert(int id, string kuerzel, string bez, string uo)
 
     property var _daten: []
@@ -307,6 +308,22 @@ Item {
                                     Row {
                                         spacing: 2
                                         visible: ortHover.hovered
+
+                                        Button {
+                                            width: 24; height: 24; flat: true
+                                            contentItem: Text {
+                                                text: "+"; color: "#44aa66"; font.pixelSize: 16
+                                                horizontalAlignment: Text.AlignHCenter
+                                                verticalAlignment: Text.AlignVCenter
+                                            }
+                                            background: Rectangle {
+                                                color: parent.hovered ? root.theme.activeItemAlt : "transparent"
+                                                radius: 4
+                                            }
+                                            ToolTip.visible: hovered; ToolTip.delay: 600
+                                            ToolTip.text: qsTr("Neue Seite in diesem Ort anlegen")
+                                            onClicked: root.ortSeiteAnlegenAngefordert(ortRow.ort.ortId)
+                                        }
 
                                         Button {
                                             width: 24; height: 24; flat: true

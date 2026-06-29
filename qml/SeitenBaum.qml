@@ -1350,6 +1350,10 @@ Item {
                 dlgOrt.fuerAnlageId = anlageId
                 dlgOrt.open()
             }
+            onOrtSeiteAnlegenAngefordert: function(ortId) {
+                dlgSeite.fuerOrtId = ortId
+                dlgSeite.open()
+            }
             onOrtBearbeitenAngefordert: function(id, kuerzel, bez, uo) {
                 dlgOrtBearbeiten.itemId           = id
                 dlgOrtBearbeiten.altKuerzel       = kuerzel

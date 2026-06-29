@@ -323,7 +323,8 @@ CREATE TABLE klemmenleiste (
     ausrichtung             TEXT NOT NULL DEFAULT 'senkrecht',
     anlage_uebergeordnet    TEXT,
     standort_uebergeordnet  TEXT,
-    bemerkung               TEXT
+    bemerkung               TEXT,
+    highlight_override      INTEGER
 );
 
 CREATE TABLE klemme (

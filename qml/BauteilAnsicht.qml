@@ -27,6 +27,10 @@ Item {
         target: kabelModel
         function onKanvasGeaendert() { root.leisteKanvasAktualisiert() }
     }
+    Connections {
+        target: klemmenreiheModel
+        function onKanvasGeaendert() { root.leisteKanvasAktualisiert() }
+    }
 
     RowLayout {
         anchors.fill: parent; spacing: 0

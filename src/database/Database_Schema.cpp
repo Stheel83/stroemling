@@ -604,6 +604,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DROP TABLE IF EXISTS farb_definition)",
             R"(DROP TABLE IF EXISTS bauteil_kategorie)",
         }},
+        { 81, "klemmenleiste: highlight_override-Spalte (NULL=global, 0=aus, 1=ein)", {
+            R"(ALTER TABLE klemmenleiste ADD COLUMN highlight_override INTEGER)",
+        }},
     };
 }
 

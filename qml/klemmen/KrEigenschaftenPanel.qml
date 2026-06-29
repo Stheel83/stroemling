@@ -111,6 +111,104 @@ Rectangle {
                 }
             }
 
+            // Ort-Zuweisung (DIN 81346: =Anlage +Ort)
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Text { text: qsTr("Anlage:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
+                ComboBox {
+                    id: anlageCombo
+                    Layout.fillWidth: true
+                    font.pixelSize: 12
+                    property var _anlagenListe: seitenModel.anlagenListe()
+                    model: {
+                        var items = [qsTr("(keine)")]
+                        for (var i = 0; i < _anlagenListe.length; i++) items.push(_anlagenListe[i].label)
+                        return items
+                    }
+                    currentIndex: {
+                        if (!klemmenreiheModel.hatLeiste) return 0
+                        var oid = klemmenreiheModel.leiste["ortId"] || -1
+                        if (oid < 0) return 0
+                        var orte = seitenModel.orteListe(-1) // dummy
+                        for (var k = 0; k < _anlagenListe.length; k++) {
+                            var lo = seitenModel.orteListe(_anlagenListe[k].itemId)
+                            for (var m2 = 0; m2 < lo.length; m2++)
+                                if (lo[m2].itemId === oid) return k + 1
+                        }
+                        return 0
+                    }
+                    contentItem: Text {
+                        text: anlageCombo.displayText; font: anlageCombo.font
+                        color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                    }
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
+                    popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
+                    delegate: ItemDelegate {
+                        width: anlageCombo.width
+                        contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
+                    }
+                    onActivated: { ortCombo._refreshOrte(); ortCombo.currentIndex = 0; _applyOrt() }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Text { text: qsTr("Ort:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
+                ComboBox {
+                    id: ortCombo
+                    Layout.fillWidth: true
+                    font.pixelSize: 12
+                    property var _orteListe: []
+                    function _refreshOrte() {
+                        var idx = anlageCombo.currentIndex
+                        if (idx <= 0) { _orteListe = []; return }
+                        var aId = anlageCombo._anlagenListe[idx - 1].itemId
+                        _orteListe = seitenModel.orteListe(aId)
+                    }
+                    Component.onCompleted: _refreshOrte()
+                    model: {
+                        var items = [qsTr("(kein)")]
+                        for (var i = 0; i < _orteListe.length; i++) items.push(_orteListe[i].label)
+                        return items
+                    }
+                    currentIndex: {
+                        if (!klemmenreiheModel.hatLeiste) return 0
+                        var oid = klemmenreiheModel.leiste["ortId"] || -1
+                        if (oid < 0) return 0
+                        for (var i = 0; i < _orteListe.length; i++)
+                            if (_orteListe[i].itemId === oid) return i + 1
+                        return 0
+                    }
+                    contentItem: Text {
+                        text: ortCombo.displayText; font: ortCombo.font
+                        color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                    }
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
+                    popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
+                    delegate: ItemDelegate {
+                        width: ortCombo.width
+                        contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
+                    }
+                    onActivated: _applyOrt()
+                }
+            }
+
+            function _applyOrt() {
+                if (!klemmenreiheModel.hatLeiste) return
+                var ortIdx = ortCombo.currentIndex
+                var newOrtId = (ortIdx > 0 && ortCombo._orteListe.length >= ortIdx)
+                              ? ortCombo._orteListe[ortIdx - 1].itemId : -1
+                var d = Object.assign({}, klemmenreiheModel.leiste)
+                d["ortId"] = newOrtId
+                klemmenreiheModel.leisteAktualisieren(d)
+            }
+
+            Connections {
+                target: klemmenreiheModel
+                function onLeisteGeladen() { ortCombo._refreshOrte() }
+            }
+
             // Anlage / Standort übergeordnet
             RowLayout {
                 Layout.fillWidth: true; spacing: 6
@@ -165,6 +263,41 @@ Rectangle {
                             klemmenreiheModel.leisteAktualisieren(d)
                         }
                     }
+                }
+            }
+
+            // Highlight-Override (pro Leiste)
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Text { text: qsTr("Highlight:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
+                ComboBox {
+                    Layout.fillWidth: true
+                    font.pixelSize: 12
+                    model: [qsTr("Global (Standard)"), qsTr("Immer aus")]
+                    currentIndex: {
+                        if (!klemmenreiheModel.hatLeiste) return 0
+                        var hlo = klemmenreiheModel.leiste["highlightOverride"]
+                        return (hlo !== null && hlo !== undefined && hlo === 0) ? 1 : 0
+                    }
+                    contentItem: Text {
+                        text: parent.displayText; font: parent.font
+                        color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                    }
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
+                    popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
+                    delegate: ItemDelegate {
+                        width: parent.width
+                        contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
+                    }
+                    onActivated: {
+                        if (!klemmenreiheModel.hatLeiste) return
+                        var d = Object.assign({}, klemmenreiheModel.leiste)
+                        d["highlightOverride"] = currentIndex === 1 ? 0 : null
+                        klemmenreiheModel.leisteAktualisieren(d)
+                    }
+                    ToolTip.visible: hovered; ToolTip.delay: 500
+                    ToolTip.text: qsTr("Beim Anklicken eines Klemmenanschlusses dieser Leiste\nzugehörige Anschlüsse auf dem Canvas hervorheben.\n\"Immer aus\" überschreibt den globalen Schalter im EP.")
                 }
             }
 

@@ -309,7 +309,8 @@ void KlemmenreiheModel::laden(int leisteId)
         "COALESCE(kl.standort_uebergeordnet,''), "
         "COALESCE(kl.bemerkung,''), kl.projekt_id, "
         "COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung), "
-        "COALESCE(klb.bmk_kurz, '-' || kl.bezeichnung) "
+        "COALESCE(klb.bmk_kurz, '-' || kl.bezeichnung), "
+        "kl.ort_id, kl.highlight_override "
         "FROM klemmenleiste kl "
         "LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id "
         "WHERE kl.id = :id"
@@ -331,6 +332,8 @@ void KlemmenreiheModel::laden(int leisteId)
     m_leiste["projektId"]             = q.value(6).toInt();
     m_leiste["bmkVollstaendig"]       = q.value(7).toString();
     m_leiste["bmkKurz"]               = q.value(8).toString();
+    m_leiste["ortId"]                 = q.value(9).isNull() ? -1 : q.value(9).toInt();
+    m_leiste["highlightOverride"]     = q.value(10).isNull() ? QVariant() : q.value(10).toInt();
 
     ladeKlemmen();
     emit leisteGeladen();
@@ -471,7 +474,7 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
         "UPDATE klemmenleiste SET "
         "bezeichnung = :bez, ausrichtung = :aus, "
         "anlage_uebergeordnet = :auo, standort_uebergeordnet = :suo, "
-        "bemerkung = :bem "
+        "bemerkung = :bem, ort_id = :oid, highlight_override = :hlo "
         "WHERE id = :id"
     );
     q.bindValue(":bez", daten["bezeichnung"].toString());
@@ -481,12 +484,31 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
     q.bindValue(":auo", auo.isEmpty() ? QVariant() : auo);
     q.bindValue(":suo", suo.isEmpty() ? QVariant() : suo);
     q.bindValue(":bem", daten["bemerkung"].toString());
+    QVariant oid = daten.value("ortId");
+    q.bindValue(":oid", (oid.isNull() || oid.toInt() < 0) ? QVariant() : oid.toInt());
+    QVariant hlo = daten.value("highlightOverride");
+    q.bindValue(":hlo", hlo.isNull() ? QVariant() : hlo.toInt());
     q.bindValue(":id",  m_leisteId);
 
     if (!q.exec()) {
         qCWarning(lcModel) << "KlemmenreiheModel::leisteAktualisieren:" << q.lastError().text();
         return false;
     }
+
+    // BMK aller platzierten Anschlüsse dieser Leiste aktualisieren
+    bool bmkGeaendert = (daten.value("ortId") != m_leiste.value("ortId"))
+                     || (daten.value("anlageUebergeordnet") != m_leiste.value("anlageUebergeordnet"))
+                     || (daten.value("standortUebergeordnet") != m_leiste.value("standortUebergeordnet"))
+                     || (daten.value("bezeichnung") != m_leiste.value("bezeichnung"));
+    if (bmkGeaendert) {
+        QSqlQuery qs;
+        qs.prepare("SELECT id FROM klemme WHERE klemmenleiste_id = :lid");
+        qs.bindValue(":lid", m_leisteId);
+        if (qs.exec())
+            while (qs.next()) aktualisiereKanvasBmk(qs.value(0).toInt());
+        emit kanvasGeaendert();
+    }
+
     laden(m_leisteId);
     return true;
 }

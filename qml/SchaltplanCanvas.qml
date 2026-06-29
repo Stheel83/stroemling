@@ -129,12 +129,49 @@ Item {
         if (aktivesWerkzeug !== "bild") root.paletteImageData = ""
     }
 
+    // Klemmen-Highlight (KLEMME-HL-01): beim Anklicken eines klemme_anschluss
+    // werden alle Anschlüsse derselben Klemme auf der Seite hervorgehoben.
+    property bool _klemmeHlAktiv:  true
+    property int  _hlKlemmeId:     -1
+    function setKlemmeHlAktiv(v) { _klemmeHlAktiv = v; klemmeHlSettings.aktiv = v }
+    Settings {
+        id:       klemmeHlSettings
+        category: "ep_panel"
+        property bool aktiv: true
+        Component.onCompleted: root._klemmeHlAktiv = aktiv
+    }
+
     // Auswahl & Verschieben (Zeiger-Werkzeug)
     property var  auswahl:             []     // Indizes aller selektierten Elemente
     onAuswahlChanged: {
         // Re-focus canvas after EP becomes visible (EP's ScrollView can grab focus synchronously)
         if (root.auswahl.length > 0 && !root.textEditAktiv)
             Qt.callLater(function() { root.forceActiveFocus() })
+        // Highlight gleiche Klemme (KLEMME-HL-01)
+        if (root._klemmeHlAktiv && root.auswahl.length === 1) {
+            var _hlEl = root.elementeModel.element(root.auswahl[0])
+            if (_hlEl && _hlEl.typ === "symbol" && _hlEl.symbolId === "klemme_anschluss") {
+                var _hlEd = _hlEl.extraDaten || {}
+                var _hlKId = (_hlEd.klemmeId !== undefined) ? _hlEd.klemmeId : -1
+                // Per-Leiste-Override: wenn klemmenreiheModel die passende Leiste geladen hat,
+                // highlightOverride=0 deaktiviert Highlight für diese Leiste.
+                var _override = null
+                if (klemmenreiheModel.hatLeiste) {
+                    var _kl = klemmenreiheModel.klemmen
+                    for (var _ki = 0; _ki < _kl.length; _ki++) {
+                        if (_kl[_ki].klemmeId === _hlKId) {
+                            _override = klemmenreiheModel.leiste["highlightOverride"]
+                            break
+                        }
+                    }
+                }
+                root._hlKlemmeId = (_override === 0) ? -1 : _hlKId
+            } else {
+                root._hlKlemmeId = -1
+            }
+        } else {
+            root._hlKlemmeId = -1
+        }
     }
     // Compat-Alias: -1 wenn Mehrfachauswahl, sonst der einzelne Index
     readonly property int ausgewaehlt:        auswahl.length === 1 ? auswahl[0] : -1
@@ -3232,6 +3269,31 @@ Item {
             drawCanvas._gkListe = _gkBuf
             for (var i=0; i<elemente.length; i++)
                 drawCanvas.maleElement(ctx, elemente[i], i)
+
+            // Klemmen-Highlight-Pass (KLEMME-HL-01)
+            if (root._hlKlemmeId >= 0) {
+                ctx.save()
+                ctx.strokeStyle = "#00d0a0"
+                ctx.lineWidth   = 2.5
+                ctx.setLineDash([4, 3])
+                ctx.globalAlpha = 0.85
+                for (var hi = 0; hi < elemente.length; hi++) {
+                    var hEl = elemente[hi]
+                    if (!hEl || hEl.typ !== "symbol" || hEl.symbolId !== "klemme_anschluss") continue
+                    if (root.auswahl.indexOf(hi) >= 0) continue
+                    var hEd = hEl.extraDaten || {}
+                    if ((hEd.klemmeId !== undefined ? hEd.klemmeId : -1) !== root._hlKlemmeId) continue
+                    var hvx1 = hEl.x1 * root.zoom + root.worldX
+                    var hvy1 = hEl.y1 * root.zoom + root.worldY
+                    var hvx2 = hEl.x2 * root.zoom + root.worldX
+                    var hvy2 = hEl.y2 * root.zoom + root.worldY
+                    var hbx  = Math.min(hvx1, hvx2), hby = Math.min(hvy1, hvy2)
+                    var hbw  = Math.abs(hvx2 - hvx1), hbh = Math.abs(hvy2 - hvy1)
+                    ctx.strokeRect(hbx - 2, hby - 2, hbw + 4, hbh + 4)
+                }
+                ctx.restore()
+            }
+
             if (root.vorschau !== null)
                 drawCanvas.maleElement(ctx, root.vorschau, -1)
             if (root.vorschau !== null && root.vorschau.typ === "makrokasten"

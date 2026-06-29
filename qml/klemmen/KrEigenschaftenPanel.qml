@@ -233,44 +233,6 @@ Rectangle {
                 }
             }
 
-            // Anlage / Standort übergeordnet
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                Text { text: qsTr("==Anlage:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
-                TextField {
-                    Layout.fillWidth: true
-                    text: klemmenreiheModel.hatLeiste ? (klemmenreiheModel.leiste["anlageUebergeordnet"] || "") : ""
-                    font.pixelSize: 12; color: theme.textPrimary
-                    placeholderText: qsTr("optional")
-                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
-                    onEditingFinished: {
-                        if (klemmenreiheModel.hatLeiste) {
-                            var d = Object.assign({}, klemmenreiheModel.leiste)
-                            d["anlageUebergeordnet"] = text
-                            klemmenreiheModel.leisteAktualisieren(d)
-                        }
-                    }
-                }
-            }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                Text { text: qsTr("++Standort:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
-                TextField {
-                    Layout.fillWidth: true
-                    text: klemmenreiheModel.hatLeiste ? (klemmenreiheModel.leiste["standortUebergeordnet"] || "") : ""
-                    font.pixelSize: 12; color: theme.textPrimary
-                    placeholderText: qsTr("optional")
-                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
-                    onEditingFinished: {
-                        if (klemmenreiheModel.hatLeiste) {
-                            var d = Object.assign({}, klemmenreiheModel.leiste)
-                            d["standortUebergeordnet"] = text
-                            klemmenreiheModel.leisteAktualisieren(d)
-                        }
-                    }
-                }
-            }
-
             // Bemerkung
             RowLayout {
                 Layout.fillWidth: true; spacing: 6

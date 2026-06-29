@@ -130,8 +130,8 @@ int KlemmenleistenModel::duplizieren(int id)
 {
     QSqlQuery q;
     q.prepare(
-        "SELECT projekt_id, bezeichnung, ausrichtung, anlage_uebergeordnet, "
-        "standort_uebergeordnet, bemerkung, ort_id FROM klemmenleiste WHERE id = :id"
+        "SELECT projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id "
+        "FROM klemmenleiste WHERE id = :id"
     );
     q.bindValue(":id", id);
     if (!q.exec() || !q.next()) {
@@ -141,22 +141,17 @@ int KlemmenleistenModel::duplizieren(int id)
     int     projektId   = q.value(0).toInt();
     QString bezeichnung = q.value(1).toString() + QStringLiteral(" (Kopie)");
     QVariant ausrichtung = q.value(2);
-    QVariant anlage      = q.value(3);
-    QVariant standort     = q.value(4);
-    QVariant bemerkung   = q.value(5);
-    QVariant ortId        = q.value(6);
+    QVariant bemerkung   = q.value(3);
+    QVariant ortId        = q.value(4);
 
     QSqlQuery qi;
     qi.prepare(
-        "INSERT INTO klemmenleiste (projekt_id, bezeichnung, ausrichtung, "
-        "anlage_uebergeordnet, standort_uebergeordnet, bemerkung, ort_id) "
-        "VALUES (:pid, :bez, :aus, :anl, :sta, :bem, :ort)"
+        "INSERT INTO klemmenleiste (projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id) "
+        "VALUES (:pid, :bez, :aus, :bem, :ort)"
     );
     qi.bindValue(":pid", projektId);
     qi.bindValue(":bez", bezeichnung);
     qi.bindValue(":aus", ausrichtung);
-    qi.bindValue(":anl", anlage);
-    qi.bindValue(":sta", standort);
     qi.bindValue(":bem", bemerkung);
     qi.bindValue(":ort", ortId);
     if (!qi.exec()) {
@@ -305,8 +300,6 @@ void KlemmenreiheModel::laden(int leisteId)
     QSqlQuery q;
     q.prepare(
         "SELECT kl.id, kl.bezeichnung, kl.ausrichtung, "
-        "COALESCE(kl.anlage_uebergeordnet,''), "
-        "COALESCE(kl.standort_uebergeordnet,''), "
         "COALESCE(kl.bemerkung,''), kl.projekt_id, "
         "COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung), "
         "COALESCE(klb.bmk_kurz, '-' || kl.bezeichnung), "
@@ -323,17 +316,15 @@ void KlemmenreiheModel::laden(int leisteId)
         return;
     }
 
-    m_leiste["leisteId"]              = q.value(0).toInt();
-    m_leiste["bezeichnung"]           = q.value(1).toString();
-    m_leiste["ausrichtung"]           = q.value(2).toString();
-    m_leiste["anlageUebergeordnet"]   = q.value(3).toString();
-    m_leiste["standortUebergeordnet"] = q.value(4).toString();
-    m_leiste["bemerkung"]             = q.value(5).toString();
-    m_leiste["projektId"]             = q.value(6).toInt();
-    m_leiste["bmkVollstaendig"]       = q.value(7).toString();
-    m_leiste["bmkKurz"]               = q.value(8).toString();
-    m_leiste["ortId"]                 = q.value(9).isNull() ? -1 : q.value(9).toInt();
-    m_leiste["highlightOverride"]     = q.value(10).isNull() ? QVariant() : q.value(10).toInt();
+    m_leiste["leisteId"]          = q.value(0).toInt();
+    m_leiste["bezeichnung"]       = q.value(1).toString();
+    m_leiste["ausrichtung"]       = q.value(2).toString();
+    m_leiste["bemerkung"]         = q.value(3).toString();
+    m_leiste["projektId"]         = q.value(4).toInt();
+    m_leiste["bmkVollstaendig"]   = q.value(5).toString();
+    m_leiste["bmkKurz"]           = q.value(6).toString();
+    m_leiste["ortId"]             = q.value(7).isNull() ? -1 : q.value(7).toInt();
+    m_leiste["highlightOverride"] = q.value(8).isNull() ? QVariant() : q.value(8).toInt();
 
     ladeKlemmen();
     emit leisteGeladen();
@@ -473,16 +464,11 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
     q.prepare(
         "UPDATE klemmenleiste SET "
         "bezeichnung = :bez, ausrichtung = :aus, "
-        "anlage_uebergeordnet = :auo, standort_uebergeordnet = :suo, "
         "bemerkung = :bem, ort_id = :oid, highlight_override = :hlo "
         "WHERE id = :id"
     );
     q.bindValue(":bez", daten["bezeichnung"].toString());
     q.bindValue(":aus", daten["ausrichtung"].toString());
-    QString auo = daten["anlageUebergeordnet"].toString();
-    QString suo = daten["standortUebergeordnet"].toString();
-    q.bindValue(":auo", auo.isEmpty() ? QVariant() : auo);
-    q.bindValue(":suo", suo.isEmpty() ? QVariant() : suo);
     q.bindValue(":bem", daten["bemerkung"].toString());
     QVariant oid = daten.value("ortId");
     q.bindValue(":oid", (oid.isNull() || oid.toInt() < 0) ? QVariant() : oid.toInt());
@@ -497,8 +483,6 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
 
     // BMK aller platzierten Anschlüsse dieser Leiste aktualisieren
     bool bmkGeaendert = (daten.value("ortId") != m_leiste.value("ortId"))
-                     || (daten.value("anlageUebergeordnet") != m_leiste.value("anlageUebergeordnet"))
-                     || (daten.value("standortUebergeordnet") != m_leiste.value("standortUebergeordnet"))
                      || (daten.value("bezeichnung") != m_leiste.value("bezeichnung"));
     if (bmkGeaendert) {
         QSqlQuery qs;

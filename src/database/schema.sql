@@ -321,8 +321,6 @@ CREATE TABLE klemmenleiste (
     ort_id                  INTEGER REFERENCES ort(id),
     bezeichnung             TEXT NOT NULL,
     ausrichtung             TEXT NOT NULL DEFAULT 'senkrecht',
-    anlage_uebergeordnet    TEXT,
-    standort_uebergeordnet  TEXT,
     bemerkung               TEXT,
     highlight_override      INTEGER
 );
@@ -401,8 +399,8 @@ CREATE VIEW betriebsmittel_bmk AS
 
 CREATE VIEW klemmenleiste_bmk AS
     SELECT kl.id, kl.bezeichnung, kl.projekt_id,
-           COALESCE('==' || kl.anlage_uebergeordnet, '') ||
-           COALESCE('++' || kl.standort_uebergeordnet, '') ||
+           COALESCE('==' || a.anlage_uebergeordnet, '') ||
+           COALESCE('++' || o.standort_uebergeordnet, '') ||
            COALESCE('=' || a.kuerzel, '') ||
            COALESCE('+' || o.kuerzel, '') ||
            '-' || kl.bezeichnung AS bmk_vollstaendig,

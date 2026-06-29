@@ -607,6 +607,24 @@ static QList<SchemaMigration> alleMigrationen()
         { 81, "klemmenleiste: highlight_override-Spalte (NULL=global, 0=aus, 1=ein)", {
             R"(ALTER TABLE klemmenleiste ADD COLUMN highlight_override INTEGER)",
         }},
+        { 82, "klemmenleiste: anlage_uebergeordnet/standort_uebergeordnet entfernen; klemmenleiste_bmk View auf anlage/ort-Tabellen umstellen", {
+            R"(DROP VIEW klemmenleiste_bmk)",
+            R"(ALTER TABLE klemmenleiste DROP COLUMN anlage_uebergeordnet)",
+            R"(ALTER TABLE klemmenleiste DROP COLUMN standort_uebergeordnet)",
+            R"(CREATE VIEW klemmenleiste_bmk AS
+                SELECT kl.id, kl.bezeichnung, kl.projekt_id,
+                       COALESCE('==' || a.anlage_uebergeordnet, '') ||
+                       COALESCE('++' || o.standort_uebergeordnet, '') ||
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       '-' || kl.bezeichnung AS bmk_vollstaendig,
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       '-' || kl.bezeichnung AS bmk_kurz
+                FROM klemmenleiste kl
+                LEFT JOIN ort o ON o.id = kl.ort_id
+                LEFT JOIN anlage a ON a.id = o.anlage_id)",
+        }},
     };
 }
 

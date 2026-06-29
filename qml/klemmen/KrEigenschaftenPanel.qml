@@ -256,41 +256,6 @@ Rectangle {
                 }
             }
 
-            // Highlight-Override (pro Leiste)
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                Text { text: qsTr("Highlight:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
-                ComboBox {
-                    Layout.fillWidth: true
-                    font.pixelSize: 12
-                    model: [qsTr("Global (Standard)"), qsTr("Immer aus")]
-                    currentIndex: {
-                        if (!klemmenreiheModel.hatLeiste) return 0
-                        var hlo = klemmenreiheModel.leiste["highlightOverride"]
-                        return (hlo !== null && hlo !== undefined && hlo === 0) ? 1 : 0
-                    }
-                    contentItem: Text {
-                        text: parent.displayText; font: parent.font
-                        color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                    }
-                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
-                    popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
-                    delegate: ItemDelegate {
-                        width: parent.width
-                        contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
-                        background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
-                    }
-                    onActivated: {
-                        if (!klemmenreiheModel.hatLeiste) return
-                        var d = Object.assign({}, klemmenreiheModel.leiste)
-                        d["highlightOverride"] = currentIndex === 1 ? 0 : null
-                        klemmenreiheModel.leisteAktualisieren(d)
-                    }
-                    ToolTip.visible: hovered; ToolTip.delay: 500
-                    ToolTip.text: qsTr("Beim Anklicken eines Klemmenanschlusses dieser Leiste\nzugehörige Anschlüsse auf dem Canvas hervorheben.\n\"Immer aus\" überschreibt den globalen Schalter im EP.")
-                }
-            }
-
             // Statistik
             Rectangle { height: 1; Layout.fillWidth: true; color: theme.divider }
             RowLayout {

@@ -167,27 +167,6 @@ Item {
             onCommit: function(t) { root.extraSetzen("bmk", t) }
         }
 
-        // Klemmen-Highlight global ein/aus
-        Row {
-            leftPadding: 12; height: 32; spacing: 8
-            Rectangle {
-                width: 20; height: 20; radius: 4; anchors.verticalCenter: parent.verticalCenter
-                color: root.canvas._klemmeHlAktiv ? "#00d0a0" : theme.inputBg
-                border.color: theme.border
-                Text { anchors.centerIn: parent; text: qsTr("✓"); color: "#ffffff"
-                       font.pixelSize: 12; visible: root.canvas._klemmeHlAktiv }
-                MouseArea {
-                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: root.canvas.setKlemmeHlAktiv(!root.canvas._klemmeHlAktiv)
-                }
-            }
-            Text {
-                text: qsTr("Gleiche Klemme hervorheben")
-                color: theme.textMuted; font.pixelSize: 11
-                anchors.verticalCenter: parent.verticalCenter
-            }
-        }
-
         // Leisten-BMK Sichtbarkeit (nur für verknüpfte Klemmen)
         Row {
             leftPadding: 12; height: 32; spacing: 8

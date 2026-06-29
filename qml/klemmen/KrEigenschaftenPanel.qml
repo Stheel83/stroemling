@@ -121,22 +121,11 @@ Rectangle {
                     font.pixelSize: 12
                     property var _anlagenListe: []
                     Component.onCompleted: _anlagenListe = seitenModel.anlagenListe()
+                    currentIndex: 0
                     model: {
                         var items = [qsTr("(keine)")]
                         for (var i = 0; i < _anlagenListe.length; i++) items.push(_anlagenListe[i].label)
                         return items
-                    }
-                    currentIndex: {
-                        if (!klemmenreiheModel.hatLeiste) return 0
-                        var oid = klemmenreiheModel.leiste["ortId"] || -1
-                        if (oid < 0) return 0
-                        var orte = seitenModel.orteListe(-1) // dummy
-                        for (var k = 0; k < _anlagenListe.length; k++) {
-                            var lo = seitenModel.orteListe(_anlagenListe[k].itemId)
-                            for (var m2 = 0; m2 < lo.length; m2++)
-                                if (lo[m2].itemId === oid) return k + 1
-                        }
-                        return 0
                     }
                     contentItem: Text {
                         text: anlageCombo.displayText; font: anlageCombo.font
@@ -149,7 +138,7 @@ Rectangle {
                         contentItem: Text { text: modelData; color: theme.textPrimary; font.pixelSize: 12; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
                     }
-                    onActivated: { ortCombo._refreshOrte(); ortCombo.currentIndex = 0; _applyOrt() }
+                    onActivated: { ortCombo.currentIndex = 0; _applyOrt() }
                 }
             }
             RowLayout {
@@ -159,26 +148,17 @@ Rectangle {
                     id: ortCombo
                     Layout.fillWidth: true
                     font.pixelSize: 12
-                    property var _orteListe: []
-                    function _refreshOrte() {
+                    currentIndex: 0
+                    // Reaktives Binding: aktualisiert automatisch wenn Anlage-Auswahl sich ändert
+                    property var _orteListe: {
                         var idx = anlageCombo.currentIndex
-                        if (idx <= 0) { _orteListe = []; return }
-                        var aId = anlageCombo._anlagenListe[idx - 1].itemId
-                        _orteListe = seitenModel.orteListe(aId)
+                        if (idx <= 0 || idx > anlageCombo._anlagenListe.length) return []
+                        return seitenModel.orteListe(anlageCombo._anlagenListe[idx - 1].itemId)
                     }
-                    Component.onCompleted: _refreshOrte()
                     model: {
                         var items = [qsTr("(kein)")]
                         for (var i = 0; i < _orteListe.length; i++) items.push(_orteListe[i].label)
                         return items
-                    }
-                    currentIndex: {
-                        if (!klemmenreiheModel.hatLeiste) return 0
-                        var oid = klemmenreiheModel.leiste["ortId"] || -1
-                        if (oid < 0) return 0
-                        for (var i = 0; i < _orteListe.length; i++)
-                            if (_orteListe[i].itemId === oid) return i + 1
-                        return 0
                     }
                     contentItem: Text {
                         text: ortCombo.displayText; font: ortCombo.font
@@ -205,15 +185,38 @@ Rectangle {
                 klemmenreiheModel.leisteAktualisieren(d)
             }
 
+            // Wenn eine andere Leiste geladen wird: Anlage- und Ort-Combo
+            // explizit auf den gespeicherten Ort setzen.
             Connections {
                 target: klemmenreiheModel
-                function onLeisteGeladen() { ortCombo._refreshOrte() }
+                function onLeisteGeladen() {
+                    var oid = klemmenreiheModel.hatLeiste
+                             ? (klemmenreiheModel.leiste["ortId"] || -1) : -1
+                    var anlageIdx = 0
+                    if (oid > 0) {
+                        var al = anlageCombo._anlagenListe
+                        outer: for (var k = 0; k < al.length; k++) {
+                            var lo = seitenModel.orteListe(al[k].itemId)
+                            for (var m = 0; m < lo.length; m++)
+                                if (lo[m].itemId === oid) { anlageIdx = k + 1; break outer }
+                        }
+                    }
+                    anlageCombo.currentIndex = anlageIdx
+                    // _orteListe aktualisiert sich reaktiv; jetzt Ort suchen
+                    var ortIdx = 0
+                    if (oid > 0) {
+                        var ol = ortCombo._orteListe
+                        for (var i = 0; i < ol.length; i++)
+                            if (ol[i].itemId === oid) { ortIdx = i + 1; break }
+                    }
+                    ortCombo.currentIndex = ortIdx
+                }
             }
             Connections {
                 target: seitenModel
                 function onModelReset() {
                     anlageCombo._anlagenListe = seitenModel.anlagenListe()
-                    ortCombo._refreshOrte()
+                    // ortCombo._orteListe aktualisiert sich reaktiv via Binding
                 }
             }
 

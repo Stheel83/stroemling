@@ -89,11 +89,11 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/14_Inbetriebnahme.md` | IBN-Modus: Betriebsmittel prüfen, Messwerte erfassen, Prüfprotokoll | 🔄 offene Designfragen (§13), IBN-05 ✅ |
 | `konzept/features/15_makros.md` | Makros / Schaltplan-Vorlagen: Makrokasten, DB-Schema, UX-Ablauf, C++-API | ✅ |
 | `konzept/features/24_normblatt_phase2.md` | Normblatt-Vorlagen-Editor Phase 2: `normblatt_feld`, C++ API, Canvas-Renderer | ✅ |
-| `konzept/features/25_wiki.md` | Erfahrungs-Wiki + Inhalts-Bundles: Schema v40/WIKI_SCHEMA v10, `WikiModel`, Bundle-JSON | ✅ |
+| `konzept/features/25_wiki.md` | Erfahrungs-Wiki + Inhalts-Bundles: Schema v40/WIKI_SCHEMA v15, `WikiModel`, Bundle-JSON | ✅ |
 | `konzept/features/27_sps.md` | SPS/PLS-Integration: DB-Schema, Ansicht, EP-Adresszuweisung, I/O-Liste, CSV-Export | ✅ |
 | `konzept/features/29_pdf_export.md` | PDF-Export: Vektor-PDF, alle Element-Typen, Kreuzungslücken, Aderbeschriftung | ✅ |
 | `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System | ✅ |
-| `konzept/features/35_drc.md` | Design Rule Check: 8 Checks (D-01 bis D-08) | ✅ |
+| `konzept/features/35_drc.md` | Design Rule Check: 9 Checks (D-01 bis D-09) | ✅ |
 | `konzept/features/36_minimap.md` | Canvas Minimap: Strg+M Übersichtsfenster, CanvasMinimap.qml | ✅ |
 | `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding, F1-Kontexthilfe | 🔄 F1-Kontexthilfe Teilumfang (5 Ansichten ✅) |
 | `konzept/features/39_fehlersuchmodus.md` | Fehlersuchmodus (L9): Strompfad-BFS, seitenübergreifend, Symbol-Rollen | ✅ |
@@ -106,7 +106,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/45_steckverbinder.md` | Stecker und Buchsen: 4-Kombinations-Matrix, 3-Ebenen-Modell, Kontakteigenschaften, Steckpaar-Logik, BMK, DB-Schema-Entwurf | 🔄 Pin-2-Kopplung (§6.5) implementiert, Rest 📋 |
 | `konzept/features/46_schirmung.md` | Schirm-Oval (Canvas-Element `schirm`), SH-Kennzeichnung, Schirmanschluss via Geräteanschluss | 🔄 SCH-02 (DRC-Warnung) offen |
 | `konzept/features/47_meldungen_toast.md` | Meldungs-Toast: `MeldungManager` (C++, analog AchievementManager), `MeldungToast.qml`, Abgrenzung Toast vs. Dialog, migrierte Stellen | ✅ |
-| `konzept/features/48_rosi_roehrenaal.md` | Rosi Röhrenaal: Maskottchen-Assistentin (Klippy-Hommage), `RosiManager`, Timing/Persistenz, Berlinerisch-Sprüche-Pools, Urlaub/Besuch | 🔄 Backend+QML implementiert, Bild-Asset offen |
+| `konzept/features/48_rosi_roehrenaal.md` | Rosi Röhrenaal: Maskottchen-Assistentin (Klippy-Hommage), `RosiManager`, Timing/Persistenz, Berlinerisch-Sprüche-Pools, Urlaub/Besuch | ✅ |
 | **`konzept/technik/`** | **Wie entwickle ich daran?** | |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen | ✅ |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten | ✅ |

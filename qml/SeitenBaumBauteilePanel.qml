@@ -28,6 +28,7 @@ ColumnLayout {
     property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
 
     property var  _gkAufgeklappt:     ({})    // bmk → bool
+    property int  _gkVersion:         0       // Zähler: Increment zwingt _gkFlachListe zur Neuauswertung
     property int    _highlightKlemmeId: -1
     property int    _highlightKabelId:  -1
     property int    _highlightGkId:     -1
@@ -208,6 +209,7 @@ ColumnLayout {
             root.aktualisiereStatus()
             root._mitgliederCache = {}
             root._geraeteVersion++
+            root._gkVersion++
         }
     }
     Connections { target: elementeModel1; function onGeaendert() { root._onElementeGeaendert() } }
@@ -988,9 +990,12 @@ ColumnLayout {
             id: gkWrapper
             visible: root._aktiveTab === "alles" || root._aktiveTab === "sonstiges"
             width: parent.width
-            property var _gkFlachListe: root._bauteilBereichOffen && root.projektId >= 0
-                ? db.geraetekastenListeMitPos(root.projektId)
-                : []
+            property var _gkFlachListe: {
+                var _v = root._gkVersion
+                return root._bauteilBereichOffen && root.projektId >= 0
+                    ? db.geraetekastenListeMitPos(root.projektId)
+                    : []
+            }
 
             property var _gkGruppiert: {
                 var gruppen = {}

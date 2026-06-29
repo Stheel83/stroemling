@@ -37,31 +37,11 @@ Item {
         Trennlinie {}
         AbschnittTitel { text: qsTr("MAße") }
 
-        // Linie: X1/Y1, X2/Y2, Länge
+        // Linie: Länge
         Column {
             width: parent.width; spacing: 0
             visible: panel.el && panel.el.typ === "linie"
 
-            MassField { theme: root.theme;
-                label: "X1"; einheit: "mm"
-                wert: panel.el ? +(panel.el.x1 / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("x1", v * panel.canvas.mmToPx) }
-            }
-            MassField { theme: root.theme;
-                label: "Y1"; einheit: "mm"
-                wert: panel.el ? +(panel.el.y1 / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("y1", v * panel.canvas.mmToPx) }
-            }
-            MassField { theme: root.theme;
-                label: "X2"; einheit: "mm"
-                wert: panel.el ? +(panel.el.x2 / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("x2", v * panel.canvas.mmToPx) }
-            }
-            MassField { theme: root.theme;
-                label: "Y2"; einheit: "mm"
-                wert: panel.el ? +(panel.el.y2 / panel.canvas.mmToPx).toFixed(1) : 0
-                onWertGeaendert: function(v) { panel.canvas.eigenschaftAktualisieren("y2", v * panel.canvas.mmToPx) }
-            }
             MassField { theme: root.theme;
                 label: qsTr("Länge"); einheit: "mm"
                 wert: {

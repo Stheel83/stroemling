@@ -51,15 +51,18 @@ Item {
 
     // Vom Canvas-Kontextmenü: Sprung zum Klemmenanschluss im Bauteilbereich.
     function navigiereZuKlemme(klemmeId, anschlussBezeichnung) {
-        bauteilePanel.navigiereZuKlemme(klemmeId, anschlussBezeichnung)
+        _aktiveTab = "bauteile"
+        Qt.callLater(function() { bauteilePanel.navigiereZuKlemme(klemmeId, anschlussBezeichnung) })
     }
 
     function navigiereZuKabel(kabelId) {
-        bauteilePanel.navigiereZuKabel(kabelId)
+        _aktiveTab = "bauteile"
+        Qt.callLater(function() { bauteilePanel.navigiereZuKabel(kabelId) })
     }
 
     function navigiereZuGeraetekasten(gkId, gkBmk) {
-        bauteilePanel.navigiereZuGeraetekasten(gkId, gkBmk)
+        _aktiveTab = "bauteile"
+        Qt.callLater(function() { bauteilePanel.navigiereZuGeraetekasten(gkId, gkBmk) })
     }
 
     // Hilfsfunktion: Listenindex für bekannte DIN-Formate ermitteln

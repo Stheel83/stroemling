@@ -358,46 +358,6 @@ Rectangle {
                 }
             }
 
-            // ── LÖSCHEN ──────────────────────────────────────────────────
-            Trennlinie { visible: canvas.auswahl.length > 0 }
-
-            Item {
-                visible: canvas.auswahl.length > 0
-                width:   panel.width
-                height:  46
-
-                Rectangle {
-                    anchors {
-                        left: parent.left; right: parent.right
-                        leftMargin: 12; rightMargin: 12
-                        verticalCenter: parent.verticalCenter
-                    }
-                    height: 30; radius: 4
-                    color:        loeschMaus.containsMouse ? "#3a0a0a" : "#200808"
-                    border.color: "#993333"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: canvas.auswahl.length > 1
-                              ? "✕  " + canvas.auswahl.length + qsTr(" Elemente löschen")
-                              : "✕  " + qsTr("Element löschen")
-                        font.pixelSize: 11
-                        color: "#ff5555"
-                    }
-
-                    MouseArea {
-                        id: loeschMaus
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape:  Qt.PointingHandCursor
-                        onClicked:    canvas.loeschen()
-                    }
-
-                    ToolTip.visible: loeschMaus.containsMouse
-                    ToolTip.text:    qsTr("Ausgewähltes löschen (Entf)")
-                    ToolTip.delay:   500
-                }
-            }
         }
     }
 

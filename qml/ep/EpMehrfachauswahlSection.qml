@@ -101,19 +101,6 @@ Item {
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 4
-            MiniButton { theme: root.theme; label: qsTr("Kopieren");      breite: 86
-                tooltip: qsTr("Auswahl in Zwischenablage kopieren (Strg+C)")
-                onKlick: panel.canvas.kopieren() }
-            MiniButton { theme: root.theme; label: qsTr("Ausschneiden");  breite: 86
-                tooltip: qsTr("Auswahl ausschneiden (kopieren + loeschen)")
-                onKlick: panel.canvas.ausschneiden() }
-        }
-
-        Item { height: 4 }
-
-        Row {
-            anchors.horizontalCenter: parent.horizontalCenter
             MiniButton { theme: root.theme; label: qsTr("Duplizieren");  breite: 176
                 tooltip: qsTr("Auswahl duplizieren – Kopie an Mauszeiger platzieren (Strg+D)")
                 onKlick: panel.canvas.duplizieren() }

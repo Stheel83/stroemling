@@ -118,9 +118,11 @@ Item {
         for (var i = 0; i < ol.length; i++) gkOrteModel.append(ol[i])
     }
     function gkApplyOrt() {
+        if (!panel.el || !panel.el.id) return
         var newOrtId = gkOrteCombo.currentIndex > 0
                        ? gkOrteModel.get(gkOrteCombo.currentIndex).itemId : -1
-        root.extraSetzen("ort_id", newOrtId > 0 ? newOrtId : null)
+        db.grafikElementExtraMergeSetzen(panel.el.id, { ort_id: newOrtId > 0 ? newOrtId : null })
+        panel.canvas.seiteNeuLaden()
     }
     function gkSetFromOrtId(oid) {
         gkRefreshAnlagen()
@@ -220,6 +222,8 @@ Item {
                     id: gkAnlageCombo
                     Layout.fillWidth: true; font.pixelSize: 11
                     model: gkAnlageModel; textRole: "label"; currentIndex: 0
+                    ToolTip.visible: hovered; ToolTip.delay: 600
+                    ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
                     contentItem: Text { text: gkAnlageCombo.displayText; font: gkAnlageCombo.font
                         color: root.theme.textSecondary; verticalAlignment: Text.AlignVCenter; leftPadding: 6 }
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; border.width: 1; radius: 3 }
@@ -248,6 +252,8 @@ Item {
                     enabled: gkAnlageCombo.currentIndex > 0
                     opacity: enabled ? 1.0 : 0.4
                     model: gkOrteModel; textRole: "label"; currentIndex: 0
+                    ToolTip.visible: hovered; ToolTip.delay: 600
+                    ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
                     contentItem: Text { text: gkOrteCombo.displayText; font: gkOrteCombo.font
                         color: root.theme.textSecondary; verticalAlignment: Text.AlignVCenter; leftPadding: 6 }
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; border.width: 1; radius: 3 }

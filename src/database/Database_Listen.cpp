@@ -863,6 +863,41 @@ bool Database::betriebsmittelBmkSynchronisieren(int betriebsmittelId)
     return true;
 }
 
+bool Database::grafikElementExtraMergeSetzen(int elementId, const QVariantMap& updates)
+{
+    QSqlQuery rd(m_db);
+    rd.prepare("SELECT extra_daten FROM grafik_element WHERE id = :id");
+    rd.bindValue(":id", elementId);
+    if (!rd.exec() || !rd.next()) return false;
+
+    QJsonObject ed;
+    QString existing = rd.value(0).toString();
+    if (!existing.isEmpty()) {
+        QJsonDocument doc = QJsonDocument::fromJson(existing.toUtf8());
+        if (doc.isObject()) ed = doc.object();
+    }
+
+    for (auto it = updates.cbegin(); it != updates.cend(); ++it) {
+        const QVariant& v = it.value();
+        if (!v.isValid() || v.isNull())
+            ed[it.key()] = QJsonValue::Null;
+        else if (v.typeId() == QMetaType::Int || v.typeId() == QMetaType::LongLong)
+            ed[it.key()] = v.toLongLong();
+        else
+            ed[it.key()] = v.toString();
+    }
+
+    QSqlQuery wr(m_db);
+    wr.prepare("UPDATE grafik_element SET extra_daten = :ed WHERE id = :id");
+    wr.bindValue(":ed", QJsonDocument(ed).toJson(QJsonDocument::Compact));
+    wr.bindValue(":id", elementId);
+    if (!wr.exec()) {
+        qCWarning(lcDb) << "grafikElementExtraMergeSetzen Fehler:" << wr.lastError().text();
+        return false;
+    }
+    return true;
+}
+
 QVariantList Database::betriebsmittelHfListe(int projektId)
 {
     QVariantList result;

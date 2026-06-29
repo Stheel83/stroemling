@@ -285,6 +285,8 @@ Item {
             height: 28
             model: bmAnlageModel
             textRole: "label"
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
             onCurrentIndexChanged: root.bmRefreshOrte()
             onActivated: { bmOrteCombo.currentIndex = 0; root.bmApplyOrt() }
             delegate: ItemDelegate {
@@ -318,6 +320,8 @@ Item {
             textRole: "label"
             enabled: bmAnlageCombo.currentIndex > 0
             opacity: enabled ? 1.0 : 0.4
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
             onActivated: root.bmApplyOrt()
             delegate: ItemDelegate {
                 required property var model

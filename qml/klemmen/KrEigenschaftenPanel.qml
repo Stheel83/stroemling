@@ -154,6 +154,8 @@ Rectangle {
                     model: anlageModel
                     textRole: "label"
                     currentIndex: 0
+                    ToolTip.visible: hovered; ToolTip.delay: 600
+                    ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
                     contentItem: Text {
                         text: anlageCombo.displayText; font: anlageCombo.font
                         color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8
@@ -182,6 +184,8 @@ Rectangle {
                     model: orteModel
                     textRole: "label"
                     currentIndex: 0
+                    ToolTip.visible: hovered; ToolTip.delay: 600
+                    ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
                     contentItem: Text {
                         text: ortCombo.displayText; font: ortCombo.font
                         color: theme.textPrimary; verticalAlignment: Text.AlignVCenter; leftPadding: 8

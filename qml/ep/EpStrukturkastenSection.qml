@@ -130,6 +130,7 @@ Item {
         for (var i = 0; i < ol.length; i++) skOrteModel.append(ol[i])
     }
     function skApplyOrt() {
+        if (!panel.el || !panel.el.id) return
         var newOrtId = skOrteCombo.currentIndex > 0
                        ? skOrteModel.get(skOrteCombo.currentIndex).itemId : -1
         var updates = { ort_id: newOrtId > 0 ? newOrtId : null }
@@ -140,12 +141,11 @@ Item {
             updates["skAnlageUO"] = info.anlageUO      || ""
             updates["skOrtUO"]    = info.ortUO         || ""
         } else {
-            updates["skAnlage"]   = ""
-            updates["skOrt"]      = ""
-            updates["skAnlageUO"] = ""
-            updates["skOrtUO"]    = ""
+            updates["skAnlage"] = ""; updates["skOrt"] = ""
+            updates["skAnlageUO"] = ""; updates["skOrtUO"] = ""
         }
-        root.extraMehrSetzen(updates)
+        db.grafikElementExtraMergeSetzen(panel.el.id, updates)
+        panel.canvas.seiteNeuLaden()
     }
     function skSetFromOrtId(oid) {
         skRefreshAnlagen()
@@ -236,6 +236,8 @@ Item {
             height: 28
             model: skAnlageModel
             textRole: "label"
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
             onCurrentIndexChanged: root.skRefreshOrte()
             onActivated: { skOrteCombo.currentIndex = 0; root.skApplyOrt() }
             delegate: ItemDelegate {
@@ -269,6 +271,8 @@ Item {
             textRole: "label"
             enabled: skAnlageCombo.currentIndex > 0
             opacity: enabled ? 1.0 : 0.4
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
             onActivated: root.skApplyOrt()
             delegate: ItemDelegate {
                 required property var model

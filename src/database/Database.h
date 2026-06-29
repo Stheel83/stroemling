@@ -231,6 +231,7 @@ public:
     Q_INVOKABLE bool         betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz);
     Q_INVOKABLE bool         betriebsmittelOrtSetzen(int betriebsmittelId, int ortId);
     Q_INVOKABLE bool         betriebsmittelBmkSynchronisieren(int betriebsmittelId);
+    Q_INVOKABLE bool         grafikElementExtraMergeSetzen(int elementId, const QVariantMap& updates);
     Q_INVOKABLE QVariantList betriebsmittelHfListe(int projektId);
     Q_INVOKABLE int          letzteGrafikElementId(int seiteId) const;
 

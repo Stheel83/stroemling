@@ -114,8 +114,8 @@ Canvas {
         }
 
         // Linke / rechte Endpunkte der waagerechten Durchgangslinie
-        var lineLeftX  = pA > 0 ? axFuer(0)      : bodyLeftX
-        var lineRightX = pB > 0 ? bxFuer(pB - 1) : bodyRightX
+        var lineLeftX  = pA > 0 ? axFuer(0)           : bodyLeftX
+        var lineRightX = pB > 0 ? bxFuer(pB - 1) : (pA > 0 ? axFuer(pA - 1) : bodyRightX)
 
         // ── Jede Ebene zeichnen ───────────────────────────────────────────
         for (var e = 0; e < ebenen; ++e) {
@@ -129,14 +129,16 @@ Canvas {
             ctx.lineWidth   = 1.5
             ctx.stroke()
 
-            // Kleiner senkrechter Tick = Klemmen-Körper
-            var tickH = 5
-            ctx.beginPath()
-            ctx.moveTo(busX, cy - tickH)
-            ctx.lineTo(busX, cy + tickH)
-            ctx.strokeStyle = "#888888"
-            ctx.lineWidth   = 2
-            ctx.stroke()
+            // Kleiner senkrechter Tick = Klemmen-Körper (nur wenn beide Seiten vorhanden)
+            if (pB > 0) {
+                var tickH = 5
+                ctx.beginPath()
+                ctx.moveTo(busX, cy - tickH)
+                ctx.lineTo(busX, cy + tickH)
+                ctx.strokeStyle = "#888888"
+                ctx.lineWidth   = 2
+                ctx.stroke()
+            }
 
             // ── Seite-A-Kreise (links vom Körper) ────────────────────────
             for (var a = 0; a < pA; ++a) {

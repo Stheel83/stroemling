@@ -119,7 +119,8 @@ Rectangle {
                     id: anlageCombo
                     Layout.fillWidth: true
                     font.pixelSize: 12
-                    property var _anlagenListe: seitenModel.anlagenListe()
+                    property var _anlagenListe: []
+                    Component.onCompleted: _anlagenListe = seitenModel.anlagenListe()
                     model: {
                         var items = [qsTr("(keine)")]
                         for (var i = 0; i < _anlagenListe.length; i++) items.push(_anlagenListe[i].label)
@@ -207,6 +208,13 @@ Rectangle {
             Connections {
                 target: klemmenreiheModel
                 function onLeisteGeladen() { ortCombo._refreshOrte() }
+            }
+            Connections {
+                target: seitenModel
+                function onModelReset() {
+                    anlageCombo._anlagenListe = seitenModel.anlagenListe()
+                    ortCombo._refreshOrte()
+                }
             }
 
             // Anlage / Standort übergeordnet

@@ -30,7 +30,7 @@ public:
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION        = 56;
-    static const int CURRENT_SCHEMA_VERSION  = 82;
+    static const int CURRENT_SCHEMA_VERSION  = 83;
     static const int WIKI_SCHEMA_VERSION     = 15;
     static const int BIBLIOTHEK_SCHEMA_VERSION = 1;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
@@ -229,6 +229,7 @@ public:
     Q_INVOKABLE QVariantMap  betriebsmittelInfo(int betriebsmittelId);
     Q_INVOKABLE bool         betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int elementId);
     Q_INVOKABLE bool         betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz);
+    Q_INVOKABLE bool         betriebsmittelOrtSetzen(int betriebsmittelId, int ortId);
     Q_INVOKABLE bool         betriebsmittelBmkSynchronisieren(int betriebsmittelId);
     Q_INVOKABLE QVariantList betriebsmittelHfListe(int projektId);
     Q_INVOKABLE int          letzteGrafikElementId(int seiteId) const;

@@ -680,3 +680,20 @@ QVariantList SeitenModel::orteListe(int anlageId) const
     }
     return result;
 }
+
+QVariantMap SeitenModel::ortInfo(int ortId) const
+{
+    QVariantMap m;
+    for (const auto &a : m_anlagen) {
+        for (const auto &o : a.orte) {
+            if (o.id != ortId) continue;
+            m["anlageId"]      = a.id;
+            m["anlageKuerzel"] = a.kuerzel;
+            m["anlageUO"]      = a.anlageUebergeordnet;
+            m["ortKuerzel"]    = o.kuerzel;
+            m["ortUO"]         = o.standortUebergeordnet;
+            return m;
+        }
+    }
+    return m;
+}

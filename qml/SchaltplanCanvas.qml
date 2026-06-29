@@ -2092,10 +2092,10 @@ Item {
             else ctx.strokeRect(skRx, skRy, skRw, skRh)
             if (!vorschau && !_skipText && skRw > 20) {
                 var skEd  = el.extraDaten || {}
-                var skAnl = skEd.anlage      || ""
-                var skOrt = skEd.ort         || ""
-                var skAUO = skEd.anlageUO    || ""
-                var skOUO = skEd.ortUO       || ""
+                var skAnl = skEd.skAnlage   || ""
+                var skOrt = skEd.skOrt      || ""
+                var skAUO = skEd.skAnlageUO || ""
+                var skOUO = skEd.skOrtUO    || ""
                 var skBez = skEd.bezeichnung || ""
                 ctx.save()
                 ctx.setLineDash([])
@@ -4074,8 +4074,8 @@ Item {
                 if (area < bestArea) {
                     bestArea = area
                     var sed  = sk.extraDaten || {}
-                    if (sed.anlage) anlage = sed.anlage
-                    if (sed.ort)    ort    = sed.ort
+                    if (sed.skAnlage) anlage = sed.skAnlage
+                    if (sed.skOrt)    ort    = sed.skOrt
                 }
             }
         }

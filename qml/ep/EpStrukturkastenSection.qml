@@ -21,6 +21,13 @@ Item {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
+    function extraMehrSetzen(updates) {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        for (var k in updates) ed[k] = updates[k]
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
     component Trennlinie: Rectangle {
         width: root.width - 16; height: 1; color: root.theme.border
         anchors.horizontalCenter: parent.horizontalCenter
@@ -33,6 +40,15 @@ Item {
             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
             text: parent.text; font.pixelSize: 9; font.weight: Font.Bold
             font.letterSpacing: 1.5; color: root.theme.borderLight
+        }
+    }
+
+    component FeldLabel: Item {
+        property string text: ""
+        width: root.width; height: 20
+        Text {
+            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+            text: parent.text; font.pixelSize: 10; color: root.theme.panelMid
         }
     }
 
@@ -85,6 +101,83 @@ Item {
         }
     }
 
+    // ── Einbauort-Picker ──────────────────────────────────────
+    ListModel { id: skAnlageModel }
+    ListModel { id: skOrteModel }
+
+    property var skElRef: panel.el
+    onSkElRefChanged: {
+        var oid = panel.el && panel.el.extraDaten
+                  ? (panel.el.extraDaten.ort_id || -1) : -1
+        skSetFromOrtId(oid)
+    }
+
+    Component.onCompleted: skRefreshAnlagen()
+
+    function skRefreshAnlagen() {
+        skAnlageModel.clear()
+        skAnlageModel.append({ itemId: -1, label: qsTr("(keine)") })
+        var al = seitenModel.anlagenListe()
+        for (var i = 0; i < al.length; i++) skAnlageModel.append(al[i])
+    }
+    function skRefreshOrte() {
+        skOrteModel.clear()
+        skOrteModel.append({ itemId: -1, label: qsTr("(kein)") })
+        if (skAnlageCombo.currentIndex <= 0 || skAnlageModel.count <= 1) return
+        var aId = skAnlageModel.get(skAnlageCombo.currentIndex).itemId
+        if (aId < 0) return
+        var ol = seitenModel.orteListe(aId)
+        for (var i = 0; i < ol.length; i++) skOrteModel.append(ol[i])
+    }
+    function skApplyOrt() {
+        var newOrtId = skOrteCombo.currentIndex > 0
+                       ? skOrteModel.get(skOrteCombo.currentIndex).itemId : -1
+        var updates = { ort_id: newOrtId > 0 ? newOrtId : null }
+        if (newOrtId > 0) {
+            var info = seitenModel.ortInfo(newOrtId)
+            updates["skAnlage"]   = info.anlageKuerzel || ""
+            updates["skOrt"]      = info.ortKuerzel    || ""
+            updates["skAnlageUO"] = info.anlageUO      || ""
+            updates["skOrtUO"]    = info.ortUO         || ""
+        } else {
+            updates["skAnlage"]   = ""
+            updates["skOrt"]      = ""
+            updates["skAnlageUO"] = ""
+            updates["skOrtUO"]    = ""
+        }
+        root.extraMehrSetzen(updates)
+    }
+    function skSetFromOrtId(oid) {
+        skRefreshAnlagen()
+        if (oid > 0) {
+            for (var ai = 1; ai < skAnlageModel.count; ai++) {
+                var aId = skAnlageModel.get(ai).itemId
+                var ol = seitenModel.orteListe(aId)
+                for (var oi = 0; oi < ol.length; oi++) {
+                    if (ol[oi].itemId === oid) {
+                        skAnlageCombo.currentIndex = ai
+                        skRefreshOrte()
+                        for (var ri = 1; ri < skOrteModel.count; ri++) {
+                            if (skOrteModel.get(ri).itemId === oid) {
+                                skOrteCombo.currentIndex = ri
+                                return
+                            }
+                        }
+                        return
+                    }
+                }
+            }
+        }
+        skAnlageCombo.currentIndex = 0
+        skRefreshOrte()
+        skOrteCombo.currentIndex = 0
+    }
+
+    Connections {
+        target: seitenModel
+        function onModelReset() { root.skRefreshAnlagen(); root.skRefreshOrte() }
+    }
+
     Column {
         id: skCol
         width: parent.width; spacing: 0
@@ -131,35 +224,70 @@ Item {
         }
         Item { height: 6 }
 
-        InputField {
-            label: qsTr("Übergeordnete Anlage (==)")
-            value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.anlageUO || "") : ""
-            theme: root.theme
-            onCommit: function(t) { root.extraSetzen("anlageUO", t.trim()) }
-        }
-        Item { height: 6 }
+        // ── Anlage + Ort ──────────────────────────────────────
+        Trennlinie {}
+        AbschnittTitel { text: qsTr("STRUKTUR") }
 
-        InputField {
-            label: qsTr("Übergeordneter Ort (++)")
-            value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.ortUO || "") : ""
-            theme: root.theme
-            onCommit: function(t) { root.extraSetzen("ortUO", t.trim()) }
+        FeldLabel { text: qsTr("Anlage (=)") }
+        ComboBox {
+            id: skAnlageCombo
+            width: parent.width - 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: 28
+            model: skAnlageModel
+            textRole: "label"
+            onCurrentIndexChanged: root.skRefreshOrte()
+            onActivated: { skOrteCombo.currentIndex = 0; root.skApplyOrt() }
+            delegate: ItemDelegate {
+                required property var model
+                text: model.label
+                width: parent ? parent.width : 80
+                font.pixelSize: 11
+            }
+            contentItem: Text {
+                leftPadding: 8
+                text: skAnlageCombo.displayText
+                font.pixelSize: 11
+                color: root.theme.textSecondary
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                color: root.theme.inputBg
+                border.color: skAnlageCombo.activeFocus ? root.theme.accent : root.theme.border
+                radius: 3
+            }
         }
-        Item { height: 6 }
 
-        InputField {
-            label: qsTr("Anlage (=)")
-            value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.anlage || "") : ""
-            theme: root.theme
-            onCommit: function(t) { root.extraSetzen("anlage", t.trim()) }
-        }
-        Item { height: 6 }
-
-        InputField {
-            label: qsTr("Ort (+)")
-            value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.ort || "") : ""
-            theme: root.theme
-            onCommit: function(t) { root.extraSetzen("ort", t.trim()) }
+        Item { height: 4 }
+        FeldLabel { text: qsTr("Ort (+)") }
+        ComboBox {
+            id: skOrteCombo
+            width: parent.width - 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: 28
+            model: skOrteModel
+            textRole: "label"
+            enabled: skAnlageCombo.currentIndex > 0
+            opacity: enabled ? 1.0 : 0.4
+            onActivated: root.skApplyOrt()
+            delegate: ItemDelegate {
+                required property var model
+                text: model.label
+                width: parent ? parent.width : 80
+                font.pixelSize: 11
+            }
+            contentItem: Text {
+                leftPadding: 8
+                text: skOrteCombo.displayText
+                font.pixelSize: 11
+                color: root.theme.textSecondary
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                color: root.theme.inputBg
+                border.color: skOrteCombo.activeFocus ? root.theme.accent : root.theme.border
+                radius: 3
+            }
         }
         Item { height: 6 }
 

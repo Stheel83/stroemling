@@ -246,10 +246,7 @@ CREATE TABLE betriebsmittel (
     projekt_id              INTEGER NOT NULL REFERENCES projekt(id),
     bauteil_id              INTEGER,
     symbol_code             TEXT,
-    anlage_uebergeordnet    TEXT,
-    standort_uebergeordnet  TEXT,
-    funktion                TEXT,
-    einbauort               TEXT,
+    ort_id                  INTEGER REFERENCES ort(id),
     betriebsmittel_kz       TEXT NOT NULL,
     bezeichnung             TEXT,
     bemerkung               TEXT,
@@ -386,16 +383,18 @@ CREATE VIEW seite_kennzeichen AS
     LEFT JOIN anlage a ON o.anlage_id = a.id;
 
 CREATE VIEW betriebsmittel_bmk AS
-    SELECT id, bezeichnung,
-           COALESCE('==' || anlage_uebergeordnet, '') ||
-           COALESCE('++' || standort_uebergeordnet, '') ||
-           COALESCE('=' || funktion, '') ||
-           COALESCE('+' || einbauort, '') ||
-           '-' || betriebsmittel_kz AS bmk_vollstaendig,
-           COALESCE('=' || funktion, '') ||
-           COALESCE('+' || einbauort, '') ||
-           '-' || betriebsmittel_kz AS bmk_kurz
-    FROM betriebsmittel;
+    SELECT b.id, b.betriebsmittel_kz, b.projekt_id,
+           COALESCE('==' || a.anlage_uebergeordnet, '') ||
+           COALESCE('++' || o.standort_uebergeordnet, '') ||
+           COALESCE('=' || a.kuerzel, '') ||
+           COALESCE('+' || o.kuerzel, '') ||
+           '-' || b.betriebsmittel_kz AS bmk_vollstaendig,
+           COALESCE('=' || a.kuerzel, '') ||
+           COALESCE('+' || o.kuerzel, '') ||
+           '-' || b.betriebsmittel_kz AS bmk_kurz
+    FROM betriebsmittel b
+    LEFT JOIN ort o ON o.id = b.ort_id
+    LEFT JOIN anlage a ON a.id = o.anlage_id;
 
 CREATE VIEW klemmenleiste_bmk AS
     SELECT kl.id, kl.bezeichnung, kl.projekt_id,

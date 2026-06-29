@@ -774,7 +774,7 @@ QVariantMap Database::betriebsmittelInfo(int betriebsmittelId)
 {
     QVariantMap m;
     QSqlQuery q(m_db);
-    q.prepare("SELECT id, betriebsmittel_kz, bezeichnung, haupt_element_id "
+    q.prepare("SELECT id, betriebsmittel_kz, bezeichnung, haupt_element_id, ort_id "
               "FROM betriebsmittel WHERE id = :id");
     q.bindValue(":id", betriebsmittelId);
     if (!q.exec() || !q.next()) return m;
@@ -782,7 +782,21 @@ QVariantMap Database::betriebsmittelInfo(int betriebsmittelId)
     m[QStringLiteral("kz")]             = q.value(1).toString();
     m[QStringLiteral("bezeichnung")]    = q.value(2).toString();
     m[QStringLiteral("hauptElementId")] = q.value(3).isNull() ? 0 : q.value(3).toInt();
+    m[QStringLiteral("ortId")]          = q.value(4).isNull() ? -1 : q.value(4).toInt();
     return m;
+}
+
+bool Database::betriebsmittelOrtSetzen(int betriebsmittelId, int ortId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE betriebsmittel SET ort_id = :oid WHERE id = :id");
+    q.bindValue(":oid", ortId > 0 ? QVariant(ortId) : QVariant(QMetaType::fromType<int>()));
+    q.bindValue(":id", betriebsmittelId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "betriebsmittelOrtSetzen Fehler:" << q.lastError().text();
+        return false;
+    }
+    return betriebsmittelBmkSynchronisieren(betriebsmittelId);
 }
 
 bool Database::betriebsmittelHauptfunktionSetzen(int betriebsmittelId, int elementId)
@@ -813,15 +827,22 @@ bool Database::betriebsmittelKzSetzen(int betriebsmittelId, const QString& neuKz
 
 bool Database::betriebsmittelBmkSynchronisieren(int betriebsmittelId)
 {
-    QString kz = betriebsmittelKz(betriebsmittelId);
-    if (kz.isEmpty()) return false;
+    QSqlQuery bmkQ(m_db);
+    bmkQ.prepare("SELECT bmk_vollstaendig FROM betriebsmittel_bmk WHERE id = :id");
+    bmkQ.bindValue(":id", betriebsmittelId);
+    QString bmk;
+    if (bmkQ.exec() && bmkQ.next())
+        bmk = bmkQ.value(0).toString();
+    else
+        bmk = betriebsmittelKz(betriebsmittelId);
+    if (bmk.isEmpty()) return false;
 
-    QSqlQuery sel;
+    QSqlQuery sel(m_db);
     sel.prepare("SELECT id, extra_daten FROM grafik_element WHERE betriebsmittel_id = :bid");
     sel.bindValue(":bid", betriebsmittelId);
     if (!sel.exec()) return false;
 
-    QSqlQuery upd;
+    QSqlQuery upd(m_db);
     upd.prepare("UPDATE grafik_element SET extra_daten = :ed WHERE id = :id");
     while (sel.next()) {
         int gid = sel.value(0).toInt();
@@ -833,7 +854,7 @@ bool Database::betriebsmittelBmkSynchronisieren(int betriebsmittelId)
             if (!err.error && doc.isObject())
                 obj = doc.object();
         }
-        obj[QStringLiteral("bmk")] = kz;
+        obj[QStringLiteral("bmk")] = bmk;
         upd.bindValue(":ed", QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)));
         upd.bindValue(":id", gid);
         if (!upd.exec())

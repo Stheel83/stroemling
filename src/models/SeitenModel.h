@@ -187,6 +187,7 @@ public:
     // Hilfslisten für Verschieben-Dialoge
     Q_INVOKABLE QVariantList anlagenListe() const;
     Q_INVOKABLE QVariantList orteListe(int anlageId) const;
+    Q_INVOKABLE QVariantMap  ortInfo(int ortId) const;
 
 private:
     void baumAufbauen();

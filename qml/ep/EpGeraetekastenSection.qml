@@ -93,8 +93,8 @@ Item {
     ListModel { id: gkAnlageModel }
     ListModel { id: gkOrteModel }
 
-    property var _elRef: panel.el
-    onElRefChanged: {
+    property var gkElRef: panel.el
+    onGkElRefChanged: {
         var oid = panel.el && panel.el.extraDaten
                   ? (panel.el.extraDaten.ort_id || -1) : -1
         gkSetFromOrtId(oid)

@@ -1098,16 +1098,12 @@ Item {
                     var klAX  = vx1 + klNxL * klOff
                     var klAY  = vy1 + klNyL * klOff
                     ctx.globalAlpha  = 1.0
-                    ctx.strokeStyle  = "#000000"
-                    ctx.lineWidth    = 3
-                    ctx.lineJoin     = "round"
                     ctx.textAlign    = klNxL >= 0 ? "left" : "right"
                     ctx.textBaseline = "bottom"
                     var klY = klAY
                     for (var kzI = klZeilen.length - 1; kzI >= 0; kzI--) {
                         ctx.font = (klZeilen[kzI].bold ? "bold " : "") + klFs + "px sans-serif"
-                        ctx.strokeText(klZeilen[kzI].text, klAX, klY)
-                        ctx.fillStyle = (klZeilen[kzI].bold && !gewaehlt) ? klColor : (gewaehlt ? "#f0a030" : "#c0d8f0")
+                        ctx.fillStyle = (klZeilen[kzI].bold && !gewaehlt) ? klColor : (gewaehlt ? "#f0a030" : "#bb8800")
                         ctx.fillText(klZeilen[kzI].text, klAX, klY)
                         klY -= klLH
                     }
@@ -1892,7 +1888,7 @@ Item {
                         kaBmkVis = kaBmkBase !== "" && kaed.bmkSichtbar !== false
                     }
                     var kaFs    = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
-                    var kaBmkFs = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                    var kaBmkFs = Math.max(7, Math.round(2.2 * root.mmToPx * root.zoom))
                     var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
                     var kaSenk  = (kaRot === 90 || kaRot === 270)
                     var kaCx    = (vx1 + vx2) / 2
@@ -1906,7 +1902,6 @@ Item {
                     // 270°→ Pin links  → Text rechts
                     ctx.save()
                     ctx.globalAlpha = 1.0
-                    ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
                     if (kaSenk) {
                         var kaPinRechts = (kaRot === 90)
                         var kaX   = kaPinRechts
@@ -1919,15 +1914,13 @@ Item {
                         if (kaAnz !== "") {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
-                            ctx.strokeText(kaAnz, kaX, kaAy)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#90e0a0")
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#33bb66")
                             ctx.fillText(kaAnz, kaX, kaAy)
                         }
                         if (kaBmkVis) {
-                            ctx.font = kaBmkFs + "px sans-serif"
+                            ctx.font = "bold " + kaBmkFs + "px sans-serif"
                             ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
-                            ctx.strokeText(kaBmk, kaX, kaBmkY)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#a0c0e0")
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#4488cc")
                             ctx.fillText(kaBmk, kaX, kaBmkY)
                         }
                     } else {
@@ -1941,15 +1934,13 @@ Item {
                         if (kaAnz !== "") {
                             ctx.font = "bold " + kaFs + "px sans-serif"
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl
-                            ctx.strokeText(kaAnz, kaCxO, kaY)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#90e0a0")
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#33bb66")
                             ctx.fillText(kaAnz, kaCxO, kaY)
                         }
                         if (kaBmkVis) {
-                            ctx.font = kaBmkFs + "px sans-serif"
+                            ctx.font = "bold " + kaBmkFs + "px sans-serif"
                             ctx.textAlign = "center"; ctx.textBaseline = kaBl
-                            ctx.strokeText(kaBmk, kaCxO, kaBmkYh)
-                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#a0c0e0")
+                            ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#4488cc")
                             ctx.fillText(kaBmk, kaCxO, kaBmkYh)
                         }
                     }
@@ -1976,7 +1967,7 @@ Item {
                         var adpCy    = (vy1 + vy2) / 2
                         ctx.save()
                         ctx.globalAlpha = 1.0
-                        var adpTextFarbe = gewaehlt ? "#f0a030" : "#c0d8f0"
+                        var adpTextFarbe = gewaehlt ? "#f0a030" : "#4488cc"
                         if (adpSenk) {
                             // Senkrecht: Text links, vertikal zentriert
                             var adpLx = Math.min(vx1, vx2) - 4 * root.zoom
@@ -1984,8 +1975,6 @@ Item {
                             ctx.textAlign = "right"; ctx.textBaseline = "top"
                             for (var az1 = 0; az1 < adpZeilen.length; az1++) {
                                 ctx.font = (adpZeilen[az1].bold ? "bold " : "") + adpFs + "px sans-serif"
-                                ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                                ctx.strokeText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
                                 ctx.fillStyle = adpTextFarbe
                                 ctx.fillText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
                             }
@@ -1997,8 +1986,6 @@ Item {
                             // Zeilen von unten nach oben (letzte Zeile oben)
                             for (var az2 = adpZeilen.length - 1; az2 >= 0; az2--) {
                                 ctx.font = (adpZeilen[az2].bold ? "bold " : "") + adpFs + "px sans-serif"
-                                ctx.strokeStyle = "#000000"; ctx.lineWidth = 3; ctx.lineJoin = "round"
-                                ctx.strokeText(adpZeilen[az2].text, adpOx, adpOy)
                                 ctx.fillStyle = adpTextFarbe
                                 ctx.fillText(adpZeilen[az2].text, adpOx, adpOy)
                                 adpOy -= adpLineH
@@ -2937,8 +2924,6 @@ Item {
                     ctx.textAlign = nx >= 0 ? "left" : "right"
                 }
                 if (!root.bewegungAktiv && 1.8 * root.mmToPx * root.zoom >= 7) {
-                    ctx.strokeStyle = "#000000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"
-                    ctx.strokeText(labelText, lx, ly)
                     ctx.fillStyle = klColor
                     ctx.fillText(labelText, lx, ly)
                 }

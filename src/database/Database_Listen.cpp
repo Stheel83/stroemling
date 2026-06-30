@@ -346,7 +346,10 @@ QVariantList Database::querverweisListe(int projektId)
     q.prepare(R"(
         SELECT ge.extra_daten,
                s.blattnummer,
-               COALESCE(s.bezeichnung, '') AS seite_bez
+               COALESCE(s.bezeichnung, '') AS seite_bez,
+               ge.seite_id,
+               (ge.x1 + ge.x2) / 2.0,
+               (ge.y1 + ge.y2) / 2.0
         FROM grafik_element ge
         JOIN seite  s ON s.id  = ge.seite_id
         JOIN ort    o ON o.id  = s.ort_id
@@ -364,6 +367,9 @@ QVariantList Database::querverweisListe(int projektId)
         QVariantMap m;
         m[QStringLiteral("seite")]    = q.value(1).toString();
         m[QStringLiteral("seiteBez")] = q.value(2).toString();
+        m[QStringLiteral("seiteId")]  = q.value(3).toInt();
+        m[QStringLiteral("weltX")]    = q.value(4).toDouble();
+        m[QStringLiteral("weltY")]    = q.value(5).toDouble();
 
         QString signalname, richtung;
         int     zielSeiteId = -1;
@@ -421,7 +427,10 @@ QVariantList Database::aderliste(int projektId)
                   AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
                   AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
                 ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
-                LIMIT 1) AS sk_extra
+                LIMIT 1) AS sk_extra,
+               ge.seite_id,
+               (ge.x1 + ge.x2) / 2.0,
+               (ge.y1 + ge.y2) / 2.0
         FROM grafik_element ge
         JOIN seite  s ON s.id  = ge.seite_id
         JOIN ort    o ON o.id  = s.ort_id
@@ -470,6 +479,9 @@ QVariantList Database::aderliste(int projektId)
         m[QStringLiteral("ortKz")]    = ortKz;
         m[QStringLiteral("anlageUO")] = anlageUO;
         m[QStringLiteral("ortUO")]    = ortUO;
+        m[QStringLiteral("seiteId")]  = q.value(7).toInt();
+        m[QStringLiteral("weltX")]    = q.value(8).toDouble();
+        m[QStringLiteral("weltY")]    = q.value(9).toDouble();
         result.append(m);
     }
     return result;
@@ -928,6 +940,39 @@ QVariantList Database::betriebsmittelHfListe(int projektId)
 QVariantList Database::klemmenplan(int projektId)
 {
     QVariantList result;
+
+    // klemmeId → {seiteId, blattnr, weltX, weltY} (erste Platzierung je Klemme)
+    QHash<int, QVariantMap> klemmePos;
+    {
+        const QString sql = QString(
+            "SELECT CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER),"
+            "       ge.seite_id, COALESCE(s.blattnummer,''),"
+            "       (ge.x1 + ge.x2) / 2.0, (ge.y1 + ge.y2) / 2.0"
+            " FROM grafik_element ge"
+            " JOIN seite s ON s.id = ge.seite_id"
+            " WHERE ge.symbol_id = 'klemme_anschluss'"
+            "   AND ge.seite_id IN (SELECT s2.id FROM seite s2"
+            "     JOIN ort o ON o.id = s2.ort_id"
+            "     JOIN anlage a ON a.id = o.anlage_id"
+            "     WHERE a.projekt_id = %1)"
+            "   AND CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER) > 0"
+        ).arg(projektId);
+        QSqlQuery qp(m_db);
+        if (qp.exec(sql)) {
+            while (qp.next()) {
+                int kid = qp.value(0).toInt();
+                if (!klemmePos.contains(kid)) {
+                    QVariantMap pm;
+                    pm[QStringLiteral("seiteId")] = qp.value(1).toInt();
+                    pm[QStringLiteral("blattnr")] = qp.value(2).toString();
+                    pm[QStringLiteral("weltX")]   = qp.value(3).toDouble();
+                    pm[QStringLiteral("weltY")]   = qp.value(4).toDouble();
+                    klemmePos[kid] = pm;
+                }
+            }
+        }
+    }
+
     QSqlQuery q(m_db);
     q.prepare(
         "SELECT kl.id, kl.bezeichnung, "
@@ -981,6 +1026,8 @@ QVariantList Database::klemmenplan(int projektId)
         else if (typ == QLatin1String("push_in"))       typ = QStringLiteral("Steckanschluss");
         else if (typ == QLatin1String("schneidklemme")) typ = QStringLiteral("Schneidklemme");
 
+        const int klemmeId = q.value(3).toInt();
+        const QVariantMap &pos = klemmePos.value(klemmeId);
         QVariantMap row;
         row[QStringLiteral("typ")]          = QStringLiteral("klemme");
         row[QStringLiteral("leisteId")]     = leisteId;
@@ -993,6 +1040,10 @@ QVariantList Database::klemmenplan(int projektId)
         row[QStringLiteral("ortKz")]        = q.value(10).toString();
         row[QStringLiteral("querschnitt")]  = q.value(11).isNull() ? QString() : q.value(11).toString();
         row[QStringLiteral("potenzial")]    = q.value(12).isNull() ? QString() : q.value(12).toString();
+        row[QStringLiteral("seiteId")]      = pos.value(QStringLiteral("seiteId"), 0).toInt();
+        row[QStringLiteral("blattnr")]      = pos.value(QStringLiteral("blattnr")).toString();
+        row[QStringLiteral("weltX")]        = pos.value(QStringLiteral("weltX"), 0.0).toDouble();
+        row[QStringLiteral("weltY")]        = pos.value(QStringLiteral("weltY"), 0.0).toDouble();
         result.append(row);
     }
     return result;

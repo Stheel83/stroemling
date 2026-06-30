@@ -149,6 +149,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml
         qml/ba/BaSteckverbinderEditorDialog.qml
+        qml/ba/BaKonfkabelEditorDialog.qml
         qml/ba/BaMakroBibliothek.qml
 
         qml/la/LaCsvLeiste.qml

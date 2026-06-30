@@ -189,6 +189,21 @@ Item {
         anchors.fill: parent
         spacing: 0
 
+        // Hinweis: SPS/PLS noch nicht vollständig getestet
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: warnLabel.implicitHeight + 14
+            color: "#7a4400"
+            Label {
+                id: warnLabel
+                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 10 }
+                text: qsTr("🚧  SPS/PLS – Diese Ansicht befindet sich noch in der Testphase und ist möglicherweise unvollständig.")
+                color: "#ffd080"
+                wrapMode: Text.Wrap
+                font.pixelSize: 12
+            }
+        }
+
         // Tab-Bar
         TabBar {
             id: tabBar

@@ -45,7 +45,10 @@ QVariantList Database::steckverbinderListe(int projektId) const
                   AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
                   AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
                 ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
-                LIMIT 1) AS sk_extra
+                LIMIT 1) AS sk_extra,
+               ge.seite_id,
+               (ge.x1 + ge.x2) / 2.0,
+               (ge.y1 + ge.y2) / 2.0
         FROM grafik_element ge
         JOIN seite  s ON s.id = ge.seite_id
         JOIN ort    o ON o.id = s.ort_id
@@ -91,6 +94,9 @@ QVariantList Database::steckverbinderListe(int projektId) const
         m["ortKz"]    = ortKz;
         m["anlageUO"] = anlageUO;
         m["ortUO"]    = ortUO;
+        m["seiteId"]  = q.value(20).toInt();
+        m["weltX"]    = q.value(21).toDouble();
+        m["weltY"]    = q.value(22).toDouble();
         liste.append(m);
     }
     return liste;
@@ -265,6 +271,7 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
             h[QStringLiteral("ortKz")]      = ortKz;
             h[QStringLiteral("anlageUO")]   = anlageUO;
             h[QStringLiteral("ortUO")]      = ortUO;
+            h[QStringLiteral("seiteId")]    = seiteId;
             result.append(h);
             lastGkId  = gkId;
             lastGkBmk = gkBmk;
@@ -583,7 +590,9 @@ QVariantList Database::steckverbinderKontaktLaden(int steckverbinderTypId) const
     q.prepare(R"(
         SELECT id, position_nr, ist_schirmkontakt, kontaktgroesse,
                querschnitt_kabel_min, querschnitt_kabel_max,
-               nennstrom_a, nennspannung_v, verbindungstechnik
+               nennstrom_a, nennspannung_v, verbindungstechnik,
+               COALESCE(litze_farbe,''), COALESCE(litze_querschnitt,0),
+               COALESCE(litze_bezeichnung,'')
         FROM bibliothek.steckverbinder_kontakt_typ
         WHERE steckverbinder_typ_id = :tid
         ORDER BY position_nr
@@ -604,6 +613,9 @@ QVariantList Database::steckverbinderKontaktLaden(int steckverbinderTypId) const
         m["nennstrom"]        = q.value(6).toDouble();
         m["nennspannung"]     = q.value(7).toDouble();
         m["verbindungstechnik"]= q.value(8).toString();
+        m["litzeFarbe"]       = q.value(9).toString();
+        m["litzeQuerschnitt"] = q.value(10).toDouble();
+        m["litzeBezeichnung"] = q.value(11).toString();
         liste.append(m);
     }
     return liste;
@@ -631,14 +643,16 @@ int Database::steckverbinderKontaktHinzufuegen(int steckverbinderTypId)
 // ── steckverbinderKontaktAktualisieren ──────────────────────────────────────
 bool Database::steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
     const QString &kontaktgroesse, double qsMin, double qsMax,
-    double nennstrom, double nennspannung, const QString &verbindungstechnik)
+    double nennstrom, double nennspannung, const QString &verbindungstechnik,
+    const QString &litzeFarbe, double litzeQuerschnitt, const QString &litzeBezeichnung)
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
         UPDATE bibliothek.steckverbinder_kontakt_typ
         SET ist_schirmkontakt=:isk, kontaktgroesse=:kg,
             querschnitt_kabel_min=:qmin, querschnitt_kabel_max=:qmax,
-            nennstrom_a=:ns, nennspannung_v=:nv, verbindungstechnik=:vt
+            nennstrom_a=:ns, nennspannung_v=:nv, verbindungstechnik=:vt,
+            litze_farbe=:lf, litze_querschnitt=:lq, litze_bezeichnung=:lb
         WHERE id=:id
     )");
     q.bindValue(":isk",  istSchirmkontakt ? 1 : 0);
@@ -648,6 +662,9 @@ bool Database::steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
     q.bindValue(":ns",   nennstrom > 0 ? nennstrom : QVariant());
     q.bindValue(":nv",   nennspannung > 0 ? nennspannung : QVariant());
     q.bindValue(":vt",   verbindungstechnik.isEmpty() ? QVariant() : verbindungstechnik);
+    q.bindValue(":lf",   litzeFarbe.isEmpty() ? QVariant() : litzeFarbe);
+    q.bindValue(":lq",   litzeQuerschnitt > 0 ? litzeQuerschnitt : QVariant());
+    q.bindValue(":lb",   litzeBezeichnung.isEmpty() ? QVariant() : litzeBezeichnung);
     q.bindValue(":id",   id);
     if (!q.exec()) {
         qCWarning(lcDb) << "steckverbinderKontaktAktualisieren:" << q.lastError().text();
@@ -664,6 +681,100 @@ bool Database::steckverbinderKontaktLoeschen(int id)
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcDb) << "steckverbinderKontaktLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ── konfkabelLaden ───────────────────────────────────────────────────────────
+QVariantMap Database::konfkabelLaden(int bauteilId) const
+{
+    QVariantMap m;
+    if (bauteilId < 0) return m;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT kk.id, kk.bauteil_kabel_id, kk.stecker_a_bauteil_id,
+               kk.stecker_b_bauteil_id, COALESCE(kk.laenge_m, 0),
+               COALESCE(bka.kabeltyp, ''), COALESCE(bsa.bezeichnung, ''),
+               COALESCE(bsb.bezeichnung, '')
+        FROM bibliothek.konfektioniertes_kabel kk
+        LEFT JOIN bibliothek.bauteil_kabel bka ON bka.id = kk.bauteil_kabel_id
+        LEFT JOIN bibliothek.bauteil bsa        ON bsa.id = kk.stecker_a_bauteil_id
+        LEFT JOIN bibliothek.bauteil bsb        ON bsb.id = kk.stecker_b_bauteil_id
+        WHERE kk.bauteil_id = :bid
+    )");
+    q.bindValue(":bid", bauteilId);
+    if (!q.exec() || !q.next()) return m;
+    m["id"]                 = q.value(0).toInt();
+    m["bauteilKabelId"]     = q.value(1).toInt();
+    m["steckerABauteilId"]  = q.value(2).toInt();
+    m["steckerBBauteilId"]  = q.value(3).toInt();
+    m["laengeM"]            = q.value(4).toDouble();
+    m["kabelTyp"]           = q.value(5).toString();
+    m["steckerABez"]        = q.value(6).toString();
+    m["steckerBBez"]        = q.value(7).toString();
+    return m;
+}
+
+// ── konfkabelSpeichern ───────────────────────────────────────────────────────
+int Database::konfkabelSpeichern(int bauteilId, int bauteilKabelId,
+    int steckerABauteilId, int steckerBBauteilId, double laengeM)
+{
+    QSqlQuery sel(m_db);
+    sel.prepare("SELECT id FROM bibliothek.konfektioniertes_kabel WHERE bauteil_id = :bid");
+    sel.bindValue(":bid", bauteilId);
+    if (!sel.exec()) {
+        qCWarning(lcDb) << "konfkabelSpeichern SELECT:" << sel.lastError().text();
+        return -1;
+    }
+
+    QSqlQuery q(m_db);
+    if (sel.next()) {
+        int existingId = sel.value(0).toInt();
+        q.prepare(R"(
+            UPDATE bibliothek.konfektioniertes_kabel
+            SET bauteil_kabel_id=:bkid, stecker_a_bauteil_id=:said,
+                stecker_b_bauteil_id=:sbid, laenge_m=:lm
+            WHERE id=:id
+        )");
+        q.bindValue(":id",   existingId);
+        q.bindValue(":bkid", bauteilKabelId > 0   ? bauteilKabelId   : QVariant());
+        q.bindValue(":said", steckerABauteilId > 0 ? steckerABauteilId : QVariant());
+        q.bindValue(":sbid", steckerBBauteilId > 0 ? steckerBBauteilId : QVariant());
+        q.bindValue(":lm",   laengeM > 0 ? laengeM : QVariant());
+        if (!q.exec()) {
+            qCWarning(lcDb) << "konfkabelSpeichern UPDATE:" << q.lastError().text();
+            return -1;
+        }
+        return existingId;
+    } else {
+        q.prepare(R"(
+            INSERT INTO bibliothek.konfektioniertes_kabel
+                (bauteil_id, bauteil_kabel_id, stecker_a_bauteil_id,
+                 stecker_b_bauteil_id, laenge_m)
+            VALUES (:bid, :bkid, :said, :sbid, :lm)
+        )");
+        q.bindValue(":bid",  bauteilId);
+        q.bindValue(":bkid", bauteilKabelId > 0   ? bauteilKabelId   : QVariant());
+        q.bindValue(":said", steckerABauteilId > 0 ? steckerABauteilId : QVariant());
+        q.bindValue(":sbid", steckerBBauteilId > 0 ? steckerBBauteilId : QVariant());
+        q.bindValue(":lm",   laengeM > 0 ? laengeM : QVariant());
+        if (!q.exec()) {
+            qCWarning(lcDb) << "konfkabelSpeichern INSERT:" << q.lastError().text();
+            return -1;
+        }
+        return q.lastInsertId().toInt();
+    }
+}
+
+// ── konfkabelLoeschen ────────────────────────────────────────────────────────
+bool Database::konfkabelLoeschen(int bauteilId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("DELETE FROM bibliothek.konfektioniertes_kabel WHERE bauteil_id = :bid");
+    q.bindValue(":bid", bauteilId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "konfkabelLoeschen:" << q.lastError().text();
         return false;
     }
     return true;

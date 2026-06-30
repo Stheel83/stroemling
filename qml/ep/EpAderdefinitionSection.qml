@@ -78,8 +78,10 @@ Item {
                 model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
                 delegate: Rectangle {
                     property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData
-                    property string sName: ({"BN":"Brauno – L1","BK":"Schwärzchen – L2",
-                        "GY":"Grausel – L3","BU":"Blaubertha – N","GNYE":"Erdikus – PE"})[modelData] || ""
+                    property string sName: ({"BK":"Schwarz","BN":"Braun","RD":"Rot",
+                        "OG":"Orange","YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett",
+                        "GY":"Grau","WH":"Weiß","PK":"Rosa","GNYE":"Grün-Gelb (PE)",
+                        "CL":"Farblos"})[modelData] || modelData
                     width: 50; height: 24; radius: 4
                     color:        aktiv ? theme.activeItemAlt : (abMaus.containsMouse ? theme.hover : theme.inputBg)
                     border.color: aktiv ? theme.accent : theme.border
@@ -105,7 +107,7 @@ Item {
                             root.extraSetzen("aderfarbe", cur === modelData ? "" : modelData)
                         }
                     }
-                    ToolTip.visible:  sName !== "" && abMaus.containsMouse
+                    ToolTip.visible:  abMaus.containsMouse
                     ToolTip.text:     sName
                     ToolTip.delay:    500
                 }
@@ -117,7 +119,7 @@ Item {
             width: parent.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4; bottomPadding: 4
             Repeater {
-                model: [0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
+                model: [0.08, 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
                         10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
                         185.0, 240.0, 300.0]
                 MiniButton { theme: root.theme;

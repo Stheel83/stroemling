@@ -179,6 +179,12 @@ void BauteilListModel::setNurSteckverbinder(bool nurSteckverb)
     ladenIntern();
 }
 
+void BauteilListModel::setNurKonfkabel(bool nurKonfkabel)
+{
+    m_nurKonfkabel = nurKonfkabel;
+    ladenIntern();
+}
+
 void BauteilListModel::ladenIntern()
 {
     beginResetModel();
@@ -195,11 +201,13 @@ void BauteilListModel::ladenIntern()
         "CASE WHEN ka.id IS NOT NULL THEN 1 ELSE 0 END, "
         "COALESCE(ka.kabeltyp,''), "
         "COALESCE(b.hauptfunktion_symbol_id,''), "
-        "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END "
+        "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END, "
+        "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END "
         "FROM bibliothek.bauteil b "
-        "LEFT JOIN bibliothek.bauteil_klemme k         ON k.bauteil_id  = b.id "
-        "LEFT JOIN bibliothek.bauteil_kabel  ka        ON ka.bauteil_id = b.id "
-        "LEFT JOIN bibliothek.steckverbinder_typ sv    ON sv.bauteil_id = b.id ";
+        "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
+        "LEFT JOIN bibliothek.bauteil_kabel  ka             ON ka.bauteil_id = b.id "
+        "LEFT JOIN bibliothek.steckverbinder_typ sv         ON sv.bauteil_id = b.id "
+        "LEFT JOIN bibliothek.konfektioniertes_kabel kk     ON kk.bauteil_id = b.id ";
 
     QString where;
     if (m_nurKlemmen)           where += "k.id IS NOT NULL ";
@@ -210,6 +218,10 @@ void BauteilListModel::ladenIntern()
     if (m_nurSteckverbinder) {
         if (!where.isEmpty()) where += "AND ";
         where += "sv.id IS NOT NULL ";
+    }
+    if (m_nurKonfkabel) {
+        if (!where.isEmpty()) where += "AND ";
+        where += "kk.id IS NOT NULL ";
     }
     if (m_aktiveKategorieId >= 0) {
         if (!where.isEmpty()) where += "AND ";
@@ -247,6 +259,7 @@ void BauteilListModel::ladenIntern()
         b.kabeltyp                = q.value(15).toString();
         b.hauptfunktionSymbolId   = q.value(16).toString();
         b.istSteckverbinder       = q.value(17).toInt() != 0;
+        b.istKonfkabel            = q.value(18).toInt() != 0;
         m_bauteile.append(b);
     }
 
@@ -284,6 +297,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case IstKlemmeRole:             return b.istKlemme;
     case IstKabelRole:              return b.istKabel;
     case IstSteckverbinderRole:     return b.istSteckverbinder;
+    case IstKonfkabelRole:          return b.istKonfkabel;
     case KabeltypRole:              return b.kabeltyp;
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     default:                        return {};
@@ -309,6 +323,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { IstKlemmeRole,             "istKlemme"              },
         { IstKabelRole,              "istKabel"               },
         { IstSteckverbinderRole,     "istSteckverbinder"      },
+        { IstKonfkabelRole,          "istKonfkabel"           },
         { KabeltypRole,              "kabeltyp"               },
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
     };

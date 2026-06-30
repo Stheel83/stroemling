@@ -131,6 +131,24 @@ ColumnLayout {
                             text: "· " + qsTr("Seite") + " " + (modelData.blattnr || "")
                             font.pixelSize: 10; color: root.theme.accentLight
                         }
+                        Item {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 20; height: 18
+                            Rectangle {
+                                anchors.fill: parent; radius: 3
+                                color: bpSprungMa.containsMouse ? root.theme.accent : "transparent"
+                                border.color: bpSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                                Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                       color: bpSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                                MouseArea {
+                                    id: bpSprungMa; anchors.fill: parent
+                                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    enabled: panel.canvas !== null && (modelData.seiteId || 0) > 0
+                                    onClicked: panel.canvas.bmElementSprungAnfordern(
+                                        modelData.seiteId, modelData.blattnr, "", 0, 0)
+                                }
+                            }
+                        }
                     }
 
                     // ── Kontakt-Zeile ──────────────────────────────────────────

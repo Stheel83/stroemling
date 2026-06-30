@@ -456,6 +456,27 @@ ColumnLayout {
                         width: 1; height: parent.height
                         color: root.theme.border; opacity: 0.5
                     }
+
+                    // → Sprung-Button (floating, rechts oben)
+                    Item {
+                        anchors.right: parent.right; anchors.rightMargin: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 20; height: 18
+                        Rectangle {
+                            anchors.fill: parent; radius: 3
+                            color: klaSprungMa.containsMouse ? root.theme.accent : "transparent"
+                            border.color: klaSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                   color: klaSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                            MouseArea {
+                                id: klaSprungMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                enabled: panel.canvas !== null && (model.vonSeiteId || 0) > 0
+                                onClicked: panel.canvas.bmElementSprungAnfordern(
+                                    model.vonSeiteId, model.vonBlattnummer, "", model.vonWeltX, model.vonWeltY)
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -186,6 +186,51 @@ Rectangle {
             }}
         }
 
+        // Konfektionierte Kabel
+        Rectangle {
+            Layout.fillWidth: true; height: 36
+            property bool sel: panel.aktiveSpezialAnsicht === "" && bauteilModel.nurKonfkabel
+            color: sel ? theme.hover : (kkH.hovered ? theme.hover : "transparent")
+            HoverHandler { id: kkH }
+            RowLayout {
+                anchors { fill: parent; leftMargin: 16; rightMargin: 4 }
+                spacing: 6
+                Text { text: "🔗"; font.pixelSize: 12 }
+                Text { text: qsTr("Konf. Kabel"); font.pixelSize: 13; Layout.fillWidth: true
+                       color: parent.parent.sel ? theme.textPrimary : theme.textSecondary }
+                Button {
+                    visible: kkH.hovered; width: 22; height: 22; flat: true
+                    contentItem: Text { text: "+"; color: theme.accent; font.pixelSize: 14;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
+                    onClicked: {
+                        var newId = bauteilModel.anlegen(-1, qsTr("Neues konf. Kabel"), "", "", "", 0, 0, 0, 0, "")
+                        if (newId > 0) {
+                            db.konfkabelSpeichern(newId, -1, 0, -1, -1)
+                            bauteilModel.setNurKonfkabel(true)
+                            bauteilModel.setNurKlemmen(false)
+                            bauteilModel.setNurKabel(false)
+                            bauteilModel.setNurSteckverbinder(false)
+                            bauteilModel.laden(-1)
+                            panel.selectedBauteilId          = newId
+                            panel.selectedBauteilBezeichnung = qsTr("Neues konf. Kabel")
+                            panel.aktiveSpezialAnsicht       = ""
+                        }
+                    }
+                }
+            }
+            MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    bauteilModel.setNurKonfkabel(true)
+                    bauteilModel.setNurKlemmen(false)
+                    bauteilModel.setNurKabel(false)
+                    bauteilModel.setNurSteckverbinder(false)
+                    bauteilModel.laden(-1)
+                    panel.aktiveSpezialAnsicht = ""
+                }
+            }
+        }
+
         // Makros
         Rectangle {
             Layout.fillWidth: true; height: 36

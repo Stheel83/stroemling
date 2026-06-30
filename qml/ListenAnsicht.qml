@@ -139,24 +139,25 @@ Item {
         { header: "Freitext 1", w: 130 }, { header: "Freitext 2", w: 130 },
         { header: "Seite",      w: 65  }, { header: "==Anlage",   w: 65  },
         { header: "++Ort",      w: 65  }, { header: "=Anlage",    w: 55  },
-        { header: "+Ort",       w: 55  }, { header: "",           w: 28  }
+        { header: "+Ort",       w: 55  }, { header: "Canvas Pos.", w: 70  }
     ]
     readonly property var qvCols: [
-        { header: "Signalname", w: 160 }, { header: "Richtung",  w: 100 },
-        { header: "Seite",      w: 90  }, { header: "Zielseite", w: 90  }
+        { header: "Signalname", w: 160 }, { header: "Richtung",    w: 100 },
+        { header: "Seite",      w: 90  }, { header: "Zielseite",   w: 90  },
+        { header: "Canvas Pos.", w: 70 }
     ]
     readonly property var alCols: [
         { header: "Bezeichnung",  w: 80 }, { header: "Aderfarbe",   w: 70 },
         { header: "Querschnitt",  w: 80 }, { header: "Länge (m)",   w: 70 },
         { header: "Seite",        w: 60 }, { header: "==Anlage",    w: 60 },
         { header: "++Ort",        w: 60 }, { header: "=Anlage",     w: 55 },
-        { header: "+Ort",         w: 55 }
+        { header: "+Ort",         w: 55 }, { header: "Canvas Pos.", w: 70 }
     ]
     readonly property var kpCols: [
         { header: "Nr.",         w: 55  }, { header: "Bauteil",     w: 155 },
         { header: "Typ",         w: 90  }, { header: "Querschnitt", w: 110 },
         { header: "Farbe",       w: 100 }, { header: "Potenzial",   w: 100 },
-        { header: "+Ort",        w: 80  }
+        { header: "+Ort",        w: 80  }, { header: "Canvas Pos.", w: 70  }
     ]
     readonly property var klaCols: [
         { header: qsTr("Nr."),            w: 50  },
@@ -178,7 +179,7 @@ Item {
         { header: "Kodierung",   w: 70  }, { header: "Geschirmt",   w: 70  },
         { header: "Seite",       w: 55  }, { header: "==Anlage",    w: 65  },
         { header: "++Ort",       w: 65  }, { header: "=Anlage",     w: 55  },
-        { header: "+Ort",        w: 55  }
+        { header: "+Ort",        w: 55  }, { header: "Canvas Pos.", w: 70  }
     ]
     readonly property var bpCols: [
         { header: qsTr("Pin"),        w: 45  }, { header: qsTr("Typ"),       w: 90  },

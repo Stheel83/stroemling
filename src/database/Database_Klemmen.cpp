@@ -335,15 +335,21 @@ QVariantList Database::klemmlistenauszug(int projektId)
         }
     }
 
-    // Schnellzugriff: "klemmeId|abez" → platziert / blattnummer
-    QSet<QString>          platzSet;
-    QHash<QString,QString> platzBl;
+    // Schnellzugriff: "klemmeId|abez" → platziert / blattnummer / position
+    QSet<QString>               platzSet;
+    QHash<QString,QString>      platzBl;
+    QHash<QString, QVariantMap> platzPos;
     for (auto it = platz.cbegin(); it != platz.cend(); ++it) {
         const QString kid = QString::number(it.key());
         for (const QVariantMap &p : it.value()) {
             const QString key = kid + QLatin1Char('|') + p[QStringLiteral("abez")].toString();
             platzSet.insert(key);
-            platzBl[key] = p[QStringLiteral("bl")].toString();
+            platzBl[key]  = p[QStringLiteral("bl")].toString();
+            QVariantMap pm;
+            pm[QStringLiteral("sid")] = p[QStringLiteral("sid")];
+            pm[QStringLiteral("px")]  = p[QStringLiteral("px")];
+            pm[QStringLiteral("py")]  = p[QStringLiteral("py")];
+            platzPos[key] = pm;
         }
     }
 
@@ -630,6 +636,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             QVariantMap viA = vA ? vi(bezA) : QVariantMap{};
             QVariantMap viB = vB ? vi(bezB) : QVariantMap{};
             const QString kidStr = QString::number(klemmeId);
+            const QVariantMap posA = pA ? platzPos.value(kidStr + QLatin1Char('|') + bezA) : QVariantMap{};
             QVariantMap row;
             row[QStringLiteral("typ")]             = QStringLiteral("anschluss");
             row[QStringLiteral("leisteId")]        = leisteId;
@@ -657,6 +664,9 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("klemmeReiheIdx")]   = ri;
             row[QStringLiteral("klemmeReihenAnz")]  = rn;
             row[QStringLiteral("leisteStegJson")]   = curLeisteStegsJson;
+            row[QStringLiteral("vonSeiteId")]       = posA.value(QStringLiteral("sid"), 0).toInt();
+            row[QStringLiteral("vonWeltX")]         = posA.value(QStringLiteral("px"), 0.0).toDouble();
+            row[QStringLiteral("vonWeltY")]         = posA.value(QStringLiteral("py"), 0.0).toDouble();
             result.append(row);
             ersteZeile = false;
         };

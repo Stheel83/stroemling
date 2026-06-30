@@ -32,7 +32,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 83;
     static const int WIKI_SCHEMA_VERSION     = 15;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 1;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 2;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     static const int BASELINE_TABLE_COUNT   = 32;
@@ -273,8 +273,17 @@ public:
     Q_INVOKABLE bool         steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
                                  const QString &kontaktgroesse, double qsMin, double qsMax,
                                  double nennstrom, double nennspannung,
-                                 const QString &verbindungstechnik);
+                                 const QString &verbindungstechnik,
+                                 const QString &litzeFarbe = QString(),
+                                 double litzeQuerschnitt = 0.0,
+                                 const QString &litzeBezeichnung = QString());
     Q_INVOKABLE bool         steckverbinderKontaktLoeschen(int id);
+
+    // Konfektioniertes Kabel (Bauteil-Typ mit Steckern an einem oder beiden Enden)
+    Q_INVOKABLE QVariantMap  konfkabelLaden(int bauteilId) const;
+    Q_INVOKABLE int          konfkabelSpeichern(int bauteilId, int bauteilKabelId,
+                                 int steckerABauteilId, int steckerBBauteilId, double laengeM);
+    Q_INVOKABLE bool         konfkabelLoeschen(int bauteilId);
 
     // Klemmenplan: alle Klemmen aller Leisten, mit Gruppen-Headern.
     // Gibt abwechselnd {typ:"leiste",...} und {typ:"klemme",...} zurück.

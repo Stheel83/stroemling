@@ -93,6 +93,23 @@ ColumnLayout {
                     Text { width: panel.alCols[6].w; text: model.ortUO          || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
                     Text { width: panel.alCols[7].w; text: model.anlageKz       || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
                     Text { width: panel.alCols[8].w; text: model.ortKz          || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
+                    Item {
+                        width: panel.alCols[9].w; height: 30
+                        Rectangle {
+                            anchors.centerIn: parent; width: 20; height: 18; radius: 3
+                            color: alSprungMa.containsMouse ? root.theme.accent : "transparent"
+                            border.color: alSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                   color: alSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                            MouseArea {
+                                id: alSprungMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                enabled: panel.canvas !== null && (model.seiteId || 0) > 0
+                                onClicked: panel.canvas.bmElementSprungAnfordern(
+                                    model.seiteId, model.seite, "", model.weltX, model.weltY)
+                            }
+                        }
+                    }
                 }
             }
         }

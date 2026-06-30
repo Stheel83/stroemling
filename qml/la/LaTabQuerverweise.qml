@@ -76,6 +76,23 @@ ColumnLayout {
                     Text { width: panel.qvCols[2].w; text: model.seite      || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
                     Text { width: panel.qvCols[3].w; text: model.zielSeite  || "–"; font.pixelSize: 12;
                            color: model.zielSeite ? root.theme.accentLight : root.theme.borderDark; elide: Text.ElideRight }
+                    Item {
+                        width: panel.qvCols[4].w; height: 30
+                        Rectangle {
+                            anchors.centerIn: parent; width: 20; height: 18; radius: 3
+                            color: qvSprungMa.containsMouse ? root.theme.accent : "transparent"
+                            border.color: qvSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                   color: qvSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                            MouseArea {
+                                id: qvSprungMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                enabled: panel.canvas !== null && (model.seiteId || 0) > 0
+                                onClicked: panel.canvas.bmElementSprungAnfordern(
+                                    model.seiteId, model.seite, model.seiteBez, model.weltX, model.weltY)
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -22,7 +22,7 @@ Dialog {
     modal:   true
     parent:  Overlay.overlay
     anchors.centerIn: parent
-    width:   600
+    width:   820
     padding: 0
 
     background: Rectangle {
@@ -370,11 +370,14 @@ Dialog {
                     visible: root._kontaktListe.length > 0
                     spacing: 6
                     Text { text: qsTr("Größe");     color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                    Text { text: qsTr("QS min");    color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 60 }
-                    Text { text: qsTr("QS max");    color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 60 }
-                    Text { text: qsTr("I_N (A)");   color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 55 }
-                    Text { text: qsTr("U_N (V)");   color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 55 }
-                    Text { text: qsTr("Verbindung");color: root.theme.textMuted; font.pixelSize: 10; Layout.fillWidth: true }
+                    Text { text: qsTr("QS min");    color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 50 }
+                    Text { text: qsTr("QS max");    color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 50 }
+                    Text { text: qsTr("I_N (A)");   color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 48 }
+                    Text { text: qsTr("U_N (V)");   color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 48 }
+                    Text { text: qsTr("Verbindung");color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 80 }
+                    Text { text: qsTr("Litze-Farbe"); color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 80 }
+                    Text { text: qsTr("L-QS");      color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 48 }
+                    Text { text: qsTr("L-Bez");     color: root.theme.textMuted; font.pixelSize: 10; Layout.fillWidth: true }
                     Text { text: qsTr("SH");        color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 28 }
                     Item { width: 26 }
                 }
@@ -386,20 +389,35 @@ Dialog {
                         spacing: 6
                         property var cd: modelData
 
+                        function save() {
+                            db.steckverbinderKontaktAktualisieren(
+                                cd.id, shToggle._isk,
+                                kontaktFields.itemAt(0).children[0].text.trim(),
+                                parseFloat(kontaktFields.itemAt(1).children[0].text.replace(",",".")) || 0,
+                                parseFloat(kontaktFields.itemAt(2).children[0].text.replace(",",".")) || 0,
+                                parseFloat(kontaktFields.itemAt(3).children[0].text.replace(",",".")) || 0,
+                                parseFloat(kontaktFields.itemAt(4).children[0].text.replace(",",".")) || 0,
+                                kontaktFields.itemAt(5).children[0].text.trim(),
+                                cbLitzeFarbe.currentText,
+                                parseFloat(cbLitzeQs.currentText.replace(",",".")) || 0,
+                                tfLitzeBez.text.trim()
+                            )
+                            root._kontaktListe = db.steckverbinderKontaktLaden(root._svTypId)
+                        }
+
                         Repeater {
                             id: kontaktFields
                             property var fDef: [
-                                { key: "kontaktgroesse", width: 70 },
-                                { key: "qsMin",          width: 60 },
-                                { key: "qsMax",          width: 60 },
-                                { key: "nennstrom",      width: 55 },
-                                { key: "nennspannung",   width: 55 },
-                                { key: "verbindungstechnik", width: -1 }
+                                { key: "kontaktgroesse",    width: 70 },
+                                { key: "qsMin",             width: 50 },
+                                { key: "qsMax",             width: 50 },
+                                { key: "nennstrom",         width: 48 },
+                                { key: "nennspannung",      width: 48 },
+                                { key: "verbindungstechnik",width: 80 }
                             ]
                             model: fDef
                             delegate: Rectangle {
-                                Layout.preferredWidth: modelData.width > 0 ? modelData.width : -1
-                                Layout.fillWidth: modelData.width < 0
+                                Layout.preferredWidth: modelData.width
                                 height: 26
                                 color: root.theme.inputBg
                                 border.color: ktTf.activeFocus ? root.theme.accent : root.theme.border
@@ -415,20 +433,56 @@ Dialog {
                                         if (typeof v === "number") return v > 0 ? v.toString() : ""
                                         return v.toString()
                                     }
-                                    onEditingFinished: {
-                                        db.steckverbinderKontaktAktualisieren(
-                                            cd.id, shToggle._isk,
-                                            kontaktFields.itemAt(0).children[0].text.trim(),
-                                            parseFloat(kontaktFields.itemAt(1).children[0].text.replace(",",".")) || 0,
-                                            parseFloat(kontaktFields.itemAt(2).children[0].text.replace(",",".")) || 0,
-                                            parseFloat(kontaktFields.itemAt(3).children[0].text.replace(",",".")) || 0,
-                                            parseFloat(kontaktFields.itemAt(4).children[0].text.replace(",",".")) || 0,
-                                            kontaktFields.itemAt(5).children[0].text.trim()
-                                        )
-                                        root._kontaktListe = db.steckverbinderKontaktLaden(root._svTypId)
-                                    }
+                                    onEditingFinished: parent.parent.save()
                                     Keys.onEscapePressed: focus = false
                                 }
+                            }
+                        }
+
+                        // Litze Farbe
+                        ComboBox {
+                            id: cbLitzeFarbe
+                            Layout.preferredWidth: 80
+                            height: 26
+                            model: ["","BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
+                            currentIndex: { var i = model.indexOf(cd.litzeFarbe || ""); return i >= 0 ? i : 0 }
+                            font.pixelSize: 11
+                            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
+                            contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
+                                leftPadding: 6; verticalAlignment: Text.AlignVCenter }
+                            onActivated: parent.save()
+                        }
+
+                        // Litze Querschnitt
+                        ComboBox {
+                            id: cbLitzeQs
+                            Layout.preferredWidth: 48
+                            height: 26
+                            model: ["","0.14","0.25","0.34","0.5","0.75","1.0","1.5","2.5","4.0","6.0"]
+                            currentIndex: {
+                                var v = cd.litzeQuerschnitt > 0 ? cd.litzeQuerschnitt.toString() : ""
+                                var i = model.indexOf(v)
+                                return i >= 0 ? i : 0
+                            }
+                            font.pixelSize: 11
+                            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
+                            contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
+                                leftPadding: 6; verticalAlignment: Text.AlignVCenter }
+                            onActivated: parent.save()
+                        }
+
+                        // Litze Bezeichnung
+                        Rectangle {
+                            Layout.fillWidth: true; height: 26
+                            color: root.theme.inputBg; border.color: tfLitzeBez.activeFocus ? root.theme.accent : root.theme.border; radius: 3
+                            TextInput {
+                                id: tfLitzeBez
+                                anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                                color: root.theme.textPrimary; font.pixelSize: 11
+                                verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
+                                text: cd.litzeBezeichnung || ""
+                                onEditingFinished: parent.parent.save()
+                                Keys.onEscapePressed: focus = false
                             }
                         }
 
@@ -443,19 +497,7 @@ Dialog {
                                    color: parent._isk ? "#ffffff" : root.theme.textMuted }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    shToggle._isk = !shToggle._isk
-                                    db.steckverbinderKontaktAktualisieren(
-                                        cd.id, shToggle._isk,
-                                        kontaktFields.itemAt(0).children[0].text.trim(),
-                                        parseFloat(kontaktFields.itemAt(1).children[0].text.replace(",",".")) || 0,
-                                        parseFloat(kontaktFields.itemAt(2).children[0].text.replace(",",".")) || 0,
-                                        parseFloat(kontaktFields.itemAt(3).children[0].text.replace(",",".")) || 0,
-                                        parseFloat(kontaktFields.itemAt(4).children[0].text.replace(",",".")) || 0,
-                                        kontaktFields.itemAt(5).children[0].text.trim()
-                                    )
-                                    root._kontaktListe = db.steckverbinderKontaktLaden(root._svTypId)
-                                }
+                                onClicked: { shToggle._isk = !shToggle._isk; shToggle.parent.save() }
                             }
                         }
 

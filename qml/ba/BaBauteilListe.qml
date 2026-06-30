@@ -17,6 +17,12 @@ Item {
         theme: root.theme
     }
 
+    // ── Konfektioniertes Kabel – Editor ──────────────────────
+    BaKonfkabelEditorDialog {
+        id: dlgKonfkabelEditor
+        theme: root.theme
+    }
+
     // ── Symbol-Picker ────────────────────────────────────────
     BaSymbolPickerDialog {
         id: dlgSymbolPicker
@@ -501,6 +507,22 @@ Item {
                                     dlgSteckverbinderEditor.bauteilId   = model.bauteilId
                                     dlgSteckverbinderEditor.bezeichnung = model.bezeichnung
                                     dlgSteckverbinderEditor.open()
+                                }
+                            }
+                            Button {
+                                visible: model.istKonfkabel; width: 24; height: 24; flat: true
+                                contentItem: Text { text: "⚙"; color: theme.accent; font.pixelSize: 13;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Konfektioniertes Kabel – Editor öffnen")
+                                onClicked: {
+                                    panel.selectedBauteilId            = model.bauteilId
+                                    panel.selectedBauteilBezeichnung   = model.bezeichnung
+                                    panel.selectedBauteilHersteller    = model.hersteller
+                                    panel.selectedBauteilArtikelnummer = model.artikelnummer
+                                    dlgKonfkabelEditor.bauteilId   = model.bauteilId
+                                    dlgKonfkabelEditor.bezeichnung = model.bezeichnung
+                                    dlgKonfkabelEditor.open()
                                 }
                             }
                             Button {

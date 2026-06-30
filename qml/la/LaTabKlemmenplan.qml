@@ -106,6 +106,24 @@ ColumnLayout {
                            font.pixelSize: 12; color: model.typ === "klemme" && model.potenzial ? root.theme.accent : root.theme.borderDark; elide: Text.ElideRight }
                     Text { width: panel.kpCols[6].w; text: model.typ === "klemme" ? (model.ortKz || "–") : "";
                            font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
+                    Item {
+                        width: panel.kpCols[7].w; height: 28
+                        visible: model.typ === "klemme"
+                        Rectangle {
+                            anchors.centerIn: parent; width: 20; height: 18; radius: 3
+                            color: kpSprungMa.containsMouse ? root.theme.accent : "transparent"
+                            border.color: kpSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                   color: kpSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                            MouseArea {
+                                id: kpSprungMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                enabled: panel.canvas !== null && (model.seiteId || 0) > 0
+                                onClicked: panel.canvas.bmElementSprungAnfordern(
+                                    model.seiteId, model.blattnr, "", model.weltX, model.weltY)
+                            }
+                        }
+                    }
                 }
             }
         }

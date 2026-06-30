@@ -40,6 +40,27 @@ Item {
             root._ausgewaehlt = kabelModel.adern.map(function(a) { return a.id })
     }
 
+    readonly property var _normFarben: ({
+        "neu":      ["GNYE","BN","BK","GY","BU","RD","OG","YE","VT","WH","PK","CL"],
+        "alt":      ["GNYE","BK","RD","BU","GY","OG","YE","VT","WH","PK","CL"],
+        "din47100": ["WH","BN","GN","YE","GY","PK","BU","RD","BK","VT"],
+        "iec60757": ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
+    })
+
+    function vorausfuellenFarben(normTyp) {
+        var seq = root._normFarben[normTyp]
+        var adern = kabelModel.adern
+        for (var i = 0; i < adern.length; i++) {
+            var a = adern[i]
+            var farbe = i < seq.length ? seq[i] : seq[1 + ((i - seq.length) % (seq.length - 1))]
+            kabelModel.aderAktualisieren(a.id, {
+                "bezeichnung":     a.bezeichnung,
+                "farbe":           farbe,
+                "querschnitt_mm2": a.querschnittMm2 || 0
+            })
+        }
+    }
+
     DebugLabel { panelName: qsTr("Ader-Tabelle"); visible: root.debug }
 
     ColumnLayout {
@@ -149,7 +170,7 @@ Item {
 
                     NavTextField {
                         id: tfAderBez
-                        tabTarget:     tfAderFarbe
+                        tabTarget:     tfAderMm2
                         backtabTarget: tfAderMm2
                         Layout.preferredWidth: 108
                         text: modelData.bezeichnung
@@ -158,23 +179,62 @@ Item {
                         color: root.theme.textPrimary
                         onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     text,
-                            "farbe":           tfAderFarbe.text,
+                            "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
                             "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
                         })
                     }
 
-                    NavTextField {
-                        id: tfAderFarbe
-                        tabTarget:     tfAderMm2
-                        backtabTarget: tfAderBez
+                    ComboBox {
+                        id: cbAderFarbe
                         Layout.preferredWidth: 102
-                        text: modelData.farbe
-                        font.pixelSize: 11; implicitHeight: 26
+                        implicitHeight: 26
+                        model: ["", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
+                        currentIndex: {
+                            var f = modelData.farbe || ""
+                            var idx = model.indexOf(f)
+                            return idx >= 0 ? idx : 0
+                        }
+                        font.pixelSize: 11
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
-                        color: root.theme.textPrimary
-                        onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
+                        contentItem: Row {
+                            leftPadding: 4; spacing: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            AderfarbenSwatch {
+                                aderCode: modelData.farbe || ""
+                                width: 10; height: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: (modelData.farbe || "") !== "" ? modelData.farbe : "—"
+                                color: root.theme.textPrimary; font.pixelSize: 11
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        delegate: ItemDelegate {
+                            width: cbAderFarbe.width; implicitHeight: 24
+                            contentItem: Row {
+                                leftPadding: 6; spacing: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                AderfarbenSwatch {
+                                    aderCode: modelData; width: 10; height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: modelData !== "" ? modelData : "—"; font.pixelSize: 11
+                                    color: root.theme.textPrimary; verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                            background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
+                            highlighted: cbAderFarbe.highlightedIndex === index
+                            ToolTip.visible: hovered && modelData !== ""
+                            ToolTip.delay: 400
+                            ToolTip.text: ({"BK":"Schwarz","BN":"Braun","RD":"Rot","OG":"Orange",
+                                "YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett","GY":"Grau",
+                                "WH":"Weiß","PK":"Rosa","GNYE":"Grün-Gelb (PE)","CL":"Farblos"})[modelData] || ""
+                        }
+                        onActivated: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
-                            "farbe":           text,
+                            "farbe":           currentIndex > 0 ? model[currentIndex] : "",
                             "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
                         })
                     }
@@ -183,7 +243,7 @@ Item {
                         id: tfAderMm2
                         Layout.fillWidth: true
                         implicitHeight: 26
-                        model: [0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
+                        model: [0.08, 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
                                 10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
                                 185.0, 240.0, 300.0]
                         currentIndex: {
@@ -212,7 +272,7 @@ Item {
                         }
                         onActivated: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
-                            "farbe":           tfAderFarbe.text,
+                            "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
                             "querschnitt_mm2": currentIndex >= 0 ? model[currentIndex] : 0
                         })
                     }
@@ -278,13 +338,45 @@ Item {
                 ColumnLayout {
                     spacing: 2
                     Text { text: qsTr("Farbe"); color: root.theme.textMuted; font.pixelSize: 10 }
-                    TextField {
-                        id: bulkFarbe
-                        implicitWidth:  100; implicitHeight: 24
+                    ComboBox {
+                        id: cbBulkFarbe
+                        implicitWidth: 110; implicitHeight: 24
+                        model: ["—", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
+                        currentIndex: 0
                         font.pixelSize: 11
-                        placeholderText: qsTr("leer = unveraendert")
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
-                        color: root.theme.textPrimary
+                        contentItem: Row {
+                            leftPadding: 4; spacing: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            AderfarbenSwatch {
+                                aderCode: cbBulkFarbe.currentIndex > 0 ? cbBulkFarbe.model[cbBulkFarbe.currentIndex] : ""
+                                width: 10; height: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: cbBulkFarbe.currentIndex > 0 ? cbBulkFarbe.model[cbBulkFarbe.currentIndex] : "—"
+                                color: root.theme.textPrimary; font.pixelSize: 11
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        delegate: ItemDelegate {
+                            width: cbBulkFarbe.width; implicitHeight: 24
+                            contentItem: Row {
+                                leftPadding: 6; spacing: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                AderfarbenSwatch {
+                                    aderCode: modelData !== "—" ? modelData : ""
+                                    width: 10; height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: modelData; font.pixelSize: 11
+                                    color: root.theme.textPrimary; verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                            background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
+                            highlighted: cbBulkFarbe.highlightedIndex === index
+                        }
                     }
                 }
 
@@ -295,7 +387,7 @@ Item {
                     ComboBox {
                         id: bulkMm2
                         implicitWidth: 90; implicitHeight: 24
-                        model: ["—", 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
+                        model: ["—", 0.08, 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
                                 10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
                                 185.0, 240.0, 300.0]
                         currentIndex: 0
@@ -348,11 +440,11 @@ Item {
                     }
                     onClicked: {
                         var daten = {}
-                        if (bulkFarbe.text.trim() !== "") daten["farbe"]           = bulkFarbe.text.trim()
-                        if (bulkMm2.currentIndex  >  0)   daten["querschnitt_mm2"] = bulkMm2.model[bulkMm2.currentIndex]
-                        if (bulkBez.text.trim()   !== "") daten["bezeichnung"]     = bulkBez.text.trim()
+                        if (cbBulkFarbe.currentIndex > 0) daten["farbe"]           = cbBulkFarbe.model[cbBulkFarbe.currentIndex]
+                        if (bulkMm2.currentIndex     > 0) daten["querschnitt_mm2"] = bulkMm2.model[bulkMm2.currentIndex]
+                        if (bulkBez.text.trim()     !== "") daten["bezeichnung"]   = bulkBez.text.trim()
                         kabelModel.aderMehrfachAktualisieren(root._ausgewaehlt, daten)
-                        bulkFarbe.text = ""; bulkMm2.currentIndex = 0; bulkBez.text = ""
+                        cbBulkFarbe.currentIndex = 0; bulkMm2.currentIndex = 0; bulkBez.text = ""
                     }
                     ToolTip.visible: hovered; ToolTip.delay: 500
                     ToolTip.text: qsTr("Ausgefüllte Felder auf alle markierten Adern anwenden")
@@ -373,6 +465,53 @@ Item {
                     onClicked: root._ausgewaehlt = []
                     ToolTip.visible: hovered; ToolTip.delay: 500
                     ToolTip.text: qsTr("Auswahl aufheben")
+                }
+            }
+        }
+
+        // Vorausfüllen-Zeile
+        Rectangle {
+            Layout.fillWidth: true
+            height: kabelModel.hatKabel && kabelModel.adern.length > 0 ? 56 : 0
+            visible: kabelModel.hatKabel && kabelModel.adern.length > 0
+            color: root.theme.surfaceDeep; clip: true
+            Rectangle {
+                anchors { top: parent.top; left: parent.left; right: parent.right }
+                height: 1; color: root.theme.divider
+            }
+            ColumnLayout {
+                anchors { fill: parent; topMargin: 6; bottomMargin: 6; leftMargin: 12; rightMargin: 12 }
+                spacing: 4
+                Text {
+                    text: qsTr("Farben vorausfüllen:")
+                    color: root.theme.textMuted; font.pixelSize: 10
+                }
+                Flow {
+                    Layout.fillWidth: true; spacing: 6
+                    Repeater {
+                        model: [
+                            { key: "neu",      label: "Neue Norm (IEC 60446)", akzent: true,  tip: "IEC 60446:2010 / HD 308 S2 — GNYE, BN, BK, GY, BU, …" },
+                            { key: "alt",      label: "Alte Norm (VDE 0293)",  akzent: false, tip: "VDE 0293 / alte deutsche Norm — GNYE, BK, RD, BU, GY, …" },
+                            { key: "din47100", label: "DIN 47100",             akzent: false, tip: "DIN 47100 — WH, BN, GN, YE, GY, PK, BU, RD, BK, VT, …" },
+                            { key: "iec60757", label: "IEC 60757",             akzent: false, tip: "IEC 60757 Reihenfolge — BK, BN, RD, OG, YE, GN, BU, VT, GY, WH, PK, CL" }
+                        ]
+                        Button {
+                            required property var modelData
+                            text: modelData.label; implicitHeight: 24
+                            contentItem: Text {
+                                text: parent.text; color: root.theme.textPrimary; font.pixelSize: 10
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: parent.hovered ? root.theme.accent : root.theme.inputBg
+                                radius: 3
+                                border.color: modelData.akzent ? root.theme.accent : root.theme.border
+                            }
+                            onClicked: root.vorausfuellenFarben(modelData.key)
+                            ToolTip.visible: hovered; ToolTip.delay: 500
+                            ToolTip.text: modelData.tip
+                        }
+                    }
                 }
             }
         }

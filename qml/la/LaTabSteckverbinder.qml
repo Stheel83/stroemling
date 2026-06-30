@@ -105,6 +105,24 @@ ColumnLayout {
                         Text { width: panel.svCols[10].w; text: modelData.ortUO    || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
                         Text { width: panel.svCols[11].w; text: modelData.anlageKz || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
                         Text { width: panel.svCols[12].w; text: modelData.ortKz    || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
+                        Item {
+                            width: panel.svCols[13].w; height: 30
+                            Rectangle {
+                                anchors.centerIn: parent; width: 20; height: 18; radius: 3
+                                color: svSprungMa.containsMouse ? root.theme.accent : "transparent"
+                                border.color: svSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                                Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                       color: svSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                                MouseArea {
+                                    id: svSprungMa; anchors.fill: parent
+                                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    enabled: panel.canvas !== null && (modelData.seiteId || 0) > 0
+                                    onClicked: panel.canvas.bmElementSprungAnfordern(
+                                        modelData.seiteId, modelData.blattnr, modelData.seiteBez,
+                                        modelData.weltX, modelData.weltY)
+                                }
+                            }
+                        }
                     }
                 }
             }

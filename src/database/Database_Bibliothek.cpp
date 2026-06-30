@@ -184,7 +184,26 @@ bool Database::checkAndApplyBibliothekSchema()
             querschnitt_kabel_max REAL,
             nennstrom_a           REAL,
             nennspannung_v        REAL,
-            verbindungstechnik    TEXT
+            verbindungstechnik    TEXT,
+            litze_farbe           TEXT,
+            litze_querschnitt     REAL,
+            litze_bezeichnung     TEXT
+        ))",
+        R"(CREATE TABLE IF NOT EXISTS konfektioniertes_kabel (
+            id                  INTEGER PRIMARY KEY,
+            bauteil_id          INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
+            bauteil_kabel_id    INTEGER REFERENCES bauteil_kabel(id),
+            stecker_a_bauteil_id INTEGER REFERENCES bauteil(id),
+            stecker_b_bauteil_id INTEGER REFERENCES bauteil(id),
+            laenge_m            REAL
+        ))",
+        R"(CREATE TABLE IF NOT EXISTS konfkabel_pin_zuordnung (
+            id           INTEGER PRIMARY KEY,
+            konfkabel_id INTEGER NOT NULL REFERENCES konfektioniertes_kabel(id) ON DELETE CASCADE,
+            seite        TEXT    NOT NULL CHECK(seite IN ('A','B')),
+            ader_nr      INTEGER NOT NULL,
+            pin_nr       INTEGER NOT NULL,
+            UNIQUE(konfkabel_id, seite, ader_nr)
         ))",
     };
 
@@ -193,6 +212,22 @@ bool Database::checkAndApplyBibliothekSchema()
             qCWarning(lcDb) << "Bibliothek-Schema CREATE:" << q.lastError().text();
             m_bibliothekDb.rollback();
             return false;
+        }
+    }
+
+    // Schema v2: litze-Spalten nachrüsten (no-op bei Frischinstall, toleriert Duplikat)
+    const QStringList upgradeStmts = {
+        "ALTER TABLE steckverbinder_kontakt_typ ADD COLUMN litze_farbe TEXT",
+        "ALTER TABLE steckverbinder_kontakt_typ ADD COLUMN litze_querschnitt REAL",
+        "ALTER TABLE steckverbinder_kontakt_typ ADD COLUMN litze_bezeichnung TEXT",
+    };
+    for (const QString &upStmt : upgradeStmts) {
+        if (!q.exec(upStmt)) {
+            if (!q.lastError().databaseText().toLower().contains("duplicate column")) {
+                qCWarning(lcDb) << "Bibliothek-Schema ALTER:" << q.lastError().text();
+                m_bibliothekDb.rollback();
+                return false;
+            }
         }
     }
 

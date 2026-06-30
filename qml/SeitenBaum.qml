@@ -1102,10 +1102,25 @@ Item {
                 model: seitenModel
                 clip: true
 
+                // Qt 6 cached row heights: rowHeightProvider zwingt frische Auswertung
+                // KnotenTypRole = Qt.UserRole+5, HatSeitenRole = Qt.UserRole+17
+                rowHeightProvider: function(row) {
+                    var idx = treeView.index(row, 0)
+                    var knotenTyp = seitenModel.data(idx, Qt.UserRole + 5)
+                    var hatSeiten = seitenModel.data(idx, Qt.UserRole + 17)
+                    if (knotenTyp === 2 || hatSeiten === true) return 36
+                    return 0
+                }
+
                 Component.onCompleted: expandRecursively()
                 Connections {
                     target: seitenModel
-                    function onModelReset() { Qt.callLater(treeView.expandRecursively) }
+                    function onModelReset() {
+                        Qt.callLater(function() {
+                            treeView.expandRecursively()
+                            treeView.forceLayout()
+                        })
+                    }
                 }
 
                 delegate: TreeViewDelegate {

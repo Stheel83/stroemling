@@ -1092,7 +1092,7 @@ Item {
                     var useCC = (ccwYL < cwYL) || (ccwYL === cwYL && ccwXL < cwXL)
                     var klNxL = useCC ? ccwXL : cwXL
                     var klNyL = useCC ? ccwYL : cwYL
-                    var klFs  = Math.max(7, Math.round(2.5 * root.mmToPx * root.zoom))
+                    var klFs  = Math.max(10, Math.round(2.5 * root.mmToPx * root.zoom))
                     var klLH  = klFs * 1.3
                     var klOff = klFs * 0.5 + 4
                     var klAX  = vx1 + klNxL * klOff
@@ -1669,7 +1669,7 @@ Item {
                     var _qpInfo  = root._querverweisPartnerMap[idx]
                     var qPartner = _qpInfo ? (_qpInfo.label || "") : ""
                     if (qSn !== "" || qPartner !== "") {
-                        var qFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var qFs   = Math.max(10, Math.round(2.0 * root.mmToPx * root.zoom))
                         var qFsS  = Math.max(6, Math.round(1.6 * root.mmToPx * root.zoom))
                         var qRot  = ((el.rotation || 0) % 360 + 360) % 360
                         var qSenk = (qRot === 90 || qRot === 270)
@@ -1740,7 +1740,7 @@ Item {
                             if (gkBmkGA) gaLabel = gkBmkGA + ":" + gaAnk
                         }
 
-                        var gaFs   = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var gaFs   = Math.max(10, Math.round(2.0 * root.mmToPx * root.zoom))
                         var gaRot  = ((el.rotation || 0) % 360 + 360) % 360
                         var gaSenk = (gaRot === 90 || gaRot === 270)
                         var gaCx   = (vx1 + vx2) / 2
@@ -1880,7 +1880,7 @@ Item {
                         kaBmkVis = kaBmkBase !== "" && kaed.bmkSichtbar !== false
                     }
                     var kaFs    = Math.max(6, Math.round(1.5 * root.mmToPx * root.zoom))
-                    var kaBmkFs = Math.max(7, Math.round(2.2 * root.mmToPx * root.zoom))
+                    var kaBmkFs = Math.max(10, Math.round(2.2 * root.mmToPx * root.zoom))
                     var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
                     var kaSenk  = (kaRot === 90 || kaRot === 270)
                     var kaCx    = (vx1 + vx2) / 2
@@ -1951,7 +1951,7 @@ Item {
                     if (aed.laenge_m && aed.laenge_m > 0)
                         adpZeilen.push({ text: qsTr("\u2192 ") + (aed.laenge_m + "").replace('.', ',') + " m", bold: false })
                     if (adpZeilen.length > 0) {
-                        var adpFs    = Math.max(7, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var adpFs    = Math.max(10, Math.round(2.0 * root.mmToPx * root.zoom))
                         var adpLineH = adpFs * 1.3
                         var adpRot   = ((el.rotation || 0) % 360 + 360) % 360
                         var adpSenk  = (adpRot === 90 || adpRot === 270)

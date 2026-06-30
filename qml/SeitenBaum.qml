@@ -1054,9 +1054,9 @@ Item {
 
                 Repeater {
                     model: [
-                        { tab: "seiten",   label: qsTr("Seiten") },
-                        { tab: "struktur", label: qsTr("Struktur") },
-                        { tab: "bauteile", label: qsTr("Bauteile") }
+                        { tab: "seiten",   label: qsTr("Seiten"),   tooltip: qsTr("Schaltplanseiten anlegen, bearbeiten und sortieren") },
+                        { tab: "struktur", label: qsTr("Struktur"), tooltip: qsTr("Anlagen und Orte anlegen und verwalten") },
+                        { tab: "bauteile", label: qsTr("Bauteile"), tooltip: qsTr("Im Schaltplan verwendete Bauteile") }
                     ]
                     delegate: Item {
                         id: seitenStrukturTab
@@ -1082,7 +1082,11 @@ Item {
 
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
                             onClicked: root._aktiveTab = modelData.tab
+                            ToolTip.visible: containsMouse
+                            ToolTip.delay: 600
+                            ToolTip.text: modelData.tooltip
                         }
                     }
                 }
@@ -1340,6 +1344,21 @@ Item {
                         }
                     }
                 }
+            }
+        }
+
+        // Hinweis am unteren Rand des Seiten-Tabs
+        Rectangle {
+            Layout.fillWidth: true
+            height: 24
+            visible: root._aktiveTab === "seiten"
+            color: theme.surfaceDeep
+
+            Text {
+                anchors.centerIn: parent
+                text: qsTr("Anlage / Ort anlegen → Tab „Struktur“")
+                color: theme.textMuted
+                font.pixelSize: 10
             }
         }
 

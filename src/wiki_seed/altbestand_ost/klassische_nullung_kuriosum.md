@@ -32,18 +32,49 @@ trotz der drei Adern.
 
 ## Warum wurde so gebaut?
 
-Zwei Gründe:
+Die Antwort liegt nicht beim Elektriker vor Ort — sondern im System dahinter.
 
-**1. Norm-Übergangsphase ohne klare Vorgabe**
-Die TGL-Norm (DDR-Normensystem) forderte ab den frühen 1970ern
-zunehmend eine 3-adrige Verlegung in bestimmten Räumen. Aber die
-Trennung von PE und N am Verteiler war technisch komplex — es fehlte
-an separaten PE-Schienen und an Installateurskenntnis.
+### Das eigentliche Problem: Die Einspeisung war TN-C
 
-**2. Kein separater PE-Potential am Verteiler vorhanden**
-Viele DDR-Unterverteiler hatten schlicht keine Erdungsschiene (PE-Schiene).
-Der einzige Anschlusspunkt für Schutzpotenzial war der PEN-Leiter
-vom Netz. Also kam die 3. Ader dort hin.
+Ein 3-adriges Kabel allein macht noch kein TN-S-System. Dafür braucht man
+drei Dinge gleichzeitig:
+
+1. Einen getrennten PE-Leiter **bis zum Unterverteiler**
+2. Eine **separate PE-Schiene** im Unterverteiler
+3. Einen Anschluss an echtes **Erdpotenzial** (Fundamenterder oder Gebäudeerdung)
+
+In DDR-Plattenbau-Wohnungen kam die Einspeisung vom Stockwerksverteiler
+typischerweise als **L + PEN** — zwei Leiter. Kein separates PE-Potential.
+Der Stockwerksverteiler hatte meist nur eine einzige Neutral-/Schutzleiterschiene,
+auf der alles gemeinsam lag. Es gab schlicht keine PE-Schiene zum Anschließen.
+
+**Die 3. Ader endete also auf der einzigen Schiene — der PEN-Schiene.**
+Drei Adern im Rohr, aber N und PE auf dem gleichen Potential. Funktionell
+klassische Nullung.
+
+### Vier Gründe, warum trotzdem 3-adrig verlegt wurde
+
+**1. Norm im Übergang — Infrastruktur hinkt hinterher**
+Die TGL-Norm forderte ab ~1973 zunehmend 3-adrige Verlegung in Küche und Bad,
+ohne gleichzeitig die Verteilerinfrastruktur (Einspeisung, PE-Schienen) anzupassen.
+Die Norm war der Realität voraus.
+
+**2. Planwirtschaft: Was im Lager war, wurde verbaut**
+3-adriges Kabel war verfügbar — also kam 3-adriges Kabel rein, unabhängig davon,
+ob das System die dritte Ader sinnvoll nutzen konnte.
+
+**3. Handwerkergewohnheit**
+Der Elektriker verdrahtete wie immer. Die dritte Ader kam auf die einzige
+vorhandene Schiene — was sonst? Eine separate PE-Schiene hätte zuerst
+jemand einbauen müssen.
+
+**4. Optische Compliance**
+Die Anlage *sah* normgerecht aus (3 Adern = modernes System), war es
+funktionell aber nicht. Das reichte für die Abnahme.
+
+> **Kurzfassung:** Drei Adern bringen nichts, wenn der Verteiler nur
+> eine Schiene hat und die Einspeisung nur zwei Leiter liefert. Das
+> 3-adrige Kabel war eine Vorstufe ohne vollständige Infrastruktur dahinter.
 
 ---
 

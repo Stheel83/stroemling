@@ -60,6 +60,44 @@
       ]
     },
     {
+      "name": "Nachschlagetabellen",
+      "beschreibung": "Schnelle Referenztabellen: LSS, Strombelastbarkeit, RCD-Typen, IP/IK-Schutzarten, Anzugsdrehmomente",
+      "sortierung": 5,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "LSS – Auslösecharakteristiken B, C, D",
+          "tags": "leitungsschutzschalter MCB LSS auslösecharakteristik B C D Selektivität Motoranlauf",
+          "datei": "nachschlagetabellen/lss_ausloesecharakteristik.md"
+        },
+        {
+          "titel": "Strombelastbarkeit von Leitungen – VDE 0298",
+          "tags": "strombelastbarkeit kabel leitung querschnitt VDE 0298 verlegeart häufung korrekturfaktor",
+          "datei": "nachschlagetabellen/strombelastbarkeit_vde0298.md"
+        },
+        {
+          "titel": "RCD-Typen – Welcher FI-Schutzschalter wofür?",
+          "tags": "RCD FI Schutzschalter Typ A B F Wallbox Frequenzumrichter Wechselrichter EV-Laden",
+          "datei": "nachschlagetabellen/rcd_typen.md"
+        },
+        {
+          "titel": "IP-Schutzarten – Tabelle und Erklärung",
+          "tags": "IP Schutzart IP20 IP44 IP65 IP67 IP68 IP69K Staub Wasser Gehäuse DIN EN 60529",
+          "datei": "nachschlagetabellen/ip_schutzarten.md"
+        },
+        {
+          "titel": "IK-Schutzklassen – Mechanische Stoßfestigkeit",
+          "tags": "IK Schutzklasse Stoßfestigkeit IK07 IK08 IK10 Vandalismusschutz mechanisch",
+          "datei": "nachschlagetabellen/ik_schutzklassen.md"
+        },
+        {
+          "titel": "Anzugsdrehmomente für Schraubklemmen",
+          "tags": "anzugsdrehmoment klemme schraubklemme drehmoment Nm Aluminium Federzugklemme Wago Phoenix",
+          "datei": "nachschlagetabellen/anzugsdrehmomente_klemmen.md"
+        }
+      ]
+    },
+    {
       "name": "Altbestand",
       "beschreibung": "Klassische Nullung, Aluminium-Leitungen, DDR-Normen (TGL) und VDE-Übergangsperioden",
       "sortierung": 10,
@@ -76,6 +114,16 @@
           "datei": "altbestand_west/klassische_nullung_verbotsdaten.md"
         },
         {
+          "titel": "Nullleiter-Unterbrechung im TT-Netz",
+          "tags": "nullleiter N-Leiter Unterbrechung TT-Netz Neutralpunktverschiebung Überspannung Freileitung",
+          "datei": "altbestand_west/nullleiter_unterbrechung_tt.md"
+        },
+        {
+          "titel": "Aluminium-Klemmen – Kontaktkorrosion und Bimetall-Verbinder",
+          "tags": "aluminium kupfer Kontaktkorrosion galvanisch Bimetall Klemme Alu-Paste Kriechbruch",
+          "datei": "altbestand_west/aluminium_klemmen_bimetall.md"
+        },
+        {
           "titel": "Aluminium-Leitungen nach DDR-Norm TGL",
           "tags": "aluminium TGL DDR altbestand",
           "datei": "altbestand_ost/aluminium_leitungen_tgl.md"
@@ -84,6 +132,11 @@
           "titel": "DDR-Farbnormen und TGL-Querschnitte",
           "tags": "farbnorm TGL DDR querschnitt",
           "datei": "altbestand_ost/ddr_farbnormen_tgl.md"
+        },
+        {
+          "titel": "DDR-125-V-Anlagen",
+          "tags": "125V DDR 2x125V Altbau Umrüstung Spannungsumstellung Vorkrieg Ostdeutschland",
+          "datei": "altbestand_ost/ddr_125v_anlagen.md"
         },
         {
           "titel": "Kuriosum: 3-adrig verdrahtet, aber KN angeklemmt",
@@ -115,6 +168,75 @@
           "titel": "Querschnitt–Farb–Größentabelle",
           "tags": "aderendhülse querschnitt farbe tabelle",
           "datei": "aderendhuelsen/querschnitt_farb_groesstabelle.md"
+        }
+      ]
+    },
+    {
+      "name": "Normen & Kennzeichnung",
+      "beschreibung": "BMK nach DIN EN 81346, Klemmenbezeichnungen DIN EN 60445, Seitenkennzeichnung DIN 6771",
+      "sortierung": 30,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "BMK nach DIN EN 81346 – Kurzreferenz",
+          "tags": "BMK Betriebsmittelkennzeichen DIN 81346 IEC 81346 Anlage Ort Präfix = + - Kennbuchstabe",
+          "datei": "normen/bmk_din_81346.md"
+        },
+        {
+          "titel": "Klemmenbezeichnungen nach DIN EN 60445",
+          "tags": "Klemmenbezeichnung DIN 60445 L1 L2 L3 N PE U1 V1 W1 Schütz Thermorelay Klemmenleiste",
+          "datei": "normen/klemmenbezeichnungen_din60445.md"
+        },
+        {
+          "titel": "Seitenkennzeichnung nach DIN 6771",
+          "tags": "DIN 6771 Schriftfeld Stempelfeld Zeichnungsnummer Änderungsindex Revision Blattformat",
+          "datei": "normen/seitenkennzeichnung_din6771.md"
+        }
+      ]
+    },
+    {
+      "name": "Schutzmaßnahmen",
+      "beschreibung": "5 Sicherheitsregeln, Überspannungsschutz SPD, Netzformen TN/TT/IT",
+      "sortierung": 35,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Die 5 Sicherheitsregeln",
+          "tags": "Sicherheitsregeln VDE 0105 Freischalten Spannungsfreiheit Erden Kurzschließen Schutzmaßnahmen",
+          "datei": "schutz/fuenf_sicherheitsregeln.md"
+        },
+        {
+          "titel": "Überspannungsschutz – SPD Typ 1 / 2 / 3",
+          "tags": "Überspannungsschutz SPD Blitzstromableiter Typ1 Typ2 Typ3 VDE 0100-443 0100-534 Koordination",
+          "datei": "schutz/ueberspannungsschutz_spd.md"
+        },
+        {
+          "titel": "TN-, TT- und IT-Netze – Netzformen im Überblick",
+          "tags": "TN TT IT Netz TN-C TN-S TN-C-S Netzform Erdung Schutzleiter PEN Nullung",
+          "datei": "schutz/tn_tt_it_netze.md"
+        }
+      ]
+    },
+    {
+      "name": "Motorsteuerung",
+      "beschreibung": "Schütz, Thermorelay, Stern-Dreieck-Anlasser, Motorschutz",
+      "sortierung": 55,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Schütz + Thermorelay – Grundschaltung",
+          "tags": "Schütz Thermorelay Motorsteuerung Direktanlauf Selbsthaltung NOT-HALT Steuerstromkreis",
+          "datei": "motorsteuerung/schuetz_thermorelay.md"
+        },
+        {
+          "titel": "Stern-Dreieck-Anlasser",
+          "tags": "Stern Dreieck Y-Delta Anlasser Einschaltstrom Anlaufstrom Motor Zeitrelais Umschaltung",
+          "datei": "motorsteuerung/stern_dreieck_anlasser.md"
+        },
+        {
+          "titel": "Motorschutzschalter vs. Thermorelay",
+          "tags": "Motorschutzschalter MSS Thermorelay Überlastrelais Phasenausfall Vergleich Frequenzumrichter",
+          "datei": "motorsteuerung/motorschutz_vergleich.md"
         }
       ]
     },

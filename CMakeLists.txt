@@ -294,14 +294,32 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
         src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
         src/wiki_seed/bedienhinweise/fehlersuchmodus.md
+        src/wiki_seed/nachschlagetabellen/lss_ausloesecharakteristik.md
+        src/wiki_seed/nachschlagetabellen/strombelastbarkeit_vde0298.md
+        src/wiki_seed/nachschlagetabellen/rcd_typen.md
+        src/wiki_seed/nachschlagetabellen/ip_schutzarten.md
+        src/wiki_seed/nachschlagetabellen/ik_schutzklassen.md
+        src/wiki_seed/nachschlagetabellen/anzugsdrehmomente_klemmen.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
+        src/wiki_seed/altbestand_west/nullleiter_unterbrechung_tt.md
+        src/wiki_seed/altbestand_west/aluminium_klemmen_bimetall.md
         src/wiki_seed/altbestand_ost/klassische_nullung_kuriosum.md
         src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
         src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
+        src/wiki_seed/altbestand_ost/ddr_125v_anlagen.md
+        src/wiki_seed/normen/bmk_din_81346.md
+        src/wiki_seed/normen/klemmenbezeichnungen_din60445.md
+        src/wiki_seed/normen/seitenkennzeichnung_din6771.md
+        src/wiki_seed/schutz/fuenf_sicherheitsregeln.md
+        src/wiki_seed/schutz/ueberspannungsschutz_spd.md
+        src/wiki_seed/schutz/tn_tt_it_netze.md
         src/wiki_seed/kabel_aderfarben/aderfarben_normen_geschichte.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
         src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
+        src/wiki_seed/motorsteuerung/schuetz_thermorelay.md
+        src/wiki_seed/motorsteuerung/stern_dreieck_anlasser.md
+        src/wiki_seed/motorsteuerung/motorschutz_vergleich.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -387,14 +405,32 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
         src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
         src/wiki_seed/bedienhinweise/fehlersuchmodus.md
+        src/wiki_seed/nachschlagetabellen/lss_ausloesecharakteristik.md
+        src/wiki_seed/nachschlagetabellen/strombelastbarkeit_vde0298.md
+        src/wiki_seed/nachschlagetabellen/rcd_typen.md
+        src/wiki_seed/nachschlagetabellen/ip_schutzarten.md
+        src/wiki_seed/nachschlagetabellen/ik_schutzklassen.md
+        src/wiki_seed/nachschlagetabellen/anzugsdrehmomente_klemmen.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
+        src/wiki_seed/altbestand_west/nullleiter_unterbrechung_tt.md
+        src/wiki_seed/altbestand_west/aluminium_klemmen_bimetall.md
         src/wiki_seed/altbestand_ost/klassische_nullung_kuriosum.md
         src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
         src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
+        src/wiki_seed/altbestand_ost/ddr_125v_anlagen.md
+        src/wiki_seed/normen/bmk_din_81346.md
+        src/wiki_seed/normen/klemmenbezeichnungen_din60445.md
+        src/wiki_seed/normen/seitenkennzeichnung_din6771.md
+        src/wiki_seed/schutz/fuenf_sicherheitsregeln.md
+        src/wiki_seed/schutz/ueberspannungsschutz_spd.md
+        src/wiki_seed/schutz/tn_tt_it_netze.md
         src/wiki_seed/kabel_aderfarben/aderfarben_normen_geschichte.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
         src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
+        src/wiki_seed/motorsteuerung/schuetz_thermorelay.md
+        src/wiki_seed/motorsteuerung/stern_dreieck_anlasser.md
+        src/wiki_seed/motorsteuerung/motorschutz_vergleich.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

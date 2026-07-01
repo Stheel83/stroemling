@@ -60,8 +60,8 @@ bool Database::checkAndApplyWikiSchema()
     }
 
     if (storedVersion == WIKI_SCHEMA_VERSION) {
-        qCInfo(lcDb) << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– keine Änderung.";
-        return true;
+        qCInfo(lcDb) << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– seed prüfen.";
+        return seedWikiStarterInhalte();
     }
 
     qCInfo(lcDb) << "Wiki-Schema:" << storedVersion << "→" << WIKI_SCHEMA_VERSION;

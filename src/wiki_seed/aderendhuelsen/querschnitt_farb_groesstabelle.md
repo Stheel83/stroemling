@@ -1,0 +1,85 @@
+# Aderendhülsen – Querschnitt, Farbe, Maße
+
+Aderendhülsen (Ferrules) schützen flexible Litzenleiter vor dem Aufdröseln
+und ermöglichen eine zuverlässige Klemmverbindung. Die Farbe des
+Kunststoffkragens gibt den Querschnitt an — festgelegt in **DIN 46228-4**
+(seit 1992 gültig).
+
+---
+
+## Aktuelle Farben nach DIN 46228-4
+
+| Querschnitt (mm²) | Farbe          | Kragen      | Länge (mm) | Innen-Ø (mm) |
+|:-----------------:|----------------|-------------|:----------:|:------------:|
+| 0,14              | violett / lila | ja          |     8      |     0,8      |
+| 0,25              | weiß           | ja          |     8      |     0,9      |
+| 0,34              | (nicht normiert) | —         |     —      |      —       |
+| 0,5               | weiß           | ja          |     8      |     1,1      |
+| 0,75              | grau           | ja          |     8      |     1,4      |
+| 1,0               | rot            | ja          |     8      |     1,7      |
+| 1,5               | schwarz        | ja          |     8      |     2,0      |
+| 2,5               | blau           | ja          |     8      |     2,7      |
+| 4,0               | grau           | ja          |    12      |     3,2      |
+| 6,0               | gelb           | ja          |    12      |     4,0      |
+| 10                | rot            | ja          |    12      |     5,0      |
+| 16                | schwarz        | ja          |    16      |     6,5      |
+| 25                | weiß           | ja          |    16      |     7,5      |
+| 35                | grau (dunkel)  | ja          |    20      |     9,0      |
+| 50                | rot            | ja          |    20      |    11,0      |
+
+> **Achtung:** Die Farbe wiederholt sich bei größeren Querschnitten (z. B.
+> rot = 1,0 mm² **und** 10 mm²). Verwechslungsgefahr! Bei Querschnitten
+> ab 4 mm² immer auch auf die physische Größe der Hülse achten.
+
+---
+
+## Alte Farben (vor DIN 46228-4, vor ca. 1992)
+
+Vor der Einführung von DIN 46228-4 gab es **keine einheitliche Norm** für
+Aderendhülsenfarben. Die folgende Tabelle zeigt das damals verbreitete
+Schema, das jedoch herstellerabhängig abweichen konnte:
+
+| Querschnitt (mm²) | Alte Farbe       | Neue Farbe (DIN 46228-4) | Geändert? |
+|:-----------------:|------------------|--------------------------|:---------:|
+| 0,5               | rot              | weiß                     | ✓         |
+| 0,75              | weiß / hellgrau  | grau                     | ✓         |
+| 1,0               | braun / rot      | rot                      | (±)       |
+| 1,5               | rot              | **schwarz**              | ✓✓        |
+| 2,5               | blau             | blau                     | —         |
+| 4,0               | grau             | grau                     | —         |
+| 6,0               | gelb             | gelb                     | —         |
+| 10                | rot              | rot                      | —         |
+| 16                | schwarz          | schwarz                  | —         |
+
+> **Wichtig beim Altbestand:** Die größte Verwechslungsgefahr besteht bei
+> **1,5 mm²**: alt = **rot**, neu = **schwarz**. Auch 0,5 mm² wechselte
+> von rot auf weiß. Immer die physische Hülsengröße zur Kontrolle heranziehen.
+
+---
+
+## Doppel-Aderendhülsen
+
+Für zwei Leiter in einer Klemme gibt es Doppelhülsen (DIN 46228-4 Teil D).
+Farbgebung identisch mit Einzel-Hülsen, Bezeichnung z. B. „2×1,5 schwarz".
+
+| Querschnitt je Leiter | Gesamt-Querschnitt | Farbe   |
+|:---------------------:|:-----------------:|---------|
+| 0,5 mm²               | 1,0 mm²           | weiß    |
+| 0,75 mm²              | 1,5 mm²           | grau    |
+| 1,0 mm²               | 2,0 mm²           | rot     |
+| 1,5 mm²               | 3,0 mm²           | schwarz |
+| 2,5 mm²               | 5,0 mm²           | blau    |
+
+---
+
+## Häufige Fehler
+
+- **Zu kleine Hülse:** Litze wird gequetscht, einzelne Drähte stehen heraus →
+  Kontaktproblem und erhöhter Übergangswiderstand.
+- **Zu große Hülse:** Hülse sitzt locker, zieht sich aus der Klemme →
+  Wackelkontakt.
+- **Hülse ohne Kragen in Klemmen mit Kragen-Anschlag:** Leiter sitzt zu tief.
+- **Kragen-Hülse in Schraubklemmen der Klasse 1:** Kragen kann Durchgang
+  versperren; Verwendung prüfen.
+- **Verwechslung alter/neuer Farben** beim Erweitern von Altanlagen:
+  immer Querschnitt elektrisch messen oder Hülse ausbauen und prüfen.

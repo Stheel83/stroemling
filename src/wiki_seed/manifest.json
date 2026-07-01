@@ -237,6 +237,16 @@
           "titel": "Motorschutzschalter vs. Thermorelay",
           "tags": "Motorschutzschalter MSS Thermorelay Überlastrelais Phasenausfall Vergleich Frequenzumrichter",
           "datei": "motorsteuerung/motorschutz_vergleich.md"
+        },
+        {
+          "titel": "Sanftanlasser – Funktionsweise und Einsatz",
+          "tags": "Sanftanlasser Softstarter Thyristor Phasenanschnitt Anlaufspannung Rampzeit Bypass Pumpe Lüfter",
+          "datei": "motorsteuerung/sanftanlauf.md"
+        },
+        {
+          "titel": "Frequenzumrichter – Funktionsweise und Einsatz",
+          "tags": "Frequenzumrichter FU VFD IGBT PWM Drehzahlregelung EMV Bremswiderstand Lagerströme U/f Energiesparen",
+          "datei": "motorsteuerung/frequenzumrichter.md"
         }
       ]
     },

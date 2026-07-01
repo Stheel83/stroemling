@@ -320,6 +320,8 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/motorsteuerung/schuetz_thermorelay.md
         src/wiki_seed/motorsteuerung/stern_dreieck_anlasser.md
         src/wiki_seed/motorsteuerung/motorschutz_vergleich.md
+        src/wiki_seed/motorsteuerung/sanftanlauf.md
+        src/wiki_seed/motorsteuerung/frequenzumrichter.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -431,6 +433,8 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/motorsteuerung/schuetz_thermorelay.md
         src/wiki_seed/motorsteuerung/stern_dreieck_anlasser.md
         src/wiki_seed/motorsteuerung/motorschutz_vergleich.md
+        src/wiki_seed/motorsteuerung/sanftanlauf.md
+        src/wiki_seed/motorsteuerung/frequenzumrichter.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

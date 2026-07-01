@@ -60,29 +60,21 @@
       ]
     },
     {
-      "name": "Altbestand – West",
-      "beschreibung": "Installationen nach westdeutscher Norm (VDE), Übergangsperioden, Klassische Nullung",
+      "name": "Altbestand",
+      "beschreibung": "Klassische Nullung, Aluminium-Leitungen, DDR-Normen (TGL) und VDE-Übergangsperioden",
       "sortierung": 10,
       "ist_system": false,
       "artikel": [
         {
           "titel": "Klassische Nullung – Grundlagen",
-          "tags": "klassische nullung VDE altbestand",
+          "tags": "klassische nullung TN-C PEN VDE altbestand TGL DDR BRD",
           "datei": "altbestand_west/klassische_nullung_grundlagen.md"
         },
         {
-          "titel": "Klassische Nullung – Verbotsdaten nach VDE",
-          "tags": "klassische nullung verbot datum",
+          "titel": "Klassische Nullung – Verbotsdaten (BRD/DDR/CH)",
+          "tags": "klassische nullung verbot datum BRD DDR Schweiz Österreich 1973 1974 RCD FI Bestandsschutz",
           "datei": "altbestand_west/klassische_nullung_verbotsdaten.md"
-        }
-      ]
-    },
-    {
-      "name": "Altbestand – Ost",
-      "beschreibung": "Installationen nach DDR-Norm TGL, Besonderheiten, Aluminium-Leitungen",
-      "sortierung": 20,
-      "ist_system": false,
-      "artikel": [
+        },
         {
           "titel": "Aluminium-Leitungen nach DDR-Norm TGL",
           "tags": "aluminium TGL DDR altbestand",
@@ -94,8 +86,8 @@
           "datei": "altbestand_ost/ddr_farbnormen_tgl.md"
         },
         {
-          "titel": "Kuriositäten: 3-adrig verdrahtet, aber KN angeklemmt",
-          "tags": "klassische nullung kuriosum",
+          "titel": "Kuriosum: 3-adrig verdrahtet, aber KN angeklemmt",
+          "tags": "klassische nullung kuriosum DDR PEN-Schiene Aluminium TGL Altbau",
           "datei": "altbestand_ost/klassische_nullung_kuriosum.md"
         }
       ]
@@ -103,7 +95,7 @@
     {
       "name": "Kabel & Aderfarben",
       "beschreibung": "Aderfarben im Wandel der Normen: BRD, DDR und moderne EU-Norm seit den 1930ern",
-      "sortierung": 25,
+      "sortierung": 20,
       "ist_system": false,
       "artikel": [
         {
@@ -116,7 +108,7 @@
     {
       "name": "Aderendhülsen",
       "beschreibung": "Typen, Farbtabellen, Crimp-Technik, häufige Fehler",
-      "sortierung": 30,
+      "sortierung": 40,
       "ist_system": false,
       "artikel": [
         {
@@ -129,7 +121,7 @@
     {
       "name": "Kabelverschraubungen",
       "beschreibung": "Maßtabellen und Auswahlhilfe für metrische und PG-Kabelverschraubungen",
-      "sortierung": 35,
+      "sortierung": 50,
       "ist_system": false,
       "artikel": [
         {
@@ -142,14 +134,14 @@
     {
       "name": "Kuriositäten",
       "beschreibung": "Ungewöhnliche Fundsachen aus der Praxis",
-      "sortierung": 40,
+      "sortierung": 60,
       "ist_system": false,
       "artikel": []
     },
     {
       "name": "Strömlinge",
       "beschreibung": "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
-      "sortierung": 50,
+      "sortierung": 70,
       "ist_system": true,
       "artikel": [
         {
@@ -266,7 +258,7 @@
     {
       "name": "Tester",
       "beschreibung": "Testanleitungen und Rückmeldungen von Programmtestern",
-      "sortierung": 60,
+      "sortierung": 80,
       "ist_system": false,
       "artikel": [
         {

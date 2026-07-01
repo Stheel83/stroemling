@@ -1866,14 +1866,37 @@ Item {
                     var kaBmkBase = (kaAnz !== "" && kaBmkRaw.endsWith(":" + kaAnz))
                                     ? kaBmkRaw.slice(0, kaBmkRaw.length - kaAnz.length - 1)
                                     : kaBmkRaw
-                    // "BMK anzeigen" blendet nur das Leisten-Präfix (z.B. "-X1:") aus;
-                    // die Klemmen-Nummer (z.B. "2") bleibt immer sichtbar
+                    // Granulare BMK-Sichtbarkeit: Leiste / Anlage / Ort / Gerät
                     var kaBmkColon = kaBmkBase.lastIndexOf(":")
                     var kaBmk, kaBmkVis
                     if (kaBmkColon >= 0) {
                         var kaBmkStrip = kaBmkBase.slice(0, kaBmkColon + 1)
                         var kaBmkNr    = kaBmkBase.slice(kaBmkColon + 1)
-                        kaBmk    = (kaed.bmkSichtbar !== false ? kaBmkStrip : "") + kaBmkNr
+                        var kaBmkPrefix = ""
+                        if (kaed.bmkSichtbar !== false) {
+                            var kaAnlAn = kaed.anlageAnzeigen !== false
+                            var kaOrtAn = kaed.ortAnzeigen    !== false
+                            var kaGkAn  = kaed.geraetAnzeigen !== false
+                            if (kaAnlAn && kaOrtAn && kaGkAn) {
+                                kaBmkPrefix = kaBmkStrip
+                            } else {
+                                var kaS = kaBmkStrip.endsWith(":") ? kaBmkStrip.slice(0, -1) : kaBmkStrip
+                                var kaTok = kaS.match(/(==\w+|\+\+\w+|=\w+|\+\w+|-\w+)/g) || [kaS]
+                                var kaLM = -1
+                                for (var kaI = kaTok.length - 1; kaI >= 0; kaI--) {
+                                    if (kaTok[kaI].charAt(0) === "-") { kaLM = kaI; break }
+                                }
+                                var kaR = ""
+                                for (var kaJ = 0; kaJ < kaTok.length; kaJ++) {
+                                    var kaT = kaTok[kaJ]; var kaTC = kaT.charAt(0)
+                                    if      (kaTC === "=") { if (kaAnlAn) kaR += kaT }
+                                    else if (kaTC === "+") { if (kaOrtAn) kaR += kaT }
+                                    else if (kaTC === "-") { if (kaJ === kaLM || kaGkAn) kaR += kaT }
+                                }
+                                kaBmkPrefix = kaR + ":"
+                            }
+                        }
+                        kaBmk    = kaBmkPrefix + kaBmkNr
                         kaBmkVis = kaBmk !== ""
                     } else {
                         kaBmk    = kaBmkBase

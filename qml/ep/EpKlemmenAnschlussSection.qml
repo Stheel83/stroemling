@@ -167,32 +167,45 @@ Item {
             onCommit: function(t) { root.extraSetzen("bmk", t) }
         }
 
-        // Leisten-BMK Sichtbarkeit (nur für verknüpfte Klemmen)
+        // BMK-Einblend-Checkboxen: Leiste | Anlage | Ort | Gerät (nur für verknüpfte Klemmen)
         Row {
-            leftPadding: 12; height: 32; spacing: 8
+            leftPadding: 12; height: 32; spacing: 10
             visible: panel.el ? ((panel.el.extraDaten || {}).platziermodus === "verknuepft") : false
-            property bool bmkAn: panel.el ? ((panel.el.extraDaten || {}).bmkSichtbar !== false) : true
-            Rectangle {
-                width: 20; height: 20; radius: 4; anchors.verticalCenter: parent.verticalCenter
-                color: parent.bmkAn ? theme.accent : theme.inputBg
-                border.color: theme.border
-                Text { anchors.centerIn: parent; text: qsTr("✓"); color: "#ffffff"
-                       font.pixelSize: 12; visible: parent.parent.bmkAn }
-                MouseArea {
-                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
-                    onClicked: {
-                        var cur = panel.el ? ((panel.el.extraDaten || {}).bmkSichtbar !== false) : true
-                        root.extraSetzen("bmkSichtbar", !cur)
-                    }
-                    ToolTip.visible: containsMouse
-                    ToolTip.text:    qsTr("Leisten-BMK (z. B. \"-X1:\") im Canvas ein- oder ausblenden.\nKlemmen-Nummer bleibt immer sichtbar.")
-                    ToolTip.delay:   500
+
+            Repeater {
+                model: ListModel {
+                    ListElement { bmkKey: "bmkSichtbar";    bmkLabel: "Leiste";
+                                  bmkTip: "Leitenbezeichner (-X1:Nr.) ein-/ausblenden. Klemmen-Nummer bleibt sichtbar." }
+                    ListElement { bmkKey: "anlageAnzeigen"; bmkLabel: "Anlage";
+                                  bmkTip: "Anlagekürzel (z. B. =ST) ein-/ausblenden." }
+                    ListElement { bmkKey: "ortAnzeigen";    bmkLabel: "Ort";
+                                  bmkTip: "Ortkürzel (z. B. +ST1) ein-/ausblenden." }
+                    ListElement { bmkKey: "geraetAnzeigen"; bmkLabel: "Gerät";
+                                  bmkTip: "Gerätepräfix (z. B. -AZD01) ein-/ausblenden.\nNur relevant wenn Gerät-Picker im KR-Editor gesetzt." }
                 }
-            }
-            Text {
-                text: qsTr("Leiste anzeigen")
-                color: theme.textMuted; font.pixelSize: 11
-                anchors.verticalCenter: parent.verticalCenter
+                Row {
+                    required property string bmkKey
+                    required property string bmkLabel
+                    required property string bmkTip
+                    spacing: 4; height: parent.height
+                    property bool an: panel.el ? ((panel.el.extraDaten || {})[bmkKey] !== false) : true
+                    Rectangle {
+                        width: 16; height: 16; radius: 3; anchors.verticalCenter: parent.verticalCenter
+                        color: parent.an ? theme.accent : theme.inputBg; border.color: theme.border
+                        Text { anchors.centerIn: parent; text: "✓"; color: "#fff"
+                               font.pixelSize: 10; visible: parent.parent.an }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor; hoverEnabled: true
+                            onClicked: root.extraSetzen(parent.parent.bmkKey, !parent.parent.an)
+                            ToolTip.visible: containsMouse; ToolTip.delay: 500
+                            ToolTip.text: parent.parent.bmkTip
+                        }
+                    }
+                    Text {
+                        text: parent.bmkLabel; color: theme.textMuted; font.pixelSize: 11
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
             }
         }
 

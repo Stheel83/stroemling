@@ -646,6 +646,43 @@ static QList<SchemaMigration> alleMigrationen()
                 LEFT JOIN ort o ON o.id = kl.ort_id
                 LEFT JOIN anlage a ON a.id = o.anlage_id)",
         }},
+        { 85, "klemmenleiste_bmk: doppeltes Minus entfernt (geraet_kuerzel enthält führendes Minus aus GK-BMK)", {
+            R"(DROP VIEW klemmenleiste_bmk)",
+            R"(CREATE VIEW klemmenleiste_bmk AS
+                SELECT kl.id, kl.bezeichnung, kl.projekt_id,
+                       COALESCE('==' || a.anlage_uebergeordnet, '') ||
+                       COALESCE('++' || o.standort_uebergeordnet, '') ||
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       COALESCE(kl.geraet_kuerzel,'') ||
+                       '-' || kl.bezeichnung AS bmk_vollstaendig,
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       COALESCE(kl.geraet_kuerzel,'') ||
+                       '-' || kl.bezeichnung AS bmk_kurz
+                FROM klemmenleiste kl
+                LEFT JOIN ort o ON o.id = kl.ort_id
+                LEFT JOIN anlage a ON a.id = o.anlage_id)",
+        }},
+        { 84, "klemmenleiste: geraet_kuerzel-Spalte; klemmenleiste_bmk View mit optionalem Geraetepraefixes (-GK-Leiste)", {
+            R"(ALTER TABLE klemmenleiste ADD COLUMN geraet_kuerzel TEXT DEFAULT '')",
+            R"(DROP VIEW klemmenleiste_bmk)",
+            R"(CREATE VIEW klemmenleiste_bmk AS
+                SELECT kl.id, kl.bezeichnung, kl.projekt_id,
+                       COALESCE('==' || a.anlage_uebergeordnet, '') ||
+                       COALESCE('++' || o.standort_uebergeordnet, '') ||
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       COALESCE(kl.geraet_kuerzel,'') ||
+                       '-' || kl.bezeichnung AS bmk_vollstaendig,
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       COALESCE(kl.geraet_kuerzel,'') ||
+                       '-' || kl.bezeichnung AS bmk_kurz
+                FROM klemmenleiste kl
+                LEFT JOIN ort o ON o.id = kl.ort_id
+                LEFT JOIN anlage a ON a.id = o.anlage_id)",
+        }},
     };
 }
 

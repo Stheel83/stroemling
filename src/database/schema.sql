@@ -319,7 +319,8 @@ CREATE TABLE klemmenleiste (
     bezeichnung             TEXT NOT NULL,
     ausrichtung             TEXT NOT NULL DEFAULT 'senkrecht',
     bemerkung               TEXT,
-    highlight_override      INTEGER
+    highlight_override      INTEGER,
+    geraet_kuerzel          TEXT DEFAULT ''
 );
 
 CREATE TABLE klemme (
@@ -402,9 +403,11 @@ CREATE VIEW klemmenleiste_bmk AS
            COALESCE('++' || o.standort_uebergeordnet, '') ||
            COALESCE('=' || a.kuerzel, '') ||
            COALESCE('+' || o.kuerzel, '') ||
+           COALESCE(kl.geraet_kuerzel,'') ||
            '-' || kl.bezeichnung AS bmk_vollstaendig,
            COALESCE('=' || a.kuerzel, '') ||
            COALESCE('+' || o.kuerzel, '') ||
+           COALESCE(kl.geraet_kuerzel,'') ||
            '-' || kl.bezeichnung AS bmk_kurz
     FROM klemmenleiste kl
     LEFT JOIN ort o ON o.id = kl.ort_id

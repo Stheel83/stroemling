@@ -20,6 +20,7 @@ Rectangle {
 
     ListModel { id: anlageModel }
     ListModel { id: orteModel }
+    ListModel { id: geraetModel }
 
     Flickable {
         anchors.fill:        parent
@@ -73,6 +74,49 @@ Rectangle {
                 }
             }
 
+            // Gerät-Picker (optionaler Gerätepräfix: -GK-Leiste)
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Text { text: qsTr("Gerät:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 90 }
+                ComboBox {
+                    id: geraetCombo
+                    Layout.fillWidth: true
+                    font.pixelSize: 12
+                    model: geraetModel
+                    textRole: "bmk"
+                    currentIndex: 0
+                    ToolTip.visible: hovered; ToolTip.delay: 600
+                    ToolTip.text: qsTr("Übergeordnetes Gerät aus Gerätekästen wählen.\nErzeugt BMK-Präfix: -GK-Leiste (z. B. -AZD02-X2).\n(keins) = kein Gerätepräfix.")
+                    displayText: currentIndex === 0 ? qsTr("(keins)") : (currentIndex < geraetModel.count ? geraetModel.get(currentIndex).bmk : "")
+                    contentItem: Text {
+                        text: geraetCombo.displayText; font: geraetCombo.font
+                        color: geraetCombo.currentIndex === 0 ? theme.textMuted : theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
+                    }
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
+                    popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
+                    delegate: ItemDelegate {
+                        required property var model
+                        required property int index
+                        width: geraetCombo.width
+                        contentItem: Text {
+                            text: index === 0 ? qsTr("(keins)") : model.bmk
+                            color: index === 0 ? theme.textMuted : theme.textPrimary
+                            font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
+                    }
+                    onActivated: {
+                        if (!klemmenreiheModel.hatLeiste) return
+                        var gk = currentIndex > 0 ? geraetModel.get(currentIndex).bmk : ""
+                        var d = Object.assign({}, klemmenreiheModel.leiste)
+                        d["geraetKuerzel"] = gk
+                        klemmenreiheModel.leisteAktualisieren(d)
+                    }
+                }
+            }
+
             // Ausrichtung
             RowLayout {
                 Layout.fillWidth: true
@@ -116,6 +160,12 @@ Rectangle {
 
             property bool _ortSaving: false
 
+            function refreshGeraete() {
+                geraetModel.clear()
+                geraetModel.append({ bmk: "" })
+                var gl = klemmenreiheModel.geraetekastenBmkListe()
+                for (var i = 0; i < gl.length; i++) geraetModel.append({ bmk: gl[i] })
+            }
             function refreshAnlagen() {
                 anlageModel.clear()
                 anlageModel.append({itemId: -1, label: qsTr("(keine)")})
@@ -141,7 +191,7 @@ Rectangle {
                 klemmenreiheModel.leisteAktualisieren(d)
             }
 
-            Component.onCompleted: refreshAnlagen()
+            Component.onCompleted: { refreshAnlagen(); refreshGeraete() }
 
             // Ort-Zuweisung (DIN 81346: =Anlage +Ort)
             RowLayout {
@@ -227,6 +277,18 @@ Rectangle {
                         }
                     }
                     ortCombo.currentIndex = ortIdx
+
+                    // Gerät-Picker aktualisieren
+                    eigenCol.refreshGeraete()
+                    var gk = klemmenreiheModel.hatLeiste
+                             ? (klemmenreiheModel.leiste["geraetKuerzel"] || "") : ""
+                    var gkIdx = 0
+                    if (gk !== "") {
+                        for (var j = 1; j < geraetModel.count; j++) {
+                            if (geraetModel.get(j).bmk === gk) { gkIdx = j; break }
+                        }
+                    }
+                    geraetCombo.currentIndex = gkIdx
                 }
             }
             Connections {

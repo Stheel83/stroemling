@@ -130,7 +130,8 @@ int KlemmenleistenModel::duplizieren(int id)
 {
     QSqlQuery q;
     q.prepare(
-        "SELECT projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id "
+        "SELECT projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id, "
+        "COALESCE(geraet_kuerzel,'') "
         "FROM klemmenleiste WHERE id = :id"
     );
     q.bindValue(":id", id);
@@ -138,22 +139,24 @@ int KlemmenleistenModel::duplizieren(int id)
         qCWarning(lcModel) << "KlemmenleistenModel::duplizieren – Leiste nicht gefunden:" << id;
         return -1;
     }
-    int     projektId   = q.value(0).toInt();
-    QString bezeichnung = q.value(1).toString() + QStringLiteral(" (Kopie)");
+    int     projektId    = q.value(0).toInt();
+    QString bezeichnung  = q.value(1).toString() + QStringLiteral(" (Kopie)");
     QVariant ausrichtung = q.value(2);
     QVariant bemerkung   = q.value(3);
-    QVariant ortId        = q.value(4);
+    QVariant ortId       = q.value(4);
+    QString geraetKuerzel= q.value(5).toString();
 
     QSqlQuery qi;
     qi.prepare(
-        "INSERT INTO klemmenleiste (projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id) "
-        "VALUES (:pid, :bez, :aus, :bem, :ort)"
+        "INSERT INTO klemmenleiste (projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id, geraet_kuerzel) "
+        "VALUES (:pid, :bez, :aus, :bem, :ort, :gk)"
     );
     qi.bindValue(":pid", projektId);
     qi.bindValue(":bez", bezeichnung);
     qi.bindValue(":aus", ausrichtung);
     qi.bindValue(":bem", bemerkung);
     qi.bindValue(":ort", ortId);
+    qi.bindValue(":gk",  geraetKuerzel);
     if (!qi.exec()) {
         qCWarning(lcModel) << "KlemmenleistenModel::duplizieren – klemmenleiste:" << qi.lastError().text();
         return -1;
@@ -303,7 +306,8 @@ void KlemmenreiheModel::laden(int leisteId)
         "COALESCE(kl.bemerkung,''), kl.projekt_id, "
         "COALESCE(klb.bmk_vollstaendig, '-' || kl.bezeichnung), "
         "COALESCE(klb.bmk_kurz, '-' || kl.bezeichnung), "
-        "kl.ort_id, kl.highlight_override "
+        "kl.ort_id, kl.highlight_override, "
+        "COALESCE(kl.geraet_kuerzel,'') "
         "FROM klemmenleiste kl "
         "LEFT JOIN klemmenleiste_bmk klb ON klb.id = kl.id "
         "WHERE kl.id = :id"
@@ -325,6 +329,7 @@ void KlemmenreiheModel::laden(int leisteId)
     m_leiste["bmkKurz"]           = q.value(6).toString();
     m_leiste["ortId"]             = q.value(7).isNull() ? -1 : q.value(7).toInt();
     m_leiste["highlightOverride"] = q.value(8).isNull() ? QVariant() : q.value(8).toInt();
+    m_leiste["geraetKuerzel"]     = q.value(9).toString();
 
     ladeKlemmen();
     emit leisteGeladen();
@@ -464,7 +469,8 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
     q.prepare(
         "UPDATE klemmenleiste SET "
         "bezeichnung = :bez, ausrichtung = :aus, "
-        "bemerkung = :bem, ort_id = :oid, highlight_override = :hlo "
+        "bemerkung = :bem, ort_id = :oid, highlight_override = :hlo, "
+        "geraet_kuerzel = :gk "
         "WHERE id = :id"
     );
     q.bindValue(":bez", daten["bezeichnung"].toString());
@@ -474,6 +480,7 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
     q.bindValue(":oid", (oid.isNull() || oid.toInt() < 0) ? QVariant() : oid.toInt());
     QVariant hlo = daten.value("highlightOverride");
     q.bindValue(":hlo", hlo.isNull() ? QVariant() : hlo.toInt());
+    q.bindValue(":gk",  daten.value("geraetKuerzel").toString());
     q.bindValue(":id",  m_leisteId);
 
     if (!q.exec()) {
@@ -483,7 +490,8 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
 
     // BMK aller platzierten Anschlüsse dieser Leiste aktualisieren
     bool bmkGeaendert = (daten.value("ortId") != m_leiste.value("ortId"))
-                     || (daten.value("bezeichnung") != m_leiste.value("bezeichnung"));
+                     || (daten.value("bezeichnung") != m_leiste.value("bezeichnung"))
+                     || (daten.value("geraetKuerzel") != m_leiste.value("geraetKuerzel"));
     if (bmkGeaendert) {
         QSqlQuery qs;
         qs.prepare("SELECT id FROM klemme WHERE klemmenleiste_id = :lid");
@@ -844,4 +852,32 @@ bool KlemmenreiheModel::stegbrueckePotenzialSetzen(int id, const QString &potenz
     ladeStegbruecken();
     emit leisteGeladen();
     return true;
+}
+
+QVariantList KlemmenreiheModel::geraetekastenBmkListe() const
+{
+    QVariantList result;
+    int projektId = m_leiste.value("projektId", -1).toInt();
+    if (projektId < 0) return result;
+
+    QSqlQuery q;
+    q.prepare(
+        "SELECT DISTINCT COALESCE(json_extract(ge.extra_daten,'$.bmk'),'') "
+        "FROM grafik_element ge "
+        "JOIN seite s ON s.id = ge.seite_id "
+        "JOIN ort o ON o.id = s.ort_id "
+        "JOIN anlage a ON a.id = o.anlage_id "
+        "WHERE ge.typ = 'geraetekasten' "
+        "  AND a.projekt_id = :pid "
+        "  AND COALESCE(json_extract(ge.extra_daten,'$.bmk'),'') != '' "
+        "ORDER BY 1"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "KlemmenreiheModel::geraetekastenBmkListe:" << q.lastError().text();
+        return result;
+    }
+    while (q.next())
+        result.append(q.value(0).toString());
+    return result;
 }

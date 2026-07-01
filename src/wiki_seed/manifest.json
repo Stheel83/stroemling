@@ -214,6 +214,11 @@
           "titel": "TN-, TT- und IT-Netze – Netzformen im Überblick",
           "tags": "TN TT IT Netz TN-C TN-S TN-C-S Netzform Erdung Schutzleiter PEN Nullung",
           "datei": "schutz/tn_tt_it_netze.md"
+        },
+        {
+          "titel": "Schirmung – Konzepte, Feldtypen und Praxis",
+          "tags": "Schirmung Schirm EMV E-Feld H-Feld einseitig beidseitig Brummschleife Transferimpedanz Geflechtschirm Folienschirm Twisted Pair Zopf 360-Grad Motorleitung Analogsignal",
+          "datei": "schutz/schirmung.md"
         }
       ]
     },

@@ -114,6 +114,19 @@
       ]
     },
     {
+      "name": "Kabelverschraubungen",
+      "beschreibung": "Maßtabellen und Auswahlhilfe für metrische und PG-Kabelverschraubungen",
+      "sortierung": 35,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Maßtabellen M und PG",
+          "tags": "kabelverschraubung PG metrisch M Außendurchmesser Steigung Bohrung Klemmbereich IP Schutzart DIN 40430 IEC 60423",
+          "datei": "kabelverschraubungen/kabelverschraubungen_masse.md"
+        }
+      ]
+    },
+    {
       "name": "Kuriositäten",
       "beschreibung": "Ungewöhnliche Fundsachen aus der Praxis",
       "sortierung": 40,

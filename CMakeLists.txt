@@ -300,6 +300,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
         src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
+        src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -391,6 +392,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/altbestand_ost/aluminium_leitungen_tgl.md
         src/wiki_seed/altbestand_ost/ddr_farbnormen_tgl.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
+        src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

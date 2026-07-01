@@ -224,6 +224,11 @@
       "ist_system": false,
       "artikel": [
         {
+          "titel": "Drehstrommotor – Aufbau, Typenschild und Betrieb",
+          "tags": "Drehstrommotor Asynchronmotor Käfigläufer Typenschild Stern Dreieck Schlupf IE-Klasse Isolationsklasse Bauform Kühlart Drehmoment Kennlinie",
+          "datei": "motorsteuerung/drehstrommotor.md"
+        },
+        {
           "titel": "Schütz + Thermorelay – Grundschaltung",
           "tags": "Schütz Thermorelay Motorsteuerung Direktanlauf Selbsthaltung NOT-HALT Steuerstromkreis",
           "datei": "motorsteuerung/schuetz_thermorelay.md"

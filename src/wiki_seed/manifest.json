@@ -101,6 +101,19 @@
       ]
     },
     {
+      "name": "Kabel & Aderfarben",
+      "beschreibung": "Aderfarben im Wandel der Normen: BRD, DDR und moderne EU-Norm seit den 1930ern",
+      "sortierung": 25,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Aderfarben im Wandel der Normen",
+          "tags": "aderfarbe norm VDE TGL DDR BRD grün-gelb schwarz rot grau braun PE N L1 L2 L3 altbestand IEC 60446 DIN VDE 0100 Geschichte",
+          "datei": "kabel_aderfarben/aderfarben_normen_geschichte.md"
+        }
+      ]
+    },
+    {
       "name": "Aderendhülsen",
       "beschreibung": "Typen, Farbtabellen, Crimp-Technik, häufige Fehler",
       "sortierung": 30,

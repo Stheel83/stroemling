@@ -338,6 +338,7 @@ Item {
                     bruecken:             (panel.kaDetails && panel.kaDetails.bruecken) ? panel.kaDetails.bruecken : []
                     markierteBezeichnung: panel.el ? ((panel.el.extraDaten || {}).anschlussBezeichnung || "") : ""
                     zeigeBezeichnungen:   true
+                    zeigeSeiten:          true
                     akzentFarbe:          theme.accent
                 }
                 Item { width: 1; height: 8 }

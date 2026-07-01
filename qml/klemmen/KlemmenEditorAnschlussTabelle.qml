@@ -22,6 +22,7 @@ Item {
             anschluesse:        klemmeModel.anschluesse
             bruecken:           klemmeModel.bruecken
             zeigeBezeichnungen: true
+            zeigeSeiten:        true
             debug:              root.debug
         }
 

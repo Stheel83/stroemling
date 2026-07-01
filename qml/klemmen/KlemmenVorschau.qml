@@ -15,11 +15,14 @@ Canvas {
     property string markierteBezeichnung: ""
     // Bezeichnungen neben den Kreisen einblenden (für EigenschaftenPanel)
     property bool   zeigeBezeichnungen:   false
+    // „Seite A" / „Seite B" als Kopfzeile über den Kreisgruppen anzeigen
+    property bool   zeigeSeiten:          false
     // Akzentfarbe für markierten Anschluss
     property string akzentFarbe:          theme.accent
 
     onMarkierteBezeichnungChanged: requestPaint()
     onZeigeBezeichnungenChanged:   requestPaint()
+    onZeigeSeitenChanged:          requestPaint()
     onThemeChanged:                requestPaint()
 
     // Layout-Konstanten
@@ -31,11 +34,14 @@ Canvas {
     readonly property int _margin:  16
 
     // Höhe wächst mit der Ebenenanzahl (Klemmen wachsen nach oben)
+    // +14px extra wenn Seiten-Labels angezeigt werden
+    readonly property int _seitenLblH: 14
     implicitHeight: {
         var ebenen = (klemme && klemme.ebenenAnzahl) ? klemme.ebenenAnzahl : 1
         var pe     = (klemme && klemme.fussKontaktPe) ? 28 : 0
+        var extra  = zeigeSeiten ? _seitenLblH : 0
         return Math.max(60, 2 * _margin + ebenen * _rowH
-                            + Math.max(0, ebenen - 1) * _rowGap + pe)
+                            + Math.max(0, ebenen - 1) * _rowGap + pe + extra)
     }
 
     // Breite richtet sich nach Anschluss-Punkten (wird für Hints genutzt)
@@ -116,6 +122,21 @@ Canvas {
         // Linke / rechte Endpunkte der waagerechten Durchgangslinie
         var lineLeftX  = pA > 0 ? axFuer(0)           : bodyLeftX
         var lineRightX = pB > 0 ? bxFuer(pB - 1) : (pA > 0 ? axFuer(pA - 1) : bodyRightX)
+
+        // ── Seite-A / Seite-B Kopfzeile (nur wenn zeigeSeiten aktiv) ────
+        if (root.zeigeSeiten) {
+            ctx.font         = "bold 9px sans-serif"
+            ctx.textBaseline = "middle"
+            ctx.fillStyle    = "#888888"
+            if (pA > 0) {
+                ctx.textAlign = "center"
+                ctx.fillText(qsTr("Seite A"), startX + aWidth / 2, _seitenLblH / 2)
+            }
+            if (pB > 0) {
+                ctx.textAlign = "center"
+                ctx.fillText(qsTr("Seite B"), bodyRightX + bWidth / 2, _seitenLblH / 2)
+            }
+        }
 
         // ── Jede Ebene zeichnen ───────────────────────────────────────────
         for (var e = 0; e < ebenen; ++e) {

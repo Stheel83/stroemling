@@ -100,7 +100,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/39_fehlersuchmodus.md` | Fehlersuchmodus (L9): Strompfad-BFS, seitenübergreifend, Symbol-Rollen | ✅ |
 | `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow | ✅ |
 | `konzept/features/41_git_integration.md` | Git-Integration: Auto-Commit, Remote-Push, Projekt-History | ✅ |
-| `konzept/features/41_sprungfunktion.md` | Sprungfunktion: Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette | 🔄 Phase 4 Teilumfang (Stückliste ✅, 7 Listen-Tabs offen) |
+| `konzept/features/41_sprungfunktion.md` | Sprungfunktion: Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette | 🔄 nur Kabelliste offen (1:n, bewusst zurückgestellt) — alle anderen 7 Listen-Tabs + Phase 1–3 ✅ |
 | `konzept/features/42_makro_palette.md` | Makro-Schnellpalette: Kategorie-Akzentstreifen, Overlay-Vorschau, Bibliotheks-Dialog | ✅ |
 | `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3 | ✅ |
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |

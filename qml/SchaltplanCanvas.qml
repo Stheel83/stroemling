@@ -3982,6 +3982,7 @@ Item {
     function einfuegen(slot)                         { aktionenHandler.einfuegen(slot) }
     function duplizieren()                           { aktionenHandler.duplizieren() }
     function ausschneiden()                          { aktionenHandler.ausschneiden() }
+    function crossProjektMakroErstellen()            { aktionenHandler.crossProjektMakroErstellen() }
     function auswahlFuerElement(idx)                 { return aktionenHandler.auswahlFuerElement(idx) }
     function gruppeErstellen()                       { aktionenHandler.gruppeErstellen() }
     function gruppeAufloesen()                       { aktionenHandler.gruppeAufloesen() }

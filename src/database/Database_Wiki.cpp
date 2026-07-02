@@ -1326,6 +1326,10 @@ bool Database::seedWikiStarterInhalte()
 
     QSqlQuery qKat(m_wikiDb);
     qKat.prepare("INSERT OR IGNORE INTO wiki_kategorie (name, beschreibung, sortierung) VALUES (:name, :beschr, :sort)");
+    // Bestehende Kategorien (Name-Match) auf Beschreibung/Sortierung aus dem Manifest
+    // synchronisieren – sonst wirkt eine manifest.json-Umsortierung nur bei Neuinstallationen.
+    QSqlQuery qKatUpd(m_wikiDb);
+    qKatUpd.prepare("UPDATE wiki_kategorie SET beschreibung = :beschr, sortierung = :sort WHERE name = :name");
     QSqlQuery qArtIns(m_wikiDb);
     qArtIns.prepare(R"(
         INSERT OR IGNORE INTO wiki_artikel (kategorie_id, titel, inhalt, tags, ist_system)
@@ -1350,6 +1354,14 @@ bool Database::seedWikiStarterInhalte()
         qKat.bindValue(":sort",  kat["sortierung"].toInt());
         if (!qKat.exec()) {
             qCWarning(lcDb) << "seedWikiStarterInhalte Kategorie:" << qKat.lastError().text();
+            return false;
+        }
+
+        qKatUpd.bindValue(":beschr", kat["beschreibung"].toString());
+        qKatUpd.bindValue(":sort",   kat["sortierung"].toInt());
+        qKatUpd.bindValue(":name",   katName);
+        if (!qKatUpd.exec()) {
+            qCWarning(lcDb) << "seedWikiStarterInhalte Kategorie-Update:" << qKatUpd.lastError().text();
             return false;
         }
 

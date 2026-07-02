@@ -4,7 +4,7 @@
     {
       "name": "Bedienhinweise",
       "beschreibung": "Grundlegende Bedienung von Strömling Design",
-      "sortierung": 1,
+      "sortierung": 10,
       "ist_system": true,
       "artikel": [
         {
@@ -61,8 +61,8 @@
     },
     {
       "name": "Nachschlagetabellen",
-      "beschreibung": "Schnelle Referenztabellen: LSS, Strombelastbarkeit, RCD-Typen, IP/IK-Schutzarten, Anzugsdrehmomente",
-      "sortierung": 5,
+      "beschreibung": "Schnelle Referenztabellen: LSS, Strombelastbarkeit, RCD-Typen, IP/IK-Schutzarten, Anzugsdrehmomente, Aderendhülsen, Kabelverschraubungen",
+      "sortierung": 20,
       "ist_system": false,
       "artikel": [
         {
@@ -104,13 +104,122 @@
           "titel": "AWG – Umrechnung American Wire Gauge zu mm²",
           "tags": "AWG American Wire Gauge Umrechnung mm² Querschnitt Arduino USB Elektronik Draht",
           "datei": "nachschlagetabellen/awg_mm2_umrechnung.md"
+        },
+        {
+          "titel": "Querschnitt–Farb–Größentabelle",
+          "tags": "aderendhülse querschnitt farbe tabelle",
+          "datei": "aderendhuelsen/querschnitt_farb_groesstabelle.md"
+        },
+        {
+          "titel": "Maßtabellen M und PG",
+          "tags": "kabelverschraubung PG metrisch M Außendurchmesser Steigung Bohrung Klemmbereich IP Schutzart DIN 40430 IEC 60423",
+          "datei": "kabelverschraubungen/kabelverschraubungen_masse.md"
+        }
+      ]
+    },
+    {
+      "name": "Normen & Kennzeichnung",
+      "beschreibung": "BMK nach DIN EN 81346, Klemmenbezeichnungen DIN EN 60445, Seitenkennzeichnung DIN 6771, Aderfarben-Normengeschichte, DIN 47100",
+      "sortierung": 30,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "BMK nach DIN EN 81346 – Kurzreferenz",
+          "tags": "BMK Betriebsmittelkennzeichen DIN 81346 IEC 81346 Anlage Ort Präfix = + - Kennbuchstabe",
+          "datei": "normen/bmk_din_81346.md"
+        },
+        {
+          "titel": "Klemmenbezeichnungen nach DIN EN 60445",
+          "tags": "Klemmenbezeichnung DIN 60445 L1 L2 L3 N PE U1 V1 W1 Schütz Thermorelay Klemmenleiste",
+          "datei": "normen/klemmenbezeichnungen_din60445.md"
+        },
+        {
+          "titel": "Seitenkennzeichnung nach DIN 6771",
+          "tags": "DIN 6771 Schriftfeld Stempelfeld Zeichnungsnummer Änderungsindex Revision Blattformat",
+          "datei": "normen/seitenkennzeichnung_din6771.md"
+        },
+        {
+          "titel": "Aderfarben im Wandel der Normen",
+          "tags": "aderfarbe norm VDE TGL DDR BRD grün-gelb schwarz rot grau braun PE N L1 L2 L3 altbestand IEC 60446 DIN VDE 0100 Geschichte",
+          "datei": "kabel_aderfarben/aderfarben_normen_geschichte.md"
+        },
+        {
+          "titel": "Aderfarben nach DIN 47100 – Mehradrige Steuerleitungen",
+          "tags": "DIN 47100 Aderfarben Steuerleitung LiYCY LiYY mehradrig Farbcode SPS Ringmarkierung",
+          "datei": "kabel_aderfarben/din47100_steuerleitungen.md"
+        }
+      ]
+    },
+    {
+      "name": "Schutzmaßnahmen",
+      "beschreibung": "5 Sicherheitsregeln, Überspannungsschutz SPD, Netzformen TN/TT/IT",
+      "sortierung": 40,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Die 5 Sicherheitsregeln",
+          "tags": "Sicherheitsregeln VDE 0105 Freischalten Spannungsfreiheit Erden Kurzschließen Schutzmaßnahmen",
+          "datei": "schutz/fuenf_sicherheitsregeln.md"
+        },
+        {
+          "titel": "Überspannungsschutz – SPD Typ 1 / 2 / 3",
+          "tags": "Überspannungsschutz SPD Blitzstromableiter Typ1 Typ2 Typ3 VDE 0100-443 0100-534 Koordination",
+          "datei": "schutz/ueberspannungsschutz_spd.md"
+        },
+        {
+          "titel": "TN-, TT- und IT-Netze – Netzformen im Überblick",
+          "tags": "TN TT IT Netz TN-C TN-S TN-C-S Netzform Erdung Schutzleiter PEN Nullung",
+          "datei": "schutz/tn_tt_it_netze.md"
+        },
+        {
+          "titel": "Schirmung – Konzepte, Feldtypen und Praxis",
+          "tags": "Schirmung Schirm EMV E-Feld H-Feld einseitig beidseitig Brummschleife Transferimpedanz Geflechtschirm Folienschirm Twisted Pair Zopf 360-Grad Motorleitung Analogsignal",
+          "datei": "schutz/schirmung.md"
+        }
+      ]
+    },
+    {
+      "name": "Motorsteuerung",
+      "beschreibung": "Schütz, Thermorelay, Stern-Dreieck-Anlasser, Motorschutz",
+      "sortierung": 50,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Drehstrommotor – Aufbau, Typenschild und Betrieb",
+          "tags": "Drehstrommotor Asynchronmotor Käfigläufer Typenschild Stern Dreieck Schlupf IE-Klasse Isolationsklasse Bauform Kühlart Drehmoment Kennlinie",
+          "datei": "motorsteuerung/drehstrommotor.md"
+        },
+        {
+          "titel": "Schütz + Thermorelay – Grundschaltung",
+          "tags": "Schütz Thermorelay Motorsteuerung Direktanlauf Selbsthaltung NOT-HALT Steuerstromkreis",
+          "datei": "motorsteuerung/schuetz_thermorelay.md"
+        },
+        {
+          "titel": "Stern-Dreieck-Anlasser",
+          "tags": "Stern Dreieck Y-Delta Anlasser Einschaltstrom Anlaufstrom Motor Zeitrelais Umschaltung",
+          "datei": "motorsteuerung/stern_dreieck_anlasser.md"
+        },
+        {
+          "titel": "Motorschutzschalter vs. Thermorelay",
+          "tags": "Motorschutzschalter MSS Thermorelay Überlastrelais Phasenausfall Vergleich Frequenzumrichter",
+          "datei": "motorsteuerung/motorschutz_vergleich.md"
+        },
+        {
+          "titel": "Sanftanlasser – Funktionsweise und Einsatz",
+          "tags": "Sanftanlasser Softstarter Thyristor Phasenanschnitt Anlaufspannung Rampzeit Bypass Pumpe Lüfter",
+          "datei": "motorsteuerung/sanftanlauf.md"
+        },
+        {
+          "titel": "Frequenzumrichter – Funktionsweise und Einsatz",
+          "tags": "Frequenzumrichter FU VFD IGBT PWM Drehzahlregelung EMV Bremswiderstand Lagerströme U/f Energiesparen",
+          "datei": "motorsteuerung/frequenzumrichter.md"
         }
       ]
     },
     {
       "name": "Altbestand",
       "beschreibung": "Klassische Nullung, Aluminium-Leitungen, DDR-Normen (TGL) und VDE-Übergangsperioden",
-      "sortierung": 10,
+      "sortierung": 60,
       "ist_system": false,
       "artikel": [
         {
@@ -154,146 +263,6 @@
           "datei": "altbestand_ost/klassische_nullung_kuriosum.md"
         }
       ]
-    },
-    {
-      "name": "Kabel & Aderfarben",
-      "beschreibung": "Aderfarben im Wandel der Normen: BRD, DDR und moderne EU-Norm seit den 1930ern",
-      "sortierung": 20,
-      "ist_system": false,
-      "artikel": [
-        {
-          "titel": "Aderfarben im Wandel der Normen",
-          "tags": "aderfarbe norm VDE TGL DDR BRD grün-gelb schwarz rot grau braun PE N L1 L2 L3 altbestand IEC 60446 DIN VDE 0100 Geschichte",
-          "datei": "kabel_aderfarben/aderfarben_normen_geschichte.md"
-        },
-        {
-          "titel": "Aderfarben nach DIN 47100 – Mehradrige Steuerleitungen",
-          "tags": "DIN 47100 Aderfarben Steuerleitung LiYCY LiYY mehradrig Farbcode SPS Ringmarkierung",
-          "datei": "kabel_aderfarben/din47100_steuerleitungen.md"
-        }
-      ]
-    },
-    {
-      "name": "Aderendhülsen",
-      "beschreibung": "Typen, Farbtabellen, Crimp-Technik, häufige Fehler",
-      "sortierung": 40,
-      "ist_system": false,
-      "artikel": [
-        {
-          "titel": "Querschnitt–Farb–Größentabelle",
-          "tags": "aderendhülse querschnitt farbe tabelle",
-          "datei": "aderendhuelsen/querschnitt_farb_groesstabelle.md"
-        }
-      ]
-    },
-    {
-      "name": "Normen & Kennzeichnung",
-      "beschreibung": "BMK nach DIN EN 81346, Klemmenbezeichnungen DIN EN 60445, Seitenkennzeichnung DIN 6771",
-      "sortierung": 30,
-      "ist_system": false,
-      "artikel": [
-        {
-          "titel": "BMK nach DIN EN 81346 – Kurzreferenz",
-          "tags": "BMK Betriebsmittelkennzeichen DIN 81346 IEC 81346 Anlage Ort Präfix = + - Kennbuchstabe",
-          "datei": "normen/bmk_din_81346.md"
-        },
-        {
-          "titel": "Klemmenbezeichnungen nach DIN EN 60445",
-          "tags": "Klemmenbezeichnung DIN 60445 L1 L2 L3 N PE U1 V1 W1 Schütz Thermorelay Klemmenleiste",
-          "datei": "normen/klemmenbezeichnungen_din60445.md"
-        },
-        {
-          "titel": "Seitenkennzeichnung nach DIN 6771",
-          "tags": "DIN 6771 Schriftfeld Stempelfeld Zeichnungsnummer Änderungsindex Revision Blattformat",
-          "datei": "normen/seitenkennzeichnung_din6771.md"
-        }
-      ]
-    },
-    {
-      "name": "Schutzmaßnahmen",
-      "beschreibung": "5 Sicherheitsregeln, Überspannungsschutz SPD, Netzformen TN/TT/IT",
-      "sortierung": 35,
-      "ist_system": false,
-      "artikel": [
-        {
-          "titel": "Die 5 Sicherheitsregeln",
-          "tags": "Sicherheitsregeln VDE 0105 Freischalten Spannungsfreiheit Erden Kurzschließen Schutzmaßnahmen",
-          "datei": "schutz/fuenf_sicherheitsregeln.md"
-        },
-        {
-          "titel": "Überspannungsschutz – SPD Typ 1 / 2 / 3",
-          "tags": "Überspannungsschutz SPD Blitzstromableiter Typ1 Typ2 Typ3 VDE 0100-443 0100-534 Koordination",
-          "datei": "schutz/ueberspannungsschutz_spd.md"
-        },
-        {
-          "titel": "TN-, TT- und IT-Netze – Netzformen im Überblick",
-          "tags": "TN TT IT Netz TN-C TN-S TN-C-S Netzform Erdung Schutzleiter PEN Nullung",
-          "datei": "schutz/tn_tt_it_netze.md"
-        },
-        {
-          "titel": "Schirmung – Konzepte, Feldtypen und Praxis",
-          "tags": "Schirmung Schirm EMV E-Feld H-Feld einseitig beidseitig Brummschleife Transferimpedanz Geflechtschirm Folienschirm Twisted Pair Zopf 360-Grad Motorleitung Analogsignal",
-          "datei": "schutz/schirmung.md"
-        }
-      ]
-    },
-    {
-      "name": "Motorsteuerung",
-      "beschreibung": "Schütz, Thermorelay, Stern-Dreieck-Anlasser, Motorschutz",
-      "sortierung": 55,
-      "ist_system": false,
-      "artikel": [
-        {
-          "titel": "Drehstrommotor – Aufbau, Typenschild und Betrieb",
-          "tags": "Drehstrommotor Asynchronmotor Käfigläufer Typenschild Stern Dreieck Schlupf IE-Klasse Isolationsklasse Bauform Kühlart Drehmoment Kennlinie",
-          "datei": "motorsteuerung/drehstrommotor.md"
-        },
-        {
-          "titel": "Schütz + Thermorelay – Grundschaltung",
-          "tags": "Schütz Thermorelay Motorsteuerung Direktanlauf Selbsthaltung NOT-HALT Steuerstromkreis",
-          "datei": "motorsteuerung/schuetz_thermorelay.md"
-        },
-        {
-          "titel": "Stern-Dreieck-Anlasser",
-          "tags": "Stern Dreieck Y-Delta Anlasser Einschaltstrom Anlaufstrom Motor Zeitrelais Umschaltung",
-          "datei": "motorsteuerung/stern_dreieck_anlasser.md"
-        },
-        {
-          "titel": "Motorschutzschalter vs. Thermorelay",
-          "tags": "Motorschutzschalter MSS Thermorelay Überlastrelais Phasenausfall Vergleich Frequenzumrichter",
-          "datei": "motorsteuerung/motorschutz_vergleich.md"
-        },
-        {
-          "titel": "Sanftanlasser – Funktionsweise und Einsatz",
-          "tags": "Sanftanlasser Softstarter Thyristor Phasenanschnitt Anlaufspannung Rampzeit Bypass Pumpe Lüfter",
-          "datei": "motorsteuerung/sanftanlauf.md"
-        },
-        {
-          "titel": "Frequenzumrichter – Funktionsweise und Einsatz",
-          "tags": "Frequenzumrichter FU VFD IGBT PWM Drehzahlregelung EMV Bremswiderstand Lagerströme U/f Energiesparen",
-          "datei": "motorsteuerung/frequenzumrichter.md"
-        }
-      ]
-    },
-    {
-      "name": "Kabelverschraubungen",
-      "beschreibung": "Maßtabellen und Auswahlhilfe für metrische und PG-Kabelverschraubungen",
-      "sortierung": 50,
-      "ist_system": false,
-      "artikel": [
-        {
-          "titel": "Maßtabellen M und PG",
-          "tags": "kabelverschraubung PG metrisch M Außendurchmesser Steigung Bohrung Klemmbereich IP Schutzart DIN 40430 IEC 60423",
-          "datei": "kabelverschraubungen/kabelverschraubungen_masse.md"
-        }
-      ]
-    },
-    {
-      "name": "Kuriositäten",
-      "beschreibung": "Ungewöhnliche Fundsachen aus der Praxis",
-      "sortierung": 60,
-      "ist_system": false,
-      "artikel": []
     },
     {
       "name": "Strömlinge",

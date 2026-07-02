@@ -329,12 +329,17 @@ Item {
                     }
 
                     delegate: Rectangle {
+                        id: feldDelegate
                         required property var modelData
                         required property int index
                         width: feldListe.width; height: 38
+                        z: dragHandle.drag.active ? 10 : 0
+                        opacity: dragHandle.drag.active ? 0.75 : 1.0
                         color: root._editId === modelData.id
                                ? root.theme.activeItemAlt
                                : (reiheHover.containsMouse ? root.theme.hover : "transparent")
+
+                        property real _savedY: 0
 
                         HoverHandler { id: reiheHover }
 
@@ -354,11 +359,43 @@ Item {
                             anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
                             spacing: 6
 
-                            // ≡ Sortier-Handle (visuell)
-                            Text {
-                                text: "≡"; font.pixelSize: 14
-                                color: root.theme.borderLight
-                                opacity: modelData.erstelltVon === "user" ? 0.8 : 0.3
+                            // ≡ Sortier-Handle – per Ziehen Feld innerhalb der
+                            // Kategorie umsortieren (IBN-05)
+                            Item {
+                                width: 16; height: parent.height
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "≡"; font.pixelSize: 14
+                                    color: dragHandle.drag.active ? root.theme.accent : root.theme.borderLight
+                                    opacity: dragHandle.drag.active ? 1.0
+                                             : (modelData.erstelltVon === "user" ? 0.8 : 0.3)
+                                }
+
+                                MouseArea {
+                                    id:            dragHandle
+                                    anchors.fill:  parent
+                                    drag.target:   feldDelegate
+                                    drag.axis:     Drag.YAxis
+                                    drag.minimumY: -9999
+                                    drag.maximumY:  9999
+                                    cursorShape:   drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                    ToolTip.visible: containsMouse && !drag.active
+                                    ToolTip.text:    qsTr("Feld innerhalb der Kategorie per Ziehen umsortieren")
+                                    ToolTip.delay:   700
+
+                                    onPressed: {
+                                        feldDelegate._savedY = feldDelegate.y
+                                    }
+                                    onReleased: {
+                                        if (drag.active) {
+                                            var delta      = feldDelegate.y - feldDelegate._savedY
+                                            var neuerIndex = Math.max(0, feldDelegate.index + Math.round(delta / 38))
+                                            if (db.ibnFeldVorlageUmordnen(modelData.id, neuerIndex))
+                                                root.laden()
+                                        }
+                                    }
+                                }
                             }
 
                             // Label + interner Feldname

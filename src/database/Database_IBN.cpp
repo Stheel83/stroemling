@@ -617,6 +617,53 @@ bool Database::ibnFeldVorlageLoeschen(int id)
     return q.numRowsAffected() > 0;
 }
 
+// ============================================================
+// ibnFeldVorlageUmordnen (IBN-05, Feld-Reihenfolge per Drag & Drop)
+// reihenfolge ist pro symbol_kategorie skaliert (0..n-1) – neues Feld
+// bekommt beim Anlegen bereits MAX(reihenfolge)+1 innerhalb seiner
+// Kategorie (siehe ibnFeldVorlageSpeichern). Gleiches Muster wie
+// SeitenModel::seiteUmordnen() (Pro-Skop-Neu-Nummerierung nach Verschieben).
+// ============================================================
+bool Database::ibnFeldVorlageUmordnen(int id, int neuerIndex)
+{
+    QSqlQuery kq(m_db);
+    kq.prepare("SELECT symbol_kategorie FROM ibn_feldvorlage WHERE id = :id");
+    kq.bindValue(":id", id);
+    if (!kq.exec() || !kq.next()) return false;
+    const QString kategorie = kq.value(0).toString();
+
+    QSqlQuery lq(m_db);
+    lq.prepare("SELECT id FROM ibn_feldvorlage WHERE symbol_kategorie = :kat "
+               "ORDER BY reihenfolge, id");
+    lq.bindValue(":kat", kategorie);
+    if (!lq.exec()) {
+        qCWarning(lcDb) << "ibnFeldVorlageUmordnen SELECT:" << lq.lastError().text();
+        return false;
+    }
+    QList<int> ids;
+    while (lq.next()) ids.append(lq.value(0).toInt());
+
+    const int alterIndex = ids.indexOf(id);
+    if (alterIndex < 0) return false;
+    neuerIndex = qBound(0, neuerIndex, ids.size() - 1);
+    if (alterIndex == neuerIndex) return false;
+
+    ids.removeAt(alterIndex);
+    ids.insert(neuerIndex, id);
+
+    QSqlQuery uq(m_db);
+    uq.prepare("UPDATE ibn_feldvorlage SET reihenfolge = :r WHERE id = :id");
+    for (int i = 0; i < ids.size(); ++i) {
+        uq.bindValue(":r",  i);
+        uq.bindValue(":id", ids[i]);
+        if (!uq.exec()) {
+            qCWarning(lcDb) << "ibnFeldVorlageUmordnen UPDATE:" << uq.lastError().text();
+            return false;
+        }
+    }
+    return true;
+}
+
 bool Database::ibnFeldVorlageAktualisieren(int id,
                                              const QString &label,
                                              const QString &feldtyp,

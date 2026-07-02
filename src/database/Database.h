@@ -375,6 +375,11 @@ public:
     // Benutzerdefiniertes Feld löschen (nur erstellt_von = 'user' erlaubt).
     Q_INVOKABLE bool ibnFeldVorlageLoeschen(int id);
 
+    // Feld innerhalb seiner symbol_kategorie umsortieren (IBN-05 Drag & Drop).
+    // Gilt für System- und Nutzerfelder gleichermaßen – Reihenfolge ist reine
+    // Anzeigepräferenz, unabhängig vom Bearbeiten/Löschen-Schreibschutz.
+    Q_INVOKABLE bool ibnFeldVorlageUmordnen(int id, int neuerIndex);
+
     // Alle Gerätekästen des Projekts mit Seite + Mittelpunkt (für Seitenbaum).
     Q_INVOKABLE QVariantList geraetekastenListeMitPos(int projektId) const;
 

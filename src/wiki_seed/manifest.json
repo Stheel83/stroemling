@@ -71,8 +71,8 @@
           "datei": "nachschlagetabellen/lss_ausloesecharakteristik.md"
         },
         {
-          "titel": "Strombelastbarkeit von Leitungen – VDE 0298",
-          "tags": "strombelastbarkeit kabel leitung querschnitt VDE 0298 verlegeart häufung korrekturfaktor",
+          "titel": "Strombelastbarkeit von Leitungen und Einzeladern – VDE 0298",
+          "tags": "strombelastbarkeit kabel leitung einzelader querschnitt VDE 0298 verlegeart häufung korrekturfaktor H07V-K H05V-K Schaltschrankverdrahtung Absicherung VDE 0100-430 gG-Sicherung Leitungsschutzschalter",
           "datei": "nachschlagetabellen/strombelastbarkeit_vde0298.md"
         },
         {
@@ -94,11 +94,6 @@
           "titel": "Anzugsdrehmomente für Schraubklemmen",
           "tags": "anzugsdrehmoment klemme schraubklemme drehmoment Nm Aluminium Federzugklemme Wago Phoenix",
           "datei": "nachschlagetabellen/anzugsdrehmomente_klemmen.md"
-        },
-        {
-          "titel": "Strombelastbarkeit von Einzeladern – Schaltschrankverdrahtung & Absicherung",
-          "tags": "Einzelader H07V-K H05V-K Schaltschrankverdrahtung Strombelastbarkeit Absicherung VDE 0100-430 gG-Sicherung Leitungsschutzschalter",
-          "datei": "nachschlagetabellen/strombelastbarkeit_einzeladern.md"
         },
         {
           "titel": "AWG – Umrechnung American Wire Gauge zu mm²",

@@ -75,8 +75,7 @@ die deutsche **DIN VDE 0298-4**. Eine "18 AWG = 10 A"-Angabe aus einem
 US-Datenblatt darf **nicht** ungeprüft für eine deutsche Installation
 übernommen werden — für die Absicherung gilt immer die Strombelastbarkeit
 nach VDE 0298-4 des tatsächlich verbauten Querschnitts in mm², siehe
-[Strombelastbarkeit von Leitungen – VDE 0298-4](strombelastbarkeit_vde0298.md)
-bzw. [Strombelastbarkeit von Einzeladern](strombelastbarkeit_einzeladern.md).
+[Strombelastbarkeit von Leitungen und Einzeladern – VDE 0298-4](strombelastbarkeit_vde0298.md).
 
 ---
 

@@ -155,8 +155,30 @@ Item {
     }
 
     // ── Layout ────────────────────────────────────────────────
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
+        spacing:      0
+
+        // Persistenter Hinweis: Wiki-Inhalte entstehen u. a. mit KI-Unterstützung
+        Rectangle {
+            Layout.fillWidth: true
+            height:           26
+            color:            root.theme.surfaceDeep
+            Rectangle {
+                anchors.bottom: parent.bottom
+                width: parent.width; height: 1; color: root.theme.border
+            }
+            Text {
+                anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
+                text:           qsTr("🤖 Wiki-Inhalte entstehen u. a. mit Unterstützung von KI (Claude Code) — redaktionell geprüft.")
+                font.pixelSize: 10
+                color:          root.theme.textMuted
+            }
+        }
+
+    RowLayout {
+        Layout.fillWidth:  true
+        Layout.fillHeight: true
         spacing:      0
 
         // ── Spalte 1: Kategorien ──────────────────────────────
@@ -991,6 +1013,7 @@ Item {
                 }
             }
         }
+    }
     }
 
     // ── Bild-Einfügen-Popup ───────────────────────────────────

@@ -300,6 +300,8 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/nachschlagetabellen/ip_schutzarten.md
         src/wiki_seed/nachschlagetabellen/ik_schutzklassen.md
         src/wiki_seed/nachschlagetabellen/anzugsdrehmomente_klemmen.md
+        src/wiki_seed/nachschlagetabellen/strombelastbarkeit_einzeladern.md
+        src/wiki_seed/nachschlagetabellen/awg_mm2_umrechnung.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
         src/wiki_seed/altbestand_west/nullleiter_unterbrechung_tt.md
@@ -316,6 +318,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/schutz/tn_tt_it_netze.md
         src/wiki_seed/schutz/schirmung.md
         src/wiki_seed/kabel_aderfarben/aderfarben_normen_geschichte.md
+        src/wiki_seed/kabel_aderfarben/din47100_steuerleitungen.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
         src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
         src/wiki_seed/motorsteuerung/drehstrommotor.md
@@ -415,6 +418,8 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/nachschlagetabellen/ip_schutzarten.md
         src/wiki_seed/nachschlagetabellen/ik_schutzklassen.md
         src/wiki_seed/nachschlagetabellen/anzugsdrehmomente_klemmen.md
+        src/wiki_seed/nachschlagetabellen/strombelastbarkeit_einzeladern.md
+        src/wiki_seed/nachschlagetabellen/awg_mm2_umrechnung.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
         src/wiki_seed/altbestand_west/nullleiter_unterbrechung_tt.md
@@ -431,6 +436,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/schutz/tn_tt_it_netze.md
         src/wiki_seed/schutz/schirmung.md
         src/wiki_seed/kabel_aderfarben/aderfarben_normen_geschichte.md
+        src/wiki_seed/kabel_aderfarben/din47100_steuerleitungen.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
         src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
         src/wiki_seed/motorsteuerung/drehstrommotor.md

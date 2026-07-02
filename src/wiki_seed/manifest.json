@@ -94,6 +94,16 @@
           "titel": "Anzugsdrehmomente für Schraubklemmen",
           "tags": "anzugsdrehmoment klemme schraubklemme drehmoment Nm Aluminium Federzugklemme Wago Phoenix",
           "datei": "nachschlagetabellen/anzugsdrehmomente_klemmen.md"
+        },
+        {
+          "titel": "Strombelastbarkeit von Einzeladern – Schaltschrankverdrahtung & Absicherung",
+          "tags": "Einzelader H07V-K H05V-K Schaltschrankverdrahtung Strombelastbarkeit Absicherung VDE 0100-430 gG-Sicherung Leitungsschutzschalter",
+          "datei": "nachschlagetabellen/strombelastbarkeit_einzeladern.md"
+        },
+        {
+          "titel": "AWG – Umrechnung American Wire Gauge zu mm²",
+          "tags": "AWG American Wire Gauge Umrechnung mm² Querschnitt Arduino USB Elektronik Draht",
+          "datei": "nachschlagetabellen/awg_mm2_umrechnung.md"
         }
       ]
     },
@@ -155,6 +165,11 @@
           "titel": "Aderfarben im Wandel der Normen",
           "tags": "aderfarbe norm VDE TGL DDR BRD grün-gelb schwarz rot grau braun PE N L1 L2 L3 altbestand IEC 60446 DIN VDE 0100 Geschichte",
           "datei": "kabel_aderfarben/aderfarben_normen_geschichte.md"
+        },
+        {
+          "titel": "Aderfarben nach DIN 47100 – Mehradrige Steuerleitungen",
+          "tags": "DIN 47100 Aderfarben Steuerleitung LiYCY LiYY mehradrig Farbcode SPS Ringmarkierung",
+          "datei": "kabel_aderfarben/din47100_steuerleitungen.md"
         }
       ]
     },

@@ -36,6 +36,12 @@ KI-Werkzeugen entwickelt:
 Die Projektidee stammt vom Projektinhaber — Konzepte und Quellcode
 wurden gemeinsam mit KI erarbeitet.
 
+> **Hinweis zu diesem Wiki:** Auch die Artikel in diesem Nachschlagewerk
+> sind unter anderem mit Unterstützung von **Claude Code** entstanden —
+> recherchiert und formuliert auf Basis öffentlicher Normen und
+> Fachquellen, redaktionell geprüft vom Projektinhaber. Fehler bitte
+> melden, damit sie korrigiert werden können.
+
 ## Warum Open Source?
 
 Ich wollte testen, wie weit ich mit KI-Unterstützung ein Programm nach

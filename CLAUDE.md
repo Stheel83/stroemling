@@ -194,6 +194,27 @@ Vollständige Liste mit Ursachen und Fixes: → `konzept/technik/18_debugging.md
 - Bei Designentscheidungen kurz begründen warum – analog zum Stil in
   `konzept/architektur/01_vision_architektur.md` Abschnitt „Designentscheidungen"
 
+### Commits – automatisch, ohne Rückfrage
+
+Nach Abschluss einer Änderung (Code und/oder Konzept) **direkt committen,
+ohne vorher zu fragen** – das gilt als durch diese Datei vorab autorisiert:
+
+- **Code-Änderungen** (alles außerhalb `konzept/`) → Commit im **Hauptrepo**
+  (`stroemling`)
+- **Konzept-Änderungen** (Dateien unter `konzept/`, tatsächlich im separaten
+  Repo `stroemling-konzept`) → Commit **im Konzept-Repo**, nicht im Hauptrepo
+  (`git -C stroemling-konzept …`, da `konzept/` nur ein Symlink ist)
+- Betreffen beide Repos, entsprechend **zwei getrennte Commits**
+- **`.xcf`-Dateien (GIMP-Rohformate) werden NIE committet** – weder im
+  Hauptrepo noch im Konzept-Repo. Zusätzlich zu dieser Regel liegt eine
+  `*.xcf`-Zeile in `stroemling-konzept/.gitignore`, damit sie erst gar
+  nicht als „untracked" auftauchen
+- Ausnahmen (weiterhin nachfragen bzw. nicht automatisch committen):
+  kaputter/unvollständiger Zwischenstand, der Nutzer sagt explizit „noch
+  nicht committen", oder es ist unklar ob eine Änderung fertig ist
+- **`git push` bleibt davon unberührt** – nur nach expliziter Anfrage,
+  nie automatisch
+
 ### Abgleich Konzept ↔ Code (bei Unklarheit)
 Wenn der Überblick fehlt oder Konzept und Code auseinanderdriften:
 > „Lies alle Dateien in `konzept/` und vergleiche sie mit dem tatsächlichen

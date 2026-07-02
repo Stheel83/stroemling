@@ -639,6 +639,13 @@ QtObject {
         var s = (slot === undefined) ? 0 : slot
         if (s === 0) {
             cv.zwischenablage = inhalt
+            // COPY-CROSS-01: Slot 0 zusätzlich auf die System-Zwischenablage
+            // spiegeln, damit eine ANDERE Prozessinstanz (anderes Projekt)
+            // einfügen kann. Slots 1-4 bleiben bewusst rein lokal/in-memory.
+            var exportiert = db.elementeFuerExportSanitisieren(inhalt)
+            appHelper.systemZwischenablageSchreiben(JSON.stringify({
+                version: 1, projektPfad: db.projektPfad, elemente: exportiert
+            }))
         } else {
             var neu = cv.zwischenablagen.slice()
             neu[s] = inhalt
@@ -648,11 +655,40 @@ QtObject {
 
     function einfuegen(slot) {
         var s = (slot === undefined) ? 0 : slot
+        if (s === 0 && cv.zwischenablage.length === 0) {
+            _einfuegenAusSystemZwischenablage()
+            return
+        }
         var quelle = (s === 0) ? cv.zwischenablage : cv.zwischenablagen[s]
         if (!quelle || quelle.length === 0 || cv.seiteId < 0) return
         cv.duplizierVorlage   = quelle
         cv.duplizierMitDialog = false
         cv.aktivesWerkzeug    = "duplizieren"
+        _duplizierVorschauAktualisieren(cv.letzteMausWeltX, cv.letzteMausWeltY)
+    }
+
+    // COPY-CROSS-01: Fallback wenn die lokale In-Memory-Zwischenablage leer
+    // ist (z.B. weil in einer ANDEREN Prozessinstanz kopiert wurde) – liest
+    // die System-Zwischenablage, vergleicht die Projektherkunft und saniert
+    // bei fremdem Projekt Instanz-Referenzen (betriebsmittelId → Snapshot,
+    // analog Makro-Export). Stiller Abbruch bei leerem/ungültigem Inhalt
+    // (z.B. Text aus einer anderen App kopiert).
+    function _einfuegenAusSystemZwischenablage() {
+        if (cv.seiteId < 0) return
+        var roh = appHelper.systemZwischenablageLesen()
+        if (!roh) return
+        var payload
+        try { payload = JSON.parse(roh) } catch (e) { console.warn("Zwischenablage: ungültiges JSON", e); return }
+        if (!payload || !payload.elemente || payload.elemente.length === 0) return
+
+        var fremdesProjekt = payload.projektPfad !== db.projektPfad
+        var quelle = fremdesProjekt
+            ? db.elementeFuerImportSanitisieren(payload.elemente, cv.seiteId)
+            : payload.elemente
+        cv.duplizierVorlage            = quelle
+        cv.duplizierMitDialog          = false
+        cv._nachEinfuegenMakroAnbieten = fremdesProjekt
+        cv.aktivesWerkzeug             = "duplizieren"
         _duplizierVorschauAktualisieren(cv.letzteMausWeltX, cv.letzteMausWeltY)
     }
 
@@ -802,6 +838,50 @@ QtObject {
         cv.duplizierVorlage  = null
         cv.duplizierVorschau = null
         cv.neuZeichnen()
+
+        if (cv._nachEinfuegenMakroAnbieten) {
+            cv._nachEinfuegenMakroAnbieten = false
+            _crossProjektMakroAnbieten(sel)
+        }
+    }
+
+    // COPY-CROSS-01: Bounding-Box der frisch aus einem anderen Projekt
+    // eingefügten Elemente ermitteln und den Bestätigungsdialog öffnen
+    // ("Als Makro behalten?" statt Blockade – sanfte statt harte Lenkung,
+    // siehe konzept/features/15_makros.md §2c).
+    function _crossProjektMakroAnbieten(indizes) {
+        if (!indizes || indizes.length === 0) return
+        var em = cv.elementeModel
+        var erstes = em.element(indizes[0])
+        var minX = erstes.x1, minY = erstes.y1, maxX = erstes.x2, maxY = erstes.y2
+        for (var i = 1; i < indizes.length; i++) {
+            var e = em.element(indizes[i])
+            if (e.x1 < minX) minX = e.x1
+            if (e.y1 < minY) minY = e.y1
+            if (e.x2 > maxX) maxX = e.x2
+            if (e.y2 > maxY) maxY = e.y2
+        }
+        cv._crossProjektBbox = { x1: minX, y1: minY, x2: maxX, y2: maxY }
+        cv.crossProjektEinfuegenDialogOeffnen()
+    }
+
+    // Wird vom CrossProjektEinfuegenDialog bei "Ja, als Makro behalten"
+    // aufgerufen: legt einen Makrokasten um die zuletzt eingefügte Auswahl
+    // an – exakt derselbe Flow wie beim manuellen Zeichnen eines
+    // Makrokastens (CanvasInteraktionArea.qml → makrobenennDialogFuerNeuOeffnen).
+    function crossProjektMakroErstellen() {
+        var b = cv._crossProjektBbox
+        if (!b) return
+        var kasten = Object.assign(
+            { typ: "makrokasten", x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 },
+            cv.stilVorlage)
+        kasten.strichFarbe = "#aa44cc"; kasten.strichArt = "gestrichelt"; kasten.fuell = false
+        kasten.extraDaten  = { name: "", beschreibung: "", kategorie: "", makroId: 0 }
+        aktionAusfuehren(cv.elementeModel.snapshot().concat([kasten]))
+        cv.grafikSpeichernJetzt()
+        cv.elementeModel.laden(cv.seiteId)   // IDs ändern sich durch DELETE+INSERT
+        var newIdx = cv.elementeModel.anzahl - 1
+        cv.makrobenennDialogFuerNeuOeffnen(newIdx)
     }
 
     function abbruch() {

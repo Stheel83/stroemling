@@ -93,6 +93,87 @@ bool Database::openMakro(const QString &path)
 #include <QDateTime>
 #include <algorithm>
 
+// ============================================================
+// _bauteilSnapshotErzeugen
+// Betriebsmittel-Snapshot (bezeichnung/hersteller/artikelnummer) für den
+// Export in projektunabhängige Formate (Makro-Bibliothek, Zwischenablage).
+// Leeres QJsonObject wenn betriebsmittelId <= 0 oder kein Bauteil verknüpft.
+// ============================================================
+QJsonObject Database::_bauteilSnapshotErzeugen(int betriebsmittelId)
+{
+    QJsonObject snap;
+    if (betriebsmittelId <= 0) return snap;
+
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT b.bezeichnung, b.hersteller, b.artikelnummer
+        FROM betriebsmittel bm
+        LEFT JOIN bibliothek.bauteil b ON b.id = bm.bauteil_id
+        WHERE bm.id = :bmid
+    )");
+    q.bindValue(":bmid", betriebsmittelId);
+    if (q.exec() && q.next()) {
+        const QString bezeichnung = q.value(0).toString();
+        if (!bezeichnung.isEmpty()) {
+            snap[QStringLiteral("bezeichnung")]   = bezeichnung;
+            snap[QStringLiteral("hersteller")]    = q.value(1).toString();
+            snap[QStringLiteral("artikelnummer")] = q.value(2).toString();
+        }
+    }
+    return snap;
+}
+
+// ============================================================
+// _betriebsmittelAusSnapshotAnlegenOderFinden
+// Kehrseite von _bauteilSnapshotErzeugen: Bauteil in bibliothek.bauteil
+// finden (Artikelnummer-Match) oder neu anlegen, dann betriebsmittel im
+// Zielprojekt anlegen. Gibt die neue betriebsmittel_id zurück (QVariant()
+// bei leerem Snapshot, fehlender Projekt-ID oder Fehler).
+// ============================================================
+QVariant Database::_betriebsmittelAusSnapshotAnlegenOderFinden(const QJsonObject &snap,
+                                                                  const QString &bmk,
+                                                                  const QString &symbolKey,
+                                                                  int projektId)
+{
+    QVariant bmId; // NULL by default
+    if (snap.isEmpty() || projektId <= 0) return bmId;
+
+    const QString bezeichnung   = snap.value(QStringLiteral("bezeichnung")).toString();
+    const QString hersteller    = snap.value(QStringLiteral("hersteller")).toString();
+    const QString artikelnummer = snap.value(QStringLiteral("artikelnummer")).toString();
+
+    int bauteilId = -1;
+    if (!artikelnummer.isEmpty()) {
+        QSqlQuery qb(m_db);
+        qb.prepare("SELECT id FROM bibliothek.bauteil WHERE artikelnummer = :an LIMIT 1");
+        qb.bindValue(":an", artikelnummer);
+        if (qb.exec() && qb.next()) bauteilId = qb.value(0).toInt();
+    }
+    if (bauteilId < 0 && !bezeichnung.isEmpty()) {
+        QSqlQuery qins(m_db);
+        qins.prepare("INSERT INTO bibliothek.bauteil (bezeichnung, hersteller, artikelnummer) "
+                     "VALUES (:bez, :her, :art)");
+        qins.bindValue(":bez", bezeichnung);
+        qins.bindValue(":her", hersteller.isEmpty() ? QVariant() : QVariant(hersteller));
+        qins.bindValue(":art", artikelnummer.isEmpty() ? QVariant() : QVariant(artikelnummer));
+        if (qins.exec()) bauteilId = qins.lastInsertId().toInt();
+        else qCWarning(lcDb) << "_betriebsmittelAusSnapshotAnlegenOderFinden INSERT bauteil:" << qins.lastError().text();
+    }
+    if (bauteilId > 0) {
+        QSqlQuery qbm(m_db);
+        qbm.prepare("INSERT INTO betriebsmittel "
+                    "(projekt_id, bauteil_id, betriebsmittel_kz, symbol_code) "
+                    "VALUES (:pid, :bid, :kz, :sc)");
+        qbm.bindValue(":pid", projektId);
+        qbm.bindValue(":bid", bauteilId);
+        qbm.bindValue(":kz",  bmk.isEmpty() ? QStringLiteral("?") : bmk);
+        qbm.bindValue(":sc",  symbolKey.isEmpty() ? QVariant() : QVariant(symbolKey));
+        if (qbm.exec()) bmId = qbm.lastInsertId().toInt();
+        else qCWarning(lcDb) << "_betriebsmittelAusSnapshotAnlegenOderFinden INSERT betriebsmittel:" << qbm.lastError().text();
+    }
+    return bmId;
+}
+
 int Database::makroSpeichern(int grafikElementId, int seiteId)
 {
     if (!m_makroDb.isOpen()) {
@@ -126,7 +207,8 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
     const double maxX = std::max(kx1, kx2);
     const double maxY = std::max(ky1, ky2);
 
-    // Elemente aus Projekt-DB sammeln (inkl. Bauteil-Snapshot via LEFT JOIN)
+    // Elemente aus Projekt-DB sammeln (Bauteil-Snapshot je Element via
+    // _bauteilSnapshotErzeugen(), s.u. – ersetzt den früheren LEFT JOIN)
     QSqlQuery qe(m_db);
     qe.prepare(R"(
         SELECT ge.typ, ge.x1, ge.y1, ge.x2, ge.y2, ge.extra_daten,
@@ -135,12 +217,8 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
                ge.strich_farbe, ge.strich_breite, ge.strich_art,
                ge.fuell, ge.fuell_farbe, ge.fuell_opazitaet,
                ge.opazitaet, ge.ecken_radius,
-               b.bezeichnung  AS bauteil_bezeichnung,
-               b.hersteller   AS bauteil_hersteller,
-               b.artikelnummer AS bauteil_artikelnummer
+               ge.betriebsmittel_id
         FROM grafik_element ge
-        LEFT JOIN betriebsmittel bm ON bm.id = ge.betriebsmittel_id
-        LEFT JOIN bibliothek.bauteil b ON b.id  = bm.bauteil_id
         WHERE ge.seite_id = :sid
           AND ge.id != :kid
           AND ge.typ != 'makrokasten'
@@ -217,17 +295,14 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
 
     while (qe.next()) {
         const QString symbolId       = qe.value(6).toString();
-        const QString bauteilBezeich = qe.value(19).toString();
+        const int betriebsmittelId   = qe.value(19).toInt(0);
         QString edJson = qe.value(5).toString();
         QJsonObject edObj = QJsonDocument::fromJson(edJson.toUtf8()).object();
         bool edGeaendert = false;
 
         // Bauteil-Snapshot in extra_daten einbetten (falls Bauteil verknüpft)
-        if (!bauteilBezeich.isEmpty()) {
-            QJsonObject snap;
-            snap[QStringLiteral("bezeichnung")]   = bauteilBezeich;
-            snap[QStringLiteral("hersteller")]    = qe.value(20).toString();
-            snap[QStringLiteral("artikelnummer")] = qe.value(21).toString();
+        const QJsonObject snap = _bauteilSnapshotErzeugen(betriebsmittelId);
+        if (!snap.isEmpty()) {
             edObj[QStringLiteral("bauteilSnapshot")] = snap;
             edGeaendert = true;
         }
@@ -438,41 +513,9 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
         QVariant bmId; // NULL by default
         const QJsonObject snap = edObj.value(QStringLiteral("bauteilSnapshot")).toObject();
         if (!snap.isEmpty() && projektId > 0) {
-            const QString bezeichnung   = snap.value(QStringLiteral("bezeichnung")).toString();
-            const QString hersteller    = snap.value(QStringLiteral("hersteller")).toString();
-            const QString artikelnummer = snap.value(QStringLiteral("artikelnummer")).toString();
-
-            int bauteilId = -1;
-            if (!artikelnummer.isEmpty()) {
-                QSqlQuery qb(m_db);
-                qb.prepare("SELECT id FROM bibliothek.bauteil WHERE artikelnummer = :an LIMIT 1");
-                qb.bindValue(":an", artikelnummer);
-                if (qb.exec() && qb.next()) bauteilId = qb.value(0).toInt();
-            }
-            if (bauteilId < 0 && !bezeichnung.isEmpty()) {
-                QSqlQuery qins(m_db);
-                qins.prepare("INSERT INTO bibliothek.bauteil (bezeichnung, hersteller, artikelnummer) "
-                             "VALUES (:bez, :her, :art)");
-                qins.bindValue(":bez", bezeichnung);
-                qins.bindValue(":her", hersteller.isEmpty() ? QVariant() : QVariant(hersteller));
-                qins.bindValue(":art", artikelnummer.isEmpty() ? QVariant() : QVariant(artikelnummer));
-                if (qins.exec()) bauteilId = qins.lastInsertId().toInt();
-                else qCWarning(lcDb) << "makroElementeEinfuegen INSERT bauteil:" << qins.lastError().text();
-            }
-            if (bauteilId > 0) {
-                const QString bmk       = edObj.value(QStringLiteral("bmk")).toString();
-                const QString symbolKey = qe.value(6).toString();
-                QSqlQuery qbm(m_db);
-                qbm.prepare("INSERT INTO betriebsmittel "
-                            "(projekt_id, bauteil_id, betriebsmittel_kz, symbol_code) "
-                            "VALUES (:pid, :bid, :kz, :sc)");
-                qbm.bindValue(":pid", projektId);
-                qbm.bindValue(":bid", bauteilId);
-                qbm.bindValue(":kz",  bmk.isEmpty() ? QStringLiteral("?") : bmk);
-                qbm.bindValue(":sc",  symbolKey.isEmpty() ? QVariant() : QVariant(symbolKey));
-                if (qbm.exec()) bmId = qbm.lastInsertId().toInt();
-                else qCWarning(lcDb) << "makroElementeEinfuegen INSERT betriebsmittel:" << qbm.lastError().text();
-            }
+            const QString bmk       = edObj.value(QStringLiteral("bmk")).toString();
+            const QString symbolKey = qe.value(6).toString();
+            bmId = _betriebsmittelAusSnapshotAnlegenOderFinden(snap, bmk, symbolKey, projektId);
             // Snapshot aus extra_daten entfernen (projekt-intern, nicht persistieren)
             edObj.remove(QStringLiteral("bauteilSnapshot"));
             edJson = QString::fromUtf8(QJsonDocument(edObj).toJson(QJsonDocument::Compact));

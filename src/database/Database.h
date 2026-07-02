@@ -4,6 +4,7 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QString>
+#include <QJsonObject>
 #include "logging.h"
 
 // Database kümmert sich um:
@@ -579,6 +580,20 @@ public:
                                              const QString &beschreibung,
                                              const QString &kategorie);
 
+    // ── Zwischenablage (COPY-CROSS-01) ──────────────────────────────────────
+    // Bereitet kopierte Elemente für den Export über die System-Zwischenablage
+    // vor: betriebsmittel_id-Verknüpfungen werden als bauteilSnapshot in
+    // extra_daten eingebettet (wie bei Makros), da die numerische ID im
+    // Zielprojekt/-instanz nicht existiert. klemme_anschluss-Geist-Konvertierung
+    // läuft bereits generisch beim Einfügen (CanvasAktionenHandler.qml,
+    // _duplizierAnzahlPlatzieren) und braucht hier keine Behandlung.
+    Q_INVOKABLE QVariantList elementeFuerExportSanitisieren(const QVariantList &elemente);
+
+    // Kehrseite beim Einfügen aus einem ANDEREN Projekt: bauteilSnapshot wird
+    // aufgelöst (Bauteil in bibliothek.db finden/anlegen, betriebsmittel im
+    // Zielprojekt neu anlegen), betriebsmittel_id entsprechend ersetzt.
+    Q_INVOKABLE QVariantList elementeFuerImportSanitisieren(const QVariantList &elemente, int seiteId);
+
     // ── Wiki ─────────────────────────────────────────────────────────────────
     // Kategorien
     Q_INVOKABLE QVariantList wikiAlleKategorien();
@@ -812,6 +827,20 @@ private:
     static void strukturkastenOverrideAnwenden(const QString &skExtraDaten,
                                                 QString &anlageKz, QString &ortKz,
                                                 QString &anlageUO, QString &ortUO);
+
+    // Betriebsmittel-Snapshot (bezeichnung/hersteller/artikelnummer aus
+    // bibliothek.bauteil) für den Export in projektunabhängige Formate
+    // (Makro-Bibliothek, Zwischenablage). Leeres Objekt wenn nicht gefunden.
+    QJsonObject _bauteilSnapshotErzeugen(int betriebsmittelId);
+
+    // Kehrseite: aus einem Bauteil-Snapshot ein betriebsmittel im Zielprojekt
+    // finden (Artikelnummer-Match) oder neu anlegen. Legt bei Bedarf auch den
+    // bauteil-Eintrag in der geteilten bibliothek.db an. Gibt die neue
+    // betriebsmittel_id zurück (QVariant() bei leerem Snapshot/Fehler).
+    QVariant _betriebsmittelAusSnapshotAnlegenOderFinden(const QJsonObject &snap,
+                                                           const QString &bmk,
+                                                           const QString &symbolKey,
+                                                           int projektId);
 
     QSqlDatabase m_db;
     QSqlDatabase m_wikiDb;

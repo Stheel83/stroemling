@@ -16,6 +16,8 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QIcon>
+#include <QClipboard>
+#include <QMimeData>
 #include <cstdio>
 
 #include "database/Database.h"
@@ -80,6 +82,25 @@ public:
 
     Q_INVOKABLE void neueInstanzMitProjekt(const QString &pfad) {
         QProcess::startDetached(QCoreApplication::applicationFilePath(), {pfad});
+    }
+
+    // COPY-CROSS-01: System-Zwischenablage für Cross-Projekt Copy/Paste.
+    // Eigener MIME-Typ statt Klartext, damit einfuegen() zuverlässig
+    // erkennt, ob überhaupt Strömling-Elemente auf der Zwischenablage
+    // liegen (und nicht z.B. Text aus einer anderen App).
+    static constexpr auto kZwischenablageMime = "application/x-stroemling-elemente";
+
+    Q_INVOKABLE void systemZwischenablageSchreiben(const QString &json) {
+        auto *mime = new QMimeData();
+        mime->setData(QString::fromLatin1(kZwischenablageMime), json.toUtf8());
+        QGuiApplication::clipboard()->setMimeData(mime);
+    }
+
+    Q_INVOKABLE QString systemZwischenablageLesen() {
+        const QMimeData *mime = QGuiApplication::clipboard()->mimeData();
+        if (!mime || !mime->hasFormat(QString::fromLatin1(kZwischenablageMime)))
+            return QString();
+        return QString::fromUtf8(mime->data(QString::fromLatin1(kZwischenablageMime)));
     }
 };
 

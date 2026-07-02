@@ -125,6 +125,11 @@ Item {
     property real duplizierOffsetY:   0
     property bool duplizierMitDialog: true  // false = Einfügen (kein Anzahl-Dialog)
 
+    // COPY-CROSS-01: nach Cross-Projekt-Einfügen (Quelle = anderes Projekt)
+    // wird nach dem Platzieren ein "Als Makro behalten?"-Hinweis angeboten.
+    property bool _nachEinfuegenMakroAnbieten: false
+    property var  _crossProjektBbox: null  // { x1, y1, x2, y2 } der frisch eingefügten Elemente
+
     onAktivesWerkzeugChanged: {
         if (aktivesWerkzeug !== "bild") root.paletteImageData = ""
     }
@@ -359,6 +364,7 @@ Item {
     }
     function kabellinieDialogFuerNeuOeffnen(elIdx) { dialogLayer.kabellinieNeuOeffnen(elIdx) }
     function makrobenennDialogFuerNeuOeffnen(elIdx) { dialogLayer.makrobenennNeuOeffnen(elIdx) }
+    function crossProjektEinfuegenDialogOeffnen()   { dialogLayer.crossProjektEinfuegenOeffnen() }
 
     // Aderzuordnungsdialog vorbereiten (drawCanvas-Zugriffe bleiben hier) und öffnen
     function kabellinieNachSpeichernAderZuordnung(newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern, freshKlEl) {

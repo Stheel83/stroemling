@@ -59,6 +59,11 @@ Item {
         makrobenennDialog.open()
     }
 
+    // ── Cross-Projekt-Einfügen-Hinweis öffnen (Aufruf via canvas.crossProjektEinfuegenDialogOeffnen) ──
+    function crossProjektEinfuegenOeffnen() {
+        crossProjektEinfuegenDialog.open()
+    }
+
     // ── Kabellinie-Dialog ─────────────────────────────────────────────────
     KabellinieDialog {
         id:        kabellinieDialog
@@ -70,8 +75,8 @@ Item {
             if (kabellinieDialog.bauteilKabelId > 0)
                 root._letzterBauteilKabelId = kabellinieDialog.bauteilKabelId
             var idx = elementIndex
-            if (idx < 0 || idx >= elementeModel.anzahl) return
-            var el = Object.assign({}, elementeModel.element(idx))
+            if (idx < 0 || idx >= canvas.elementeModel.anzahl) return
+            var el = Object.assign({}, canvas.elementeModel.element(idx))
             var savedX1 = el.x1, savedY1 = el.y1
             el.extraDaten = {
                 bezeichnung:    kabellinieDialog.bezeichnung,
@@ -82,10 +87,10 @@ Item {
                 vonOrt:         kabellinieDialog.vonOrt,
                 nachOrt:        kabellinieDialog.nachOrt
             }
-            elementeModel.eigenschaftSetzen(idx, "extraDaten", el.extraDaten)
+            canvas.elementeModel.eigenschaftSetzen(idx, "extraDaten", el.extraDaten)
             canvas.grafikSpeichernJetzt()
-            elementeModel.laden(canvas.seiteId)
-            var reloaded = elementeModel.snapshot()
+            canvas.elementeModel.laden(canvas.seiteId)
+            var reloaded = canvas.elementeModel.snapshot()
             for (var ri = 0; ri < reloaded.length; ri++) {
                 var re = reloaded[ri]
                 if (re.typ === "kabellinie"
@@ -125,16 +130,16 @@ Item {
                     }
 
                     if (newKabelId > 0) {
-                        var el2 = Object.assign({}, elementeModel.element(ri))
+                        var el2 = Object.assign({}, canvas.elementeModel.element(ri))
                         el2.extraDaten = Object.assign({}, el2.extraDaten || {})
                         el2.extraDaten.kabelId = newKabelId
                         if (bkAdern.length > 0) el2.extraDaten.adern = bkAdern
-                        elementeModel.eigenschaftSetzen(ri, "extraDaten", el2.extraDaten)
+                        canvas.elementeModel.eigenschaftSetzen(ri, "extraDaten", el2.extraDaten)
                         canvas.grafikSpeichernJetzt()
                         canvas.kabelLinienCacheAktualisieren()
 
-                        elementeModel.laden(canvas.seiteId)
-                        var freshReloaded = elementeModel.snapshot()
+                        canvas.elementeModel.laden(canvas.seiteId)
+                        var freshReloaded = canvas.elementeModel.snapshot()
 
                         var freshKlEl = null
                         for (var fi = 0; fi < freshReloaded.length; fi++) {
@@ -163,8 +168,8 @@ Item {
 
         onRejected: {
             var idx = elementIndex
-            if (idx >= 0 && idx < elementeModel.anzahl) {
-                var cleaned = elementeModel.snapshot()
+            if (idx >= 0 && idx < canvas.elementeModel.anzahl) {
+                var cleaned = canvas.elementeModel.snapshot()
                 cleaned.splice(idx, 1)
                 canvas.aktionAusfuehren(cleaned)
                 canvas.neuZeichnen()
@@ -182,18 +187,18 @@ Item {
 
         onZuordnungGespeichert: function(netKeyMap) {
             var idx = canvas.ausgewaehlt
-            if (idx < 0 || idx >= elementeModel.anzahl)
+            if (idx < 0 || idx >= canvas.elementeModel.anzahl)
                 return
-            var el = elementeModel.element(idx)
+            var el = canvas.elementeModel.element(idx)
             if (!el || el.typ !== "kabellinie")
                 return
             var el2 = Object.assign({}, el)
             el2.extraDaten = Object.assign({}, el2.extraDaten || {})
             el2.extraDaten.aderZuordnung = netKeyMap
-            elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
+            canvas.elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
             canvas.grafikSpeichernJetzt()
             canvas.kabelLinienCacheAktualisieren()
-            elementeModel.laden(canvas.seiteId)
+            canvas.elementeModel.laden(canvas.seiteId)
             canvas.verdrahtungswegeAktualisieren()
         }
     }
@@ -207,17 +212,17 @@ Item {
                                     neueNr, neueFarbe, neueBezeichnung,
                                     alteNr, alteFarbe, alteBezeichnung) {
             var idx = -1
-            for (var i = 0; i < elementeModel.anzahl; i++) {
-                var e = elementeModel.element(i)
+            for (var i = 0; i < canvas.elementeModel.anzahl; i++) {
+                var e = canvas.elementeModel.element(i)
                 if (e && e.typ === "kabellinie" && (e.id || 0) === kabelGeid) { idx = i; break }
             }
             if (idx < 0) return
 
-            var el2 = Object.assign({}, elementeModel.element(idx))
+            var el2 = Object.assign({}, canvas.elementeModel.element(idx))
             el2.extraDaten = Object.assign({}, el2.extraDaten || {})
             el2.extraDaten.aderZuordnung = Object.assign({}, el2.extraDaten.aderZuordnung || {})
             el2.extraDaten.aderZuordnung[aderKey] = neueNr
-            elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
+            canvas.elementeModel.eigenschaftSetzen(idx, "extraDaten", el2.extraDaten)
 
             // Alte Ader (falls abweichend) freigeben, neue Ader zuordnen
             if (alteNr > 0 && alteNr !== neueNr)
@@ -228,7 +233,7 @@ Item {
 
             canvas.grafikSpeichernJetzt()
             canvas.kabelLinienCacheAktualisieren()
-            elementeModel.laden(canvas.seiteId)
+            canvas.elementeModel.laden(canvas.seiteId)
             canvas.verdrahtungswegeAktualisieren()
             canvas.neuZeichnen()
         }
@@ -243,8 +248,8 @@ Item {
 
         onAccepted: {
             var idx = elementIndex
-            if (idx < 0 || idx >= elementeModel.anzahl) return
-            var snap = elementeModel.snapshot()
+            if (idx < 0 || idx >= canvas.elementeModel.anzahl) return
+            var snap = canvas.elementeModel.snapshot()
             var el = Object.assign({}, snap[idx])
             el.extraDaten = {
                 name:         makrobenennDialog.name,
@@ -256,14 +261,14 @@ Item {
             canvas.aktionAusfuehren(snap)
             canvas.grafikSpeichernJetzt()
             // grafikSpeichern macht DELETE+INSERT → alle DB-IDs ändern sich; neu laden für frische IDs
-            elementeModel.laden(canvas.seiteId)
+            canvas.elementeModel.laden(canvas.seiteId)
 
-            var savedEl = elementeModel.element(idx)
+            var savedEl = canvas.elementeModel.element(idx)
             if (savedEl && (savedEl.id || 0) > 0) {
                 var newMakroId = db.makroSpeichern(savedEl.id, canvas.seiteId)
                 if (newMakroId > 0) {
                     // Nach makroSpeichern extra_daten.makroId aus DB holen
-                    elementeModel.laden(canvas.seiteId)
+                    canvas.elementeModel.laden(canvas.seiteId)
                     canvas.makroListeGeaendert()
                     canvas.neuZeichnen()
                 }
@@ -272,14 +277,23 @@ Item {
 
         onRejected: {
             var idx = elementIndex
-            if (idx >= 0 && idx < elementeModel.anzahl) {
-                var updated = elementeModel.snapshot()
+            if (idx >= 0 && idx < canvas.elementeModel.anzahl) {
+                var updated = canvas.elementeModel.snapshot()
                 updated.splice(idx, 1)
                 canvas.aktionAusfuehren(updated)
                 canvas.grafikSpeichernJetzt()
             }
             canvas.auswahl = []
         }
+    }
+
+    // ── Cross-Projekt-Einfügen-Hinweis (COPY-CROSS-01) ──────────────────────
+    CrossProjektEinfuegenDialog {
+        id:    crossProjektEinfuegenDialog
+        theme: root.theme
+
+        onAlsMakroBehalten: canvas.crossProjektMakroErstellen()
+        onNurEingefuegt:    meldungManager.zeigen(qsTr("Elemente eingefügt."), true)
     }
 
     DebugLabel { panelName: qsTr("Canvas-Dialog-Layer"); visible: root.debug }

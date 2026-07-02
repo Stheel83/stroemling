@@ -686,6 +686,90 @@ QVariantList Database::drcKlemmeGeister(int projektId)
     return ergebnis;
 }
 
+// ============================================================
+// drcSchirmOhneAnschluss (D-11, SCH-02)
+// Schirm-Element (Konzept 46_schirmung.md) dessen einziger Anschlusspunkt
+// keine Leitung berührt – analog "Flunder ohne PE-Bodenkontakt" aus der
+// Stromlinge-Metapher. Pin-Positionsformel identisch zu drcLeitungsenden()
+// (Schirm-Pin-Sammlung dort), damit beide Prüfungen konsistent bleiben.
+// ============================================================
+QVariantList Database::drcSchirmOhneAnschluss(int projektId)
+{
+    const double eps = 0.5;
+    QVariantList ergebnis;
+
+    QSqlQuery seitenQ;
+    seitenQ.prepare("SELECT s.id, s.bezeichnung FROM seite s "
+                     "JOIN ort o ON o.id = s.ort_id "
+                     "JOIN anlage a ON a.id = o.anlage_id "
+                     "WHERE a.projekt_id = :pid ORDER BY s.blattnummer");
+    seitenQ.bindValue(":pid", projektId);
+    if (!seitenQ.exec()) {
+        qCWarning(lcDb) << "drcSchirmOhneAnschluss seiten:" << seitenQ.lastError().text();
+        return ergebnis;
+    }
+
+    while (seitenQ.next()) {
+        const int     seiteId   = seitenQ.value(0).toInt();
+        const QString seiteName = seitenQ.value(1).toString();
+
+        QSqlQuery shQ;
+        shQ.prepare("SELECT id, x1,y1,x2,y2, extra_daten FROM grafik_element "
+                    "WHERE seite_id=:sid AND typ='schirm'");
+        shQ.bindValue(":sid", seiteId);
+        if (!shQ.exec() || !shQ.next()) continue;
+
+        // Leitungsendpunkte dieser Seite nur laden, wenn überhaupt ein
+        // Schirm-Element existiert (sonst nichts zu prüfen).
+        struct Pt { double x, y; };
+        QVector<Pt> enden;
+        {
+            QSqlQuery lQ;
+            lQ.prepare("SELECT x1,y1,x2,y2 FROM grafik_element "
+                       "WHERE seite_id=:sid AND typ='linie'");
+            lQ.bindValue(":sid", seiteId);
+            if (lQ.exec()) {
+                while (lQ.next()) {
+                    enden.push_back({lQ.value(0).toDouble(), lQ.value(1).toDouble()});
+                    enden.push_back({lQ.value(2).toDouble(), lQ.value(3).toDouble()});
+                }
+            }
+        }
+
+        do {
+            const int    elId = shQ.value(0).toInt();
+            const double x1   = shQ.value(1).toDouble(), y1 = shQ.value(2).toDouble();
+            const double x2   = shQ.value(3).toDouble(), y2 = shQ.value(4).toDouble();
+            const QJsonObject ext = QJsonDocument::fromJson(shQ.value(5).toString().toUtf8()).object();
+            const QString     seite = ext.value("anschlussSeite").toString(QStringLiteral("links"));
+            const QString     bezeichnung = ext.value("bezeichnung").toString(QStringLiteral("SH"));
+
+            double px, py;
+            if      (seite == QLatin1String("rechts")) { px = std::max(x1, x2); py = (y1 + y2) / 2.0; }
+            else if (seite == QLatin1String("oben"))   { px = (x1 + x2) / 2.0;  py = std::min(y1, y2); }
+            else if (seite == QLatin1String("unten"))  { px = (x1 + x2) / 2.0;  py = std::max(y1, y2); }
+            else                                       { px = std::min(x1, x2); py = (y1 + y2) / 2.0; }
+
+            bool verbunden = false;
+            for (const Pt &e : enden) {
+                if (std::abs(e.x - px) < eps && std::abs(e.y - py) < eps) {
+                    verbunden = true;
+                    break;
+                }
+            }
+            if (!verbunden) {
+                QVariantMap fund;
+                fund["elementId"]   = elId;
+                fund["seiteId"]     = seiteId;
+                fund["seiteName"]   = seiteName;
+                fund["bezeichnung"] = bezeichnung;
+                ergebnis << fund;
+            }
+        } while (shQ.next());
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

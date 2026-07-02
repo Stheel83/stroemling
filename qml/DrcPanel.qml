@@ -144,6 +144,18 @@ Item {
             })
         }
 
+        var d11 = db.drcSchirmOhneAnschluss(root.projektId)
+        for (var s2 = 0; s2 < d11.length; s2++) {
+            var sh = d11[s2]
+            ergebnisModel.append({
+                "typ":       "schirm_ohne_anschluss",
+                "meldung":   qsTr("Schirm ohne Anschluss: %1").arg(sh.bezeichnung),
+                "detail":    qsTr("Seite: %1 – Anschlusspunkt berührt keine Leitung").arg(sh.seiteName),
+                "seiteId":   sh.seiteId,
+                "elementId": sh.elementId
+            })
+        }
+
         root.hatGeprueft = true
         achievementManager.ereignis("drc_ausgefuehrt", { "fehlerAnzahl": ergebnisModel.count })
     }

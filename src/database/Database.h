@@ -736,6 +736,11 @@ public:
     // zu einer echten Klemme hochgestuft.
     // Rückgabe: [{elementId, seiteId, seiteName, anschlussBezeichnung, bmk}]
     Q_INVOKABLE QVariantList drcKlemmeGeister(int projektId);
+    // D-11 (SCH-02): Schirm-Element dessen Anschlusspunkt keine Leitung berührt.
+    // D-10 ist für die künftige Litzenfarbe-Abweichungsprüfung reserviert
+    // (KONFKABEL-01), daher hier D-11.
+    // Rückgabe: [{elementId, seiteId, seiteName, bezeichnung}]
+    Q_INVOKABLE QVariantList drcSchirmOhneAnschluss(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

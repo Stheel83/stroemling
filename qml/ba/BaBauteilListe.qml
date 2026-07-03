@@ -295,6 +295,7 @@ Item {
                     text: bauteilModel.nurKlemmen       ? qsTr("Klemmen")
                         : bauteilModel.nurKabel          ? qsTr("Kabel")
                         : bauteilModel.nurSteckverbinder ? qsTr("Steckverbinder")
+                        : bauteilModel.nurKonfkabel      ? qsTr("Konf. Kabel")
                         : qsTr("Alle Bauteile")
                     font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary
                     Layout.fillWidth: true
@@ -371,7 +372,9 @@ Item {
                               ? qsTr("Keine Ergebnisse für \"%1\"").arg(suchfeld.text)
                               : bauteilModel.nurSteckverbinder
                                 ? qsTr("Noch keine Steckverbinder – mit '+ Neu' anlegen.")
-                                : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
+                                : bauteilModel.nurKonfkabel
+                                  ? qsTr("Noch keine konfektionierten Kabel – mit '+ Neu' anlegen.")
+                                  : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
                         color:          theme.textMuted
                         font.pixelSize: 13
                     }

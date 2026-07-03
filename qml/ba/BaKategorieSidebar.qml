@@ -60,7 +60,8 @@ Rectangle {
                 }
             }
             MouseArea { anchors.fill: parent; z: -1; onClicked: {
-                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(false); bauteilModel.setNurSteckverbinder(false)
+                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(false)
+                bauteilModel.setNurSteckverbinder(false); bauteilModel.setNurKonfkabel(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }
@@ -88,6 +89,8 @@ Rectangle {
                             klemmeModel.anlegen(newId)
                             bauteilModel.setNurKlemmen(true)
                             bauteilModel.setNurKabel(false)
+                            bauteilModel.setNurSteckverbinder(false)
+                            bauteilModel.setNurKonfkabel(false)
                             bauteilModel.laden(-1)
                             panel.selectedBauteilId            = newId
                             panel.selectedBauteilBezeichnung   = qsTr("Neue Klemme")
@@ -100,7 +103,8 @@ Rectangle {
                 }
             }
             MouseArea { anchors.fill: parent; z: -1; onClicked: {
-                bauteilModel.setNurKlemmen(true); bauteilModel.setNurKabel(false); bauteilModel.setNurSteckverbinder(false)
+                bauteilModel.setNurKlemmen(true); bauteilModel.setNurKabel(false)
+                bauteilModel.setNurSteckverbinder(false); bauteilModel.setNurKonfkabel(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }
@@ -129,6 +133,8 @@ Rectangle {
                             kabelModel.stammdatenSpeichern({ geschirmt: false, paarweise_verdrillt: false })
                             bauteilModel.setNurKabel(true)
                             bauteilModel.setNurKlemmen(false)
+                            bauteilModel.setNurSteckverbinder(false)
+                            bauteilModel.setNurKonfkabel(false)
                             bauteilModel.laden(-1)
                             panel.selectedBauteilId            = newId
                             panel.selectedBauteilBezeichnung   = qsTr("Neues Kabel")
@@ -141,7 +147,8 @@ Rectangle {
                 }
             }
             MouseArea { anchors.fill: parent; z: -1; onClicked: {
-                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(true); bauteilModel.setNurSteckverbinder(false)
+                bauteilModel.setNurKlemmen(false); bauteilModel.setNurKabel(true)
+                bauteilModel.setNurSteckverbinder(false); bauteilModel.setNurKonfkabel(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }
@@ -170,6 +177,7 @@ Rectangle {
                             bauteilModel.setNurSteckverbinder(true)
                             bauteilModel.setNurKlemmen(false)
                             bauteilModel.setNurKabel(false)
+                            bauteilModel.setNurKonfkabel(false)
                             bauteilModel.laden(-1)
                             panel.selectedBauteilId            = newId
                             panel.selectedBauteilBezeichnung   = qsTr("Neuer Steckverbinder")
@@ -185,6 +193,7 @@ Rectangle {
                 bauteilModel.setNurSteckverbinder(true)
                 bauteilModel.setNurKlemmen(false)
                 bauteilModel.setNurKabel(false)
+                bauteilModel.setNurKonfkabel(false)
                 bauteilModel.laden(-1); panel.aktiveSpezialAnsicht = ""
             }}
         }

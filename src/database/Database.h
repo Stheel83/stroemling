@@ -33,7 +33,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 83;
     static const int WIKI_SCHEMA_VERSION     = 15;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 2;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 3;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     static const int BASELINE_TABLE_COUNT   = 32;
@@ -259,7 +259,8 @@ public:
     Q_INVOKABLE int          steckverbinderTypSpeichern(int bauteilId, int polzahl,
                                  const QString &ipGetrennt, const QString &ipGesteckt,
                                  const QString &kodierung, const QString &verriegelung,
-                                 bool hatSchirmkontakt, bool geschirmt);
+                                 bool hatSchirmkontakt, bool geschirmt,
+                                 const QString &montageform = QString());
     Q_INVOKABLE bool         steckverbinderTypLoeschen(int bauteilId);
 
     Q_INVOKABLE QVariantList steckverbinderKableinfLaden(int steckverbinderTypId) const;

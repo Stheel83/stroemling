@@ -150,8 +150,6 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml
-        qml/ba/BaSteckverbinderEditorDialog.qml
-        qml/ba/BaKonfkabelEditorDialog.qml
         qml/ba/BaMakroBibliothek.qml
 
         qml/la/LaCsvLeiste.qml
@@ -202,6 +200,9 @@ qt_add_qml_module(stroemling_app
         qml/kabel/BauteilKabelPickerDialog.qml
         qml/kabel/AderzuordnungDialog.qml
         qml/kabel/AderKreuzungPicker.qml
+
+        qml/steckverbinder/SteckverbinderEditor.qml
+        qml/konfkabel/KonfkabelEditor.qml
         qml/MakrobenennDialog.qml
         qml/MakroPalette.qml
         qml/MakroBibliothekDialog.qml

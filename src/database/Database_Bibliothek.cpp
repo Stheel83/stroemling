@@ -216,10 +216,12 @@ bool Database::checkAndApplyBibliothekSchema()
     }
 
     // Schema v2: litze-Spalten nachrüsten (no-op bei Frischinstall, toleriert Duplikat)
+    // Schema v3: montageform nachrüsten (frei_stecker/frei_buchse/einbau_stecker/einbau_buchse)
     const QStringList upgradeStmts = {
         "ALTER TABLE steckverbinder_kontakt_typ ADD COLUMN litze_farbe TEXT",
         "ALTER TABLE steckverbinder_kontakt_typ ADD COLUMN litze_querschnitt REAL",
         "ALTER TABLE steckverbinder_kontakt_typ ADD COLUMN litze_bezeichnung TEXT",
+        "ALTER TABLE steckverbinder_typ ADD COLUMN montageform TEXT",
     };
     for (const QString &upStmt : upgradeStmts) {
         if (!q.exec(upStmt)) {

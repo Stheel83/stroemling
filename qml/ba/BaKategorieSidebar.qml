@@ -11,6 +11,8 @@ Rectangle {
 
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
+    signal steckverbinderEditorAngefordert(int bauteilId, string bezeichnung)
+    signal konfkabelEditorAngefordert(int bauteilId, string bezeichnung)
 
     BaKategorieNeuDialog        { id: dlgKategorieNeu;        theme: root.theme }
     BaKategorieBearbeitenDialog { id: dlgKategorieBearbeiten; theme: root.theme }
@@ -174,6 +176,7 @@ Rectangle {
                             panel.selectedBauteilHersteller    = ""
                             panel.selectedBauteilArtikelnummer = ""
                             panel.aktiveSpezialAnsicht = ""
+                            root.steckverbinderEditorAngefordert(newId, qsTr("Neuer Steckverbinder"))
                         }
                     }
                 }
@@ -215,6 +218,7 @@ Rectangle {
                             panel.selectedBauteilId          = newId
                             panel.selectedBauteilBezeichnung = qsTr("Neues konf. Kabel")
                             panel.aktiveSpezialAnsicht       = ""
+                            root.konfkabelEditorAngefordert(newId, qsTr("Neues konf. Kabel"))
                         }
                     }
                 }

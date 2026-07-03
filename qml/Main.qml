@@ -1163,6 +1163,12 @@ ApplicationWindow {
                 onKabelEditorAngefordert: function(id, bezeichnung) {
                     root.aktiveAnsicht = "kabel_editor"
                 }
+                onSteckverbinderEditorAngefordert: function(id, bezeichnung) {
+                    root.aktiveAnsicht = "steckverbinder_editor"
+                }
+                onKonfkabelEditorAngefordert: function(id, bezeichnung) {
+                    root.aktiveAnsicht = "konfkabel_editor"
+                }
                 onGeraetekastenSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
                     if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                     var p = root.fokussiertesPanel === 2 ? panel2 : panel1
@@ -1333,6 +1339,134 @@ ApplicationWindow {
                     Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
 
                     KabelEditor {
+                        Layout.fillWidth:     true
+                        Layout.fillHeight:    true
+                        theme:                appTheme
+                        debug:                root.debugModeAktiv
+                        bauteilId:            bauteilAnsicht.selectedBauteilId
+                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
+
+                        onBauteilGespeichert: function(id, bez) {
+                            bauteilAnsicht.selectedBauteilBezeichnung = bez
+                            bauteilModel.aktualisieren()
+                        }
+                    }
+                }
+            }
+
+            // Steckverbinder-Editor Vollbild
+            Item {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "steckverbinder_editor"
+
+                DebugLabel { panelName: qsTr("Steckverbinder-Editor Ansicht"); visible: root.debugModeAktiv }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing:      0
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height:           44
+                        color:            appTheme.sidebar
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
+                            spacing: 6
+
+                            Button {
+                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
+                                contentItem: Text {
+                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
+                                onClicked: root.aktiveAnsicht = "bauteile"
+                            }
+                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
+                            Text {
+                                text:           bauteilAnsicht.selectedBauteilBezeichnung
+                                font.pixelSize: 13; font.weight: Font.Medium
+                                color:          appTheme.textPrimary
+                            }
+                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
+                            Text {
+                                text:           qsTr("Steckverbinder-Editor")
+                                font.pixelSize: 12
+                                color:          appTheme.textMuted
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
+
+                    SteckverbinderEditor {
+                        Layout.fillWidth:     true
+                        Layout.fillHeight:    true
+                        theme:                appTheme
+                        debug:                root.debugModeAktiv
+                        bauteilId:            bauteilAnsicht.selectedBauteilId
+                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
+
+                        onBauteilGespeichert: function(id, bez) {
+                            bauteilAnsicht.selectedBauteilBezeichnung = bez
+                            bauteilModel.aktualisieren()
+                        }
+                    }
+                }
+            }
+
+            // Konfkabel-Editor Vollbild
+            Item {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "konfkabel_editor"
+
+                DebugLabel { panelName: qsTr("Konfkabel-Editor Ansicht"); visible: root.debugModeAktiv }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing:      0
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height:           44
+                        color:            appTheme.sidebar
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
+                            spacing: 6
+
+                            Button {
+                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
+                                contentItem: Text {
+                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
+                                onClicked: root.aktiveAnsicht = "bauteile"
+                            }
+                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
+                            Text {
+                                text:           bauteilAnsicht.selectedBauteilBezeichnung
+                                font.pixelSize: 13; font.weight: Font.Medium
+                                color:          appTheme.textPrimary
+                            }
+                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
+                            Text {
+                                text:           qsTr("Konf. Kabel-Editor")
+                                font.pixelSize: 12
+                                color:          appTheme.textMuted
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
+
+                    KonfkabelEditor {
                         Layout.fillWidth:     true
                         Layout.fillHeight:    true
                         theme:                appTheme

@@ -20,6 +20,8 @@ Item {
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal leisteKanvasAktualisiert()
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
+    signal steckverbinderEditorAngefordert(int bauteilId, string bezeichnung)
+    signal konfkabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal makroListeGeaendert()
 
@@ -38,8 +40,10 @@ Item {
         BaKategorieSidebar {
             panel: root; theme: root.theme
             Layout.fillHeight: true; width: 240
-            onKlemmenEditorAngefordert: function(id, bez) { root.klemmenEditorAngefordert(id, bez) }
-            onKabelEditorAngefordert:   function(id, bez) { root.kabelEditorAngefordert(id, bez)  }
+            onKlemmenEditorAngefordert:       function(id, bez) { root.klemmenEditorAngefordert(id, bez) }
+            onKabelEditorAngefordert:         function(id, bez) { root.kabelEditorAngefordert(id, bez)  }
+            onSteckverbinderEditorAngefordert: function(id, bez) { root.steckverbinderEditorAngefordert(id, bez) }
+            onKonfkabelEditorAngefordert:      function(id, bez) { root.konfkabelEditorAngefordert(id, bez) }
         }
 
         Rectangle { width: 1; Layout.fillHeight: true; color: theme.border }
@@ -51,8 +55,10 @@ Item {
                 anchors.fill: parent
                 visible: root.aktiveSpezialAnsicht === ""
                 panel: root; theme: root.theme
-                onKlemmenEditorAngefordert: function(id, bez) { root.klemmenEditorAngefordert(id, bez) }
-                onKabelEditorAngefordert:   function(id, bez) { root.kabelEditorAngefordert(id, bez)  }
+                onKlemmenEditorAngefordert:       function(id, bez) { root.klemmenEditorAngefordert(id, bez) }
+                onKabelEditorAngefordert:         function(id, bez) { root.kabelEditorAngefordert(id, bez)  }
+                onSteckverbinderEditorAngefordert: function(id, bez) { root.steckverbinderEditorAngefordert(id, bez) }
+                onKonfkabelEditorAngefordert:      function(id, bez) { root.konfkabelEditorAngefordert(id, bez) }
             }
 
             KlemmenreihenAnsicht {

@@ -10,18 +10,8 @@ Item {
 
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
-
-    // ── Steckverbinder-Editor ────────────────────────────────
-    BaSteckverbinderEditorDialog {
-        id: dlgSteckverbinderEditor
-        theme: root.theme
-    }
-
-    // ── Konfektioniertes Kabel – Editor ──────────────────────
-    BaKonfkabelEditorDialog {
-        id: dlgKonfkabelEditor
-        theme: root.theme
-    }
+    signal steckverbinderEditorAngefordert(int bauteilId, string bezeichnung)
+    signal konfkabelEditorAngefordert(int bauteilId, string bezeichnung)
 
     // ── Symbol-Picker ────────────────────────────────────────
     BaSymbolPickerDialog {
@@ -504,9 +494,7 @@ Item {
                                     panel.selectedBauteilBezeichnung   = model.bezeichnung
                                     panel.selectedBauteilHersteller    = model.hersteller
                                     panel.selectedBauteilArtikelnummer = model.artikelnummer
-                                    dlgSteckverbinderEditor.bauteilId   = model.bauteilId
-                                    dlgSteckverbinderEditor.bezeichnung = model.bezeichnung
-                                    dlgSteckverbinderEditor.open()
+                                    root.steckverbinderEditorAngefordert(model.bauteilId, model.bezeichnung)
                                 }
                             }
                             Button {
@@ -520,13 +508,11 @@ Item {
                                     panel.selectedBauteilBezeichnung   = model.bezeichnung
                                     panel.selectedBauteilHersteller    = model.hersteller
                                     panel.selectedBauteilArtikelnummer = model.artikelnummer
-                                    dlgKonfkabelEditor.bauteilId   = model.bauteilId
-                                    dlgKonfkabelEditor.bezeichnung = model.bezeichnung
-                                    dlgKonfkabelEditor.open()
+                                    root.konfkabelEditorAngefordert(model.bauteilId, model.bezeichnung)
                                 }
                             }
                             Button {
-                                visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder
+                                visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && !model.istKonfkabel
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: "✎"; color: theme.accent; font.pixelSize: 14;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -565,6 +551,10 @@ Item {
                                             root.klemmenEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
                                         else if (model.istKabel)
                                             root.kabelEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
+                                        else if (model.istSteckverbinder)
+                                            root.steckverbinderEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
+                                        else if (model.istKonfkabel)
+                                            root.konfkabelEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
                                     }
                                 }
                             }

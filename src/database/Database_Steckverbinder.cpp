@@ -374,7 +374,7 @@ QVariantList Database::steckverbinderBausteineListe() const
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT b.id, COALESCE(b.bezeichnung,''), COALESCE(b.hersteller,''),
-               COALESCE(b.artikelnummer,''), sv.polzahl
+               COALESCE(b.artikelnummer,''), sv.polzahl, COALESCE(sv.montageform,'')
         FROM bibliothek.bauteil b
         JOIN bibliothek.steckverbinder_typ sv ON sv.bauteil_id = b.id
         ORDER BY b.bezeichnung COLLATE NOCASE
@@ -390,6 +390,7 @@ QVariantList Database::steckverbinderBausteineListe() const
         m["hersteller"]   = q.value(2).toString();
         m["artikelnummer"]= q.value(3).toString();
         m["polzahl"]      = q.value(4).toInt();
+        m["montageform"]  = q.value(5).toString();
         liste.append(m);
     }
     return liste;
@@ -405,7 +406,7 @@ QVariantMap Database::steckverbinderTypLaden(int bauteilId) const
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, polzahl, ip_getrennt, ip_gesteckt, kodierung,
-               verriegelung, hat_schirmkontakt, geschirmt
+               verriegelung, hat_schirmkontakt, geschirmt, montageform
         FROM bibliothek.steckverbinder_typ WHERE bauteil_id = :bid
     )");
     q.bindValue(":bid", bauteilId);
@@ -418,6 +419,7 @@ QVariantMap Database::steckverbinderTypLaden(int bauteilId) const
     m["verriegelung"]    = q.value(5).toString();
     m["hatSchirmkontakt"] = q.value(6).toInt() != 0;
     m["geschirmt"]       = q.value(7).toInt() != 0;
+    m["montageform"]     = q.value(8).toString();
     return m;
 }
 
@@ -427,7 +429,7 @@ QVariantMap Database::steckverbinderTypLaden(int bauteilId) const
 int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
     const QString &ipGetrennt, const QString &ipGesteckt,
     const QString &kodierung, const QString &verriegelung,
-    bool hatSchirmkontakt, bool geschirmt)
+    bool hatSchirmkontakt, bool geschirmt, const QString &montageform)
 {
     QSqlQuery sel(m_db);
     sel.prepare("SELECT id FROM bibliothek.steckverbinder_typ WHERE bauteil_id = :bid");
@@ -444,7 +446,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
             UPDATE bibliothek.steckverbinder_typ
             SET polzahl=:pz, ip_getrennt=:ipg, ip_gesteckt=:ipgs,
                 kodierung=:kod, verriegelung=:ver,
-                hat_schirmkontakt=:hsk, geschirmt=:gsch
+                hat_schirmkontakt=:hsk, geschirmt=:gsch, montageform=:mf
             WHERE id=:id
         )");
         q.bindValue(":id",  existingId);
@@ -455,6 +457,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
         q.bindValue(":ver", verriegelung.isEmpty()? QVariant() : verriegelung);
         q.bindValue(":hsk", hatSchirmkontakt ? 1 : 0);
         q.bindValue(":gsch",geschirmt ? 1 : 0);
+        q.bindValue(":mf",  montageform.isEmpty() ? QVariant() : montageform);
         if (!q.exec()) {
             qCWarning(lcDb) << "steckverbinderTypSpeichern UPDATE:" << q.lastError().text();
             return -1;
@@ -464,8 +467,8 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
         q.prepare(R"(
             INSERT INTO bibliothek.steckverbinder_typ
                 (bauteil_id, polzahl, ip_getrennt, ip_gesteckt,
-                 kodierung, verriegelung, hat_schirmkontakt, geschirmt)
-            VALUES (:bid, :pz, :ipg, :ipgs, :kod, :ver, :hsk, :gsch)
+                 kodierung, verriegelung, hat_schirmkontakt, geschirmt, montageform)
+            VALUES (:bid, :pz, :ipg, :ipgs, :kod, :ver, :hsk, :gsch, :mf)
         )");
         q.bindValue(":bid", bauteilId);
         q.bindValue(":pz",  polzahl > 0 ? polzahl : QVariant());
@@ -475,6 +478,7 @@ int Database::steckverbinderTypSpeichern(int bauteilId, int polzahl,
         q.bindValue(":ver", verriegelung.isEmpty()? QVariant() : verriegelung);
         q.bindValue(":hsk", hatSchirmkontakt ? 1 : 0);
         q.bindValue(":gsch",geschirmt ? 1 : 0);
+        q.bindValue(":mf",  montageform.isEmpty() ? QVariant() : montageform);
         if (!q.exec()) {
             qCWarning(lcDb) << "steckverbinderTypSpeichern INSERT:" << q.lastError().text();
             return -1;

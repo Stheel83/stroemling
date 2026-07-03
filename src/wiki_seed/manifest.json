@@ -76,6 +76,36 @@
           "titel": "Strukturkennzeichen: Anlage, Ort und die Hierarchie ==/=/++/+",
           "tags": "strukturkennzeichen anlage ort bmk din81346 hierarchie seitenbaum",
           "datei": "bedienhinweise/strukturkennzeichen.md"
+        },
+        {
+          "titel": "Errungenschaften (Achievements)",
+          "tags": "achievements errungenschaften toast panel",
+          "datei": "bedienhinweise/achievements.md"
+        },
+        {
+          "titel": "Meldungen: Toast statt Dialog",
+          "tags": "meldung toast benachrichtigung dialog",
+          "datei": "bedienhinweise/meldungen_toast.md"
+        },
+        {
+          "titel": "Minimap – Übersicht über die Seite (Strg+M)",
+          "tags": "minimap übersicht navigation strg+m",
+          "datei": "bedienhinweise/minimap.md"
+        },
+        {
+          "titel": "Makro-Schnellpalette",
+          "tags": "makro palette kategorie vorschau",
+          "datei": "bedienhinweise/makro_palette.md"
+        },
+        {
+          "titel": "SPS/PLS-Integration",
+          "tags": "sps pls automatisierung rack baugruppe kanal adresse",
+          "datei": "bedienhinweise/sps_integration.md"
+        },
+        {
+          "titel": "PDF-Export",
+          "tags": "pdf export drucken vektor",
+          "datei": "bedienhinweise/pdf_export.md"
         }
       ]
     },

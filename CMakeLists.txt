@@ -302,6 +302,12 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/bedienhinweise/steckverbinder_konfkabel.md
         src/wiki_seed/bedienhinweise/geraetekasten_workflow.md
         src/wiki_seed/bedienhinweise/strukturkennzeichen.md
+        src/wiki_seed/bedienhinweise/achievements.md
+        src/wiki_seed/bedienhinweise/meldungen_toast.md
+        src/wiki_seed/bedienhinweise/minimap.md
+        src/wiki_seed/bedienhinweise/makro_palette.md
+        src/wiki_seed/bedienhinweise/sps_integration.md
+        src/wiki_seed/bedienhinweise/pdf_export.md
         src/wiki_seed/nachschlagetabellen/lss_ausloesecharakteristik.md
         src/wiki_seed/nachschlagetabellen/strombelastbarkeit_vde0298.md
         src/wiki_seed/nachschlagetabellen/rcd_typen.md
@@ -424,6 +430,12 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/bedienhinweise/steckverbinder_konfkabel.md
         src/wiki_seed/bedienhinweise/geraetekasten_workflow.md
         src/wiki_seed/bedienhinweise/strukturkennzeichen.md
+        src/wiki_seed/bedienhinweise/achievements.md
+        src/wiki_seed/bedienhinweise/meldungen_toast.md
+        src/wiki_seed/bedienhinweise/minimap.md
+        src/wiki_seed/bedienhinweise/makro_palette.md
+        src/wiki_seed/bedienhinweise/sps_integration.md
+        src/wiki_seed/bedienhinweise/pdf_export.md
         src/wiki_seed/nachschlagetabellen/lss_ausloesecharakteristik.md
         src/wiki_seed/nachschlagetabellen/strombelastbarkeit_vde0298.md
         src/wiki_seed/nachschlagetabellen/rcd_typen.md

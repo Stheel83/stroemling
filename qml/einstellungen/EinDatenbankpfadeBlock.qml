@@ -12,6 +12,14 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: 0
 
+    // Liefert den übergeordneten Ordner eines Datei-Pfades (für Dateimanager-Button) -
+    // Verzeichnis-Einträge (istOrdner: true) geben ihren Pfad unverändert zurück.
+    function ordnerPfad(pfad, istOrdner) {
+        if (istOrdner || pfad === "") return pfad
+        var idx = Math.max(pfad.lastIndexOf("/"), pfad.lastIndexOf("\\"))
+        return idx >= 0 ? pfad.substring(0, idx) : pfad
+    }
+
     Item { implicitHeight: 24 }
     Text {
         Layout.leftMargin:   20
@@ -42,7 +50,7 @@ ColumnLayout {
                     { label: qsTr("Wiki-Datenbank"),     key: "wikiDb",     icon: "📚" },
                     { label: qsTr("Makro-Bibliothek"),   key: "makrosDb",   icon: "⚙" },
                     { label: qsTr("Bauteil-Bibliothek"), key: "bibliothekDb", icon: "🧩" },
-                    { label: qsTr("Backup-Verzeichnis"), key: "backupDir",  icon: "💾" }
+                    { label: qsTr("Backup-Verzeichnis"), key: "backupDir",  icon: "💾", istOrdner: true }
                 ]
 
                 delegate: Item {
@@ -139,7 +147,8 @@ ColumnLayout {
                                 hoverEnabled: true
                                 onClicked: {
                                     var p = root.infos[modelData.key] || ""
-                                    if (p !== "") Qt.openUrlExternally("file://" + p)
+                                    if (p !== "") Qt.openUrlExternally(
+                                        "file://" + root.ordnerPfad(p, modelData.istOrdner === true))
                                 }
                             }
                             ToolTip { visible: oeffMouse.containsMouse; text: qsTr("Im Dateimanager öffnen"); delay: 600 }

@@ -34,7 +34,7 @@ bool Database::checkAndApplyBibliothekSchema()
             return false;
         }
         int version = 0;
-        if (q.exec("SELECT version FROM bibliothek_schema_version LIMIT 1") && q.next())
+        if (q.exec("SELECT MAX(version) FROM bibliothek_schema_version") && q.next())
             version = q.value(0).toInt();
         if (version >= BIBLIOTHEK_SCHEMA_VERSION) {
             qCInfo(lcDb) << "Bibliothek-Schema aktuell (v" << version << ")";
@@ -257,10 +257,16 @@ bool Database::checkAndApplyBibliothekSchema()
         { "#8B008B", "Violett - DIN 72551 (vi)", 108 },
         { "#FF6600", "Orange - DIN 72551 (or)",  109 },
     };
+    QSqlQuery fqExist(m_bibliothekDb);
+    fqExist.prepare("SELECT 1 FROM farb_definition WHERE bezeichnung = :bez LIMIT 1");
     QSqlQuery fq(m_bibliothekDb);
     fq.prepare("INSERT INTO farb_definition (hex_wert, bezeichnung, ist_standard, sortierung) "
                "VALUES (:hex, :bez, 1, :sort)");
     for (const Farbe &f : farben) {
+        // Idempotenz-Guard: bereits vorhandene Farbdefinition nicht erneut anlegen
+        fqExist.bindValue(":bez", QString::fromUtf8(f.bez));
+        if (fqExist.exec() && fqExist.next()) continue;
+
         fq.bindValue(":hex",  QString::fromUtf8(f.hex));
         fq.bindValue(":bez",  QString::fromUtf8(f.bez));
         fq.bindValue(":sort", f.sort);
@@ -277,7 +283,11 @@ bool Database::checkAndApplyBibliothekSchema()
         return false;
     }
 
-    if (!q.exec(QString("INSERT OR REPLACE INTO bibliothek_schema_version (version) VALUES (%1)")
+    // bibliothek_schema_version hat keine UNIQUE-Constraint auf 'version' – daher
+    // erst alle Zeilen löschen und die aktuelle Version neu einfügen, statt
+    // INSERT OR REPLACE (das ohne Konflikt-Ziel nie ersetzt, sondern immer anhängt).
+    if (!q.exec("DELETE FROM bibliothek_schema_version") ||
+        !q.exec(QString("INSERT INTO bibliothek_schema_version (version) VALUES (%1)")
                     .arg(BIBLIOTHEK_SCHEMA_VERSION))) {
         qCWarning(lcDb) << "bibliothek_schema_version schreiben:" << q.lastError().text();
         m_bibliothekDb.rollback();

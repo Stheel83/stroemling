@@ -1190,6 +1190,14 @@ bool Database::seedStandardKlemmen()
     };
 
     for (const KlemmTyp &t : typen) {
+        // Idempotenz-Guard: bereits vorhandene Standard-Klemme nicht erneut anlegen
+        // (analog seedNutzerBauteile() – verhindert Duplikate bei jedem erneuten
+        // Durchlauf von checkAndApplyBibliothekSchema())
+        QSqlQuery qexist(m_bibliothekDb);
+        qexist.prepare("SELECT 1 FROM bauteil WHERE bezeichnung = :bez LIMIT 1");
+        qexist.bindValue(":bez", t.bez);
+        if (qexist.exec() && qexist.next()) continue;
+
         QSqlQuery qb(m_bibliothekDb);
         qb.prepare("INSERT INTO bauteil (bezeichnung, norm, bemerkung) "
                    "VALUES (:bez, :norm, :bem)");

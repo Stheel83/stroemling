@@ -77,13 +77,13 @@ ColumnLayout {
                     Row {
                         anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                         spacing: 0
-                        Text { width: panel.svCols[0].w; text: modelData.bmk          || ""; font.pixelSize: 12; color: root.theme.accent;        elide: Text.ElideRight }
-                        Text { width: panel.svCols[1].w; text: modelData.gkBezeichnung|| ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
-                        Text { width: panel.svCols[2].w; text: modelData.bauteilBez   || ""; font.pixelSize: 12; color: root.theme.textPrimary;    elide: Text.ElideRight }
-                        Text { width: panel.svCols[3].w; text: modelData.hersteller   || ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
-                        Text { width: panel.svCols[4].w; text: modelData.polzahl > 0 ? modelData.polzahl + qsTr("-pol") : ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                        Text { width: panel.svCols[5].w; text: modelData.ipGesteckt  || ""; font.pixelSize: 12; color: root.theme.textMuted;       elide: Text.ElideRight }
-                        Text { width: panel.svCols[6].w; text: modelData.kodierung   || ""; font.pixelSize: 12; color: root.theme.textMuted;       elide: Text.ElideRight }
+                        Text { width: panel.svCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.bmk          || ""; font.pixelSize: 12; color: root.theme.accent;        elide: Text.ElideRight }
+                        Text { width: panel.svCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.gkBezeichnung|| ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
+                        Text { width: panel.svCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.bauteilBez   || ""; font.pixelSize: 12; color: root.theme.textPrimary;    elide: Text.ElideRight }
+                        Text { width: panel.svCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.hersteller   || ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
+                        Text { width: panel.svCols[4].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.polzahl > 0 ? modelData.polzahl + qsTr("-pol") : ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                        Text { width: panel.svCols[5].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.ipGesteckt  || ""; font.pixelSize: 12; color: root.theme.textMuted;       elide: Text.ElideRight }
+                        Text { width: panel.svCols[6].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.kodierung   || ""; font.pixelSize: 12; color: root.theme.textMuted;       elide: Text.ElideRight }
                         // Geschirmt-Badge
                         Item {
                             width: panel.svCols[7].w; height: 30
@@ -100,11 +100,11 @@ ColumnLayout {
                                 text: "–"; font.pixelSize: 12; color: root.theme.borderDark
                             }
                         }
-                        Text { width: panel.svCols[8].w;  text: modelData.blattnr || "";  font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
-                        Text { width: panel.svCols[9].w;  text: modelData.anlageUO || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
-                        Text { width: panel.svCols[10].w; text: modelData.ortUO    || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
-                        Text { width: panel.svCols[11].w; text: modelData.anlageKz || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
-                        Text { width: panel.svCols[12].w; text: modelData.ortKz    || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[8].w;  anchors.verticalCenter: parent.verticalCenter; text: modelData.blattnr || "";  font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[9].w;  anchors.verticalCenter: parent.verticalCenter; text: modelData.anlageUO || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[10].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.ortUO    || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[11].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.anlageKz || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
+                        Text { width: panel.svCols[12].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.ortKz    || ""; font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
                         Item {
                             width: panel.svCols[13].w; height: 30
                             Rectangle {

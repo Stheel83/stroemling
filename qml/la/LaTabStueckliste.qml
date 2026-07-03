@@ -81,7 +81,7 @@ ColumnLayout {
                 Row {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 0
-                    Text { width: panel.slCols[0].w; text: model.bmk       || ""; font.pixelSize: 12; color: root.theme.accent;       elide: Text.ElideRight }
+                    Text { width: panel.slCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: model.bmk       || ""; font.pixelSize: 12; color: root.theme.accent;       elide: Text.ElideRight }
                     // Typ-Spalte: für GK mit Badge-Rechteck, für Symbole plain text
                     Item {
                         width: panel.slCols[1].w; height: 30
@@ -103,13 +103,13 @@ ColumnLayout {
                             font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight
                         }
                     }
-                    Text { width: panel.slCols[2].w; text: model.freitext1 || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.slCols[3].w; text: model.freitext2 || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.slCols[4].w; text: model.seite     || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
-                    Text { width: panel.slCols[5].w; text: model.anlageUO  || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
-                    Text { width: panel.slCols[6].w; text: model.ortUO     || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
-                    Text { width: panel.slCols[7].w; text: model.anlageKz  || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
-                    Text { width: panel.slCols[8].w; text: model.ortKz     || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
+                    Text { width: panel.slCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.freitext1 || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.slCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: model.freitext2 || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.slCols[4].w; anchors.verticalCenter: parent.verticalCenter; text: model.seite     || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
+                    Text { width: panel.slCols[5].w; anchors.verticalCenter: parent.verticalCenter; text: model.anlageUO  || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
+                    Text { width: panel.slCols[6].w; anchors.verticalCenter: parent.verticalCenter; text: model.ortUO     || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
+                    Text { width: panel.slCols[7].w; anchors.verticalCenter: parent.verticalCenter; text: model.anlageKz  || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
+                    Text { width: panel.slCols[8].w; anchors.verticalCenter: parent.verticalCenter; text: model.ortKz     || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
 
                     Item {
                         width: panel.slCols[9].w; height: 30

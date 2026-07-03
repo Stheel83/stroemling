@@ -159,12 +159,14 @@ ColumnLayout {
 
                         Text {
                             width: panel.bpCols[0].w
+                            anchors.verticalCenter: parent.verticalCenter
                             text: modelData.kontaktBez || ""
                             font.pixelSize: 12; font.weight: Font.Medium
                             color: root.theme.textPrimary; elide: Text.ElideRight
                         }
                         Text {
                             width: panel.bpCols[1].w
+                            anchors.verticalCenter: parent.verticalCenter
                             text: {
                                 if (modelData.kontaktTyp === "stecker")          return qsTr("Stecker")
                                 if (modelData.kontaktTyp === "buchse")           return qsTr("Buchse")
@@ -175,11 +177,13 @@ ColumnLayout {
                         }
                         Text {
                             width: panel.bpCols[2].w
+                            anchors.verticalCenter: parent.verticalCenter
                             text: modelData.kontaktBmk || ""
                             font.pixelSize: 12; color: root.theme.accent; elide: Text.ElideRight
                         }
                         Text {
                             width: panel.bpCols[3].w
+                            anchors.verticalCenter: parent.verticalCenter
                             text: modelData.signalBez || "–"
                             font.pixelSize: 12
                             color: (modelData.signalBez || "") !== "" ? root.theme.textPrimary : root.theme.borderDark
@@ -209,6 +213,7 @@ ColumnLayout {
                         }
                         Text {
                             width: panel.bpCols[5].w
+                            anchors.verticalCenter: parent.verticalCenter
                             text: modelData.querschnitt > 0 ? modelData.querschnitt + " mm²" : "–"
                             font.pixelSize: 12
                             color: modelData.querschnitt > 0 ? root.theme.textSecondary : root.theme.borderDark
@@ -216,6 +221,7 @@ ColumnLayout {
                         }
                         Text {
                             width: panel.bpCols[6].w
+                            anchors.verticalCenter: parent.verticalCenter
                             text: modelData.blattnr || ""
                             font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight
                         }

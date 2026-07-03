@@ -71,7 +71,7 @@ ColumnLayout {
                 Row {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 0
-                    Text { width: panel.alCols[0].w; text: model.bezeichnung    || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.alCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: model.bezeichnung    || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
                     Item {
                         width: panel.alCols[1].w; height: 30
                         AderfarbenSwatch {
@@ -86,13 +86,13 @@ ColumnLayout {
                             text: model.aderfarbe || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight
                         }
                     }
-                    Text { width: panel.alCols[2].w; text: model.querschnittMm2 > 0 ? model.querschnittMm2 + " mm²" : "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.alCols[3].w; text: model.laengeM        > 0 ? model.laengeM + " m"    : "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.alCols[4].w; text: model.seite          || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
-                    Text { width: panel.alCols[5].w; text: model.anlageUO       || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
-                    Text { width: panel.alCols[6].w; text: model.ortUO          || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
-                    Text { width: panel.alCols[7].w; text: model.anlageKz       || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
-                    Text { width: panel.alCols[8].w; text: model.ortKz          || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
+                    Text { width: panel.alCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.querschnittMm2 > 0 ? model.querschnittMm2 + " mm²" : "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.alCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: model.laengeM        > 0 ? model.laengeM + " m"    : "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.alCols[4].w; anchors.verticalCenter: parent.verticalCenter; text: model.seite          || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
+                    Text { width: panel.alCols[5].w; anchors.verticalCenter: parent.verticalCenter; text: model.anlageUO       || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
+                    Text { width: panel.alCols[6].w; anchors.verticalCenter: parent.verticalCenter; text: model.ortUO          || ""; font.pixelSize: 12; color: root.theme.accentLight;   elide: Text.ElideRight }
+                    Text { width: panel.alCols[7].w; anchors.verticalCenter: parent.verticalCenter; text: model.anlageKz       || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
+                    Text { width: panel.alCols[8].w; anchors.verticalCenter: parent.verticalCenter; text: model.ortKz          || ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
                     Item {
                         width: panel.alCols[9].w; height: 30
                         Rectangle {

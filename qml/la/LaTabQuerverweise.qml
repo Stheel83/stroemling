@@ -70,11 +70,11 @@ ColumnLayout {
                 Row {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 0
-                    Text { width: panel.qvCols[0].w; text: model.signalname || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.qvCols[1].w; text: model.richtung   || ""; font.pixelSize: 12;
+                    Text { width: panel.qvCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: model.signalname || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.qvCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: model.richtung   || ""; font.pixelSize: 12;
                            color: model.richtung === "ausgang" ? root.theme.accent : "#66ddaa"; elide: Text.ElideRight }
-                    Text { width: panel.qvCols[2].w; text: model.seite      || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
-                    Text { width: panel.qvCols[3].w; text: model.zielSeite  || "–"; font.pixelSize: 12;
+                    Text { width: panel.qvCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.seite      || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                    Text { width: panel.qvCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: model.zielSeite  || "–"; font.pixelSize: 12;
                            color: model.zielSeite ? root.theme.accentLight : root.theme.borderDark; elide: Text.ElideRight }
                     Item {
                         width: panel.qvCols[4].w; height: 30

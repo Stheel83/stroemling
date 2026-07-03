@@ -84,10 +84,10 @@ ColumnLayout {
                     visible: model.typ === "klemme"
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 0
-                    Text { width: panel.kpCols[0].w; text: model.typ === "klemme" ? (model.nummer     || "–") : ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
-                    Text { width: panel.kpCols[1].w; text: model.typ === "klemme" ? (model.bauteilBez || "–") : ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
-                    Text { width: panel.kpCols[2].w; text: model.typ === "klemme" ? (model.anschlussTyp || "–") : ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
-                    Text { width: panel.kpCols[3].w; text: model.typ === "klemme" ? (model.querschnitt || "–") : ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
+                    Text { width: panel.kpCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: model.typ === "klemme" ? (model.nummer     || "–") : ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
+                    Text { width: panel.kpCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: model.typ === "klemme" ? (model.bauteilBez || "–") : ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
+                    Text { width: panel.kpCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.typ === "klemme" ? (model.anschlussTyp || "–") : ""; font.pixelSize: 12; color: root.theme.borderLight;   elide: Text.ElideRight }
+                    Text { width: panel.kpCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: model.typ === "klemme" ? (model.querschnitt || "–") : ""; font.pixelSize: 12; color: root.theme.textSecondary;  elide: Text.ElideRight }
                     Row {
                         width: panel.kpCols[4].w; spacing: 4
                         anchors.verticalCenter: parent.verticalCenter
@@ -102,9 +102,9 @@ ColumnLayout {
                                text: model.typ === "klemme" ? (model.farbeBez || "–") : "";
                                font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
                     }
-                    Text { width: panel.kpCols[5].w; text: model.typ === "klemme" ? (model.potenzial || "–") : "";
+                    Text { width: panel.kpCols[5].w; anchors.verticalCenter: parent.verticalCenter; text: model.typ === "klemme" ? (model.potenzial || "–") : "";
                            font.pixelSize: 12; color: model.typ === "klemme" && model.potenzial ? root.theme.accent : root.theme.borderDark; elide: Text.ElideRight }
-                    Text { width: panel.kpCols[6].w; text: model.typ === "klemme" ? (model.ortKz || "–") : "";
+                    Text { width: panel.kpCols[6].w; anchors.verticalCenter: parent.verticalCenter; text: model.typ === "klemme" ? (model.ortKz || "–") : "";
                            font.pixelSize: 12; color: root.theme.borderLight; elide: Text.ElideRight }
                     Item {
                         width: panel.kpCols[7].w; height: 28

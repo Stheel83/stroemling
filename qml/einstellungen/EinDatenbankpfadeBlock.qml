@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Sektion "Datenbankpfade": zeigt Haupt-DB, Wiki-DB und Backup-Verzeichnis.
+// Sektion "Datenbankpfade": zeigt Haupt-DB, Wiki-DB, Makro- und Bauteil-Bibliothek sowie Backup-Verzeichnis.
 ColumnLayout {
     id: root
 
@@ -28,7 +28,7 @@ ColumnLayout {
         Layout.fillWidth:   true
         Layout.leftMargin:  12
         Layout.rightMargin: 12
-        height:             4 * 60
+        height:             5 * 60
         color:              root.theme.surface
         radius:             6
         border.color:       root.theme.border
@@ -41,6 +41,7 @@ ColumnLayout {
                     { label: qsTr("Zentrale Datenbank"), key: "launcherDb", icon: "🗄" },
                     { label: qsTr("Wiki-Datenbank"),     key: "wikiDb",     icon: "📚" },
                     { label: qsTr("Makro-Bibliothek"),   key: "makrosDb",   icon: "⚙" },
+                    { label: qsTr("Bauteil-Bibliothek"), key: "bibliothekDb", icon: "🧩" },
                     { label: qsTr("Backup-Verzeichnis"), key: "backupDir",  icon: "💾" }
                 ]
 
@@ -49,7 +50,7 @@ ColumnLayout {
                     height: 60
 
                     Rectangle {
-                        visible:        index < 3
+                        visible:        index < 4
                         anchors.bottom: parent.bottom
                         width:          parent.width; height: 1
                         color:          root.theme.divider

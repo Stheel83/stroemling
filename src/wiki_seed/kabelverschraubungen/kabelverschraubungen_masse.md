@@ -32,6 +32,29 @@ Norm: IEC 60423, DIN EN 50262
 
 ---
 
+## Kleingrößen M6–M10 (Sensoren, Steckverbinder)
+
+**Wichtig:** Diese Größen sind **nicht** Teil von DIN EN 50262 – die eigentliche
+Kabelverschraubungsnorm deckt nur M12–M63 ab (siehe Tabelle oben). Die hier
+verwendeten Steigungen sind Herstellerpraxis, übernommen aus der
+Installationsrohr-Norm **DIN EN 60423** (Gewindetabelle für Rohrsysteme,
+nicht für Kabelverschraubungen). Anders als bei normalen Schrauben nach
+**DIN 13-1** (dort z. B. M8 = 1,25 mm, M10 = 1,5 mm Steigung) verwenden
+kleine Kabelverschraubungen eine feinere Steigung:
+
+| Gewinde              | Außen-Ø (mm) | Steigung (mm)    | Klemmbereich (mm)      | Hinweis |
+|-----------------------|:------------:|:-----------------:|:------------------------:|---------|
+| M 6×0,75             |      6       |       0,75        |     herstellerabhängig   | Vor allem Sensor-/Klemmverschraubungen, selten als vollwertige IP-Verschraubung |
+| M 8×1                |      8       |       1,0         |       3,5 – 5,5          | Steigung am Markt nahezu einheitlich (z. B. Lapp SKINDICHT MINI, Kaiser GfK) |
+| M 10×1 / M 10×1,5    |      10      |    1,0 **oder** 1,5 |  5 – 6,8 (bei ×1,5)     | **Uneinheitlich** – beide Steigungen im Umlauf, vor dem Bohren/Bestellen am Bauteil nachmessen oder Datenblatt prüfen |
+
+> **M5 bewusst nicht aufgeführt:** Für M5 gibt es keine einheitliche
+> Kabelverschraubungs-Steigung – am Markt findet sich M5 fast ausschließlich
+> als reine **Klemmverschraubung** für dünne Sensorleitungen, nicht als
+> abgedichtete IP-Kabelverschraubung mit definiertem Klemmbereich.
+
+---
+
 ## PG-Kabelverschraubungen (Panzerrohrgewinde)
 
 Norm: DIN 40430 (zurückgezogen, aber in Bestandsanlagen verbreitet).  

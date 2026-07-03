@@ -9,27 +9,34 @@ Kunststoffkragens gibt den Querschnitt an — festgelegt in **DIN 46228-4**
 
 ## Aktuelle Farben nach DIN 46228-4
 
-| Querschnitt (mm²) | Farbe          | Kragen      | Länge (mm) | Innen-Ø (mm) |
-|:-----------------:|----------------|-------------|:----------:|:------------:|
-| 0,14              | violett / lila | ja          |     8      |     0,8      |
-| 0,25              | weiß           | ja          |     8      |     0,9      |
-| 0,34              | (nicht normiert) | —         |     —      |      —       |
-| 0,5               | weiß           | ja          |     8      |     1,1      |
-| 0,75              | grau           | ja          |     8      |     1,4      |
-| 1,0               | rot            | ja          |     8      |     1,7      |
-| 1,5               | schwarz        | ja          |     8      |     2,0      |
-| 2,5               | blau           | ja          |     8      |     2,7      |
-| 4,0               | grau           | ja          |    12      |     3,2      |
-| 6,0               | gelb           | ja          |    12      |     4,0      |
-| 10                | rot            | ja          |    12      |     5,0      |
-| 16                | schwarz        | ja          |    16      |     6,5      |
-| 25                | weiß           | ja          |    16      |     7,5      |
-| 35                | grau (dunkel)  | ja          |    20      |     9,0      |
-| 50                | rot            | ja          |    20      |    11,0      |
+| Querschnitt (mm²) | Farbe          | Kragen      | Länge (mm) | Innen-Ø (mm) | Leiter-Ø (mm, rechn.) |
+|:-----------------:|----------------|-------------|:----------:|:------------:|:---------------------:|
+| 0,14              | violett / lila | ja          |     8      |     0,8      |         0,42           |
+| 0,25              | weiß           | ja          |     8      |     0,9      |         0,56           |
+| 0,34              | (nicht normiert) | —         |     —      |      —       |         0,66           |
+| 0,5               | weiß           | ja          |     8      |     1,1      |         0,80           |
+| 0,75              | grau           | ja          |     8      |     1,4      |         0,98           |
+| 1,0               | rot            | ja          |     8      |     1,7      |         1,13           |
+| 1,5               | schwarz        | ja          |     8      |     2,0      |         1,38           |
+| 2,5               | blau           | ja          |     8      |     2,7      |         1,78           |
+| 4,0               | grau           | ja          |    12      |     3,2      |         2,26           |
+| 6,0               | gelb           | ja          |    12      |     4,0      |         2,76           |
+| 10                | rot            | ja          |    12      |     5,0      |         3,57           |
+| 16                | schwarz        | ja          |    16      |     6,5      |         4,51           |
+| 25                | weiß           | ja          |    16      |     7,5      |         5,64           |
+| 35                | grau (dunkel)  | ja          |    20      |     9,0      |         6,68           |
+| 50                | rot            | ja          |    20      |    11,0      |         7,98           |
 
 > **Achtung:** Die Farbe wiederholt sich bei größeren Querschnitten (z. B.
 > rot = 1,0 mm² **und** 10 mm²). Verwechslungsgefahr! Bei Querschnitten
 > ab 4 mm² immer auch auf die physische Größe der Hülse achten.
+>
+> **Leiter-Ø vs. Innen-Ø:** Die Spalte „Leiter-Ø (mm, rechn.)" ist der
+> rechnerische Durchmesser eines **eindrähtigen** Vollleiters gleichen
+> Querschnitts (`d = 2·√(A/π)`) — als grobe Nachmess-Hilfe, wenn der
+> Querschnitt einer nackten Litze unbekannt ist. Die Spalte „Innen-Ø (mm)"
+> ist dagegen die Hülsenbohrung selbst und immer etwas größer, weil sie
+> die aufgefächerte Litze plus Fertigungstoleranz aufnehmen muss.
 
 ---
 

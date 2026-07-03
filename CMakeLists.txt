@@ -155,6 +155,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaMakroBibliothek.qml
 
         qml/la/LaCsvLeiste.qml
+        qml/la/LaSpaltenHeader.qml
         qml/la/LaTabStueckliste.qml
         qml/la/LaTabQuerverweise.qml
         qml/la/LaTabAderliste.qml

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtCore
 import "components"
 import "la"
 
@@ -134,26 +135,26 @@ Item {
         return max
     }
 
-    readonly property var slCols: [
+    property var slCols: [
         { header: "BMK",        w: 110 }, { header: "Typ",        w: 110 },
         { header: "Freitext 1", w: 130 }, { header: "Freitext 2", w: 130 },
         { header: "Seite",      w: 65  }, { header: "==Anlage",   w: 65  },
         { header: "++Ort",      w: 65  }, { header: "=Anlage",    w: 55  },
         { header: "+Ort",       w: 55  }, { header: "Canvas Pos.", w: 70  }
     ]
-    readonly property var qvCols: [
+    property var qvCols: [
         { header: "Signalname", w: 160 }, { header: "Richtung",    w: 100 },
         { header: "Seite",      w: 90  }, { header: "Zielseite",   w: 90  },
         { header: "Canvas Pos.", w: 70 }
     ]
-    readonly property var alCols: [
+    property var alCols: [
         { header: "Bezeichnung",  w: 80 }, { header: "Aderfarbe",   w: 70 },
         { header: "Querschnitt",  w: 80 }, { header: "Länge (m)",   w: 70 },
         { header: "Seite",        w: 60 }, { header: "==Anlage",    w: 60 },
         { header: "++Ort",        w: 60 }, { header: "=Anlage",     w: 55 },
         { header: "+Ort",         w: 55 }, { header: "Canvas Pos.", w: 70 }
     ]
-    readonly property var kpCols: [
+    property var kpCols: [
         { header: "Nr.",         w: 55  }, { header: "Bauteil",     w: 155 },
         { header: "Typ",         w: 90  }, { header: "Querschnitt", w: 110 },
         { header: "Farbe",       w: 100 }, { header: "Potenzial",   w: 100 },
@@ -166,13 +167,13 @@ Item {
         { header: qsTr("Farbe"),          w: 90  },
         { header: qsTr("Nach (Seite B)"), w: 210 }
     ]
-    readonly property var klCols: [
+    property var klCols: [
         { header: "Bezeichnung", w: 110 }, { header: "Kabeltyp",  w: 130 },
         { header: "Adern",       w: 50  }, { header: "mm²",       w: 55  },
         { header: "Länge (m)",   w: 70  }, { header: "Von-Ort",   w: 100 },
         { header: "Nach-Ort",    w: 100 }, { header: "Linien",    w: 50  }
     ]
-    readonly property var svCols: [
+    property var svCols: [
         { header: "BMK",         w: 80  }, { header: "Bezeichnung", w: 120 },
         { header: "Bauteil/Typ", w: 130 }, { header: "Hersteller",  w: 110 },
         { header: "Polzahl",     w: 60  }, { header: "IP gesteckt", w: 75  },
@@ -181,7 +182,7 @@ Item {
         { header: "++Ort",       w: 65  }, { header: "=Anlage",     w: 55  },
         { header: "+Ort",        w: 55  }, { header: "Canvas Pos.", w: 70  }
     ]
-    readonly property var bpCols: [
+    property var bpCols: [
         { header: qsTr("Pin"),        w: 45  }, { header: qsTr("Typ"),       w: 90  },
         { header: qsTr("Symbol-BMK"), w: 100 }, { header: qsTr("Signal"),    w: 130 },
         { header: qsTr("Farbe"),      w: 80  }, { header: qsTr("mm²"),       w: 60  },
@@ -193,6 +194,46 @@ Item {
         { header: "Netz",        w: 130 }, { header: "Von",         w: 90  },
         { header: "Nach",        w: 90  }
     ]
+
+    // ── Spaltenbreiten: Nutzer-Resizing + Persistenz ──────────────────
+    // (klaCols/klAderCols bewusst nicht resizebar: klaCols hat handgeschriebene
+    // Trennlinien-Offsets statt Repeater-Header, klAderCols ist eine verschachtelte
+    // Sub-Tabelle ohne eigene Kopfzeile)
+    Settings {
+        id: spaltenSettings
+        category: "listenansicht_spalten"
+        property string slCols: ""
+        property string qvCols: ""
+        property string alCols: ""
+        property string kpCols: ""
+        property string klCols: ""
+        property string svCols: ""
+        property string bpCols: ""
+    }
+
+    function _spaltenLaden(propName) {
+        var json = spaltenSettings[propName]
+        if (!json) return
+        try {
+            var breiten = JSON.parse(json)
+            var cols    = panel[propName]
+            if (!Array.isArray(breiten) || breiten.length !== cols.length) return
+            var neu = cols.map(function (c, i) { return { header: c.header, w: breiten[i] } })
+            panel[propName] = neu
+        } catch (e) { /* ungültiges/altes JSON ignorieren, Default bleibt */ }
+    }
+
+    function spaltenSpeichern(propName) {
+        var breiten = panel[propName].map(function (c) { return c.w })
+        spaltenSettings[propName] = JSON.stringify(breiten)
+    }
+
+    Component.onCompleted: {
+        _spaltenLaden("slCols"); _spaltenLaden("qvCols")
+        _spaltenLaden("alCols"); _spaltenLaden("kpCols")
+        _spaltenLaden("klCols"); _spaltenLaden("svCols")
+        _spaltenLaden("bpCols")
+    }
 
     Rectangle { anchors.fill: parent; color: theme.surface }
 

@@ -27,17 +27,7 @@ ColumnLayout {
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    Rectangle {
-        Layout.fillWidth: true; height: 30; color: theme.tableHeader
-        Row {
-            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-            Repeater {
-                model: panel.slCols
-                delegate: Text { width: modelData.w; text: modelData.header;
-                    font.pixelSize: 11; font.weight: Font.Medium; color: theme.textSubtle }
-            }
-        }
-    }
+    LaSpaltenHeader { panel: root.panel; theme: root.theme; colsProp: "slCols" }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
     ScrollView {

@@ -298,6 +298,10 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
         src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
         src/wiki_seed/bedienhinweise/fehlersuchmodus.md
+        src/wiki_seed/bedienhinweise/sprungfunktion.md
+        src/wiki_seed/bedienhinweise/steckverbinder_konfkabel.md
+        src/wiki_seed/bedienhinweise/geraetekasten_workflow.md
+        src/wiki_seed/bedienhinweise/strukturkennzeichen.md
         src/wiki_seed/nachschlagetabellen/lss_ausloesecharakteristik.md
         src/wiki_seed/nachschlagetabellen/strombelastbarkeit_vde0298.md
         src/wiki_seed/nachschlagetabellen/rcd_typen.md
@@ -416,6 +420,10 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/bedienhinweise/ueber_dieses_projekt.md
         src/wiki_seed/bedienhinweise/seitenbaum_sortierung.md
         src/wiki_seed/bedienhinweise/fehlersuchmodus.md
+        src/wiki_seed/bedienhinweise/sprungfunktion.md
+        src/wiki_seed/bedienhinweise/steckverbinder_konfkabel.md
+        src/wiki_seed/bedienhinweise/geraetekasten_workflow.md
+        src/wiki_seed/bedienhinweise/strukturkennzeichen.md
         src/wiki_seed/nachschlagetabellen/lss_ausloesecharakteristik.md
         src/wiki_seed/nachschlagetabellen/strombelastbarkeit_vde0298.md
         src/wiki_seed/nachschlagetabellen/rcd_typen.md

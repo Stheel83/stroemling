@@ -56,6 +56,26 @@
           "titel": "Fehlersuchmodus",
           "tags": "fehlersuchmodus strompfad traversierung unterbrechung querverweis dimming fehlersuche",
           "datei": "bedienhinweise/fehlersuchmodus.md"
+        },
+        {
+          "titel": "Sprungfunktion – von der Liste zum Canvas",
+          "tags": "sprungfunktion navigation liste canvas seitenbaum kontaktspiegel",
+          "datei": "bedienhinweise/sprungfunktion.md"
+        },
+        {
+          "titel": "Steckverbinder und konfektionierte Kabel anlegen",
+          "tags": "steckverbinder stecker buchse konfektioniertes kabel montageform kontakttyp bibliothek",
+          "datei": "bedienhinweise/steckverbinder_konfkabel.md"
+        },
+        {
+          "titel": "Gerätekasten und Geräte mit Kontaktspiegel",
+          "tags": "gerätekasten betriebsmittel schütz relais kontaktspiegel bmk-vererbung",
+          "datei": "bedienhinweise/geraetekasten_workflow.md"
+        },
+        {
+          "titel": "Strukturkennzeichen: Anlage, Ort und die Hierarchie ==/=/++/+",
+          "tags": "strukturkennzeichen anlage ort bmk din81346 hierarchie seitenbaum",
+          "datei": "bedienhinweise/strukturkennzeichen.md"
         }
       ]
     },

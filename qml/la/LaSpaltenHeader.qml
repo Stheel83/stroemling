@@ -20,14 +20,21 @@ Rectangle {
         anchors { left: parent.left; leftMargin: root.leftMargin; verticalCenter: parent.verticalCenter }
 
         Repeater {
-            model: root.cols
+            // Wichtig: über die Anzahl (Zahl), NICHT über das Array selbst iterieren.
+            // Bei model:root.cols würde jede Breitenänderung (Neuzuweisung des Arrays)
+            // den Repeater dazu bringen, ALLE Delegates neu zu erstellen — inklusive
+            // der gerade aktiven Drag-MouseArea, wodurch der Drag nach jedem Pixel
+            // abbricht. Mit einer reinen Zahl als Model bleibt die Spaltenanzahl beim
+            // Resizen unverändert, die Delegates bleiben bestehen und nur die
+            // Bindungen auf root.cols[index] werten neu aus.
+            model: root.cols.length
             delegate: Item {
-                width: modelData.w; height: 20
+                width: root.cols[index].w; height: 20
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - (index < root.cols.length - 1 ? 6 : 0)
-                    text: modelData.header
+                    text: root.cols[index].header
                     font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle
                     elide: Text.ElideRight
                 }

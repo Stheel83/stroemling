@@ -269,6 +269,10 @@ Item {
                             }
                             background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
                             highlighted: tfAderMm2.highlightedIndex === index
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 400
+                            ToolTip.text: qsTr("Ø %1 mm (Leiter, eindrähtig, rechnerisch – reale Außenmaße je nach Isolierung/Litzenzahl abweichend)")
+                                .arg((2 * Math.sqrt(modelData / Math.PI)).toFixed(2).replace('.', ','))
                         }
                         onActivated: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
@@ -407,6 +411,10 @@ Item {
                             }
                             background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
                             highlighted: bulkMm2.highlightedIndex === index
+                            ToolTip.visible: hovered && modelData !== "—"
+                            ToolTip.delay: 400
+                            ToolTip.text: modelData !== "—" ? qsTr("Ø %1 mm (Leiter, eindrähtig, rechnerisch – reale Außenmaße je nach Isolierung/Litzenzahl abweichend)")
+                                .arg((2 * Math.sqrt(modelData / Math.PI)).toFixed(2).replace('.', ',')) : ""
                         }
                     }
                 }

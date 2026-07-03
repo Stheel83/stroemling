@@ -124,6 +124,8 @@ Item {
                         185.0, 240.0, 300.0]
                 MiniButton { theme: root.theme;
                     label: modelData + ""; breite: 40; hoehe: 24
+                    tooltip: qsTr("Ø %1 mm (Leiter, eindrähtig, rechnerisch – reale Außenmaße je nach Isolierung/Litzenzahl abweichend)")
+                        .arg((2 * Math.sqrt(modelData / Math.PI)).toFixed(2).replace('.', ','))
                     aktiv: {
                         var q = panel.el ? ((panel.el.extraDaten || {}).querschnitt_mm2 || 0) : 0
                         return Math.abs(q - modelData) < 0.01

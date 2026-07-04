@@ -33,7 +33,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 83;
     static const int WIKI_SCHEMA_VERSION     = 15;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 3;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 4;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     static const int BASELINE_TABLE_COUNT   = 32;
@@ -280,6 +280,16 @@ public:
                                  double litzeQuerschnitt = 0.0,
                                  const QString &litzeBezeichnung = QString());
     Q_INVOKABLE bool         steckverbinderKontaktLoeschen(int id);
+
+    // Kontakt-Typ (Bibliothek, wiederverwendbarer Stift/Buchse-Katalogeintrag,
+    // Neukonzeption Jul 2026 — konzept/features/45_steckverbinder.md §3.1/§5)
+    Q_INVOKABLE QVariantMap  kontaktTypLaden(int bauteilId) const;
+    Q_INVOKABLE int          kontaktTypSpeichern(int bauteilId, const QString &geschlecht,
+                                 double kontaktgroesse,
+                                 double querschnittSteckseiteMin, double querschnittSteckseiteMax,
+                                 double querschnittKabelMin, double querschnittKabelMax,
+                                 double nennstromA, double nennspannungV,
+                                 const QString &verbindungstechnik);
 
     // Konfektioniertes Kabel (Bauteil-Typ mit Steckern an einem oder beiden Enden)
     Q_INVOKABLE QVariantMap  konfkabelLaden(int bauteilId) const;

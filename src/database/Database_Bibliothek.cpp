@@ -189,6 +189,19 @@ bool Database::checkAndApplyBibliothekSchema()
             litze_querschnitt     REAL,
             litze_bezeichnung     TEXT
         ))",
+        R"(CREATE TABLE IF NOT EXISTS kontakt_typ (
+            id                         INTEGER PRIMARY KEY,
+            bauteil_id                 INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
+            geschlecht                 TEXT NOT NULL DEFAULT 'stift',
+            kontaktgroesse             REAL,
+            querschnitt_steckseite_min REAL,
+            querschnitt_steckseite_max REAL,
+            querschnitt_kabel_min      REAL,
+            querschnitt_kabel_max      REAL,
+            nennstrom_a                REAL,
+            nennspannung_v             REAL,
+            verbindungstechnik         TEXT
+        ))",
         R"(CREATE TABLE IF NOT EXISTS konfektioniertes_kabel (
             id                  INTEGER PRIMARY KEY,
             bauteil_id          INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,

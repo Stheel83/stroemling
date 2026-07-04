@@ -1169,6 +1169,9 @@ ApplicationWindow {
                 onKonfkabelEditorAngefordert: function(id, bezeichnung) {
                     root.aktiveAnsicht = "konfkabel_editor"
                 }
+                onKontaktEditorAngefordert: function(id, bezeichnung) {
+                    root.aktiveAnsicht = "kontakt_editor"
+                }
                 onGeraetekastenSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
                     if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
                     var p = root.fokussiertesPanel === 2 ? panel2 : panel1
@@ -1467,6 +1470,70 @@ ApplicationWindow {
                     Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
 
                     KonfkabelEditor {
+                        Layout.fillWidth:     true
+                        Layout.fillHeight:    true
+                        theme:                appTheme
+                        debug:                root.debugModeAktiv
+                        bauteilId:            bauteilAnsicht.selectedBauteilId
+                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
+
+                        onBauteilGespeichert: function(id, bez) {
+                            bauteilAnsicht.selectedBauteilBezeichnung = bez
+                            bauteilModel.aktualisieren()
+                        }
+                    }
+                }
+            }
+
+            // Kontakt-Editor Vollbild
+            Item {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "kontakt_editor"
+
+                DebugLabel { panelName: qsTr("Kontakt-Editor Ansicht"); visible: root.debugModeAktiv }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing:      0
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height:           44
+                        color:            appTheme.sidebar
+
+                        RowLayout {
+                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
+                            spacing: 6
+
+                            Button {
+                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
+                                contentItem: Text {
+                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
+                                onClicked: root.aktiveAnsicht = "bauteile"
+                            }
+                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
+                            Text {
+                                text:           bauteilAnsicht.selectedBauteilBezeichnung
+                                font.pixelSize: 13; font.weight: Font.Medium
+                                color:          appTheme.textPrimary
+                            }
+                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
+                            Text {
+                                text:           qsTr("Kontakt-Editor")
+                                font.pixelSize: 12
+                                color:          appTheme.textMuted
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
+
+                    KontaktEditor {
                         Layout.fillWidth:     true
                         Layout.fillHeight:    true
                         theme:                appTheme

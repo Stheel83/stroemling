@@ -12,6 +12,7 @@ Item {
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal steckverbinderEditorAngefordert(int bauteilId, string bezeichnung)
     signal konfkabelEditorAngefordert(int bauteilId, string bezeichnung)
+    signal kontaktEditorAngefordert(int bauteilId, string bezeichnung)
 
     // ── Symbol-Picker ────────────────────────────────────────
     BaSymbolPickerDialog {
@@ -296,6 +297,7 @@ Item {
                         : bauteilModel.nurKabel          ? qsTr("Kabel")
                         : bauteilModel.nurSteckverbinder ? qsTr("Steckverbinder")
                         : bauteilModel.nurKonfkabel      ? qsTr("Konf. Kabel")
+                        : bauteilModel.nurKontakt        ? qsTr("Kontakte")
                         : qsTr("Alle Bauteile")
                     font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary
                     Layout.fillWidth: true
@@ -374,7 +376,9 @@ Item {
                                 ? qsTr("Noch keine Steckverbinder – mit '+ Neu' anlegen.")
                                 : bauteilModel.nurKonfkabel
                                   ? qsTr("Noch keine konfektionierten Kabel – mit '+ Neu' anlegen.")
-                                  : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
+                                  : bauteilModel.nurKontakt
+                                    ? qsTr("Noch keine Kontakte – mit '+ Neu' anlegen.")
+                                    : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
                         color:          theme.textMuted
                         font.pixelSize: 13
                     }
@@ -405,21 +409,25 @@ Item {
                             color: model.istKlemme ? "#1a4a2a"
                                  : model.istKabel  ? "#1a3a4a"
                                  : model.istSteckverbinder ? "#2a1a4a"
+                                 : model.istKontakt ? "#4a3a1a"
                                  : "transparent"
                             border.color: model.istKlemme ? "#2d7a4a"
                                         : model.istKabel  ? "#2d6a8a"
                                         : model.istSteckverbinder ? "#6a3a9a"
+                                        : model.istKontakt ? "#8a6a2d"
                                         : "transparent"
                             Text {
                                 anchors.centerIn: parent
                                 text: model.istKlemme ? qsTr("Klemme")
                                     : model.istKabel  ? qsTr("Kabel")
                                     : model.istSteckverbinder ? qsTr("Stecker")
+                                    : model.istKontakt ? qsTr("Kontakt")
                                     : ""
                                 font.pixelSize: 10
                                 color: model.istKlemme ? "#5dba7d"
                                      : model.istKabel  ? "#5daacc"
                                      : model.istSteckverbinder ? "#aa7ddd"
+                                     : model.istKontakt ? "#ddaa5d"
                                      : "transparent"
                             }
                         }
@@ -515,7 +523,21 @@ Item {
                                 }
                             }
                             Button {
-                                visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && !model.istKonfkabel
+                                visible: model.istKontakt; width: 24; height: 24; flat: true
+                                contentItem: Text { text: "⚙"; color: theme.accent; font.pixelSize: 13;
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.text: qsTr("Kontakt-Editor öffnen")
+                                onClicked: {
+                                    panel.selectedBauteilId            = model.bauteilId
+                                    panel.selectedBauteilBezeichnung   = model.bezeichnung
+                                    panel.selectedBauteilHersteller    = model.hersteller
+                                    panel.selectedBauteilArtikelnummer = model.artikelnummer
+                                    root.kontaktEditorAngefordert(model.bauteilId, model.bezeichnung)
+                                }
+                            }
+                            Button {
+                                visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && !model.istKonfkabel && !model.istKontakt
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: "✎"; color: theme.accent; font.pixelSize: 14;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -558,6 +580,8 @@ Item {
                                             root.steckverbinderEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
                                         else if (model.istKonfkabel)
                                             root.konfkabelEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
+                                        else if (model.istKontakt)
+                                            root.kontaktEditorAngefordert(newId, model.bezeichnung + qsTr(" (Kopie)"))
                                     }
                                 }
                             }

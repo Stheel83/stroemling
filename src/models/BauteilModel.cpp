@@ -185,6 +185,12 @@ void BauteilListModel::setNurKonfkabel(bool nurKonfkabel)
     ladenIntern();
 }
 
+void BauteilListModel::setNurKontakt(bool nurKontakt)
+{
+    m_nurKontakt = nurKontakt;
+    ladenIntern();
+}
+
 void BauteilListModel::ladenIntern()
 {
     beginResetModel();
@@ -202,12 +208,14 @@ void BauteilListModel::ladenIntern()
         "COALESCE(ka.kabeltyp,''), "
         "COALESCE(b.hauptfunktion_symbol_id,''), "
         "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END, "
-        "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END "
+        "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END, "
+        "CASE WHEN kt.id IS NOT NULL THEN 1 ELSE 0 END "
         "FROM bibliothek.bauteil b "
         "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
         "LEFT JOIN bibliothek.bauteil_kabel  ka             ON ka.bauteil_id = b.id "
         "LEFT JOIN bibliothek.steckverbinder_typ sv         ON sv.bauteil_id = b.id "
-        "LEFT JOIN bibliothek.konfektioniertes_kabel kk     ON kk.bauteil_id = b.id ";
+        "LEFT JOIN bibliothek.konfektioniertes_kabel kk     ON kk.bauteil_id = b.id "
+        "LEFT JOIN bibliothek.kontakt_typ kt                ON kt.bauteil_id = b.id ";
 
     QString where;
     if (m_nurKlemmen)           where += "k.id IS NOT NULL ";
@@ -222,6 +230,10 @@ void BauteilListModel::ladenIntern()
     if (m_nurKonfkabel) {
         if (!where.isEmpty()) where += "AND ";
         where += "kk.id IS NOT NULL ";
+    }
+    if (m_nurKontakt) {
+        if (!where.isEmpty()) where += "AND ";
+        where += "kt.id IS NOT NULL ";
     }
     if (m_aktiveKategorieId >= 0) {
         if (!where.isEmpty()) where += "AND ";
@@ -260,6 +272,7 @@ void BauteilListModel::ladenIntern()
         b.hauptfunktionSymbolId   = q.value(16).toString();
         b.istSteckverbinder       = q.value(17).toInt() != 0;
         b.istKonfkabel            = q.value(18).toInt() != 0;
+        b.istKontakt              = q.value(19).toInt() != 0;
         m_bauteile.append(b);
     }
 
@@ -298,6 +311,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case IstKabelRole:              return b.istKabel;
     case IstSteckverbinderRole:     return b.istSteckverbinder;
     case IstKonfkabelRole:          return b.istKonfkabel;
+    case IstKontaktRole:            return b.istKontakt;
     case KabeltypRole:              return b.kabeltyp;
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     default:                        return {};
@@ -324,6 +338,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { IstKabelRole,              "istKabel"               },
         { IstSteckverbinderRole,     "istSteckverbinder"      },
         { IstKonfkabelRole,          "istKonfkabel"           },
+        { IstKontaktRole,            "istKontakt"             },
         { KabeltypRole,              "kabeltyp"               },
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
     };
@@ -636,6 +651,37 @@ int BauteilListModel::duplizieren(int bauteilId)
                     }
                 }
             }
+        }
+    }
+
+    // ── Typ: Kontakt ─────────────────────────────────────────────────────────
+    {
+        QSqlQuery qk;
+        qk.prepare("SELECT geschlecht, kontaktgroesse, "
+                   "querschnitt_steckseite_min, querschnitt_steckseite_max, "
+                   "querschnitt_kabel_min, querschnitt_kabel_max, "
+                   "nennstrom_a, nennspannung_v, verbindungstechnik "
+                   "FROM bibliothek.kontakt_typ WHERE bauteil_id = :bid");
+        qk.bindValue(":bid", bauteilId);
+        if (qk.exec() && qk.next()) {
+            QSqlQuery qi;
+            qi.prepare("INSERT INTO bibliothek.kontakt_typ "
+                       "(bauteil_id, geschlecht, kontaktgroesse, "
+                       " querschnitt_steckseite_min, querschnitt_steckseite_max, "
+                       " querschnitt_kabel_min, querschnitt_kabel_max, "
+                       " nennstrom_a, nennspannung_v, verbindungstechnik) "
+                       "VALUES (:bid, :gs, :kg, :qsmn, :qsmx, :qkmn, :qkmx, :ia, :uv, :vt)");
+            qi.bindValue(":bid",  newId);
+            qi.bindValue(":gs",   qk.value(0));
+            qi.bindValue(":kg",   qk.value(1));
+            qi.bindValue(":qsmn", qk.value(2));
+            qi.bindValue(":qsmx", qk.value(3));
+            qi.bindValue(":qkmn", qk.value(4));
+            qi.bindValue(":qkmx", qk.value(5));
+            qi.bindValue(":ia",   qk.value(6));
+            qi.bindValue(":uv",   qk.value(7));
+            qi.bindValue(":vt",   qk.value(8));
+            qi.exec();
         }
     }
 

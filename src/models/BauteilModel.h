@@ -33,6 +33,7 @@ struct BauteilEintrag {
     bool    istKabel;
     bool    istSteckverbinder;
     bool    istKonfkabel;
+    bool    istKontakt;
     QString kabeltyp;
     QString hauptfunktionSymbolId;
 };
@@ -101,6 +102,7 @@ public:
         IstKabelRole,
         IstSteckverbinderRole,
         IstKonfkabelRole,
+        IstKontaktRole,
         KabeltypRole,
         HauptfunktionSymbolIdRole
     };
@@ -118,6 +120,7 @@ public:
     Q_INVOKABLE void setNurKabel(bool nurKabel);               // Filter: nur Kabel-Bauteile
     Q_INVOKABLE void setNurSteckverbinder(bool nurSteckverb);  // Filter: nur Steckverbinder
     Q_INVOKABLE void setNurKonfkabel(bool nurKonfkabel);       // Filter: nur konfektionierte Kabel
+    Q_INVOKABLE void setNurKontakt(bool nurKontakt);           // Filter: nur Kontakt-Typen (Stift/Buchse)
     Q_INVOKABLE int  anlegen(int kategorieId,
                               const QString &bezeichnung,
                               const QString &hersteller,
@@ -155,11 +158,13 @@ public:
     Q_PROPERTY(bool nurKabel           READ nurKabel           NOTIFY aktiveKategorieIdChanged)
     Q_PROPERTY(bool nurSteckverbinder  READ nurSteckverbinder  NOTIFY aktiveKategorieIdChanged)
     Q_PROPERTY(bool nurKonfkabel       READ nurKonfkabel       NOTIFY aktiveKategorieIdChanged)
+    Q_PROPERTY(bool nurKontakt        READ nurKontakt         NOTIFY aktiveKategorieIdChanged)
     int  aktiveKategorieId() const { return m_aktiveKategorieId; }
     bool nurKlemmen()        const { return m_nurKlemmen; }
     bool nurKabel()          const { return m_nurKabel; }
     bool nurSteckverbinder() const { return m_nurSteckverbinder; }
     bool nurKonfkabel()      const { return m_nurKonfkabel; }
+    bool nurKontakt()        const { return m_nurKontakt; }
 
 signals:
     void aktiveKategorieIdChanged();
@@ -173,4 +178,5 @@ private:
     bool                  m_nurKabel          = false;
     bool                  m_nurSteckverbinder = false;
     bool                  m_nurKonfkabel      = false;
+    bool                  m_nurKontakt        = false;
 };

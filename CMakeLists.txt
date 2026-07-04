@@ -28,6 +28,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp
     src/database/Database_Steckverbinder.cpp
+    src/database/Database_Kontakt.cpp
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
     src/database/Database.h
@@ -203,6 +204,7 @@ qt_add_qml_module(stroemling_app
 
         qml/steckverbinder/SteckverbinderEditor.qml
         qml/konfkabel/KonfkabelEditor.qml
+        qml/kontakt/KontaktEditor.qml
         qml/MakrobenennDialog.qml
         qml/MakroPalette.qml
         qml/MakroBibliothekDialog.qml
@@ -248,6 +250,7 @@ qt_add_qml_module(stroemling_app
         qml/rosi/RosiPostkarte.qml
         qml/logos/LogoHeader.qml
         qml/SymbolKlassen.js
+        qml/Normwerte.js
 )
 
 qt_add_resources(stroemling_app "stromlinge_assets"
@@ -400,6 +403,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp
     src/database/Database_Steckverbinder.cpp
+    src/database/Database_Kontakt.cpp
     src/database/Database.h
 )
 

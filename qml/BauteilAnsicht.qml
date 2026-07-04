@@ -22,6 +22,7 @@ Item {
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal steckverbinderEditorAngefordert(int bauteilId, string bezeichnung)
     signal konfkabelEditorAngefordert(int bauteilId, string bezeichnung)
+    signal kontaktEditorAngefordert(int bauteilId, string bezeichnung)
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal makroListeGeaendert()
 
@@ -44,6 +45,7 @@ Item {
             onKabelEditorAngefordert:         function(id, bez) { root.kabelEditorAngefordert(id, bez)  }
             onSteckverbinderEditorAngefordert: function(id, bez) { root.steckverbinderEditorAngefordert(id, bez) }
             onKonfkabelEditorAngefordert:      function(id, bez) { root.konfkabelEditorAngefordert(id, bez) }
+            onKontaktEditorAngefordert:        function(id, bez) { root.kontaktEditorAngefordert(id, bez) }
         }
 
         Rectangle { width: 1; Layout.fillHeight: true; color: theme.border }
@@ -59,6 +61,7 @@ Item {
                 onKabelEditorAngefordert:         function(id, bez) { root.kabelEditorAngefordert(id, bez)  }
                 onSteckverbinderEditorAngefordert: function(id, bez) { root.steckverbinderEditorAngefordert(id, bez) }
                 onKonfkabelEditorAngefordert:      function(id, bez) { root.konfkabelEditorAngefordert(id, bez) }
+                onKontaktEditorAngefordert:        function(id, bez) { root.kontaktEditorAngefordert(id, bez) }
             }
 
             KlemmenreihenAnsicht {

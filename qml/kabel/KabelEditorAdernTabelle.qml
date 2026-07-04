@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
+import "../Normwerte.js" as NW
 
 Item {
     id: root
@@ -243,9 +244,7 @@ Item {
                         id: tfAderMm2
                         Layout.fillWidth: true
                         implicitHeight: 26
-                        model: [0.08, 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
-                                10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
-                                185.0, 240.0, 300.0]
+                        model: NW.QUERSCHNITT_WERTE
                         currentIndex: {
                             var q = modelData.querschnittMm2 || 0
                             for (var i = 0; i < model.length; i++)
@@ -391,9 +390,7 @@ Item {
                     ComboBox {
                         id: bulkMm2
                         implicitWidth: 90; implicitHeight: 24
-                        model: ["—", 0.08, 0.14, 0.25, 0.34, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0,
-                                10.0, 16.0, 25.0, 35.0, 50.0, 70.0, 95.0, 120.0, 150.0,
-                                185.0, 240.0, 300.0]
+                        model: ["—"].concat(NW.QUERSCHNITT_WERTE)
                         currentIndex: 0
                         font.pixelSize: 11
                         property real gewaehlterWert: currentIndex > 0 ? model[currentIndex] : 0

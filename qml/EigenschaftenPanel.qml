@@ -79,6 +79,15 @@ Rectangle {
         return db.steckverbinderPositionDetails(ed.positionId)
     }
 
+    // Gegenstelle der Position über die Partner-Verknüpfung des Gerätekastens
+    // (→ 45_steckverbinder.md §8.3/§10.3) – null solange svPositionDetails nicht vorliegt.
+    readonly property var partnerPositionDetails: {
+        if (!panel.svPositionDetails) return null
+        var ed = panel.el.extraDaten || {}
+        if (ed.geraetekastenId === undefined || ed.geraetekastenId < 0) return null
+        return db.steckverbinderGegenstelleLaden(ed.geraetekastenId, panel.svPositionDetails.positionNr)
+    }
+
     // Verfügbare Farben in der Palette
     readonly property var farbpalette: [
         "#4a9eff", "#0055cc", "#00ccff", "#44cc44",

@@ -734,6 +734,86 @@ QVariantMap Database::steckverbinderPositionDetails(int positionId) const
     return m;
 }
 
+// ── steckverbinderGegenstelleLaden ──────────────────────────────────────────
+// Löst die Gegenstelle einer Position über die Partner-Verknüpfung des
+// Gerätekastens auf (§8.3/§10.3): eigene position_nr → partnerGeraetekastenId
+// → Position mit gleicher Nummer im dortigen Steckverbinder-Typ (Standard-1:1)
+// → platziert? Seite/Blattnr, sonst nur "istPlatziert:false"; existiert die
+// Position im Partner-Typ gar nicht (z.B. abweichende Polzahl): "keineGegenstelle".
+QVariantMap Database::steckverbinderGegenstelleLaden(int geraetekastenId, int positionNr) const
+{
+    QVariantMap m;
+    m["hatPartner"] = false;
+    if (geraetekastenId < 0 || positionNr < 0) return m;
+
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT CAST(json_extract(extra_daten, '$.partnerGeraetekastenId') AS INTEGER)
+        FROM grafik_element WHERE id = :id
+    )");
+    q.bindValue(":id", geraetekastenId);
+    if (!q.exec() || !q.next()) return m;
+    const int partnerGkId = q.value(0).toInt();
+    if (partnerGkId <= 0) return m;
+    m["hatPartner"] = true;
+
+    QSqlQuery pq(m_db);
+    pq.prepare(R"(
+        SELECT COALESCE(json_extract(extra_daten, '$.bmk'), ''),
+               COALESCE(CAST(json_extract(extra_daten, '$.bauteil_id') AS INTEGER), 0)
+        FROM grafik_element WHERE id = :id
+    )");
+    pq.bindValue(":id", partnerGkId);
+    if (!pq.exec() || !pq.next()) return m;
+    m["partnerBmk"] = pq.value(0).toString();
+    const int partnerBauteilId = pq.value(1).toInt();
+
+    if (partnerBauteilId <= 0) {
+        m["keineGegenstelle"] = true;
+        return m;
+    }
+
+    const QVariantMap partnerTyp = steckverbinderTypLaden(partnerBauteilId);
+    if (partnerTyp.isEmpty() || partnerTyp.value("id").toInt() <= 0) {
+        m["keineGegenstelle"] = true;
+        return m;
+    }
+
+    QSqlQuery posq(m_db);
+    posq.prepare(R"(
+        SELECT id FROM bibliothek.steckverbinder_position
+        WHERE steckverbinder_typ_id = :tid AND position_nr = :pnr
+    )");
+    posq.bindValue(":tid", partnerTyp.value("id").toInt());
+    posq.bindValue(":pnr", positionNr);
+    if (!posq.exec() || !posq.next()) {
+        m["keineGegenstelle"] = true;
+        return m;
+    }
+    const int partnerPositionId = posq.value(0).toInt();
+    m["partnerPositionId"] = partnerPositionId;
+
+    const bool platziert = steckverbinderPositionIstPlatziert(partnerPositionId);
+    m["istPlatziert"] = platziert;
+    if (!platziert) return m;
+
+    QSqlQuery locq(m_db);
+    locq.prepare(R"(
+        SELECT s.blattnummer, s.bezeichnung
+        FROM grafik_element ge
+        JOIN seite s ON s.id = ge.seite_id
+        WHERE ge.symbol_id IN ('stecker','buchse')
+          AND CAST(json_extract(ge.extra_daten,'$.positionId') AS INTEGER) = :pid
+        LIMIT 1
+    )");
+    locq.bindValue(":pid", partnerPositionId);
+    if (locq.exec() && locq.next()) {
+        m["blattnr"]  = locq.value(0).toString();
+        m["seiteBez"] = locq.value(1).toString();
+    }
+    return m;
+}
+
 // ── konfkabelLaden ───────────────────────────────────────────────────────────
 QVariantMap Database::konfkabelLaden(int bauteilId) const
 {
@@ -823,6 +903,83 @@ bool Database::konfkabelLoeschen(int bauteilId)
     q.bindValue(":bid", bauteilId);
     if (!q.exec()) {
         qCWarning(lcDb) << "konfkabelLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ── konfkabelPinZuordnungLaden ──────────────────────────────────────────────
+// Ader-zu-Pin-Zuordnungen einer Seite (A/B) eines Konfkabels. Farbe/Nummer/
+// Bezeichnung/Querschnitt der Litze werden NICHT dupliziert gespeichert,
+// sondern live über ader_nr aus bauteil_kabel_ader nachgeschlagen (§9.3).
+QVariantList Database::konfkabelPinZuordnungLaden(int konfkabelId, const QString &seite) const
+{
+    QVariantList liste;
+    if (konfkabelId < 0) return liste;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT z.id, z.ader_nr, z.pin_nr,
+               COALESCE(a.farbe,''), COALESCE(a.nummer,''),
+               COALESCE(a.bezeichnung,''), COALESCE(a.querschnitt_mm2,0)
+        FROM bibliothek.konfkabel_pin_zuordnung z
+        JOIN bibliothek.konfektioniertes_kabel kk ON kk.id = z.konfkabel_id
+        LEFT JOIN bibliothek.bauteil_kabel_ader a
+               ON a.kabel_id = kk.bauteil_kabel_id AND a.ader_nr = z.ader_nr
+        WHERE z.konfkabel_id = :kid AND z.seite = :seite
+        ORDER BY z.pin_nr, z.ader_nr
+    )");
+    q.bindValue(":kid", konfkabelId);
+    q.bindValue(":seite", seite);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "konfkabelPinZuordnungLaden:" << q.lastError().text();
+        return liste;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]             = q.value(0).toInt();
+        m["aderNr"]         = q.value(1).toInt();
+        m["pinNr"]          = q.value(2).toInt();
+        m["aderFarbe"]      = q.value(3).toString();
+        m["aderNummer"]     = q.value(4).toString();
+        m["aderBezeichnung"]= q.value(5).toString();
+        m["aderQuerschnitt"]= q.value(6).toDouble();
+        liste.append(m);
+    }
+    return liste;
+}
+
+// ── konfkabelPinZuordnen ─────────────────────────────────────────────────────
+// Ordnet eine Ader (ader_nr) einer Pin-Nummer auf einer Seite zu. Eine Ader
+// kann pro Seite nur einem Pin zugeordnet sein (UNIQUE-Constraint) — ein
+// erneuter Aufruf mit derselben Ader ändert die Zuordnung (INSERT OR REPLACE).
+// Mehrere Adern auf demselben Pin sind zulässig (Mehrfachbelegung, §5.2/§10.2).
+int Database::konfkabelPinZuordnen(int konfkabelId, const QString &seite, int aderNr, int pinNr)
+{
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        INSERT OR REPLACE INTO bibliothek.konfkabel_pin_zuordnung
+            (konfkabel_id, seite, ader_nr, pin_nr)
+        VALUES (:kid, :seite, :ader, :pin)
+    )");
+    q.bindValue(":kid",   konfkabelId);
+    q.bindValue(":seite", seite);
+    q.bindValue(":ader",  aderNr);
+    q.bindValue(":pin",   pinNr);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "konfkabelPinZuordnen:" << q.lastError().text();
+        return -1;
+    }
+    return q.lastInsertId().toInt();
+}
+
+// ── konfkabelPinZuordnungLoeschen ───────────────────────────────────────────
+bool Database::konfkabelPinZuordnungLoeschen(int id)
+{
+    QSqlQuery q(m_db);
+    q.prepare("DELETE FROM bibliothek.konfkabel_pin_zuordnung WHERE id=:id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "konfkabelPinZuordnungLoeschen:" << q.lastError().text();
         return false;
     }
     return true;

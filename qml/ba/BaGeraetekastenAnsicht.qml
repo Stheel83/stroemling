@@ -279,6 +279,141 @@ Item {
         }
     }
 
+    // ── Partner-Picker (Steckerpaar-Verknüpfung, §10.3) ───────────────────
+    Popup {
+        id: partnerPicker
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 420; height: 340
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property int _fuerElId: -1
+        property var _liste:    []
+
+        function _geschlecht(bauteilId) {
+            if (bauteilId <= 0) return ""
+            var t = db.steckverbinderTypLaden(bauteilId)
+            if (!t || !t.montageform) return ""
+            var teile = t.montageform.split("_")
+            return teile.length > 1 ? teile[1] : ""
+        }
+
+        // Sortierung: gleiches BMK + komplementäres Geschlecht zuerst (§10.3).
+        function oeffnen(elementId) {
+            partnerPicker._fuerElId = elementId
+            var eigenes = null
+            for (var i = 0; i < root._flachListe.length; i++)
+                if (root._flachListe[i].id === elementId) { eigenes = root._flachListe[i]; break }
+            var eigenesBmk        = eigenes ? (eigenes.bmk || "") : ""
+            var eigenesGeschlecht = eigenes ? partnerPicker._geschlecht(eigenes.bauteilId) : ""
+
+            var kandidaten = []
+            for (var j = 0; j < root._flachListe.length; j++) {
+                var gk = root._flachListe[j]
+                if (gk.id === elementId) continue
+                var g = partnerPicker._geschlecht(gk.bauteilId)
+                if (!g) continue   // nur Gerätekästen mit verknüpftem Steckverbinder-Bauteil
+                var komplementaer = (eigenesGeschlecht === "stecker" && g === "buchse")
+                                  || (eigenesGeschlecht === "buchse" && g === "stecker")
+                var gleichesBmk = eigenesBmk !== "" && gk.bmk === eigenesBmk
+                var score = 3
+                if (gleichesBmk && komplementaer) score = 0
+                else if (gleichesBmk)             score = 1
+                else if (komplementaer)           score = 2
+                kandidaten.push({ id: gk.id, bmk: gk.bmk, bauteilBez: gk.bauteilBez,
+                                  geschlecht: g, blattnr: gk.blattnr, score: score })
+            }
+            kandidaten.sort(function(a, b) { return a.score - b.score })
+            partnerPicker._liste = kandidaten
+            partnerPicker.open()
+        }
+
+        background: Rectangle {
+            color: root.theme.surface
+            border.color: root.theme.border; border.width: 1; radius: 6
+        }
+
+        Column {
+            anchors.fill: parent; anchors.margins: 8; spacing: 0
+
+            Text {
+                width: parent.width
+                text: qsTr("Partner-Gerätekasten wählen")
+                font.pixelSize: 13; font.weight: Font.Medium
+                color: root.theme.textPrimary; padding: 6
+            }
+            Rectangle { width: parent.width; height: 1; color: root.theme.border }
+
+            ListView {
+                id: partnerPickerList
+                width: parent.width
+                height: parent.height - 50
+                clip: true
+                model: partnerPicker._liste
+
+                Text {
+                    visible: partnerPicker._liste.length === 0
+                    anchors.centerIn: parent
+                    text: qsTr("Keine passenden Gerätekästen gefunden.\nVerknüpfe zuerst ein Steckverbinder-Bauteil.")
+                    font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                delegate: Rectangle {
+                    width: partnerPickerList.width; height: 42
+                    color: partnerItemHover.containsMouse ? root.theme.hover : "transparent"
+                    HoverHandler { id: partnerItemHover }
+
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left; anchors.leftMargin: 12
+                        anchors.right: parent.right; anchors.rightMargin: 12
+                        spacing: 2
+                        Text {
+                            width: parent.width
+                            text: (modelData.bmk || qsTr("(ohne BMK)")) + "  ·  " + (modelData.bauteilBez || "")
+                            font.pixelSize: 12; color: root.theme.textPrimary
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: (modelData.geschlecht === "stecker" ? qsTr("Stecker") : qsTr("Buchse"))
+                                  + "  ·  " + qsTr("Blatt ") + (modelData.blattnr || "–")
+                                  + (modelData.score <= 1 ? "  ·  " + qsTr("gleiches BMK") : "")
+                            font.pixelSize: 10; color: root.theme.textMuted
+                            elide: Text.ElideRight
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            db.geraetekastenPartnerSetzen(partnerPicker._fuerElId, modelData.id)
+                            root.laden()
+                            partnerPicker.close()
+                        }
+                    }
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: root.theme.border }
+
+            Item {
+                width: parent.width; height: 36
+                Text {
+                    anchors.left: parent.left; anchors.leftMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Abbrechen")
+                    font.pixelSize: 12; color: root.theme.textMuted
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: partnerPicker.close()
+                    }
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -396,8 +531,9 @@ Item {
                                 property var gkd: modelData
                                 property bool hatBauteil: gkd.bauteilId > 0
                                 property var  svTyp: gkd.bauteilId > 0 ? db.steckverbinderTypLaden(gkd.bauteilId) : ({})
+                                property bool istSteckverbinder: svTyp && svTyp.id > 0
 
-                                height: hatBauteil ? 52 : 30
+                                height: !hatBauteil ? 30 : (istSteckverbinder ? 74 : 52)
                                 color: instHover.containsMouse ? root.theme.hover : "transparent"
 
                                 MouseArea {
@@ -412,6 +548,7 @@ Item {
 
                                 // ── Navigations-Zeile (oben, 30px) ──────────────
                                 RowLayout {
+                                    id: navRow
                                     anchors.top: parent.top; anchors.left: parent.left
                                     anchors.right: parent.right
                                     anchors.leftMargin: 28; anchors.rightMargin: 10
@@ -468,11 +605,12 @@ Item {
                                     }
                                 }
 
-                                // ── Bauteil-Info-Zeile (unten, 22px) ─────────────
+                                // ── Bauteil-Info-Zeile (22px, unter der Navigations-Zeile) ─
                                 RowLayout {
+                                    id: bauteilRow
                                     visible: instDelegate.hatBauteil
                                     anchors.left: parent.left; anchors.right: parent.right
-                                    anchors.bottom: parent.bottom
+                                    anchors.top: navRow.bottom
                                     anchors.leftMargin: 42; anchors.rightMargin: 10
                                     height: 22; spacing: 6
 
@@ -531,6 +669,85 @@ Item {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 db.geraetekastenBauteilSetzen(gkd.id, 0)
+                                                root.laden()
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // ── Partner-Zeile (22px, nur bei verknüpftem Steckverbinder, §10.3) ─
+                                RowLayout {
+                                    id: partnerRow
+                                    visible: instDelegate.istSteckverbinder
+                                    anchors.left: parent.left; anchors.right: parent.right
+                                    anchors.top: bauteilRow.bottom
+                                    anchors.leftMargin: 42; anchors.rightMargin: 10
+                                    height: 22; spacing: 6
+
+                                    property var partnerObj: {
+                                        if (!gkd.partnerGeraetekastenId || gkd.partnerGeraetekastenId <= 0) return null
+                                        for (var i = 0; i < root._flachListe.length; i++)
+                                            if (root._flachListe[i].id === gkd.partnerGeraetekastenId) return root._flachListe[i]
+                                        return null
+                                    }
+
+                                    Text { text: "🔗"; font.pixelSize: 9 }
+                                    Text {
+                                        visible: partnerRow.partnerObj !== null
+                                        text: partnerRow.partnerObj ? (qsTr("Partner: ") + (partnerRow.partnerObj.bmk || qsTr("(ohne BMK)"))) : ""
+                                        font.pixelSize: 10; color: root.theme.textSecondary
+                                        elide: Text.ElideRight; Layout.fillWidth: true
+                                    }
+                                    Text {
+                                        visible: partnerRow.partnerObj === null
+                                        text: qsTr("Kein Partner verknüpft")
+                                        font.pixelSize: 10; color: root.theme.textMuted; font.italic: true
+                                        Layout.fillWidth: true
+                                    }
+                                    // Sprung zum Partner
+                                    Rectangle {
+                                        visible: partnerRow.partnerObj !== null
+                                        width: 22; height: 18; radius: 3
+                                        color: partnerSprungHover.containsMouse ? root.theme.accent : "transparent"
+                                        border.color: partnerSprungHover.containsMouse ? root.theme.accent : root.theme.border
+                                        HoverHandler { id: partnerSprungHover }
+                                        Text {
+                                            anchors.centerIn: parent; text: "→"; font.pixelSize: 10
+                                            color: partnerSprungHover.containsMouse ? "white" : root.theme.accent
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                var p = partnerRow.partnerObj
+                                                if (p) root.sprungAngefordert(p.seiteId, p.blattnr, p.seiteBez, p.weltX, p.weltY)
+                                            }
+                                        }
+                                    }
+                                    // "Partner verknüpfen"/"Ändern" Link
+                                    Text {
+                                        text: partnerRow.partnerObj !== null ? qsTr("Ändern") : qsTr("Partner verknüpfen")
+                                        font.pixelSize: 10; color: root.theme.accent
+                                        font.underline: partnerLinkHover.containsMouse
+                                        HoverHandler { id: partnerLinkHover }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: partnerPicker.oeffnen(gkd.id)
+                                        }
+                                    }
+                                    // "× Aufheben"
+                                    Rectangle {
+                                        visible: partnerRow.partnerObj !== null
+                                        width: 18; height: 18; radius: 3
+                                        color: partnerAufhebHover.containsMouse ? "#3a1111" : "transparent"
+                                        HoverHandler { id: partnerAufhebHover }
+                                        Text {
+                                            anchors.centerIn: parent; text: "×"; font.pixelSize: 12
+                                            color: partnerAufhebHover.containsMouse ? "#ff6666" : root.theme.textMuted
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                db.geraetekastenPartnerAufheben(gkd.id)
                                                 root.laden()
                                             }
                                         }

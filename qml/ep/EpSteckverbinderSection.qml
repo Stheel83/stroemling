@@ -99,6 +99,28 @@ Item {
                         font.pixelSize: 11; color: root.theme.accent
                     }
                 }
+
+                // ── Gegenstelle (§8.3/§10.3, Partner-Verknüpfung) ────────────
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("Gegenstelle")
+                    font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1
+                    color: root.theme.borderLight
+                    topPadding: 4
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: {
+                        var p = panel.partnerPositionDetails
+                        if (!p || !p.hatPartner) return qsTr("Kein Partner verknüpft")
+                        if (p.keineGegenstelle) return qsTr("(keine Gegenstelle)")
+                        if (!p.istPlatziert) return (p.partnerBmk || "–") + qsTr(" – nicht platziert")
+                        return (p.partnerBmk || "–") + " · " + qsTr("Blatt ") + (p.blattnr || "–")
+                    }
+                    font.pixelSize: 11
+                    color: (panel.partnerPositionDetails && panel.partnerPositionDetails.istPlatziert)
+                           ? root.theme.textSecondary : root.theme.textMuted
+                }
             }
         }
 

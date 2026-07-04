@@ -280,6 +280,10 @@ public:
     Q_INVOKABLE bool         steckverbinderPositionIstPlatziert(int positionId) const;
     Q_INVOKABLE QVariantMap  steckverbinderPositionDetails(int positionId) const;
 
+    // Gegenstelle einer Position über die Partner-Verknüpfung des Gerätekastens
+    // auflösen (§8.3/§10.3, Standard-1:1-Positionsabgleich über position_nr).
+    Q_INVOKABLE QVariantMap  steckverbinderGegenstelleLaden(int geraetekastenId, int positionNr) const;
+
     // Kontakt-Typ (Bibliothek, wiederverwendbarer Stift/Buchse-Katalogeintrag,
     // Neukonzeption Jul 2026 — konzept/features/45_steckverbinder.md §3.1/§5)
     Q_INVOKABLE QVariantMap  kontaktTypLaden(int bauteilId) const;
@@ -296,6 +300,14 @@ public:
     Q_INVOKABLE int          konfkabelSpeichern(int bauteilId, int bauteilKabelId,
                                  int steckerABauteilId, int steckerBBauteilId, double laengeM);
     Q_INVOKABLE bool         konfkabelLoeschen(int bauteilId);
+
+    // Ader-zu-Pin-Zuordnung am konfektionierten Kabel (§9.3) — Farbe/Querschnitt/
+    // Bezeichnung werden nicht dupliziert, sondern per ader_nr live aus
+    // bauteil_kabel_ader nachgeschlagen (siehe bauteilKabelAdernLaden()).
+    Q_INVOKABLE QVariantList konfkabelPinZuordnungLaden(int konfkabelId, const QString &seite) const;
+    Q_INVOKABLE int          konfkabelPinZuordnen(int konfkabelId, const QString &seite,
+                                 int aderNr, int pinNr);
+    Q_INVOKABLE bool         konfkabelPinZuordnungLoeschen(int id);
 
     // Klemmenplan: alle Klemmen aller Leisten, mit Gruppen-Headern.
     // Gibt abwechselnd {typ:"leiste",...} und {typ:"klemme",...} zurück.
@@ -399,6 +411,12 @@ public:
 
     // bauteil_id in extra_daten eines Gerätekasten-Elements setzen (bauteilId<=0 = entfernen).
     Q_INVOKABLE bool geraetekastenBauteilSetzen(int grafikElementId, int bauteilId);
+
+    // Partner-Verknüpfung zwischen zwei Gerätekästen (Steckerpaar, §10.3) — symmetrisch:
+    // A→B setzt automatisch auch B→A, ein vorheriger Partner auf beiden Seiten wird
+    // aufgelöst (1:1-Beziehung). partnerGeraetekastenId liegt in extra_daten, kein neues Table.
+    Q_INVOKABLE bool geraetekastenPartnerSetzen(int grafikElementId, int partnerGrafikElementId);
+    Q_INVOKABLE bool geraetekastenPartnerAufheben(int grafikElementId);
 
     // Benutzerdefiniertes Feld aktualisieren (nur label, feldtyp, optionen, einheit, pflicht).
     Q_INVOKABLE bool ibnFeldVorlageAktualisieren(int id,
@@ -562,6 +580,11 @@ public:
     // Gibt [{id, bauteilId, bezeichnung, kabeltyp, aderzahl, querschnittMm2,
     //        adern:[{farbe, querschnittMm2}]}] zurück.
     Q_INVOKABLE QVariantList bauteilKabelListe();
+
+    // Vollständige Ader-Liste eines Kabeltyps (inkl. ader_nr, nummer, bezeichnung) —
+    // Grundlage für den Live-Nachschlag der Litzendaten in der Konfkabel-Pin-Zuordnung
+    // (konzept/features/45_steckverbinder.md §9.3).
+    Q_INVOKABLE QVariantList bauteilKabelAdernLaden(int kabelId) const;
 
     // Bauteil-Kabel einer Kabellinie zuweisen (bauteilKabelId > 0) oder aufheben (0).
     // Kopiert bei Zuweisung: kabeltyp, aderzahl, querschnitt_mm2 aus bauteil_kabel.

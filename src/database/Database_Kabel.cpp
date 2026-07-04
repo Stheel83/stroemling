@@ -743,6 +743,41 @@ bool Database::kabelLoeschen(int kabelId)
 }
 
 // ============================================================
+// bauteilKabelAdernLaden
+// Vollständige Ader-Liste eines Kabeltyps (inkl. ader_nr, nummer,
+// bezeichnung) — Grundlage für den Live-Nachschlag der Litzendaten
+// in der Konfkabel-Pin-Zuordnung (§9.3), da diese Felder nicht
+// dupliziert am Kontakt/Pin gespeichert werden.
+// ============================================================
+QVariantList Database::bauteilKabelAdernLaden(int kabelId) const
+{
+    QVariantList result;
+    if (kabelId < 0) return result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2
+        FROM bibliothek.bauteil_kabel_ader
+        WHERE kabel_id = :kid
+        ORDER BY ader_nr
+    )");
+    q.bindValue(":kid", kabelId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bauteilKabelAdernLaden:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap a;
+        a[QStringLiteral("aderNr")]        = q.value(0).toInt();
+        a[QStringLiteral("farbe")]         = q.value(1).toString();
+        a[QStringLiteral("nummer")]        = q.value(2).toString();
+        a[QStringLiteral("bezeichnung")]   = q.value(3).toString();
+        a[QStringLiteral("querschnittMm2")]= q.value(4).toDouble();
+        result.append(a);
+    }
+    return result;
+}
+
+// ============================================================
 // bauteilKabelListe
 // Alle Kabel-Bibliothekseinträge für den Picker-Dialog.
 // Gibt [{id, bauteilId, bezeichnung, kabeltyp, aderzahl,

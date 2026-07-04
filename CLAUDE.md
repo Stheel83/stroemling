@@ -104,7 +104,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/42_makro_palette.md` | Makro-Schnellpalette: Kategorie-Akzentstreifen, Overlay-Vorschau, Bibliotheks-Dialog | ✅ |
 | `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3 | ✅ |
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |
-| `konzept/features/45_steckverbinder.md` | Stecker und Buchsen: 4-Kombinations-Matrix, 3-Ebenen-Modell, Kontakteigenschaften, Steckpaar-Logik, BMK, DB-Schema-Entwurf | 🔄 Bauteil-Editor + DB + `montageform` ✅, nur Mehrfach-Kontakt-Feature (projektweite Pin-Zuordnung) + `konfkabel_pin_zuordnung` 📋 |
+| `konzept/features/45_steckverbinder.md` | Stecker und Buchsen: 4-Kombinations-Matrix, 3-Ebenen-Modell, Kontakteigenschaften, Steckpaar-Logik, BMK, DB-Schema-Entwurf | 🔄 Neukonzeption komplett ✅ (Kontakt-Typ, Positions-Picker, verknüpfte Canvas-Platzierung, Litze-Zuordnung, Partner-Verknüpfung), nur Mehrfach-Kontakt-Feature (projektweite Pin-Zuordnung/Steckpaar-Liste) + Überkreuzungs-Zuordnung 📋 |
 | `konzept/features/46_schirmung.md` | Schirm-Oval (Canvas-Element `schirm`), SH-Kennzeichnung, Schirmanschluss via Geräteanschluss | ✅ |
 | `konzept/features/47_meldungen_toast.md` | Meldungs-Toast: `MeldungManager` (C++, analog AchievementManager), `MeldungToast.qml`, Abgrenzung Toast vs. Dialog, migrierte Stellen | ✅ |
 | `konzept/features/48_rosi_roehrenaal.md` | Rosi Röhrenaal: Maskottchen-Assistentin (Klippy-Hommage), `RosiManager`, Timing/Persistenz, Berlinerisch-Sprüche-Pools, Urlaub/Besuch | ✅ |

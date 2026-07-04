@@ -499,8 +499,10 @@ MouseArea {
                 { "typ": "symbol", "elementeAufSeite": em.anzahl })
             if (canvas.paletteSymbolId === "klemme_anschluss"
                     || canvas.paletteBetriebsmittelId > 0
-                    || (canvas.paletteExtraDaten && canvas.paletteExtraDaten.bauteilId)) {
-                // Klemmenanschluss, BM-Kontakt, Bauteil: nur einmal platzierbar → zurück zum Zeiger
+                    || (canvas.paletteExtraDaten && canvas.paletteExtraDaten.bauteilId)
+                    || (canvas.paletteExtraDaten && canvas.paletteExtraDaten.platziermodus === "verknuepft")) {
+                // Klemmenanschluss, BM-Kontakt, Bauteil, verknüpfter Kontakt (Steckverbinder-
+                // Position u.ä.): nur einmal platzierbar → zurück zum Zeiger
                 var _bauteilId  = canvas.paletteExtraDaten ? canvas.paletteExtraDaten.bauteilId  : 0
                 var _bauteilBez = canvas.paletteExtraDaten ? (canvas.paletteExtraDaten.bezeichnung || "") : ""
                 canvas.paletteBetriebsmittelId = 0

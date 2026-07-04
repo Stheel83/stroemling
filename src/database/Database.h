@@ -277,6 +277,8 @@ public:
     Q_INVOKABLE bool         steckverbinderPositionSchirmkontaktSetzen(int positionId, bool istSchirmkontakt);
     Q_INVOKABLE bool         steckverbinderPositionKontaktTypAendern(int positionId, int neuerKontaktTypId);
     Q_INVOKABLE bool         steckverbinderPositionLoeschen(int id);
+    Q_INVOKABLE bool         steckverbinderPositionIstPlatziert(int positionId) const;
+    Q_INVOKABLE QVariantMap  steckverbinderPositionDetails(int positionId) const;
 
     // Kontakt-Typ (Bibliothek, wiederverwendbarer Stift/Buchse-Katalogeintrag,
     // Neukonzeption Jul 2026 — konzept/features/45_steckverbinder.md §3.1/§5)

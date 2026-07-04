@@ -24,6 +24,7 @@ Item {
     signal konfkabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal kontaktEditorAngefordert(int bauteilId, string bezeichnung)
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
+    signal kontaktPlatzierenAngefordert(int geraetekastenId, int positionId, string symbolId, string bmk)
     signal makroListeGeaendert()
 
     Connections {
@@ -84,6 +85,9 @@ Item {
                 projektId: root.projektId
                 onSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
                     root.geraetekastenSprungAngefordert(seiteId, blattnr, seiteBez, wx, wy)
+                }
+                onKontaktPlatzierenAngefordert: function(geraetekastenId, positionId, symbolId, bmk) {
+                    root.kontaktPlatzierenAngefordert(geraetekastenId, positionId, symbolId, bmk)
                 }
             }
 

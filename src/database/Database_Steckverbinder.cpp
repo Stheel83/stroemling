@@ -689,6 +689,51 @@ bool Database::steckverbinderPositionLoeschen(int id)
     return true;
 }
 
+// ── steckverbinderPositionIstPlatziert ──────────────────────────────────────
+// Prüft, ob für eine Position bereits ein verknüpftes Kontakt-Symbol
+// (stecker/buchse, platziermodus="verknuepft") auf irgendeiner Seite
+// des Projekts existiert (Neukonzeption Jul 2026, → §8.2.1).
+bool Database::steckverbinderPositionIstPlatziert(int positionId) const
+{
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT COUNT(*) FROM grafik_element"
+        " WHERE symbol_id IN ('stecker','buchse')"
+        "   AND CAST(json_extract(extra_daten,'$.positionId') AS INTEGER) = :pid");
+    q.bindValue(":pid", positionId);
+    if (q.exec() && q.next())
+        return q.value(0).toInt() > 0;
+    return false;
+}
+
+// ── steckverbinderPositionDetails ───────────────────────────────────────────
+// Anzeige-Daten einer einzelnen Position für das EP eines verknüpft
+// platzierten Kontakt-Symbols (→ §8.3).
+QVariantMap Database::steckverbinderPositionDetails(int positionId) const
+{
+    QVariantMap m;
+    if (positionId < 0) return m;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT sp.position_nr, sp.ist_schirmkontakt,
+               COALESCE(b.bezeichnung,''), kt.geschlecht,
+               COALESCE(kt.kontaktgroesse,0), COALESCE(kt.verbindungstechnik,'')
+        FROM bibliothek.steckverbinder_position sp
+        JOIN bibliothek.kontakt_typ kt ON kt.id = sp.kontakt_typ_id
+        JOIN bibliothek.bauteil b      ON b.id  = kt.bauteil_id
+        WHERE sp.id = :pid
+    )");
+    q.bindValue(":pid", positionId);
+    if (!q.exec() || !q.next()) return m;
+    m["positionNr"]         = q.value(0).toInt();
+    m["istSchirmkontakt"]   = q.value(1).toInt() != 0;
+    m["bezeichnung"]        = q.value(2).toString();
+    m["geschlecht"]         = q.value(3).toString();
+    m["kontaktgroesse"]     = q.value(4).toDouble();
+    m["verbindungstechnik"] = q.value(5).toString();
+    return m;
+}
+
 // ── konfkabelLaden ───────────────────────────────────────────────────────────
 QVariantMap Database::konfkabelLaden(int bauteilId) const
 {

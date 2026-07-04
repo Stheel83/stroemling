@@ -1200,6 +1200,23 @@ ApplicationWindow {
                     root.aktiverCanvas.aktivesWerkzeug  = "symbol"
                     root.aktiverCanvas.forceActiveFocus()
                 }
+                onKontaktPlatzierenAngefordert: function(geraetekastenId, positionId, symbolId, bmk) {
+                    if (root.aktivSeiteId < 0) {
+                        meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
+                        return
+                    }
+                    if (db.steckverbinderPositionIstPlatziert(positionId)) { meldungManager.zeigen(qsTr("Diese Position ist bereits platziert."), false); return }
+                    root.aktiveAnsicht = "seiten"
+                    root.aktiverCanvas.paletteSymbolId  = symbolId
+                    root.aktiverCanvas.paletteExtraDaten = {
+                        "platziermodus":   "verknuepft",
+                        "geraetekastenId": geraetekastenId,
+                        "positionId":      positionId,
+                        "bmk":             bmk
+                    }
+                    root.aktiverCanvas.aktivesWerkzeug  = "symbol"
+                    root.aktiverCanvas.forceActiveFocus()
+                }
             }
 
             // Listen (Stückliste + Querverweise)

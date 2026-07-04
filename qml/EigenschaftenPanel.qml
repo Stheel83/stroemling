@@ -70,6 +70,15 @@ Rectangle {
         return klemmeModel.klemmeDetailsHolen(kid, ed.anschlussBezeichnung || "")
     }
 
+    // Steckverbinder-Positions-Details – für verknüpft platzierte stecker/buchse-Symbole
+    // (Neukonzeption Jul 2026, → 45_steckverbinder.md §8.3)
+    readonly property var svPositionDetails: {
+        if (!panel.el || (panel.el.symbolId !== "stecker" && panel.el.symbolId !== "buchse")) return null
+        var ed = panel.el.extraDaten || {}
+        if (ed.platziermodus !== "verknuepft" || ed.positionId === undefined || ed.positionId < 0) return null
+        return db.steckverbinderPositionDetails(ed.positionId)
+    }
+
     // Verfügbare Farben in der Palette
     readonly property var farbpalette: [
         "#4a9eff", "#0055cc", "#00ccff", "#44cc44",

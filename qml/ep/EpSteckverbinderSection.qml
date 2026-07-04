@@ -9,6 +9,8 @@ Item {
     required property var panel
     required property var theme
 
+    readonly property bool _verknuepft: panel.svPositionDetails !== null && panel.svPositionDetails !== undefined
+
     width:   parent ? parent.width : 0
     height:  (panel.el && (panel.el.symbolId === "stecker" || panel.el.symbolId === "buchse"))
              ? svCol.implicitHeight : 0
@@ -46,8 +48,65 @@ Item {
         Trennlinie {}
         AbschnittTitel { text: qsTr("STECKVERBINDER") }
 
-        FeldLabel { text: qsTr("Anschlusstyp") }
+        // ── Verknüpfte Position (read-only, Neukonzeption Jul 2026) ─────────
+        Item {
+            visible: root._verknuepft
+            width: parent.width; height: visible ? posCol.implicitHeight : 0
+
+            Column {
+                id: posCol
+                width: parent.width; spacing: 4
+                topPadding: 4; bottomPadding: 8
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 8
+                    Text {
+                        text: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bmk || "–") : "–"
+                        font.pixelSize: 16; font.weight: Font.Bold; color: root.theme.accent
+                    }
+                    Text {
+                        text: panel.svPositionDetails ? qsTr("Pos. %1").arg(panel.svPositionDetails.positionNr) : ""
+                        font.pixelSize: 11; color: root.theme.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: {
+                        if (!panel.svPositionDetails) return ""
+                        var d = panel.svPositionDetails
+                        return d.bezeichnung + " (" + (d.geschlecht === "stift" ? qsTr("Stift") : qsTr("Buchse")) + ")"
+                    }
+                    font.pixelSize: 12; color: root.theme.textSecondary
+                }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 10
+                    Text {
+                        visible: panel.svPositionDetails && panel.svPositionDetails.kontaktgroesse > 0
+                        text: panel.svPositionDetails ? (panel.svPositionDetails.kontaktgroesse + " mm²") : ""
+                        font.pixelSize: 11; color: root.theme.textMuted
+                    }
+                    Text {
+                        visible: panel.svPositionDetails && (panel.svPositionDetails.verbindungstechnik || "") !== ""
+                        text: panel.svPositionDetails ? panel.svPositionDetails.verbindungstechnik : ""
+                        font.pixelSize: 11; color: root.theme.textMuted
+                    }
+                    Text {
+                        visible: panel.svPositionDetails && panel.svPositionDetails.istSchirmkontakt
+                        text: qsTr("Schirmkontakt")
+                        font.pixelSize: 11; color: root.theme.accent
+                    }
+                }
+            }
+        }
+
+        Trennlinie { visible: root._verknuepft }
+
+        FeldLabel { visible: !root._verknuepft; text: qsTr("Anschlusstyp") }
         ComboBox {
+            visible: !root._verknuepft
             width: parent.width - 24
             anchors.horizontalCenter: parent.horizontalCenter
             model: [
@@ -73,8 +132,9 @@ Item {
                                 leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
 
-        FeldLabel { text: qsTr("Querschnitt (mm²)") }
+        FeldLabel { visible: !root._verknuepft; text: qsTr("Querschnitt (mm²)") }
         Row {
+            visible: !root._verknuepft
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 6
             TextField {
@@ -118,8 +178,9 @@ Item {
             }
         }
 
-        FeldLabel { text: qsTr("Kabeldurchmesser max (mm)") }
+        FeldLabel { visible: !root._verknuepft; text: qsTr("Kabeldurchmesser max (mm)") }
         TextField {
+            visible: !root._verknuepft
             width: parent.width - 24
             anchors.horizontalCenter: parent.horizontalCenter
             placeholderText: "z. B. 8,5"

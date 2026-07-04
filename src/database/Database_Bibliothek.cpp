@@ -202,6 +202,13 @@ bool Database::checkAndApplyBibliothekSchema()
             nennspannung_v             REAL,
             verbindungstechnik         TEXT
         ))",
+        R"(CREATE TABLE IF NOT EXISTS steckverbinder_position (
+            id                    INTEGER PRIMARY KEY,
+            steckverbinder_typ_id INTEGER NOT NULL REFERENCES steckverbinder_typ(id) ON DELETE CASCADE,
+            position_nr           INTEGER NOT NULL,
+            kontakt_typ_id        INTEGER NOT NULL REFERENCES kontakt_typ(id),
+            ist_schirmkontakt     INTEGER DEFAULT 0
+        ))",
         R"(CREATE TABLE IF NOT EXISTS konfektioniertes_kabel (
             id                  INTEGER PRIMARY KEY,
             bauteil_id          INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE,
@@ -244,6 +251,15 @@ bool Database::checkAndApplyBibliothekSchema()
                 return false;
             }
         }
+    }
+
+    // Schema v5: steckverbinder_kontakt_typ durch kontakt_typ + steckverbinder_position
+    // ersetzt (Neukonzeption Jul 2026, keine Produktivnutzer → kein Datenübernahme-Pfad
+    // nötig, siehe konzept/features/45_steckverbinder.md §3.1/§12).
+    if (!q.exec("DROP TABLE IF EXISTS steckverbinder_kontakt_typ")) {
+        qCWarning(lcDb) << "Bibliothek-Schema DROP steckverbinder_kontakt_typ:" << q.lastError().text();
+        m_bibliothekDb.rollback();
+        return false;
     }
 
     // Farb-Definitionen (Gehäuse- und Aderfarben)

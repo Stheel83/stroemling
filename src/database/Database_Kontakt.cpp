@@ -31,6 +31,41 @@ QVariantMap Database::kontaktTypLaden(int bauteilId) const
     return m;
 }
 
+// ── kontaktTypListe ───────────────────────────────────────────────────────
+// Alle Kontakt-Typen für den Positions-Picker im Steckverbinder-Editor,
+// optional gefiltert nach Geschlecht ("stift"/"buchse", leer = alle).
+QVariantList Database::kontaktTypListe(const QString &geschlechtFilter) const
+{
+    QVariantList liste;
+    QSqlQuery q(m_db);
+    QString sql = R"(
+        SELECT kt.id, kt.geschlecht, COALESCE(kt.kontaktgroesse,0),
+               COALESCE(kt.verbindungstechnik,''),
+               COALESCE(b.bezeichnung,''), COALESCE(b.hersteller,'')
+        FROM bibliothek.kontakt_typ kt
+        JOIN bibliothek.bauteil b ON b.id = kt.bauteil_id
+    )";
+    if (!geschlechtFilter.isEmpty()) sql += " WHERE kt.geschlecht = :gs ";
+    sql += "ORDER BY b.bezeichnung COLLATE NOCASE";
+    q.prepare(sql);
+    if (!geschlechtFilter.isEmpty()) q.bindValue(":gs", geschlechtFilter);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "kontaktTypListe:" << q.lastError().text();
+        return liste;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]                 = q.value(0).toInt();
+        m["geschlecht"]         = q.value(1).toString();
+        m["kontaktgroesse"]     = q.value(2).toDouble();
+        m["verbindungstechnik"] = q.value(3).toString();
+        m["bezeichnung"]        = q.value(4).toString();
+        m["hersteller"]         = q.value(5).toString();
+        liste.append(m);
+    }
+    return liste;
+}
+
 // ── kontaktTypSpeichern ───────────────────────────────────────────────────
 // INSERT OR REPLACE (per SELECT+UPDATE/INSERT) des kontakt_typ-Datensatzes.
 // Gibt die id zurück (>0) oder -1 bei Fehler.

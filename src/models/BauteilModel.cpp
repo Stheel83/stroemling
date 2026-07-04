@@ -630,23 +630,20 @@ int BauteilListModel::duplizieren(int bauteilId)
                         qi2.exec();
                     }
                 }
-                // Kontakttypen
+                // Positionen (Steckverbinder-Typ ↔ Kontakt-Typ, Neukonzeption Jul 2026) —
+                // kontakt_typ_id wird nur referenziert, der Kontakt-Typ-Bauteil selbst
+                // wird nicht dupliziert (bleibt wiederverwendetes Bibliotheksobjekt)
                 QSqlQuery qkt;
-                qkt.prepare("SELECT position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik FROM bibliothek.steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :svid ORDER BY position_nr");
+                qkt.prepare("SELECT position_nr, kontakt_typ_id, ist_schirmkontakt FROM bibliothek.steckverbinder_position WHERE steckverbinder_typ_id = :svid ORDER BY position_nr");
                 qkt.bindValue(":svid", srcSvId);
                 if (qkt.exec()) {
                     while (qkt.next()) {
                         QSqlQuery qi3;
-                        qi3.prepare("INSERT INTO bibliothek.steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr, ist_schirmkontakt, kontaktgroesse, querschnitt_kabel_min, querschnitt_kabel_max, nennstrom_a, nennspannung_v, verbindungstechnik) VALUES (:svid, :pos, :sk, :kg, :qmn, :qmx, :ia, :uv, :vt)");
+                        qi3.prepare("INSERT INTO bibliothek.steckverbinder_position (steckverbinder_typ_id, position_nr, kontakt_typ_id, ist_schirmkontakt) VALUES (:svid, :pos, :ktid, :sk)");
                         qi3.bindValue(":svid", newSvId);
                         qi3.bindValue(":pos",  qkt.value(0));
-                        qi3.bindValue(":sk",   qkt.value(1));
-                        qi3.bindValue(":kg",   qkt.value(2));
-                        qi3.bindValue(":qmn",  qkt.value(3));
-                        qi3.bindValue(":qmx",  qkt.value(4));
-                        qi3.bindValue(":ia",   qkt.value(5));
-                        qi3.bindValue(":uv",   qkt.value(6));
-                        qi3.bindValue(":vt",   qkt.value(7));
+                        qi3.bindValue(":ktid", qkt.value(1));
+                        qi3.bindValue(":sk",   qkt.value(2));
                         qi3.exec();
                     }
                 }

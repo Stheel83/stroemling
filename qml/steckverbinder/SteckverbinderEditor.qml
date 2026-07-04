@@ -21,7 +21,7 @@ ScrollView {
 
     property int  _svTypId:          -1
     property var  _kableinfListe:    []
-    property var  _kontaktListe:     []
+    property var  _positionenListe:  []
     property bool _geschirmt:        false
     property bool _hatSchirmkontakt: false
     property string _geschlecht:     "stecker"   // "stecker" | "buchse"
@@ -60,11 +60,11 @@ ScrollView {
         _geschlecht = teile[1] || "stecker"
 
         if (_svTypId > 0) {
-            _kableinfListe = db.steckverbinderKableinfLaden(_svTypId)
-            _kontaktListe  = db.steckverbinderKontaktLaden(_svTypId)
+            _kableinfListe   = db.steckverbinderKableinfLaden(_svTypId)
+            _positionenListe = db.steckverbinderPositionenLaden(_svTypId)
         } else {
-            _kableinfListe = []
-            _kontaktListe  = []
+            _kableinfListe   = []
+            _positionenListe = []
         }
     }
 
@@ -486,10 +486,10 @@ ScrollView {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; Layout.topMargin: 8 }
 
-        // ── KONTAKTTYPEN ─────────────────────────────────────────────────────
+        // ── POSITIONEN (Kontakt-Typ-Verknüpfung je Pin) ─────────────────────
         RowLayout {
             Layout.fillWidth: true; Layout.margins: 12
-            Text { text: qsTr("KONTAKTTYPEN"); font.pixelSize: 9; font.weight: Font.Bold
+            Text { text: qsTr("POSITIONEN"); font.pixelSize: 9; font.weight: Font.Bold
                    font.letterSpacing: 1.5; color: root.theme.borderLight; Layout.fillWidth: true }
             Button {
                 text: "+"; flat: true; implicitWidth: 26; implicitHeight: 22
@@ -497,10 +497,7 @@ ScrollView {
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg; radius: 3; border.color: root.theme.border }
                 enabled: root._svTypId > 0
-                onClicked: {
-                    db.steckverbinderKontaktHinzufuegen(root._svTypId)
-                    root._kontaktListe = db.steckverbinderKontaktLaden(root._svTypId)
-                }
+                onClicked: ktPicker.oeffnenNeu()
             }
         }
 
@@ -509,139 +506,46 @@ ScrollView {
 
             RowLayout {
                 Layout.fillWidth: true
-                visible: root._kontaktListe.length > 0
+                visible: root._positionenListe.length > 0
                 spacing: 6
-                Text { text: qsTr("Größe");     color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                Text { text: qsTr("QS min");    color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 50 }
-                Text { text: qsTr("QS max");    color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 50 }
-                Text { text: qsTr("I_N (A)");   color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 48 }
-                Text { text: qsTr("U_N (V)");   color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 48 }
-                Text { text: qsTr("Verbindung");color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 80 }
-                Text { text: qsTr("Litze-Farbe"); color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 80 }
-                Text { text: qsTr("L-QS");      color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 66 }
-                Text { text: qsTr("L-Bez");     color: root.theme.textMuted; font.pixelSize: 10; Layout.fillWidth: true }
-                Text { text: qsTr("SH");        color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 28 }
-                Item { width: 26 }
+                Text { text: qsTr("Pos.");       color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 32 }
+                Text { text: qsTr("Kontakt");    color: root.theme.textMuted; font.pixelSize: 10; Layout.fillWidth: true }
+                Text { text: qsTr("Größe");      color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 55 }
+                Text { text: qsTr("Verbindung"); color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 80 }
+                Text { text: qsTr("SH");         color: root.theme.textMuted; font.pixelSize: 10; Layout.preferredWidth: 28 }
+                Item { width: 56 }
             }
 
             Repeater {
-                model: root._kontaktListe
+                model: root._positionenListe
                 delegate: RowLayout {
                     Layout.fillWidth: true
                     spacing: 6
-                    property var cd: modelData
+                    property var pd: modelData
 
-                    function save() {
-                        db.steckverbinderKontaktAktualisieren(
-                            cd.id, shToggle._isk,
-                            kontaktFields.itemAt(0).children[0].text.trim(),
-                            parseFloat(kontaktFields.itemAt(1).children[0].text.replace(",",".")) || 0,
-                            parseFloat(kontaktFields.itemAt(2).children[0].text.replace(",",".")) || 0,
-                            parseFloat(kontaktFields.itemAt(3).children[0].text.replace(",",".")) || 0,
-                            parseFloat(kontaktFields.itemAt(4).children[0].text.replace(",",".")) || 0,
-                            kontaktFields.itemAt(5).children[0].text.trim(),
-                            cbLitzeFarbe.currentText,
-                            parseFloat(cbLitzeQs.currentText.replace(",",".")) || 0,
-                            tfLitzeBez.text.trim()
-                        )
-                        root._kontaktListe = db.steckverbinderKontaktLaden(root._svTypId)
+                    Text {
+                        text: pd.positionNr; font.pixelSize: 11; color: root.theme.textMuted
+                        Layout.preferredWidth: 32; horizontalAlignment: Text.AlignHCenter
                     }
-
-                    Repeater {
-                        id: kontaktFields
-                        property var fDef: [
-                            { key: "kontaktgroesse",    width: 70 },
-                            { key: "qsMin",             width: 50 },
-                            { key: "qsMax",             width: 50 },
-                            { key: "nennstrom",         width: 48 },
-                            { key: "nennspannung",      width: 48 },
-                            { key: "verbindungstechnik",width: 80 }
-                        ]
-                        model: fDef
-                        delegate: Rectangle {
-                            Layout.preferredWidth: modelData.width
-                            height: 26
-                            color: root.theme.inputBg
-                            border.color: ktTf.activeFocus ? root.theme.accent : root.theme.border
-                            radius: 3
-                            TextInput {
-                                id: ktTf
-                                anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
-                                color: root.theme.textPrimary; font.pixelSize: 11
-                                verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
-                                text: {
-                                    var v = cd[modelData.key]
-                                    if (v === undefined || v === null) return ""
-                                    if (typeof v === "number") return v > 0 ? v.toString() : ""
-                                    return v.toString()
-                                }
-                                onEditingFinished: parent.parent.save()
-                                Keys.onEscapePressed: focus = false
-                            }
-                        }
+                    Text {
+                        text: pd.bezeichnung + " (" + (pd.geschlecht === "stift" ? qsTr("Stift") : qsTr("Buchse")) + ")"
+                        font.pixelSize: 11; color: root.theme.textPrimary
+                        Layout.fillWidth: true; elide: Text.ElideRight
                     }
-
-                    // Litze Farbe
-                    ComboBox {
-                        id: cbLitzeFarbe
-                        Layout.preferredWidth: 80
-                        height: 26
-                        model: ["","BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
-                        currentIndex: { var i = model.indexOf(cd.litzeFarbe || ""); return i >= 0 ? i : 0 }
-                        font.pixelSize: 11
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
-                            leftPadding: 6; verticalAlignment: Text.AlignVCenter }
-                        onActivated: parent.save()
+                    Text {
+                        text: pd.kontaktgroesse > 0 ? pd.kontaktgroesse + "" : "–"
+                        font.pixelSize: 11; color: root.theme.textMuted; Layout.preferredWidth: 55
                     }
-
-                    // Litze Querschnitt - Fix L-QS-01: Breite von 48 auf 66 erhöht, sonst
-                    // rendert das Fusion-Style-Popup die Einträge sichtbar leer (Auswahl
-                    // funktionierte trotzdem, aber blind - siehe Bugreport)
-                    ComboBox {
-                        id: cbLitzeQs
-                        Layout.preferredWidth: 66
-                        height: 26
-                        model: ["","0.14","0.25","0.34","0.5","0.75","1.0","1.5","2.5","4.0","6.0"]
-                        currentIndex: {
-                            var v = cd.litzeQuerschnitt > 0 ? cd.litzeQuerschnitt.toString() : ""
-                            var i = model.indexOf(v)
-                            return i >= 0 ? i : 0
-                        }
-                        font.pixelSize: 11
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
-                        contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
-                            leftPadding: 6; verticalAlignment: Text.AlignVCenter }
-                        delegate: ItemDelegate {
-                            width: cbLitzeQs.width
-                            contentItem: Text {
-                                text: modelData; color: root.theme.textPrimary; font.pixelSize: 11
-                                leftPadding: 6; verticalAlignment: Text.AlignVCenter
-                            }
-                            highlighted: cbLitzeQs.highlightedIndex === index
-                        }
-                        onActivated: parent.save()
-                    }
-
-                    // Litze Bezeichnung
-                    Rectangle {
-                        Layout.fillWidth: true; height: 26
-                        color: root.theme.inputBg; border.color: tfLitzeBez.activeFocus ? root.theme.accent : root.theme.border; radius: 3
-                        TextInput {
-                            id: tfLitzeBez
-                            anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
-                            color: root.theme.textPrimary; font.pixelSize: 11
-                            verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
-                            text: cd.litzeBezeichnung || ""
-                            onEditingFinished: parent.parent.save()
-                            Keys.onEscapePressed: focus = false
-                        }
+                    Text {
+                        text: pd.verbindungstechnik || "–"
+                        font.pixelSize: 11; color: root.theme.textMuted
+                        Layout.preferredWidth: 80; elide: Text.ElideRight
                     }
 
                     // Schirmkontakt-Toggle
                     Rectangle {
                         id: shToggle
-                        property bool _isk: cd.istSchirmkontakt || false
+                        property bool _isk: pd.istSchirmkontakt || false
                         width: 28; height: 24; radius: 3
                         color: _isk ? root.theme.accent : root.theme.inputBg
                         border.color: _isk ? root.theme.accent : root.theme.border
@@ -649,21 +553,38 @@ ScrollView {
                                color: parent._isk ? "#ffffff" : root.theme.textMuted }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                            onClicked: { shToggle._isk = !shToggle._isk; shToggle.parent.save() }
+                            onClicked: {
+                                shToggle._isk = !shToggle._isk
+                                db.steckverbinderPositionSchirmkontaktSetzen(pd.id, shToggle._isk)
+                                root._positionenListe = db.steckverbinderPositionenLaden(root._svTypId)
+                            }
                         }
                     }
 
+                    // Kontakt-Typ tauschen
+                    Rectangle {
+                        width: 24; height: 22; radius: 3
+                        color: swapMa.containsMouse ? root.theme.hover : root.theme.inputBg
+                        border.color: root.theme.border
+                        Text { anchors.centerIn: parent; text: "⇄"; font.pixelSize: 12; color: root.theme.accent }
+                        MouseArea {
+                            id: swapMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: ktPicker.oeffnenTausch(pd.id)
+                        }
+                    }
+
+                    // Position entfernen (nicht den Kontakt-Typ-Bauteil)
                     Rectangle {
                         width: 26; height: 22; radius: 3
-                        color: ktDelMa.containsMouse ? "#662222" : root.theme.inputBg
+                        color: posDelMa.containsMouse ? "#662222" : root.theme.inputBg
                         border.color: root.theme.border
                         Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 14
-                               color: ktDelMa.containsMouse ? "#ffffff" : root.theme.textMuted }
+                               color: posDelMa.containsMouse ? "#ffffff" : root.theme.textMuted }
                         MouseArea {
-                            id: ktDelMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            id: posDelMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                db.steckverbinderKontaktLoeschen(cd.id)
-                                root._kontaktListe = db.steckverbinderKontaktLaden(root._svTypId)
+                                db.steckverbinderPositionLoeschen(pd.id)
+                                root._positionenListe = db.steckverbinderPositionenLaden(root._svTypId)
                             }
                         }
                     }
@@ -671,9 +592,139 @@ ScrollView {
             }
 
             Text {
-                visible: root._kontaktListe.length === 0
-                text: qsTr("Noch keine Einträge. Mit \"+\" Kontakttyp hinzufügen.")
+                visible: root._positionenListe.length === 0
+                text: qsTr("Noch keine Positionen. Mit \"+\" einen Kontakt-Typ auswählen.")
                 font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+            }
+        }
+
+        // ── Kontakt-Typ-Picker (Positions-Picker) ───────────────────────────
+        Popup {
+            id: ktPicker
+            parent: Overlay.overlay
+            anchors.centerIn: parent
+            width: 420; height: 400
+            modal: true
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+            property var _liste:         []
+            property int _swapPositionId: -1   // >=0: Kontakt-Typ dieser Position tauschen statt neue Position anlegen
+
+            function _geschlechtFilter() {
+                return root._geschlecht === "stecker" ? "stift" : "buchse"
+            }
+            function oeffnenNeu() {
+                ktPicker._swapPositionId = -1
+                ktPicker._liste = db.kontaktTypListe(ktPicker._geschlechtFilter())
+                tfAnzahl.text = "1"
+                ktPicker.open()
+            }
+            function oeffnenTausch(positionId) {
+                ktPicker._swapPositionId = positionId
+                ktPicker._liste = db.kontaktTypListe(ktPicker._geschlechtFilter())
+                ktPicker.open()
+            }
+
+            background: Rectangle {
+                color: root.theme.surface
+                border.color: root.theme.border; border.width: 1; radius: 6
+            }
+
+            Column {
+                anchors.fill: parent; anchors.margins: 8; spacing: 0
+
+                Text {
+                    width: parent.width
+                    text: ktPicker._swapPositionId >= 0 ? qsTr("Kontakt-Typ tauschen") : qsTr("Kontakt-Typ wählen")
+                    font.pixelSize: 13; font.weight: Font.Medium
+                    color: root.theme.textPrimary; padding: 6
+                }
+                Rectangle { width: parent.width; height: 1; color: root.theme.border }
+
+                RowLayout {
+                    width: parent.width; height: 32; visible: ktPicker._swapPositionId < 0
+                    Text { text: qsTr("Anzahl:"); color: root.theme.textMuted; font.pixelSize: 11; Layout.leftMargin: 8 }
+                    NavTextField {
+                        id: tfAnzahl; Layout.preferredWidth: 50
+                        text: "1"; inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                ListView {
+                    id: ktPickerList
+                    width: parent.width
+                    height: parent.height - (ktPicker._swapPositionId >= 0 ? 82 : 114)
+                    clip: true
+                    model: ktPicker._liste
+
+                    Text {
+                        visible: ktPicker._liste.length === 0
+                        anchors.centerIn: parent
+                        text: qsTr("Keine passenden Kontakt-Typen vorhanden.\nErstelle zuerst einen Eintrag unter Bibliothek → Kontakte.")
+                        font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    delegate: Rectangle {
+                        width: ktPickerList.width; height: 42
+                        color: ktItemHover.containsMouse ? root.theme.hover : "transparent"
+                        HoverHandler { id: ktItemHover }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left; anchors.leftMargin: 12
+                            anchors.right: parent.right; anchors.rightMargin: 12
+                            spacing: 2
+                            Text {
+                                width: parent.width
+                                text: modelData.bezeichnung
+                                font.pixelSize: 12; color: root.theme.textPrimary
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                width: parent.width
+                                text: (modelData.hersteller || "") +
+                                      (modelData.kontaktgroesse > 0 ? "  ·  " + modelData.kontaktgroesse + " mm²" : "") +
+                                      (modelData.verbindungstechnik ? "  ·  " + modelData.verbindungstechnik : "")
+                                font.pixelSize: 10; color: root.theme.textMuted
+                                elide: Text.ElideRight
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (ktPicker._swapPositionId >= 0) {
+                                    db.steckverbinderPositionKontaktTypAendern(ktPicker._swapPositionId, modelData.id)
+                                } else {
+                                    var anzahl = Math.max(1, parseInt(tfAnzahl.text) || 1)
+                                    for (var i = 0; i < anzahl; i++)
+                                        db.steckverbinderPositionHinzufuegen(root._svTypId, modelData.id)
+                                }
+                                root._positionenListe = db.steckverbinderPositionenLaden(root._svTypId)
+                                ktPicker.close()
+                            }
+                        }
+                    }
+                }
+
+                Rectangle { width: parent.width; height: 1; color: root.theme.border }
+
+                Item {
+                    width: parent.width; height: 36
+                    Text {
+                        anchors.left: parent.left; anchors.leftMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: qsTr("Abbrechen")
+                        font.pixelSize: 12; color: root.theme.textMuted
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: ktPicker.close()
+                        }
+                    }
+                }
             }
         }
 
@@ -706,8 +757,8 @@ ScrollView {
                         root._montage + "_" + root._geschlecht)
                     if (newSvId > 0) {
                         root._svTypId = newSvId
-                        root._kableinfListe = db.steckverbinderKableinfLaden(root._svTypId)
-                        root._kontaktListe  = db.steckverbinderKontaktLaden(root._svTypId)
+                        root._kableinfListe   = db.steckverbinderKableinfLaden(root._svTypId)
+                        root._positionenListe = db.steckverbinderPositionenLaden(root._svTypId)
                     }
                     bauteilModel.aktualisieren()
                     root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())

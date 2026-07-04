@@ -33,7 +33,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 83;
     static const int WIKI_SCHEMA_VERSION     = 15;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 4;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 5;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     static const int BASELINE_TABLE_COUNT   = 32;
@@ -270,20 +270,18 @@ public:
                                  const QString &zugentlastung);
     Q_INVOKABLE bool         steckverbinderKableinfLoeschen(int id);
 
-    Q_INVOKABLE QVariantList steckverbinderKontaktLaden(int steckverbinderTypId) const;
-    Q_INVOKABLE int          steckverbinderKontaktHinzufuegen(int steckverbinderTypId);
-    Q_INVOKABLE bool         steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
-                                 const QString &kontaktgroesse, double qsMin, double qsMax,
-                                 double nennstrom, double nennspannung,
-                                 const QString &verbindungstechnik,
-                                 const QString &litzeFarbe = QString(),
-                                 double litzeQuerschnitt = 0.0,
-                                 const QString &litzeBezeichnung = QString());
-    Q_INVOKABLE bool         steckverbinderKontaktLoeschen(int id);
+    // Steckverbinder-Positionen (ersetzt steckverbinder_kontakt_typ, Neukonzeption Jul 2026 —
+    // verknüpft eine Pin-Nummer im Gehäuse mit einem wiederverwendbaren Kontakt-Typ)
+    Q_INVOKABLE QVariantList steckverbinderPositionenLaden(int steckverbinderTypId) const;
+    Q_INVOKABLE int          steckverbinderPositionHinzufuegen(int steckverbinderTypId, int kontaktTypId);
+    Q_INVOKABLE bool         steckverbinderPositionSchirmkontaktSetzen(int positionId, bool istSchirmkontakt);
+    Q_INVOKABLE bool         steckverbinderPositionKontaktTypAendern(int positionId, int neuerKontaktTypId);
+    Q_INVOKABLE bool         steckverbinderPositionLoeschen(int id);
 
     // Kontakt-Typ (Bibliothek, wiederverwendbarer Stift/Buchse-Katalogeintrag,
     // Neukonzeption Jul 2026 — konzept/features/45_steckverbinder.md §3.1/§5)
     Q_INVOKABLE QVariantMap  kontaktTypLaden(int bauteilId) const;
+    Q_INVOKABLE QVariantList kontaktTypListe(const QString &geschlechtFilter = QString()) const;
     Q_INVOKABLE int          kontaktTypSpeichern(int bauteilId, const QString &geschlecht,
                                  double kontaktgroesse,
                                  double querschnittSteckseiteMin, double querschnittSteckseiteMax,

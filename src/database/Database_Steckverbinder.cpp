@@ -585,106 +585,105 @@ bool Database::steckverbinderKableinfLoeschen(int id)
     return true;
 }
 
-// ── steckverbinderKontaktLaden ───────────────────────────────────────────────
-QVariantList Database::steckverbinderKontaktLaden(int steckverbinderTypId) const
+// ── steckverbinderPositionenLaden ────────────────────────────────────────────
+// Lädt alle Positionen eines Steckverbinder-Typs inkl. Anzeige-Daten aus dem
+// verknüpften Kontakt-Typ (Neukonzeption Jul 2026, ersetzt steckverbinder_kontakt_typ).
+QVariantList Database::steckverbinderPositionenLaden(int steckverbinderTypId) const
 {
     QVariantList liste;
     if (steckverbinderTypId < 0) return liste;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT id, position_nr, ist_schirmkontakt, kontaktgroesse,
-               querschnitt_kabel_min, querschnitt_kabel_max,
-               nennstrom_a, nennspannung_v, verbindungstechnik,
-               COALESCE(litze_farbe,''), COALESCE(litze_querschnitt,0),
-               COALESCE(litze_bezeichnung,'')
-        FROM bibliothek.steckverbinder_kontakt_typ
-        WHERE steckverbinder_typ_id = :tid
-        ORDER BY position_nr
+        SELECT sp.id, sp.position_nr, sp.ist_schirmkontakt, sp.kontakt_typ_id,
+               COALESCE(b.bezeichnung,''), kt.geschlecht,
+               COALESCE(kt.kontaktgroesse,0), COALESCE(kt.verbindungstechnik,'')
+        FROM bibliothek.steckverbinder_position sp
+        JOIN bibliothek.kontakt_typ kt ON kt.id = sp.kontakt_typ_id
+        JOIN bibliothek.bauteil b      ON b.id  = kt.bauteil_id
+        WHERE sp.steckverbinder_typ_id = :tid
+        ORDER BY sp.position_nr
     )");
     q.bindValue(":tid", steckverbinderTypId);
     if (!q.exec()) {
-        qCWarning(lcDb) << "steckverbinderKontaktLaden:" << q.lastError().text();
+        qCWarning(lcDb) << "steckverbinderPositionenLaden:" << q.lastError().text();
         return liste;
     }
     while (q.next()) {
         QVariantMap m;
-        m["id"]               = q.value(0).toInt();
-        m["positionNr"]       = q.value(1).toInt();
-        m["istSchirmkontakt"] = q.value(2).toInt() != 0;
-        m["kontaktgroesse"]   = q.value(3).toString();
-        m["qsMin"]            = q.value(4).toDouble();
-        m["qsMax"]            = q.value(5).toDouble();
-        m["nennstrom"]        = q.value(6).toDouble();
-        m["nennspannung"]     = q.value(7).toDouble();
-        m["verbindungstechnik"]= q.value(8).toString();
-        m["litzeFarbe"]       = q.value(9).toString();
-        m["litzeQuerschnitt"] = q.value(10).toDouble();
-        m["litzeBezeichnung"] = q.value(11).toString();
+        m["id"]                 = q.value(0).toInt();
+        m["positionNr"]         = q.value(1).toInt();
+        m["istSchirmkontakt"]   = q.value(2).toInt() != 0;
+        m["kontaktTypId"]       = q.value(3).toInt();
+        m["bezeichnung"]        = q.value(4).toString();
+        m["geschlecht"]         = q.value(5).toString();
+        m["kontaktgroesse"]     = q.value(6).toDouble();
+        m["verbindungstechnik"] = q.value(7).toString();
         liste.append(m);
     }
     return liste;
 }
 
-// ── steckverbinderKontaktHinzufuegen ────────────────────────────────────────
-int Database::steckverbinderKontaktHinzufuegen(int steckverbinderTypId)
+// ── steckverbinderPositionHinzufuegen ───────────────────────────────────────
+// Fügt eine neue Position hinzu, verknüpft mit dem gewählten Kontakt-Typ.
+// position_nr wird fortlaufend vergeben (kein Umsortieren in Phase 1).
+int Database::steckverbinderPositionHinzufuegen(int steckverbinderTypId, int kontaktTypId)
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        INSERT INTO bibliothek.steckverbinder_kontakt_typ (steckverbinder_typ_id, position_nr)
+        INSERT INTO bibliothek.steckverbinder_position (steckverbinder_typ_id, position_nr, kontakt_typ_id)
         VALUES (:tid,
             (SELECT COALESCE(MAX(position_nr), 0) + 1
-             FROM bibliothek.steckverbinder_kontakt_typ WHERE steckverbinder_typ_id = :tid2))
+             FROM bibliothek.steckverbinder_position WHERE steckverbinder_typ_id = :tid2),
+            :ktid)
     )");
     q.bindValue(":tid",  steckverbinderTypId);
     q.bindValue(":tid2", steckverbinderTypId);
+    q.bindValue(":ktid", kontaktTypId);
     if (!q.exec()) {
-        qCWarning(lcDb) << "steckverbinderKontaktHinzufuegen:" << q.lastError().text();
+        qCWarning(lcDb) << "steckverbinderPositionHinzufuegen:" << q.lastError().text();
         return -1;
     }
     return q.lastInsertId().toInt();
 }
 
-// ── steckverbinderKontaktAktualisieren ──────────────────────────────────────
-bool Database::steckverbinderKontaktAktualisieren(int id, bool istSchirmkontakt,
-    const QString &kontaktgroesse, double qsMin, double qsMax,
-    double nennstrom, double nennspannung, const QString &verbindungstechnik,
-    const QString &litzeFarbe, double litzeQuerschnitt, const QString &litzeBezeichnung)
+// ── steckverbinderPositionSchirmkontaktSetzen ───────────────────────────────
+bool Database::steckverbinderPositionSchirmkontaktSetzen(int positionId, bool istSchirmkontakt)
 {
     QSqlQuery q(m_db);
-    q.prepare(R"(
-        UPDATE bibliothek.steckverbinder_kontakt_typ
-        SET ist_schirmkontakt=:isk, kontaktgroesse=:kg,
-            querschnitt_kabel_min=:qmin, querschnitt_kabel_max=:qmax,
-            nennstrom_a=:ns, nennspannung_v=:nv, verbindungstechnik=:vt,
-            litze_farbe=:lf, litze_querschnitt=:lq, litze_bezeichnung=:lb
-        WHERE id=:id
-    )");
-    q.bindValue(":isk",  istSchirmkontakt ? 1 : 0);
-    q.bindValue(":kg",   kontaktgroesse.isEmpty() ? QVariant() : kontaktgroesse);
-    q.bindValue(":qmin", qsMin > 0 ? qsMin : QVariant());
-    q.bindValue(":qmax", qsMax > 0 ? qsMax : QVariant());
-    q.bindValue(":ns",   nennstrom > 0 ? nennstrom : QVariant());
-    q.bindValue(":nv",   nennspannung > 0 ? nennspannung : QVariant());
-    q.bindValue(":vt",   verbindungstechnik.isEmpty() ? QVariant() : verbindungstechnik);
-    q.bindValue(":lf",   litzeFarbe.isEmpty() ? QVariant() : litzeFarbe);
-    q.bindValue(":lq",   litzeQuerschnitt > 0 ? litzeQuerschnitt : QVariant());
-    q.bindValue(":lb",   litzeBezeichnung.isEmpty() ? QVariant() : litzeBezeichnung);
-    q.bindValue(":id",   id);
+    q.prepare("UPDATE bibliothek.steckverbinder_position SET ist_schirmkontakt=:isk WHERE id=:id");
+    q.bindValue(":isk", istSchirmkontakt ? 1 : 0);
+    q.bindValue(":id",  positionId);
     if (!q.exec()) {
-        qCWarning(lcDb) << "steckverbinderKontaktAktualisieren:" << q.lastError().text();
+        qCWarning(lcDb) << "steckverbinderPositionSchirmkontaktSetzen:" << q.lastError().text();
         return false;
     }
     return true;
 }
 
-// ── steckverbinderKontaktLoeschen ───────────────────────────────────────────
-bool Database::steckverbinderKontaktLoeschen(int id)
+// ── steckverbinderPositionKontaktTypAendern ─────────────────────────────────
+// Tauscht den verknüpften Kontakt-Typ einer bestehenden Position (⇄-Button im Editor).
+bool Database::steckverbinderPositionKontaktTypAendern(int positionId, int neuerKontaktTypId)
 {
     QSqlQuery q(m_db);
-    q.prepare("DELETE FROM bibliothek.steckverbinder_kontakt_typ WHERE id=:id");
+    q.prepare("UPDATE bibliothek.steckverbinder_position SET kontakt_typ_id=:ktid WHERE id=:id");
+    q.bindValue(":ktid", neuerKontaktTypId);
+    q.bindValue(":id",   positionId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "steckverbinderPositionKontaktTypAendern:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ── steckverbinderPositionLoeschen ──────────────────────────────────────────
+// Entfernt nur die Position (Verknüpfung), nicht den referenzierten Kontakt-Typ-Bauteil.
+bool Database::steckverbinderPositionLoeschen(int id)
+{
+    QSqlQuery q(m_db);
+    q.prepare("DELETE FROM bibliothek.steckverbinder_position WHERE id=:id");
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qCWarning(lcDb) << "steckverbinderKontaktLoeschen:" << q.lastError().text();
+        qCWarning(lcDb) << "steckverbinderPositionLoeschen:" << q.lastError().text();
         return false;
     }
     return true;

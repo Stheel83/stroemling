@@ -89,6 +89,7 @@ Item {
                 onKontaktPlatzierenAngefordert: function(geraetekastenId, positionId, symbolId, bmk) {
                     root.kontaktPlatzierenAngefordert(geraetekastenId, positionId, symbolId, bmk)
                 }
+                onLeisteKanvasAktualisiert: root.leisteKanvasAktualisiert()
             }
 
             BaMakroBibliothek {

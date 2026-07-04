@@ -12,6 +12,12 @@ Item {
 
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal kontaktPlatzierenAngefordert(int geraetekastenId, int positionId, string symbolId, string bmk)
+    // Gerätekasten-Bauteil-/Partner-Verknüpfung schreibt extra_daten per Roh-SQL direkt in
+    // grafik_element, ohne das Canvas-ElementeModel zu aktualisieren. Ohne dieses Signal
+    // überschreibt der nächste grafikSpeichernJetzt()-Autosave (DELETE+INSERT aus dem
+    // veralteten In-Memory-Stand) die frisch gesetzten Felder wieder — Muster 1:1 von
+    // KlemmenreihenAnsicht.qml übernommen (dort: klemmeNummerSetzen()+aktualisiereKanvasBmk()).
+    signal leisteKanvasAktualisiert()
 
     property var _flachListe: []
     property int _pickerFuerElId: -1
@@ -127,6 +133,7 @@ Item {
                             if (root._pickerFuerElId >= 0) {
                                 db.geraetekastenBauteilSetzen(root._pickerFuerElId, modelData.id)
                                 root.laden()
+                                root.leisteKanvasAktualisiert()
                             }
                             svPicker.close()
                         }
@@ -390,6 +397,7 @@ Item {
                         onClicked: {
                             db.geraetekastenPartnerSetzen(partnerPicker._fuerElId, modelData.id)
                             root.laden()
+                            root.leisteKanvasAktualisiert()
                             partnerPicker.close()
                         }
                     }
@@ -670,6 +678,7 @@ Item {
                                             onClicked: {
                                                 db.geraetekastenBauteilSetzen(gkd.id, 0)
                                                 root.laden()
+                                                root.leisteKanvasAktualisiert()
                                             }
                                         }
                                     }
@@ -749,6 +758,7 @@ Item {
                                             onClicked: {
                                                 db.geraetekastenPartnerAufheben(gkd.id)
                                                 root.laden()
+                                                root.leisteKanvasAktualisiert()
                                             }
                                         }
                                     }

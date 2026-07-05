@@ -363,6 +363,15 @@ Item {
 
                     Image {
                         anchors.horizontalCenter: parent.horizontalCenter
+                        visible:  bauteilModel.nurKabel && suchfeld.text.length === 0
+                        source:   "qrc:/assets/kabeljau_uebersicht.png"
+                        width:    560; height: 560
+                        fillMode: Image.PreserveAspectFit
+                        smooth:   true; mipmap: true
+                    }
+                    Image {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible:  !(bauteilModel.nurKabel && suchfeld.text.length === 0)
                         source:   "qrc:/assets/pokestroem_cee.png"
                         width:    560; height: 560
                         fillMode: Image.PreserveAspectFit
@@ -372,13 +381,15 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: suchfeld.text.length > 0
                               ? qsTr("Keine Ergebnisse für \"%1\"").arg(suchfeld.text)
-                              : bauteilModel.nurSteckverbinder
-                                ? qsTr("Noch keine Steckverbinder – mit '+ Neu' anlegen.")
-                                : bauteilModel.nurKonfkabel
-                                  ? qsTr("Noch keine konfektionierten Kabel – mit '+ Neu' anlegen.")
-                                  : bauteilModel.nurKontakt
-                                    ? qsTr("Noch keine Kontakte – mit '+ Neu' anlegen.")
-                                    : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
+                              : bauteilModel.nurKabel
+                                ? qsTr("Noch keine Kabel – mit '+ Neu' anlegen.")
+                                : bauteilModel.nurSteckverbinder
+                                  ? qsTr("Noch keine Steckverbinder – mit '+ Neu' anlegen.")
+                                  : bauteilModel.nurKonfkabel
+                                    ? qsTr("Noch keine konfektionierten Kabel – mit '+ Neu' anlegen.")
+                                    : bauteilModel.nurKontakt
+                                      ? qsTr("Noch keine Kontakte – mit '+ Neu' anlegen.")
+                                      : qsTr("Noch keine Bauteile – mit '+ Neu' anlegen.")
                         color:          theme.textMuted
                         font.pixelSize: 13
                     }

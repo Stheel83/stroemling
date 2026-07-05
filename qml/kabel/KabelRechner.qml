@@ -329,6 +329,14 @@ Item {
                                 anchors { left: parent.left; right: parent.right; leftMargin: 16; rightMargin: 16; top: parent.top; topMargin: 12 }
                                 spacing: 4
 
+                                Image {
+                                    visible:  !(erg && erg["gueltig"])
+                                    source:   "qrc:/assets/kabeljau_uebersicht.png"
+                                    width:    96; height: 96
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth:   true; mipmap: true
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                }
                                 Text {
                                     text: qsTr("Empfohlener Querschnitt")
                                     font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted

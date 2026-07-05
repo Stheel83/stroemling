@@ -118,14 +118,27 @@ Item {
             clip: true
             model: kabelModel.adern
 
-            Text {
+            Column {
                 anchors.centerIn: parent
                 visible: aderListe.count === 0
-                text: kabelModel.hatKabel
-                      ? qsTr("Noch keine Adern – mit '+ Ader' hinzufügen.")
-                      : qsTr("Kabel-Daten anlegen um Adern zu definieren.")
-                color: root.theme.borderDark; font.pixelSize: 13
-                horizontalAlignment: Text.AlignHCenter
+                spacing: 8
+
+                Image {
+                    visible:  kabelModel.hatKabel
+                    source:   "qrc:/assets/kabeljau_uebersicht.png"
+                    width:    120; height: 120
+                    fillMode: Image.PreserveAspectFit
+                    smooth:   true; mipmap: true
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: kabelModel.hatKabel
+                          ? qsTr("Noch keine Adern – mit '+ Ader' hinzufügen.")
+                          : qsTr("Kabel-Daten anlegen um Adern zu definieren.")
+                    color: root.theme.borderDark; font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
 
             delegate: Rectangle {

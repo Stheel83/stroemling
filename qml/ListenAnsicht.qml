@@ -192,7 +192,7 @@ Item {
         { header: "Nr",          w: 40  }, { header: "Farbe",       w: 70  },
         { header: "Bezeichnung", w: 90  }, { header: "Seite",       w: 80  },
         { header: "Netz",        w: 130 }, { header: "Von",         w: 90  },
-        { header: "Nach",        w: 90  }
+        { header: "Nach",        w: 90  }, { header: "",            w: 30  }
     ]
 
     // ── Spaltenbreiten: Nutzer-Resizing + Persistenz ──────────────────

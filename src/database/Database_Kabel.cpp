@@ -332,7 +332,10 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
         SELECT ka.kabel_id, ka.ader_nr, COALESCE(ka.farbe, ''), COALESCE(ka.bezeichnung, ''),
                COALESCE(s.blattnummer, ''), COALESCE(s.bezeichnung, ''),
                COALESCE(v.bezeichnung, ''),
-               COALESCE(ka.von_gerat_pin, ''), COALESCE(ka.nach_gerat_pin, '')
+               COALESCE(ka.von_gerat_pin, ''), COALESCE(ka.nach_gerat_pin, ''),
+               COALESCE(ge.seite_id, 0),
+               COALESCE((ge.x1 + ge.x2) / 2.0, 0.0),
+               COALESCE((ge.y1 + ge.y2) / 2.0, 0.0)
         FROM kabel_ader ka
         JOIN kabel k ON k.id = ka.kabel_id AND k.projekt_id = :pid
         LEFT JOIN grafik_element ge ON ge.id = ka.kabellinie_grafik_element_id
@@ -357,6 +360,9 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
         a[QStringLiteral("netz")]             = q2.value(6).toString();
         a[QStringLiteral("vonGeratPin")]      = q2.value(7).toString();
         a[QStringLiteral("nachGeratPin")]     = q2.value(8).toString();
+        a[QStringLiteral("seiteId")]          = q2.value(9).toInt();
+        a[QStringLiteral("weltX")]            = q2.value(10).toDouble();
+        a[QStringLiteral("weltY")]            = q2.value(11).toDouble();
         int idx = kabelIdx[kId];
         QVariantMap kMap = kabel[idx].toMap();
         QVariantList adern = kMap[QStringLiteral("adern")].toList();

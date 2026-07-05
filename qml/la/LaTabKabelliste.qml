@@ -135,6 +135,26 @@ ColumnLayout {
                                     Text { width: panel.klAderCols[4].w; text: modelData.netz || "–"; font.pixelSize: 11; color: root.theme.textSecondary; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
                                     Text { width: panel.klAderCols[5].w; text: modelData.vonGeratPin || "–"; font.pixelSize: 11; color: modelData.vonGeratPin ? root.theme.textSecondary : root.theme.textMuted; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
                                     Text { width: panel.klAderCols[6].w; text: modelData.nachGeratPin || "–"; font.pixelSize: 11; color: modelData.nachGeratPin ? root.theme.textSecondary : root.theme.textMuted; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
+                                    Item {
+                                        width: panel.klAderCols[7].w; height: 24
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Rectangle {
+                                            anchors.centerIn: parent; width: 20; height: 18; radius: 3
+                                            visible: (modelData.seiteId || 0) > 0
+                                            color: klAderSprungMa.containsMouse ? root.theme.accent : "transparent"
+                                            border.color: klAderSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                                            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                                   color: klAderSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                                            MouseArea {
+                                                id: klAderSprungMa; anchors.fill: parent
+                                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                enabled: panel.canvas !== null && (modelData.seiteId || 0) > 0
+                                                onClicked: panel.canvas.bmElementSprungAnfordern(
+                                                    modelData.seiteId, modelData.blattnummer, modelData.seitenBez,
+                                                    modelData.weltX, modelData.weltY)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

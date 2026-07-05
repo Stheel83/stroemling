@@ -1,5 +1,6 @@
 build/
 build-release/
+build-leap16/
 appimage/
 *.db
 *.db-shm

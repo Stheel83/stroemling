@@ -106,6 +106,36 @@
           "titel": "PDF-Export",
           "tags": "pdf export drucken vektor",
           "datei": "bedienhinweise/pdf_export.md"
+        },
+        {
+          "titel": "Bauteilbibliothek – Kategorien und Verwaltung",
+          "tags": "bauteile bibliothek kategorie duplizieren csv import",
+          "datei": "bedienhinweise/bauteilbibliothek.md"
+        },
+        {
+          "titel": "Klemmen-Typ anlegen und bearbeiten",
+          "tags": "klemme editor anschluss ebene bruecke pe-fusskontakt",
+          "datei": "bedienhinweise/klemmen_editor.md"
+        },
+        {
+          "titel": "Kabel-Typ anlegen und bearbeiten",
+          "tags": "kabel editor ader farbe querschnitt iec60757",
+          "datei": "bedienhinweise/kabel_editor.md"
+        },
+        {
+          "titel": "Normblatt-Vorlagen selbst gestalten",
+          "tags": "normblatt titelblatt vorlage schriftfeld editor",
+          "datei": "bedienhinweise/normblatt_editor.md"
+        },
+        {
+          "titel": "Einstellungen",
+          "tags": "einstellungen fun-modus rosi datensicherung datenbankpfade lizenz",
+          "datei": "bedienhinweise/einstellungen.md"
+        },
+        {
+          "titel": "Listen-Ansicht – Stückliste, Aderliste & Co.",
+          "tags": "liste stückliste aderliste klemmenplan kabelliste csv sprung",
+          "datei": "bedienhinweise/listenansicht.md"
         }
       ]
     },

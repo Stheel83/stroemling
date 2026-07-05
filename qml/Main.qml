@@ -45,7 +45,13 @@ ApplicationWindow {
         "steckverbinder_editor": "Steckverbinder und konfektionierte Kabel anlegen",
         "konfkabel_editor":    "Steckverbinder und konfektionierte Kabel anlegen",
         "kontakt_editor":      "Steckverbinder und konfektionierte Kabel anlegen",
-        "symbol_editor":       "Symbole platzieren und bearbeiten"
+        "symbol_editor":       "Symbole platzieren und bearbeiten",
+        "bauteile":            "Bauteilbibliothek – Kategorien und Verwaltung",
+        "klemmen_editor":      "Klemmen-Typ anlegen und bearbeiten",
+        "kabel_editor":        "Kabel-Typ anlegen und bearbeiten",
+        "normblatt":           "Normblatt-Vorlagen selbst gestalten",
+        "einstellungen":       "Einstellungen",
+        "stueckliste":         "Listen-Ansicht – Stückliste, Aderliste & Co."
     })
 
     property int    aktivSeiteId:   -1

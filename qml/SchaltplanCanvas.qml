@@ -1970,7 +1970,8 @@ Item {
 
                 // Aderdefinitionspunkt: Textblock – Positionierung wie BMK an Symbolen
                 // 0° (waagerecht): Text über dem Symbol | 90° (senkrecht): Text links
-                if (!vorschau && !_skipText && el.symbolId === "aderdefinition") {
+                if (!vorschau && !_skipText && el.symbolId === "aderdefinition"
+                        && 2.0 * root.mmToPx * root.zoom >= 7) {
                     var aed = el.extraDaten || {}
                     var adpZeilen = []
                     if (aed.bezeichnung) adpZeilen.push({ text: aed.bezeichnung, bold: true })
@@ -1980,7 +1981,7 @@ Item {
                     if (aed.laenge_m && aed.laenge_m > 0)
                         adpZeilen.push({ text: qsTr("\u2192 ") + (aed.laenge_m + "").replace('.', ',') + " m", bold: false })
                     if (adpZeilen.length > 0) {
-                        var adpFs    = Math.max(10, Math.round(2.0 * root.mmToPx * root.zoom))
+                        var adpFs    = Math.max(6, Math.round(2.0 * root.mmToPx * root.zoom))
                         var adpLineH = adpFs * 1.3
                         var adpRot   = ((el.rotation || 0) % 360 + 360) % 360
                         var adpSenk  = (adpRot === 90 || adpRot === 270)

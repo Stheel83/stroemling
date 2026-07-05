@@ -38,7 +38,10 @@ bool Database::checkAndApplyBibliothekSchema()
             version = q.value(0).toInt();
         if (version >= BIBLIOTHEK_SCHEMA_VERSION) {
             qCInfo(lcDb) << "Bibliothek-Schema aktuell (v" << version << ")";
-            return true;
+            // Seeds trotzdem erneut anwenden (idempotent, WHERE NOT EXISTS-Guard) –
+            // sonst kommen später zu bauteile_nutzer.sql hinzugefügte Bauteile bei
+            // bereits initialisierten Installationen nie an (GERAETE-SEED-01-Fund).
+            return seedStandardKlemmen() && seedNutzerBauteile();
         }
     }
 

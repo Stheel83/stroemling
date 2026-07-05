@@ -105,6 +105,32 @@ ApplicationWindow {
         p.canvas.forceActiveFocus()
     }
 
+    // ── Steckverbinder-Kontakt-Queue: sequentielles Platzieren ────────────
+    property var  _kontaktQueue:     []
+    property bool _kontaktQueueAktiv: false
+
+    function _kontaktQueueNaechste() {
+        if (_kontaktQueue.length === 0) { _kontaktQueueAktiv = false; return }
+        var q    = _kontaktQueue.slice()
+        var item = q.shift()
+        _kontaktQueue = q
+        if (aktivSeiteId < 0) { _kontaktQueueAktiv = false; return }
+        // bereits platziert → überspringen
+        if (db.steckverbinderPositionIstPlatziert(item.positionId)) {
+            _kontaktQueueNaechste(); return
+        }
+        var p = fokussiertesPanel === 1 ? panel1 : panel2
+        p.canvas.paletteSymbolId   = item.symbolId
+        p.canvas.paletteExtraDaten = {
+            "platziermodus":   "verknuepft",
+            "geraetekastenId": item.geraetekastenId,
+            "positionId":      item.positionId,
+            "bmk":             item.bmk
+        }
+        p.canvas.aktivesWerkzeug = "symbol"
+        p.canvas.forceActiveFocus()
+    }
+
     // ── Theme-System ─────────────────────────────────────────────
     readonly property var themes: ({
         "dunkel": {
@@ -1027,6 +1053,8 @@ ApplicationWindow {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
                                 if (wkz === "zeiger" && root._klemmeQueueAktiv)
                                     root._klemmeQueueNaechste()
+                                if (wkz === "zeiger" && root._kontaktQueueAktiv)
+                                    root._kontaktQueueNaechste()
                             }
                             onTeilenRechts: { root.splitHorizontal = true;  root.splitAktiv = true }
                             onTeilenUnten:  { root.splitHorizontal = false; root.splitAktiv = true }
@@ -1094,6 +1122,8 @@ ApplicationWindow {
                                 if (wkz !== "symbol") symbolPalette.abwaehlen()
                                 if (wkz === "zeiger" && root._klemmeQueueAktiv)
                                     root._klemmeQueueNaechste()
+                                if (wkz === "zeiger" && root._kontaktQueueAktiv)
+                                    root._kontaktQueueNaechste()
                             }
                             onDrcKlick:     root.drcPanelOffen  = !root.drcPanelOffen
                             onSuchKlick:    root.suchPanelOffen = !root.suchPanelOffen
@@ -1212,6 +1242,18 @@ ApplicationWindow {
                     }
                     root.aktiverCanvas.aktivesWerkzeug  = "symbol"
                     root.aktiverCanvas.forceActiveFocus()
+                }
+                onKontaktenSequentiellPlatzierenAngefordert: function(queueJson) {
+                    var queue = JSON.parse(queueJson)
+                    if (!queue || queue.length === 0) return
+                    if (root.aktivSeiteId < 0) {
+                        meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
+                        return
+                    }
+                    root.aktiveAnsicht = "seiten"
+                    root._kontaktQueue      = queue
+                    root._kontaktQueueAktiv = true
+                    root._kontaktQueueNaechste()
                 }
                 onKontaktPlatzierenAngefordert: function(geraetekastenId, positionId, symbolId, bmk) {
                     if (root.aktivSeiteId < 0) {

@@ -25,6 +25,7 @@ Item {
     signal kontaktEditorAngefordert(int bauteilId, string bezeichnung)
     signal geraetekastenSprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal kontaktPlatzierenAngefordert(int geraetekastenId, int positionId, string symbolId, string bmk)
+    signal kontaktenSequentiellPlatzierenAngefordert(string queueJson)
     signal makroListeGeaendert()
 
     Connections {
@@ -88,6 +89,9 @@ Item {
                 }
                 onKontaktPlatzierenAngefordert: function(geraetekastenId, positionId, symbolId, bmk) {
                     root.kontaktPlatzierenAngefordert(geraetekastenId, positionId, symbolId, bmk)
+                }
+                onKontaktenSequentiellPlatzierenAngefordert: function(queueJson) {
+                    root.kontaktenSequentiellPlatzierenAngefordert(queueJson)
                 }
                 onLeisteKanvasAktualisiert: root.leisteKanvasAktualisiert()
             }

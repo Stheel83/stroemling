@@ -12,6 +12,7 @@ Item {
 
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
     signal kontaktPlatzierenAngefordert(int geraetekastenId, int positionId, string symbolId, string bmk)
+    signal kontaktenSequentiellPlatzierenAngefordert(string queueJson)
     // Gerätekasten-Bauteil-/Partner-Verknüpfung schreibt extra_daten per Roh-SQL direkt in
     // grafik_element, ohne das Canvas-ElementeModel zu aktualisieren. Ohne dieses Signal
     // überschreibt der nächste grafikSpeichernJetzt()-Autosave (DELETE+INSERT aus dem
@@ -50,6 +51,27 @@ Item {
         root._flachListe = root.projektId >= 0
             ? db.geraetekastenListeMitPos(root.projektId)
             : []
+    }
+
+    // Baut die Warteschlange aller noch nicht platzierten Positionen eines
+    // Steckverbinder-Typs und startet das sequentielle Platzieren (analog
+    // Klemmenreihen-Anschlüsse) — erspart pro Position den kompletten
+    // Dialog-Zyklus (Öffnen → Position wählen → Bestätigen).
+    function _kontaktSequenzStarten(geraetekastenId, svTypId, bmkTxt) {
+        var positionen = db.steckverbinderPositionenLaden(svTypId)
+        var queue = []
+        for (var i = 0; i < positionen.length; i++) {
+            var pos = positionen[i]
+            if (db.steckverbinderPositionIstPlatziert(pos.id)) continue
+            queue.push({
+                geraetekastenId: geraetekastenId,
+                positionId:      pos.id,
+                symbolId:        pos.geschlecht === "stift" ? "stecker" : "buchse",
+                bmk:             bmkTxt
+            })
+        }
+        if (queue.length > 0)
+            root.kontaktenSequentiellPlatzierenAngefordert(JSON.stringify(queue))
     }
 
     onVisibleChanged:  { if (visible) laden() }
@@ -650,6 +672,28 @@ Item {
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                             onClicked: kontaktPlatzierDlg.oeffnen(gkd.id, instDelegate.svTyp.id, gkd.bmk || "")
+                                        }
+                                    }
+                                    // "⇥ Sequentiell platzieren" (alle offenen Positionen nacheinander,
+                                    // ohne den Dialog je Position erneut zu öffnen)
+                                    Rectangle {
+                                        visible: instDelegate.svTyp && instDelegate.svTyp.id > 0
+                                        width: 20; height: 18; radius: 3
+                                        color: kpSeqMa.containsMouse ? root.theme.accent : "transparent"
+                                        border.color: kpSeqMa.containsMouse ? root.theme.accent : root.theme.border
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "⇥"
+                                            font.pixelSize: 11
+                                            color: kpSeqMa.containsMouse ? "white" : root.theme.accent
+                                        }
+                                        ToolTip.visible: kpSeqMa.containsMouse
+                                        ToolTip.text:    qsTr("Alle offenen Positionen nacheinander platzieren")
+                                        ToolTip.delay:   400
+                                        MouseArea {
+                                            id: kpSeqMa; anchors.fill: parent
+                                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                            onClicked: root._kontaktSequenzStarten(gkd.id, instDelegate.svTyp.id, gkd.bmk || "")
                                         }
                                     }
                                     // "Anderes…" Link

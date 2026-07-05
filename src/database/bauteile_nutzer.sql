@@ -33,6 +33,29 @@
 -- AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
 --
 -- ─────────────────────────────────────────────────────────────────────────────
+-- FORMAT GERÄT (einfach – 1 Symbol, z.B. LS-Schalter, Motor, Meldeleuchte)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 1. Bauteil-Stammsatz mit direktem Symbolverweis (kein bauteil_kontakt nötig)
+-- INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, strom_a,
+--   leistung_w, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+-- SELECT '<BEZEICHNUNG>', '<HERSTELLER>', '<ART-NR>', <V oder NULL>, <A oder NULL>,
+--   <W oder NULL>, '<NORM>', '<BMK, z.B. -F/-M/-P/-S>', '<BEMERKUNG>', '<symbol_id>'
+-- WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='<BEZEICHNUNG>');
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- FORMAT GERÄT (mehrteilig – Hauptfunktion + Kontakte, z.B. Schütz, Relais)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 1. Bauteil-Stammsatz OHNE hauptfunktion_symbol_id (Kontakte kommen aus bauteil_kontakt)
+-- INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, norm, bmk_vorlage, bemerkung)
+-- SELECT '<BEZEICHNUNG>', '<HERSTELLER>', '<ART-NR>', <SPULENSPANNUNG>, '<NORM>', '-K', '<BEMERKUNG>'
+-- WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='<BEZEICHNUNG>');
+--
+-- 2. Kontaktbelegung (ein Statement je Kontakt/Gruppe, siehe 40_geraete_kontaktspiegel.md §5.1)
+-- INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+-- SELECT b.id, '<schliesser|oeffner|wechsler|spule>', '<PICKER-LABEL, z.B. 13/14>', '<PIN_BEZ JSON, z.B. {"1":"13","2":"14"}>'
+-- FROM bauteil b WHERE b.bezeichnung='<BEZEICHNUNG>'
+-- AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='<PICKER-LABEL>');
+-- ─────────────────────────────────────────────────────────────────────────────
 -- FORMAT KABEL
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. Bauteil-Stammsatz (wie oben)
@@ -190,3 +213,121 @@ AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_n
 -- ===========================================================================
 
 -- Hier eigene Klemmen eintragen – Kopiervorlage siehe Header.
+
+
+-- ===========================================================================
+-- GERÄTE  (Grundausstattung für Schaltschrank-Aufbauten)
+-- ===========================================================================
+
+-- ── Schütz Siemens 3RT2015 (Grundgerät 3S + Hilfsschalterblock 1S+1Ö) ──
+-- Kontaktbelegung 1:1 wie in konzept/features/06_bauteilbibliothek.md §6 dokumentiert.
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, strom_a, norm, bmk_vorlage, bemerkung)
+SELECT 'Schütz 3RT2015-1AP01', 'Siemens', '3RT2015-1AP01', 230, 7, 'IEC 60947-4-1', '-K',
+       'Leistungsschütz 3-polig, 7A, + Hilfsschalterblock 1 Schließer/1 Öffner'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Schütz 3RT2015-1AP01');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'spule', 'Spule', '{"A1":"A1","A2":"A2"}'
+FROM bauteil b WHERE b.bezeichnung='Schütz 3RT2015-1AP01'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Spule');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'schliesser', 'Hauptkontakt 1', '{"1":"1","2":"2"}'
+FROM bauteil b WHERE b.bezeichnung='Schütz 3RT2015-1AP01'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Hauptkontakt 1');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'schliesser', 'Hauptkontakt 2', '{"1":"3","2":"4"}'
+FROM bauteil b WHERE b.bezeichnung='Schütz 3RT2015-1AP01'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Hauptkontakt 2');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'schliesser', 'Hauptkontakt 3', '{"1":"5","2":"6"}'
+FROM bauteil b WHERE b.bezeichnung='Schütz 3RT2015-1AP01'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Hauptkontakt 3');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'schliesser', 'Hilfskontakt 13/14', '{"1":"13","2":"14"}'
+FROM bauteil b WHERE b.bezeichnung='Schütz 3RT2015-1AP01'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Hilfskontakt 13/14');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'oeffner', 'Hilfskontakt 21/22', '{"1":"21","2":"22"}'
+FROM bauteil b WHERE b.bezeichnung='Schütz 3RT2015-1AP01'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Hilfskontakt 21/22');
+
+-- ── Hilfsrelais Finder 55.34 (4 Wechsler, 24V DC-Spule) ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, norm, bmk_vorlage, bemerkung)
+SELECT 'Hilfsrelais Finder 55.34', 'Finder', '55.34', 24, 'IEC 61810-1', '-K',
+       'Industrierelais, 4 Wechsler, Steckfassung'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Hilfsrelais Finder 55.34');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'spule', 'Spule', '{"A1":"A1","A2":"A2"}'
+FROM bauteil b WHERE b.bezeichnung='Hilfsrelais Finder 55.34'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Spule');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'wechsler', 'Wechsler 11/12/14', '{"K":"11","NC":"12","NO":"14"}'
+FROM bauteil b WHERE b.bezeichnung='Hilfsrelais Finder 55.34'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Wechsler 11/12/14');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'wechsler', 'Wechsler 21/22/24', '{"K":"21","NC":"22","NO":"24"}'
+FROM bauteil b WHERE b.bezeichnung='Hilfsrelais Finder 55.34'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Wechsler 21/22/24');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'wechsler', 'Wechsler 31/32/34', '{"K":"31","NC":"32","NO":"34"}'
+FROM bauteil b WHERE b.bezeichnung='Hilfsrelais Finder 55.34'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Wechsler 31/32/34');
+
+INSERT INTO bauteil_kontakt (bauteil_id, symbol_id, bezeichnung, pin_bez)
+SELECT b.id, 'wechsler', 'Wechsler 41/42/44', '{"K":"41","NC":"42","NO":"44"}'
+FROM bauteil b WHERE b.bezeichnung='Hilfsrelais Finder 55.34'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kontakt WHERE bauteil_id=b.id AND bezeichnung='Wechsler 41/42/44');
+
+-- ── Leitungsschutzschalter B16 (einfaches Gerät, direkter Symbolverweis) ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, strom_a, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'LS-Schalter B16', 'Siemens', '5SL6116-6', 16, 'DIN EN 60898-1', '-F', '1-polig, Charakteristik B', 'lss'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='LS-Schalter B16');
+
+-- ── FI-Schutzschalter 25A/30mA ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, strom_a, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'FI-Schutzschalter 25A/30mA', 'Siemens', '5SV3314-6', 25, 'DIN EN 61008-1', '-F', 'Typ A, 2-polig', 'fi'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='FI-Schutzschalter 25A/30mA');
+
+-- ── Feinsicherung 5x20mm 2A ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, strom_a, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Feinsicherung 5x20mm 2A', 'Wickmann', '19195000000', 2, 'DIN 41571', '-F', 'Glasrohrsicherung, träge', 'sicherung'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Feinsicherung 5x20mm 2A');
+
+-- ── Not-Halt-Taster ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Not-Halt-Taster', 'Eaton', 'M22-PV', 'DIN EN ISO 13850', '-S', 'Pilzkopf, rastend, Öffner', 'not_halt'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Not-Halt-Taster');
+
+-- ── Taster grün (Ein) ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Taster grün (Ein)', 'Eaton', 'M22-D-G', '-S', 'Tastend, Schließer', 'taster_no'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Taster grün (Ein)');
+
+-- ── Taster rot (Aus) ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Taster rot (Aus)', 'Eaton', 'M22-D-R', '-S', 'Tastend, Öffner', 'taster_nc'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Taster rot (Aus)');
+
+-- ── Meldeleuchte rot 230V ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Meldeleuchte rot 230V', 'Eaton', 'M22-L-R', 230, '-P', 'LED, Dauerlicht', 'lampe'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Meldeleuchte rot 230V');
+
+-- ── Drehstrommotor 0,55kW ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, leistung_w, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Drehstrommotor 0,55kW', 'Siemens', '1LE1002-1CB23', 400, 550, 'IEC 60034-1', '-M', 'Kleinmotor, z.B. Pumpenantrieb', 'motor'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Drehstrommotor 0,55kW');
+
+-- ── Steuertrafo 230/24V 63VA ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, leistung_w, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
+SELECT 'Steuertrafo 230/24V 63VA', 'Block', 'STE 63/23/24', 230, 63, 'DIN EN 61558', '-T', 'Steuerspannungstrafo für 24V-AC-Steuerkreis', 'trafo'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuertrafo 230/24V 63VA');

@@ -136,6 +136,27 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('isoliert_gelegte_ader', '1',  0,   0.5,  -1,  0, 'neutral');
 -- unterbrechung und aderdefinition haben keine Pins
 
+-- ── knoten_gruppe (NETZ-MEHRPOL-01) ────────────────────────────
+-- Default 0 (alle obigen INSERTs) = alle Pins eines Symbols sind EIN
+-- gemeinsamer elektrischer Knoten (korrekt für Durchleiter mit einem Pfad
+-- wie Schließer/Sicherung und echte Sammelpunkte wie Treffpunkt). Bei Motor
+-- (3 galvanisch getrennte Phasenanschlüsse) und Trafo (4 Wicklungsenden,
+-- jedes für sich ein eigener Knoten wie bei einem Widerstand – auch die
+-- beiden Enden EINER Wicklung sind nicht derselbe Knoten) sind das mehrere
+-- Knoten – daher hier explizit auseinandergezogen, sonst verschmilzt die
+-- Netzberechnung z.B. drei an denselben Motor angeschlossene Potenziale
+-- fälschlich zu einem Netz. Weitere Mehrpol-/Verbraucher-Symbole
+-- (Lampe/Widerstand/Kondensator/Spule/Brückengleichrichter u.a.) haben
+-- strukturell denselben Bug, sind aber bewusst nicht Teil dieser Runde –
+-- siehe konzept/technik/51_netz_unionfind_mehrpol_debug.md §6.
+UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'motor' AND name = 'U';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'motor' AND name = 'V';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'motor' AND name = 'W';
+UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'trafo' AND name = '1';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'trafo' AND name = '2';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'trafo' AND name = '3';
+UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'trafo' AND name = '4';
+
 -- ── symbol_primitiv ──────────────────────────────────────────
 -- Spalten: symbol_id, reihenfolge, typ,
 --          x1, y1, x2, y2, x3, y3,

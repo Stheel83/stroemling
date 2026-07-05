@@ -686,6 +686,16 @@ static QList<SchemaMigration> alleMigrationen()
                 LEFT JOIN ort o ON o.id = kl.ort_id
                 LEFT JOIN anlage a ON a.id = o.anlage_id)",
         }},
+        { 86, "symbol_pin: knoten_gruppe fuer Mehrpol-Bauteile mit galvanisch getrennten Pins (NETZ-MEHRPOL-01)", {
+            R"(ALTER TABLE symbol_pin ADD COLUMN knoten_gruppe INTEGER NOT NULL DEFAULT 0)",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'motor' AND name = 'U')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'motor' AND name = 'V')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'motor' AND name = 'W')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'trafo' AND name = '1')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'trafo' AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'trafo' AND name = '3')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'trafo' AND name = '4')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

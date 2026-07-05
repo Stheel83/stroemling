@@ -2527,7 +2527,13 @@ Item {
 
             if (vbs.length === 0) return []
 
-            // Union-Find auf Elementindizes
+            // Union-Find auf (Elementindex, Knotengruppe) — NETZ-MEHRPOL-01:
+            // Pins mit unterschiedlicher knotenGruppe auf demselben Element
+            // (z.B. Motor U/V/W, Trafo Primär-/Sekundärwicklung) sind KEIN
+            // gemeinsamer elektrischer Knoten und dürfen nicht mitverschmolzen
+            // werden, nur weil sie zum selben Symbol gehören. Default-Gruppe 0
+            // deckt alle anderen Symbole unverändert ab (ein Element = ein Knoten).
+            function _ufKey(elIdx, grp) { return elIdx + ":" + (grp || 0) }
             var parent = {}
             function find(x) {
                 if (parent[x] === undefined) parent[x] = x
@@ -2536,13 +2542,14 @@ Item {
             }
             function union(a, b) { var ra = find(a), rb = find(b); if (ra !== rb) parent[ra] = rb }
 
-            for (var i = 0; i < vbs.length; i++) union(vbs[i].elIdxA, vbs[i].elIdxB)
+            for (var i = 0; i < vbs.length; i++)
+                union(_ufKey(vbs[i].elIdxA, vbs[i].knotenGruppeA), _ufKey(vbs[i].elIdxB, vbs[i].knotenGruppeB))
 
             // Segmente nach Netz gruppieren
             var netMap = {}
             for (var i = 0; i < vbs.length; i++) {
                 var v = vbs[i]
-                var rid = "" + find(v.elIdxA)
+                var rid = "" + find(_ufKey(v.elIdxA, v.knotenGruppeA))
                 if (!netMap[rid]) netMap[rid] = { signaltyp: "neutral", bezeichnung: "", segmente: [], pinSet: {} }
                 var net = netMap[rid]
                 net.segmente.push({ x1: v.x1, y1: v.y1, x2: v.x2, y2: v.y2,
@@ -2565,8 +2572,8 @@ Item {
             for (var ei = 0; ei < elemente.length; ei++) {
                 var el = elemente[ei]
                 if (el.typ !== "symbol" || el.symbolId !== "querverweis") continue
-                if (parent[ei] === undefined) continue
-                var rid2 = "" + find(ei)
+                if (parent[_ufKey(ei, 0)] === undefined) continue
+                var rid2 = "" + find(_ufKey(ei, 0))
                 if (!netMap[rid2]) continue
                 var ed = el.extraDaten || {}
                 if (ed.signalname) netMap[rid2].bezeichnung = ed.signalname
@@ -2605,7 +2612,7 @@ Item {
                 for (var ei2 = 0; ei2 < elemente.length; ei2++) {
                     var eel = elemente[ei2]
                     if (eel.typ !== "symbol" || eel.symbolId !== "querverweis") continue
-                    if (parent[ei2] === undefined || ("" + find(ei2)) !== rid) continue
+                    if (parent[_ufKey(ei2, 0)] === undefined || ("" + find(_ufKey(ei2, 0))) !== rid) continue
                     var eed = eel.extraDaten || {}
                     if (eed.zielSeiteId && eed.signalname) {
                         var richtung = eed.richtung || "ausgang"

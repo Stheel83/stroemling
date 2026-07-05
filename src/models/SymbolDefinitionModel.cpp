@@ -87,7 +87,7 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
     QVariantList result;
     QSqlQuery q;
     q.prepare(R"(
-        SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext
+        SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe
         FROM symbol_pin
         WHERE symbol_id = :sym
     )");
@@ -102,15 +102,16 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
         offen["y"] = q.value(5).toDouble();
 
         QVariantMap m;
-        m["id"]        = q.value(0).toInt();
-        m["name"]      = q.value(1).toString();
-        m["x"]         = q.value(2).toDouble();
-        m["y"]         = q.value(3).toDouble();
-        m["offen"]     = offen;
-        m["offenX"]    = q.value(4).toDouble();
-        m["offenY"]    = q.value(5).toDouble();
-        m["signaltyp"] = q.value(6).toString();
-        m["kontext"]   = q.value(7).toString();
+        m["id"]           = q.value(0).toInt();
+        m["name"]         = q.value(1).toString();
+        m["x"]            = q.value(2).toDouble();
+        m["y"]            = q.value(3).toDouble();
+        m["offen"]        = offen;
+        m["offenX"]       = q.value(4).toDouble();
+        m["offenY"]       = q.value(5).toDouble();
+        m["signaltyp"]    = q.value(6).toString();
+        m["kontext"]      = q.value(7).toString();
+        m["knotenGruppe"] = q.value(8).toInt();
         result.append(m);
     }
     m_pinCache.insert(symbolId, result);
@@ -334,6 +335,11 @@ struct PinInfo {
     QString quellSig;
     QString symbolId;
     QString pinName;
+    // NETZ-MEHRPOL-01: Pins mit unterschiedlicher knotenGruppe auf demselben
+    // Element sind KEIN gemeinsamer elektrischer Knoten (z.B. Motor U/V/W,
+    // Trafo Primär-/Sekundärwicklung). Default 0 = alle Pins eines Symbols
+    // sind ein Knoten (unveränderte Bedeutung für alle anderen Symbole).
+    int     knotenGruppe = 0;
 };
 
 struct Unterbrechung { double cx, cy, hw, hh; };
@@ -518,6 +524,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
             pi.quellSig = quellSig;
             pi.symbolId = symbolId;
             pi.pinName  = pin["name"].toString();
+            pi.knotenGruppe = pin.value("knotenGruppe", 0).toInt();
 
             const QVariantMap offen = pin["offen"].toMap();
             if (!offen.isEmpty()) {
@@ -558,9 +565,9 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 QVariantMap v;
                 v["x1"] = a.x; v["y1"] = a.y; v["x2"] = b.x; v["y2"] = b.y;
                 v["elIdxA"] = a.elIdx; v["rolleA"] = a.rolle; v["quellSigA"] = a.quellSig;
-                v["pinNameA"] = a.pinName;
+                v["pinNameA"] = a.pinName; v["knotenGruppeA"] = a.knotenGruppe;
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
-                v["pinNameB"] = b.pinName;
+                v["pinNameB"] = b.pinName; v["knotenGruppeB"] = b.knotenGruppe;
                 v["signaltyp"] = QStringLiteral("neutral");
                 if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);
@@ -593,9 +600,9 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 QVariantMap v;
                 v["x1"] = a.x; v["y1"] = a.y; v["x2"] = b.x; v["y2"] = b.y;
                 v["elIdxA"] = a.elIdx; v["rolleA"] = a.rolle; v["quellSigA"] = a.quellSig;
-                v["pinNameA"] = a.pinName;
+                v["pinNameA"] = a.pinName; v["knotenGruppeA"] = a.knotenGruppe;
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
-                v["pinNameB"] = b.pinName;
+                v["pinNameB"] = b.pinName; v["knotenGruppeB"] = b.knotenGruppe;
                 v["signaltyp"] = QStringLiteral("neutral");
                 if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);

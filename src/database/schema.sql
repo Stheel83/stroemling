@@ -229,15 +229,16 @@ CREATE TABLE symbol_primitiv (
 );
 
 CREATE TABLE symbol_pin (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    symbol_id  TEXT    NOT NULL REFERENCES symbol_definition(id) ON DELETE CASCADE,
-    name       TEXT    NOT NULL,
-    x          REAL    NOT NULL,
-    y          REAL    NOT NULL,
-    offen_x    REAL    NOT NULL,
-    offen_y    REAL    NOT NULL,
-    signaltyp  TEXT    NOT NULL DEFAULT 'neutral',
-    kontext    TEXT
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol_id     TEXT    NOT NULL REFERENCES symbol_definition(id) ON DELETE CASCADE,
+    name          TEXT    NOT NULL,
+    x             REAL    NOT NULL,
+    y             REAL    NOT NULL,
+    offen_x       REAL    NOT NULL,
+    offen_y       REAL    NOT NULL,
+    signaltyp     TEXT    NOT NULL DEFAULT 'neutral',
+    kontext       TEXT,
+    knoten_gruppe INTEGER NOT NULL DEFAULT 0
 );
 
 -- Betriebsmittel

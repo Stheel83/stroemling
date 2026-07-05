@@ -96,11 +96,11 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/30_fun_modus.md` | Fun-Modus (Easter Egg): 8 Szenarien, Sprite-System | ✅ |
 | `konzept/features/35_drc.md` | Design Rule Check: 10 Checks (D-01 bis D-09, D-11) | ✅ |
 | `konzept/features/36_minimap.md` | Canvas Minimap: Strg+M Übersichtsfenster, CanvasMinimap.qml | ✅ |
-| `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding, F1-Kontexthilfe | 🔄 F1-Kontexthilfe Teilumfang (5 Ansichten ✅) |
+| `konzept/features/38_nutzbarkeit.md` | Nutzbarkeit & Nutzerführung: Tooltip-Audit, Leere-Zustände, Onboarding, F1-Kontexthilfe | ✅ F1-Kontexthilfe komplett (alle Ansichten mit sinnvollem Sprungziel) |
 | `konzept/features/39_fehlersuchmodus.md` | Fehlersuchmodus (L9): Strompfad-BFS, seitenübergreifend, Symbol-Rollen | ✅ |
 | `konzept/features/40_geraete_kontaktspiegel.md` | Geräte (Schütz/Relais): BMK-Vererbung, Kontaktspiegel, Platzierungs-Workflow | ✅ |
 | `konzept/features/41_git_integration.md` | Git-Integration: Auto-Commit, Remote-Push, Projekt-History | ✅ |
-| `konzept/features/41_sprungfunktion.md` | Sprungfunktion: Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette | 🔄 nur Kabelliste offen (1:n, bewusst zurückgestellt) — alle anderen 7 Listen-Tabs + Phase 1–3 ✅ |
+| `konzept/features/41_sprungfunktion.md` | Sprungfunktion: Navigation Referenz → Canvas-Position; 4 Phasen, Signal-Kette | ✅ vollständig (alle 8 Listen-Tabs + Phase 1–3) |
 | `konzept/features/42_makro_palette.md` | Makro-Schnellpalette: Kategorie-Akzentstreifen, Overlay-Vorschau, Bibliotheks-Dialog | ✅ |
 | `konzept/features/43_geraetekasten.md` | Gerätekasten: EP + BAUTEILE-Panel + Sprungfunktion Phase 3 | ✅ |
 | `konzept/features/44_achievements.md` | Achievement-System: 47 Achievements, AchievementManager, Toast, Panel | ✅ |

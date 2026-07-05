@@ -34,11 +34,18 @@ ApplicationWindow {
     // F1-Kontexthilfe: aktiveAnsicht -> Titel des passenden Wiki-Artikels.
     // Ansichten ohne Eintrag fallen auf die Shortcut-Übersicht zurück.
     readonly property var f1KontextArtikel: ({
-        "projekte":     "Programmübersicht",
-        "seiten":       "Schaltplan – Erste Schritte",
-        "kabelrechner": "Kabelrechner",
-        "ibn":          "IBN – Inbetriebnahme",
-        "fehlersuche":  "Fehlersuchmodus"
+        "projekte":            "Programmübersicht",
+        "seiten":              "Schaltplan – Erste Schritte",
+        "kabelrechner":        "Kabelrechner",
+        "ibn":                 "IBN – Inbetriebnahme",
+        "fehlersuche":         "Fehlersuchmodus",
+        "achievements":        "Errungenschaften (Achievements)",
+        "meldungen":           "Meldungen: Toast statt Dialog",
+        "sps":                 "SPS/PLS-Integration",
+        "steckverbinder_editor": "Steckverbinder und konfektionierte Kabel anlegen",
+        "konfkabel_editor":    "Steckverbinder und konfektionierte Kabel anlegen",
+        "kontakt_editor":      "Steckverbinder und konfektionierte Kabel anlegen",
+        "symbol_editor":       "Symbole platzieren und bearbeiten"
     })
 
     property int    aktivSeiteId:   -1

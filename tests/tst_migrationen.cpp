@@ -84,11 +84,12 @@ private slots:
 
     void test_03_alleTabellen()
     {
+        // bauteil/bauteil_kategorie seit ARCH-01 in der separaten bibliothek.db,
+        // nicht mehr Teil des Projekt-Hauptschemas – hier bewusst nicht geprüft.
         static const QStringList erwartet = {
             "schema_migration",
             "projekt", "seite",
             "grafik_element", "verbindung", "verbindung_segment",
-            "bauteil", "bauteil_kategorie",
             "klemme", "klemmenleiste",
             "symbol_definition", "symbol_pin",
             "kabel", "kabel_ader",

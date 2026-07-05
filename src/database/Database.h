@@ -31,12 +31,14 @@ public:
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION        = 56;
-    static const int CURRENT_SCHEMA_VERSION  = 83;
+    static const int CURRENT_SCHEMA_VERSION  = 85;
     static const int WIKI_SCHEMA_VERSION     = 15;
     static const int BIBLIOTHEK_SCHEMA_VERSION = 5;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
-    static const int BASELINE_TABLE_COUNT   = 32;
+    // schema_migration selbst zählt mit (wird vor createSchema() angelegt, überlebt
+    // dropAllTables() unangetastet) – daher 32 Tabellen aus schema.sql + 1.
+    static const int BASELINE_TABLE_COUNT   = 33;
 
     explicit Database(QObject *parent = nullptr);
 

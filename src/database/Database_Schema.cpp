@@ -51,7 +51,10 @@ struct SchemaMigration {
 
 static QList<SchemaMigration> alleMigrationen()
 {
-    return {
+    // Reihenfolge im Quelltext ist nicht zwingend aufsteigend (siehe v84/v85) –
+    // checkAndApplySchema() iteriert aber in Listenreihenfolge, daher hier
+    // einmalig nach Versionsnummer sortieren.
+    QList<SchemaMigration> migrationen = {
         // Squash v40-v51: alle Tabellen + Spalten sind in createSchema() enthalten.
         // Dev-DBs < v52 werden beim ersten Start neu aufgebaut (dropAllTables + createSchema).
         { 52, "Baseline v52 – Schema konsolidiert (v40-v51 gefaltet)", {} },
@@ -684,6 +687,9 @@ static QList<SchemaMigration> alleMigrationen()
                 LEFT JOIN anlage a ON a.id = o.anlage_id)",
         }},
     };
+    std::sort(migrationen.begin(), migrationen.end(),
+              [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
+    return migrationen;
 }
 
 

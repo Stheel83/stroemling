@@ -87,6 +87,30 @@ ScrollView {
         root._pinZuordnungB = root._konfkabelId > 0 ? db.konfkabelPinZuordnungLaden(root._konfkabelId, "B") : []
     }
 
+    // Klick-Effizienz: ordnet alle noch freien Adern den noch freien Positionen
+    // aufsteigend der Reihe nach zu (häufigster Fall: gerade 1:1-Durchverdrahtung)
+    // statt jede Ader einzeln über die zwei ComboBoxen + "+" zuzuordnen.
+    // Bereits zugeordnete Adern/Positionen bleiben unangetastet (additiv, kein Ersetzen).
+    function _automatischZuordnen(seite) {
+        var zuordnung  = seite === "A" ? root._pinZuordnungA : root._pinZuordnungB
+        var positionen = seite === "A" ? root._positionenA   : root._positionenB
+        var belegteAdern = zuordnung.map(function(z) { return z.aderNr })
+        var belegtePins   = zuordnung.map(function(z) { return z.pinNr })
+        var freieAdern = root._aderListeKabel
+            .filter(function(a) { return belegteAdern.indexOf(a.aderNr) < 0 })
+            .slice().sort(function(a, b) { return a.aderNr - b.aderNr })
+        var freiePositionen = positionen
+            .filter(function(p) { return belegtePins.indexOf(p.positionNr) < 0 })
+            .slice().sort(function(a, b) { return a.positionNr - b.positionNr })
+        var n = Math.min(freieAdern.length, freiePositionen.length)
+        for (var i = 0; i < n; i++)
+            db.konfkabelPinZuordnen(root._konfkabelId, seite, freieAdern[i].aderNr, freiePositionen[i].positionNr)
+        if (n > 0) {
+            if (seite === "A") root._pinZuordnungA = db.konfkabelPinZuordnungLaden(root._konfkabelId, "A")
+            else                root._pinZuordnungB = db.konfkabelPinZuordnungLaden(root._konfkabelId, "B")
+        }
+    }
+
     function _kabelIndexFuer(id) {
         for (var i = 0; i < _kabelListe.length; i++)
             if (_kabelListe[i].id === id) return i + 1
@@ -453,6 +477,18 @@ ScrollView {
                         root._pinZuordnungA = db.konfkabelPinZuordnungLaden(root._konfkabelId, "A")
                     }
                 }
+                Button {
+                    text: qsTr("⇥ Rest zuordnen"); implicitHeight: 26
+                    enabled: root._aderListeKabel.length > 0 && root._positionenA.length > 0
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Alle noch freien Adern den noch freien Positionen aufsteigend der Reihe nach zuordnen")
+                    ToolTip.delay: 400
+                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 11
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                                            radius: 4; border.color: root.theme.border }
+                    onClicked: root._automatischZuordnen("A")
+                }
             }
         }
 
@@ -549,6 +585,18 @@ ScrollView {
                         db.konfkabelPinZuordnen(root._konfkabelId, "B", aderNr, pinNr)
                         root._pinZuordnungB = db.konfkabelPinZuordnungLaden(root._konfkabelId, "B")
                     }
+                }
+                Button {
+                    text: qsTr("⇥ Rest zuordnen"); implicitHeight: 26
+                    enabled: root._aderListeKabel.length > 0 && root._positionenB.length > 0
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Alle noch freien Adern den noch freien Positionen aufsteigend der Reihe nach zuordnen")
+                    ToolTip.delay: 400
+                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 11
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                                            radius: 4; border.color: root.theme.border }
+                    onClicked: root._automatischZuordnen("B")
                 }
             }
         }

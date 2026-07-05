@@ -126,7 +126,7 @@ Item {
                 Image {
                     visible:  kabelModel.hatKabel
                     source:   "qrc:/assets/kabeljau_uebersicht.png"
-                    width:    120; height: 120
+                    width:    640; height: 640
                     fillMode: Image.PreserveAspectFit
                     smooth:   true; mipmap: true
                     anchors.horizontalCenter: parent.horizontalCenter

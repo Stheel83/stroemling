@@ -111,7 +111,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | **`konzept/technik/`** | **Wie entwickle ich daran?** | |
 | `konzept/technik/18_debugging.md` | Debugging-Workflow, visuelle Indikatoren, Log-Muster, Qt 6-Fallstricke, Build-Merkhilfen | ✅ |
 | `konzept/technik/22_manuelle_tests.md` | Manuelle Testszenarien und Checklisten | ✅ |
-| `konzept/technik/31_optimierungen.md` | Optimierungspotenziale (alle abgeschlossen) | ✅ |
+| `konzept/technik/31_optimierungen.md` | Optimierungspotenziale | 🔄 fast alle erledigt, offen: C-01 Stufe 2 (Rendering-Phasen), C-02 (Union-Find nach C++) |
 | `konzept/technik/33_rotation_multi_debug.md` | Debugging-Protokoll: ROTATION-MULTI-01 (behoben) | ✅ |
 | `konzept/technik/36_codeberg_repo_aufteilung.md` | Codeberg-Einrichtung & Repo-Aufteilung (Symlink-Lösung) | ✅ |
 | `konzept/technik/40_listen_bg_debug.md` | Debugging-Protokoll: LISTEN-BG-01 (behoben) | ✅ |

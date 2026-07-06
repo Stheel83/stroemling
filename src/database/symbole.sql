@@ -149,10 +149,19 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 -- beiden Enden EINER Wicklung sind nicht derselbe Knoten) sind das mehrere
 -- Knoten – daher hier explizit auseinandergezogen, sonst verschmilzt die
 -- Netzberechnung z.B. drei an denselben Motor angeschlossene Potenziale
--- fälschlich zu einem Netz. Weitere Mehrpol-/Verbraucher-Symbole
--- (Lampe/Widerstand/Kondensator/Spule/Brückengleichrichter u.a.) haben
--- strukturell denselben Bug, sind aber bewusst nicht Teil dieser Runde –
--- siehe konzept/technik/51_netz_unionfind_mehrpol_debug.md §6.
+-- fälschlich zu einem Netz.
+--
+-- NETZ-MEHRPOL-02 Teil A (Jul 2026): dieselbe Korrektur für die übrigen
+-- 2+Pin-Verbraucher-Symbole nachgezogen — jeder Pin ein eigener Knoten,
+-- da bei jedem Verbraucher Strom hindurchfließt statt durchgeleitet zu
+-- werden (Anschlüsse sind per Definition unterschiedliche Potenziale).
+-- `brueckengleichrichter` hat 4 Anschlüsse (2 AC-Eingänge + 2 DC-Ausgänge),
+-- keiner davon ist intern direkt mit einem anderen verbunden (Gleichrichter-
+-- Brücke, nur über Dioden) — analog zu Trafo alle vier eigene Knoten.
+-- Teil B (~30 `rolle='variabel'`-Arduino/SPS/KFZ/Sensor-Symbole) bewusst
+-- weiterhin zurückgestellt — braucht pinweise Prüfung realer Pinbelegungen
+-- (z.B. mehrere GND-Pins, die tatsächlich EIN Knoten sind), keine
+-- Blanket-Regel möglich. Siehe konzept/technik/51_netz_unionfind_mehrpol_debug.md §6.
 UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'motor' AND name = 'U';
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'motor' AND name = 'V';
 UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'motor' AND name = 'W';
@@ -163,6 +172,19 @@ UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'trafo' AND name = '4'
 -- motor_dc: A1 bleibt Default 0, A2 eigener Knoten (2 galvanisch getrennte
 -- Anker-Anschlüsse, wie bei jedem anderen 2-Pol-Verbraucher).
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'motor_dc' AND name = 'A2';
+-- NETZ-MEHRPOL-02 Teil A: übrige 2-Pol-Verbraucher (erster Pin bleibt Default 0)
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'lampe'           AND name = '2';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'hupe'            AND name = '2';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'summer'          AND name = '2';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'widerstand_iec'  AND name = '2';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'widerstand_ansi' AND name = '2';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'kondensator'     AND name = '-';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'spule'           AND name = 'A2';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'spule_ansi'      AND name = '2';
+-- brueckengleichrichter: alle 4 Anschlüsse eigene Knoten (~1 bleibt Default 0)
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'brueckengleichrichter' AND name = '~2';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'brueckengleichrichter' AND name = '+';
+UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'brueckengleichrichter' AND name = '-';
 
 -- ── symbol_primitiv ──────────────────────────────────────────
 -- Spalten: symbol_id, reihenfolge, typ,

@@ -705,6 +705,19 @@ static QList<SchemaMigration> alleMigrationen()
             R"(INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('motor_dc', 'A1', 0, 0.5, -1, 0, 'power', 0), ('motor_dc', 'A2', 1, 0.5, 1, 0, 'power', 1))",
             R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('motor_dc', 0, 'linie', 0, 0.5, 0.2, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('motor_dc', 1, 'linie', 0.8, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('motor_dc', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.3, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('motor_dc', 3, 'text', 0.5, 0.40, 0, 0, 0, 0, 0, 0, 0, 0, 'M', 0.28, 1, 'center', 'middle', 'solid'), ('motor_dc', 4, 'linie', 0.36, 0.585, 0.64, 0.585, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('motor_dc', 5, 'linie', 0.36, 0.65, 0.64, 0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'dash'))",
         }},
+        { 89, "NETZ-MEHRPOL-02 Teil A: knoten_gruppe fuer uebrige 2-4-Pin-Verbraucher-Symbole", {
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'lampe'           AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'hupe'            AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'summer'          AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'widerstand_iec'  AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'widerstand_ansi' AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'kondensator'     AND name = '-')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'spule'           AND name = 'A2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'spule_ansi'      AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'brueckengleichrichter' AND name = '~2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'brueckengleichrichter' AND name = '+')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'brueckengleichrichter' AND name = '-')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

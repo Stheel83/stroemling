@@ -507,9 +507,27 @@ int ElementeModel::elementBeiPosition(double vpX, double vpY,
             double dcx = vpX - vx1, dcy = vpY - vy1;
             return std::abs(std::sqrt(dcx*dcx + dcy*dcy) - r) < s;
         }
-        // bild, symbol, text: Bounding-Box
-        double bx1 = std::min(vx1,vx2)-s, by1 = std::min(vy1,vy2)-s;
-        double bx2 = std::max(vx1,vx2)+s, by2 = std::max(vy1,vy2)+s;
+        // bild, symbol, text: Bounding-Box. Symbole und Bilder werden beim
+        // Rendern um ihren Mittelpunkt gedreht (SchaltplanCanvas.qml
+        // _renderSymbol/_renderBild) – bei 90°/270° vertauschen sich dadurch
+        // Breite und Höhe der sichtbaren Grafik. Ohne diese Anpassung blieb
+        // die Trefferfläche nicht-quadratischer Symbole (z.B. Sicherung
+        // 32x16mm) bei Drehung in der ursprünglichen Ausrichtung stehen und
+        // reichte dadurch in ein benachbart platziertes Symbol hinein.
+        double bcx = (vx1 + vx2) / 2.0, bcy = (vy1 + vy2) / 2.0;
+        double bw  = std::abs(vx2 - vx1), bh = std::abs(vy2 - vy1);
+        if (el.typ == QLatin1String("symbol") || el.typ == QLatin1String("bild")) {
+            const int rot = ((el.rotation % 360) + 360) % 360;
+            if (rot == 90 || rot == 270) std::swap(bw, bh);
+        }
+        // Symbole: der äußere Rand der Grafik ist die maximale Trefferfläche,
+        // ohne zusätzliches Klick-Polster – auf Nutzerwunsch, damit bei eng
+        // nebeneinander platzierten Symbolen (z.B. zwei Sicherungen) nicht
+        // das Nachbarsymbol mitgetroffen wird. Bild/Text behalten das übliche
+        // Polster, da sie i.d.R. nicht dicht an dicht platziert werden.
+        const double pad = (el.typ == QLatin1String("symbol")) ? 0.0 : s;
+        double bx1 = bcx - bw/2.0 - pad, by1 = bcy - bh/2.0 - pad;
+        double bx2 = bcx + bw/2.0 + pad, by2 = bcy + bh/2.0 + pad;
         return vpX >= bx1 && vpX <= bx2 && vpY >= by1 && vpY <= by2;
     };
 

@@ -9,6 +9,12 @@ import QtQuick.Layouts
 // lässt die Rohröffnung über die angegebene Dauer langsam einfaden, damit
 // sich der Nutzer auf den Auftritt einstellen kann (konzept §4/§6).
 //
+// rosiSprechblase.abwesenheitAnzeigen(text) / .abwesenheitVerstecken() –
+// ausgelöst von rosiManager.abwesenheitAnzeigen/-Verstecken (ROSI-11/ROSI-13):
+// während Urlaub oder Krankentag bleibt die Rohröffnung dauerhaft auf
+// Grundopazität sichtbar, Rosi selbst taucht nicht auf, stattdessen zeigt ein
+// permanentes Text-Label den Grund an.
+//
 // Körper-Asset (rosi_roehrenaal.png) und Rohröffnung (rosi_rohroeffnung.png)
 // sind seit ROSI-01 echte Bilder.
 
@@ -21,6 +27,7 @@ Item {
     height: 180
 
     property bool _sichtbar:          false
+    property bool _abwesenheitAktiv:  false
     property real _rohrOpazitaetBasis: 0.45
     property real _rohrOpazitaet:      0.0 // beim Programmstart unsichtbar, fadet erst vor Auftritt ein
 
@@ -52,6 +59,26 @@ Item {
         retreatAnim.restart()
         rohrFadeAnim.stop()
         rohrRueckgangAnim.restart()
+        rohrVerschwindenTimer.restart()
+    }
+
+    // ROSI-11/ROSI-13: Urlaubs- bzw. Kranktags-Anzeige — Rohröffnung bleibt
+    // dauerhaft bei Grundopazität sichtbar (keine Verschwinden-Logik), Text
+    // daneben, kein Auftritt von Rosi selbst.
+    function abwesenheitAnzeigen(text) {
+        root._abwesenheitAktiv = true
+        abwesenheitText.text = text
+        rohrVerschwindenTimer.stop()
+        rohrVerschwindenAnim.stop()
+        rohrRueckgangAnim.stop()
+        rohrFadeAnim.stop()
+        root._rohrOpazitaet = root._rohrOpazitaetBasis
+    }
+
+    function abwesenheitVerstecken() {
+        root._abwesenheitAktiv = false
+        // Normale Inaktivitäts-Logik übernimmt wieder (fadet nach 2 Min aus,
+        // sofern nicht vorher ein neuer Auftritt/Vorwarnung dazwischenkommt).
         rohrVerschwindenTimer.restart()
     }
 
@@ -99,6 +126,22 @@ Item {
         anchors.left:   parent.left
         anchors.leftMargin: 12
         z: 2
+    }
+
+    // ── Urlaubs-/Kranktags-Label (ROSI-11/ROSI-13) ─────────────────
+    Text {
+        id:       abwesenheitText
+        visible:  root._abwesenheitAktiv
+        z:        2
+        anchors.left:           rohr.right
+        anchors.leftMargin:     8
+        anchors.bottom:         rohr.bottom
+        anchors.bottomMargin:   8
+        width:    150
+        wrapMode: Text.WordWrap
+        font.pixelSize: 11
+        font.italic:    true
+        color: root.theme ? root.theme.textMuted : "#999999"
     }
 
     // ── Clip-Bereich: lässt den Körper aus der Öffnung im Rohr-Bild

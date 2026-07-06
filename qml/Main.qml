@@ -1932,6 +1932,12 @@ ApplicationWindow {
         function onVorwarnung(sekunden) {
             rosiSprechblase.vorwarnen(sekunden)
         }
+        function onAbwesenheitAnzeigen(text) {
+            rosiSprechblase.abwesenheitAnzeigen(text)
+        }
+        function onAbwesenheitVerstecken() {
+            rosiSprechblase.abwesenheitVerstecken()
+        }
     }
 
     // ── Shortcut-Übersicht ────────────────────────────────────────

@@ -3,6 +3,7 @@
 #include <QTimer>
 #include <QString>
 #include <QStringList>
+#include <QDate>
 
 // Maskottchen-Assistentin "Rosi Röhrenaal" (Klippy-Hommage), siehe
 // konzept/features/48_rosi_roehrenaal.md. Zählt aktive Nutzungsminuten
@@ -34,10 +35,19 @@ signals:
     // die Rohröffnung in QML langsam einfaden kann. sekunden = verbleibende
     // Zeit bis zum Auftritt, für die Dauer der Einfaden-Animation.
     void vorwarnung(int sekunden);
+    // ROSI-11/ROSI-13: Urlaub bzw. Krankheitstag — Rohröffnung bleibt auf
+    // Grundopazität, statt zu verschwinden, und zeigt den übergebenen Text
+    // permanent an (kein Auftritt, kein Klick-Ziel). Nur eines von beiden
+    // kann aktiv sein (Krankheit wird nur gewürfelt, wenn kein Urlaub läuft).
+    void abwesenheitAnzeigen(const QString &text);
+    void abwesenheitVerstecken();
 
 private:
     void _tick();
-    void _vielleichtUrlaubStarten();
+    void _pruefeUrlaubStart();
+    bool _urlaubsblockFuerHeute(const QDate &heute, QDate &von, QDate &bisInklusive);
+    void _pruefeKrankheit();
+    void _pruefeAbwesenheit();
     void _pruefePostkarte();
     void _pruefeAuftritt(int nutzungsminuten);
     QString _spruchWaehlen(int erschienenAnzahl);
@@ -48,6 +58,7 @@ private:
     int    _zaehlerInc(const QString &schluessel, int um);
 
     static QString _zufall(const QStringList &pool);
+    static qint64  _heuteAlsZahl();
 
     static QStringList _poolErstkontakt();
     static QStringList _poolA_Begruessung();
@@ -60,9 +71,11 @@ private:
     static QStringList _poolG_Auswanderung();
     static QStringList _poolH_Postkarte();
     static QStringList _poolI_Jugendwoerter();
+    static QStringList _poolJ_Krankheiten();
     static QStringList _reiseziele();
     static QStringList _poolD3_Reisesprache(int zielId);
 
-    QTimer m_timer;
-    bool   m_vorwarnungAktiv = false;
+    QTimer  m_timer;
+    bool    m_vorwarnungAktiv = false;
+    QString m_letzteAbwesenheitAnzeige;
 };

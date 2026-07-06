@@ -41,6 +41,54 @@ Item {
         }
     }
 
+    // Symbole ohne Pin-Beschriftungsblock (haben eigene Logik oder keine sinnvollen Pins)
+    readonly property var _pinBezSkip: ({
+        "querverweis": true, "winkel": true, "treffpunkt": true, "treffpunkt_l": true,
+        "klemme_anschluss": true, "geraeteanschluss": true, "potenzial": true,
+        "aderdefinition": true, "isoliert_gelegte_ader": true
+    })
+
+    // Nur für freistehende Symbole ohne Bauteil-Zuordnung – ist ein Bauteil
+    // verknüpft, kommen die Pin-Labels aus dessen Kontakt-Editor
+    // (bauteil_kontakt.pin_bez, einmalig beim Platzieren nach extraDaten.pinBez
+    // kopiert); eine zusätzliche manuelle Bearbeitung hier würde diese Vorgabe
+    // unkontrolliert überschreiben.
+    readonly property bool zeigtPinBez:
+        panel.el && panel.el.typ === "symbol"
+        && !_pinBezSkip[panel.el.symbolId || ""]
+        && !(panel.el.betriebsmittelId > 0)
+
+    readonly property bool istSteckerOderBuchse:
+        panel.el && (panel.el.symbolId === "stecker" || panel.el.symbolId === "buchse")
+
+    // Pin 2 von Stecker/Buchse ist die fiktive Steckverbindung – keine eigene
+    // Beschriftung, Status stattdessen als "Gesteckt"/"Nicht gesteckt" (s.u.).
+    function _pinsFuerBeschriftung(symbolId) {
+        var pins = symbolDefinitionModel.pinsForSymbol(symbolId)
+        if (symbolId !== "stecker" && symbolId !== "buchse") return pins
+        var r = []
+        for (var i = 0; i < pins.length; i++)
+            if (pins[i].name !== "2") r.push(pins[i])
+        return r
+    }
+
+    readonly property var _aktuellerPinBez:
+        (panel.el && panel.el.extraDaten && panel.el.extraDaten.pinBez)
+        ? panel.el.extraDaten.pinBez : ({})
+
+    function _pinBezSpeichern(pinName, label) {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        if (!ed.pinBez) ed.pinBez = {}
+        if (label === "") {
+            delete ed.pinBez[pinName]
+            if (Object.keys(ed.pinBez).length === 0) delete ed.pinBez
+        } else {
+            ed.pinBez[pinName] = label
+        }
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
     Column {
         id: symbolCol
         width: parent.width; spacing: 0
@@ -110,5 +158,91 @@ Item {
             visible: symbolCol.zeigeSpiegelung
         }
 
+        // ── Pin-Bezeichnungen ────────────────────────────────────────────────
+        // Sichtbar für freistehende Symbol-Typen ohne Bauteil-Zuordnung, die
+        // eigene Pin-Beschriftung unterstützen. Vorausgefüllt mit dem Pin-Namen
+        // aus der Pinbelegung (symbol_pin.name) – wird in dieser Form auch
+        // automatisch auf dem Canvas angezeigt. Feld bearbeiten überschreibt
+        // das Label je Instanz in extraDaten.pinBez.
+        Loader {
+            active: root.zeigtPinBez
+            width: parent.width
+
+            sourceComponent: Component {
+                Column {
+                    width: parent ? parent.width : 0; spacing: 0
+
+                    Rectangle {
+                        width: parent.width - 16; height: 1; color: root.theme.border
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Item {
+                        width: parent.width; height: 26
+                        Text {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            text: qsTr("PIN-BEZEICHNUNGEN"); font.pixelSize: 9; font.weight: Font.Bold
+                            font.letterSpacing: 1.5; color: root.theme.borderLight
+                        }
+                    }
+
+                    // Steckverbindungsstatus – nur Stecker/Buchse (Pin 2 ist die fiktive
+                    // Steckverbindung, keine eigene Pin-Zeile, s. _pinsFuerBeschriftung).
+                    // _refresh referenziert für AOT-Reaktivität (Muster wie panel.el).
+                    Item {
+                        id: steBuStatus
+                        visible: root.istSteckerOderBuchse
+                        width: parent.width; height: visible ? 28 : 0
+
+                        readonly property bool verbunden:
+                            root.istSteckerOderBuchse && (panel._refresh * 0 === 0) && panel.canvas
+                            ? panel.canvas.hatLogischeVerbindung(panel.canvas.ausgewaehlt) : false
+
+                        Text {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            text: steBuStatus.verbunden ? qsTr("● Gesteckt") : qsTr("● Nicht gesteckt")
+                            font.pixelSize: 11
+                            color: steBuStatus.verbunden ? "#00e5a0" : "#f0a030"
+                        }
+                    }
+
+                    Repeater {
+                        model: panel.el ? root._pinsFuerBeschriftung(panel.el.symbolId || "") : []
+                        delegate: RowLayout {
+                            width: parent.width; height: 28
+                            spacing: 0
+
+                            // Pin-Name (grau, links)
+                            Item {
+                                Layout.preferredWidth: 44; height: parent.height
+                                Text {
+                                    anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                    text: modelData.name; font.pixelSize: 10
+                                    color: root.theme.textMuted
+                                }
+                            }
+
+                            // Editierbares Label
+                            Rectangle {
+                                Layout.fillWidth: true; height: 24; radius: 3
+                                Layout.rightMargin: 12
+                                color: pinLabelTf.activeFocus ? root.theme.inputBgActive : root.theme.inputBg
+                                border.color: pinLabelTf.activeFocus ? root.theme.accent : root.theme.border
+
+                                TextInput {
+                                    id: pinLabelTf
+                                    anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                                    text: root._aktuellerPinBez[modelData.name] || modelData.name
+                                    color: root.theme.accent; font.pixelSize: 11
+                                    verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
+                                    onEditingFinished: root._pinBezSpeichern(modelData.name, text.trim())
+                                    Keys.onEscapePressed: { text = root._aktuellerPinBez[modelData.name] || modelData.name; focus = false }
+                                }
+                            }
+                        }
+                    }
+                    Item { height: 4; width: parent.width }
+                }
+            }
+        }
     }
 }

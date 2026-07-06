@@ -696,6 +696,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'trafo' AND name = '3')",
             R"(UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'trafo' AND name = '4')",
         }},
+        { 87, "sicherung: Aufbau vereinfacht (durchgehende Linie statt zwei Segmente, wie in 'Kopie von Sicherung' im Symboleditor erprobt)", {
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id = 'sicherung')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('sicherung', 0, 'linie', 0, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sicherung', 1, 'rechteck', 0.25, 0.21, 0.75, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

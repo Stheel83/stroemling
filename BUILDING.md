@@ -354,6 +354,26 @@ zip -r Stroemling-Design-win64.zip deploy-win/
 
 ---
 
+## Windows-Build via GitHub Actions (nativer Build ohne Wine/MXE)
+
+Alternative zum lokalen Cross-Build: `.github/workflows/windows-build.yml`
+baut auf einem echten `windows-latest`-Runner (kein Wine, kein
+QML-Erkennungsrisiko bei `windeployqt`). Funktioniert auch bei einem
+**privaten** GitHub-Repo — GitHub Actions ist nicht auf öffentliche Repos
+beschränkt.
+
+- **Kontingent (privat, kostenloser Account):** 2.000 Minuten/Monat,
+  Windows-Runner zählen mit 2× dagegen → effektiv ~1.000 Min. echte
+  Windows-Build-Zeit/Monat. Öffentliche Repos: unbegrenzt.
+- **Auslösen:** manuell über „Run workflow" (Tab „Actions") oder automatisch
+  bei jedem Tag-Push (`v*`, passend zum Codeberg-Release-Tag).
+- **Ergebnis:** ZIP als Workflow-Artefakt zum Download (`Stroemling-Design-<version>-windows-x64.zip`),
+  30 Tage aufbewahrt — von dort aus manuell ins Codeberg-Release hochladen.
+- Nutzt `jurplel/install-qt-action` für den Qt-Download (MSVC 2019 64-bit),
+  Ziel-Executable ist `stroemling_app` (siehe `CMakeLists.txt`).
+
+---
+
 ## Release auf Codeberg veröffentlichen
 
 Releases auf Codeberg funktionieren über Git-Tags. Sowohl Linux-AppImage als auch

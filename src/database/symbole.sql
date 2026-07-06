@@ -16,6 +16,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('lss',             'Leitungsschutzschalter',  'Schutz',       32, 16, 'durchleiter', 1),
 ('fi',              'FI-Schutzschalter',       'Schutz',       32, 16, 'durchleiter', 1),
 ('motor',           'Motor',                   'Antriebe',     32, 16, 'verbraucher', 1),
+('motor_dc',        'Gleichstrommotor',        'Antriebe',     32, 16, 'verbraucher', 1),
 ('spule',           'Spule / Relais',          'Antriebe',     16, 16, 'verbraucher', 1),
 ('spule_ansi',      'Coil / Relay (ANSI)',     'Antriebe',     32, 16, 'verbraucher', 1),
 ('lampe',           'Lampe',                   'Signalgeräte', 32, 16, 'verbraucher', 1),
@@ -68,6 +69,9 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('motor',           'U',   0,    0.25, -1,  0, 'power'),
 ('motor',           'V',   0,    0.5,  -1,  0, 'power'),
 ('motor',           'W',   0,    0.75, -1,  0, 'power'),
+-- motor_dc (Permanentmagnet, 2 Anker-Anschlüsse)
+('motor_dc',        'A1',  0,    0.5,  -1,  0, 'power'),
+('motor_dc',        'A2',  1,    0.5,   1,  0, 'power'),
 -- spule / spule_ansi
 ('spule',           'A1',  0.5,  0,    0,  -1, 'power'),
 ('spule',           'A2',  0.5,  1,    0,   1, 'power'),
@@ -156,6 +160,9 @@ UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'trafo' AND name = '1'
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'trafo' AND name = '2';
 UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'trafo' AND name = '3';
 UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'trafo' AND name = '4';
+-- motor_dc: A1 bleibt Default 0, A2 eigener Knoten (2 galvanisch getrennte
+-- Anker-Anschlüsse, wie bei jedem anderen 2-Pol-Verbraucher).
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'motor_dc' AND name = 'A2';
 
 -- ── symbol_primitiv ──────────────────────────────────────────
 -- Spalten: symbol_id, reihenfolge, typ,
@@ -220,6 +227,15 @@ VALUES
 ('motor',      3, 'kreis_offen',    0.65,  0.5,  0,     0,    0, 0, 0.28, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('motor',      4, 'text',           0.65,  0.46, 0,     0,    0, 0, 0,    0,   0,   0, 'M',  0.20,1, 'center', 'middle', 'solid'),
 ('motor',      5, 'text',           0.65,  0.61, 0,     0,    0, 0, 0,    0,   0,   0, '3~', 0.14,0, 'center', 'middle', 'solid'),
+
+-- ── Motor DC (Permanentmagnet) – Kreis mittig, Gleichstromzeichen (IEC 60417-5031-2:
+--    durchgezogene Linie über gestrichelter Linie) statt "3~" ──
+('motor_dc',   0, 'linie',          0,     0.5,  0.2,   0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('motor_dc',   1, 'linie',          0.8,   0.5,  1,     0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('motor_dc',   2, 'kreis_offen',    0.5,   0.5,  0,     0,    0, 0, 0.3,  0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('motor_dc',   3, 'text',           0.5,   0.40, 0,     0,    0, 0, 0,    0,   0,   0, 'M',  0.28,1, 'center', 'middle', 'solid'),
+('motor_dc',   4, 'linie',          0.36,  0.585,0.64,  0.585,0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('motor_dc',   5, 'linie',          0.36,  0.65, 0.64,  0.65, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'dash'),
 
 -- ── Spule IEC (A1 oben, A2 unten) ──
 ('spule',      0, 'linie',          0.5,   0,    0.5,   0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),

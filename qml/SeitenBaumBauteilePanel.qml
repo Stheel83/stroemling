@@ -13,9 +13,8 @@ ColumnLayout {
     property int  projektId: -1
     property bool debug: false
 
-    property bool _bauteilBereichOffen: false
+    property bool _klemmenInitialisiert: false
 
-    onVisibleChanged: if (visible) _bauteilBereichOffen = true
     property var  _leistenAufgeklappt:  ({})
     property var  _klemmenAufgeklappt:  ({})
     property var  _klemmenCache:        ({})
@@ -35,8 +34,6 @@ ColumnLayout {
     property int    _highlightKabelId:  -1
     property int    _highlightGkId:     -1
     property string _aktiveTab:         "alles"   // "alles" | "klemmen" | "kabel" | "sonstiges"
-
-    readonly property bool offen: _bauteilBereichOffen
 
     Timer {
         id: highlightTimer
@@ -59,13 +56,13 @@ ColumnLayout {
         if (!info || !info.leisteId) return
         var leisteId = info.leisteId
 
-        // Bauteilbereich öffnen falls geschlossen
-        if (!root._bauteilBereichOffen) {
-            root._klemmenCache       = {}
-            root._anschluesseCache   = {}
-            root._leistenAufgeklappt = {}
-            root._klemmenAufgeklappt = {}
-            root._bauteilBereichOffen = true
+        // Caches beim ersten Sprung frisch aufbauen
+        if (!root._klemmenInitialisiert) {
+            root._klemmenCache         = {}
+            root._anschluesseCache     = {}
+            root._leistenAufgeklappt   = {}
+            root._klemmenAufgeklappt   = {}
+            root._klemmenInitialisiert = true
             root.aktualisiereStatus()
         }
 
@@ -102,7 +99,6 @@ ColumnLayout {
     }
 
     function navigiereZuKabel(kabelId) {
-        root._bauteilBereichOffen = true
         if (root._aktiveTab !== "alles" && root._aktiveTab !== "kabel")
             root._aktiveTab = "kabel"
         var auf = Object.assign({}, root._kabelAufgeklappt)
@@ -118,7 +114,6 @@ ColumnLayout {
     }
 
     function navigiereZuGeraetekasten(gkId, gkBmk) {
-        root._bauteilBereichOffen = true
         if (root._aktiveTab !== "alles" && root._aktiveTab !== "sonstiges")
             root._aktiveTab = "sonstiges"
         var auf = Object.assign({}, root._gkAufgeklappt)
@@ -193,12 +188,12 @@ ColumnLayout {
     }
 
     function reset() {
-        root._klemmenCache        = {}
-        root._anschluesseCache    = {}
-        root._leistenAufgeklappt  = {}
-        root._klemmenAufgeklappt  = {}
-        root._bauteilBereichOffen = false
-        root._platziert           = {}
+        root._klemmenCache         = {}
+        root._anschluesseCache     = {}
+        root._leistenAufgeklappt   = {}
+        root._klemmenAufgeklappt   = {}
+        root._klemmenInitialisiert = false
+        root._platziert            = {}
         root._geraeteAufgeklappt  = {}
         root._mitgliederCache     = {}
         root._kabelAufgeklappt    = {}
@@ -207,7 +202,7 @@ ColumnLayout {
     }
 
     function _onElementeGeaendert() {
-        if (root._bauteilBereichOffen) {
+        if (root.visible) {
             root.aktualisiereStatus()
             root._mitgliederCache = {}
             root._geraeteVersion++
@@ -226,24 +221,7 @@ ColumnLayout {
     // ── BAUTEILE Header (immer sichtbar) ────────────────────
     Rectangle {
         Layout.fillWidth: true; height: 36
-        color: bauteilHeaderArea.containsMouse ? root.theme.hover : "transparent"
-
-        // bauteilHeaderArea zuerst → liegt im Z-Stack unter dem RowLayout,
-        // damit der ↻-Button seine Klicks selbst abfangen kann.
-        MouseArea {
-            id: bauteilHeaderArea; anchors.fill: parent; hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                if (!root._bauteilBereichOffen) {
-                    root._klemmenCache        = {}
-                    root._anschluesseCache    = {}
-                    root._leistenAufgeklappt  = {}
-                    root._klemmenAufgeklappt  = {}
-                    root.aktualisiereStatus()
-                }
-                root._bauteilBereichOffen = !root._bauteilBereichOffen
-            }
-        }
+        color: "transparent"
 
         RowLayout {
             anchors { fill: parent; leftMargin: 12; rightMargin: 8 }
@@ -254,7 +232,6 @@ ColumnLayout {
             }
             Rectangle {
                 width: 22; height: 22; radius: 3
-                visible: root._bauteilBereichOffen
                 color: refreshBauteilBtn.containsMouse ? root.theme.activeItemAlt : "transparent"
                 Text { anchors.centerIn: parent; text: "↻"; font.pixelSize: 13; color: root.theme.accent }
                 ToolTip.visible: refreshBauteilBtn.containsMouse
@@ -266,7 +243,6 @@ ColumnLayout {
                     onClicked: root.neuLaden()
                 }
             }
-            Text { text: root._bauteilBereichOffen ? "▲" : "▼"; font.pixelSize: 9; color: root.theme.textMuted }
         }
         DebugLabel { panelName: qsTr("BAUTEILE-Bereich (Seitenbaum)"); visible: root.debug }
     }
@@ -274,7 +250,6 @@ ColumnLayout {
     // ── Tab-Filter ───────────────────────────────────────────
     Rectangle {
         Layout.fillWidth: true; height: 26
-        visible: root._bauteilBereichOffen
         color: root.theme.surfaceDeep
 
         Row {
@@ -326,7 +301,7 @@ ColumnLayout {
         Layout.fillWidth: true
         height: 30
         color: "#1a1a0a"
-        visible: root._bauteilBereichOffen && root.aktivSeiteId < 0
+        visible: root.aktivSeiteId < 0
         RowLayout {
             anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
             spacing: 6
@@ -339,10 +314,10 @@ ColumnLayout {
         }
     }
 
-    // ── BAUTEILE Inhalt (aufklappbar) ────────────────────────
+    // ── BAUTEILE Inhalt ──────────────────────────────────────
     ScrollView {
         Layout.fillWidth: true; Layout.fillHeight: true
-        visible: root._bauteilBereichOffen; clip: true
+        clip: true
         Column {
             id: inhaltSpalte
             width: parent.width
@@ -598,7 +573,7 @@ ColumnLayout {
             width: parent.width
             property var _geraeteListe: {
                 var _v = root._geraeteVersion;
-                return root._bauteilBereichOffen && root.projektId >= 0
+                return root.visible && root.projektId >= 0
                     ? db.betriebsmittelListe(root.projektId).filter(function(b) { return b.anzahl > 0 })
                     : [];
             }
@@ -852,18 +827,17 @@ ColumnLayout {
             Column {
             visible: root._aktiveTab === "alles" || root._aktiveTab === "kabel"
             width: parent.width
-            property var _kabelListe: root._bauteilBereichOffen && root.projektId >= 0
+            property var _kabelListe: root.visible && root.projektId >= 0
                 ? db.kabelListeMitPos(root.projektId)
                 : []
 
             Rectangle {
                 width: parent.width; height: 1; color: root.theme.divider
-                visible: root._bauteilBereichOffen
             }
 
             Rectangle {
                 width: parent.width; height: 28; color: "transparent"
-                visible: root._bauteilBereichOffen && parent._kabelListe.length === 0
+                visible: parent._kabelListe.length === 0
                 RowLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
                     spacing: 6
@@ -994,7 +968,7 @@ ColumnLayout {
             width: parent.width
             property var _gkFlachListe: {
                 var _v = root._gkVersion
-                return root._bauteilBereichOffen && root.projektId >= 0
+                return root.visible && root.projektId >= 0
                     ? db.geraetekastenListeMitPos(root.projektId)
                     : []
             }
@@ -1017,12 +991,11 @@ ColumnLayout {
 
             Rectangle {
                 width: parent.width; height: 1; color: root.theme.divider
-                visible: root._bauteilBereichOffen
             }
 
             Rectangle {
                 width: parent.width; height: 28; color: "transparent"
-                visible: root._bauteilBereichOffen && parent._gkGruppiert.length === 0
+                visible: parent._gkGruppiert.length === 0
                 RowLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
                     spacing: 6
@@ -1141,18 +1114,17 @@ ColumnLayout {
             Column {
             visible: root._aktiveTab === "alles" || root._aktiveTab === "sonstiges"
             width: parent.width
-            property var _bibliothekListe: root._bauteilBereichOffen
+            property var _bibliothekListe: root.visible
                 ? bauteilModel.bauteileWithSymbol()
                 : []
 
             Rectangle {
                 width: parent.width; height: 1; color: root.theme.divider
-                visible: root._bauteilBereichOffen
             }
 
             Rectangle {
                 width: parent.width; height: 28; color: "transparent"
-                visible: root._bauteilBereichOffen && parent._bibliothekListe.length === 0
+                visible: parent._bibliothekListe.length === 0
                 RowLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 8 }
                     spacing: 6

@@ -718,6 +718,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'brueckengleichrichter' AND name = '+')",
             R"(UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'brueckengleichrichter' AND name = '-')",
         }},
+        { 90, "motor_dc: fehlenden Eintrag in der (separaten, legacy) symbol-Tabelle nachgetragen — SymbolPalette.qml listet Symbole ueber diese Tabelle (db.symboleNachNorm), nicht ueber symbol_definition", {
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('motor_dc', 'Gleichstrommotor', 'antriebe', 'IEC,ANSI', 2))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -1111,6 +1114,7 @@ bool Database::seedSymbolKatalog()
         { "bimetall_nc",     "Bimetall-Kontakt (NC)",   "schutz",         "IEC,ANSI", 2 },
         // Antriebe
         { "motor",           "Motor",                   "antriebe",       "IEC,ANSI", 2 },
+        { "motor_dc",        "Gleichstrommotor",        "antriebe",       "IEC,ANSI", 2 },
         { "spule",           "Spule / Relais",          "antriebe",       "IEC",      2 },
         { "spule_ansi",      "Coil / Relay",            "antriebe",       "ANSI",     2 },
         { "trafo",           "Transformator",           "antriebe",       "IEC,ANSI", 4 },

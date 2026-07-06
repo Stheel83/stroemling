@@ -721,6 +721,12 @@ static QList<SchemaMigration> alleMigrationen()
         { 90, "motor_dc: fehlenden Eintrag in der (separaten, legacy) symbol-Tabelle nachgetragen — SymbolPalette.qml listet Symbole ueber diese Tabelle (db.symboleNachNorm), nicht ueber symbol_definition", {
             R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('motor_dc', 'Gleichstrommotor', 'antriebe', 'IEC,ANSI', 2))",
         }},
+        { 91, "netzteil: neues Symbol (1-phasig, frei beschreibbare Ein-/Ausgangsspannung ueber Pin-Bezeichnungen)", {
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('netzteil', 'Netzteil', 'antriebe', 'IEC,ANSI', 4))",
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('netzteil', 'Netzteil', 'Antriebe', 32, 32, 'verbraucher', 1))",
+            R"(INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('netzteil', 'L', 0, 0.25, -1, 0, 'power', 0), ('netzteil', 'N', 0, 0.75, -1, 0, 'power', 1), ('netzteil', '+', 1, 0.25, 1, 0, 'power', 2), ('netzteil', '-', 1, 0.75, 1, 0, 'power', 3))",
+            R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('netzteil', 0, 'rechteck', 0.15, 0.15, 0.85, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('netzteil', 1, 'linie', 0, 0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('netzteil', 2, 'linie', 0, 0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('netzteil', 3, 'linie', 0.85, 0.25, 1, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('netzteil', 4, 'linie', 0.85, 0.75, 1, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -1118,6 +1124,7 @@ bool Database::seedSymbolKatalog()
         { "spule",           "Spule / Relais",          "antriebe",       "IEC",      2 },
         { "spule_ansi",      "Coil / Relay",            "antriebe",       "ANSI",     2 },
         { "trafo",           "Transformator",           "antriebe",       "IEC,ANSI", 4 },
+        { "netzteil",        "Netzteil",                "antriebe",       "IEC,ANSI", 4 },
         // Passive Bauelemente
         { "widerstand_iec",  "Widerstand",              "passive",        "IEC",      2 },
         { "widerstand_ansi", "Resistor",                "passive",        "ANSI",     2 },

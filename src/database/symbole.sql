@@ -23,6 +23,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('hupe',            'Hupe / Klingel',          'Signalgeräte', 32, 16, 'verbraucher', 1),
 ('summer',          'Summer',                  'Signalgeräte', 32, 16, 'verbraucher', 1),
 ('trafo',           'Transformator',           'Antriebe',     32, 32, 'verbraucher', 1),
+('netzteil',        'Netzteil',                'Antriebe',     32, 32, 'verbraucher', 1),
 ('widerstand_iec',  'Widerstand (IEC)',        'Passive',      32, 16, 'verbraucher', 1),
 ('widerstand_ansi', 'Resistor (ANSI)',         'Passive',      32, 16, 'verbraucher', 1),
 ('kondensator',     'Kondensator',             'Passive',      32, 16, 'verbraucher', 1),
@@ -89,6 +90,12 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('trafo',           '2',   0,    0.75, -1,  0, 'power'),
 ('trafo',           '3',   1,    0.25,  1,  0, 'power'),
 ('trafo',           '4',   1,    0.75,  1,  0, 'power'),
+-- netzteil (Eingang L/N links, Ausgang +/- rechts – Namen frei umbenennbar
+-- über die Pin-Bezeichnungen im EP, da kein Bauteil zugeordnet ist)
+('netzteil',        'L',   0,    0.25, -1,  0, 'power'),
+('netzteil',        'N',   0,    0.75, -1,  0, 'power'),
+('netzteil',        '+',   1,    0.25,  1,  0, 'power'),
+('netzteil',        '-',   1,    0.75,  1,  0, 'power'),
 -- widerstand_iec / widerstand_ansi / kondensator
 ('widerstand_iec',  '1',   0,    0.5,  -1,  0, 'neutral'),
 ('widerstand_iec',  '2',   1,    0.5,   1,  0, 'neutral'),
@@ -185,6 +192,11 @@ UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'spule_ansi'      AND 
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'brueckengleichrichter' AND name = '~2';
 UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'brueckengleichrichter' AND name = '+';
 UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'brueckengleichrichter' AND name = '-';
+-- netzteil: alle 4 Anschlüsse eigene Knoten (Eingang/Ausgang galvanisch
+-- getrennt, wie Trafo/Brückengleichrichter) — L bleibt Default 0.
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'netzteil' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'netzteil' AND name = '+';
+UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'netzteil' AND name = '-';
 
 -- ── symbol_primitiv ──────────────────────────────────────────
 -- Spalten: symbol_id, reihenfolge, typ,
@@ -306,6 +318,15 @@ VALUES
 ('trafo',      5, 'kreis_offen',    0.7,   0.5,  0,     0,    0, 0, 0.25, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('trafo',      6, 'linie',          0.48,  0.275,0.48,  0.725,0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('trafo',      7, 'linie',          0.52,  0.275,0.52,  0.725,0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+
+-- ── Netzteil – bewusst leerer Rechteck-Block ohne festen Text, damit
+--    Eingangs-/Ausgangsspannung frei über die Pin-Bezeichnungen im EP
+--    beschriftet werden kann (L/N/+/- sind nur Vorbelegung) ──
+('netzteil',   0, 'rechteck',       0.15,  0.15, 0.85,  0.85, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   1, 'linie',          0,     0.25, 0.15,  0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   2, 'linie',          0,     0.75, 0.15,  0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   3, 'linie',          0.85,  0.25, 1,     0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   4, 'linie',          0.85,  0.75, 1,     0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 -- ── Widerstand IEC ──
 ('widerstand_iec',  0, 'linie',     0,     0.5,  0.2,   0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),

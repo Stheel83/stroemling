@@ -371,8 +371,17 @@ MouseArea {
                 }
             }
 
-            // Label-Drag: Klick direkt auf BMK-Beschriftung?
-            if ((mouse.modifiers & Qt.ControlModifier) === 0) {
+            var idx = canvas.elementBeiPosition(vp.x, vp.y)
+
+            // Label-Drag: Klick direkt auf BMK-Beschriftung – aber nur, wenn
+            // kein präziseres Element (Symbolkörper/Linie/Kastenrand) an
+            // dieser Position liegt. labelTreffenTest() hat aus Klickbarkeits-
+            // Gründen ein festes Mindestpolster, das bei weit rausgezoomten,
+            // eng am Symbol sitzenden BMK-Texten (Default-Offset 0, z.B.
+            // "Potenzial") sonst den exakten, nicht gepolsterten Symbolkörper
+            // überstimmt (HIT-DETECTION-03) – der Nutzer wollte das Symbol
+            // verschieben, traf aber den Text.
+            if (idx < 0 && (mouse.modifiers & Qt.ControlModifier) === 0) {
                 var labelIdx = canvas.labelTreffenTest(vp.x, vp.y)
                 if (labelIdx >= 0) {
                     var lEl = em.element(labelIdx)
@@ -393,8 +402,6 @@ MouseArea {
                     return
                 }
             }
-
-            var idx = canvas.elementBeiPosition(vp.x, vp.y)
             canvas.aktiverGriff = -1
             var ctrlGehalten = (mouse.modifiers & Qt.ControlModifier) !== 0
 

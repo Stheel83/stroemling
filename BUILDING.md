@@ -36,47 +36,50 @@ Das fertige Binary liegt unter `build-release/stroemling_app`.
 
 ## AppImage bauen
 
-Der offizielle Release-Build läuft **nicht** mehr nativ auf Tumbleweed,
-sondern in einem Leap-16-Container (GLIBC-Kompatibilität, s.
+Der offizielle Release-Build läuft **nicht** auf Tumbleweed, sondern nativ
+auf einem separaten openSUSE-Leap-16-Rechner (GLIBC-Kompatibilität, s.
 `konzept/technik/`-Debug-Historie bzw. Plan `glittery-prancing-yao.md`).
+Tumbleweeds eigenes GLIBC ist neuer als das, was ältere Distros mitbringen —
+ein dort gebautes AppImage würde auf vielen Zielsystemen nicht laufen.
+
+**Auf dem Leap-16-Rechner** (Code kommt per `git clone`/`git pull` von
+Codeberg, kein Push von dort vorgesehen):
 
 ```bash
-sudo bash /home/stephan/containers/build-release-appimage.sh
+git clone https://codeberg.org/Stheel/stroemling.git   # einmalig, sonst: git pull
+cd stroemling
+
+mkdir -p build-release && cd build-release
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . -j$(nproc)
+ctest --output-on-failure
+cd ..
+
+cd appimage
+rm -rf AppDir
+VERSION=$(grep -oP 'APP_VERSION="\K[^"]+' ../CMakeLists.txt)
+export APPIMAGE_EXTRACT_AND_RUN=1
+export QMAKE=/usr/bin/qmake6
+~/tools/linuxdeploy-x86_64.AppImage \
+    --appdir AppDir \
+    --executable ../build-release/stroemling_app \
+    --desktop-file stroemling-design.desktop \
+    --icon-file stroemling-design.png \
+    --plugin qt
 ```
 
-Das Skript baut `stroemling_app` sauber im Container (`build-leap16/`),
-lässt `ctest` laufen und erzeugt anschließend
-`appimage/Stroemling-Design-<VERSION>-x86_64.AppImage` im Hauptverzeichnis.
-Die dafür nötigen `linuxdeploy`/`appimagetool`-Binaries liegen in
-`~/tools/` und werden vom Skript in den Container gemountet.
-
-### Bekannter Bug: fehlende native QML-Plugin-Bibliotheken (QML-DEPLOY-02)
-
-Symptom beim Start des AppImage:
-
-```
-Cannot load library .../usr/qml/QtQuick/Controls/libqtquickcontrols2plugin.so:
-/lib64/libQt6QuickControls2.so.6: version `Qt_6.x.x_PRIVATE_API' not found
-```
-
-**Ursache:** Der manuelle QML-Copy-Schritt (`cp -r "$QT_QML"/. AppDir/usr/qml/`,
-Workaround für QML-DEPLOY-01 aus einer früheren Session) kopiert die
-QML-Plugin-`.so`-Dateien roh rein — `linuxdeploy` selbst lief vorher und hat
-nur die Abhängigkeiten der Haupt-Executable aufgelöst. Native Bibliotheken,
-die *ausschließlich* von QML-Plugins gebraucht werden (z. B.
-`libQt6QuickControls2.so.6`, transitiv auch `libQt6QuickTemplates2.so.6`),
-landen dadurch nie in `AppDir/usr/lib/`. Der Loader fällt dann auf die
-System-Bibliothek zurück (`/lib64/...`) — läuft nur zufällig, wenn das
-System-Qt exakt zur AppImage-Qt-Version passt, und bricht sonst mit obigem
-Versionsfehler.
-
-**Fix:** Nach dem QML-Copy-Schritt (vor `appimagetool`) alle `.so`-Dateien
-unter `AppDir/usr/qml` (und iterativ auch die frisch nachgezogenen) auf
-fehlende `libQt6*`-Abhängigkeiten prüfen und aus `QT_INSTALL_LIBS`
-nachkopieren, bis sich nichts mehr ändert (transitiver Abschluss):
+`linuxdeploy-plugin-qt` deployt die QML-Module nicht zuverlässig — deshalb
+zwei manuelle Nachzieh-Schritte, bevor gepackt wird:
 
 ```bash
-echo '== Fehlende native Bibliotheken der QML-Plugins nachziehen (transitiv) =='
+# 1) QML-Module selbst (QML-DEPLOY-01)
+QT_QML=$(qmake6 -query QT_INSTALL_QML)
+mkdir -p AppDir/usr/qml
+cp -r "$QT_QML"/. AppDir/usr/qml/
+
+# 2) Native Bibliotheken, die NUR von QML-Plugins gebraucht werden,
+#    z.B. libQt6QuickControls2.so.6 (QML-DEPLOY-02) — transitiv, bis
+#    sich nichts mehr ändert
 QT_LIBS=$(qmake6 -query QT_INSTALL_LIBS)
 while :; do
     added=0
@@ -94,22 +97,34 @@ while :; do
     done < <(find AppDir/usr -name '*.so' -print0)
     [ "$added" -eq 0 ] && break
 done
+
+~/tools/appimagetool-x86_64.AppImage AppDir "Stroemling-Design-${VERSION}-x86_64.AppImage"
 ```
 
-Dieser Block wurde bereits (entsprechend escaped für die
-`systemd-nspawn ... /bin/bash -c "..."`-Einbettung) in
-`/home/stephan/containers/build-release-appimage.sh` eingetragen — beim
-nächsten Lauf im Leap-16-Container bitte verifizieren (Log auf
-„nachgezogen: ...“-Zeilen prüfen, danach das AppImage auf einem System ohne
-exakt passendes System-Qt testen, z. B. per `unset LD_LIBRARY_PATH` und
-Vergleich der `ldd`-Ausgabe der gepackten `libqtquickcontrols2plugin.so`
-gegen `AppDir/usr/lib/`).
+Fertige Datei danach auf den Tumbleweed-Rechner übertragen (z. B. `scp`) und
+nach `Website/downloads/Stroemling-Design-<VERSION>-x86_64.AppImage`
+kopieren.
 
-**Zusätzlich offen:** Die aktuell unter `Website/downloads/` liegende
-`Stroemling-Design-0.666-x86_64.AppImage` ist nicht der Leap16-Build,
-sondern verlangt `Qt_6.9.1_PRIVATE_API` (vermutlich ein Rest des
-Tumbleweed-Vergleichsbuilds aus der GLIBC-Verifikation) — nach dem Fix neu
-bauen und die Datei auf der Website ersetzen.
+### QML-DEPLOY-02 — Hintergrund
+
+Symptom beim Start des AppImage ohne den zweiten Nachzieh-Schritt oben:
+
+```
+Cannot load library .../usr/qml/QtQuick/Controls/libqtquickcontrols2plugin.so:
+/lib64/libQt6QuickControls2.so.6: version `Qt_6.x.x_PRIVATE_API' not found
+```
+
+**Ursache:** Der QML-Copy-Schritt (Workaround für QML-DEPLOY-01) kopiert die
+QML-Plugin-`.so`-Dateien roh rein — `linuxdeploy` selbst lief vorher und hat
+nur die Abhängigkeiten der Haupt-Executable aufgelöst. Native Bibliotheken,
+die *ausschließlich* von QML-Plugins gebraucht werden (z. B.
+`libQt6QuickControls2.so.6`, transitiv auch `libQt6QuickTemplates2.so.6`),
+landen dadurch nie in `AppDir/usr/lib/`. Der Loader fällt dann auf die
+System-Bibliothek zurück (`/lib64/...`) — läuft nur zufällig, wenn das
+System-Qt exakt zur AppImage-Qt-Version passt, und bricht sonst mit obigem
+Versionsfehler. Zum Testen: AppImage auf einem System ohne exakt passendes
+System-Qt starten, oder `ldd` der gepackten `libqtquickcontrols2plugin.so`
+gegen `AppDir/usr/lib/` abgleichen.
 
 ---
 

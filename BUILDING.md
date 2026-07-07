@@ -233,7 +233,7 @@ windeployqt --qmldir qml --release deploy\stroemling_app.exe
 ### Schritt 3: ZIP erstellen
 
 ```powershell
-Compress-Archive -Path deploy\* -DestinationPath Stroemling-Design-0.5-win64.zip
+Compress-Archive -Path deploy\* -DestinationPath Stroemling-Design-0.666-win64.zip
 ```
 
 Der Nutzer entpackt das ZIP und startet `stroemling_app.exe` — fertig.
@@ -382,18 +382,18 @@ Windows-ZIP können als Anhang an denselben Release gehängt werden.
 ### Schritt 1: Git-Tag setzen (auf Linux oder Windows)
 
 ```bash
-git tag v0.5
-git push origin v0.5
+git tag v0.666
+git push origin v0.666
 ```
 
 ### Schritt 2: Release auf Codeberg anlegen
 
 1. Codeberg-Projektseite öffnen → **Releases** → **Neuer Release**
-2. Tag `v0.5` auswählen
+2. Tag `v0.666` auswählen
 3. Titel und Beschreibung eintragen (z.B. Changelog)
 4. Dateien hochladen:
-   - `Stroemling-Design-0.5-win64.zip` (Windows-Paket)
-   - `Stroemling-Design-x86_64.AppImage` (Linux-AppImage)
+   - `Stroemling-Design-0.666-win64.zip` (Windows-Paket)
+   - `Stroemling-Design-0.666-x86_64.AppImage` (Linux-AppImage)
 5. **Release veröffentlichen**
 
 Nutzer sehen auf der Projektseite unter „Releases" direkt die Download-Links.

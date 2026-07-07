@@ -3,19 +3,19 @@
 Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771, erhebt aber keinen Anspruch auf zertifizierte Normkonformität.
 
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
-**Letzter Release:** v0.5 (06.06.2026) — siehe Download unten  
-**Stand (Quellcode):** Schema v73 · Juni 2026
+**Letzter Release:** v0.666 (Jul 2026) — siehe Download unten  
+**Stand (Quellcode):** Schema v91 · Jul 2026
 
 ## Download
 
 | Plattform | Link |
 |-----------|------|
-| Linux x64 | [AppImage herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.5-x86_64.AppImage) |
-| Windows x64 | [ZIP herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.5-windows-x64.zip) |
+| Linux x64 | [AppImage herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-x86_64.AppImage) |
+| Windows x64 | [ZIP herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-windows-x64.zip) |
 
 Keine Installation nötig. Linux: `chmod +x` und starten. Windows: ZIP entpacken, `stroemling_app.exe` starten.
 
-> **Hinweis Linux:** Das AppImage wurde unter openSUSE Tumbleweed gebaut und benötigt GLIBC ≥ 2.42. Es läuft daher **nicht** auf älteren Distributionen (z.B. openSUSE Leap 16, Ubuntu 22.04). Ab v0.6 soll ein kompatibleres Build-System eingesetzt werden.
+> **Hinweis Linux:** Das AppImage wird in einem openSUSE-Leap-16-Container gebaut und benötigt GLIBC ≥ 2.39 — spürbar kompatibler als frühere Releases (v0.5 brauchte noch GLIBC ≥ 2.42). Läuft damit u.a. auf Ubuntu 24.04+, Debian 13+, Fedora 40+ und aktuellem openSUSE. Auf älteren Systemen (Ubuntu 22.04, Debian 12, openSUSE Leap 15.x) weiterhin nicht lauffähig.
 
 ---
 
@@ -71,21 +71,26 @@ Projekte werden als eigenständige Ordner gespeichert:
 | Bereich | Stand |
 |---|---|
 | Projektstruktur (Anlage / Ort / Seite) | ✅ |
-| Canvas (Zoom, Pan, Raster, Undo/Redo, Split-Ansicht) | ✅ |
+| Strukturkennzeichen-System (==/=/++/+ zentral über Seitenbaum, DIN EN 81346) | ✅ |
+| Canvas (Zoom, Pan, Raster, Undo/Redo, Split-Ansicht, Minimap) | ✅ |
 | Symbole (Platzieren, Rotation, Spiegelung, Modifier, Symboleditor) | ✅ |
 | Verbindungen (Potenziale, Querverweise, Signaltyp-Propagation) | ✅ |
-| Bauteilbibliothek (Kabel, Klemmen, Bauteile) | ✅ |
+| Bauteilbibliothek (Kabel, Klemmen, Bauteile, globale Bibliothek-DB) | ✅ |
 | Klemmen-System (Klemmenreihen, Stegbrücken, Ebenenansicht) | ✅ |
 | Kabel (Kabellinie, Aderzuordnung 4 Modi, Verdrahtungsweg cross-page) | ✅ |
+| Steckverbinder (Stecker/Buchsen, Kontakt-Zuordnung, Litzen-Verknüpfung) | ✅ |
+| Schirmung (Schirm-Symbol, SH-Kennzeichnung) | ✅ |
+| Cross-Projekt Copy/Paste (Elemente zwischen Projekten kopieren) | ✅ |
 | Automatische Listen (Stückliste, Klemmenplan, Kabelliste, Klemmlistenauszug, CSV-Export) | ✅ |
 | PDF-Export (Vektor-PDF, alle Elementtypen, Kreuzungslücken) | ✅ |
 | Design Rule Check (doppelte BMK, offene Pins, fehlende Verbindungen u.a.) | ✅ |
-| Geräte (Schütz/Relais: BMK-Vererbung, Kontaktspiegel, Bauteil-first-Workflow) | ✅ |
+| Fehlersuchmodus (Strompfad-Verfolgung, seitenübergreifend) | ✅ |
+| Geräte (Schütz/Relais: BMK-Vererbung, Kontaktspiegel, Gerätekasten) | ✅ |
 | SPS/PLS-Integration (I/O-Liste, Kanal-Zuweisung, CSV-Export) | ✅ |
 | Normblatt DIN 6771 (Rahmen + visueller Vorlagen-Editor) | ✅ |
-| Makros / Schaltplan-Vorlagen | ✅ |
+| Makros / Schaltplan-Vorlagen (inkl. Schnellpalette) | ✅ |
 | Inbetriebnahme-Modus (Prüflisten, Messwerte, PDF-Protokoll) | ✅ |
-| Erfahrungs-Wiki (projektübergreifend, Bundle-Import) | ✅ |
+| Erfahrungs-Wiki (projektübergreifend, Bundle-Import, F1-Kontexthilfe) | ✅ |
 | Kabelquerschnitt-Rechner (VDE 0298-4) | ✅ |
 | Git-Integration (Snapshots, Projekt-History) | ✅ |
 | 3 Farbthemes (Dunkel / Hell / Blueprint) | ✅ |

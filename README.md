@@ -86,7 +86,6 @@ Projekte werden als eigenständige Ordner gespeichert:
 | Design Rule Check (doppelte BMK, offene Pins, fehlende Verbindungen u.a.) | ✅ |
 | Fehlersuchmodus (Strompfad-Verfolgung, seitenübergreifend) | ✅ |
 | Geräte (Schütz/Relais: BMK-Vererbung, Kontaktspiegel, Gerätekasten) | ✅ |
-| SPS/PLS-Integration (I/O-Liste, Kanal-Zuweisung, CSV-Export) | ✅ |
 | Normblatt DIN 6771 (Rahmen + visueller Vorlagen-Editor) | ✅ |
 | Makros / Schaltplan-Vorlagen (inkl. Schnellpalette) | ✅ |
 | Inbetriebnahme-Modus (Prüflisten, Messwerte, PDF-Protokoll) | ✅ |

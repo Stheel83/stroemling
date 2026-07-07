@@ -50,6 +50,67 @@ lässt `ctest` laufen und erzeugt anschließend
 Die dafür nötigen `linuxdeploy`/`appimagetool`-Binaries liegen in
 `~/tools/` und werden vom Skript in den Container gemountet.
 
+### Bekannter Bug: fehlende native QML-Plugin-Bibliotheken (QML-DEPLOY-02)
+
+Symptom beim Start des AppImage:
+
+```
+Cannot load library .../usr/qml/QtQuick/Controls/libqtquickcontrols2plugin.so:
+/lib64/libQt6QuickControls2.so.6: version `Qt_6.x.x_PRIVATE_API' not found
+```
+
+**Ursache:** Der manuelle QML-Copy-Schritt (`cp -r "$QT_QML"/. AppDir/usr/qml/`,
+Workaround für QML-DEPLOY-01 aus einer früheren Session) kopiert die
+QML-Plugin-`.so`-Dateien roh rein — `linuxdeploy` selbst lief vorher und hat
+nur die Abhängigkeiten der Haupt-Executable aufgelöst. Native Bibliotheken,
+die *ausschließlich* von QML-Plugins gebraucht werden (z. B.
+`libQt6QuickControls2.so.6`, transitiv auch `libQt6QuickTemplates2.so.6`),
+landen dadurch nie in `AppDir/usr/lib/`. Der Loader fällt dann auf die
+System-Bibliothek zurück (`/lib64/...`) — läuft nur zufällig, wenn das
+System-Qt exakt zur AppImage-Qt-Version passt, und bricht sonst mit obigem
+Versionsfehler.
+
+**Fix:** Nach dem QML-Copy-Schritt (vor `appimagetool`) alle `.so`-Dateien
+unter `AppDir/usr/qml` (und iterativ auch die frisch nachgezogenen) auf
+fehlende `libQt6*`-Abhängigkeiten prüfen und aus `QT_INSTALL_LIBS`
+nachkopieren, bis sich nichts mehr ändert (transitiver Abschluss):
+
+```bash
+echo '== Fehlende native Bibliotheken der QML-Plugins nachziehen (transitiv) =='
+QT_LIBS=$(qmake6 -query QT_INSTALL_LIBS)
+while :; do
+    added=0
+    while IFS= read -r -d '' so; do
+        for needed in $(readelf -d "$so" 2>/dev/null | grep NEEDED | grep -oP '\[\K[^\]]+'); do
+            if [[ "$needed" == libQt6* ]] && [ ! -e "AppDir/usr/lib/$needed" ]; then
+                src="$QT_LIBS/$needed"
+                if [ -e "$src" ]; then
+                    cp -L "$src" "AppDir/usr/lib/$needed"
+                    echo "  nachgezogen: $needed"
+                    added=1
+                fi
+            fi
+        done
+    done < <(find AppDir/usr -name '*.so' -print0)
+    [ "$added" -eq 0 ] && break
+done
+```
+
+Dieser Block wurde bereits (entsprechend escaped für die
+`systemd-nspawn ... /bin/bash -c "..."`-Einbettung) in
+`/home/stephan/containers/build-release-appimage.sh` eingetragen — beim
+nächsten Lauf im Leap-16-Container bitte verifizieren (Log auf
+„nachgezogen: ...“-Zeilen prüfen, danach das AppImage auf einem System ohne
+exakt passendes System-Qt testen, z. B. per `unset LD_LIBRARY_PATH` und
+Vergleich der `ldd`-Ausgabe der gepackten `libqtquickcontrols2plugin.so`
+gegen `AppDir/usr/lib/`).
+
+**Zusätzlich offen:** Die aktuell unter `Website/downloads/` liegende
+`Stroemling-Design-0.666-x86_64.AppImage` ist nicht der Leap16-Build,
+sondern verlangt `Qt_6.9.1_PRIVATE_API` (vermutlich ein Rest des
+Tumbleweed-Vergleichsbuilds aus der GLIBC-Verifikation) — nach dem Fix neu
+bauen und die Datei auf der Website ersetzen.
+
 ---
 
 ## Hinweise (Linux)

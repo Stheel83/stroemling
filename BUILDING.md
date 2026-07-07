@@ -36,91 +36,25 @@ Das fertige Binary liegt unter `build-release/stroemling_app`.
 
 ## AppImage bauen
 
-### Einmalig: Tools herunterladen
+Der offizielle Release-Build läuft **nicht** mehr nativ auf Tumbleweed,
+sondern in einem Leap-16-Container (GLIBC-Kompatibilität, s.
+`konzept/technik/`-Debug-Historie bzw. Plan `glittery-prancing-yao.md`).
 
 ```bash
-mkdir -p ~/tools
-
-# linuxdeploy
-wget "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" \
-  -O ~/tools/linuxdeploy-x86_64.AppImage
-
-# Qt-Plugin für linuxdeploy
-wget "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage" \
-  -O ~/tools/linuxdeploy-plugin-qt-x86_64.AppImage
-
-# appimagetool
-wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" \
-  -O ~/tools/appimagetool-x86_64.AppImage
-
-# AppImage-Runtime (verhindert Download beim Build)
-wget "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64" \
-  -O ~/tools/runtime-x86_64
-
-chmod +x ~/tools/linuxdeploy-x86_64.AppImage \
-         ~/tools/linuxdeploy-plugin-qt-x86_64.AppImage \
-         ~/tools/appimagetool-x86_64.AppImage
+sudo bash /home/stephan/containers/build-release-appimage.sh
 ```
 
-### Schritt 1: Release-Build erstellen
-
-```bash
-mkdir -p build-release && cd build-release
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-cd ..
-```
-
-### Schritt 2: AppDir vorbereiten
-
-Alle folgenden Befehle aus dem **Hauptverzeichnis** (`stroemling/`) ausführen:
-
-```bash
-rm -rf appimage/AppDir
-
-QMAKE=$(which qmake6 || which qmake) \
-~/tools/linuxdeploy-x86_64.AppImage \
-  --appdir appimage/AppDir \
-  --executable build-release/stroemling_app \
-  --desktop-file appimage/stroemling-design.desktop \
-  --icon-file appimage/stroemling-design.png \
-  --plugin qt
-```
-
-### Schritt 3: Qt QML-Module einbinden
-
-`linuxdeploy-plugin-qt` deployt die QML-Module nicht automatisch korrekt.
-Manuell kopieren und an den von `qt.conf` erwarteten Ort verschieben:
-
-```bash
-QT_QML=$(qmake6 -query QT_INSTALL_QML 2>/dev/null || qmake -query QT_INSTALL_QML)
-mkdir -p appimage/AppDir/usr/lib/qt6/qml
-cp -r "$QT_QML"/. appimage/AppDir/usr/lib/qt6/qml/
-mv appimage/AppDir/usr/lib/qt6/qml appimage/AppDir/usr/qml
-```
-
-### Schritt 4: AppImage erstellen
-
-```bash
-~/tools/appimagetool-x86_64.AppImage \
-  --runtime-file ~/tools/runtime-x86_64 \
-  appimage/AppDir \
-  appimage/Stroemling-Design-x86_64.AppImage
-```
-
-### Testen
-
-```bash
-chmod +x appimage/Stroemling-Design-x86_64.AppImage
-./appimage/Stroemling-Design-x86_64.AppImage
-```
+Das Skript baut `stroemling_app` sauber im Container (`build-leap16/`),
+lässt `ctest` laufen und erzeugt anschließend
+`appimage/Stroemling-Design-<VERSION>-x86_64.AppImage` im Hauptverzeichnis.
+Die dafür nötigen `linuxdeploy`/`appimagetool`-Binaries liegen in
+`~/tools/` und werden vom Skript in den Container gemountet.
 
 ---
 
 ## Hinweise (Linux)
 
 - Das AppImage enthält alle Qt-Abhängigkeiten und läuft ohne installiertes Qt auf anderen Linux-Systemen.
-- Die Tools in `~/tools/` müssen nur einmalig heruntergeladen werden.
 - Das AppImage (`appimage/Stroemling-Design-x86_64.AppImage`) ist nicht im Git-Repository enthalten.
 
 ---
@@ -240,123 +174,9 @@ Der Nutzer entpackt das ZIP und startet `stroemling_app.exe` — fertig.
 
 ---
 
-## Cross-Kompilierung: Windows-Build unter Linux (openSUSE Tumbleweed)
-
-Dieses Verfahren erzeugt eine `stroemling_app.exe` direkt auf dem Linux-Rechner,
-ohne dass Windows benötigt wird.
-
-**Werkzeug:** [MXE (M cross environment)](https://mxe.cc) baut einmalig den
-MinGW-w64-Compiler und Qt6 für Windows aus dem Quellcode.
-
-**Speicherbedarf:** ca. 15–20 GB für den MXE-Baum mit Qt6.  
-**Ersteinrichtungszeit:** 1–3 Stunden (danach Strömling-Builds in ~5 Minuten).
-
----
-
-### Schritt 1: Abhängigkeiten installieren
-
-```bash
-sudo zypper install -y \
-  git autoconf automake bison bzip2 cmake flex \
-  gcc gcc-c++ gettext-tools gperf intltool libtool make \
-  nasm p7zip patch perl python3 ruby sed unzip wget xz \
-  libffi-devel libjpeg8-devel libpng16-devel
-```
-
----
-
-### Schritt 2: MXE klonen und Qt6 bauen (einmalig)
-
-```bash
-git clone https://github.com/mxe/mxe.git ~/mxe
-cd ~/mxe
-
-# Qt6 für Windows (shared DLLs) + benötigte Module bauen
-# Dauer: 1–3 Stunden je nach CPU
-make -j$(nproc) MXE_TARGETS=x86_64-w64-mingw32.shared \
-  qt6-qtbase \
-  qt6-qtdeclarative \
-  qt6-qttools \
-  qt6-qtsvg
-```
-
-Danach MXE dauerhaft in den PATH aufnehmen:
-
-```bash
-echo 'export PATH="$HOME/mxe/usr/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
----
-
-### Schritt 3: Strömling für Windows bauen
-
-```bash
-# Im Projektverzeichnis (stroemling/)
-mkdir -p build-win && cd build-win
-
-x86_64-w64-mingw32.shared-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-```
-
-Das fertige Binary liegt unter `build-win/stroemling_app.exe`.
-
----
-
-### Schritt 4: Windows-Deploy-Paket erstellen
-
-Die `.exe` allein startet nicht – Qt-DLLs und QML-Module müssen daneben liegen.
-`windeployqt6.exe` (aus dem MXE-Build) übernimmt das automatisch, wenn Wine
-installiert ist:
-
-```bash
-sudo zypper install -y wine
-
-MXE_BIN="$HOME/mxe/usr/x86_64-w64-mingw32.shared/qt6/bin"
-
-mkdir -p deploy-win
-cp build-win/stroemling_app.exe deploy-win/
-
-# windeployqt6 via Wine ausführen
-WINEPREFIX=/tmp/wine-deploy WINEPATH="$MXE_BIN" \
-  wine "$MXE_BIN/windeployqt6.exe" \
-    --qmldir qml \
-    --release \
-    deploy-win/stroemling_app.exe
-```
-
-> **Hinweis:** Schlägt `windeployqt6` unter Wine fehl, kann die `.exe` alternativ
-> auf einem Windows-Rechner mit dem nativen `windeployqt` deployed werden
-> (Abschnitt „Windows-Paket für Nutzer erstellen" weiter unten).
-
----
-
-### Schritt 5: ZIP für Nutzer erstellen
-
-```bash
-zip -r Stroemling-Design-win64.zip deploy-win/
-```
-
----
-
-### Tipps
-
-- **Erneuter Strömling-Build** (nach Codeänderung): nur Schritt 3 wiederholen –
-  MXE und Qt6 müssen nicht neu gebaut werden.
-- **Build nach Absturz/Unterbrechung fortsetzen:** `make` ist inkrementell –
-  einfach erneut `make -j$(nproc)` in `build-win/` ausführen. Bereits kompilierte
-  Objektdateien werden übersprungen. Bei Linker-Fehlern (korrumpierte `.o`-Dateien)
-  vorher `make clean` ausführen.
-- **System friert beim Build ein:** `make -j$(nproc)` lastet alle Kerne voll aus.
-  Alternativ `make -j4` verwenden – deutlich weniger Last, Build dauert etwas länger.
-- **MXE aktualisieren:** `cd ~/mxe && git pull && make -j$(nproc) MXE_TARGETS=... qt6-qtbase ...`
-- **Welche MXE-Version Qt6 hat:** `cat ~/mxe/src/qt6-qtbase.mk | grep PKG_VERSION`
-
----
-
 ## Windows-Build via GitHub Actions (nativer Build ohne Wine/MXE)
 
-Alternative zum lokalen Cross-Build: `.github/workflows/windows-build.yml`
+Alternative zum lokalen Windows-Build: `.github/workflows/windows-build.yml`
 baut auf einem echten `windows-latest`-Runner (kein Wine, kein
 QML-Erkennungsrisiko bei `windeployqt`). Funktioniert auch bei einem
 **privaten** GitHub-Repo — GitHub Actions ist nicht auf öffentliche Repos

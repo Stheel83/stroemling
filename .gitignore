@@ -1,7 +1,9 @@
 build/
 build-release/
-build-leap16/
-appimage/
+appimage/AppDir*/
+appimage/*.AppImage
+appimage/*.appimage
+appimage/*.log
 *.db
 *.db-shm
 *.db-wal

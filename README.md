@@ -11,7 +11,7 @@ Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste.
 | Plattform | Link |
 |-----------|------|
 | Linux x64 | [AppImage herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-x86_64.AppImage) |
-| Windows x64 | [ZIP herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-windows-x64.zip) |
+| Windows x64 | [ZIP herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-win64.zip) |
 
 Keine Installation nötig. Linux: `chmod +x` und starten. Windows: ZIP entpacken, `stroemling_app.exe` starten.
 

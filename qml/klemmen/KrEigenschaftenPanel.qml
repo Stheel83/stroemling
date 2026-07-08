@@ -349,12 +349,7 @@ Rectangle {
                 }
             }
             Text {
-                visible: {
-                    var kl = klemmenreiheModel.klemmen
-                    for (var i = 0; i < kl.length; ++i)
-                        if (kl[i].breiteMm === 0) return true
-                    return false
-                }
+                visible: klemmenreiheModel.klemmen.length > 0
                 text: qsTr("Richtwert – Endböcke und Trennplatten\nsind nicht eingerechnet.")
                 font.pixelSize: 9; color: theme.textMuted
                 wrapMode: Text.Wrap; Layout.fillWidth: true

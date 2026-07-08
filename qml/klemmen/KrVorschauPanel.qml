@@ -130,6 +130,22 @@ Item {
                     font.pixelSize: 11
                     color: theme.textMuted
                 }
+                Text {
+                    id: gesamtBreiteInfoIcon
+                    visible: klemmenreiheModel.hatLeiste && klemmenreiheModel.leiste["gesamtBreiteMm"] > 0
+                    text: "ⓘ"
+                    font.pixelSize: 11
+                    color: theme.textMuted
+                    MouseArea {
+                        id: gesamtBreiteInfoMa
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                    }
+                    ToolTip.visible: gesamtBreiteInfoMa.containsMouse
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Richtwert – Endböcke, Trennplatten und Abdeckplatten sind nicht eingerechnet.")
+                }
             }
         }
         Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }

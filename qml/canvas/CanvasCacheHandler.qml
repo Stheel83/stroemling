@@ -1,0 +1,218 @@
+import QtQuick
+
+// Cache-Refresh-Funktionen (HF-Referenz, SPS-Konflikt, Querverweis-Partner,
+// Kabellinien-Anzahl) sowie die Ader-Dialog-Orchestrierung (Aderzuordnung/
+// Ader-Kreuzung öffnen — bereitet Daten auf und delegiert ans Öffnen des
+// jeweiligen Dialogs in CanvasDialogLayer).
+// cv: Referenz auf SchaltplanCanvas (root). REFACTOR-01 Stufe 4.
+QtObject {
+    id: handler
+    required property var cv
+
+    // --------------------------------------------------------
+    // Cache-Refresh
+    // --------------------------------------------------------
+
+    // Baut den Partner-Cache: elementIdx → Blattnummer der Gegenseite.
+    // Wird beim Laden einer Seite einmal aufgerufen.
+    function hfReferenzMapAktualisieren() {
+        if (cv.projektId < 0) { cv._hfReferenzMap = {}; return }
+        var liste = db.betriebsmittelHfListe(cv.projektId)
+        var map = {}
+        for (var i = 0; i < liste.length; i++) {
+            var e = liste[i]
+            map[e.betriebsmittelId] = {
+                hauptElementId: e.hauptElementId,
+                blattnummer:    e.blattnummer,
+                seiteId:        e.seiteId
+            }
+        }
+        cv._hfReferenzMap = map
+    }
+
+    function spsKonfliktAktualisieren() {
+        if (cv.projektId < 0) { cv._spsKonfliktSet = {}; return }
+        var ids = db.spsKonfliktElementIds(cv.projektId)
+        var s = {}
+        for (var i = 0; i < ids.length; i++) s[ids[i]] = true
+        cv._spsKonfliktSet = s
+        cv.repaintAll()
+    }
+
+    function hfKarteAktualisieren() {
+        hfReferenzMapAktualisieren()
+        cv.repaintAll()
+    }
+
+    function querverweisPartnerCacheAktualisieren() {
+        if (cv.seiteId < 0 || cv.projektId < 0) { cv._querverweisPartnerMap = {}; return }
+        var alle = db.querverweiseLadenProjekt(cv.projektId)
+        var map = {}
+        var _qvEls = cv.elementeModel.snapshot()
+        for (var i = 0; i < _qvEls.length; i++) {
+            var el = _qvEls[i]
+            if (el.typ !== "symbol" || el.symbolId !== "querverweis") continue
+            var sn = (el.extraDaten && el.extraDaten.signalname) || ""
+            if (!sn) continue
+            for (var k = 0; k < alle.length; k++) {
+                var qv = alle[k]
+                if (qv.signalname !== sn) continue
+                if (qv.seiteId === cv.seiteId && Math.abs(qv.x1 - el.x1) < 0.5 && Math.abs(qv.y1 - el.y1) < 0.5) continue
+                map[i] = {
+                    label:   qv.blattnummer + (qv.seitenBezeichnung ? " " + qv.seitenBezeichnung : ""),
+                    seiteId: qv.seiteId,
+                    x1:      qv.x1,
+                    y1:      qv.y1
+                }
+                break
+            }
+        }
+        cv._querverweisPartnerMap = map
+    }
+
+    function kabelLinienCacheAktualisieren() {
+        var map = {}
+        var _klEls = cv.elementeModel.snapshot()
+        for (var i = 0; i < _klEls.length; i++) {
+            var el = _klEls[i]
+            if (el.typ !== "kabellinie") continue
+            var kId = (el.extraDaten && el.extraDaten.kabelId) || 0
+            if (kId <= 0 || kId in map) continue
+            var linien = db.kabelAlleLinienLaden(kId)
+            map[kId] = linien.length
+        }
+        cv._kabelLinienCache = map
+    }
+
+    // --------------------------------------------------------
+    // Ader-Dialog-Orchestrierung
+    // --------------------------------------------------------
+
+    // Baut eine Map netKey → anschlusskennzeichnung des Geräte-Pins am Netzende.
+    // Wird für den Aderzuordnungsmodus „Pin-Nummer" (M10) benötigt.
+    function _pinNummernFuerNetze(netze) {
+        var els = cv.elementeModel.snapshot()
+        var map = {}
+        for (var ni = 0; ni < netze.length; ni++) {
+            var net  = netze[ni]
+            var segs = net.segmente
+            for (var si = 0; si < segs.length; si++) {
+                var seg = segs[si]
+                for (var k = 0; k < 2; k++) {
+                    var idx = k === 0 ? seg.elIdxA : seg.elIdxB
+                    if (idx === undefined) continue
+                    var el  = els[idx]
+                    if (!el || el.typ !== "symbol" || el.symbolId !== "geraeteanschluss") continue
+                    var ank = (el.extraDaten && el.extraDaten.anschlusskennzeichnung) || ""
+                    if (ank && !map[net.netKey]) { map[net.netKey] = ank; break }
+                }
+                if (map[net.netKey]) break
+            }
+        }
+        return map
+    }
+
+    // Öffnet den Aderzuordnungsdialog für das übergebene kabellinie-Element
+    // (wird aus EigenschaftenPanel aufgerufen).
+    function aderzuordnungDialogOeffnen(el) {
+        if (!el || el.typ !== "kabellinie") return
+        var ed      = el.extraDaten || {}
+        var kabelId = ed.kabelId || 0
+        if (kabelId <= 0) return
+
+        var savedAuswahl = cv.auswahl.slice()
+        cv.elementeModel.laden(cv.seiteId)
+        cv.auswahl = savedAuswahl
+        var reloaded = cv.elementeModel.snapshot()
+
+        var elId = el.id || 0
+        var freshEl = null
+        for (var i = 0; i < reloaded.length; i++) {
+            if (reloaded[i].id === elId) { freshEl = reloaded[i]; break }
+        }
+        var currentEl = freshEl || el
+        var freshGeid = currentEl.id || 0
+
+        var details  = db.kabelLinieDetails(freshGeid)
+        var netze    = cv.netzberechnung.autoNetzeBerechnen()
+        var schnitte = cv.geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
+
+        // Vollständige Aderliste aufbauen: DB-Einträge + fehlende aderNr als freie Platzhalter
+        var aderzahl = details.aderzahl || ed.aderzahl || 0
+        var rawAdern = details.adern || []
+        var aderMap  = {}
+        for (var ai = 0; ai < rawAdern.length; ai++)
+            aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
+        var fullAdern = []
+        for (var nr = 1; nr <= aderzahl; nr++)
+            fullAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "", verbindungId: 0, kabellinieGrafikElementId: 0 })
+
+        cv._dialogLayer.aderzuordnungOeffnen(kabelId, ed.bezeichnung || "", ed.kabeltyp || "",
+            aderzahl, fullAdern, schnitte, ed.aderZuordnung || {},
+            freshGeid, _pinNummernFuerNetze(netze))
+    }
+
+    // Liefert die Ader-Nummern 1..aderzahl, die NICHT bereits an einer
+    // ANDEREN Kreuzung derselben Kabellinie vergeben sind (eigenerAderKey
+    // wird ausgenommen, damit die aktuell zugeordnete Ader selbst nicht
+    // fälschlich als "belegt" gilt).
+    function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey) {
+        var belegt = {}
+        for (var i = 0; i < schnitte.length; i++) {
+            var sc  = schnitte[i]
+            var key = sc.aderKey || sc.netKey || sc.legacyNetKey || ""
+            if (key === eigenerAderKey) continue
+            var zugeordnet = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
+            if (zugeordnet !== undefined && zugeordnet !== 0) belegt[zugeordnet] = true
+        }
+        var frei = []
+        for (var nr = 1; nr <= aderzahl; nr++)
+            if (!belegt[nr]) frei.push(nr)
+        return frei
+    }
+
+    // Öffnet das Inline-Popup zur Korrektur EINER Ader-Zuordnung am
+    // Kreuzungspunkt (treffer = Rückgabe von kabelKreuzungBeiPosition()).
+    function aderKreuzungPickerOeffnen(treffer) {
+        if (!treffer || !treffer.kabelEl) return
+        var el      = treffer.kabelEl
+        var ed      = el.extraDaten || {}
+        var kabelId = ed.kabelId || 0
+        if (kabelId <= 0) return
+
+        var savedAuswahl = cv.auswahl.slice()
+        cv.elementeModel.laden(cv.seiteId)
+        cv.auswahl = savedAuswahl
+        var reloaded = cv.elementeModel.snapshot()
+
+        var elId = el.id || 0
+        var freshEl = null
+        for (var i = 0; i < reloaded.length; i++) {
+            if (reloaded[i].id === elId) { freshEl = reloaded[i]; break }
+        }
+        var currentEl = freshEl || el
+        var freshGeid = currentEl.id || 0
+        var freshEd   = currentEl.extraDaten || {}
+
+        var details  = db.kabelLinieDetails(freshGeid)
+        var aderzahl = details.aderzahl || freshEd.aderzahl || 0
+        var rawAdern = details.adern || []
+        var aderMap  = {}
+        for (var ai = 0; ai < rawAdern.length; ai++) aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
+
+        var netze    = cv.netzberechnung.autoNetzeBerechnen()
+        var schnitte = cv.geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
+        var freieNrn = _freieAdernFuerKreuzung(aderzahl, freshEd.aderZuordnung || {}, schnitte, treffer.aderKey)
+
+        var freieAdern = []
+        for (var fi = 0; fi < freieNrn.length; fi++) {
+            var nr = freieNrn[fi]
+            freieAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "" })
+        }
+        var alteAder = aderMap[treffer.aktuelleAderNr] || { aderNr: treffer.aktuelleAderNr, farbe: "", bezeichnung: "" }
+
+        cv._dialogLayer.aderKreuzungPickerOeffnen(kabelId, freshGeid, treffer.aderKey,
+            treffer.verbindungId, treffer.aktuelleAderNr, treffer.istLeer,
+            alteAder, freieAdern, treffer.vpX, treffer.vpY)
+    }
+}

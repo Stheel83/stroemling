@@ -227,7 +227,7 @@ Item {
     // { netKey, verbindungId, bezeichnung, signaltyp, segmente, adps, x1,y1,x2,y2 }
     property var ausgewaehltVerbindung: null
 
-    function aderFarbeZuCanvas(code) { return geometrie.aderFarbeZuCanvas(code) }
+    function aderFarbeZuCanvas(code) { return geometrieHandler.aderFarbeZuCanvas(code) }
     // Cache der DB-Annotationen: netKey → {verbindungId, bezeichnung, farbe, querschnitt_mm2, signaltyp}
     property var verbindungAnnotationenCache: ({})
     // OPT-KABEL-GEO-01: Netz-Geometrie-Cache (invalidiert bei elementeModel.geaendert)
@@ -305,6 +305,7 @@ Item {
     // Aliases damit CanvasAktionenHandler auf interne IDs zugreifen kann
     property alias _drawCanvas:    drawCanvas
     property alias _duplizierDialog: duplizierAnzahlDialog
+    property alias _dialogLayer: dialogLayer
 
     signal fehlersuchPfadGefunden(var querverweise)
 
@@ -338,8 +339,8 @@ Item {
     }
 
     // Brücken-Funktionen für CanvasInteraktionArea
-    function verbindungBeiPosition(x, y)   { return geometrie.verbindungBeiPosition(x, y) }
-    function kabelKreuzungBeiPosition(x, y) { return geometrie.kabelKreuzungBeiPosition(x, y) }
+    function verbindungBeiPosition(x, y)   { return geometrieHandler.verbindungBeiPosition(x, y) }
+    function kabelKreuzungBeiPosition(x, y) { return geometrieHandler.kabelKreuzungBeiPosition(x, y) }
     function koordinatenTextSetzen(text)   { footerBar.koordinatenText = text }
     function bildLaden(url)                { drawCanvas.loadImage(url) }
 
@@ -355,7 +356,7 @@ Item {
         var el = elementeModel.element(idx)
         root.auswahl          = [idx]
         root.textEditWeltX    = el.x1;  root.textEditWeltY = el.y1
-        var vpos              = geometrie.weltZuViewport(el.x1, el.y1)
+        var vpos              = geometrieHandler.weltZuViewport(el.x1, el.y1)
         root.textEditVpX      = vpos.x; root.textEditVpY   = vpos.y
         root.textEditElIdx    = idx
         root.textEditSnapshot = elementeModel.snapshot()
@@ -369,11 +370,11 @@ Item {
     // Aderzuordnungsdialog vorbereiten (drawCanvas-Zugriffe bleiben hier) und öffnen
     function kabellinieNachSpeichernAderZuordnung(newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern, freshKlEl) {
         var neueNetze = netzHandler.autoNetzeBerechnen()
-        var schnitte  = geometrie.kabelSchnittNetzeBerechnen(freshKlEl, neueNetze)
+        var schnitte  = geometrieHandler.kabelSchnittNetzeBerechnen(freshKlEl, neueNetze)
         if (schnitte.length > 0) {
             dialogLayer.aderzuordnungOeffnen(
                 newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern,
-                schnitte, {}, freshKlEl.id || 0, _pinNummernFuerNetze(neueNetze))
+                schnitte, {}, freshKlEl.id || 0, cacheHandler._pinNummernFuerNetze(neueNetze))
         }
     }
 
@@ -441,7 +442,8 @@ Item {
     property alias netzberechnung: netzHandler
 
     // Geometrie/Hit-Test-Funktionen ausgelagert (REFACTOR-01 Stufe 3)
-    CanvasGeometrie { id: geometrie; cv: root }
+    CanvasGeometrie { id: geometrieHandler; cv: root }
+    property alias geometrie: geometrieHandler
 
     // --------------------------------------------------------
     // Zeichenebene
@@ -1009,7 +1011,7 @@ Item {
 
             // Resize-Griffe nur bei Einzelauswahl
             if (gewaehlt && root.auswahl.length === 1) {
-                var pts = geometrie.griffPunkte(el)
+                var pts = geometrieHandler.griffPunkte(el)
                 ctx.fillStyle="#f0a030"; ctx.strokeStyle="#ffffff"
                 ctx.lineWidth=1; ctx.setLineDash([])
                 for (var i=0; i<pts.length; i++) {
@@ -1398,11 +1400,11 @@ Item {
                 // Pin-Marker zeichnen (immer sichtbar, selektiert = hervorgehoben)
                 if (!vorschau) {
                     var pins = el.symbolId === "querverweis"
-                               ? geometrie.querverweisPin(el)
+                               ? geometrieHandler.querverweisPin(el)
                                : symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
                     ctx.setLineDash([])
                     for (var pi = 0; pi < pins.length; pi++) {
-                        var pp = geometrie.pinViewportPos(el, pins[pi].x, pins[pi].y)
+                        var pp = geometrieHandler.pinViewportPos(el, pins[pi].x, pins[pi].y)
                         var pr = gewaehlt ? 2.5 : 1.5
                         ctx.globalAlpha = gewaehlt ? 1.0 : 0.55
                         // Stecker/Buchse Pin 2 (fiktive Steckverbindung): grün = gesteckt,
@@ -1452,7 +1454,7 @@ Item {
                                 if ((el.symbolId === "stecker" || el.symbolId === "buchse") &&
                                     _pbPin.name === "2") continue
                                 var _pbLabel = _pbBez[_pbPin.name] || _pbPin.name
-                                var _pbPos = geometrie.pinViewportPos(el, _pbPin.x, _pbPin.y)
+                                var _pbPos = geometrieHandler.pinViewportPos(el, _pbPin.x, _pbPin.y)
                                 // Richtungsvektor mit Spiegelung + Rotation transformieren
                                 // (identisch zur Transformation in pinViewportPos)
                                 var _pbOx = _pbPin.offenX || 0
@@ -2262,7 +2264,7 @@ Item {
             if (kLenW < 0.5) return
 
             // Schnittpunkte mit netKey berechnen (dedupliziert, sortiert)
-            var schnitte = geometrie.kabelSchnittNetzeBerechnenCached(el, netze)
+            var schnitte = geometrieHandler.kabelSchnittNetzeBerechnenCached(el, netze)
             if (schnitte.length === 0) return
 
             var _rawAdn       = el.extraDaten ? el.extraDaten.adern : null
@@ -2343,7 +2345,7 @@ Item {
             var _fsPfadKeys = Object.keys(root.fehlersuchPfadIds)
             var _fsAktiv    = root.fehlersuchModus && _fsPfadKeys.length > 0
 
-            var kreuzungsLuecken = geometrie._kreuzungsLuecken(netze)
+            var kreuzungsLuecken = geometrieHandler._kreuzungsLuecken(netze)
 
             // Alle Aderdefinitionspunkte sammeln
             var adpList = []
@@ -2364,7 +2366,7 @@ Item {
             for (var ni = 0; ni < netze.length; ni++) {
                 var net = netze[ni]
                 var segs = net.segmente
-                var segAdps = geometrie.adpFuerNetSegmente(segs, adpList)
+                var segAdps = geometrieHandler.adpFuerNetSegmente(segs, adpList)
 
                 for (var si = 0; si < segs.length; si++) {
                     var seg = segs[si]
@@ -2382,9 +2384,9 @@ Item {
                         ctx.globalAlpha = 1.0
                     }
 
-                    var lineClr = geometrie.signaltypFarbe(net.signaltyp)
+                    var lineClr = geometrieHandler.signaltypFarbe(net.signaltyp)
                     if (net.signaltyp !== "konflikt" && sAdps.length > 0 && sAdps[0].ed.aderfarbe)
-                        lineClr = geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
+                        lineClr = geometrieHandler.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
 
                     var anz = Math.max(1, sAdps.length)
                     var lw  = anz <= 3 ? anz * 1.5 : 4.5
@@ -2918,79 +2920,17 @@ Item {
 
     CanvasVerdrahtungsHandler { id: verdrahtungsHandler; cv: root }
 
+    // Cache-Refresh + Ader-Dialog-Orchestrierung ausgelagert (REFACTOR-01 Stufe 4)
+    CanvasCacheHandler { id: cacheHandler; cv: root }
+    function spsKonfliktAktualisieren()      { cacheHandler.spsKonfliktAktualisieren() }
+    function hfKarteAktualisieren()          { cacheHandler.hfKarteAktualisieren() }
+    function kabelLinienCacheAktualisieren() { cacheHandler.kabelLinienCacheAktualisieren() }
+    function aderzuordnungDialogOeffnen(el)  { cacheHandler.aderzuordnungDialogOeffnen(el) }
+    function aderKreuzungPickerOeffnen(treffer) { cacheHandler.aderKreuzungPickerOeffnen(treffer) }
+
     // --------------------------------------------------------
     // Querverweis-Navigation
     // --------------------------------------------------------
-    // Baut den Partner-Cache: elementIdx → Blattnummer der Gegenseite.
-    // Wird beim Laden einer Seite einmal aufgerufen.
-    function hfReferenzMapAktualisieren() {
-        if (root.projektId < 0) { root._hfReferenzMap = {}; return }
-        var liste = db.betriebsmittelHfListe(root.projektId)
-        var map = {}
-        for (var i = 0; i < liste.length; i++) {
-            var e = liste[i]
-            map[e.betriebsmittelId] = {
-                hauptElementId: e.hauptElementId,
-                blattnummer:    e.blattnummer,
-                seiteId:        e.seiteId
-            }
-        }
-        root._hfReferenzMap = map
-    }
-
-    function spsKonfliktAktualisieren() {
-        if (root.projektId < 0) { root._spsKonfliktSet = {}; return }
-        var ids = db.spsKonfliktElementIds(root.projektId)
-        var s = {}
-        for (var i = 0; i < ids.length; i++) s[ids[i]] = true
-        root._spsKonfliktSet = s
-        repaintAll()
-    }
-
-    function hfKarteAktualisieren() {
-        hfReferenzMapAktualisieren()
-        repaintAll()
-    }
-
-    function querverweisPartnerCacheAktualisieren() {
-        if (root.seiteId < 0 || root.projektId < 0) { root._querverweisPartnerMap = {}; return }
-        var alle = db.querverweiseLadenProjekt(root.projektId)
-        var map = {}
-        var _qvEls = elementeModel.snapshot()
-        for (var i = 0; i < _qvEls.length; i++) {
-            var el = _qvEls[i]
-            if (el.typ !== "symbol" || el.symbolId !== "querverweis") continue
-            var sn = (el.extraDaten && el.extraDaten.signalname) || ""
-            if (!sn) continue
-            for (var k = 0; k < alle.length; k++) {
-                var qv = alle[k]
-                if (qv.signalname !== sn) continue
-                if (qv.seiteId === root.seiteId && Math.abs(qv.x1 - el.x1) < 0.5 && Math.abs(qv.y1 - el.y1) < 0.5) continue
-                map[i] = {
-                    label:   qv.blattnummer + (qv.seitenBezeichnung ? " " + qv.seitenBezeichnung : ""),
-                    seiteId: qv.seiteId,
-                    x1:      qv.x1,
-                    y1:      qv.y1
-                }
-                break
-            }
-        }
-        root._querverweisPartnerMap = map
-    }
-
-    function kabelLinienCacheAktualisieren() {
-        var map = {}
-        var _klEls = elementeModel.snapshot()
-        for (var i = 0; i < _klEls.length; i++) {
-            var el = _klEls[i]
-            if (el.typ !== "kabellinie") continue
-            var kId = (el.extraDaten && el.extraDaten.kabelId) || 0
-            if (kId <= 0 || kId in map) continue
-            var linien = db.kabelAlleLinienLaden(kId)
-            map[kId] = linien.length
-        }
-        root._kabelLinienCache = map
-    }
 
     // Zentriert die Canvas-Ansicht auf eine Weltkoordinate.
     function _zoomZuWeltPosition(wx, wy) { navigationHandler._zoomZuWeltPosition(wx, wy) }
@@ -3033,136 +2973,9 @@ Item {
     // Berechnet die Schnittpunkt-Netze einer Kabellinie (für Aderzuordnungsdialog).
     // Gibt [{t, netKey, verbindungId, bezeichnung, signaltyp}] sortiert nach t zurück.
     function kabelSchnittNetzeBerechnen(el) {
-        return geometrie.kabelSchnittNetzeBerechnen(el, netzHandler.autoNetzeBerechnen())
+        return geometrieHandler.kabelSchnittNetzeBerechnen(el, netzHandler.autoNetzeBerechnen())
     }
 
-    // Baut eine Map netKey → anschlusskennzeichnung des Geräte-Pins am Netzende.
-    // Wird für den Aderzuordnungsmodus „Pin-Nummer" (M10) benötigt.
-    function _pinNummernFuerNetze(netze) {
-        var els = elementeModel.snapshot()
-        var map = {}
-        for (var ni = 0; ni < netze.length; ni++) {
-            var net  = netze[ni]
-            var segs = net.segmente
-            for (var si = 0; si < segs.length; si++) {
-                var seg = segs[si]
-                for (var k = 0; k < 2; k++) {
-                    var idx = k === 0 ? seg.elIdxA : seg.elIdxB
-                    if (idx === undefined) continue
-                    var el  = els[idx]
-                    if (!el || el.typ !== "symbol" || el.symbolId !== "geraeteanschluss") continue
-                    var ank = (el.extraDaten && el.extraDaten.anschlusskennzeichnung) || ""
-                    if (ank && !map[net.netKey]) { map[net.netKey] = ank; break }
-                }
-                if (map[net.netKey]) break
-            }
-        }
-        return map
-    }
-
-    // Öffnet den Aderzuordnungsdialog für das übergebene kabellinie-Element
-    // (wird aus EigenschaftenPanel aufgerufen).
-    function aderzuordnungDialogOeffnen(el) {
-        if (!el || el.typ !== "kabellinie") return
-        var ed      = el.extraDaten || {}
-        var kabelId = ed.kabelId || 0
-        if (kabelId <= 0) return
-
-        var savedAuswahl = root.auswahl.slice()
-        elementeModel.laden(root.seiteId)
-        root.auswahl = savedAuswahl
-        var reloaded = elementeModel.snapshot()
-
-        var elId = el.id || 0
-        var freshEl = null
-        for (var i = 0; i < reloaded.length; i++) {
-            if (reloaded[i].id === elId) { freshEl = reloaded[i]; break }
-        }
-        var currentEl = freshEl || el
-        var freshGeid = currentEl.id || 0
-
-        var details  = db.kabelLinieDetails(freshGeid)
-        var netze    = netzHandler.autoNetzeBerechnen()
-        var schnitte = geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
-
-        // Vollständige Aderliste aufbauen: DB-Einträge + fehlende aderNr als freie Platzhalter
-        var aderzahl = details.aderzahl || ed.aderzahl || 0
-        var rawAdern = details.adern || []
-        var aderMap  = {}
-        for (var ai = 0; ai < rawAdern.length; ai++)
-            aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
-        var fullAdern = []
-        for (var nr = 1; nr <= aderzahl; nr++)
-            fullAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "", verbindungId: 0, kabellinieGrafikElementId: 0 })
-
-        dialogLayer.aderzuordnungOeffnen(kabelId, ed.bezeichnung || "", ed.kabeltyp || "",
-            aderzahl, fullAdern, schnitte, ed.aderZuordnung || {},
-            freshGeid, _pinNummernFuerNetze(netze))
-    }
-
-    // Liefert die Ader-Nummern 1..aderzahl, die NICHT bereits an einer
-    // ANDEREN Kreuzung derselben Kabellinie vergeben sind (eigenerAderKey
-    // wird ausgenommen, damit die aktuell zugeordnete Ader selbst nicht
-    // fälschlich als "belegt" gilt).
-    function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey) {
-        var belegt = {}
-        for (var i = 0; i < schnitte.length; i++) {
-            var sc  = schnitte[i]
-            var key = sc.aderKey || sc.netKey || sc.legacyNetKey || ""
-            if (key === eigenerAderKey) continue
-            var zugeordnet = netzHandler._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-            if (zugeordnet !== undefined && zugeordnet !== 0) belegt[zugeordnet] = true
-        }
-        var frei = []
-        for (var nr = 1; nr <= aderzahl; nr++)
-            if (!belegt[nr]) frei.push(nr)
-        return frei
-    }
-
-    // Öffnet das Inline-Popup zur Korrektur EINER Ader-Zuordnung am
-    // Kreuzungspunkt (treffer = Rückgabe von kabelKreuzungBeiPosition()).
-    function aderKreuzungPickerOeffnen(treffer) {
-        if (!treffer || !treffer.kabelEl) return
-        var el      = treffer.kabelEl
-        var ed      = el.extraDaten || {}
-        var kabelId = ed.kabelId || 0
-        if (kabelId <= 0) return
-
-        var savedAuswahl = root.auswahl.slice()
-        elementeModel.laden(root.seiteId)
-        root.auswahl = savedAuswahl
-        var reloaded = elementeModel.snapshot()
-
-        var elId = el.id || 0
-        var freshEl = null
-        for (var i = 0; i < reloaded.length; i++) {
-            if (reloaded[i].id === elId) { freshEl = reloaded[i]; break }
-        }
-        var currentEl = freshEl || el
-        var freshGeid = currentEl.id || 0
-        var freshEd   = currentEl.extraDaten || {}
-
-        var details  = db.kabelLinieDetails(freshGeid)
-        var aderzahl = details.aderzahl || freshEd.aderzahl || 0
-        var rawAdern = details.adern || []
-        var aderMap  = {}
-        for (var ai = 0; ai < rawAdern.length; ai++) aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
-
-        var netze    = netzHandler.autoNetzeBerechnen()
-        var schnitte = geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
-        var freieNrn = _freieAdernFuerKreuzung(aderzahl, freshEd.aderZuordnung || {}, schnitte, treffer.aderKey)
-
-        var freieAdern = []
-        for (var fi = 0; fi < freieNrn.length; fi++) {
-            var nr = freieNrn[fi]
-            freieAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "" })
-        }
-        var alteAder = aderMap[treffer.aktuelleAderNr] || { aderNr: treffer.aktuelleAderNr, farbe: "", bezeichnung: "" }
-
-        dialogLayer.aderKreuzungPickerOeffnen(kabelId, freshGeid, treffer.aderKey,
-            treffer.verbindungId, treffer.aktuelleAderNr, treffer.istLeer,
-            alteAder, freieAdern, treffer.vpX, treffer.vpY)
-    }
 
     // --------------------------------------------------------
     // Aktionen – delegiert an CanvasAktionenHandler (aktionenHandler)
@@ -3231,11 +3044,11 @@ Item {
     // CanvasNavigationHandler, CanvasBildWerkzeug, CanvasVerdrahtungsHandler,
     // CanvasAktionenHandler, EpVerbindungSection).
     // --------------------------------------------------------
-    function rasterPunkt(weltX, weltY)     { return geometrie.rasterPunkt(weltX, weltY) }
-    function viewportZuWelt(vpX, vpY)      { return geometrie.viewportZuWelt(vpX, vpY) }
-    function elementBeiPosition(vpX, vpY)  { return geometrie.elementBeiPosition(vpX, vpY) }
-    function griffBeiPosition(vpX, vpY)    { return geometrie.griffBeiPosition(vpX, vpY) }
-    function pinWeltPos(el, pinX, pinY)    { return geometrie.pinWeltPos(el, pinX, pinY) }
+    function rasterPunkt(weltX, weltY)     { return geometrieHandler.rasterPunkt(weltX, weltY) }
+    function viewportZuWelt(vpX, vpY)      { return geometrieHandler.viewportZuWelt(vpX, vpY) }
+    function elementBeiPosition(vpX, vpY)  { return geometrieHandler.elementBeiPosition(vpX, vpY) }
+    function griffBeiPosition(vpX, vpY)    { return geometrieHandler.griffBeiPosition(vpX, vpY) }
+    function pinWeltPos(el, pinX, pinY)    { return geometrieHandler.pinWeltPos(el, pinX, pinY) }
 
     // --------------------------------------------------------
     // Ansicht
@@ -3252,7 +3065,7 @@ Item {
     function seiteNeuLaden() {
         if (seiteId >= 0) {
             elementeModel.laden(seiteId)
-            hfReferenzMapAktualisieren()
+            cacheHandler.hfReferenzMapAktualisieren()
             spsKonfliktAktualisieren()
             netzHandler.autoVerbindungenBerechnen()
             repaintAll()
@@ -3317,11 +3130,11 @@ Item {
             root.revisionStatus    = root.normblattDaten ? (root.normblattDaten.revisionStatus  || "") : ""
             root.revisionKennung   = root.normblattDaten ? (root.normblattDaten.revisionKennung || "") : ""
             // Querverweis-Partner-Cache aufbauen
-            root.querverweisPartnerCacheAktualisieren()
+            cacheHandler.querverweisPartnerCacheAktualisieren()
             // Kabellinien-Anzahl-Cache aufbauen
             root.kabelLinienCacheAktualisieren()
             // HF-Referenz-Map aufbauen
-            root.hfReferenzMapAktualisieren()
+            cacheHandler.hfReferenzMapAktualisieren()
             // SPS-Konflikt-Set aufbauen
             root.spsKonfliktAktualisieren()
             // Ansicht wiederherstellen oder zurücksetzen

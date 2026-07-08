@@ -110,7 +110,8 @@ public:
         OrtIdRole,
         SortierungRole,
         UebergeordnetRole,  // Anlage: anlageUebergeordnet (==), Ort: standortUebergeordnet (++)
-        HatSeitenRole       // true wenn dieser Knoten (direkt oder indirekt) mind. eine Seite hat
+        HatSeitenRole,      // true wenn dieser Knoten (direkt oder indirekt) mind. eine Seite hat
+        SeitenAnzahlRole    // Anlage/Ort: Anzahl der (direkt bzw. indirekt) enthaltenen Seiten
     };
 
     explicit SeitenModel(QObject *parent = nullptr);

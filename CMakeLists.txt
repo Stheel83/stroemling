@@ -79,7 +79,6 @@ qt_add_qml_module(stroemling_app
         qml/SeitenBaum.qml
         qml/SeitenBaumNormblattPanel.qml
         qml/SeitenBaumBauteilePanel.qml
-        qml/SeitenBaumStrukturPanel.qml
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
         qml/PokestroemPlaceholder.qml
@@ -528,7 +527,6 @@ qt_add_translations(stroemling_app
         qml/SeitenBaum.qml
         qml/SeitenBaumNormblattPanel.qml
         qml/SeitenBaumBauteilePanel.qml
-        qml/SeitenBaumStrukturPanel.qml
         qml/BauteilAnsicht.qml
         qml/SchaltplanCanvas.qml
         qml/PokestroemPlaceholder.qml

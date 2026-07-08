@@ -20,7 +20,8 @@ Item {
     property int    aktivSeiteId: -1   // von außen gesetzt; -1 = keine Seite aktiv
 
     property int  _dragSeiteId:   -1
-    property string _aktiveTab:     "seiten"   // "seiten" | "struktur" | "bauteile"
+    property string _aktiveTab:     "seitenstruktur"   // "seitenstruktur" | "bauteile"
+    property bool _nurSeitenFilter: true   // an: Anlage/Ort ohne Seiten ausgeblendet (SEITENSTRUKTUR-01)
 
     Settings {
         id: seitenBaumSettings
@@ -182,6 +183,70 @@ Item {
                         seitenModel.loeschen(2, id)
                         root.seiteGeloescht(id)
                         dlgSeiteLoeschen.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // --------------------------------------------------------
+    // Dialog – Anlage/Ort löschen (mit Bestätigung, SEITENSTRUKTUR-01)
+    // --------------------------------------------------------
+    Dialog {
+        id: dlgAnlageOrtLoeschen
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 380
+        padding: 20
+
+        property int    loeschKnotenTyp:    -1   // 0 = Anlage, 1 = Ort
+        property int    loeschId:           -1
+        property string loeschName:         ""
+        property int    loeschSeitenAnzahl: 0
+
+        background: Rectangle { color: theme.sidebar; border.color: "#5a2020"; border.width: 1; radius: 6 }
+
+        contentItem: ColumnLayout {
+            spacing: 12
+
+            Text {
+                text: dlgAnlageOrtLoeschen.loeschKnotenTyp === 0 ? qsTr("Anlage löschen") : qsTr("Ort löschen")
+                font.pixelSize: 15; font.weight: Font.Medium; color: "#ffcccc"
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#3a1a1a" }
+
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.pixelSize: 13
+                color: dlgAnlageOrtLoeschen.loeschSeitenAnzahl > 0 ? "#ffaa44" : theme.textSecondary
+                text: dlgAnlageOrtLoeschen.loeschSeitenAnzahl > 0
+                    ? "\"" + dlgAnlageOrtLoeschen.loeschName + "\" enthält " + dlgAnlageOrtLoeschen.loeschSeitenAnzahl
+                      + " Seite(n).\n\nDiese werden mitsamt allen Zeichnungselementen unwiderruflich gelöscht."
+                    : "\"" + dlgAnlageOrtLoeschen.loeschName + "\" wirklich löschen?"
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#3a1a1a"; Layout.topMargin: 4 }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
+                    contentItem: Text { text: parent.text; color: theme.textSecondary; font.pixelSize: 13;
+                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.border }
+                    onClicked: dlgAnlageOrtLoeschen.close()
+                }
+                Button {
+                    text: qsTr("Löschen"); implicitWidth: 90; implicitHeight: 34
+                    contentItem: Text { text: parent.text; color: "#ffe0e0"; font.pixelSize: 13;
+                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? "#6a1a1a" : "#3a1010"; radius: 4 }
+                    onClicked: {
+                        seitenModel.loeschen(dlgAnlageOrtLoeschen.loeschKnotenTyp, dlgAnlageOrtLoeschen.loeschId)
+                        dlgAnlageOrtLoeschen.close()
                     }
                 }
             }
@@ -1044,7 +1109,7 @@ Item {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
-        // ── Seiten / Struktur – Tabs ─────────────────────────
+        // ── Seitenstruktur / Bauteile – Tabs ─────────────────
         Rectangle {
             Layout.fillWidth: true; height: 26
             color: theme.surfaceDeep
@@ -1054,13 +1119,12 @@ Item {
 
                 Repeater {
                     model: [
-                        { tab: "seiten",   label: qsTr("Seiten"),   tooltip: qsTr("Schaltplanseiten anlegen, bearbeiten und sortieren") },
-                        { tab: "struktur", label: qsTr("Struktur"), tooltip: qsTr("Anlagen und Orte anlegen und verwalten") },
-                        { tab: "bauteile", label: qsTr("Bauteile"), tooltip: qsTr("Im Schaltplan verwendete Bauteile") }
+                        { tab: "seitenstruktur", label: qsTr("Seitenstruktur"), tooltip: qsTr("Anlagen, Orte und Seiten anlegen, bearbeiten und sortieren") },
+                        { tab: "bauteile",       label: qsTr("Bauteile"),       tooltip: qsTr("Im Schaltplan verwendete Bauteile") }
                     ]
                     delegate: Item {
                         id: seitenStrukturTab
-                        width: parent.width / 3; height: 26
+                        width: parent.width / 2; height: 26
                         property bool aktiv: root._aktiveTab === modelData.tab
 
                         Text {
@@ -1095,10 +1159,48 @@ Item {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
 
+        // ── Filter: Nur Seiten anzeigen (SEITENSTRUKTUR-01) ──
+        Rectangle {
+            Layout.fillWidth: true; height: 26
+            visible: root._aktiveTab === "seitenstruktur"
+            color: theme.sidebar
+
+            Row {
+                anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                spacing: 6
+
+                Rectangle {
+                    width: 14; height: 14; radius: 3
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: root._nurSeitenFilter ? theme.accent : theme.inputBg
+                    border.color: theme.border
+                    Text {
+                        anchors.centerIn: parent; text: "✓"; color: "#fff"
+                        font.pixelSize: 9; visible: root._nurSeitenFilter
+                    }
+                }
+                Text {
+                    text: qsTr("Nur Seiten anzeigen")
+                    font.pixelSize: 10; color: theme.textMuted
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root._nurSeitenFilter = !root._nurSeitenFilter
+                ToolTip.visible: containsMouse
+                ToolTip.delay: 600
+                ToolTip.text: qsTr("Aus: zeigt auch Anlagen/Orte ohne Seiten (z. B. für Strukturkästen)")
+            }
+        }
+
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            visible: root._aktiveTab === "seiten"
+            visible: root._aktiveTab === "seitenstruktur"
             clip: true
 
             TreeView {
@@ -1112,7 +1214,7 @@ Item {
                     var idx = treeView.index(row, 0)
                     var knotenTyp = seitenModel.data(idx, Qt.UserRole + 5)
                     var hatSeiten = seitenModel.data(idx, Qt.UserRole + 17)
-                    if (knotenTyp === 2 || hatSeiten === true) return 36
+                    if (knotenTyp === 2 || hatSeiten === true || !root._nurSeitenFilter) return 36
                     return 0
                 }
 
@@ -1129,8 +1231,9 @@ Item {
 
                 delegate: TreeViewDelegate {
                     id: delegateItem
-                    // Anlage/Ort ohne Seiten werden im Hauptbaum ausgeblendet (→ STRUKTUR-Panel)
-                    property bool _zeigeZeile: model.knotenTyp === 2 || (model.hatSeiten ?? true)
+                    // Anlage/Ort ohne Seiten werden ausgeblendet, solange der
+                    // "Nur Seiten anzeigen"-Filter aktiv ist (SEITENSTRUKTUR-01)
+                    property bool _zeigeZeile: model.knotenTyp === 2 || (model.hatSeiten ?? true) || !root._nurSeitenFilter
                     implicitHeight: _zeigeZeile ? 36 : 0
                     implicitWidth: treeView.width
                     visible: _zeigeZeile
@@ -1337,7 +1440,11 @@ Item {
                                         dlgSeiteLoeschen.loeschElementeAnzahl = db.grafikLaden(model.itemId).length
                                         dlgSeiteLoeschen.open()
                                     } else {
-                                        seitenModel.loeschen(model.knotenTyp, model.itemId)
+                                        dlgAnlageOrtLoeschen.loeschKnotenTyp    = model.knotenTyp
+                                        dlgAnlageOrtLoeschen.loeschId           = model.itemId
+                                        dlgAnlageOrtLoeschen.loeschName         = (model.knotenTyp === 0 ? "=" : "+") + model.kuerzel + " " + model.bezeichnung
+                                        dlgAnlageOrtLoeschen.loeschSeitenAnzahl = model.seitenAnzahl ?? 0
+                                        dlgAnlageOrtLoeschen.open()
                                     }
                                 }
                             }
@@ -1347,55 +1454,18 @@ Item {
             }
         }
 
-        // Hinweis am unteren Rand des Seiten-Tabs
+        // Hinweis am unteren Rand des Seitenstruktur-Tabs
         Rectangle {
             Layout.fillWidth: true
             height: 24
-            visible: root._aktiveTab === "seiten"
+            visible: root._aktiveTab === "seitenstruktur"
             color: theme.surfaceDeep
 
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Anlage / Ort anlegen → Tab „Struktur“")
+                text: qsTr("Leere Anlagen/Orte unsichtbar? → Filter „Nur Seiten anzeigen“ ausschalten")
                 color: theme.textMuted
                 font.pixelSize: 10
-            }
-        }
-
-        // ── Struktur-Tab ─────────────────────────────────────────
-        SeitenBaumStrukturPanel {
-            id: strukturPanel
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            visible: root._aktiveTab === "struktur"
-            theme: root.theme
-            projektId: root.projektId
-
-            onAnlageAnlegenAngefordert: {
-                dlgAnlage.fuerProjektId = root.projektId
-                dlgAnlage.open()
-            }
-            onAnlageBearbeitenAngefordert: function(id, kuerzel, bez, uo) {
-                dlgAnlageBearbeiten.itemId           = id
-                dlgAnlageBearbeiten.altKuerzel       = kuerzel
-                dlgAnlageBearbeiten.altBezeichnung   = bez
-                dlgAnlageBearbeiten.altUebergeordnet = uo
-                dlgAnlageBearbeiten.open()
-            }
-            onOrtAnlegenAngefordert: function(anlageId) {
-                dlgOrt.fuerAnlageId = anlageId
-                dlgOrt.open()
-            }
-            onOrtSeiteAnlegenAngefordert: function(ortId) {
-                dlgSeite.fuerOrtId = ortId
-                dlgSeite.open()
-            }
-            onOrtBearbeitenAngefordert: function(id, kuerzel, bez, uo) {
-                dlgOrtBearbeiten.itemId           = id
-                dlgOrtBearbeiten.altKuerzel       = kuerzel
-                dlgOrtBearbeiten.altBezeichnung   = bez
-                dlgOrtBearbeiten.altUebergeordnet = uo
-                dlgOrtBearbeiten.open()
             }
         }
 

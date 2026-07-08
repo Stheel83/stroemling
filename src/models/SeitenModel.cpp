@@ -308,6 +308,15 @@ QVariant SeitenModel::data(const QModelIndex &index, int role) const
             return false;
         }
         return false;
+
+    case SeitenAnzahlRole:
+        if (knoten->typ == BaumKnoten::Ort) return knoten->kinder.count();
+        if (knoten->typ == BaumKnoten::Anlage) {
+            int n = 0;
+            for (const auto *k : knoten->kinder) n += k->kinder.count();
+            return n;
+        }
+        return {};
     }
     return {};
 }
@@ -332,6 +341,7 @@ QHash<int, QByteArray> SeitenModel::roleNames() const
         { SortierungRole,     "sortierung"     },
         { UebergeordnetRole,  "uebergeordnet"  },
         { HatSeitenRole,      "hatSeiten"      },
+        { SeitenAnzahlRole,   "seitenAnzahl"   },
     };
 }
 

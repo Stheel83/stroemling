@@ -1466,12 +1466,16 @@ Item {
         // Hinweis am unteren Rand des Seitenstruktur-Tabs
         Rectangle {
             Layout.fillWidth: true
-            height: 24
+            height: hinweisText.implicitHeight + 10
             visible: root._aktiveTab === "seitenstruktur"
             color: theme.surfaceDeep
 
             Text {
+                id: hinweisText
                 anchors.centerIn: parent
+                width: parent.width - 16
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
                 text: qsTr("Leere Anlagen/Orte unsichtbar? → Filter „Nur Seiten anzeigen“ ausschalten")
                 color: theme.textMuted
                 font.pixelSize: 10

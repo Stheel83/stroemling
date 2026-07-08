@@ -349,4 +349,147 @@ Item {
             canvas.zoom   = newZoom; canvas.repaintAll()
         }
     }
+
+    // --------------------------------------------------------
+    // Zoom-Werkzeuge (Header-Buttons, Shortcuts) — REFACTOR-01,
+    // aus SchaltplanCanvas.qml verschoben. canvas._viewportRand()
+    // liefert die sichtbaren Randbreiten von headerBar/footerBar/
+    // werkzeugLeiste/eigenschaftenPanel (private Ids der Canvas-Datei).
+    // --------------------------------------------------------
+    function zoomAnpassen(factor) {
+        var vp = canvas._viewportRand()
+        var nz = Math.max(canvas.minZoom, Math.min(canvas.maxZoom, canvas.zoom * factor))
+        var cx = vp.tlW + (canvas.width - vp.tlW) / 2
+        var cy = vp.topH + (canvas.height - vp.topH - vp.botH) / 2
+        canvas.worldX = cx - (cx - canvas.worldX) * (nz / canvas.zoom)
+        canvas.worldY = cy - (cy - canvas.worldY) * (nz / canvas.zoom)
+        canvas.zoom   = nz
+        canvas.repaintAll()
+    }
+
+    function ansichtZuruecksetzen() {
+        var vp = canvas._viewportRand()
+        canvas.zoom   = 1.0
+        canvas.worldX = vp.tlW + (canvas.width - vp.tlW) / 2
+        canvas.worldY = vp.topH + (canvas.height - vp.topH - vp.botH) / 2
+        canvas.repaintAll()
+    }
+
+    function autoPanFuerAuswahl() {
+        if (canvas.ausgewaehlt < 0) return
+        var vp = canvas._viewportRand()
+        if (!vp.epSichtbar) return
+        var el = canvas.elementeModel.element(canvas.ausgewaehlt)
+        if (!el || !el.typ) return
+        var epBreite = vp.epBreite
+        var tlW = vp.tlW, topH = vp.topH, botH = vp.botH
+        // Viewport-Koordinaten des Elements
+        var vx1 = el.x1 * canvas.zoom + canvas.worldX
+        var vy1 = el.y1 * canvas.zoom + canvas.worldY
+        var vx2 = el.x2 * canvas.zoom + canvas.worldX
+        var vy2 = el.y2 * canvas.zoom + canvas.worldY
+        var elMinX = Math.min(vx1, vx2), elMaxX = Math.max(vx1, vx2)
+        var elMinY = Math.min(vy1, vy2), elMaxY = Math.max(vy1, vy2)
+        var elCx = (elMinX + elMaxX) / 2
+        var elCy = (elMinY + elMaxY) / 2
+        var pad = 20
+        var visRight = canvas.width - epBreite - pad
+        var visLeft  = tlW + pad
+        var visTop   = topH + pad
+        var visBot   = canvas.height - botH - pad
+        // Kein Pan wenn Element bereits teilweise sichtbar (z.B. Rahmen eines großen Kastens)
+        if (elMinX < visRight && elMaxX > visLeft && elMinY < visBot && elMaxY > visTop) return
+        // Nur pan wenn Element vollständig außerhalb: Mittelpunkt in Viewport bringen
+        var dx = 0, dy = 0
+        if (elCx > visRight)  dx = elCx - visRight
+        if (elCx < visLeft)   dx = elCx - visLeft
+        if (elCy > visBot)    dy = elCy - visBot
+        if (elCy < visTop)    dy = elCy - visTop
+        if (dx !== 0 || dy !== 0) {
+            canvas.worldX -= dx
+            canvas.worldY -= dy
+            canvas.repaintAll()
+        }
+    }
+
+    function zoomNormblattEinpassen() {
+        var nd = canvas.normblattDaten
+        if (!nd || !nd.breiteMm || !nd.hoeheMm) { ansichtZuruecksetzen(); return }
+        var bW  = nd.breiteMm * canvas.mmToPx
+        var bH  = nd.hoeheMm  * canvas.mmToPx
+        var vp  = canvas._viewportRand()
+        var vpW = canvas.width  - vp.tlW
+        var vpH = canvas.height - vp.topH - vp.botH
+        var pad = 40
+        var newZoom = Math.min((vpW - 2*pad) / bW, (vpH - 2*pad) / bH, 4.0)
+        newZoom = Math.max(newZoom, 0.05)
+        canvas.zoom   = newZoom
+        canvas.worldX = vp.tlW  + vpW/2 - (bW/2) * newZoom
+        canvas.worldY = vp.topH + vpH/2 - (bH/2) * newZoom
+        canvas.repaintAll()
+    }
+
+    function zoomAllesEinpassen() {
+        var _zaeEls = canvas.elementeModel.snapshot()
+        if (_zaeEls.length === 0) { ansichtZuruecksetzen(); return }
+        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity
+        for (var i = 0; i < _zaeEls.length; i++) {
+            var el = _zaeEls[i]
+            minX = Math.min(minX, el.x1, el.x2)
+            minY = Math.min(minY, el.y1, el.y2)
+            maxX = Math.max(maxX, el.x1, el.x2)
+            maxY = Math.max(maxY, el.y1, el.y2)
+        }
+        var vp  = canvas._viewportRand()
+        var vpW = canvas.width  - vp.tlW
+        var vpH = canvas.height - vp.topH - vp.botH
+        var bboxW = maxX - minX, bboxH = maxY - minY
+        if (bboxW <= 0 || bboxH <= 0) { ansichtZuruecksetzen(); return }
+        var pad = 40
+        var newZoom = Math.min((vpW - 2*pad) / bboxW, (vpH - 2*pad) / bboxH, 4.0)
+        newZoom = Math.max(newZoom, 0.05)
+        canvas.zoom   = newZoom
+        canvas.worldX = vp.tlW  + vpW/2 - (minX + maxX)/2 * newZoom
+        canvas.worldY = vp.topH + vpH/2 - (minY + maxY)/2 * newZoom
+        canvas.repaintAll()
+    }
+
+    function zoomAuswahlEinpassen() {
+        if (canvas.auswahl.length === 0) { zoomAllesEinpassen(); return }
+        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity
+        for (var i = 0; i < canvas.auswahl.length; i++) {
+            var el = canvas.elementeModel.element(canvas.auswahl[i])
+            if (!el) continue
+            minX = Math.min(minX, el.x1, el.x2)
+            minY = Math.min(minY, el.y1, el.y2)
+            maxX = Math.max(maxX, el.x1, el.x2)
+            maxY = Math.max(maxY, el.y1, el.y2)
+        }
+        if (!isFinite(minX)) return
+        var vp  = canvas._viewportRand()
+        var vpW = canvas.width  - vp.tlW
+        var vpH = canvas.height - vp.topH - vp.botH
+        var bboxW = maxX - minX
+        var bboxH = maxY - minY
+        var pad = 60
+        var newZoom
+        if (bboxW < 2 && bboxH < 2) {
+            newZoom = 2.0
+        } else {
+            newZoom = Math.min((vpW - 2*pad) / Math.max(bboxW, 1),
+                               (vpH - 2*pad) / Math.max(bboxH, 1), 4.0)
+            newZoom = Math.max(newZoom, 0.1)
+        }
+        canvas.zoom   = newZoom
+        canvas.worldX = vp.tlW  + vpW/2 - (minX + maxX)/2 * newZoom
+        canvas.worldY = vp.topH + vpH/2 - (minY + maxY)/2 * newZoom
+        canvas.repaintAll()
+    }
+
+    function _zoomZuWeltPosition(wx, wy) {
+        var vp = canvas._viewportRand()
+        canvas.worldX = vp.tlW  + (canvas.width  - vp.tlW) / 2 - wx * canvas.zoom
+        canvas.worldY = vp.topH + (canvas.height - vp.topH - vp.botH) / 2 - wy * canvas.zoom
+        canvas.repaintAll()
+    }
 }

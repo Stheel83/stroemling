@@ -3574,6 +3574,7 @@ Item {
     // Pan / Zoom / Pinch / Rechtsklick-Kontextmenü
     // --------------------------------------------------------
     CanvasNavigationHandler {
+        id: navigationHandler
         canvas: root
         anchors.fill: parent
     }
@@ -3802,13 +3803,19 @@ Item {
     }
 
     // Zentriert die Canvas-Ansicht auf eine Weltkoordinate.
-    function _zoomZuWeltPosition(wx, wy) {
-        var topH = headerBar.visible ? headerBar.height : 0
-        var botH = footerBar.visible ? footerBar.height : 0
-        var tlW  = werkzeugLeiste.visible ? werkzeugLeiste.width : 0
-        root.worldX = tlW + (width - tlW) / 2 - wx * root.zoom
-        root.worldY = topH + (height - topH - botH) / 2 - wy * root.zoom
-        root.repaintAll()
+    function _zoomZuWeltPosition(wx, wy) { navigationHandler._zoomZuWeltPosition(wx, wy) }
+
+    // Sichtbare Randbreiten der Chrome-Leisten (headerBar/footerBar/werkzeugLeiste/
+    // eigenschaftenPanel sind private Ids dieser Datei) — Bridge für
+    // CanvasNavigationHandler.qml, das die Zoom-Funktionen enthält (REFACTOR-01).
+    function _viewportRand() {
+        return {
+            topH:       headerBar.visible ? headerBar.height : 0,
+            botH:       footerBar.visible ? footerBar.height : 0,
+            tlW:        werkzeugLeiste.visible ? werkzeugLeiste.width : 0,
+            epSichtbar: eigenschaftenPanel.visible,
+            epBreite:   eigenschaftenPanel.width + 16
+        }
     }
 
     // Navigiert vom selektierten Querverweis zur Gegenstelle (f-Taste / Doppelklick).
@@ -4114,141 +4121,12 @@ Item {
     // --------------------------------------------------------
     function repaintAll() { gridCanvas.requestPaint(); drawCanvas.requestPaint() }
 
-    function zoomAnpassen(factor) {
-        var nz=Math.max(root.minZoom,Math.min(root.maxZoom,root.zoom*factor))
-        var topH=headerBar.visible?headerBar.height:0, botH=footerBar.visible?footerBar.height:0
-        var tlW=werkzeugLeiste.visible?werkzeugLeiste.width:0
-        var cx=tlW+(width-tlW)/2, cy=topH+(height-topH-botH)/2
-        root.worldX=cx-(cx-root.worldX)*(nz/root.zoom)
-        root.worldY=cy-(cy-root.worldY)*(nz/root.zoom)
-        root.zoom=nz; root.repaintAll()
-    }
-
-    function ansichtZuruecksetzen() {
-        var topH=headerBar.visible?headerBar.height:0, botH=footerBar.visible?footerBar.height:0
-        var tlW=werkzeugLeiste.visible?werkzeugLeiste.width:0
-        root.zoom=1.0
-        root.worldX=tlW+(width-tlW)/2
-        root.worldY=topH+(height-topH-botH)/2
-        root.repaintAll()
-    }
-
-    function autoPanFuerAuswahl() {
-        if (root.ausgewaehlt < 0 || !eigenschaftenPanel.visible) return
-        var el = elementeModel.element(root.ausgewaehlt)
-        if (!el || !el.typ) return
-        var epBreite = eigenschaftenPanel.width + 16
-        var tlW  = werkzeugLeiste.visible ? werkzeugLeiste.width : 0
-        var topH = headerBar.visible ? headerBar.height : 0
-        var botH = footerBar.visible ? footerBar.height : 0
-        // Viewport-Koordinaten des Elements
-        var vx1 = el.x1 * root.zoom + root.worldX
-        var vy1 = el.y1 * root.zoom + root.worldY
-        var vx2 = el.x2 * root.zoom + root.worldX
-        var vy2 = el.y2 * root.zoom + root.worldY
-        var elMinX = Math.min(vx1, vx2), elMaxX = Math.max(vx1, vx2)
-        var elMinY = Math.min(vy1, vy2), elMaxY = Math.max(vy1, vy2)
-        var elCx = (elMinX + elMaxX) / 2
-        var elCy = (elMinY + elMaxY) / 2
-        var pad = 20
-        var visRight = width - epBreite - pad
-        var visLeft  = tlW + pad
-        var visTop   = topH + pad
-        var visBot   = height - botH - pad
-        // Kein Pan wenn Element bereits teilweise sichtbar (z.B. Rahmen eines großen Kastens)
-        if (elMinX < visRight && elMaxX > visLeft && elMinY < visBot && elMaxY > visTop) return
-        // Nur pan wenn Element vollständig außerhalb: Mittelpunkt in Viewport bringen
-        var dx = 0, dy = 0
-        if (elCx > visRight)  dx = elCx - visRight
-        if (elCx < visLeft)   dx = elCx - visLeft
-        if (elCy > visBot)    dy = elCy - visBot
-        if (elCy < visTop)    dy = elCy - visTop
-        if (dx !== 0 || dy !== 0) {
-            root.worldX -= dx
-            root.worldY -= dy
-            root.repaintAll()
-        }
-    }
-
-    function zoomNormblattEinpassen() {
-        var nd = root.normblattDaten
-        if (!nd || !nd.breiteMm || !nd.hoeheMm) { ansichtZuruecksetzen(); return }
-        var bW  = nd.breiteMm * root.mmToPx
-        var bH  = nd.hoeheMm  * root.mmToPx
-        var topH = headerBar.visible ? headerBar.height : 0
-        var botH = footerBar.visible ? footerBar.height : 0
-        var tlW  = werkzeugLeiste.visible ? werkzeugLeiste.width : 0
-        var vpW  = width - tlW
-        var vpH  = height - topH - botH
-        var pad  = 40
-        var newZoom = Math.min((vpW - 2*pad) / bW, (vpH - 2*pad) / bH, 4.0)
-        newZoom = Math.max(newZoom, 0.05)
-        root.zoom   = newZoom
-        root.worldX = tlW + vpW/2 - (bW/2) * newZoom
-        root.worldY = topH + vpH/2 - (bH/2) * newZoom
-        root.repaintAll()
-    }
-
-    function zoomAllesEinpassen() {
-        var _zaeEls = elementeModel.snapshot()
-        if (_zaeEls.length === 0) { ansichtZuruecksetzen(); return }
-        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity
-        for (var i = 0; i < _zaeEls.length; i++) {
-            var el = _zaeEls[i]
-            minX = Math.min(minX, el.x1, el.x2)
-            minY = Math.min(minY, el.y1, el.y2)
-            maxX = Math.max(maxX, el.x1, el.x2)
-            maxY = Math.max(maxY, el.y1, el.y2)
-        }
-        var topH = headerBar.visible ? headerBar.height : 0
-        var botH = footerBar.visible ? footerBar.height : 0
-        var tlW  = werkzeugLeiste.visible ? werkzeugLeiste.width : 0
-        var vpW  = width - tlW
-        var vpH  = height - topH - botH
-        var bboxW = maxX - minX, bboxH = maxY - minY
-        if (bboxW <= 0 || bboxH <= 0) { ansichtZuruecksetzen(); return }
-        var pad = 40
-        var newZoom = Math.min((vpW - 2*pad) / bboxW, (vpH - 2*pad) / bboxH, 4.0)
-        newZoom = Math.max(newZoom, 0.05)
-        root.zoom   = newZoom
-        root.worldX = tlW + vpW/2 - (minX + maxX)/2 * newZoom
-        root.worldY = topH + vpH/2 - (minY + maxY)/2 * newZoom
-        root.repaintAll()
-    }
-
-    function zoomAuswahlEinpassen() {
-        if (root.auswahl.length === 0) { zoomAllesEinpassen(); return }
-        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity
-        for (var i = 0; i < root.auswahl.length; i++) {
-            var el = elementeModel.element(root.auswahl[i])
-            if (!el) continue
-            minX = Math.min(minX, el.x1, el.x2)
-            minY = Math.min(minY, el.y1, el.y2)
-            maxX = Math.max(maxX, el.x1, el.x2)
-            maxY = Math.max(maxY, el.y1, el.y2)
-        }
-        if (!isFinite(minX)) return
-        var topH = headerBar.visible ? headerBar.height : 0
-        var botH = footerBar.visible ? footerBar.height : 0
-        var tlW  = werkzeugLeiste.visible ? werkzeugLeiste.width : 0
-        var vpW  = width - tlW
-        var vpH  = height - topH - botH
-        var bboxW = maxX - minX
-        var bboxH = maxY - minY
-        var pad = 60
-        var newZoom
-        if (bboxW < 2 && bboxH < 2) {
-            newZoom = 2.0
-        } else {
-            newZoom = Math.min((vpW - 2*pad) / Math.max(bboxW, 1),
-                               (vpH - 2*pad) / Math.max(bboxH, 1), 4.0)
-            newZoom = Math.max(newZoom, 0.1)
-        }
-        root.zoom   = newZoom
-        root.worldX = tlW + vpW/2 - (minX + maxX)/2 * newZoom
-        root.worldY = topH + vpH/2 - (minY + maxY)/2 * newZoom
-        root.repaintAll()
-    }
+    function zoomAnpassen(factor)     { navigationHandler.zoomAnpassen(factor) }
+    function ansichtZuruecksetzen()   { navigationHandler.ansichtZuruecksetzen() }
+    function autoPanFuerAuswahl()     { navigationHandler.autoPanFuerAuswahl() }
+    function zoomNormblattEinpassen() { navigationHandler.zoomNormblattEinpassen() }
+    function zoomAllesEinpassen()     { navigationHandler.zoomAllesEinpassen() }
+    function zoomAuswahlEinpassen()   { navigationHandler.zoomAuswahlEinpassen() }
 
     function seiteNeuLaden() {
         if (seiteId >= 0) {

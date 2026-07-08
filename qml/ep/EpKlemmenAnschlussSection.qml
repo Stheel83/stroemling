@@ -22,6 +22,14 @@ Item {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
+    function textpositionZuruecksetzen() {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        delete ed.bmkOffsetX
+        delete ed.bmkOffsetY
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
     component Trennlinie: Rectangle {
         width: root.width - 16; height: 1; color: root.theme.border
         anchors.horizontalCenter: parent.horizontalCenter
@@ -345,6 +353,83 @@ Item {
             }
         }
 
+        // ── Textposition ──────────────────────────────────────────
+        Trennlinie {}
+        AbschnittTitel { text: qsTr("TEXTPOSITION") }
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 12
+
+            Column {
+                spacing: 2
+                Text { anchors.horizontalCenter: parent.horizontalCenter
+                       text: qsTr("Versatz X"); color: root.theme.panelMid; font.pixelSize: 10 }
+                Row {
+                    spacing: 2
+                    Rectangle {
+                        width: 52; height: 22; radius: 3
+                        color: root.theme.inputBg; border.color: kaOxTf.activeFocus ? root.theme.accent : root.theme.border
+                        TextInput {
+                            id: kaOxTf
+                            anchors { fill: parent; leftMargin: 4; rightMargin: 4 }
+                            horizontalAlignment: TextInput.AlignRight
+                            color: root.theme.textSecondary; font.pixelSize: 10
+                            verticalAlignment: TextInput.AlignVCenter
+                            validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                            property real weltWert: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkOffsetX !== undefined)
+                                                    ? panel.el.extraDaten.bmkOffsetX : 0
+                            text: (weltWert / panel.canvas.mmToPx).toFixed(1)
+                            Binding on text { when: !kaOxTf.activeFocus; value: (kaOxTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                            onEditingFinished: { var v = parseFloat(text.replace(",",".")); if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * panel.canvas.mmToPx) }
+                            Keys.onEscapePressed: focus = false
+                        }
+                    }
+                    Text { text: "mm"; color: root.theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                }
+            }
+
+            Column {
+                spacing: 2
+                Text { anchors.horizontalCenter: parent.horizontalCenter
+                       text: qsTr("Versatz Y"); color: root.theme.panelMid; font.pixelSize: 10 }
+                Row {
+                    spacing: 2
+                    Rectangle {
+                        width: 52; height: 22; radius: 3
+                        color: root.theme.inputBg; border.color: kaOyTf.activeFocus ? root.theme.accent : root.theme.border
+                        TextInput {
+                            id: kaOyTf
+                            anchors { fill: parent; leftMargin: 4; rightMargin: 4 }
+                            horizontalAlignment: TextInput.AlignRight
+                            color: root.theme.textSecondary; font.pixelSize: 10
+                            verticalAlignment: TextInput.AlignVCenter
+                            validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                            property real weltWert: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkOffsetY !== undefined)
+                                                    ? panel.el.extraDaten.bmkOffsetY : 0
+                            text: (weltWert / panel.canvas.mmToPx).toFixed(1)
+                            Binding on text { when: !kaOyTf.activeFocus; value: (kaOyTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                            onEditingFinished: { var v = parseFloat(text.replace(",",".")); if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * panel.canvas.mmToPx) }
+                            Keys.onEscapePressed: focus = false
+                        }
+                    }
+                    Text { text: "mm"; color: root.theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                }
+            }
+
+            Rectangle {
+                anchors.bottom: parent.bottom
+                width: 32; height: 22; radius: 3
+                color: kaResetMa.containsMouse ? root.theme.hover : "transparent"
+                border.color: root.theme.border
+                Text { anchors.centerIn: parent; text: "↺"; font.pixelSize: 12; color: root.theme.textMuted }
+                MouseArea {
+                    id: kaResetMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.textpositionZuruecksetzen()
+                }
+                ToolTip { visible: kaResetMa.containsMouse; text: qsTr("Textposition zurücksetzen"); delay: 500 }
+            }
+        }
         Item { height: 4 }
     }
 }

@@ -61,6 +61,31 @@ Item {
     readonly property bool istSteckerOderBuchse:
         panel.el && (panel.el.symbolId === "stecker" || panel.el.symbolId === "buchse")
 
+    // Symbole mit eigenem, generischem BMK-Textlabel – Klemme/Geräteanschluss/
+    // Potenzial haben ihre eigene Textposition-Logik in ihren jeweiligen
+    // EP-Sektionen (eigene Default-Werte, eigene Basisberechnung der Position).
+    readonly property bool zeigtTextposition:
+        panel.el && panel.el.typ === "symbol"
+        && !_pinBezSkip[panel.el.symbolId || ""]
+
+    function extraSetzen(key, val) {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        ed[key] = val
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
+    // Löscht die Offset-Schlüssel statt sie auf 0 zu setzen: der Code-Default
+    // für normale Symbole ist -14 (Text sitzt automatisch über dem Symbol),
+    // nicht 0 – nur so kehrt "Zurücksetzen" wirklich zur Ruheposition zurück.
+    function textpositionZuruecksetzen() {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        delete ed.bmkOffsetX
+        delete ed.bmkOffsetY
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
     // Pin 2 von Stecker/Buchse ist die fiktive Steckverbindung – keine eigene
     // Beschriftung, Status stattdessen als "Gesteckt"/"Nicht gesteckt" (s.u.).
     function _pinsFuerBeschriftung(symbolId) {
@@ -156,6 +181,106 @@ Item {
         Item {
             height: 4
             visible: symbolCol.zeigeSpiegelung
+        }
+
+        // ── Textposition ─────────────────────────────────────────────────────
+        Loader {
+            active: root.zeigtTextposition
+            width: parent.width
+
+            sourceComponent: Component {
+                Column {
+                    width: parent ? parent.width : 0; spacing: 0
+
+                    Rectangle {
+                        width: parent.width - 16; height: 1; color: root.theme.border
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Item {
+                        width: parent.width; height: 26
+                        Text {
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                            text: qsTr("TEXTPOSITION"); font.pixelSize: 9; font.weight: Font.Bold
+                            font.letterSpacing: 1.5; color: root.theme.borderLight
+                        }
+                    }
+
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 12
+
+                        Column {
+                            spacing: 2
+                            Text { anchors.horizontalCenter: parent.horizontalCenter
+                                   text: qsTr("Versatz X"); color: root.theme.panelMid; font.pixelSize: 10 }
+                            Row {
+                                spacing: 2
+                                Rectangle {
+                                    width: 52; height: 22; radius: 3
+                                    color: root.theme.inputBg; border.color: symOxTf.activeFocus ? root.theme.accent : root.theme.border
+                                    TextInput {
+                                        id: symOxTf
+                                        anchors { fill: parent; leftMargin: 4; rightMargin: 4 }
+                                        horizontalAlignment: TextInput.AlignRight
+                                        color: root.theme.textSecondary; font.pixelSize: 10
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        property real weltWert: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkOffsetX !== undefined)
+                                                                ? panel.el.extraDaten.bmkOffsetX : 0
+                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
+                                        Binding on text { when: !symOxTf.activeFocus; value: (symOxTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                                        onEditingFinished: { var v = parseFloat(text.replace(",",".")); if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * panel.canvas.mmToPx) }
+                                        Keys.onEscapePressed: focus = false
+                                    }
+                                }
+                                Text { text: "mm"; color: root.theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                            }
+                        }
+
+                        Column {
+                            spacing: 2
+                            Text { anchors.horizontalCenter: parent.horizontalCenter
+                                   text: qsTr("Versatz Y"); color: root.theme.panelMid; font.pixelSize: 10 }
+                            Row {
+                                spacing: 2
+                                Rectangle {
+                                    width: 52; height: 22; radius: 3
+                                    color: root.theme.inputBg; border.color: symOyTf.activeFocus ? root.theme.accent : root.theme.border
+                                    TextInput {
+                                        id: symOyTf
+                                        anchors { fill: parent; leftMargin: 4; rightMargin: 4 }
+                                        horizontalAlignment: TextInput.AlignRight
+                                        color: root.theme.textSecondary; font.pixelSize: 10
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        property real weltWert: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkOffsetY !== undefined)
+                                                                ? panel.el.extraDaten.bmkOffsetY : -14
+                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
+                                        Binding on text { when: !symOyTf.activeFocus; value: (symOyTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                                        onEditingFinished: { var v = parseFloat(text.replace(",",".")); if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * panel.canvas.mmToPx) }
+                                        Keys.onEscapePressed: focus = false
+                                    }
+                                }
+                                Text { text: "mm"; color: root.theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: 32; height: 22; radius: 3
+                            color: symResetMa.containsMouse ? root.theme.hover : "transparent"
+                            border.color: root.theme.border
+                            Text { anchors.centerIn: parent; text: "↺"; font.pixelSize: 12; color: root.theme.textMuted }
+                            MouseArea {
+                                id: symResetMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: root.textpositionZuruecksetzen()
+                            }
+                            ToolTip { visible: symResetMa.containsMouse; text: qsTr("Textposition zurücksetzen"); delay: 500 }
+                        }
+                    }
+                    Item { height: 4; width: parent.width }
+                }
+            }
         }
 
         // ── Pin-Bezeichnungen ────────────────────────────────────────────────

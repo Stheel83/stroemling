@@ -14,7 +14,7 @@ QtObject {
         var adern = db.kabelAderListeMitVerbindung(cv.projektId)
         if (!adern || adern.length === 0) return
 
-        var netze = cv._drawCanvas.autoNetzeBerechnen()
+        var netze = cv.netzberechnung.autoNetzeBerechnen()
         // verbindungId → net
         var verbNetMap = {}
         for (var ni = 0; ni < netze.length; ni++) {

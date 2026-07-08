@@ -146,7 +146,7 @@ Item {
 
             Text {
                 text: qsTr("Seite löschen")
-                font.pixelSize: 15; font.weight: Font.Medium; color: "#ffcccc"
+                font.pixelSize: 15; font.weight: Font.Medium; color: "#cc3300"
             }
             Rectangle { Layout.fillWidth: true; height: 1; color: "#3a1a1a" }
 
@@ -154,7 +154,7 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 font.pixelSize: 13
-                color: dlgSeiteLoeschen.loeschElementeAnzahl > 0 ? "#ffaa44" : theme.textSecondary
+                color: dlgSeiteLoeschen.loeschElementeAnzahl > 0 ? "#dd6600" : theme.textSecondary
                 text: dlgSeiteLoeschen.loeschElementeAnzahl > 0
                     ? "Diese Seite enthält " + dlgSeiteLoeschen.loeschElementeAnzahl
                       + " Element(e).\n\nSeite und alle Elemente werden unwiderruflich gelöscht."
@@ -212,7 +212,7 @@ Item {
 
             Text {
                 text: dlgAnlageOrtLoeschen.loeschKnotenTyp === 0 ? qsTr("Anlage löschen") : qsTr("Ort löschen")
-                font.pixelSize: 15; font.weight: Font.Medium; color: "#ffcccc"
+                font.pixelSize: 15; font.weight: Font.Medium; color: "#cc3300"
             }
             Rectangle { Layout.fillWidth: true; height: 1; color: "#3a1a1a" }
 
@@ -220,7 +220,7 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 font.pixelSize: 13
-                color: dlgAnlageOrtLoeschen.loeschSeitenAnzahl > 0 ? "#ffaa44" : theme.textSecondary
+                color: dlgAnlageOrtLoeschen.loeschSeitenAnzahl > 0 ? "#dd6600" : theme.textSecondary
                 text: dlgAnlageOrtLoeschen.loeschSeitenAnzahl > 0
                     ? "\"" + dlgAnlageOrtLoeschen.loeschName + "\" enthält " + dlgAnlageOrtLoeschen.loeschSeitenAnzahl
                       + " Seite(n).\n\nDiese werden mitsamt allen Zeichnungselementen unwiderruflich gelöscht."
@@ -1445,7 +1445,7 @@ Item {
                                     } else {
                                         dlgAnlageOrtLoeschen.loeschKnotenTyp    = model.knotenTyp
                                         dlgAnlageOrtLoeschen.loeschId           = model.itemId
-                                        dlgAnlageOrtLoeschen.loeschName         = (model.knotenTyp === 0 ? "=" : "+") + model.kuerzel + " " + model.bezeichnung
+                                        dlgAnlageOrtLoeschen.loeschName         = model.bezeichnung
                                         dlgAnlageOrtLoeschen.loeschSeitenAnzahl = model.seitenAnzahl ?? 0
                                         dlgAnlageOrtLoeschen.open()
                                     }

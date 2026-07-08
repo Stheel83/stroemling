@@ -1193,7 +1193,13 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root._nurSeitenFilter = !root._nurSeitenFilter
+                onClicked: {
+                    root._nurSeitenFilter = !root._nurSeitenFilter
+                    // Qt 6 TreeView cached row heights (s. rowHeightProvider-Kommentar
+                    // oben): ein reiner Property-Wechsel ohne Modell-Reset reicht nicht,
+                    // um bereits gemessene Zeilenhöhen zu verwerfen -> Lücke im Baum.
+                    Qt.callLater(function() { treeView.forceLayout() })
+                }
                 ToolTip.visible: containsMouse
                 ToolTip.delay: 600
                 ToolTip.text: qsTr("Aus: zeigt auch Anlagen/Orte ohne Seiten (z. B. für Strukturkästen)")

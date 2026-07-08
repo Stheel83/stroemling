@@ -374,6 +374,7 @@ Item {
                             inpAnlageKuerzel.text.trim(), inpAnlageBez.text.trim(), inpAnlageUO.text.trim())
                         inpAnlageKuerzel.text = ""; inpAnlageBez.text = ""; inpAnlageUO.text = ""
                         dlgAnlage.close()
+                        root._nurSeitenFilter = false   // neue, noch leere Anlage bliebe sonst unsichtbar
                     }
                 }
             }
@@ -502,6 +503,7 @@ Item {
                             inpOrtKuerzel.text.trim(), inpOrtBez.text.trim(), inpOrtUO.text.trim())
                         inpOrtKuerzel.text = ""; inpOrtBez.text = ""; inpOrtUO.text = ""
                         dlgOrt.close()
+                        root._nurSeitenFilter = false   // neuer, noch leerer Ort bliebe sonst unsichtbar
                     }
                 }
             }
@@ -586,6 +588,7 @@ Item {
                             fmt.breite, fmt.hoehe)
                         inpBlatt.text = ""; inpSeiteBez.text = ""; cmbTyp.currentIndex = 0; cmbFormat.currentIndex = 0
                         dlgSeite.close()
+                        root._nurSeitenFilter = false
                     }
                 }
             }

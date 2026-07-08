@@ -690,55 +690,16 @@ ApplicationWindow {
                 Item { height: 4 }
 
                 // ── Sprach-Picker ─────────────────────────────────
-                Rectangle { height: 1; color: appTheme.border; Layout.fillWidth: true }
-                Item { height: 4 }
-                Text {
-                    text:        qsTr("Sprache")
-                    font.pixelSize: 9
-                    color:       appTheme.textMuted
-                    leftPadding: 4
-                }
-                Item { height: 3 }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    Repeater {
-                        model: [
-                            { key: "system", label: "Auto" },
-                            { key: "de",     label: "DE"   },
-                            { key: "en",     label: "EN"   }
-                        ]
-                        delegate: Rectangle {
-                            Layout.fillWidth: true
-                            height:       22
-                            radius:       3
-                            color:        root.aktivSprache === modelData.key ? appTheme.activeItemAlt : "transparent"
-                            border.color: root.aktivSprache === modelData.key ? appTheme.accent : appTheme.border
-                            border.width: 1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text:           modelData.label
-                                font.pixelSize: 9
-                                color:          root.aktivSprache === modelData.key ? appTheme.accent : appTheme.textMuted
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (root.aktivSprache !== modelData.key) {
-                                        root.aktivSprache        = modelData.key
-                                        langSettings.language    = modelData.key
-                                        appHelper.restart()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                Item { height: 4 }
-                // ─────────────────────────────────────────────────
+                // Ausgeblendet bis L20 (GUI-Übersetzungen) umgesetzt ist:
+                // i18n/stroemling_en.ts enthält aktuell 0 echte Übersetzungen
+                // (205 Einträge, alle "unfinished"/leer). "Auto" würde bei
+                // englischem System-Locale denselben leeren EN-Übersetzer
+                // laden und für diese 205 Strings leeren Text statt des
+                // deutschen Quelltexts zeigen – daher der ganze Block
+                // ausgeblendet, nicht nur "EN". root.aktivSprache/
+                // langSettings bleiben unverändert (Settings-Wert "system"
+                // wirkt sich bei fehlendem Übersetzer nicht aus).
+                // konzept/projekt/08_roadmap.md L20
 
                 Rectangle { height: 1; color: appTheme.border; Layout.fillWidth: true }
 

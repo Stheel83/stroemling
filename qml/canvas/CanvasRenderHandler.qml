@@ -1,4 +1,5 @@
 import QtQuick
+import "../SymbolKlassen.js" as SK
 
 // Render-Helferfunktionen fürs Canvas-Zeichnen (Normblatt, Element-Dispatch,
 // Primitiv-Renderer je Elementtyp inkl. Symbol-Rendering, Kabelschnitte/

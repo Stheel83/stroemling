@@ -24,15 +24,36 @@ Item {
     signal feldGroesseGeaendert(int idx, real breiteMm, real hoeheMm)
     signal feldLoeschenAngefordert(int idx)
 
-    // Entf/Backspace löscht das ausgewählte Feld (analog SymbolEditorAnsicht.qml).
-    // Greift nur, wenn der Canvas selbst den Fokus hat (Klick auf Feld/Hintergrund
-    // holt ihn sich über forceActiveFocus() unten) — Tippen in einem TextField im
-    // Eigenschaften-Panel bleibt davon unberührt, da dieses den Fokus dann selbst hält.
+    // Entf/Backspace löscht, Pfeiltasten verschieben das ausgewählte Feld
+    // (1mm, mit Shift 10mm — analog dem Grobraster). Greift nur, wenn der
+    // Canvas selbst den Fokus hat (Klick auf Feld/Hintergrund holt ihn sich
+    // über forceActiveFocus() unten) — Tippen in einem TextField im
+    // Eigenschaften-Panel bleibt davon unberührt, da dieses den Fokus dann
+    // selbst hält.
     Keys.onPressed: function(event) {
         if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && root.selIdx >= 0) {
             root.feldLoeschenAngefordert(root.selIdx)
             event.accepted = true
+            return
         }
+        if (root.selIdx >= 0 && (event.key === Qt.Key_Left  || event.key === Qt.Key_Right
+                               || event.key === Qt.Key_Up    || event.key === Qt.Key_Down)) {
+            var step = (event.modifiers & Qt.ShiftModifier) ? 10 : 1
+            var dx   = event.key === Qt.Key_Left ? -step : event.key === Qt.Key_Right ? step : 0
+            var dy   = event.key === Qt.Key_Up   ? -step : event.key === Qt.Key_Down  ? step : 0
+            root._nudge(dx, dy)
+            event.accepted = true
+        }
+    }
+
+    // Verschiebt das ausgewählte Feld relativ, an den Seitenrand geklemmt
+    // (dieselbe Klemm-Logik wie beim Loslassen nach einem Maus-Drag).
+    function _nudge(dxMm, dyMm) {
+        if (selIdx < 0 || selIdx >= felder.length) return
+        var f  = felder[selIdx]
+        var nx = Math.max(0, Math.min(breiteMm - f.breiteMm, f.xMm + dxMm))
+        var ny = Math.max(0, Math.min(hoeheMm  - f.hoeheMm,  f.yMm + dyMm))
+        feldVerschoben(selIdx, nx, ny)
     }
 
     // ── Skalierung: Einpassen (fit-to-window) × Nutzer-Zoom ────

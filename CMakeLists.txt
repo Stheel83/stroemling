@@ -72,9 +72,6 @@ qt_add_qml_module(stroemling_app
     QML_FILES
         qml/AppTheme.qml
         qml/Main.qml
-        qml/ProjectTree.qml
-        qml/PtEigenschaftenDialog.qml
-        qml/PtLoeschenDialog.qml
         qml/CrossProjektEinfuegenDialog.qml
         qml/SeitenBaum.qml
         qml/SeitenBaumNormblattPanel.qml
@@ -210,7 +207,6 @@ qt_add_qml_module(stroemling_app
         qml/kontakt/KontaktEditor.qml
         qml/MakrobenennDialog.qml
         qml/MakroPalette.qml
-        qml/MakroBibliothekDialog.qml
         qml/DrcPanel.qml
         qml/PdfExportDialog.qml
         qml/CanvasPanel.qml
@@ -527,7 +523,6 @@ qt_add_translations(stroemling_app
         i18n/stroemling_en.ts
     SOURCES
         qml/Main.qml
-        qml/ProjectTree.qml
         qml/SeitenBaum.qml
         qml/SeitenBaumNormblattPanel.qml
         qml/SeitenBaumBauteilePanel.qml

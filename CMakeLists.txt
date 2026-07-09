@@ -215,6 +215,7 @@ qt_add_qml_module(stroemling_app
         qml/nb/NormblattEditorCanvas.qml
         qml/nb/NormblattFeldPalette.qml
         qml/nb/NormblattFeldProperties.qml
+        qml/nb/NormblattAusrichtenPanel.qml
         qml/wiki/WikiAnsicht.qml
         qml/wiki/WikiFormatierungsToolbar.qml
         qml/wiki/WikiBildGalerie.qml

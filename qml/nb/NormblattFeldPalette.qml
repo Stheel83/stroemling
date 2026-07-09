@@ -95,7 +95,7 @@ Item {
         Item { height: 4 }
 
         Text {
-            text: qsTr("↑↓←→  Verschieben (1mm)\n⇧ + Pfeiltaste  10mm\nEntf / ⌫  Löschen")
+            text: qsTr("↑↓←→  Verschieben (1mm)\n⇧ + Pfeiltaste  10mm\nEntf / ⌫  Löschen\nStrg + Klick  Mehrfachauswahl")
             color: root.theme.textMuted; font.pixelSize: 10; lineHeight: 1.3
             width: parent.width; wrapMode: Text.WordWrap
         }

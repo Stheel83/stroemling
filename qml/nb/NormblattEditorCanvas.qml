@@ -8,8 +8,9 @@ Item {
 
     required property var theme
 
-    property var  felder:        []
-    property int  selIdx:        -1
+    property var  felder:          []
+    property int  selIdx:          -1
+    property var  mehrfachAuswahl: []   // Array von Indizes, für Strg+Klick-Mehrfachauswahl
     property bool hatVorlage:    false
     property real breiteMm:      297
     property real hoeheMm:       210
@@ -19,25 +20,29 @@ Item {
     property real randUntenMm:   10
 
     signal feldAngewaehlt(int idx)
+    signal feldMehrfachAngewaehlt(int idx)
     signal hintergrundGeklickt()
     signal feldVerschoben(int idx, real xMm, real yMm)
     signal feldGroesseGeaendert(int idx, real breiteMm, real hoeheMm)
-    signal feldLoeschenAngefordert(int idx)
+    signal mehrfachLoeschenAngefordert(var indices)
 
-    // Entf/Backspace löscht, Pfeiltasten verschieben das ausgewählte Feld
-    // (1mm, mit Shift 10mm — analog dem Grobraster). Greift nur, wenn der
-    // Canvas selbst den Fokus hat (Klick auf Feld/Hintergrund holt ihn sich
-    // über forceActiveFocus() unten) — Tippen in einem TextField im
-    // Eigenschaften-Panel bleibt davon unberührt, da dieses den Fokus dann
-    // selbst hält.
+    // Entf/Backspace löscht, Pfeiltasten verschieben alle ausgewählten
+    // Felder (1mm, mit Shift 10mm — analog dem Grobraster). Greift nur,
+    // wenn der Canvas selbst den Fokus hat (Klick auf Feld/Hintergrund
+    // holt ihn sich über forceActiveFocus() unten) — Tippen in einem
+    // TextField im Eigenschaften-Panel bleibt davon unberührt, da dieses
+    // den Fokus dann selbst hält.
     Keys.onPressed: function(event) {
-        if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && root.selIdx >= 0) {
-            root.feldLoeschenAngefordert(root.selIdx)
-            event.accepted = true
+        if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
+            if (root.mehrfachAuswahl.length > 0) {
+                root.mehrfachLoeschenAngefordert(root.mehrfachAuswahl)
+                event.accepted = true
+            }
             return
         }
-        if (root.selIdx >= 0 && (event.key === Qt.Key_Left  || event.key === Qt.Key_Right
-                               || event.key === Qt.Key_Up    || event.key === Qt.Key_Down)) {
+        if (root.mehrfachAuswahl.length > 0 &&
+                (event.key === Qt.Key_Left || event.key === Qt.Key_Right
+              || event.key === Qt.Key_Up   || event.key === Qt.Key_Down)) {
             var step = (event.modifiers & Qt.ShiftModifier) ? 10 : 1
             var dx   = event.key === Qt.Key_Left ? -step : event.key === Qt.Key_Right ? step : 0
             var dy   = event.key === Qt.Key_Up   ? -step : event.key === Qt.Key_Down  ? step : 0
@@ -46,14 +51,18 @@ Item {
         }
     }
 
-    // Verschiebt das ausgewählte Feld relativ, an den Seitenrand geklemmt
-    // (dieselbe Klemm-Logik wie beim Loslassen nach einem Maus-Drag).
+    // Verschiebt alle ausgewählten Felder relativ, jedes einzeln an den
+    // Seitenrand geklemmt (dieselbe Klemm-Logik wie beim Loslassen nach
+    // einem Maus-Drag).
     function _nudge(dxMm, dyMm) {
-        if (selIdx < 0 || selIdx >= felder.length) return
-        var f  = felder[selIdx]
-        var nx = Math.max(0, Math.min(breiteMm - f.breiteMm, f.xMm + dxMm))
-        var ny = Math.max(0, Math.min(hoeheMm  - f.hoeheMm,  f.yMm + dyMm))
-        feldVerschoben(selIdx, nx, ny)
+        for (var i = 0; i < mehrfachAuswahl.length; i++) {
+            var idx = mehrfachAuswahl[i]
+            if (idx < 0 || idx >= felder.length) continue
+            var f  = felder[idx]
+            var nx = Math.max(0, Math.min(breiteMm - f.breiteMm, f.xMm + dxMm))
+            var ny = Math.max(0, Math.min(hoeheMm  - f.hoeheMm,  f.yMm + dyMm))
+            feldVerschoben(idx, nx, ny)
+        }
     }
 
     // ── Skalierung: Einpassen (fit-to-window) × Nutzer-Zoom ────
@@ -235,13 +244,15 @@ Item {
             width:  (modelData.breiteMm + _dbMm) * root._scale
             height: (modelData.hoeheMm  + _dhMm) * root._scale
 
+            readonly property bool _ausgewaehlt: root.mehrfachAuswahl.indexOf(del.index) >= 0
+
             // ── Feld-Rechteck ──────────────────────────────────
             Rectangle {
                 anchors.fill: parent
                 color:        root._feldFarbe(del.modelData.feldtyp)
-                opacity:      del.index === root.selIdx ? 0.88 : 0.60
-                border.color: del.index === root.selIdx ? root.theme.accent : root.theme.borderLight
-                border.width: del.index === root.selIdx ? 2 : 1
+                opacity:      del._ausgewaehlt ? 0.88 : 0.60
+                border.color: del._ausgewaehlt ? root.theme.accent : root.theme.borderLight
+                border.width: del._ausgewaehlt ? 2 : 1
                 radius: 2
                 clip: true
 
@@ -272,25 +283,35 @@ Item {
             }
 
             // ── Drag-MouseArea ─────────────────────────────────
+            // Strg+Klick fügt das Feld zur Mehrfachauswahl hinzu/entfernt es,
+            // ohne einen Drag zu starten. Normaler Klick wählt (wie bisher)
+            // nur dieses eine Feld aus und startet direkt den Drag.
             MouseArea {
                 anchors { fill: parent; rightMargin: 10; bottomMargin: 10 }
                 cursorShape: Qt.SizeAllCursor
                 preventStealing: true
                 property real _sx: 0
                 property real _sy: 0
+                property bool _strgKlick: false
                 onPressed: function(mouse) {
+                    root.forceActiveFocus()
+                    _strgKlick = (mouse.modifiers & Qt.ControlModifier) !== 0
+                    if (_strgKlick) {
+                        root.feldMehrfachAngewaehlt(del.index)
+                        return
+                    }
                     var gp = mapToItem(null, mouse.x, mouse.y)
                     _sx = gp.x; _sy = gp.y
-                    root.forceActiveFocus()
                     root.feldAngewaehlt(del.index)
                 }
                 onPositionChanged: function(mouse) {
-                    if (!pressed) return
+                    if (!pressed || _strgKlick) return
                     var gp = mapToItem(null, mouse.x, mouse.y)
                     del._dxMm = (gp.x - _sx) / root._scale
                     del._dyMm = (gp.y - _sy) / root._scale
                 }
                 onReleased: function(mouse) {
+                    if (_strgKlick) { _strgKlick = false; return }
                     var gp = mapToItem(null, mouse.x, mouse.y)
                     var nx = Math.round(del.modelData.xMm + (gp.x - _sx) / root._scale)
                     var ny = Math.round(del.modelData.yMm + (gp.y - _sy) / root._scale)
@@ -376,7 +397,7 @@ Item {
     // ── Tastatur-Hinweis bei ausgewähltem Feld ─────────────────
     Rectangle {
         anchors { left: parent.left; bottom: parent.bottom; margins: 10 }
-        visible: root.selIdx >= 0
+        visible: root.mehrfachAuswahl.length > 0
         width: hinweisText.implicitWidth + 16; height: 26; radius: 5
         color: Qt.rgba(0, 0, 0, 0.35)
         border.color: root.theme.border; border.width: 1
@@ -384,7 +405,9 @@ Item {
         Text {
             id: hinweisText
             anchors.centerIn: parent
-            text: qsTr("↑↓←→ Verschieben · ⇧ = 10mm · Entf Löschen")
+            text: root.mehrfachAuswahl.length > 1
+                  ? qsTr("↑↓←→ Verschieben · ⇧ = 10mm · Entf Löschen · Strg+Klick An/Abwählen")
+                  : qsTr("↑↓←→ Verschieben · ⇧ = 10mm · Entf Löschen · Strg+Klick Mehrfachauswahl")
             color: "white"; font.pixelSize: 11
         }
     }

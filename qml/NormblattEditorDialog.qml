@@ -17,6 +17,7 @@ Item {
     property int  _vorlIdx:    -1
     property var  _felder:     []
     property int  _selIdx:     -1
+    property var  _mehrfachAuswahl: []   // hält _selIdx synchron: [] leer, [i] ⇒ _selIdx=i, sonst _selIdx=-1
     property bool _neuModus:   false
     property string _neuName:  ""
 
@@ -35,8 +36,103 @@ Item {
 
     function _felderLaden() {
         _selIdx = -1
+        _mehrfachAuswahl = []
         _felder = _vorlage ? db.normblattFelderLaden(_vorlage.id) : []
     }
+
+    // ── Mehrfachauswahl ───────────────────────────────────────
+    function _mehrfachToggle(idx) {
+        var arr = _mehrfachAuswahl.slice()
+        var pos = arr.indexOf(idx)
+        if (pos >= 0) arr.splice(pos, 1)
+        else arr.push(idx)
+        _mehrfachAuswahl = arr
+        _selIdx = arr.length === 1 ? arr[0] : -1
+    }
+
+    function _mehrfachLoeschen(indices) {
+        if (!indices || indices.length === 0) return
+        var sortiert = indices.slice().sort(function(a, b) { return b - a })
+        var neu = _felder.slice()
+        for (var i = 0; i < sortiert.length; i++) neu.splice(sortiert[i], 1)
+        _felder = neu
+        _selIdx = -1
+        _mehrfachAuswahl = []
+    }
+
+    // Richtet/verteilt alle Felder in _mehrfachAuswahl relativ zueinander aus.
+    // modus: links/rechts/hZentrieren/oben/unten/vZentrieren/hVerteilen/vVerteilen
+    function _mehrfachAusrichten(modus) {
+        if (_mehrfachAuswahl.length < 2) return
+        var idxs = _mehrfachAuswahl
+        var neu  = _felder.slice()
+
+        if (modus === "links" || modus === "rechts" || modus === "hZentrieren") {
+            var minX = Infinity, maxX = -Infinity
+            for (var i = 0; i < idxs.length; i++) {
+                var fi = neu[idxs[i]]
+                minX = Math.min(minX, fi.xMm)
+                maxX = Math.max(maxX, fi.xMm + fi.breiteMm)
+            }
+            for (var j = 0; j < idxs.length; j++) {
+                var f = _feldKopie(idxs[j])
+                if      (modus === "links")        f.xMm = minX
+                else if (modus === "rechts")       f.xMm = maxX - f.breiteMm
+                else /* hZentrieren */              f.xMm = (minX + maxX) / 2 - f.breiteMm / 2
+                f.xMm = Math.round(Math.max(0, Math.min((_vorlage.breiteMm || 297) - f.breiteMm, f.xMm)))
+                neu[idxs[j]] = f
+            }
+        } else if (modus === "oben" || modus === "unten" || modus === "vZentrieren") {
+            var minY = Infinity, maxY = -Infinity
+            for (var i2 = 0; i2 < idxs.length; i2++) {
+                var fi2 = neu[idxs[i2]]
+                minY = Math.min(minY, fi2.yMm)
+                maxY = Math.max(maxY, fi2.yMm + fi2.hoeheMm)
+            }
+            for (var j2 = 0; j2 < idxs.length; j2++) {
+                var f2 = _feldKopie(idxs[j2])
+                if      (modus === "oben")          f2.yMm = minY
+                else if (modus === "unten")         f2.yMm = maxY - f2.hoeheMm
+                else /* vZentrieren */               f2.yMm = (minY + maxY) / 2 - f2.hoeheMm / 2
+                f2.yMm = Math.round(Math.max(0, Math.min((_vorlage.hoeheMm || 210) - f2.hoeheMm, f2.yMm)))
+                neu[idxs[j2]] = f2
+            }
+        } else if (modus === "hVerteilen" && idxs.length >= 3) {
+            var sortH = idxs.slice().sort(function(a, b) { return neu[a].xMm - neu[b].xMm })
+            var ersterH = neu[sortH[0]], letzterH = neu[sortH[sortH.length - 1]]
+            var spanH = (letzterH.xMm + letzterH.breiteMm) - ersterH.xMm
+            var breiteSummeH = 0
+            for (var h = 0; h < sortH.length; h++) breiteSummeH += neu[sortH[h]].breiteMm
+            var lueckeH = (spanH - breiteSummeH) / (sortH.length - 1)
+            var cursorH = ersterH.xMm
+            for (var h2 = 0; h2 < sortH.length; h2++) {
+                var fH = _feldKopie(sortH[h2])
+                fH.xMm = Math.round(cursorH)
+                cursorH += fH.breiteMm + lueckeSafe(lueckeH)
+                neu[sortH[h2]] = fH
+            }
+        } else if (modus === "vVerteilen" && idxs.length >= 3) {
+            var sortV = idxs.slice().sort(function(a, b) { return neu[a].yMm - neu[b].yMm })
+            var ersterV = neu[sortV[0]], letzterV = neu[sortV[sortV.length - 1]]
+            var spanV = (letzterV.yMm + letzterV.hoeheMm) - ersterV.yMm
+            var hoeheSummeV = 0
+            for (var v = 0; v < sortV.length; v++) hoeheSummeV += neu[sortV[v]].hoeheMm
+            var lueckeV = (spanV - hoeheSummeV) / (sortV.length - 1)
+            var cursorV = ersterV.yMm
+            for (var v2 = 0; v2 < sortV.length; v2++) {
+                var fV = _feldKopie(sortV[v2])
+                fV.yMm = Math.round(cursorV)
+                cursorV += fV.hoeheMm + lueckeSafe(lueckeV)
+                neu[sortV[v2]] = fV
+            }
+        }
+
+        _felder = neu
+    }
+
+    // Verhindert NaN-Ausbreitung, falls Felder sich überlappen (Lücke wäre negativ) —
+    // negative Lücken sind bei "Verteilen" ohnehin unerwünscht, auf 0 geklemmt.
+    function lueckeSafe(v) { return isNaN(v) ? 0 : Math.max(0, v) }
 
     // ── Feld-Operationen ──────────────────────────────────────
     function _feldHinzufuegen(feldtyp) {
@@ -54,6 +150,7 @@ Item {
         }
         var neu = _felder.slice(); neu.push(f); _felder = neu
         _selIdx = neu.length - 1
+        _mehrfachAuswahl = [_selIdx]
     }
 
     function _feldVerschieben(idx, xMm, yMm) {
@@ -77,6 +174,7 @@ Item {
         if (idx < 0 || idx >= _felder.length) return
         var neu = _felder.slice(); neu.splice(idx, 1); _felder = neu
         _selIdx = -1
+        _mehrfachAuswahl = []
     }
 
     function _feldKopie(idx) {
@@ -300,10 +398,11 @@ Item {
         NormblattEditorCanvas {
             id: editorCanvas
             Layout.fillWidth: true; Layout.fillHeight: true
-            theme:        root.theme
-            felder:       root._felder
-            hatVorlage:   root._vorlage !== null
-            selIdx:       root._selIdx
+            theme:           root.theme
+            felder:          root._felder
+            hatVorlage:      root._vorlage !== null
+            selIdx:          root._selIdx
+            mehrfachAuswahl: root._mehrfachAuswahl
             breiteMm:     root._vorlage ? (root._vorlage.breiteMm || 297) : 297
             hoeheMm:      root._vorlage ? (root._vorlage.hoeheMm  || 210) : 210
             randLinksMm:  root._vorlage ? (root._vorlage.randLinksMm  || 20) : 20
@@ -311,24 +410,34 @@ Item {
             randObenMm:   root._vorlage ? (root._vorlage.randObenMm   || 10) : 10
             randUntenMm:  root._vorlage ? (root._vorlage.randUntenMm  || 10) : 10
 
-            onFeldAngewaehlt:          function(idx)       { root._selIdx = idx }
-            onHintergrundGeklickt:                         { root._selIdx = -1  }
-            onFeldVerschoben:          function(idx, x, y) { root._feldVerschieben(idx, x, y) }
-            onFeldGroesseGeaendert:    function(idx, b, h) { root._feldGroesse(idx, b, h) }
-            onFeldLoeschenAngefordert: function(idx)       { root._feldLoeschen(idx) }
+            onFeldAngewaehlt:           function(idx) { root._selIdx = idx; root._mehrfachAuswahl = [idx] }
+            onFeldMehrfachAngewaehlt:   function(idx) { root._mehrfachToggle(idx) }
+            onHintergrundGeklickt:                    { root._selIdx = -1; root._mehrfachAuswahl = [] }
+            onFeldVerschoben:           function(idx, x, y) { root._feldVerschieben(idx, x, y) }
+            onFeldGroesseGeaendert:     function(idx, b, h) { root._feldGroesse(idx, b, h) }
+            onMehrfachLoeschenAngefordert: function(indices) { root._mehrfachLoeschen(indices) }
         }
 
         Rectangle { width: 1; Layout.fillHeight: true; color: root.theme.divider }
 
-        // Eigenschaften (rechts)
+        // Eigenschaften (rechts) — Einzelfeld-Formular ODER Ausrichten/
+        // Verteilen-Werkzeuge, je nachdem wie viele Felder ausgewählt sind.
         NormblattFeldProperties {
             Layout.preferredWidth: 205; Layout.fillHeight: true
+            visible: root._mehrfachAuswahl.length < 2
             theme:   root.theme
             feldIdx: root._selIdx
             feld:    (root._selIdx >= 0 && root._selIdx < root._felder.length)
                      ? root._felder[root._selIdx] : null
             onFeldGeaendert:  function(idx, f) { root._feldAktualisieren(idx, f) }
             onFeldLoeschen:   function(idx)    { root._feldLoeschen(idx) }
+        }
+        NormblattAusrichtenPanel {
+            Layout.preferredWidth: 205; Layout.fillHeight: true
+            visible: root._mehrfachAuswahl.length >= 2
+            theme:   root.theme
+            anzahl:  root._mehrfachAuswahl.length
+            onAusrichtenAngefordert: function(modus) { root._mehrfachAusrichten(modus) }
         }
     }
 

@@ -493,6 +493,12 @@ Item {
                 color: root.theme.textMuted; font.pixelSize: 11
             }
 
+            Text {
+                visible: editorCanvas.ueberlappungsAnzahl > 0
+                text: qsTr("⚠ %1 überlappen sich").arg(editorCanvas.ueberlappungsAnzahl)
+                color: "#ff6b60"; font.pixelSize: 11
+            }
+
             Item { Layout.fillWidth: true }
 
             Rectangle {

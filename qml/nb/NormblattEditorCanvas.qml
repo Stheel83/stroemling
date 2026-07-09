@@ -97,6 +97,24 @@ Item {
     onBreiteMmChanged: _zoomZuruecksetzen()
     onHoeheMmChanged:  _zoomZuruecksetzen()
 
+    // Indizes aller Felder, die sich mit mindestens einem anderen Feld
+    // überlappen (Rechteck-Überschneidung in mm) — rein visueller Hinweis,
+    // verhindert nichts. O(n²), unproblematisch bei den üblichen
+    // Feldanzahlen eines Titelblatts.
+    readonly property var _ueberlappungsSet: {
+        var set = {}
+        for (var i = 0; i < felder.length; i++) {
+            for (var j = i + 1; j < felder.length; j++) {
+                var a = felder[i], b = felder[j]
+                var overlapX = a.xMm < b.xMm + b.breiteMm && b.xMm < a.xMm + a.breiteMm
+                var overlapY = a.yMm < b.yMm + b.hoeheMm && b.yMm < a.yMm + a.hoeheMm
+                if (overlapX && overlapY) { set[i] = true; set[j] = true }
+            }
+        }
+        return set
+    }
+    readonly property int ueberlappungsAnzahl: Object.keys(_ueberlappungsSet).length
+
     function _feldFarbe(typ) {
         switch (typ) {
         case "fest":            return "#3d6080"
@@ -280,6 +298,21 @@ Item {
                         font.weight:    Font.Bold
                     }
                 }
+            }
+
+            // ── Überlappungs-Warnung ────────────────────────────
+            // Rein visueller Hinweis, verhindert nichts — unabhängig vom
+            // Auswahl-Rahmen, damit beide Zustände gleichzeitig sichtbar
+            // sind. Kein eigenes MouseArea/Tooltip, um keine Klick-
+            // Totzone über der Drag-Fläche zu erzeugen.
+            Rectangle {
+                anchors.fill: parent
+                visible: root._ueberlappungsSet[del.index] === true
+                color: "transparent"
+                border.color: "#ff3b30"
+                border.width: 2.5
+                radius: 2
+                z: 5
             }
 
             // ── Drag-MouseArea ─────────────────────────────────

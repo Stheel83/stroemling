@@ -119,6 +119,28 @@ Item {
         _felderLaden()
     }
 
+    // Dupliziert die aktuell angezeigte Vorlage inkl. aller Felder (auch
+    // noch nicht gespeicherter lokaler Änderungen — "Kopieren" dupliziert
+    // bewusst den Stand, den der Nutzer gerade vor sich hat, nicht den
+    // zuletzt gespeicherten DB-Stand).
+    function _vorlageKopieren() {
+        if (!_vorlage) return
+        var neuId = db.normblattVorlageSpeichern({
+            name:         _vorlage.name + qsTr(" (Kopie)"),
+            beschreibung: _vorlage.beschreibung,
+            breiteMm:     _vorlage.breiteMm,     hoeheMm:      _vorlage.hoeheMm,
+            randLinksMm:  _vorlage.randLinksMm,  randRechtsMm: _vorlage.randRechtsMm,
+            randObenMm:   _vorlage.randObenMm,   randUntenMm:  _vorlage.randUntenMm
+        })
+        if (neuId > 0 && _felder.length > 0)
+            db.normblattFelderSpeichern(neuId, _felder)
+        _vorlagen = db.normblattVorlagenListe()
+        for (var i = 0; i < _vorlagen.length; i++) {
+            if (_vorlagen[i].id === neuId) { _vorlIdx = i; break }
+        }
+        _felderLaden()
+    }
+
     function _vorlageLoeschen() {
         if (!_vorlage) return
         db.normblattVorlageLoeschen(_vorlage.id)
@@ -217,6 +239,15 @@ Item {
                 MouseArea { id: neuBtnMA; anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor; onClicked: root._neuModus = true }
                 ToolTip.visible: neuBtnMA.containsMouse; ToolTip.text: qsTr("Neue Vorlage anlegen"); ToolTip.delay: 600
+            }
+            Rectangle {
+                visible: !root._neuModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                color: kopBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                border.color: root.theme.border; border.width: 1
+                Text { anchors.centerIn: parent; text: "⧉"; color: root.theme.textPrimary; font.pixelSize: 15 }
+                MouseArea { id: kopBtnMA; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor; onClicked: root._vorlageKopieren() }
+                ToolTip.visible: kopBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage duplizieren"); ToolTip.delay: 600
             }
             Rectangle {
                 visible: !root._neuModus && root._vorlage !== null; width: 32; height: 32; radius: 5

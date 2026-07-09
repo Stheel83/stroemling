@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 
 Item {
     id: root
@@ -20,15 +21,37 @@ Item {
     signal feldVerschoben(int idx, real xMm, real yMm)
     signal feldGroesseGeaendert(int idx, real breiteMm, real hoeheMm)
 
-    // ── Skalierung ────────────────────────────────────────────
-    readonly property real _scale: {
+    // ── Skalierung: Einpassen (fit-to-window) × Nutzer-Zoom ────
+    readonly property real _fitScale: {
         if (breiteMm <= 0 || hoeheMm <= 0 || width <= 40 || height <= 40) return 1
         return Math.min((width - 40) / breiteMm, (height - 40) / hoeheMm)
     }
-    readonly property real _pageX: (width  - breiteMm * _scale) / 2
-    readonly property real _pageY: (height - hoeheMm  * _scale) / 2
+    property real zoomFactor: 1.0
+    property real panX:       0
+    property real panY:       0
+    readonly property real _scale: _fitScale * zoomFactor
+    readonly property real _pageX: (width  - breiteMm * _scale) / 2 + panX
+    readonly property real _pageY: (height - hoeheMm  * _scale) / 2 + panY
 
     function _s(mm)  { return mm * _scale }
+
+    // Zoomt um `factor`, wobei der Weltpunkt unter (mx, my) fix bleibt
+    // (analog CanvasNavigationHandler._pendingWx/_pendingWy im Hauptcanvas).
+    function _zoomAt(mx, my, factor) {
+        var wx = (mx - _pageX) / _scale
+        var wy = (my - _pageY) / _scale
+        zoomFactor = Math.max(0.25, Math.min(8, zoomFactor * factor))
+        var neueScale = _fitScale * zoomFactor
+        panX = mx - wx * neueScale - (width  - breiteMm * neueScale) / 2
+        panY = my - wy * neueScale - (height - hoeheMm  * neueScale) / 2
+    }
+
+    function _zoomZuruecksetzen() { zoomFactor = 1.0; panX = 0; panY = 0 }
+
+    // Bei Vorlagenwechsel (andere Seitenmaße) wieder einpassen statt
+    // mit dem alten Zoom/Pan-Stand auf die neue Seite zu schauen.
+    onBreiteMmChanged: _zoomZuruecksetzen()
+    onHoeheMmChanged:  _zoomZuruecksetzen()
 
     function _feldFarbe(typ) {
         switch (typ) {
@@ -65,6 +88,28 @@ Item {
         }
     }
 
+    // Zoom: Mausrad, zentriert auf Cursor (analog CanvasNavigationHandler)
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: function(event) {
+            var delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.pixelDelta.y * 3
+            if (delta === 0) return
+            root._zoomAt(event.x, event.y, delta > 0 ? 1.12 : (1 / 1.12))
+        }
+    }
+
+    // Pan: Rechts-/Mittelklick ziehen (analog CanvasNavigationHandler)
+    DragHandler {
+        target: null
+        acceptedButtons: Qt.RightButton | Qt.MiddleButton
+        property real startX: 0; property real startY: 0
+        onActiveChanged: if (active) { startX = root.panX; startY = root.panY }
+        onTranslationChanged: {
+            root.panX = startX + translation.x
+            root.panY = startY + translation.y
+        }
+    }
+
     // ── Seite ─────────────────────────────────────────────────
     Rectangle {
         x: root._pageX; y: root._pageY
@@ -72,6 +117,43 @@ Item {
         height: root.hoeheMm  * root._scale
         color:  "#e8eff6"
         border.color: "#5070a0"; border.width: 1
+    }
+
+    // ── Raster (10mm, ab genug Zoom zusätzlich 1mm-Feinraster) ──
+    Canvas {
+        id: gridCanvas
+        x: root._pageX; y: root._pageY
+        width:  root.breiteMm * root._scale
+        height: root.hoeheMm  * root._scale
+
+        onWidthChanged:  requestPaint()
+        onHeightChanged: requestPaint()
+        Component.onCompleted: requestPaint()
+
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            var scale = root._scale
+            if (scale <= 0 || width <= 0 || height <= 0) return
+
+            var stepFine = 1 * scale
+            if (stepFine >= 6) {
+                ctx.strokeStyle = "#dbe6f2"
+                ctx.lineWidth   = 0.5
+                ctx.beginPath()
+                for (var fx = stepFine; fx < width;  fx += stepFine) { ctx.moveTo(fx, 0); ctx.lineTo(fx, height) }
+                for (var fy = stepFine; fy < height; fy += stepFine) { ctx.moveTo(0, fy); ctx.lineTo(width, fy) }
+                ctx.stroke()
+            }
+
+            var stepCoarse = 10 * scale
+            ctx.strokeStyle = "#a8c0dc"
+            ctx.lineWidth   = 0.6
+            ctx.beginPath()
+            for (var x = stepCoarse; x < width;  x += stepCoarse) { ctx.moveTo(x, 0); ctx.lineTo(x, height) }
+            for (var y = stepCoarse; y < height; y += stepCoarse) { ctx.moveTo(0, y); ctx.lineTo(width, y) }
+            ctx.stroke()
+        }
     }
 
     // ── Randlinien (gestrichelt) ───────────────────────────────
@@ -230,5 +312,28 @@ Item {
               : qsTr("Zuerst eine Vorlage anlegen (oben links),\ndann können Felder aus der Palette hinzugefügt werden")
         color: root.theme.panelMid; font.pixelSize: 13
         horizontalAlignment: Text.AlignHCenter
+    }
+
+    // ── Zoom-Anzeige / Einpassen-Button ────────────────────────
+    Rectangle {
+        anchors { right: parent.right; bottom: parent.bottom; margins: 10 }
+        visible: root.hatVorlage
+        width: 68; height: 26; radius: 5
+        color: zoomMa.containsMouse ? root.theme.hover : Qt.rgba(0, 0, 0, 0.35)
+        border.color: root.theme.border; border.width: 1
+
+        Text {
+            anchors.centerIn: parent
+            text: Math.round(root.zoomFactor * 100) + " %"
+            color: "white"; font.pixelSize: 11
+        }
+        MouseArea {
+            id: zoomMa
+            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+            onClicked: root._zoomZuruecksetzen()
+        }
+        ToolTip.visible: zoomMa.containsMouse
+        ToolTip.text: qsTr("Auf Fenster einpassen (Mausrad = Zoom, rechte/mittlere Maustaste ziehen = Verschieben)")
+        ToolTip.delay: 500
     }
 }

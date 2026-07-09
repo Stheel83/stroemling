@@ -4,6 +4,7 @@ import QtQuick.Controls
 Item {
     id: root
     clip: true
+    focus: true
 
     required property var theme
 
@@ -21,6 +22,18 @@ Item {
     signal hintergrundGeklickt()
     signal feldVerschoben(int idx, real xMm, real yMm)
     signal feldGroesseGeaendert(int idx, real breiteMm, real hoeheMm)
+    signal feldLoeschenAngefordert(int idx)
+
+    // Entf/Backspace löscht das ausgewählte Feld (analog SymbolEditorAnsicht.qml).
+    // Greift nur, wenn der Canvas selbst den Fokus hat (Klick auf Feld/Hintergrund
+    // holt ihn sich über forceActiveFocus() unten) — Tippen in einem TextField im
+    // Eigenschaften-Panel bleibt davon unberührt, da dieses den Fokus dann selbst hält.
+    Keys.onPressed: function(event) {
+        if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && root.selIdx >= 0) {
+            root.feldLoeschenAngefordert(root.selIdx)
+            event.accepted = true
+        }
+    }
 
     // ── Skalierung: Einpassen (fit-to-window) × Nutzer-Zoom ────
     readonly property real _fitScale: {
@@ -85,7 +98,7 @@ Item {
         color: root.theme.surfaceDeep
         MouseArea {
             anchors.fill: parent
-            onClicked: root.hintergrundGeklickt()
+            onClicked: { root.forceActiveFocus(); root.hintergrundGeklickt() }
         }
     }
 
@@ -247,6 +260,7 @@ Item {
                 onPressed: function(mouse) {
                     var gp = mapToItem(null, mouse.x, mouse.y)
                     _sx = gp.x; _sy = gp.y
+                    root.forceActiveFocus()
                     root.feldAngewaehlt(del.index)
                 }
                 onPositionChanged: function(mouse) {

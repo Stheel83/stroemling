@@ -280,10 +280,11 @@ Item {
             randObenMm:   root._vorlage ? (root._vorlage.randObenMm   || 10) : 10
             randUntenMm:  root._vorlage ? (root._vorlage.randUntenMm  || 10) : 10
 
-            onFeldAngewaehlt:      function(idx)       { root._selIdx = idx }
-            onHintergrundGeklickt:                     { root._selIdx = -1  }
-            onFeldVerschoben:      function(idx, x, y) { root._feldVerschieben(idx, x, y) }
-            onFeldGroesseGeaendert:function(idx, b, h) { root._feldGroesse(idx, b, h) }
+            onFeldAngewaehlt:          function(idx)       { root._selIdx = idx }
+            onHintergrundGeklickt:                         { root._selIdx = -1  }
+            onFeldVerschoben:          function(idx, x, y) { root._feldVerschieben(idx, x, y) }
+            onFeldGroesseGeaendert:    function(idx, b, h) { root._feldGroesse(idx, b, h) }
+            onFeldLoeschenAngefordert: function(idx)       { root._feldLoeschen(idx) }
         }
 
         Rectangle { width: 1; Layout.fillHeight: true; color: root.theme.divider }

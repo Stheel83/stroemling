@@ -244,7 +244,7 @@ Item {
                 visible: !root._neuModus && root._vorlage !== null; width: 32; height: 32; radius: 5
                 color: kopBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
-                Text { anchors.centerIn: parent; text: "⧉"; color: root.theme.textPrimary; font.pixelSize: 15 }
+                Text { anchors.centerIn: parent; text: "❐"; color: root.theme.textPrimary; font.pixelSize: 15 }
                 MouseArea { id: kopBtnMA; anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor; onClicked: root._vorlageKopieren() }
                 ToolTip.visible: kopBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage duplizieren"); ToolTip.delay: 600

@@ -134,6 +134,35 @@ Item {
     // negative Lücken sind bei "Verteilen" ohnehin unerwünscht, auf 0 geklemmt.
     function lueckeSafe(v) { return isNaN(v) ? 0 : Math.max(0, v) }
 
+    // Richtet jedes Feld in `indices` einzeln am Seitenrand aus (dem
+    // gestrichelten Rand-Rechteck, nicht der reinen Blattkante) — anders
+    // als _mehrfachAusrichten() unabhängig von den anderen ausgewählten
+    // Feldern, funktioniert deshalb auch mit nur einem Feld (wird sowohl
+    // vom Einzelfeld-Panel als auch vom Mehrfachauswahl-Panel gerufen).
+    // modus: randLinks/randRechts/randHMitte/randOben/randUnten/randVMitte
+    function _amRandAusrichten(indices, modus) {
+        if (!indices || indices.length === 0 || !_vorlage) return
+        var bMm = _vorlage.breiteMm || 297, hMm = _vorlage.hoeheMm || 210
+        var rl  = _vorlage.randLinksMm  || 20, rr = _vorlage.randRechtsMm || 10
+        var ro  = _vorlage.randObenMm   || 10, ru = _vorlage.randUntenMm  || 10
+        var neu = _felder.slice()
+        for (var i = 0; i < indices.length; i++) {
+            var idx = indices[i]
+            var f = _feldKopie(idx)
+            if (!f) continue
+            if      (modus === "randLinks")  f.xMm = rl
+            else if (modus === "randRechts") f.xMm = bMm - rr - f.breiteMm
+            else if (modus === "randHMitte") f.xMm = rl + ((bMm - rl - rr) - f.breiteMm) / 2
+            else if (modus === "randOben")   f.yMm = ro
+            else if (modus === "randUnten")  f.yMm = hMm - ru - f.hoeheMm
+            else if (modus === "randVMitte") f.yMm = ro + ((hMm - ro - ru) - f.hoeheMm) / 2
+            f.xMm = Math.round(Math.max(0, Math.min(bMm - f.breiteMm, f.xMm)))
+            f.yMm = Math.round(Math.max(0, Math.min(hMm - f.hoeheMm, f.yMm)))
+            neu[idx] = f
+        }
+        _felder = neu
+    }
+
     // ── Feld-Operationen ──────────────────────────────────────
     function _feldHinzufuegen(feldtyp) {
         if (!_vorlage) return
@@ -429,15 +458,19 @@ Item {
             feldIdx: root._selIdx
             feld:    (root._selIdx >= 0 && root._selIdx < root._felder.length)
                      ? root._felder[root._selIdx] : null
-            onFeldGeaendert:  function(idx, f) { root._feldAktualisieren(idx, f) }
-            onFeldLoeschen:   function(idx)    { root._feldLoeschen(idx) }
+            onFeldGeaendert:     function(idx, f) { root._feldAktualisieren(idx, f) }
+            onFeldLoeschen:      function(idx)    { root._feldLoeschen(idx) }
+            onAmRandAusgerichtet: function(modus) { root._amRandAusrichten([root._selIdx], modus) }
         }
         NormblattAusrichtenPanel {
             Layout.preferredWidth: 205; Layout.fillHeight: true
             visible: root._mehrfachAuswahl.length >= 2
             theme:   root.theme
             anzahl:  root._mehrfachAuswahl.length
-            onAusrichtenAngefordert: function(modus) { root._mehrfachAusrichten(modus) }
+            onAusrichtenAngefordert: function(modus) {
+                if (modus.indexOf("rand") === 0) root._amRandAusrichten(root._mehrfachAuswahl, modus)
+                else root._mehrfachAusrichten(modus)
+            }
         }
     }
 

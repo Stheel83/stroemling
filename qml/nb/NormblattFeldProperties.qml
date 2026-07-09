@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 Item {
     id: root
@@ -11,6 +12,7 @@ Item {
 
     signal feldGeaendert(int idx, var feld)
     signal feldLoeschen(int idx)
+    signal amRandAusgerichtet(string modus)
 
     readonly property var _typen:    ["fest","projekt","seite","datum","vollkennzeichen","format","logo"]
     readonly property var _pSpalten: ["name","projektnummer","auftraggeber","auftragnehmer","bearbeiter","norm"]
@@ -317,6 +319,40 @@ Item {
                     }
                 }
                 onToggled: root._emit("rahmen", checked ? 1 : 0)
+            }
+
+            Item { height: 8 }
+
+            Rectangle {
+                width: col.width - col.padding * 2; height: 1
+                color: root.theme.divider
+            }
+
+            AbsTitel { text: qsTr("AM RAND AUSRICHTEN") }
+
+            Row {
+                spacing: 4
+                MiniButton { theme: root.theme; label: qsTr("Links");  breite: (col.width - col.padding * 2 - 8) / 3
+                    tooltip: qsTr("An linkem Rand ausrichten")
+                    onKlick: root.amRandAusgerichtet("randLinks") }
+                MiniButton { theme: root.theme; label: qsTr("Mitte");  breite: (col.width - col.padding * 2 - 8) / 3
+                    tooltip: qsTr("Horizontal im Randbereich zentrieren")
+                    onKlick: root.amRandAusgerichtet("randHMitte") }
+                MiniButton { theme: root.theme; label: qsTr("Rechts"); breite: (col.width - col.padding * 2 - 8) / 3
+                    tooltip: qsTr("An rechtem Rand ausrichten")
+                    onKlick: root.amRandAusgerichtet("randRechts") }
+            }
+            Row {
+                spacing: 4
+                MiniButton { theme: root.theme; label: qsTr("Oben");   breite: (col.width - col.padding * 2 - 8) / 3
+                    tooltip: qsTr("An oberem Rand ausrichten")
+                    onKlick: root.amRandAusgerichtet("randOben") }
+                MiniButton { theme: root.theme; label: qsTr("Mitte");  breite: (col.width - col.padding * 2 - 8) / 3
+                    tooltip: qsTr("Vertikal im Randbereich zentrieren")
+                    onKlick: root.amRandAusgerichtet("randVMitte") }
+                MiniButton { theme: root.theme; label: qsTr("Unten");  breite: (col.width - col.padding * 2 - 8) / 3
+                    tooltip: qsTr("An unterem Rand ausrichten")
+                    onKlick: root.amRandAusgerichtet("randUnten") }
             }
 
             Item { height: 8 }

@@ -27,7 +27,7 @@ Item {
             color: root.theme.textPrimary; font.pixelSize: 12; font.weight: Font.Medium
         }
 
-        AbsTitel { text: qsTr("AUSRICHTEN") }
+        AbsTitel { text: qsTr("AN AUSWAHL AUSRICHTEN") }
 
         Row {
             spacing: 4
@@ -52,6 +52,33 @@ Item {
             MiniButton { theme: root.theme; label: qsTr("Unten");  breite: (col.width - col.padding * 2 - 8) / 3
                 tooltip: qsTr("Untere Kanten aneinander ausrichten")
                 onKlick: root.ausrichtenAngefordert("unten") }
+        }
+
+        AbsTitel { text: qsTr("AM RAND AUSRICHTEN") }
+
+        Row {
+            spacing: 4
+            MiniButton { theme: root.theme; label: qsTr("Links");  breite: (col.width - col.padding * 2 - 8) / 3
+                tooltip: qsTr("Jedes Feld einzeln an linkem Rand ausrichten")
+                onKlick: root.ausrichtenAngefordert("randLinks") }
+            MiniButton { theme: root.theme; label: qsTr("Mitte");  breite: (col.width - col.padding * 2 - 8) / 3
+                tooltip: qsTr("Jedes Feld einzeln horizontal im Randbereich zentrieren")
+                onKlick: root.ausrichtenAngefordert("randHMitte") }
+            MiniButton { theme: root.theme; label: qsTr("Rechts"); breite: (col.width - col.padding * 2 - 8) / 3
+                tooltip: qsTr("Jedes Feld einzeln an rechtem Rand ausrichten")
+                onKlick: root.ausrichtenAngefordert("randRechts") }
+        }
+        Row {
+            spacing: 4
+            MiniButton { theme: root.theme; label: qsTr("Oben");   breite: (col.width - col.padding * 2 - 8) / 3
+                tooltip: qsTr("Jedes Feld einzeln an oberem Rand ausrichten")
+                onKlick: root.ausrichtenAngefordert("randOben") }
+            MiniButton { theme: root.theme; label: qsTr("Mitte");  breite: (col.width - col.padding * 2 - 8) / 3
+                tooltip: qsTr("Jedes Feld einzeln vertikal im Randbereich zentrieren")
+                onKlick: root.ausrichtenAngefordert("randVMitte") }
+            MiniButton { theme: root.theme; label: qsTr("Unten");  breite: (col.width - col.padding * 2 - 8) / 3
+                tooltip: qsTr("Jedes Feld einzeln an unterem Rand ausrichten")
+                onKlick: root.ausrichtenAngefordert("randUnten") }
         }
 
         AbsTitel { text: qsTr("VERTEILEN"); visible: root.anzahl >= 3 }

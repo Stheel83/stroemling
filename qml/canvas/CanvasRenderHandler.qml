@@ -1,10 +1,9 @@
 import QtQuick
 
 // Render-Helferfunktionen fürs Canvas-Zeichnen (Normblatt, Element-Dispatch,
-// Primitiv-Renderer je Elementtyp, Kabelschnitte/Auto-Verbindungen).
-// _renderSymbol (größte Einzelfunktion) bleibt bewusst vorerst in
-// SchaltplanCanvas.qml (Stufe 5b), wird über cv._drawCanvas erreicht.
-// cv: Referenz auf SchaltplanCanvas (root). REFACTOR-01 Stufe 5a.
+// Primitiv-Renderer je Elementtyp inkl. Symbol-Rendering, Kabelschnitte/
+// Auto-Verbindungen).
+// cv: Referenz auf SchaltplanCanvas (root). REFACTOR-01 Stufe 5a+5b.
 QtObject {
     id: handler
     required property var cv
@@ -395,7 +394,7 @@ QtObject {
         else if (el.typ === "text")           _renderText(ctx, el, rc)
         else if (el.typ === "bild")           _renderBild(ctx, el, rc)
         else if (el.typ === "notiz")          _renderNotiz(ctx, el, rc)
-        else if (el.typ === "symbol")         cv._drawCanvas._renderSymbol(ctx, el, rc)
+        else if (el.typ === "symbol")         _renderSymbol(ctx, el, rc)
         else if (el.typ === "geraetekasten")  _renderGeraetekasten(ctx, el, rc)
         else if (el.typ === "strukturkasten") _renderStrukturkasten(ctx, el, rc)
         else if (el.typ === "makrokasten")    _renderMakrokasten(ctx, el, rc)
@@ -1202,6 +1201,802 @@ QtObject {
                 ctx.stroke()
             }
             ctx.lineWidth = 1.5; ctx.globalAlpha = 1.0
+        }
+    }
+
+    // ── Generischer Primitiv-Renderer (Phase B Symboleditor) ──────
+    // Zeichnet Erweiterungsmodifier über dem Grundsymbol im lokalen Koordinatensystem
+    // (0..w × 0..h, nach Rotation/Spiegelung des Symbols transformiert).
+    function maleModifier(ctx, erweiterungen, w, h) {
+        if (!erweiterungen || erweiterungen.length === 0) return
+        ctx.save()
+        ctx.setLineDash([])
+        ctx.lineWidth = Math.max(1.0, h * 0.055)
+
+        for (var ei = 0; ei < erweiterungen.length; ei++) {
+            var ew = erweiterungen[ei]
+
+            if (ew === "zeit_an") {
+                // Anzugsverzögert: ∩-Bogen (öffnet nach unten) + kleines Rechteck
+                ctx.beginPath()
+                ctx.arc(w * 0.5, h * 0.22, h * 0.10, Math.PI, 0, false) // ∩
+                ctx.stroke()
+                ctx.strokeRect(w * 0.44, h * 0.04, w * 0.12, h * 0.09)
+
+            } else if (ew === "zeit_ab") {
+                // Abfallverzögert: ∪-Bogen (öffnet nach oben) + kleines Rechteck
+                ctx.beginPath()
+                ctx.arc(w * 0.5, h * 0.12, h * 0.10, 0, Math.PI, false) // ∪
+                ctx.stroke()
+                ctx.strokeRect(w * 0.44, h * 0.04, w * 0.12, h * 0.09)
+
+            } else if (ew === "voreilung") {
+                // Voreilung: kleiner Pfeil (↑) links neben Pin 1
+                var vx = w * 0.09, vy = h * 0.42, vl = h * 0.18
+                ctx.beginPath()
+                ctx.moveTo(vx, vy)
+                ctx.lineTo(vx, vy - vl)
+                ctx.lineTo(vx - vl * 0.35, vy - vl * 0.55)
+                ctx.moveTo(vx, vy - vl)
+                ctx.lineTo(vx + vl * 0.35, vy - vl * 0.55)
+                ctx.stroke()
+
+            } else if (ew === "nacheilung") {
+                // Nacheilung: kleiner Pfeil (↓) rechts neben Pin 2
+                var nx = w * 0.91, ny = h * 0.25, nl = h * 0.18
+                ctx.beginPath()
+                ctx.moveTo(nx, ny)
+                ctx.lineTo(nx, ny + nl)
+                ctx.lineTo(nx - nl * 0.35, ny + nl * 0.55)
+                ctx.moveTo(nx, ny + nl)
+                ctx.lineTo(nx + nl * 0.35, ny + nl * 0.55)
+                ctx.stroke()
+            }
+        }
+        ctx.restore()
+    }
+
+    // Liest Primitive aus symbol_primitiv über symbolDefinitionModel und
+    // zeichnet sie in den Koordinaten 0..w × 0..h.
+    // ctx.strokeStyle und ctx.lineWidth werden vom Aufrufer gesetzt.
+    // farbUeberschreibung (optional): { primitivIndex: "#farbe" } – überschreibt
+    // ctx.strokeStyle für einzelne Primitive (Reihenfolge-Index = Array-Index).
+    function drawByPrimitiv(ctx, symbolId, w, h, farbUeberschreibung) {
+        var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
+        var _basisStroke = ctx.strokeStyle
+        for (var i = 0; i < prims.length; i++) {
+            var p = prims[i]
+            ctx.strokeStyle = (farbUeberschreibung && farbUeberschreibung[i] !== undefined)
+                               ? farbUeberschreibung[i] : _basisStroke
+
+            // Linienart
+            switch (p.linienart) {
+                case "dash":    ctx.setLineDash([6, 3]);         break
+                case "dot":     ctx.setLineDash([2, 3]);         break
+                case "dashdot": ctx.setLineDash([6, 3, 2, 3]);   break
+                default:        ctx.setLineDash([]);             break
+            }
+
+            switch (p.typ) {
+                case "linie":
+                    ctx.beginPath()
+                    ctx.moveTo(p.x1 * w, p.y1 * h)
+                    ctx.lineTo(p.x2 * w, p.y2 * h)
+                    ctx.stroke()
+                    break
+                case "rechteck":
+                    ctx.strokeRect(p.x1 * w, p.y1 * h,
+                                   (p.x2 - p.x1) * w, (p.y2 - p.y1) * h)
+                    break
+                case "kreis_offen":
+                    ctx.beginPath()
+                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
+                    ctx.stroke()
+                    break
+                case "kreis_gefuellt":
+                    ctx.save()
+                    ctx.fillStyle = ctx.strokeStyle
+                    ctx.beginPath()
+                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
+                    ctx.fill()
+                    ctx.restore()
+                    break
+                case "bogen":
+                    ctx.beginPath()
+                    ctx.arc(p.x1 * w, p.y1 * h,
+                            p.radius * w,
+                            p.winkel_von * Math.PI / 180,
+                            p.winkel_bis * Math.PI / 180,
+                            p.bogen_gegen_uhrzeiger)
+                    ctx.stroke()
+                    break
+                case "text":
+                    if (cv.bewegungAktiv) break
+                    ctx.save()
+                    ctx.fillStyle    = ctx.strokeStyle
+                    ctx.font         = (p.schrift_fett ? "bold " : "") +
+                                       Math.round(p.schrift_relativ * h) + "px sans-serif"
+                    ctx.textAlign    = p.text_align    || "center"
+                    ctx.textBaseline = p.text_baseline || "middle"
+                    ctx.fillText(p.text_inhalt, p.x1 * w, p.y1 * h)
+                    ctx.restore()
+                    break
+                case "dreieck_gefuellt":
+                    ctx.save()
+                    ctx.fillStyle = ctx.strokeStyle
+                    ctx.beginPath()
+                    ctx.moveTo(p.x1 * w, p.y1 * h)
+                    ctx.lineTo(p.x2 * w, p.y2 * h)
+                    ctx.lineTo(p.x3 * w, p.y3 * h)
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.restore()
+                    break
+            }
+        }
+        ctx.strokeStyle = _basisStroke
+        ctx.setLineDash([])
+    }
+
+    function _renderSymbol(ctx, el, rc) {
+        var vorschau = rc.vorschau, gewaehlt = rc.gewaehlt, _skipText = rc.skipText
+        var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
+        var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
+        var sw = vx2 - vx1, sh = vy2 - vy1
+        // Stecker/Buchse: Verbindungsstatus einmal ermitteln (Pin-Marker + Primitiv-Einfärbung)
+        var _istSteBu  = (el.symbolId === "stecker" || el.symbolId === "buchse")
+        var _steBuOk   = (!vorschau && _istSteBu) ? cv.hatLogischeVerbindung(idx) : false
+        if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {
+            var scx = vx1 + sw/2, scy = vy1 + sh/2
+            var rot = (el.rotation || 0) * Math.PI / 180
+
+            ctx.save()
+            ctx.translate(scx, scy)
+            if (rot !== 0) ctx.rotate(rot)
+            if (el.spiegelX) ctx.scale(-1, 1)
+            if (el.spiegelY) ctx.scale(1, -1)
+            ctx.translate(-Math.abs(sw)/2, -Math.abs(sh)/2)
+            // Bei gestecktem Zustand: Bogen der Buchse / Rechteck des Steckers
+            // (jeweils Primitiv-Index 1) grün einfärben.
+            var _steBuFarbe = _steBuOk ? { 1: "#00e5a0" } : undefined
+            drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
+            // Erweiterungsmodifier im lokalen Koordinatensystem (dreht/spiegelt mit)
+            if (!vorschau) {
+                var erw = (el.extraDaten && Array.isArray(el.extraDaten.erweiterungen))
+                          ? el.extraDaten.erweiterungen : []
+                if (erw.length > 0)
+                    maleModifier(ctx, erw, Math.abs(sw), Math.abs(sh))
+            }
+            ctx.restore()
+
+            // Pin-Marker zeichnen (immer sichtbar, selektiert = hervorgehoben)
+            if (!vorschau) {
+                var pins = el.symbolId === "querverweis"
+                           ? cv.geometrie.querverweisPin(el)
+                           : symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+                ctx.setLineDash([])
+                for (var pi = 0; pi < pins.length; pi++) {
+                    var pp = cv.geometrie.pinViewportPos(el, pins[pi].x, pins[pi].y)
+                    var pr = gewaehlt ? 2.5 : 1.5
+                    ctx.globalAlpha = gewaehlt ? 1.0 : 0.55
+                    // Stecker/Buchse Pin 2 (fiktive Steckverbindung): grün = gesteckt,
+                    // orange = offen – unabhängig von der Auswahl-Hervorhebung.
+                    if (_istSteBu && pins[pi].name === "2") {
+                        pr = Math.max(pr, 2.0)
+                        ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
+                        ctx.fillStyle   = _steBuOk ? "#00e5a0" : "#f0a030"
+                        ctx.strokeStyle = _steBuOk ? "#004d35" : "#7a4400"
+                        ctx.lineWidth   = 1.0
+                        ctx.fill(); ctx.stroke()
+                        continue
+                    }
+                    ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
+                    ctx.fillStyle   = gewaehlt ? "#00e5a0" : "#4a9eff"
+                    ctx.strokeStyle = gewaehlt ? "#004d35" : "#0a2040"
+                    ctx.lineWidth   = 1.0
+                    ctx.fill(); ctx.stroke()
+                }
+                ctx.globalAlpha = op
+            }
+
+            // Pin-Bezeichnungen rendern: Default = Pin-Name aus der Pinbelegung
+            // (symbol_pin.name), ueberschreibbar je Instanz via extraDaten.pinBez.
+            // Format pinBez: { "pinName": "Anzeige-Label" }.
+            // Nicht für Verbindungshelfer (querverweis, winkel, treffpunkt, klemme_anschluss,
+            // geraeteanschluss, potenzial) – die haben eigene Beschriftungslogik.
+            if (!vorschau && !_skipText) {
+                var _pbEd  = el.extraDaten || {}
+                var _pbBez = _pbEd.pinBez || {}
+                var _pbSkip = { "querverweis":1,"winkel":1,"treffpunkt":1,"treffpunkt_l":1,
+                                "klemme_anschluss":1,"geraeteanschluss":1,"potenzial":1,"aderdefinition":1,
+                                "isoliert_gelegte_ader":1 }
+                if (!_pbSkip[el.symbolId || ""]) {
+                    var _pbPins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+                    if (_pbPins.length > 0) {
+                        var _pbFs = Math.max(6, Math.round(1.8 * cv.mmToPx * cv.zoom))
+                        ctx.save()
+                        ctx.font      = _pbFs + "px sans-serif"
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : "#8ac4e0"
+                        ctx.globalAlpha = 1.0
+                        for (var _pbI = 0; _pbI < _pbPins.length; _pbI++) {
+                            var _pbPin   = _pbPins[_pbI]
+                            // Stecker/Buchse Pin 2 (fiktive Steckverbindung) braucht keine
+                            // Beschriftung – der Verbindungsstatus wird stattdessen farblich
+                            // am Pin-Punkt und an Bogen/Rechteck angezeigt (s.u.).
+                            if ((el.symbolId === "stecker" || el.symbolId === "buchse") &&
+                                _pbPin.name === "2") continue
+                            var _pbLabel = _pbBez[_pbPin.name] || _pbPin.name
+                            var _pbPos = cv.geometrie.pinViewportPos(el, _pbPin.x, _pbPin.y)
+                            // Richtungsvektor mit Spiegelung + Rotation transformieren
+                            // (identisch zur Transformation in pinViewportPos)
+                            var _pbOx = _pbPin.offenX || 0
+                            var _pbOy = _pbPin.offenY || 0
+                            if (el.spiegelX) _pbOx = -_pbOx
+                            if (el.spiegelY) _pbOy = -_pbOy
+                            var _pbRad = ((el.rotation || 0) * Math.PI / 180)
+                            var _pbTx  = _pbOx * Math.cos(_pbRad) - _pbOy * Math.sin(_pbRad)
+                            var _pbTy  = _pbOx * Math.sin(_pbRad) + _pbOy * Math.cos(_pbRad)
+                            var _pbOff = 4 * cv.zoom
+                            var _pbX, _pbY
+                            // Vertikal dominanter Richtungsvektor → Label rechts
+                            // Horizontal dominanter Richtungsvektor → Label oben
+                            if (Math.abs(_pbTy) > Math.abs(_pbTx)) {
+                                _pbX = _pbPos.x + _pbOff
+                                _pbY = _pbPos.y
+                                ctx.textAlign    = "left"
+                                ctx.textBaseline = "middle"
+                            } else {
+                                _pbX = _pbPos.x
+                                _pbY = _pbPos.y - _pbOff
+                                ctx.textAlign    = "center"
+                                ctx.textBaseline = "bottom"
+                            }
+                            ctx.fillText(_pbLabel, _pbX, _pbY)
+                        }
+                        ctx.restore()
+                    }
+                }
+            }
+
+            // BMK-Label und Freitexte am Symbol rendern (konzeptgemäß, Abschnitt 7).
+            // Text ist immer waagerecht.
+            // 0°/180° → über dem Symbol  (Anker: Oberkante, Mitte X)
+            // 90°/270° → links neben dem Symbol (Anker: linke Kante, Mitte Y)
+            // Verbindungshelfer erhalten keine Beschriftung.
+            if (!vorschau && !_skipText) {
+                var bmkSid = el.symbolId || ""
+                var verbHelper = SK.hatEigenenBeschriftungsBlock(bmkSid)
+                if (!verbHelper) {
+                    var bmkEd  = el.extraDaten || {}
+                    var bmkStr = bmkEd.bmk || ""
+                    // Geordnete, sichtbare Freitext-Zeilen aufbauen
+                    var ftRhlg  = bmkEd.textReihenfolge || ["freitext1", "freitext2"]
+                    var ftZeilen = []
+                    for (var fti = 0; fti < ftRhlg.length; fti++) {
+                        var ftK = ftRhlg[fti]
+                        if (bmkEd[ftK + "Sichtbar"] !== false && (bmkEd[ftK] || "") !== "")
+                            ftZeilen.push(bmkEd[ftK])
+                    }
+                    if (bmkStr !== "" || ftZeilen.length > 0) {
+                        // Schriftgröße aus extra_daten (mm), Standard 2.5 mm
+                        var schrift = (bmkEd.schriftgroesse !== undefined
+                                       ? bmkEd.schriftgroesse : 2.5)
+                        var bmkFs   = Math.max(5, Math.round(schrift * cv.mmToPx * cv.zoom))
+                        var ftFs    = Math.max(4, Math.round(schrift * 0.85 * cv.mmToPx * cv.zoom))
+                        var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * cv.zoom
+                        var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * cv.zoom
+                        var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
+                        var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
+                        var symRot    = ((el.rotation || 0) % 360 + 360) % 360
+                        var _symInfo  = symbolDefinitionModel.symbolInfo(el.symbolId || "")
+                        var _bmkSeite = (_symInfo && _symInfo.bmkSeite) ? _symInfo.bmkSeite : "auto"
+                        var senkrecht = _bmkSeite === "vertikal"
+                                        ? (symRot === 0 || symRot === 180)
+                                        : (symRot === 90 || symRot === 270)
+                        ctx.save()
+                        ctx.globalAlpha = 1.0
+                        ctx.textAlign   = senkrecht ? "right" : "center"
+                        ctx.fillStyle   = bmkClr
+                        if (senkrecht) {
+                            var bkAx = Math.min(vx1, vx2) + bmkOy
+                            var bkCy = (vy1 + vy2) / 2 + bmkOx
+                            if (bmkStr !== "") {
+                                ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                ctx.textBaseline = "bottom"
+                                ctx.fillText(bmkStr, bkAx, bkCy)
+                            }
+                            ctx.font      = ftFs + "px sans-serif"
+                            ctx.fillStyle = ftClr
+                            ctx.textBaseline = "top"
+                            var ftOff = bkCy + 2 * cv.zoom
+                            for (var fi = 0; fi < ftZeilen.length; fi++) {
+                                ctx.fillText(ftZeilen[fi], bkAx, ftOff)
+                                ftOff += ftFs * 1.25
+                            }
+                        } else {
+                            var bkCx = (vx1 + vx2) / 2 + bmkOx
+                            var bkTy = Math.min(vy1, vy2) + bmkOy
+                            if (bmkStr !== "") {
+                                ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                ctx.textBaseline = "bottom"
+                                ctx.fillText(bmkStr, bkCx, bkTy)
+                            }
+                            ctx.font      = ftFs + "px sans-serif"
+                            ctx.fillStyle = ftClr
+                            ctx.textBaseline = "top"
+                            var ftY = Math.max(vy1, vy2) + 3 * cv.zoom
+                            for (var fj = 0; fj < ftZeilen.length; fj++) {
+                                ctx.fillText(ftZeilen[fj], bkCx, ftY)
+                                ftY += ftFs * 1.25
+                            }
+                        }
+                        ctx.restore()
+                    }
+                }
+            }
+
+            // ── IBN-Statusdot ────────────────────────────────────
+            if (!vorschau && cv.ibnModus) {
+                var _ibnBmk = (el.extraDaten || {}).bmk || ""
+                if (_ibnBmk !== "") {
+                    var _ibnSt = cv.ibnStatusMap[_ibnBmk] || "offen"
+                    var _ibnClr = _ibnSt === "abgeschlossen" ? "#3cb371"
+                                : _ibnSt === "in_arbeit"     ? "#f0a030"
+                                                              : "#cc4444"
+                    var _ibnCx = Math.max(vx1, vx2) - 5 * cv.zoom / cv.mmToPx
+                    var _ibnCy = Math.min(vy1, vy2) + 5 * cv.zoom / cv.mmToPx
+                    var _ibnR  = Math.max(3, 3 * cv.zoom)
+                    ctx.save()
+                    ctx.globalAlpha = 0.9
+                    ctx.beginPath()
+                    ctx.arc(_ibnCx, _ibnCy, _ibnR, 0, Math.PI * 2)
+                    ctx.fillStyle = _ibnClr
+                    ctx.fill()
+                    ctx.restore()
+                }
+            }
+
+            // ── SPS-Konflikt-Dot ─────────────────────────────────
+            // Rotes "!"-Dot oben-links wenn Element mehr als einem Kanal zugewiesen
+            if (!vorschau && (el.id || 0) > 0 && cv._spsKonfliktSet[el.id]) {
+                var _spsR  = Math.max(3, 3 * cv.zoom)
+                var _spsCx = Math.min(vx1, vx2) + _spsR + 2
+                var _spsCy = Math.min(vy1, vy2) + _spsR + 2
+                ctx.save()
+                ctx.globalAlpha = 0.92
+                ctx.beginPath()
+                ctx.arc(_spsCx, _spsCy, _spsR, 0, Math.PI * 2)
+                ctx.fillStyle = "#cc2222"
+                ctx.fill()
+                ctx.globalAlpha = 1.0
+                ctx.fillStyle   = "#ffffff"
+                ctx.font        = "bold " + Math.max(6, Math.round(_spsR * 1.5)) + "px sans-serif"
+                ctx.textAlign    = "center"
+                ctx.textBaseline = "middle"
+                ctx.fillText("!", _spsCx, _spsCy)
+                ctx.restore()
+            }
+
+            // ── Fehlersuch-Startpunkt-Marker (farbig je Pfad) ───
+            if (!vorschau && cv.fehlersuchModus) {
+                var _fsPfadNr = cv.fehlersuchPfadIds[(el.id || -1)]
+                if (_fsPfadNr !== undefined &&
+                        cv.fehlersuchStartIds[_fsPfadNr] === (el.id || -1)) {
+                    var _fsR  = Math.max(4, 4 * cv.zoom)
+                    var _fsCx = (vx1 + vx2) / 2
+                    var _fsCy = (vy1 + vy2) / 2
+                    ctx.save()
+                    ctx.globalAlpha = 0.85
+                    ctx.beginPath()
+                    ctx.arc(_fsCx, _fsCy, _fsR, 0, Math.PI * 2)
+                    ctx.strokeStyle = cv._fehlersuchPfadFarben[
+                        _fsPfadNr % cv._fehlersuchPfadFarben.length]
+                    ctx.lineWidth   = 2.5
+                    ctx.stroke()
+                    ctx.restore()
+                }
+            }
+
+            // ── Fehlersuch-Unterbrechungsmarker (Trenner) ────────
+            if (!vorschau && cv.fehlersuchModus &&
+                    cv.fehlersuchUnterbrechungen[(el.id || -1)] !== undefined) {
+                var _fuR  = Math.max(5, 5 * cv.zoom)
+                var _fuCx = (vx1 + vx2) / 2
+                var _fuCy = (vy1 + vy2) / 2
+                ctx.save()
+                ctx.globalAlpha = 0.9
+                ctx.beginPath()
+                ctx.arc(_fuCx, _fuCy, _fuR, 0, Math.PI * 2)
+                ctx.strokeStyle = "#e04040"
+                ctx.lineWidth   = 2.5
+                ctx.stroke()
+                ctx.restore()
+            }
+
+            // ── HF-Querverweis-Hinweis (Kontaktspiegel) ──────────
+            // Erscheint nur bei Nebenfunktionen auf einer anderen Seite
+            // als die Hauptfunktion.
+            if (!vorschau && !_skipText && !verbHelper && (el.betriebsmittelId || 0) > 0) {
+                var _hfRef = cv._hfReferenzMap[el.betriebsmittelId]
+                if (_hfRef
+                        && _hfRef.hauptElementId !== (el.id || -1)
+                        && _hfRef.seiteId        !== cv.seiteId) {
+                    var _hfTxt = "← /" + _hfRef.blattnummer
+                    var _hfEd  = el.extraDaten || {}
+                    var _hfFs  = Math.max(4, Math.round(
+                        (_hfEd.schriftgroesse !== undefined ? _hfEd.schriftgroesse : 2.5)
+                        * 0.75 * cv.mmToPx * cv.zoom))
+                    var _hfRot  = ((el.rotation || 0) % 360 + 360) % 360
+                    var _hfSenk = (_hfRot === 90 || _hfRot === 270)
+                    ctx.save()
+                    ctx.globalAlpha = 0.75
+                    ctx.fillStyle   = gewaehlt ? "#f0a030" : "#6899c4"
+                    ctx.font        = _hfFs + "px sans-serif"
+                    if (_hfSenk) {
+                        ctx.textAlign    = "left"
+                        ctx.textBaseline = "middle"
+                        ctx.fillText(_hfTxt,
+                                     Math.max(vx1, vx2) + 3 * cv.zoom,
+                                     (vy1 + vy2) / 2)
+                    } else {
+                        ctx.textAlign    = "center"
+                        ctx.textBaseline = "top"
+                        ctx.fillText(_hfTxt,
+                                     (vx1 + vx2) / 2,
+                                     Math.max(vy1, vy2) + 2 * cv.zoom)
+                    }
+                    ctx.restore()
+                }
+            }
+
+            // Querverweis: Signalname + Partnerseite – BMK-Stil
+            if (!vorschau && !_skipText && el.symbolId === "querverweis") {
+                var qed     = el.extraDaten || {}
+                var qSn     = qed.signalname || ""
+                var _qpInfo  = cv._querverweisPartnerMap[idx]
+                var qPartner = _qpInfo ? (_qpInfo.label || "") : ""
+                if (qSn !== "" || qPartner !== "") {
+                    var qFs   = Math.max(10, Math.round(2.0 * cv.mmToPx * cv.zoom))
+                    var qFsS  = Math.max(6, Math.round(1.6 * cv.mmToPx * cv.zoom))
+                    var qRot  = ((el.rotation || 0) % 360 + 360) % 360
+                    var qSenk = (qRot === 90 || qRot === 270)
+                    var qCx   = (vx1 + vx2) / 2
+                    var qCy   = (vy1 + vy2) / 2
+                    ctx.save()
+                    ctx.globalAlpha = 1.0
+                    if (qSenk) {
+                        var qX = Math.min(vx1, vx2) - 4 * cv.zoom
+                        if (qSn !== "") {
+                            ctx.fillStyle    = gewaehlt ? "#f0a030" : "#c0d8f0"
+                            ctx.font         = "bold " + qFs + "px sans-serif"
+                            ctx.textAlign    = "right"
+                            ctx.textBaseline = qPartner !== "" ? "bottom" : "middle"
+                            ctx.fillText(qSn, qX, qCy)
+                        }
+                        if (qPartner !== "") {
+                            ctx.fillStyle    = gewaehlt ? "#f0a030" : "#7aaacc"
+                            ctx.font         = qFsS + "px sans-serif"
+                            ctx.textAlign    = "right"
+                            ctx.textBaseline = "top"
+                            ctx.fillText("→ " + qPartner, qX, qCy)
+                        }
+                    } else {
+                        var qY = Math.min(vy1, vy2) - 3 * cv.zoom
+                        if (qSn !== "") {
+                            ctx.fillStyle    = gewaehlt ? "#f0a030" : "#c0d8f0"
+                            ctx.font         = "bold " + qFs + "px sans-serif"
+                            ctx.textAlign    = "center"
+                            ctx.textBaseline = "bottom"
+                            ctx.fillText(qSn, qCx, qY)
+                        }
+                        if (qPartner !== "") {
+                            ctx.fillStyle    = gewaehlt ? "#f0a030" : "#7aaacc"
+                            ctx.font         = qFsS + "px sans-serif"
+                            ctx.textAlign    = "center"
+                            ctx.textBaseline = "bottom"
+                            ctx.fillText("→ " + qPartner, qCx, qY - qFs - 1)
+                        }
+                    }
+                    ctx.restore()
+                }
+            }
+
+            // Geräteanschluss: Anschlusskennzeichnung, ggf. mit GK-BMK (z.B. "-X1:L1")
+            // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
+            if (!vorschau && !_skipText && el.symbolId === "geraeteanschluss") {
+                var gaed  = el.extraDaten || {}
+                var gaAnk = gaed.anschlusskennzeichnung || ""
+                if (gaAnk !== "") {
+                    // Umschließenden Gerätekasten suchen (kleinster)
+                    // _gkListe wurde einmalig in onPaint vorberechnet
+                    var gaCxF = (el.x1 + el.x2) / 2, gaCyF = (el.y1 + el.y2) / 2
+                    var bestGk = null, bestGkA = Infinity
+                    var _gaEls = cv._drawCanvas._gkListe
+                    for (var gi = 0; gi < _gaEls.length; gi++) {
+                        var gke = _gaEls[gi]
+                        var gkx1 = Math.min(gke.x1,gke.x2), gkx2 = Math.max(gke.x1,gke.x2)
+                        var gky1 = Math.min(gke.y1,gke.y2), gky2 = Math.max(gke.y1,gke.y2)
+                        if (gaCxF >= gkx1 && gaCxF <= gkx2 && gaCyF >= gky1 && gaCyF <= gky2) {
+                            var gkA = (gkx2-gkx1)*(gky2-gky1)
+                            if (gkA < bestGkA) { bestGkA = gkA; bestGk = gke }
+                        }
+                    }
+                    var gaLabel = gaAnk
+                    if (bestGk) {
+                        var gkBmkGA = (bestGk.extraDaten || {}).bmk || ""
+                        if (gkBmkGA) gaLabel = gkBmkGA + ":" + gaAnk
+                    }
+
+                    var gaFs   = Math.max(10, Math.round(2.0 * cv.mmToPx * cv.zoom))
+                    var gaRot  = ((el.rotation || 0) % 360 + 360) % 360
+                    var gaSenk = (gaRot === 90 || gaRot === 270)
+                    var gaCx   = (vx1 + vx2) / 2
+                    var gaCy   = (vy1 + vy2) / 2
+                    var gaOx   = (gaed.bmkOffsetX !== undefined ? gaed.bmkOffsetX : 0) * cv.zoom
+                    var gaOy   = (gaed.bmkOffsetY !== undefined ? gaed.bmkOffsetY : 0) * cv.zoom
+                    ctx.save()
+                    ctx.globalAlpha = 1.0
+                    ctx.font = "bold " + gaFs + "px sans-serif"
+                    ctx.fillStyle = gewaehlt ? "#f0a030" : "#4488cc"
+                    if (gaSenk) {
+                        // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
+                        var gaPinUnten = (gaRot === 90)
+                        var gaY = gaPinUnten
+                                  ? Math.min(vy1, vy2) - 3 * cv.zoom + gaOy
+                                  : Math.max(vy1, vy2) + 3 * cv.zoom + gaOy
+                        ctx.textAlign = "center"
+                        ctx.textBaseline = gaPinUnten ? "bottom" : "top"
+                        ctx.fillText(gaLabel, gaCx + gaOx, gaY)
+                    } else {
+                        // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
+                        var gaPinRechts = (gaRot === 0)
+                        var gaX = gaPinRechts
+                                  ? Math.min(vx1, vx2) - 4 * cv.zoom + gaOx
+                                  : Math.max(vx1, vx2) + 4 * cv.zoom + gaOx
+                        ctx.textAlign = gaPinRechts ? "right" : "left"
+                        ctx.textBaseline = "middle"
+                        ctx.fillText(gaLabel, gaX, gaCy + gaOy)
+                    }
+                    ctx.restore()
+                }
+            }
+
+            // Potenzial: BMK + Freitext neben dem Symbol (pin-seitig, draggbar via bmkOffsetX/Y)
+            // Pin ist bei 0° rechts: 0°→Text links | 90°→Text oben | 180°→Text rechts | 270°→Text unten
+            if (!vorschau && !_skipText && el.symbolId === "potenzial") {
+                var paed    = el.extraDaten || {}
+                var paBmk   = paed.bmk || ""
+                var paFtRhlg = paed.textReihenfolge || ["freitext1", "freitext2"]
+                var paFt    = []
+                for (var pfi = 0; pfi < paFtRhlg.length; pfi++) {
+                    var pftK = paFtRhlg[pfi]
+                    if (paed[pftK + "Sichtbar"] !== false && (paed[pftK] || "") !== "")
+                        paFt.push(paed[pftK])
+                }
+                if (paBmk !== "" || paFt.length > 0) {
+                    var paSchrift = paed.schriftgroesse !== undefined ? paed.schriftgroesse : 2.5
+                    var paFs   = Math.max(5, Math.round(paSchrift * cv.mmToPx * cv.zoom))
+                    var paFtFs = Math.max(4, Math.round(paSchrift * 0.85 * cv.mmToPx * cv.zoom))
+                    var paRot  = ((el.rotation || 0) % 360 + 360) % 360
+                    var paSenk = (paRot === 90 || paRot === 270)
+                    var paCx   = (vx1 + vx2) / 2
+                    var paCy   = (vy1 + vy2) / 2
+                    var paOx   = (paed.bmkOffsetX !== undefined ? paed.bmkOffsetX : 0) * cv.zoom
+                    var paOy   = (paed.bmkOffsetY !== undefined ? paed.bmkOffsetY : 0) * cv.zoom
+                    var paBmkClr = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
+                    var paFtClr  = gewaehlt ? "#f0a030" : "#8ab4d4"
+                    ctx.save()
+                    ctx.globalAlpha = 1.0
+                    if (paSenk) {
+                        // 90°: pin unten → Text oben  |  270°: pin oben → Text unten
+                        var paPinUnten = (paRot === 90)
+                        var paBl  = paPinUnten ? "bottom" : "top"
+                        var paDir = paPinUnten ? -1 : 1
+                        var paY   = paPinUnten
+                                    ? Math.min(vy1, vy2) - 3 * cv.zoom + paOy
+                                    : Math.max(vy1, vy2) + 3 * cv.zoom + paOy
+                        var paCxO = paCx + paOx
+                        ctx.textAlign = "center"
+                        if (paBmk !== "") {
+                            ctx.font = "bold " + paFs + "px sans-serif"
+                            ctx.textBaseline = paBl
+                            ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paCxO, paY)
+                        }
+                        if (paFt.length > 0) {
+                            ctx.font = paFtFs + "px sans-serif"
+                            ctx.fillStyle = paFtClr
+                            var paFtY = paY + paDir * (paBmk !== "" ? paFs + 2 : 0)
+                            for (var pfi2 = 0; pfi2 < paFt.length; pfi2++) {
+                                ctx.textBaseline = paBl
+                                ctx.fillText(paFt[pfi2], paCxO, paFtY)
+                                paFtY += paDir * paFtFs * 1.3
+                            }
+                        }
+                    } else {
+                        // 0°: pin rechts → Text links  |  180°: pin links → Text rechts
+                        var paPinRechts = (paRot === 0)
+                        var paAl = paPinRechts ? "right" : "left"
+                        var paX  = paPinRechts
+                                   ? Math.min(vx1, vx2) - 4 * cv.zoom + paOx
+                                   : Math.max(vx1, vx2) + 4 * cv.zoom + paOx
+                        var paCyO = paCy + paOy
+                        var paLineH = (paBmk !== "" ? paFs : 0) + paFt.length * paFtFs * 1.3
+                        var paCurY = paCyO - paLineH / 2
+                        ctx.textBaseline = "top"
+                        if (paBmk !== "") {
+                            ctx.font = "bold " + paFs + "px sans-serif"
+                            ctx.textAlign = paAl
+                            ctx.fillStyle = paBmkClr; ctx.fillText(paBmk, paX, paCurY)
+                            paCurY += paFs * 1.1
+                        }
+                        if (paFt.length > 0) {
+                            ctx.font = paFtFs + "px sans-serif"
+                            ctx.textAlign = paAl; ctx.fillStyle = paFtClr
+                            for (var pfi3 = 0; pfi3 < paFt.length; pfi3++) {
+                                ctx.fillText(paFt[pfi3], paX, paCurY)
+                                paCurY += paFtFs * 1.3
+                            }
+                        }
+                    }
+                    ctx.restore()
+                }
+            }
+
+            // Klemmen-Anschluss: Bezeichnung + BMK neben dem Symbol (draggable via bmkOffsetX/Y)
+            if (!vorschau && !_skipText && el.symbolId === "klemme_anschluss"
+                    && 2.0 * cv.mmToPx * cv.zoom >= 7) {
+                var kaed     = el.extraDaten || {}
+                var kaIstGeist = kaed.geist === true
+                var kaAnz    = kaed.anschlussBezeichnung || ""
+                var kaBmkRaw = kaed.bmk || ""
+                // Redundantes ":anschlussBezeichnung" am Ende entfernen – steht bereits auf Zeile 1
+                var kaBmkBase = (kaAnz !== "" && kaBmkRaw.endsWith(":" + kaAnz))
+                                ? kaBmkRaw.slice(0, kaBmkRaw.length - kaAnz.length - 1)
+                                : kaBmkRaw
+                // Granulare BMK-Sichtbarkeit: Leiste / Anlage / Ort / Gerät
+                var kaBmkColon = kaBmkBase.lastIndexOf(":")
+                var kaBmk, kaBmkVis
+                if (kaBmkColon >= 0) {
+                    var kaBmkStrip = kaBmkBase.slice(0, kaBmkColon + 1)
+                    var kaBmkNr    = kaBmkBase.slice(kaBmkColon + 1)
+                    var kaBmkPrefix = ""
+                    if (kaed.bmkSichtbar !== false) {
+                        var kaAnlAn = kaed.anlageAnzeigen !== false
+                        var kaOrtAn = kaed.ortAnzeigen    !== false
+                        var kaGkAn  = kaed.geraetAnzeigen !== false
+                        if (kaAnlAn && kaOrtAn && kaGkAn) {
+                            kaBmkPrefix = kaBmkStrip
+                        } else {
+                            var kaS = kaBmkStrip.endsWith(":") ? kaBmkStrip.slice(0, -1) : kaBmkStrip
+                            var kaTok = kaS.match(/(==\w+|\+\+\w+|=\w+|\+\w+|-\w+)/g) || [kaS]
+                            var kaLM = -1
+                            for (var kaI = kaTok.length - 1; kaI >= 0; kaI--) {
+                                if (kaTok[kaI].charAt(0) === "-") { kaLM = kaI; break }
+                            }
+                            var kaR = ""
+                            for (var kaJ = 0; kaJ < kaTok.length; kaJ++) {
+                                var kaT = kaTok[kaJ]; var kaTC = kaT.charAt(0)
+                                if      (kaTC === "=") { if (kaAnlAn) kaR += kaT }
+                                else if (kaTC === "+") { if (kaOrtAn) kaR += kaT }
+                                else if (kaTC === "-") { if (kaJ === kaLM || kaGkAn) kaR += kaT }
+                            }
+                            kaBmkPrefix = kaR + ":"
+                        }
+                    }
+                    kaBmk    = kaBmkPrefix + kaBmkNr
+                    kaBmkVis = kaBmk !== ""
+                } else {
+                    kaBmk    = kaBmkBase
+                    kaBmkVis = kaBmkBase !== "" && kaed.bmkSichtbar !== false
+                }
+                var kaFs    = Math.max(6, Math.round(1.5 * cv.mmToPx * cv.zoom))
+                var kaBmkFs = Math.max(10, Math.round(2.2 * cv.mmToPx * cv.zoom))
+                var kaRot   = ((el.rotation || 0) % 360 + 360) % 360
+                var kaSenk  = (kaRot === 90 || kaRot === 270)
+                var kaCx    = (vx1 + vx2) / 2
+                var kaCy    = (vy1 + vy2) / 2
+                var kaOx    = (kaed.bmkOffsetX !== undefined ? kaed.bmkOffsetX : 0) * cv.zoom
+                var kaOy    = (kaed.bmkOffsetY !== undefined ? kaed.bmkOffsetY : 0) * cv.zoom
+                // Textposition: immer gegenüber dem Pin
+                // 0°  → Pin oben   → Text unten
+                // 90° → Pin rechts → Text links
+                // 180°→ Pin unten  → Text oben
+                // 270°→ Pin links  → Text rechts
+                ctx.save()
+                ctx.globalAlpha = 1.0
+                if (kaSenk) {
+                    var kaPinRechts = (kaRot === 90)
+                    var kaX   = kaPinRechts
+                                ? Math.min(vx1, vx2) - 4 * cv.zoom + kaOy
+                                : Math.max(vx1, vx2) + 4 * cv.zoom + kaOy
+                    var kaAlg = kaPinRechts ? "right" : "left"
+                    var kaCyO = kaCy + kaOx
+                    var kaAy   = kaBmkVis ? kaCyO - kaBmkFs * 0.6 : kaCyO
+                    var kaBmkY = kaAnz !== "" ? kaCyO + kaBmkFs * 0.8 : kaCyO
+                    if (kaAnz !== "") {
+                        ctx.font = "bold " + kaFs + "px sans-serif"
+                        ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#33bb66")
+                        ctx.fillText(kaAnz, kaX, kaAy)
+                    }
+                    if (kaBmkVis) {
+                        ctx.font = "bold " + kaBmkFs + "px sans-serif"
+                        ctx.textAlign = kaAlg; ctx.textBaseline = "middle"
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#4488cc")
+                        ctx.fillText(kaBmk, kaX, kaBmkY)
+                    }
+                } else {
+                    var kaPinUnten = (kaRot === 180)
+                    var kaY   = kaPinUnten
+                                ? Math.min(vy1, vy2) - 3 * cv.zoom + kaOy
+                                : Math.max(vy1, vy2) + 3 * cv.zoom + kaOy
+                    var kaBl  = kaPinUnten ? "bottom" : "top"
+                    var kaCxO = kaCx + kaOx
+                    var kaBmkYh = kaPinUnten ? kaY - kaFs - 1 : kaY + kaFs + 1
+                    if (kaAnz !== "") {
+                        ctx.font = "bold " + kaFs + "px sans-serif"
+                        ctx.textAlign = "center"; ctx.textBaseline = kaBl
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#33bb66")
+                        ctx.fillText(kaAnz, kaCxO, kaY)
+                    }
+                    if (kaBmkVis) {
+                        ctx.font = "bold " + kaBmkFs + "px sans-serif"
+                        ctx.textAlign = "center"; ctx.textBaseline = kaBl
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : (kaIstGeist ? "#888888" : "#4488cc")
+                        ctx.fillText(kaBmk, kaCxO, kaBmkYh)
+                    }
+                }
+                ctx.restore()
+            }
+
+            // Aderdefinitionspunkt: Textblock – Positionierung wie BMK an Symbolen
+            // 0° (waagerecht): Text über dem Symbol | 90° (senkrecht): Text links
+            if (!vorschau && !_skipText && el.symbolId === "aderdefinition"
+                    && 2.0 * cv.mmToPx * cv.zoom >= 7) {
+                var aed = el.extraDaten || {}
+                var adpZeilen = []
+                if (aed.bezeichnung) adpZeilen.push({ text: aed.bezeichnung, bold: true })
+                var adpFarb = aed.aderfarbe || "", adpQuer = aed.querschnitt_mm2
+                if (adpFarb !== "" || (adpQuer !== undefined && adpQuer > 0))
+                    adpZeilen.push({ text: (adpFarb || "–") + (adpQuer > 0 ? "  " + (adpQuer + "").replace('.', ',') + " mm²" : ""), bold: false })
+                if (aed.laenge_m && aed.laenge_m > 0)
+                    adpZeilen.push({ text: qsTr("\u2192 ") + (aed.laenge_m + "").replace('.', ',') + " m", bold: false })
+                if (adpZeilen.length > 0) {
+                    var adpFs    = Math.max(6, Math.round(2.0 * cv.mmToPx * cv.zoom))
+                    var adpLineH = adpFs * 1.3
+                    var adpRot   = ((el.rotation || 0) % 360 + 360) % 360
+                    var adpSenk  = (adpRot === 90 || adpRot === 270)
+                    var adpCx    = (vx1 + vx2) / 2
+                    var adpCy    = (vy1 + vy2) / 2
+                    ctx.save()
+                    ctx.globalAlpha = 1.0
+                    var adpTextFarbe = gewaehlt ? "#f0a030" : "#4488cc"
+                    if (adpSenk) {
+                        // Senkrecht: Text links, vertikal zentriert
+                        var adpLx = Math.min(vx1, vx2) - 4 * cv.zoom
+                        var adpLy = adpCy - adpZeilen.length * adpLineH / 2
+                        ctx.textAlign = "right"; ctx.textBaseline = "top"
+                        for (var az1 = 0; az1 < adpZeilen.length; az1++) {
+                            ctx.font = (adpZeilen[az1].bold ? "bold " : "") + adpFs + "px sans-serif"
+                            ctx.fillStyle = adpTextFarbe
+                            ctx.fillText(adpZeilen[az1].text, adpLx, adpLy + az1 * adpLineH)
+                        }
+                    } else {
+                        // Waagerecht: Text über dem Symbol, horizontal zentriert
+                        var adpOy = Math.min(vy1, vy2) - 3 * cv.zoom
+                        var adpOx = adpCx
+                        ctx.textAlign = "center"; ctx.textBaseline = "bottom"
+                        // Zeilen von unten nach oben (letzte Zeile oben)
+                        for (var az2 = adpZeilen.length - 1; az2 >= 0; az2--) {
+                            ctx.font = (adpZeilen[az2].bold ? "bold " : "") + adpFs + "px sans-serif"
+                            ctx.fillStyle = adpTextFarbe
+                            ctx.fillText(adpZeilen[az2].text, adpOx, adpOy)
+                            adpOy -= adpLineH
+                        }
+                    }
+                    ctx.restore()
+                }
+            }
         }
     }
 }

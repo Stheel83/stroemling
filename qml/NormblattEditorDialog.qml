@@ -20,11 +20,35 @@ Item {
     property var  _mehrfachAuswahl: []   // hält _selIdx synchron: [] leer, [i] ⇒ _selIdx=i, sonst _selIdx=-1
     property bool _neuModus:   false
     property string _neuName:  ""
-    property bool _umbenennenModus: false
-    property string _umbenennenName: ""
+    property int  _neuFormatIdx: 0
+    property bool _einstellungenModus: false
+    property string _einstellungenName: ""
+    property int  _einstellungenFormatIdx: 0
 
     readonly property var _vorlage: (_vorlIdx >= 0 && _vorlIdx < _vorlagen.length)
                                     ? _vorlagen[_vorlIdx] : null
+
+    // Dieselben Standardformate wie beim Seite-Anlegen-Dialog (SeitenBaum.qml),
+    // damit Nutzer nicht zwei verschiedene Format-Listen im Kopf haben müssen.
+    ListModel {
+        id: formatModel
+        ListElement { text: "A4 Querformat  (297 × 210 mm)"; breite: 297; hoehe: 210 }
+        ListElement { text: "A4 Hochformat  (210 × 297 mm)"; breite: 210; hoehe: 297 }
+        ListElement { text: "A3 Querformat  (420 × 297 mm)"; breite: 420; hoehe: 297 }
+        ListElement { text: "A3 Hochformat  (297 × 420 mm)"; breite: 297; hoehe: 420 }
+        ListElement { text: "A2 Querformat  (594 × 420 mm)"; breite: 594; hoehe: 420 }
+        ListElement { text: "A2 Hochformat  (420 × 594 mm)"; breite: 420; hoehe: 594 }
+    }
+
+    // Index in formatModel, der zu (bMm, hMm) passt — Fallback 0 (A4 Quer)
+    // falls die Vorlage eine krumme, nicht in der Liste stehende Größe hat.
+    function _formatIndexFuer(bMm, hMm) {
+        for (var i = 0; i < formatModel.count; i++) {
+            var f = formatModel.get(i)
+            if (f.breite === Math.round(bMm) && f.hoehe === Math.round(hMm)) return i
+        }
+        return 0
+    }
 
     // ── Lifecycle ─────────────────────────────────────────────
     onVisibleChanged: if (visible) _laden()
@@ -235,8 +259,9 @@ Item {
     function _vorlageNeuErstellen() {
         var name = _neuName.trim()
         if (!name) return
+        var fmt = formatModel.get(Math.max(0, _neuFormatIdx))
         var id = db.normblattVorlageSpeichern({
-            name: name, breiteMm: 297, hoeheMm: 210,
+            name: name, breiteMm: fmt.breite, hoeheMm: fmt.hoehe,
             randLinksMm: 20, randRechtsMm: 10,
             randObenMm: 10,  randUntenMm: 10
         })
@@ -276,20 +301,23 @@ Item {
         _laden()
     }
 
-    // Benennt die aktuell angezeigte Vorlage um — normblattVorlageSpeichern()
-    // macht bei gesetzter id ein UPDATE statt eines neuen INSERT.
-    function _vorlageUmbenennen() {
-        var name = _umbenennenName.trim()
+    // Speichert Name + Format der aktuell angezeigten Vorlage —
+    // normblattVorlageSpeichern() macht bei gesetzter id ein UPDATE statt
+    // eines neuen INSERT. Ränder bleiben unverändert (nicht Teil dieses
+    // Dialogs, nur Name+Format).
+    function _vorlageEinstellungenSpeichern() {
+        var name = _einstellungenName.trim()
         if (!name || !_vorlage) return
+        var fmt = formatModel.get(Math.max(0, _einstellungenFormatIdx))
         db.normblattVorlageSpeichern({
             id:           _vorlage.id,
             name:         name,
             beschreibung: _vorlage.beschreibung,
-            breiteMm:     _vorlage.breiteMm,     hoeheMm:      _vorlage.hoeheMm,
+            breiteMm:     fmt.breite,            hoeheMm:      fmt.hoehe,
             randLinksMm:  _vorlage.randLinksMm,  randRechtsMm: _vorlage.randRechtsMm,
             randObenMm:   _vorlage.randObenMm,   randUntenMm:  _vorlage.randUntenMm
         })
-        _umbenennenModus = false
+        _einstellungenModus = false
         var vorherId = _vorlage.id
         _vorlagen = db.normblattVorlagenListe()
         for (var i = 0; i < _vorlagen.length; i++) {
@@ -337,7 +365,18 @@ Item {
                 color: root.theme.textPrimary; font.pixelSize: 13
                 Keys.onReturnPressed:  root._vorlageNeuErstellen()
                 Keys.onEscapePressed:  root._neuModus = false
-                onVisibleChanged: if (visible) { root._neuName = qsTr("Neue Vorlage"); forceActiveFocus() }
+                onVisibleChanged: if (visible) { root._neuName = qsTr("Neue Vorlage"); root._neuFormatIdx = 0; forceActiveFocus() }
+            }
+            ComboBox {
+                id: cmbNeuFormat
+                visible: root._neuModus
+                Layout.preferredWidth: 190; Layout.preferredHeight: 32
+                model: formatModel; textRole: "text"
+                currentIndex: root._neuFormatIdx
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { leftPadding: 8; text: cmbNeuFormat.displayText; color: root.theme.textPrimary
+                    font.pixelSize: 12; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                onActivated: function(i) { root._neuFormatIdx = i }
             }
             Rectangle {
                 visible: root._neuModus; width: 80; height: 32; radius: 5
@@ -355,41 +394,57 @@ Item {
                 MouseArea { id: neuAbbrMA; anchors.fill: parent; hoverEnabled: true; onClicked: root._neuModus = false }
             }
 
-            // ── Umbenennen-Modus ──────────────────────────────
+            // ── Einstellungen-Modus (Name + Format) ───────────
             TextField {
-                id: tfUmbenennen
-                visible: root._umbenennenModus
+                id: tfEinstName
+                visible: root._einstellungenModus
                 Layout.preferredWidth: 200; Layout.preferredHeight: 32
-                text: root._umbenennenName; onTextChanged: root._umbenennenName = text
+                text: root._einstellungenName; onTextChanged: root._einstellungenName = text
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.accent; radius: 4 }
                 color: root.theme.textPrimary; font.pixelSize: 13
-                Keys.onReturnPressed: root._vorlageUmbenennen()
-                Keys.onEscapePressed: root._umbenennenModus = false
+                Keys.onReturnPressed: root._vorlageEinstellungenSpeichern()
+                Keys.onEscapePressed: root._einstellungenModus = false
                 onVisibleChanged: if (visible) {
-                    root._umbenennenName = root._vorlage ? root._vorlage.name : ""
+                    root._einstellungenName = root._vorlage ? root._vorlage.name : ""
+                    root._einstellungenFormatIdx = root._vorlage
+                        ? root._formatIndexFuer(root._vorlage.breiteMm || 297, root._vorlage.hoeheMm || 210) : 0
                     selectAll(); forceActiveFocus()
                 }
             }
-            Rectangle {
-                visible: root._umbenennenModus; width: 80; height: 32; radius: 5
-                color: umbSpeichernMA.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.3)
-                opacity: root._umbenennenName.trim() ? 1.0 : 0.5
-                Text { anchors.centerIn: parent; text: qsTr("Speichern"); color: "white"; font.pixelSize: 12; font.weight: Font.Medium }
-                MouseArea { id: umbSpeichernMA; anchors.fill: parent; hoverEnabled: true
-                    enabled: root._umbenennenName.trim() !== ""; onClicked: root._vorlageUmbenennen() }
+            ComboBox {
+                id: cmbEinstFormat
+                visible: root._einstellungenModus
+                Layout.preferredWidth: 190; Layout.preferredHeight: 32
+                model: formatModel; textRole: "text"
+                currentIndex: root._einstellungenFormatIdx
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { leftPadding: 8; text: cmbEinstFormat.displayText; color: root.theme.textPrimary
+                    font.pixelSize: 12; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                onActivated: function(i) { root._einstellungenFormatIdx = i }
+                ToolTip.visible: cmbEinstFormat.hovered
+                ToolTip.text: qsTr("Ändert das Format der Vorlage — bestehende Feldpositionen bleiben an denselben mm-Koordinaten, ggf. manuell nachjustieren")
+                ToolTip.delay: 600
             }
             Rectangle {
-                visible: root._umbenennenModus; width: 80; height: 32; radius: 5
-                color: umbAbbrMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                visible: root._einstellungenModus; width: 80; height: 32; radius: 5
+                color: einstSpeichernMA.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.3)
+                opacity: root._einstellungenName.trim() ? 1.0 : 0.5
+                Text { anchors.centerIn: parent; text: qsTr("Speichern"); color: "white"; font.pixelSize: 12; font.weight: Font.Medium }
+                MouseArea { id: einstSpeichernMA; anchors.fill: parent; hoverEnabled: true
+                    enabled: root._einstellungenName.trim() !== ""; onClicked: root._vorlageEinstellungenSpeichern() }
+            }
+            Rectangle {
+                visible: root._einstellungenModus; width: 80; height: 32; radius: 5
+                color: einstAbbrMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); color: root.theme.textPrimary; font.pixelSize: 12 }
-                MouseArea { id: umbAbbrMA; anchors.fill: parent; hoverEnabled: true; onClicked: root._umbenennenModus = false }
+                MouseArea { id: einstAbbrMA; anchors.fill: parent; hoverEnabled: true; onClicked: root._einstellungenModus = false }
             }
 
             // ── Normal-Modus ──────────────────────────────────
             ComboBox {
                 id: cmbVorlage
-                visible: !root._neuModus && !root._umbenennenModus
+                visible: !root._neuModus && !root._einstellungenModus
                 Layout.preferredWidth: 220; Layout.preferredHeight: 32
                 model: root._vorlagen.map(function(v) {
                     return v.name + qsTr(" (%1×%2 mm)").arg(Math.round(v.breiteMm || 297)).arg(Math.round(v.hoeheMm || 210))
@@ -415,7 +470,7 @@ Item {
                 onActivated: function(i) { root._vorlIdx = i; root._felderLaden() }
             }
             Rectangle {
-                visible: !root._neuModus && !root._umbenennenModus; width: 32; height: 32; radius: 5
+                visible: !root._neuModus && !root._einstellungenModus; width: 32; height: 32; radius: 5
                 color: neuBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "+"; color: root.theme.textPrimary; font.pixelSize: 20; font.weight: Font.Light }
@@ -424,16 +479,16 @@ Item {
                 ToolTip.visible: neuBtnMA.containsMouse; ToolTip.text: qsTr("Neue Vorlage anlegen"); ToolTip.delay: 600
             }
             Rectangle {
-                visible: !root._neuModus && !root._umbenennenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
-                color: umbBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                visible: !root._neuModus && !root._einstellungenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                color: einstBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "✎"; color: root.theme.textPrimary; font.pixelSize: 14 }
-                MouseArea { id: umbBtnMA; anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor; onClicked: root._umbenennenModus = true }
-                ToolTip.visible: umbBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage umbenennen"); ToolTip.delay: 600
+                MouseArea { id: einstBtnMA; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor; onClicked: root._einstellungenModus = true }
+                ToolTip.visible: einstBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage umbenennen / Format ändern"); ToolTip.delay: 600
             }
             Rectangle {
-                visible: !root._neuModus && !root._umbenennenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                visible: !root._neuModus && !root._einstellungenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
                 color: kopBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "❐"; color: root.theme.textPrimary; font.pixelSize: 15 }
@@ -442,7 +497,7 @@ Item {
                 ToolTip.visible: kopBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage duplizieren"); ToolTip.delay: 600
             }
             Rectangle {
-                visible: !root._neuModus && !root._umbenennenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                visible: !root._neuModus && !root._einstellungenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
                 color: delVorlMA.containsMouse ? "#602020" : root.theme.inputBg
                 border.color: delVorlMA.containsMouse ? "#a03030" : root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "✕"

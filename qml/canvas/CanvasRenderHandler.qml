@@ -2000,4 +2000,194 @@ QtObject {
             }
         }
     }
+
+    // --------------------------------------------------------
+    // onPaint-Inline-Overlays (REFACTOR-01 Stufe 6)
+    // --------------------------------------------------------
+
+    function maleKlemmenHighlight(ctx, elemente) {
+        // Klemmen-Highlight-Pass (KLEMME-HL-01)
+        if (cv._hlKlemmeId >= 0) {
+            ctx.save()
+            ctx.strokeStyle = "#00d0a0"
+            ctx.lineWidth   = 2.5
+            ctx.setLineDash([4, 3])
+            ctx.globalAlpha = 0.85
+            for (var hi = 0; hi < elemente.length; hi++) {
+                var hEl = elemente[hi]
+                if (!hEl || hEl.typ !== "symbol" || hEl.symbolId !== "klemme_anschluss") continue
+                if (cv.auswahl.indexOf(hi) >= 0) continue
+                var hEd = hEl.extraDaten || {}
+                if ((hEd.klemmeId !== undefined ? hEd.klemmeId : -1) !== cv._hlKlemmeId) continue
+                var hvx1 = hEl.x1 * cv.zoom + cv.worldX
+                var hvy1 = hEl.y1 * cv.zoom + cv.worldY
+                var hvx2 = hEl.x2 * cv.zoom + cv.worldX
+                var hvy2 = hEl.y2 * cv.zoom + cv.worldY
+                var hbx  = Math.min(hvx1, hvx2), hby = Math.min(hvy1, hvy2)
+                var hbw  = Math.abs(hvx2 - hvx1), hbh = Math.abs(hvy2 - hvy1)
+                ctx.strokeRect(hbx - 2, hby - 2, hbw + 4, hbh + 4)
+            }
+            ctx.restore()
+        }
+    }
+
+    function malePolygonVorschau(ctx) {
+        // Polygonlinie Live-Vorschau (bereits gezeichnete Segmente + offenes Segment zum Cursor)
+        if (cv.amPolyZeichnen && cv.polyPunkte.length > 0) {
+            ctx.save()
+            ctx.globalAlpha = 0.7
+            ctx.strokeStyle = "#4a9eff"
+            ctx.lineWidth   = cv.stilVorlage.strichBreite || 1.5
+            ctx.setLineDash([])
+            ctx.lineCap     = "round"
+            ctx.beginPath()
+            var pp0 = cv.polyPunkte[0]
+            ctx.moveTo(pp0.x * cv.zoom + cv.worldX, pp0.y * cv.zoom + cv.worldY)
+            for (var ppI = 1; ppI < cv.polyPunkte.length; ppI++) {
+                var ppN = cv.polyPunkte[ppI]
+                ctx.lineTo(ppN.x * cv.zoom + cv.worldX, ppN.y * cv.zoom + cv.worldY)
+            }
+            if (cv.polyCursorWelt !== null) {
+                ctx.setLineDash([5, 4])
+                ctx.lineTo(cv.polyCursorWelt.x * cv.zoom + cv.worldX,
+                           cv.polyCursorWelt.y * cv.zoom + cv.worldY)
+            }
+            ctx.stroke()
+            // Bereits gesetzte Punkte als kleine Kreise
+            ctx.setLineDash([])
+            for (var ppV = 0; ppV < cv.polyPunkte.length; ppV++) {
+                var ppVp = cv.polyPunkte[ppV]
+                ctx.beginPath()
+                ctx.arc(ppVp.x * cv.zoom + cv.worldX, ppVp.y * cv.zoom + cv.worldY, 3, 0, 2 * Math.PI)
+                ctx.fillStyle = "#4a9eff"; ctx.fill()
+            }
+            ctx.restore()
+        }
+    }
+
+    function maleRubberband(ctx) {
+        // Rubber-Band Auswahlrahmen
+        // AutoCAD-Konvention: links→rechts = Fenster (komplett umschlossene
+        // Elemente), rechts→links = Schneiden (Überlappung reicht). Farbe/
+        // Linienart geben während des Ziehens visuelles Feedback zum Modus.
+        if (cv.amRubberband && cv.rubberbandRect) {
+            var rb = cv.rubberbandRect
+            var rx = Math.min(rb.x1, rb.x2), ry = Math.min(rb.y1, rb.y2)
+            var rw = Math.abs(rb.x2 - rb.x1), rh = Math.abs(rb.y2 - rb.y1)
+            var _ueberlapp = rb.x2 < rb.x1
+            ctx.save()
+            if (_ueberlapp) {
+                ctx.setLineDash([4, 3])
+                ctx.strokeStyle = "#00e5a0"
+                ctx.fillStyle   = "rgba(0, 229, 160, 0.08)"
+            } else {
+                ctx.setLineDash([])
+                ctx.strokeStyle = "#4a9eff"
+                ctx.fillStyle   = "rgba(74, 158, 255, 0.07)"
+            }
+            ctx.lineWidth = 1
+            ctx.fillRect(rx, ry, rw, rh)
+            ctx.strokeRect(rx, ry, rw, rh)
+            ctx.restore()
+        }
+    }
+
+    function maleGruppenindikator(ctx) {
+        // Gruppenindikator: gestricheltes Rechteck um Gruppen in der Auswahl
+        if (cv.auswahl.length > 0) {
+            var gruppenSet = {}
+            for (var gai = 0; gai < cv.auswahl.length; gai++) {
+                var gaEl = cv.elementeModel.element(cv.auswahl[gai])
+                if (gaEl && gaEl.gruppeId !== undefined && gaEl.gruppeId >= 0)
+                    gruppenSet[gaEl.gruppeId] = true
+            }
+            for (var gKey in gruppenSet) {
+                var gId = parseInt(gKey)
+                var mitgl = cv.elementeModel.gruppenMitglieder(gId)
+                if (mitgl.length === 0) continue
+                var gMinX = Infinity, gMinY = Infinity, gMaxX = -Infinity, gMaxY = -Infinity
+                for (var gmi = 0; gmi < mitgl.length; gmi++) {
+                    var gmEl = cv.elementeModel.element(parseInt(mitgl[gmi]))
+                    if (!gmEl) continue
+                    gMinX = Math.min(gMinX, Math.min(gmEl.x1, gmEl.x2))
+                    gMinY = Math.min(gMinY, Math.min(gmEl.y1, gmEl.y2))
+                    gMaxX = Math.max(gMaxX, Math.max(gmEl.x1, gmEl.x2))
+                    gMaxY = Math.max(gMaxY, Math.max(gmEl.y1, gmEl.y2))
+                }
+                var gPad = 6
+                ctx.save()
+                ctx.strokeStyle = "#60c8ff"
+                ctx.lineWidth   = 1.5
+                ctx.setLineDash([6, 4])
+                ctx.strokeRect(
+                    gMinX * cv.zoom + cv.worldX - gPad,
+                    gMinY * cv.zoom + cv.worldY - gPad,
+                    (gMaxX - gMinX) * cv.zoom + 2 * gPad,
+                    (gMaxY - gMinY) * cv.zoom + 2 * gPad
+                )
+                ctx.restore()
+            }
+        }
+    }
+
+    function maleStapelIndikator(ctx, elemente) {
+        // Stapel-Indikator: oranges Badge wenn ≥2 Elemente am gleichen Ort liegen
+        var stapelMap = {}
+        for (var si = 0; si < elemente.length; si++) {
+            var sel = elemente[si]
+            var sKey = Math.round((sel.x1 + sel.x2) / 2) + "_" + Math.round((sel.y1 + sel.y2) / 2)
+            if (!stapelMap[sKey]) stapelMap[sKey] = { anzahl: 0, x2: sel.x2, y1: sel.y1 }
+            stapelMap[sKey].anzahl++
+            if (sel.x2 > stapelMap[sKey].x2) stapelMap[sKey].x2 = sel.x2
+            if (sel.y1 < stapelMap[sKey].y1) stapelMap[sKey].y1 = sel.y1
+        }
+        ctx.save()
+        ctx.setLineDash([])
+        for (var sK in stapelMap) {
+            var st = stapelMap[sK]
+            if (st.anzahl < 2) continue
+            var br  = 9
+            var bvx = st.x2 * cv.zoom + cv.worldX + br * 0.5
+            var bvy = st.y1 * cv.zoom + cv.worldY - br * 0.5
+            ctx.globalAlpha = 1.0
+            ctx.fillStyle   = "#f97316"
+            ctx.beginPath(); ctx.arc(bvx, bvy, br, 0, 2 * Math.PI); ctx.fill()
+            ctx.fillStyle    = "#ffffff"
+            ctx.font         = "bold 10px sans-serif"
+            ctx.textAlign    = "center"
+            ctx.textBaseline = "middle"
+            ctx.fillText(st.anzahl, bvx, bvy)
+        }
+        ctx.restore()
+    }
+
+    function maleRevisionsWasserzeichen(ctx) {
+        // Revisionsmarker-Wasserzeichen
+        if (cv.revisionStatus !== "") {
+            var wmText = ""
+            var wmColor = "#888888"
+            if (cv.revisionStatus === "entwurf") {
+                wmText  = "ENTWURF"
+                wmColor = "#d97706"
+            } else if (cv.revisionStatus === "freigegeben") {
+                wmText  = "FREIGEGEBEN" + (cv.revisionKennung ? "  REV. " + cv.revisionKennung : "")
+                wmColor = "#16a34a"
+            } else if (cv.revisionStatus === "veraltet") {
+                wmText  = "VERALTET"
+                wmColor = "#dc2626"
+            }
+            if (wmText !== "") {
+                ctx.save()
+                ctx.translate(cv._drawCanvas.width / 2, cv._drawCanvas.height / 2)
+                ctx.rotate(-Math.PI / 6)
+                ctx.globalAlpha = 0.10
+                ctx.fillStyle   = wmColor
+                ctx.textAlign   = "center"
+                ctx.textBaseline = "middle"
+                ctx.font        = "bold " + Math.round(Math.min(cv._drawCanvas.width, cv._drawCanvas.height) / 5) + "px sans-serif"
+                ctx.fillText(wmText, 0, 0)
+                ctx.restore()
+            }
+        }
+    }
 }

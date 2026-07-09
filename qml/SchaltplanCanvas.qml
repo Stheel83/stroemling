@@ -486,29 +486,7 @@ Item {
             for (var i=0; i<elemente.length; i++)
                 renderHandler.maleElement(ctx, elemente[i], i)
 
-            // Klemmen-Highlight-Pass (KLEMME-HL-01)
-            if (root._hlKlemmeId >= 0) {
-                ctx.save()
-                ctx.strokeStyle = "#00d0a0"
-                ctx.lineWidth   = 2.5
-                ctx.setLineDash([4, 3])
-                ctx.globalAlpha = 0.85
-                for (var hi = 0; hi < elemente.length; hi++) {
-                    var hEl = elemente[hi]
-                    if (!hEl || hEl.typ !== "symbol" || hEl.symbolId !== "klemme_anschluss") continue
-                    if (root.auswahl.indexOf(hi) >= 0) continue
-                    var hEd = hEl.extraDaten || {}
-                    if ((hEd.klemmeId !== undefined ? hEd.klemmeId : -1) !== root._hlKlemmeId) continue
-                    var hvx1 = hEl.x1 * root.zoom + root.worldX
-                    var hvy1 = hEl.y1 * root.zoom + root.worldY
-                    var hvx2 = hEl.x2 * root.zoom + root.worldX
-                    var hvy2 = hEl.y2 * root.zoom + root.worldY
-                    var hbx  = Math.min(hvx1, hvx2), hby = Math.min(hvy1, hvy2)
-                    var hbw  = Math.abs(hvx2 - hvx1), hbh = Math.abs(hvy2 - hvy1)
-                    ctx.strokeRect(hbx - 2, hby - 2, hbw + 4, hbh + 4)
-                }
-                ctx.restore()
-            }
+            renderHandler.maleKlemmenHighlight(ctx, elemente)
 
             if (root.vorschau !== null)
                 renderHandler.maleElement(ctx, root.vorschau, -1)
@@ -544,37 +522,7 @@ Item {
                 for (var dvi = 0; dvi < root.duplizierVorschau.length; dvi++)
                     renderHandler.maleElement(ctx, root.duplizierVorschau[dvi], -1)
             }
-            // Polygonlinie Live-Vorschau (bereits gezeichnete Segmente + offenes Segment zum Cursor)
-            if (root.amPolyZeichnen && root.polyPunkte.length > 0) {
-                ctx.save()
-                ctx.globalAlpha = 0.7
-                ctx.strokeStyle = "#4a9eff"
-                ctx.lineWidth   = root.stilVorlage.strichBreite || 1.5
-                ctx.setLineDash([])
-                ctx.lineCap     = "round"
-                ctx.beginPath()
-                var pp0 = root.polyPunkte[0]
-                ctx.moveTo(pp0.x * root.zoom + root.worldX, pp0.y * root.zoom + root.worldY)
-                for (var ppI = 1; ppI < root.polyPunkte.length; ppI++) {
-                    var ppN = root.polyPunkte[ppI]
-                    ctx.lineTo(ppN.x * root.zoom + root.worldX, ppN.y * root.zoom + root.worldY)
-                }
-                if (root.polyCursorWelt !== null) {
-                    ctx.setLineDash([5, 4])
-                    ctx.lineTo(root.polyCursorWelt.x * root.zoom + root.worldX,
-                               root.polyCursorWelt.y * root.zoom + root.worldY)
-                }
-                ctx.stroke()
-                // Bereits gesetzte Punkte als kleine Kreise
-                ctx.setLineDash([])
-                for (var ppV = 0; ppV < root.polyPunkte.length; ppV++) {
-                    var ppVp = root.polyPunkte[ppV]
-                    ctx.beginPath()
-                    ctx.arc(ppVp.x * root.zoom + root.worldX, ppVp.y * root.zoom + root.worldY, 3, 0, 2 * Math.PI)
-                    ctx.fillStyle = "#4a9eff"; ctx.fill()
-                }
-                ctx.restore()
-            }
+            renderHandler.malePolygonVorschau(ctx)
             var _repaintNetze = netzHandler.autoNetzeBerechnenCached()
             renderHandler.maleAutoVerbindungen(ctx, _repaintNetze)
             // Schnittpunkte aller Kabellinien mit Auto-Verbindungen (Phase 5)
@@ -582,121 +530,11 @@ Item {
                 if (elemente[kli].typ === "kabellinie")
                     renderHandler.maleKabelSchnitte(ctx, elemente[kli], _repaintNetze)
             }
-            // Rubber-Band Auswahlrahmen
-            // AutoCAD-Konvention: links→rechts = Fenster (komplett umschlossene
-            // Elemente), rechts→links = Schneiden (Überlappung reicht). Farbe/
-            // Linienart geben während des Ziehens visuelles Feedback zum Modus.
-            if (root.amRubberband && root.rubberbandRect) {
-                var rb = root.rubberbandRect
-                var rx = Math.min(rb.x1, rb.x2), ry = Math.min(rb.y1, rb.y2)
-                var rw = Math.abs(rb.x2 - rb.x1), rh = Math.abs(rb.y2 - rb.y1)
-                var _ueberlapp = rb.x2 < rb.x1
-                ctx.save()
-                if (_ueberlapp) {
-                    ctx.setLineDash([4, 3])
-                    ctx.strokeStyle = "#00e5a0"
-                    ctx.fillStyle   = "rgba(0, 229, 160, 0.08)"
-                } else {
-                    ctx.setLineDash([])
-                    ctx.strokeStyle = "#4a9eff"
-                    ctx.fillStyle   = "rgba(74, 158, 255, 0.07)"
-                }
-                ctx.lineWidth = 1
-                ctx.fillRect(rx, ry, rw, rh)
-                ctx.strokeRect(rx, ry, rw, rh)
-                ctx.restore()
-            }
-            // Gruppenindikator: gestricheltes Rechteck um Gruppen in der Auswahl
-            if (root.auswahl.length > 0) {
-                var gruppenSet = {}
-                for (var gai = 0; gai < root.auswahl.length; gai++) {
-                    var gaEl = elementeModel.element(root.auswahl[gai])
-                    if (gaEl && gaEl.gruppeId !== undefined && gaEl.gruppeId >= 0)
-                        gruppenSet[gaEl.gruppeId] = true
-                }
-                for (var gKey in gruppenSet) {
-                    var gId = parseInt(gKey)
-                    var mitgl = elementeModel.gruppenMitglieder(gId)
-                    if (mitgl.length === 0) continue
-                    var gMinX = Infinity, gMinY = Infinity, gMaxX = -Infinity, gMaxY = -Infinity
-                    for (var gmi = 0; gmi < mitgl.length; gmi++) {
-                        var gmEl = elementeModel.element(parseInt(mitgl[gmi]))
-                        if (!gmEl) continue
-                        gMinX = Math.min(gMinX, Math.min(gmEl.x1, gmEl.x2))
-                        gMinY = Math.min(gMinY, Math.min(gmEl.y1, gmEl.y2))
-                        gMaxX = Math.max(gMaxX, Math.max(gmEl.x1, gmEl.x2))
-                        gMaxY = Math.max(gMaxY, Math.max(gmEl.y1, gmEl.y2))
-                    }
-                    var gPad = 6
-                    ctx.save()
-                    ctx.strokeStyle = "#60c8ff"
-                    ctx.lineWidth   = 1.5
-                    ctx.setLineDash([6, 4])
-                    ctx.strokeRect(
-                        gMinX * root.zoom + root.worldX - gPad,
-                        gMinY * root.zoom + root.worldY - gPad,
-                        (gMaxX - gMinX) * root.zoom + 2 * gPad,
-                        (gMaxY - gMinY) * root.zoom + 2 * gPad
-                    )
-                    ctx.restore()
-                }
-            }
-            // Stapel-Indikator: oranges Badge wenn ≥2 Elemente am gleichen Ort liegen
-            var stapelMap = {}
-            for (var si = 0; si < elemente.length; si++) {
-                var sel = elemente[si]
-                var sKey = Math.round((sel.x1 + sel.x2) / 2) + "_" + Math.round((sel.y1 + sel.y2) / 2)
-                if (!stapelMap[sKey]) stapelMap[sKey] = { anzahl: 0, x2: sel.x2, y1: sel.y1 }
-                stapelMap[sKey].anzahl++
-                if (sel.x2 > stapelMap[sKey].x2) stapelMap[sKey].x2 = sel.x2
-                if (sel.y1 < stapelMap[sKey].y1) stapelMap[sKey].y1 = sel.y1
-            }
-            ctx.save()
-            ctx.setLineDash([])
-            for (var sK in stapelMap) {
-                var st = stapelMap[sK]
-                if (st.anzahl < 2) continue
-                var br  = 9
-                var bvx = st.x2 * root.zoom + root.worldX + br * 0.5
-                var bvy = st.y1 * root.zoom + root.worldY - br * 0.5
-                ctx.globalAlpha = 1.0
-                ctx.fillStyle   = "#f97316"
-                ctx.beginPath(); ctx.arc(bvx, bvy, br, 0, 2 * Math.PI); ctx.fill()
-                ctx.fillStyle    = "#ffffff"
-                ctx.font         = "bold 10px sans-serif"
-                ctx.textAlign    = "center"
-                ctx.textBaseline = "middle"
-                ctx.fillText(st.anzahl, bvx, bvy)
-            }
-            ctx.restore()
+            renderHandler.maleRubberband(ctx)
+            renderHandler.maleGruppenindikator(ctx)
+            renderHandler.maleStapelIndikator(ctx, elemente)
             renderHandler.drawNormblattAussenoverlay(ctx)
-            // Revisionsmarker-Wasserzeichen
-            if (root.revisionStatus !== "") {
-                var wmText = ""
-                var wmColor = "#888888"
-                if (root.revisionStatus === "entwurf") {
-                    wmText  = "ENTWURF"
-                    wmColor = "#d97706"
-                } else if (root.revisionStatus === "freigegeben") {
-                    wmText  = "FREIGEGEBEN" + (root.revisionKennung ? "  REV. " + root.revisionKennung : "")
-                    wmColor = "#16a34a"
-                } else if (root.revisionStatus === "veraltet") {
-                    wmText  = "VERALTET"
-                    wmColor = "#dc2626"
-                }
-                if (wmText !== "") {
-                    ctx.save()
-                    ctx.translate(width / 2, height / 2)
-                    ctx.rotate(-Math.PI / 6)
-                    ctx.globalAlpha = 0.10
-                    ctx.fillStyle   = wmColor
-                    ctx.textAlign   = "center"
-                    ctx.textBaseline = "middle"
-                    ctx.font        = "bold " + Math.round(Math.min(width, height) / 5) + "px sans-serif"
-                    ctx.fillText(wmText, 0, 0)
-                    ctx.restore()
-                }
-            }
+            renderHandler.maleRevisionsWasserzeichen(ctx)
         }
     }
 

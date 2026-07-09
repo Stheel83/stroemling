@@ -185,7 +185,8 @@ Item {
             width: root.width; height: 22
             Text {
                 anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                text: (panel.el && panel.el.typ === "bild") ? qsTr("Deckkraft") : qsTr("Linien-Deckkraft")
+                text: (panel.el && (panel.el.typ === "bild" || panel.el.typ === "text" || panel.el.typ === "notiz"))
+                      ? qsTr("Deckkraft") : qsTr("Linien-Deckkraft")
                 color: theme.panelMid; font.pixelSize: 10
             }
             Row {

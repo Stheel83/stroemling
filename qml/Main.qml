@@ -2015,10 +2015,15 @@ ApplicationWindow {
     // WindowShortcut feuert erst nachdem ein TextInput den Event selbst verarbeitet hat.
 
     // Löschen
+    // enabled-Bindung ist Pflicht, nicht nur der Check in onActivated: ein
+    // aktiver Shortcut greift sich die Taste bereits beim reinen Matching,
+    // bevor Keys.onPressed anderer Ansichten (z.B. NormblattEditorDialog)
+    // sie überhaupt sehen - der frühe return in onActivated kommt zu spät,
+    // die Taste wäre trotzdem schon "verbraucht" (DELETE-SHORTCUT-KONFLIKT-01).
     Shortcut {
         sequence: "Delete"
+        enabled:  root.aktiveAnsicht === "seiten"
         onActivated: {
-            if (root.aktiveAnsicht !== "seiten") return
             var c = root.aktiverCanvas
             if (!c || c.textEditAktiv) return
             if (c.aktivesWerkzeug === "symbol" && c.paletteSymbolId !== "") {
@@ -2030,8 +2035,8 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Backspace"
+        enabled:  root.aktiveAnsicht === "seiten"
         onActivated: {
-            if (root.aktiveAnsicht !== "seiten") return
             var c = root.aktiverCanvas
             if (!c || c.textEditAktiv) return
             if (c.aktivesWerkzeug === "symbol" && c.paletteSymbolId !== "") {

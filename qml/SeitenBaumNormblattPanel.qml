@@ -134,7 +134,9 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
                  && root._normblattVorlagen.length > 0
-        model: root._normblattVorlagen.map(function(v) { return v.name })
+        model: root._normblattVorlagen.map(function(v) {
+            return v.name + qsTr(" (%1×%2 mm)").arg(Math.round(v.breiteMm || 297)).arg(Math.round(v.hoeheMm || 210))
+        })
         background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
         contentItem: Text {
             leftPadding: 8; text: cmbVorlageAuswahl.displayText

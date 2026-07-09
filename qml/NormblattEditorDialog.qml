@@ -20,6 +20,8 @@ Item {
     property var  _mehrfachAuswahl: []   // hält _selIdx synchron: [] leer, [i] ⇒ _selIdx=i, sonst _selIdx=-1
     property bool _neuModus:   false
     property string _neuName:  ""
+    property bool _umbenennenModus: false
+    property string _umbenennenName: ""
 
     readonly property var _vorlage: (_vorlIdx >= 0 && _vorlIdx < _vorlagen.length)
                                     ? _vorlagen[_vorlIdx] : null
@@ -274,6 +276,27 @@ Item {
         _laden()
     }
 
+    // Benennt die aktuell angezeigte Vorlage um — normblattVorlageSpeichern()
+    // macht bei gesetzter id ein UPDATE statt eines neuen INSERT.
+    function _vorlageUmbenennen() {
+        var name = _umbenennenName.trim()
+        if (!name || !_vorlage) return
+        db.normblattVorlageSpeichern({
+            id:           _vorlage.id,
+            name:         name,
+            beschreibung: _vorlage.beschreibung,
+            breiteMm:     _vorlage.breiteMm,     hoeheMm:      _vorlage.hoeheMm,
+            randLinksMm:  _vorlage.randLinksMm,  randRechtsMm: _vorlage.randRechtsMm,
+            randObenMm:   _vorlage.randObenMm,   randUntenMm:  _vorlage.randUntenMm
+        })
+        _umbenennenModus = false
+        var vorherId = _vorlage.id
+        _vorlagen = db.normblattVorlagenListe()
+        for (var i = 0; i < _vorlagen.length; i++) {
+            if (_vorlagen[i].id === vorherId) { _vorlIdx = i; break }
+        }
+    }
+
     // ── Speichern ─────────────────────────────────────────────
     function _speichern() {
         if (!_vorlage) return
@@ -332,12 +355,45 @@ Item {
                 MouseArea { id: neuAbbrMA; anchors.fill: parent; hoverEnabled: true; onClicked: root._neuModus = false }
             }
 
+            // ── Umbenennen-Modus ──────────────────────────────
+            TextField {
+                id: tfUmbenennen
+                visible: root._umbenennenModus
+                Layout.preferredWidth: 200; Layout.preferredHeight: 32
+                text: root._umbenennenName; onTextChanged: root._umbenennenName = text
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.accent; radius: 4 }
+                color: root.theme.textPrimary; font.pixelSize: 13
+                Keys.onReturnPressed: root._vorlageUmbenennen()
+                Keys.onEscapePressed: root._umbenennenModus = false
+                onVisibleChanged: if (visible) {
+                    root._umbenennenName = root._vorlage ? root._vorlage.name : ""
+                    selectAll(); forceActiveFocus()
+                }
+            }
+            Rectangle {
+                visible: root._umbenennenModus; width: 80; height: 32; radius: 5
+                color: umbSpeichernMA.containsMouse ? root.theme.accent : Qt.darker(root.theme.accent, 1.3)
+                opacity: root._umbenennenName.trim() ? 1.0 : 0.5
+                Text { anchors.centerIn: parent; text: qsTr("Speichern"); color: "white"; font.pixelSize: 12; font.weight: Font.Medium }
+                MouseArea { id: umbSpeichernMA; anchors.fill: parent; hoverEnabled: true
+                    enabled: root._umbenennenName.trim() !== ""; onClicked: root._vorlageUmbenennen() }
+            }
+            Rectangle {
+                visible: root._umbenennenModus; width: 80; height: 32; radius: 5
+                color: umbAbbrMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                border.color: root.theme.border; border.width: 1
+                Text { anchors.centerIn: parent; text: qsTr("Abbrechen"); color: root.theme.textPrimary; font.pixelSize: 12 }
+                MouseArea { id: umbAbbrMA; anchors.fill: parent; hoverEnabled: true; onClicked: root._umbenennenModus = false }
+            }
+
             // ── Normal-Modus ──────────────────────────────────
             ComboBox {
                 id: cmbVorlage
-                visible: !root._neuModus
+                visible: !root._neuModus && !root._umbenennenModus
                 Layout.preferredWidth: 220; Layout.preferredHeight: 32
-                model: root._vorlagen.map(function(v) { return v.name })
+                model: root._vorlagen.map(function(v) {
+                    return v.name + qsTr(" (%1×%2 mm)").arg(Math.round(v.breiteMm || 297)).arg(Math.round(v.hoeheMm || 210))
+                })
                 currentIndex: root._vorlIdx
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                 contentItem: Text {
@@ -359,7 +415,7 @@ Item {
                 onActivated: function(i) { root._vorlIdx = i; root._felderLaden() }
             }
             Rectangle {
-                visible: !root._neuModus; width: 32; height: 32; radius: 5
+                visible: !root._neuModus && !root._umbenennenModus; width: 32; height: 32; radius: 5
                 color: neuBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "+"; color: root.theme.textPrimary; font.pixelSize: 20; font.weight: Font.Light }
@@ -368,7 +424,16 @@ Item {
                 ToolTip.visible: neuBtnMA.containsMouse; ToolTip.text: qsTr("Neue Vorlage anlegen"); ToolTip.delay: 600
             }
             Rectangle {
-                visible: !root._neuModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                visible: !root._neuModus && !root._umbenennenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                color: umbBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                border.color: root.theme.border; border.width: 1
+                Text { anchors.centerIn: parent; text: "✎"; color: root.theme.textPrimary; font.pixelSize: 14 }
+                MouseArea { id: umbBtnMA; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor; onClicked: root._umbenennenModus = true }
+                ToolTip.visible: umbBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage umbenennen"); ToolTip.delay: 600
+            }
+            Rectangle {
+                visible: !root._neuModus && !root._umbenennenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
                 color: kopBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
                 border.color: root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "❐"; color: root.theme.textPrimary; font.pixelSize: 15 }
@@ -377,7 +442,7 @@ Item {
                 ToolTip.visible: kopBtnMA.containsMouse; ToolTip.text: qsTr("Vorlage duplizieren"); ToolTip.delay: 600
             }
             Rectangle {
-                visible: !root._neuModus && root._vorlage !== null; width: 32; height: 32; radius: 5
+                visible: !root._neuModus && !root._umbenennenModus && root._vorlage !== null; width: 32; height: 32; radius: 5
                 color: delVorlMA.containsMouse ? "#602020" : root.theme.inputBg
                 border.color: delVorlMA.containsMouse ? "#a03030" : root.theme.border; border.width: 1
                 Text { anchors.centerIn: parent; text: "✕"

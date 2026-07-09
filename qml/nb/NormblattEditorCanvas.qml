@@ -3,6 +3,7 @@ import QtQuick.Controls
 
 Item {
     id: root
+    clip: true
 
     required property var theme
 

@@ -172,6 +172,7 @@ qt_add_qml_module(stroemling_app
         qml/canvas/CanvasNetzberechnung.qml
         qml/canvas/CanvasGeometrie.qml
         qml/canvas/CanvasCacheHandler.qml
+        qml/canvas/CanvasRenderHandler.qml
         qml/canvas/CanvasDialogLayer.qml
         qml/canvas/CanvasAktionenHandler.qml
         qml/canvas/CanvasFehlersuchHandler.qml

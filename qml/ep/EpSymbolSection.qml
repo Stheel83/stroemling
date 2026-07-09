@@ -34,7 +34,7 @@ Item {
 
     component FeldLabel: Item {
         property string text: ""
-        width: root.width; height: 20
+        width: root.width; height: visible ? 20 : 0
         Text {
             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
             text: parent.text; font.pixelSize: 10; color: root.theme.panelMid
@@ -133,6 +133,7 @@ Item {
         }
         Row {
             visible: !(panel.el && panel.el.symbolId === "querverweis")
+            height: visible ? implicitHeight : 0
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
             Repeater {
@@ -151,7 +152,7 @@ Item {
             }
         }
         Item {
-            height: 8
+            height: symbolCol.zeigeSpiegelung ? 8 : 0
             visible: symbolCol.zeigeSpiegelung
         }
 
@@ -161,6 +162,7 @@ Item {
         }
         Row {
             visible: symbolCol.zeigeSpiegelung
+            height: visible ? implicitHeight : 0
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4
             MiniButton { theme: root.theme;
@@ -179,7 +181,7 @@ Item {
             }
         }
         Item {
-            height: 4
+            height: symbolCol.zeigeSpiegelung ? 4 : 0
             visible: symbolCol.zeigeSpiegelung
         }
 

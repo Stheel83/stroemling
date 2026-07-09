@@ -163,7 +163,7 @@ Item {
             theme:   theme
             onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
         }
-        Item { height: 4; visible: panel.s("fuell", false) }
+        Item { visible: panel.s("fuell", false); height: visible ? 4 : 0 }
 
         Trennlinie {}
         AbschnittTitel { text: qsTr("RAHMEN") }

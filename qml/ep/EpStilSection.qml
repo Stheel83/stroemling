@@ -24,7 +24,7 @@ Item {
 
     component FeldLabel: Item {
         property string text: ""
-        width: root.width; height: 20
+        width: root.width; height: visible ? 20 : 0
         Text {
             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
             text: parent.text; font.pixelSize: 10; color: root.theme.panelMid
@@ -105,7 +105,7 @@ Item {
             theme:   theme
             onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("strichFarbe", c) }
         }
-        Item { height: 8; visible: !panel.el || panel.el.typ !== "bild" }
+        Item { visible: !panel.el || panel.el.typ !== "bild"; height: visible ? 8 : 0 }
 
         Item {
             width: parent.width
@@ -179,7 +179,7 @@ Item {
                 }
             }
         }
-        Item { height: 8; visible: !panel.el || (panel.el.typ !== "bild" && panel.el.typ !== "notiz") }
+        Item { visible: !panel.el || (panel.el.typ !== "bild" && panel.el.typ !== "notiz"); height: visible ? 8 : 0 }
 
         Item {
             width: root.width; height: 22

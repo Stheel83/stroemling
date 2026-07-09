@@ -34,7 +34,7 @@ Item {
 
     component FeldLabel: Item {
         property string text: ""
-        width: root.width; height: 20
+        width: root.width; height: visible ? 20 : 0
         Text {
             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
             text: parent.text; font.pixelSize: 10; color: root.theme.panelMid
@@ -129,6 +129,7 @@ Item {
         FeldLabel { visible: !root._verknuepft; text: qsTr("Anschlusstyp") }
         ComboBox {
             visible: !root._verknuepft
+            height: visible ? implicitHeight : 0
             width: parent.width - 24
             anchors.horizontalCenter: parent.horizontalCenter
             model: [
@@ -157,6 +158,7 @@ Item {
         FeldLabel { visible: !root._verknuepft; text: qsTr("Querschnitt (mm²)") }
         Row {
             visible: !root._verknuepft
+            height: visible ? implicitHeight : 0
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 6
             TextField {
@@ -203,6 +205,7 @@ Item {
         FeldLabel { visible: !root._verknuepft; text: qsTr("Kabeldurchmesser max (mm)") }
         TextField {
             visible: !root._verknuepft
+            height: visible ? implicitHeight : 0
             width: parent.width - 24
             anchors.horizontalCenter: parent.horizontalCenter
             placeholderText: "z. B. 8,5"

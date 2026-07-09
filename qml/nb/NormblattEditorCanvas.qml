@@ -372,4 +372,20 @@ Item {
         ToolTip.text: qsTr("Auf Fenster einpassen (Mausrad = Zoom, rechte/mittlere Maustaste ziehen = Verschieben)")
         ToolTip.delay: 500
     }
+
+    // ── Tastatur-Hinweis bei ausgewähltem Feld ─────────────────
+    Rectangle {
+        anchors { left: parent.left; bottom: parent.bottom; margins: 10 }
+        visible: root.selIdx >= 0
+        width: hinweisText.implicitWidth + 16; height: 26; radius: 5
+        color: Qt.rgba(0, 0, 0, 0.35)
+        border.color: root.theme.border; border.width: 1
+
+        Text {
+            id: hinweisText
+            anchors.centerIn: parent
+            text: qsTr("↑↓←→ Verschieben · ⇧ = 10mm · Entf Löschen")
+            color: "white"; font.pixelSize: 11
+        }
+    }
 }

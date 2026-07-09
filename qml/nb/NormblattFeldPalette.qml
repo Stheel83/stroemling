@@ -79,5 +79,25 @@ Item {
             color: root.theme.textMuted; font.pixelSize: 10
             width: parent.width; wrapMode: Text.WordWrap
         }
+
+        Item { height: 10 }
+
+        Rectangle { width: parent.width; height: 1; color: root.theme.divider }
+
+        Item { height: 10 }
+
+        Text {
+            text: qsTr("AUSGEWÄHLTES FELD")
+            color: root.theme.borderLight
+            font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 1.5
+        }
+
+        Item { height: 4 }
+
+        Text {
+            text: qsTr("↑↓←→  Verschieben (1mm)\n⇧ + Pfeiltaste  10mm\nEntf / ⌫  Löschen")
+            color: root.theme.textMuted; font.pixelSize: 10; lineHeight: 1.3
+            width: parent.width; wrapMode: Text.WordWrap
+        }
     }
 }

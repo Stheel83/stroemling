@@ -351,12 +351,19 @@ QtObject {
         var op  = (el.opazitaet !== undefined ? el.opazitaet : 1.0) * dimFaktor
         var er  = el.eckenRadius      !== undefined ? el.eckenRadius      : 0
 
-        // Winkel/Treffpunkt: transparenter Durchlauf – Farbe+Breite kommen
-        // vom anliegenden Netzsegment statt aus el.strichFarbe/strichBreite.
-        if (routingFarben && el.typ === "symbol" &&
-                (el.symbolId === "winkel" || el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l")) {
-            var _rf = routingFarben[idx]
-            if (_rf) { sf = _rf.farbe; sb = _rf.breite }
+        // Winkel: transparenter Durchlauf – Farbe+Breite kommen vom anliegenden
+        // Netzsegment statt aus el.strichFarbe/strichBreite.
+        // Treffpunkt/Treffpunkt_L: eigener 3-Arm-Deskriptor (s1/s2/ziel, ggf.
+        // gebändert) statt einer einzelnen Farbe – wird unten über rc.armInfo
+        // an _renderSymbol()/_maleTreffpunktArme() weitergereicht.
+        var _armInfo = null
+        if (routingFarben && el.typ === "symbol") {
+            if (el.symbolId === "winkel") {
+                var _rf = routingFarben[idx]
+                if (_rf) { sf = _rf.farbe; sb = _rf.breite }
+            } else if (el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") {
+                _armInfo = routingFarben[idx] || null
+            }
         }
 
         // Leitungen im Pfad: Akzentfarbe + dickere Linie
@@ -393,7 +400,7 @@ QtObject {
 
         var rc = { vorschau: vorschau, gewaehlt: gewaehlt, skipText: _skipText,
                    sf: sf, sb: sb, sa: sa, fu: fu, ff: ff, fo: fo, op: op, er: er,
-                   vx1: vx1, vy1: vy1, vx2: vx2, vy2: vy2, lw: lw, idx: idx }
+                   vx1: vx1, vy1: vy1, vx2: vx2, vy2: vy2, lw: lw, idx: idx, armInfo: _armInfo }
 
         if      (el.typ === "linie")          _renderLinie(ctx, el, rc)
         else if (el.typ === "kabellinie")     _renderKabellinie(ctx, el, rc)
@@ -1105,6 +1112,16 @@ QtObject {
         return adpList
     }
 
+    // Linienbreite aus Aderanzahl + Signaltyp-Zuschlägen (Konflikt/unversorgt).
+    // Gemeinsam genutzt von _segmentFarbeUndBreite() und der Treffpunkt-
+    // Ziel-Bänderung (dort ersetzt "Aderanzahl" die Anzahl verschmolzener Arme).
+    function _breiteFuerAnzahl(anz, signaltyp) {
+        var b = anz <= 3 ? anz * 1.5 : 4.5
+        if (signaltyp === "konflikt")   b = b * 2
+        if (signaltyp === "unversorgt") b = b * 1.5
+        return b
+    }
+
     // Farbe + Linienbreite für ein Netzsegment. Aderfarbe überschreibt die
     // Signaltyp-Farbe – außer im Fehlersuchmodus, wo per Toggle
     // (fehlersuchZeigeAderfarbe) auf reine Kategorie-/Signaltyp-Ansicht
@@ -1115,17 +1132,201 @@ QtObject {
         if (zeigeAderfarbe && net.signaltyp !== "konflikt" && sAdps.length > 0 && sAdps[0].ed.aderfarbe)
             farbe = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
 
-        var anz    = Math.max(1, sAdps.length)
-        var breite = anz <= 3 ? anz * 1.5 : 4.5
-        if (net.signaltyp === "konflikt")   breite = breite * 2
-        if (net.signaltyp === "unversorgt") breite = breite * 1.5
-        return { farbe: farbe, breite: breite }
+        var anz = Math.max(1, sAdps.length)
+        return { farbe: farbe, breite: _breiteFuerAnzahl(anz, net.signaltyp) }
+    }
+
+    // Liefert für einen Segment-Index einen Bänderungs-Deskriptor: entweder
+    // den vorberechneten Treffpunkt-Verschmelzungs-Eintrag aus `baender`
+    // (modus "gleich"/"verschieden"/"mehrfach") oder – als Fallback für
+    // gewöhnliche Segmente – die einfache Ein-Ader-Darstellung aus
+    // _segmentFarbeUndBreite(), einheitlich in dieselbe Form gebracht
+    // (`farbe`/`farben`/`breite`/`armAnzahl`), damit Aufrufer nicht zwischen
+    // beiden Fällen unterscheiden müssen.
+    function _bandOderEinfach(net, segAdps, baender, si) {
+        if (si < 0)
+            return { modus: "einzel", farbe: "#4a9eff", farben: ["#4a9eff"], breite: 1.5, armAnzahl: 1 }
+        if (baender[si] !== undefined) return baender[si]
+        var fb = _segmentFarbeUndBreite(net, segAdps[si] || [])
+        return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }
+    }
+
+    // Alle Treffpunkt-/Treffpunkt_L-Elemente, die im Netz vorkommen (je
+    // einmal, unabhängig davon an wie vielen Segmenten sie hängen).
+    function _treffpunktElementeImNetz(net) {
+        var segs = net.segmente, seen = {}, out = []
+        for (var si = 0; si < segs.length; si++) {
+            var cands = [segs[si].elIdxA, segs[si].elIdxB]
+            for (var ci = 0; ci < 2; ci++) {
+                var idx = cands[ci]
+                if (idx < 0 || seen[idx]) continue
+                seen[idx] = true
+                var el = cv.elementeModel.element(idx)
+                if (el && el.typ === "symbol" && (el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l"))
+                    out.push(idx)
+            }
+        }
+        return out
+    }
+
+    // Findet für ein Treffpunkt-/Treffpunkt_L-Element die Segment-Indizes
+    // seiner drei Arme (Pin-Namen "s1"/"s2"/"ziel", s. symbol_pin in
+    // symbole.sql) innerhalb eines Netzes. -1 wenn ein Arm nicht verbunden ist.
+    function _treffpunktArmSegmente(net, tIdx) {
+        var segs = net.segmente
+        var out = { s1: -1, s2: -1, ziel: -1 }
+        for (var si = 0; si < segs.length; si++) {
+            var seg = segs[si]
+            if (seg.elIdxA === tIdx && out[seg.pinNameA] !== undefined && out[seg.pinNameA] < 0)
+                out[seg.pinNameA] = si
+            if (seg.elIdxB === tIdx && out[seg.pinNameB] !== undefined && out[seg.pinNameB] < 0)
+                out[seg.pinNameB] = si
+        }
+        return out
+    }
+
+    // Ziel-Arm-Verschmelzung an Treffpunkt/Treffpunkt_L (§2.3/§3 Konzept):
+    // Am `ziel`-Arm laufen die Adern von `s1` und `s2` sichtbar getrennt
+    // weiter – gleiche Aderfarbe → doppelte Breite mit Trennlinie,
+    // unterschiedliche Aderfarbe → zweifarbig, ≥3 verschmolzene Adern
+    // (Verkettung über mehrere Treffpunkte) → bestehende Zahl-Label-Darstellung.
+    // Gibt { segIdx: {modus, farbe, farben, breite, armAnzahl} } zurück – nur
+    // für Ziel-Segmente, propagiert über die komplette Winkel-transparente
+    // Ziel-Insel (wie adpFuerNetSegmente(), via cv.geometrie._winkelAdjazenz()).
+    // Nur aktiv wenn Aderfarbe überhaupt angezeigt wird und kein Konflikt-Netz
+    // (dieselben Guards wie _segmentFarbeUndBreite()) – sonst {} (kein Effekt,
+    // Aufrufer fallen auf das bisherige Verhalten zurück).
+    function _treffpunktZielBaender(net, segAdps) {
+        var zeigeAderfarbe = !cv.fehlersuchModus || cv.fehlersuchZeigeAderfarbe
+        if (!zeigeAderfarbe || net.signaltyp === "konflikt") return {}
+
+        var tIdxs = _treffpunktElementeImNetz(net)
+        if (tIdxs.length === 0) return {}
+
+        var adj = cv.geometrie._winkelAdjazenz(net.segmente)
+        var out = {}
+
+        function propagiere(startSi, info) {
+            var visited = {}, queue = [startSi]
+            while (queue.length > 0) {
+                var cur = queue.shift()
+                if (visited[cur]) continue
+                visited[cur] = true
+                out[cur] = info
+                var nb = adj[cur] || []
+                for (var i = 0; i < nb.length; i++)
+                    if (!visited[nb[i]]) queue.push(nb[i])
+            }
+        }
+
+        // Iterative Fixpunkt-Berechnung: löst Verkettung auf (Ziel-Arm eines
+        // Treffpunkts = Quell-Arm eines zweiten), ohne Traversal-Reihenfolge
+        // vorauszusetzen. Rundenzahl durch Treffpunktanzahl begrenzt (Zyklus-Schutz).
+        var geaendert = true, runden = 0
+        while (geaendert && runden < tIdxs.length + 2) {
+            geaendert = false
+            runden++
+            for (var ti = 0; ti < tIdxs.length; ti++) {
+                var arme = _treffpunktArmSegmente(net, tIdxs[ti])
+                if (arme.s1 < 0 || arme.s2 < 0 || arme.ziel < 0) continue
+                if (out[arme.ziel] !== undefined) continue
+
+                var i1 = _bandOderEinfach(net, segAdps, out, arme.s1)
+                var i2 = _bandOderEinfach(net, segAdps, out, arme.s2)
+                var farben    = i1.farben.concat(i2.farben)
+                var armAnzahl = i1.armAnzahl + i2.armAnzahl
+                var modus     = armAnzahl >= 3 ? "mehrfach"
+                                : (farben[0] === farben[1] ? "gleich" : "verschieden")
+
+                propagiere(arme.ziel, { modus: modus, farbe: farben[0], farben: farben,
+                                         armAnzahl: armAnzahl,
+                                         breite: _breiteFuerAnzahl(armAnzahl, net.signaltyp) })
+                geaendert = true
+            }
+        }
+        return out
+    }
+
+    // Zeichnet ein einzelnes, bereits lückenfrei geschnittenes Geraden-Stück
+    // (ax,ay)-(bx,by) entsprechend seinem Bänderungs-Modus:
+    // - "einzel"/"mehrfach": ein Stroke in band.farbe, Breite band.breite
+    // - "gleich": dicker Stroke in band.farben[0] + dünne Trennlinie in der
+    //   Canvas-Hintergrundfarbe darüber (zwei optisch getrennte, gleichfarbige Adern)
+    // - "verschieden": zwei parallele, senkrecht zur Linie versetzte Strokes,
+    //   je Ader eine Basisbreite und eigene Farbe
+    // Koordinaten sind bereits in der Zieleinheit des Aufrufers (Viewport-Pixel
+    // bei Leitungen, lokale Symbol-Pixel bei Treffpunkt-Armen) – kein Zoom-/
+    // Welt-Bezug hier. Gemeinsam genutzt von maleAutoVerbindungen() und
+    // _maleTreffpunktArme().
+    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band) {
+        if (!band) return
+        ctx.setLineDash([])
+        var modus = band.modus || "einzel"
+        if (modus !== "gleich" && modus !== "verschieden") {
+            ctx.strokeStyle = band.farbe
+            ctx.lineWidth   = band.breite
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
+            return
+        }
+        var dx = bx - ax, dy = by - ay
+        var len = Math.sqrt(dx*dx + dy*dy)
+        if (len < 1e-6) return
+        var px = -dy / len, py = dx / len   // Einheits-Senkrechte
+        var basis = band.breite / 2         // Breite je Einzel-Ader-Band
+
+        if (modus === "gleich") {
+            ctx.strokeStyle = band.farben[0]
+            ctx.lineWidth   = band.breite
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
+            ctx.strokeStyle = cv.hintergrundFarbe
+            ctx.lineWidth   = 1.0
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
+        } else {
+            var off = basis / 2
+            ctx.strokeStyle = band.farben[0]
+            ctx.lineWidth   = basis
+            ctx.beginPath()
+            ctx.moveTo(ax - px*off, ay - py*off); ctx.lineTo(bx - px*off, by - py*off)
+            ctx.stroke()
+            ctx.strokeStyle = band.farben[1]
+            ctx.lineWidth   = basis
+            ctx.beginPath()
+            ctx.moveTo(ax + px*off, ay + py*off); ctx.lineTo(bx + px*off, by + py*off)
+            ctx.stroke()
+        }
+    }
+
+    // Zeichnet die drei Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln
+    // (statt über drawByPrimitiv), weil der Ziel-Arm gebändert sein kann –
+    // Koordinaten aus symbole.sql (lokale, unrotierte Symbolkoordinaten 0..1,
+    // Rotation/Spiegelung ist über den ctx-Transform des Aufrufers bereits aktiv).
+    function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
+        if (!armInfo) return
+        function P(nx, ny) { return { x: nx * w, y: ny * h } }
+        var L = function(a, b, band) { _maleGebaenderteLinie(ctx, a.x, a.y, b.x, b.y, band) }
+
+        if (symbolId === "treffpunkt") {
+            var j = P(0.5, 0.75)
+            L(P(0, 0.5),   P(0.25, 0.5), armInfo.s1)
+            L(P(0.25, 0.5), j,           armInfo.s1)
+            L(j, P(0.5, 1),              armInfo.ziel)
+            L(j, P(0.75, 0.5),           armInfo.s2)
+            L(P(0.75, 0.5), P(1, 0.5),   armInfo.s2)
+        } else if (symbolId === "treffpunkt_l") {
+            var j2 = P(0.5, 0.75)
+            L(P(0, 0.5),   P(0.25, 0.5), armInfo.s1)
+            L(P(0.25, 0.5), j2,          armInfo.s1)
+            L(P(0.5, 0),   j2,           armInfo.s2)
+            L(j2, P(0.5, 1),             armInfo.ziel)
+        }
     }
 
     // Winkel/Treffpunkt sind transparente Durchlaufpunkte (§2.2) und übernehmen
     // deshalb Farbe+Breite des anliegenden Netzsegments statt einer eigenen
-    // Stil-Einstellung. Gibt { elIdx: {farbe, breite} } zurück, einmal pro Frame
-    // vor der Elemente-Schleife berechnet.
+    // Stil-Einstellung. Gibt { elIdx: {farbe, breite} } für Winkel und
+    // { elIdx: {s1, s2, ziel} } (je ein Bänderungs-Deskriptor, s.
+    // _bandOderEinfach()) für Treffpunkt/Treffpunkt_L zurück – einmal pro
+    // Frame vor der Elemente-Schleife berechnet.
     function berechneRoutingSymbolFarben(netze) {
         var out = {}
         if (netze.length === 0) return out
@@ -1135,19 +1336,28 @@ QtObject {
             var net = netze[ni]
             var segs = net.segmente
             var segAdps = cv.geometrie.adpFuerNetSegmente(segs, adpList)
+            var treffpunktBaender = _treffpunktZielBaender(net, segAdps)
+
             for (var si = 0; si < segs.length; si++) {
                 var seg = segs[si]
                 if (seg.logisch) continue
-                var fb = _segmentFarbeUndBreite(net, segAdps[si])
                 var kandidaten = [seg.elIdxA, seg.elIdxB]
                 for (var ki = 0; ki < kandidaten.length; ki++) {
                     var eIdx = kandidaten[ki]
                     if (eIdx < 0 || out[eIdx] !== undefined) continue
                     var eEl = cv.elementeModel.element(eIdx)
                     var esid = eEl ? (eEl.symbolId || "") : ""
-                    if (eEl && eEl.typ === "symbol" &&
-                        (esid === "winkel" || esid === "treffpunkt" || esid === "treffpunkt_l"))
-                        out[eIdx] = fb
+                    if (!eEl || eEl.typ !== "symbol") continue
+                    if (esid === "winkel") {
+                        out[eIdx] = _bandOderEinfach(net, segAdps, treffpunktBaender, si)
+                    } else if (esid === "treffpunkt" || esid === "treffpunkt_l") {
+                        var arme = _treffpunktArmSegmente(net, eIdx)
+                        out[eIdx] = {
+                            s1:   _bandOderEinfach(net, segAdps, treffpunktBaender, arme.s1),
+                            s2:   _bandOderEinfach(net, segAdps, treffpunktBaender, arme.s2),
+                            ziel: _bandOderEinfach(net, segAdps, treffpunktBaender, arme.ziel)
+                        }
+                    }
                 }
             }
         }
@@ -1174,6 +1384,7 @@ QtObject {
             var net = netze[ni]
             var segs = net.segmente
             var segAdps = cv.geometrie.adpFuerNetSegmente(segs, adpList)
+            var treffpunktBaender = _treffpunktZielBaender(net, segAdps)
 
             for (var si = 0; si < segs.length; si++) {
                 var seg = segs[si]
@@ -1191,12 +1402,14 @@ QtObject {
                     ctx.globalAlpha = 1.0
                 }
 
-                var fb      = _segmentFarbeUndBreite(net, sAdps)
-                var lineClr = fb.farbe
-                var lw      = fb.breite
+                // Ziel-Arm eines Treffpunkts: ggf. gebändert (§2.3/§3 Konzept).
+                // Sonst normales Einzel-Ader-Segment wie bisher.
+                var _zielBand = treffpunktBaender[si]
+                var band = _zielBand || (function() {
+                    var fb = _segmentFarbeUndBreite(net, sAdps)
+                    return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }
+                })()
 
-                ctx.strokeStyle = lineClr
-                ctx.lineWidth   = lw
                 var segKey  = ni + "-" + si
                 var kreuzX  = kreuzungsLuecken[segKey]
                 var isHSeg  = Math.abs(seg.y2 - seg.y1) < 0.5
@@ -1213,36 +1426,33 @@ QtObject {
                         var cx  = kreuzX[ki]
                         var ls  = cx - luecke
                         var le  = cx + luecke
-                        if (ls > pos) {
-                            ctx.beginPath()
-                            ctx.moveTo(pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY)
-                            ctx.lineTo(ls  * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY)
-                            ctx.stroke()
-                        }
+                        if (ls > pos)
+                            _maleGebaenderteLinie(ctx, pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY,
+                                                        ls  * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band)
                         pos = le
                     }
-                    if (pos < hx2) {
-                        ctx.beginPath()
-                        ctx.moveTo(pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY)
-                        ctx.lineTo(hx2 * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY)
-                        ctx.stroke()
-                    }
+                    if (pos < hx2)
+                        _maleGebaenderteLinie(ctx, pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY,
+                                                    hx2 * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band)
                     ctx.restore()
                 } else {
-                    ctx.beginPath()
-                    ctx.moveTo(seg.x1 * cv.zoom + cv.worldX, seg.y1 * cv.zoom + cv.worldY)
-                    ctx.lineTo(seg.x2 * cv.zoom + cv.worldX, seg.y2 * cv.zoom + cv.worldY)
-                    ctx.stroke()
+                    _maleGebaenderteLinie(ctx, seg.x1 * cv.zoom + cv.worldX, seg.y1 * cv.zoom + cv.worldY,
+                                                seg.x2 * cv.zoom + cv.worldX, seg.y2 * cv.zoom + cv.worldY, band)
                 }
 
-                if (sAdps.length >= 4 && !cv.bewegungAktiv) {
+                // Zahl-Label ab 3 zusammenlaufenden Adern (Treffpunkt-Ziel-Arm,
+                // Verkettung) bzw. wie bisher ab 4 dokumentierten ADPs auf einem
+                // gewöhnlichen Segment (§2.5).
+                var _labelSchwelle = _zielBand ? 3 : 4
+                var _labelWert     = _zielBand ? band.armAnzahl : sAdps.length
+                if (_labelWert >= _labelSchwelle && !cv.bewegungAktiv) {
                     var mvx = (seg.x1 + seg.x2) / 2 * cv.zoom + cv.worldX
                     var mvy = (seg.y1 + seg.y2) / 2 * cv.zoom + cv.worldY
                     ctx.save()
                     ctx.font = "bold " + Math.max(8, Math.round(9 * cv.zoom)) + "px sans-serif"
-                    ctx.fillStyle = lineClr
+                    ctx.fillStyle = band.farbe
                     ctx.textAlign = "center"; ctx.textBaseline = "bottom"
-                    ctx.fillText("" + sAdps.length, mvx, mvy - 3)
+                    ctx.fillText("" + _labelWert, mvx, mvy - 3)
                     ctx.restore()
                 }
             }
@@ -1420,7 +1630,10 @@ QtObject {
             // Bei gestecktem Zustand: Bogen der Buchse / Rechteck des Steckers
             // (jeweils Primitiv-Index 1) grün einfärben.
             var _steBuFarbe = _steBuOk ? { 1: "#00e5a0" } : undefined
-            drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
+            if ((el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") && rc.armInfo)
+                _maleTreffpunktArme(ctx, el.symbolId, Math.abs(sw), Math.abs(sh), rc.armInfo)
+            else
+                drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
             // Erweiterungsmodifier im lokalen Koordinatensystem (dreht/spiegelt mit)
             if (!vorschau) {
                 var erw = (el.extraDaten && Array.isArray(el.extraDaten.erweiterungen))

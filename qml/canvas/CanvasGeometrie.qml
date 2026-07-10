@@ -232,28 +232,18 @@ QtObject {
         return "#4a9eff"
     }
 
-    // Gibt für jeden Segment-Index die Liste der zugehörigen ADPs zurück.
-    // Pfadverfolgung durch Winkeln: Winkeln sind transparent, T-Stücke sind Grenzen.
-    function adpFuerNetSegmente(netSegmente, adpList) {
+    // Adjazenzliste über Segment-Indizes: zwei Segmente gelten als benachbart,
+    // wenn sie ein gemeinsames Winkel- oder Querverweis-Element teilen (beide
+    // transparent für Ader-/Farb-Propagation). Treffpunkt/Treffpunkt_L sind
+    // bewusst KEINE Kante hier – sie sind Verschmelzungs-, keine Durchlauf-
+    // punkte (→ berechneRoutingSymbolFarben()/_treffpunktZielBaender() in
+    // CanvasRenderHandler.qml für die Sonderbehandlung an Treffpunkten).
+    // Gemeinsam genutzt von adpFuerNetSegmente() und der Treffpunkt-
+    // Ziel-Bänderung.
+    function _winkelAdjazenz(netSegmente) {
         var n = netSegmente.length
-        var directAdp = [], ki
-        for (ki = 0; ki < n; ki++) directAdp.push([])
-
-        for (var ai = 0; ai < adpList.length; ai++) {
-            var adp = adpList[ai]
-            var bestSi = -1, bestD = cv.gridPx * 0.75
-            for (var si0 = 0; si0 < n; si0++) {
-                var seg0 = netSegmente[si0]
-                if (seg0.logisch) continue   // kein ADP auf logischer QV-Brücke
-                var d0 = punktZuSegmentAbstand(adp.cx, adp.cy,
-                             seg0.x1, seg0.y1, seg0.x2, seg0.y2)
-                if (d0 < bestD) { bestD = d0; bestSi = si0 }
-            }
-            if (bestSi >= 0) directAdp[bestSi].push(adp)
-        }
-
         var adj = []
-        for (ki = 0; ki < n; ki++) adj.push([])
+        for (var ki = 0; ki < n; ki++) adj.push([])
         for (var si1 = 0; si1 < n; si1++) {
             var sA = netSegmente[si1]
             for (var sj = si1 + 1; sj < n; sj++) {
@@ -274,6 +264,30 @@ QtObject {
                 }
             }
         }
+        return adj
+    }
+
+    // Gibt für jeden Segment-Index die Liste der zugehörigen ADPs zurück.
+    // Pfadverfolgung durch Winkeln: Winkeln sind transparent, T-Stücke sind Grenzen.
+    function adpFuerNetSegmente(netSegmente, adpList) {
+        var n = netSegmente.length
+        var directAdp = [], ki
+        for (ki = 0; ki < n; ki++) directAdp.push([])
+
+        for (var ai = 0; ai < adpList.length; ai++) {
+            var adp = adpList[ai]
+            var bestSi = -1, bestD = cv.gridPx * 0.75
+            for (var si0 = 0; si0 < n; si0++) {
+                var seg0 = netSegmente[si0]
+                if (seg0.logisch) continue   // kein ADP auf logischer QV-Brücke
+                var d0 = punktZuSegmentAbstand(adp.cx, adp.cy,
+                             seg0.x1, seg0.y1, seg0.x2, seg0.y2)
+                if (d0 < bestD) { bestD = d0; bestSi = si0 }
+            }
+            if (bestSi >= 0) directAdp[bestSi].push(adp)
+        }
+
+        var adj = _winkelAdjazenz(netSegmente)
 
         var result = []
         for (var si2 = 0; si2 < n; si2++) {

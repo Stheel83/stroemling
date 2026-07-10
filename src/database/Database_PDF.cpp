@@ -29,6 +29,46 @@ static QColor pdfFarbe(const QString &s, const QColor &def = Qt::black)
     return c.isValid() ? c : def;
 }
 
+// IEC-60757-Farbcode → Canvas-Farbe. 1:1-Port von aderFarbeZuCanvas()
+// in qml/canvas/CanvasGeometrie.qml – muss synchron gehalten werden.
+static QColor pdfAderFarbeZuCanvas(const QString &code)
+{
+    if (code == "BK")   return QColor("#222222");
+    if (code == "BN")   return QColor("#7b3f00");
+    if (code == "RD")   return QColor("#cc0000");
+    if (code == "OG")   return QColor("#ff6600");
+    if (code == "YE")   return QColor("#ccaa00");
+    if (code == "GN")   return QColor("#006600");
+    if (code == "BU")   return QColor("#0044cc");
+    if (code == "VT")   return QColor("#880099");
+    if (code == "GY")   return QColor("#666666");
+    if (code == "WH")   return QColor("#dddddd");
+    if (code == "PK")   return QColor("#ff88aa");
+    if (code == "GNYE") return QColor("#88bb00");
+    return QColor("#4a9eff");
+}
+
+// Signaltyp → Canvas-Farbe. 1:1-Port von signaltypFarbe() in
+// qml/canvas/CanvasGeometrie.qml – muss synchron gehalten werden.
+static QColor pdfSignaltypFarbe(const QString &sig)
+{
+    if (sig == "power")          return QColor("#cc3300");
+    if (sig == "pe")             return QColor("#88cc00");
+    if (sig == "n")              return QColor("#4488ff");
+    if (sig == "dc_plus")        return QColor("#dd5500");
+    if (sig == "dc_minus")       return QColor("#334488");
+    if (sig == "input_digital")  return QColor("#44aaff");
+    if (sig == "output_digital") return QColor("#44cc66");
+    if (sig == "input_analog")   return QColor("#88bbff");
+    if (sig == "output_analog")  return QColor("#66ddaa");
+    if (sig == "kommunikation")  return QColor("#aa44cc");
+    if (sig == "temp")           return QColor("#e07030");
+    if (sig == "stepper")        return QColor("#20a890");
+    if (sig == "konflikt")       return QColor("#ff2200");
+    if (sig == "unversorgt")     return QColor("#ffaa00");
+    return QColor("#4a9eff");   // neutral
+}
+
 static Qt::PenStyle pdfLinienart(const QString &art)
 {
     if (art == "gestrichelt")  return Qt::DashLine;
@@ -298,14 +338,53 @@ struct PdfLeitungsSegment {
     double lw;   // Linienbreite in Device-Pixeln
 };
 
+// Lotfußpunkt-Test: liegt (cx,cy) auf dem Segment (sx1,sy1)-(sx2,sy2)
+// (± tol)? Gemeinsam genutzt von pdfLeitungenSammeln (ADP-Matching) und
+// pdfSegmentFuerPunkt (Winkel/Treffpunkt-Matching).
+static bool pdfPunktAufSegment(double cx, double cy,
+                               double sx1, double sy1, double sx2, double sy2, double tol)
+{
+    double dx = sx2 - sx1, dy = sy2 - sy1;
+    double len2 = dx*dx + dy*dy;
+    if (len2 < 1e-6) return false;
+    double t = ((cx - sx1) * dx + (cy - sy1) * dy) / len2;
+    if (t < -0.05 || t > 1.05) return false;
+    double projX = sx1 + t * dx, projY = sy1 + t * dy;
+    return qAbs(cx - projX) < tol && qAbs(cy - projY) < tol;
+}
+
 static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
                                                         const QSqlDatabase &db)
 {
     QVector<PdfLeitungsSegment> segs;
 
+    // Aderdefinitionspunkte dieser Seite: cx,cy,aderfarbe. Analog aderdefMap
+    // in Database_Klemmen.cpp (klemmlistenauszug) – Aderfarbe hat Vorrang vor
+    // der Signaltyp-Farbe, s.u. (gleiche Priorität wie CanvasRenderHandler.qml
+    // _segmentFarbeUndBreite()).
+    struct Adp { double cx, cy; QString farbe; };
+    QVector<Adp> adps;
+    {
+        QSqlQuery aq(db);
+        aq.prepare(R"(
+            SELECT (x1+x2)/2.0, (y1+y2)/2.0,
+                   COALESCE(json_extract(extra_daten,'$.aderfarbe'),'')
+            FROM grafik_element
+            WHERE seite_id = :sid AND symbol_id = 'aderdefinition'
+        )");
+        aq.bindValue(":sid", seiteId);
+        if (aq.exec()) {
+            while (aq.next()) {
+                QString af = aq.value(2).toString();
+                if (!af.isEmpty())
+                    adps.append({ aq.value(0).toDouble(), aq.value(1).toDouble(), af });
+            }
+        }
+    }
+
     QSqlQuery q(db);
     q.prepare(R"(
-        SELECT vs.punkte, vs.verbindung_id, v.signaltyp, v.farbe
+        SELECT vs.punkte, vs.verbindung_id, v.signaltyp
         FROM verbindung_segment vs
         JOIN verbindung v ON vs.verbindung_id = v.id
         WHERE vs.seite_id = :sid
@@ -319,21 +398,20 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         QJsonArray arr = doc.array();
 
         QString signaltyp = q.value(2).toString();
-        QString farbe     = q.value(3).toString();
+        double sx1 = arr[0].toObject()["x"].toDouble(), sy1 = arr[0].toObject()["y"].toDouble();
+        double sx2 = arr[1].toObject()["x"].toDouble(), sy2 = arr[1].toObject()["y"].toDouble();
 
-        QColor clr;
-        if      (signaltyp == "phase")    clr = QColor(0x40, 0x90, 0xff);
-        else if (signaltyp == "pe")       clr = QColor(0x20, 0xb0, 0x20);
-        else if (signaltyp == "n")        clr = QColor(0xa0, 0xa0, 0xff);
-        else if (signaltyp == "steuer")   clr = QColor(0xff, 0xc0, 0x40);
-        else if (signaltyp == "konflikt") clr = QColor(0xff, 0x30, 0x30);
-        else                              clr = Qt::black;
-        if (!farbe.isEmpty()) { QColor fc(farbe); if (fc.isValid()) clr = fc; }
+        QColor clr = pdfSignaltypFarbe(signaltyp);
+        if (signaltyp != "konflikt") {
+            for (const Adp &ad : adps) {
+                if (pdfPunktAufSegment(ad.cx, ad.cy, sx1, sy1, sx2, sy2, 3.0)) {
+                    clr = pdfAderFarbeZuCanvas(ad.farbe);
+                    break;
+                }
+            }
+        }
 
-        segs.append({ arr[0].toObject()["x"].toDouble(),
-                      arr[0].toObject()["y"].toDouble(),
-                      arr[1].toObject()["x"].toDouble(),
-                      arr[1].toObject()["y"].toDouble(),
+        segs.append({ sx1, sy1, sx2, sy2,
                       q.value(1).toInt(),
                       clr,
                       qMax(0.3, 1.5 * 0.25 * pxPerMm) });
@@ -349,13 +427,7 @@ static bool pdfSegmentFuerPunkt(double cx, double cy,
 {
     const double TOL = 2.0;   // Canvas-Einheiten (0.5 mm)
     for (const PdfLeitungsSegment &s : segs) {
-        double dx = s.cx2 - s.cx1, dy = s.cy2 - s.cy1;
-        double len2 = dx*dx + dy*dy;
-        if (len2 < 1e-6) continue;
-        double t = ((cx - s.cx1) * dx + (cy - s.cy1) * dy) / len2;
-        if (t < -0.05 || t > 1.05) continue;
-        double projX = s.cx1 + t * dx, projY = s.cy1 + t * dy;
-        if (qAbs(cx - projX) < TOL && qAbs(cy - projY) < TOL) {
+        if (pdfPunktAufSegment(cx, cy, s.cx1, s.cy1, s.cx2, s.cy2, TOL)) {
             farbeOut = s.color;
             lwOut    = s.lw;
             return true;
@@ -680,15 +752,35 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
 
         // Winkel/Treffpunkt: transparenter Durchlauf – Farbe+Breite kommen vom
         // anliegenden Verbindungssegment statt aus el.strichFarbe/strichBreite
-        // (analog CanvasRenderHandler.qml maleElement).
+        // (analog CanvasRenderHandler.qml maleElement). Die Pins dieser Symbole
+        // sitzen laut symbol_pin je nach Typ auf Bbox-Ecken (winkel: (0,0)/(1,1))
+        // oder Kanten-Mittelpunkten (treffpunkt/treffpunkt_l), nie im Bbox-Zentrum
+        // – daher werden alle acht Kandidatenpunkte geprüft. Da Rotation bei
+        // diesen Symbolen nur in 90°-Schritten vorkommt, bildet jede Rotation
+        // Ecken auf Ecken und Kanten-Mittelpunkte auf Kanten-Mittelpunkte ab,
+        // die Kandidatenmenge ist also rotations-/spiegelunabhängig.
+        // Reihenfolge links/rechts vor oben/unten vor Ecken: bei einem Treffpunkt
+        // (Y-Verzweigung) sind die beiden seitlichen Schenkel typischerweise die
+        // durchlaufende, bereits mit Aderfarbe dokumentierte Leitung, der
+        // Zielschenkel (unten) oft der noch unklassifizierte Abzweig – erster
+        // Treffer gewinnt, eine Mischfarbe für alle drei Schenkel ist ohnehin
+        // nicht darstellbar (das Symbol wird mit einem einzigen QPen gezeichnet).
         QPen symPen = pen;
         if (leitungsSegs && (sid == "winkel" || sid == "treffpunkt" || sid == "treffpunkt_l")) {
-            double rawCx = (el.value("x1").toDouble() + el.value("x2").toDouble()) / 2.0;
-            double rawCy = (el.value("y1").toDouble() + el.value("y2").toDouble()) / 2.0;
+            double rx1 = el.value("x1").toDouble(), ry1 = el.value("y1").toDouble();
+            double rx2 = el.value("x2").toDouble(), ry2 = el.value("y2").toDouble();
+            double rmx = (rx1 + rx2) / 2.0, rmy = (ry1 + ry2) / 2.0;
+            const QPointF kandidaten[8] = {
+                { rx1, rmy }, { rx2, rmy }, { rmx, ry1 }, { rmx, ry2 },
+                { rx1, ry1 }, { rx2, ry1 }, { rx1, ry2 }, { rx2, ry2 }
+            };
             QColor mFarbe; double mLw;
-            if (pdfSegmentFuerPunkt(rawCx, rawCy, *leitungsSegs, mFarbe, mLw)) {
-                symPen.setColor(mFarbe);
-                symPen.setWidthF(mLw);
+            for (const QPointF &k : kandidaten) {
+                if (pdfSegmentFuerPunkt(k.x(), k.y(), *leitungsSegs, mFarbe, mLw)) {
+                    symPen.setColor(mFarbe);
+                    symPen.setWidthF(mLw);
+                    break;
+                }
             }
         }
 

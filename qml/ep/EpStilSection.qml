@@ -9,8 +9,18 @@ Item {
     required property var panel
     required property var theme
 
+    // Winkel/Treffpunkt übernehmen Farbe und Strichstärke automatisch vom
+    // anliegenden Verbindungssegment (transparenter Durchlauf, s. CanvasRenderHandler
+    // maleElement) – eigene Stil-Regler wären wirkungslos, daher ganze Sektion aus.
+    readonly property bool istRoutingSymbol:
+        panel.el && panel.el.typ === "symbol" &&
+        (panel.el.symbolId === "winkel" || panel.el.symbolId === "treffpunkt"
+         || panel.el.symbolId === "treffpunkt_l")
+
     width:   parent ? parent.width : 0
-    height:  stilCol.implicitHeight
+    height:  istRoutingSymbol ? 0 : stilCol.implicitHeight
+    visible: height > 0
+    clip:    true
 
     component AbschnittTitel: Item {
         property string text: ""

@@ -1704,6 +1704,10 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "fehlersuche"
 
+                // Anzeige-Toggle (Signaltyp/Aderfarbe) bei jedem erneuten
+                // Eintritt in den Fehlersuchmodus auf Kategorie-Default zurücksetzen
+                onVisibleChanged: if (visible) fehlersuchCanvas.fehlersuchZeigeAderfarbe = false
+
                 SplitView {
                     anchors.fill: parent
                     orientation:  Qt.Horizontal

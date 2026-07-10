@@ -176,6 +176,44 @@ Item {
                     }
                 }
 
+                // Toggle: Aderfarbe statt Signaltyp-/Kategorie-Farbe anzeigen
+                Rectangle {
+                    implicitWidth: aderToggleRow.implicitWidth + 12
+                    implicitHeight: 24
+                    radius: 4
+                    color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? theme.accent : "transparent"
+                    border.color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? theme.accent : theme.border
+                    ToolTip.visible: aderToggleMaus.containsMouse
+                    ToolTip.text: qsTr("Aderfarbe statt Signaltyp-Farbe anzeigen (Abgleich mit der Dokumentation)")
+                    ToolTip.delay: 600
+
+                    RowLayout {
+                        id: aderToggleRow
+                        anchors.centerIn: parent
+                        spacing: 5
+
+                        Text {
+                            text: "🎨"
+                            font.pixelSize: 11
+                            color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? "white" : theme.textMuted
+                        }
+                        Text {
+                            text: qsTr("Aderfarbe")
+                            font.pixelSize: 10
+                            color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? "white" : theme.textMuted
+                        }
+                    }
+
+                    MouseArea {
+                        id: aderToggleMaus
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: if (root.canvas)
+                                       root.canvas.fehlersuchZeigeAderfarbe = !root.canvas.fehlersuchZeigeAderfarbe
+                    }
+                }
+
                 Button {
                     flat: true; implicitWidth: 28; implicitHeight: 28
                     contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;

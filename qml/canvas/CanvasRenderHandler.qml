@@ -324,7 +324,7 @@ QtObject {
         ctx.restore()
     }
 
-    function maleElement(ctx, el, idx) {
+    function maleElement(ctx, el, idx, routingFarben) {
         var vorschau  = (idx < 0)
         var gewaehlt  = (!vorschau && cv.auswahl.indexOf(idx) >= 0)
         var _skipText = !vorschau && cv.bewegungAktiv
@@ -350,6 +350,14 @@ QtObject {
         var fo  = el.fuellOpazitaet  !== undefined ? el.fuellOpazitaet  : 0.3
         var op  = (el.opazitaet !== undefined ? el.opazitaet : 1.0) * dimFaktor
         var er  = el.eckenRadius      !== undefined ? el.eckenRadius      : 0
+
+        // Winkel/Treffpunkt: transparenter Durchlauf – Farbe+Breite kommen
+        // vom anliegenden Netzsegment statt aus el.strichFarbe/strichBreite.
+        if (routingFarben && el.typ === "symbol" &&
+                (el.symbolId === "winkel" || el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l")) {
+            var _rf = routingFarben[idx]
+            if (_rf) { sf = _rf.farbe; sb = _rf.breite }
+        }
 
         // Leitungen im Pfad: Akzentfarbe + dickere Linie
         if (!vorschau && cv.fehlersuchModus && cv.fehlersuchPfadIds[(el.id || -1)] !== undefined &&
@@ -1080,6 +1088,72 @@ QtObject {
         ctx.restore()
     }
 
+    // Sammelt alle Aderdefinitionspunkte im Projekt (für Aderfarben-Zuordnung
+    // zu Netzsegmenten). Gemeinsam genutzt von maleAutoVerbindungen und
+    // berechneRoutingSymbolFarben.
+    function _sammleAderdefinitionspunkte() {
+        var adpList = []
+        var els = cv.elementeModel.snapshot()
+        for (var eli = 0; eli < els.length; eli++) {
+            var adpEl = els[eli]
+            if (adpEl.typ === "symbol" && adpEl.symbolId === "aderdefinition") {
+                adpList.push({ cx: (adpEl.x1 + adpEl.x2) / 2,
+                               cy: (adpEl.y1 + adpEl.y2) / 2,
+                               ed: adpEl.extraDaten || {} })
+            }
+        }
+        return adpList
+    }
+
+    // Farbe + Linienbreite für ein Netzsegment. Aderfarbe überschreibt die
+    // Signaltyp-Farbe – außer im Fehlersuchmodus, wo per Toggle
+    // (fehlersuchZeigeAderfarbe) auf reine Kategorie-/Signaltyp-Ansicht
+    // umgeschaltet werden kann (Default dort: Signaltyp).
+    function _segmentFarbeUndBreite(net, sAdps) {
+        var farbe = cv.geometrie.signaltypFarbe(net.signaltyp)
+        var zeigeAderfarbe = !cv.fehlersuchModus || cv.fehlersuchZeigeAderfarbe
+        if (zeigeAderfarbe && net.signaltyp !== "konflikt" && sAdps.length > 0 && sAdps[0].ed.aderfarbe)
+            farbe = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
+
+        var anz    = Math.max(1, sAdps.length)
+        var breite = anz <= 3 ? anz * 1.5 : 4.5
+        if (net.signaltyp === "konflikt")   breite = breite * 2
+        if (net.signaltyp === "unversorgt") breite = breite * 1.5
+        return { farbe: farbe, breite: breite }
+    }
+
+    // Winkel/Treffpunkt sind transparente Durchlaufpunkte (§2.2) und übernehmen
+    // deshalb Farbe+Breite des anliegenden Netzsegments statt einer eigenen
+    // Stil-Einstellung. Gibt { elIdx: {farbe, breite} } zurück, einmal pro Frame
+    // vor der Elemente-Schleife berechnet.
+    function berechneRoutingSymbolFarben(netze) {
+        var out = {}
+        if (netze.length === 0) return out
+        var adpList = _sammleAderdefinitionspunkte()
+
+        for (var ni = 0; ni < netze.length; ni++) {
+            var net = netze[ni]
+            var segs = net.segmente
+            var segAdps = cv.geometrie.adpFuerNetSegmente(segs, adpList)
+            for (var si = 0; si < segs.length; si++) {
+                var seg = segs[si]
+                if (seg.logisch) continue
+                var fb = _segmentFarbeUndBreite(net, segAdps[si])
+                var kandidaten = [seg.elIdxA, seg.elIdxB]
+                for (var ki = 0; ki < kandidaten.length; ki++) {
+                    var eIdx = kandidaten[ki]
+                    if (eIdx < 0 || out[eIdx] !== undefined) continue
+                    var eEl = cv.elementeModel.element(eIdx)
+                    var esid = eEl ? (eEl.symbolId || "") : ""
+                    if (eEl && eEl.typ === "symbol" &&
+                        (esid === "winkel" || esid === "treffpunkt" || esid === "treffpunkt_l"))
+                        out[eIdx] = fb
+                }
+            }
+        }
+        return out
+    }
+
     function maleAutoVerbindungen(ctx, netze) {
         if (netze === undefined) netze = cv.netzberechnung.autoNetzeBerechnenCached()
         if (netze.length === 0) return
@@ -1090,16 +1164,7 @@ QtObject {
         var kreuzungsLuecken = cv.geometrie._kreuzungsLuecken(netze)
 
         // Alle Aderdefinitionspunkte sammeln
-        var adpList = []
-        var _mavEls = cv.elementeModel.snapshot()
-        for (var eli = 0; eli < _mavEls.length; eli++) {
-            var adpEl = _mavEls[eli]
-            if (adpEl.typ === "symbol" && adpEl.symbolId === "aderdefinition") {
-                adpList.push({ cx: (adpEl.x1 + adpEl.x2) / 2,
-                               cy: (adpEl.y1 + adpEl.y2) / 2,
-                               ed: adpEl.extraDaten || {} })
-            }
-        }
+        var adpList = _sammleAderdefinitionspunkte()
 
         ctx.setLineDash([])
         ctx.lineCap = "square"
@@ -1126,14 +1191,9 @@ QtObject {
                     ctx.globalAlpha = 1.0
                 }
 
-                var lineClr = cv.geometrie.signaltypFarbe(net.signaltyp)
-                if (net.signaltyp !== "konflikt" && sAdps.length > 0 && sAdps[0].ed.aderfarbe)
-                    lineClr = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
-
-                var anz = Math.max(1, sAdps.length)
-                var lw  = anz <= 3 ? anz * 1.5 : 4.5
-                if (net.signaltyp === "konflikt")   lw = lw * 2
-                if (net.signaltyp === "unversorgt") lw = lw * 1.5
+                var fb      = _segmentFarbeUndBreite(net, sAdps)
+                var lineClr = fb.farbe
+                var lw      = fb.breite
 
                 ctx.strokeStyle = lineClr
                 ctx.lineWidth   = lw

@@ -288,9 +288,86 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
     p.restore();
 }
 
+// Verbindungssegment für die Winkel/Treffpunkt-Farbübernahme (s.u.) und für
+// pdfLeitungenRendern. Koordinaten in Canvas-Einheiten (1 Einheit = 0.25 mm),
+// noch nicht mit C multipliziert.
+struct PdfLeitungsSegment {
+    double cx1, cy1, cx2, cy2;
+    int    verbId;
+    QColor color;
+    double lw;   // Linienbreite in Device-Pixeln
+};
+
+static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
+                                                        const QSqlDatabase &db)
+{
+    QVector<PdfLeitungsSegment> segs;
+
+    QSqlQuery q(db);
+    q.prepare(R"(
+        SELECT vs.punkte, vs.verbindung_id, v.signaltyp, v.farbe
+        FROM verbindung_segment vs
+        JOIN verbindung v ON vs.verbindung_id = v.id
+        WHERE vs.seite_id = :sid
+    )");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec()) return segs;
+
+    while (q.next()) {
+        QJsonDocument doc = QJsonDocument::fromJson(q.value(0).toString().toUtf8());
+        if (!doc.isArray() || doc.array().size() < 2) continue;
+        QJsonArray arr = doc.array();
+
+        QString signaltyp = q.value(2).toString();
+        QString farbe     = q.value(3).toString();
+
+        QColor clr;
+        if      (signaltyp == "phase")    clr = QColor(0x40, 0x90, 0xff);
+        else if (signaltyp == "pe")       clr = QColor(0x20, 0xb0, 0x20);
+        else if (signaltyp == "n")        clr = QColor(0xa0, 0xa0, 0xff);
+        else if (signaltyp == "steuer")   clr = QColor(0xff, 0xc0, 0x40);
+        else if (signaltyp == "konflikt") clr = QColor(0xff, 0x30, 0x30);
+        else                              clr = Qt::black;
+        if (!farbe.isEmpty()) { QColor fc(farbe); if (fc.isValid()) clr = fc; }
+
+        segs.append({ arr[0].toObject()["x"].toDouble(),
+                      arr[0].toObject()["y"].toDouble(),
+                      arr[1].toObject()["x"].toDouble(),
+                      arr[1].toObject()["y"].toDouble(),
+                      q.value(1).toInt(),
+                      clr,
+                      qMax(0.3, 1.5 * 0.25 * pxPerMm) });
+    }
+    return segs;
+}
+
+// Nächstgelegenes Segment zu einem Punkt (Canvas-Einheiten) – gleiche Technik
+// wie das geometrische Matching in Database_Klemmen.cpp (klemmlistenauszug).
+static bool pdfSegmentFuerPunkt(double cx, double cy,
+                                const QVector<PdfLeitungsSegment> &segs,
+                                QColor &farbeOut, double &lwOut)
+{
+    const double TOL = 2.0;   // Canvas-Einheiten (0.5 mm)
+    for (const PdfLeitungsSegment &s : segs) {
+        double dx = s.cx2 - s.cx1, dy = s.cy2 - s.cy1;
+        double len2 = dx*dx + dy*dy;
+        if (len2 < 1e-6) continue;
+        double t = ((cx - s.cx1) * dx + (cy - s.cy1) * dy) / len2;
+        if (t < -0.05 || t > 1.05) continue;
+        double projX = s.cx1 + t * dx, projY = s.cy1 + t * dy;
+        if (qAbs(cx - projX) < TOL && qAbs(cy - projY) < TOL) {
+            farbeOut = s.color;
+            lwOut    = s.lw;
+            return true;
+        }
+    }
+    return false;
+}
+
 // Einzelnes grafik_element rendern
 static void pdfElementRendern(QPainter &p, const QVariantMap &el,
-                               double C, double pxPerMm, const QSqlDatabase &db)
+                               double C, double pxPerMm, const QSqlDatabase &db,
+                               const QVector<PdfLeitungsSegment> *leitungsSegs = nullptr)
 {
     QString typ = el.value("typ").toString();
     double x1 = el.value("x1").toDouble() * C;
@@ -599,17 +676,31 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         if (absSw < 0.5 || absSh < 0.5) return;
         double symX = qMin(x1, x2);
         double symY = qMin(y1, y2);
-        pdfSymbolRendern(p,
-                         el.value("symbolId").toString(),
-                         symX, symY, absSw, absSh,
+        QString sid = el.value("symbolId").toString();
+
+        // Winkel/Treffpunkt: transparenter Durchlauf – Farbe+Breite kommen vom
+        // anliegenden Verbindungssegment statt aus el.strichFarbe/strichBreite
+        // (analog CanvasRenderHandler.qml maleElement).
+        QPen symPen = pen;
+        if (leitungsSegs && (sid == "winkel" || sid == "treffpunkt" || sid == "treffpunkt_l")) {
+            double rawCx = (el.value("x1").toDouble() + el.value("x2").toDouble()) / 2.0;
+            double rawCy = (el.value("y1").toDouble() + el.value("y2").toDouble()) / 2.0;
+            QColor mFarbe; double mLw;
+            if (pdfSegmentFuerPunkt(rawCx, rawCy, *leitungsSegs, mFarbe, mLw)) {
+                symPen.setColor(mFarbe);
+                symPen.setWidthF(mLw);
+            }
+        }
+
+        pdfSymbolRendern(p, sid, symX, symY, absSw, absSh,
                          el.value("rotation").toInt(),
                          el.value("spiegelX").toBool(),
                          el.value("spiegelY").toBool(),
-                         pen, db);
+                         symPen, db);
         pdfBeschriftungRendern(p, el, C, pxPerMm);
 
         // ── Aderdefinitions-Textblock ────────────────────────────────────────
-        if (el.value("symbolId").toString() == QStringLiteral("aderdefinition")) {
+        if (sid == QStringLiteral("aderdefinition")) {
             QVariantMap ed = el.value("extraDaten").toMap();
             QStringList zeilen;
             QString bez   = ed.value("bezeichnung").toString();
@@ -1078,55 +1169,12 @@ static void pdfKabelAderBeschriftungRendern(QPainter &p, int seiteId, double C, 
     }
 }
 
-// Verbindungsleitungen aus verbindung_segment rendern
-static void pdfLeitungenRendern(QPainter &p, int seiteId, double C, double pxPerMm,
-                                const QSqlDatabase &db)
+// Verbindungsleitungen aus verbindung_segment rendern (segs vorab per
+// pdfLeitungenSammeln geladen – gemeinsam genutzt mit der Winkel/Treffpunkt-
+// Farbübernahme in pdfElementRendern).
+static void pdfLeitungenRendern(QPainter &p, double C,
+                                const QVector<PdfLeitungsSegment> &segs)
 {
-    // ── Alle Segmente laden ──────────────────────────────────────────────────
-    struct Seg {
-        double cx1, cy1, cx2, cy2;   // Canvas-Koordinaten (1 Einheit = 0.25 mm)
-        int    verbId;
-        QColor color;
-        double lw;                    // Linienbreite in Device-Pixeln
-    };
-    QVector<Seg> segs;
-
-    QSqlQuery q(db);
-    q.prepare(R"(
-        SELECT vs.punkte, vs.verbindung_id, v.signaltyp, v.farbe
-        FROM verbindung_segment vs
-        JOIN verbindung v ON vs.verbindung_id = v.id
-        WHERE vs.seite_id = :sid
-    )");
-    q.bindValue(":sid", seiteId);
-    if (!q.exec()) return;
-
-    while (q.next()) {
-        QJsonDocument doc = QJsonDocument::fromJson(q.value(0).toString().toUtf8());
-        if (!doc.isArray() || doc.array().size() < 2) continue;
-        QJsonArray arr = doc.array();
-
-        QString signaltyp = q.value(2).toString();
-        QString farbe     = q.value(3).toString();
-
-        QColor clr;
-        if      (signaltyp == "phase")    clr = QColor(0x40, 0x90, 0xff);
-        else if (signaltyp == "pe")       clr = QColor(0x20, 0xb0, 0x20);
-        else if (signaltyp == "n")        clr = QColor(0xa0, 0xa0, 0xff);
-        else if (signaltyp == "steuer")   clr = QColor(0xff, 0xc0, 0x40);
-        else if (signaltyp == "konflikt") clr = QColor(0xff, 0x30, 0x30);
-        else                              clr = Qt::black;
-        if (!farbe.isEmpty()) { QColor fc(farbe); if (fc.isValid()) clr = fc; }
-
-        segs.append({ arr[0].toObject()["x"].toDouble(),
-                      arr[0].toObject()["y"].toDouble(),
-                      arr[1].toObject()["x"].toDouble(),
-                      arr[1].toObject()["y"].toDouble(),
-                      q.value(1).toInt(),
-                      clr,
-                      qMax(0.3, 1.5 * 0.25 * pxPerMm) });
-    }
-
     // ── Kreuzungslücken berechnen ────────────────────────────────────────────
     // Konvention: H-Segment bekommt Lücke, V-Segment verläuft durch.
     struct HSeg { int idx; double x1, x2, y; };
@@ -1135,7 +1183,7 @@ static void pdfLeitungenRendern(QPainter &p, int seiteId, double C, double pxPer
     QVector<VSeg> vSegs;
 
     for (int i = 0; i < segs.size(); i++) {
-        const Seg &s = segs[i];
+        const PdfLeitungsSegment &s = segs[i];
         if      (qAbs(s.cy2 - s.cy1) < 0.5)
             hSegs.append({i, qMin(s.cx1,s.cx2), qMax(s.cx1,s.cx2), (s.cy1+s.cy2)/2.0});
         else if (qAbs(s.cx2 - s.cx1) < 0.5)
@@ -1161,7 +1209,7 @@ static void pdfLeitungenRendern(QPainter &p, int seiteId, double C, double pxPer
 
     p.setBrush(Qt::NoBrush);
     for (int i = 0; i < segs.size(); i++) {
-        const Seg &s = segs[i];
+        const PdfLeitungsSegment &s = segs[i];
         QPen pen(s.color, s.lw, Qt::SolidLine, Qt::FlatCap);
 
         auto it = crossings.constFind(i);
@@ -1645,9 +1693,10 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         if (vollCanvas)
             painter.translate(-txCu * C, -tyCu * C);
         QVariantList elemente = grafikLaden(seiteId);
+        QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
         for (const QVariant &ev : elemente)
-            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
-        pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
+            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs);
+        pdfLeitungenRendern(painter, C, leitungsSegs);
         pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
@@ -1703,9 +1752,10 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     if (vollCanvas)
         painter.translate(-txCu * C, -tyCu * C);
     QVariantList elemente = grafikLaden(seiteId);
+    QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
     for (const QVariant &ev : elemente)
-        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db);
-    pdfLeitungenRendern(painter, seiteId, C, pxPerMm, m_db);
+        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs);
+    pdfLeitungenRendern(painter, C, leitungsSegs);
     pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
     painter.restore();
 

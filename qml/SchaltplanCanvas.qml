@@ -291,6 +291,11 @@ Item {
 
     // ── Fehlersuchmodus ──────────────────────────────────────
     property bool fehlersuchModus:           false
+    // Anzeige-Toggle: false = Signaltyp-/Kategorie-Farbe (Default beim Eintritt
+    // in den Modus), true = Aderfarbe (für Abgleich mit der Dokumentation).
+    // Wird beim erneuten Öffnen des Fehlersuchmodus in Main.qml zurückgesetzt.
+    property bool fehlersuchZeigeAderfarbe:  false
+    onFehlersuchZeigeAderfarbeChanged: drawCanvas.requestPaint()
     property var  fehlersuchPfadIds:         ({})  // elementId → pfadNr (int, 0-indexed)
     property int  fehlersuchStartId:         -1    // zuletzt gestarteter Pfad (für §8.6 History)
     property var  fehlersuchStartIds:        []    // startElementId je Pfad (Index = pfadNr)
@@ -483,8 +488,12 @@ Item {
             for (var _gi = 0; _gi < elemente.length; _gi++)
                 if (elemente[_gi] && elemente[_gi].typ === "geraetekasten") _gkBuf.push(elemente[_gi])
             drawCanvas._gkListe = _gkBuf
+            // Netzberechnung vorab: Winkel/Treffpunkt brauchen die Segmentfarbe
+            // schon in der Elemente-Schleife (transparenter Durchlauf, s.o.)
+            var _repaintNetze   = netzHandler.autoNetzeBerechnenCached()
+            var _routingFarben  = renderHandler.berechneRoutingSymbolFarben(_repaintNetze)
             for (var i=0; i<elemente.length; i++)
-                renderHandler.maleElement(ctx, elemente[i], i)
+                renderHandler.maleElement(ctx, elemente[i], i, _routingFarben)
 
             renderHandler.maleKlemmenHighlight(ctx, elemente)
 
@@ -523,7 +532,6 @@ Item {
                     renderHandler.maleElement(ctx, root.duplizierVorschau[dvi], -1)
             }
             renderHandler.malePolygonVorschau(ctx)
-            var _repaintNetze = netzHandler.autoNetzeBerechnenCached()
             renderHandler.maleAutoVerbindungen(ctx, _repaintNetze)
             // Schnittpunkte aller Kabellinien mit Auto-Verbindungen (Phase 5)
             for (var kli = 0; kli < elemente.length; kli++) {

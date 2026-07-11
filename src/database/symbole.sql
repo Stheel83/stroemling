@@ -93,9 +93,9 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 -- netzteil (Eingang L/N links, Ausgang +/- rechts – Namen frei umbenennbar
 -- über die Pin-Bezeichnungen im EP, da kein Bauteil zugeordnet ist)
 ('netzteil',        'L',   0,    0.25, -1,  0, 'power'),
-('netzteil',        'N',   0,    0.75, -1,  0, 'power'),
-('netzteil',        '+',   1,    0.25,  1,  0, 'power'),
-('netzteil',        '-',   1,    0.75,  1,  0, 'power'),
+('netzteil',        'N',   0,    0.75, -1,  0, 'n'),
+('netzteil',        '+',   1,    0.25,  1,  0, 'dc_plus'),
+('netzteil',        '-',   1,    0.75,  1,  0, 'dc_minus'),
 -- widerstand_iec / widerstand_ansi / kondensator
 ('widerstand_iec',  '1',   0,    0.5,  -1,  0, 'neutral'),
 ('widerstand_iec',  '2',   1,    0.5,   1,  0, 'neutral'),

@@ -167,9 +167,13 @@ Rectangle {
                     }
 
                     ComboBox {
+                        id: sigCombo
                         width: 140; height: 30
                         model: ["neutral","power","pe","n","dc_plus","dc_minus","input_digital","output_digital","input_analog","output_analog","kommunikation","temp","stepper","sicherheit","fe"]
                         font.pixelSize: 10
+                        // Anzeige-Label je Schlüssel – gespeicherter Wert bleibt der Rohschlüssel
+                        function labelFuer(key) { return key === "power" ? "L" : key }
+                        displayText: labelFuer(currentText)
                         currentIndex: {
                             var st = parent.parent.myPin.signaltyp || "neutral"
                             var i2 = model.indexOf(st); return i2 >= 0 ? i2 : 0
@@ -178,6 +182,13 @@ Rectangle {
                             var arr = root.editor.pins.slice()
                             var p   = Object.assign({}, arr[parent.parent.myIdx])
                             p.signaltyp = model[idx]; arr[parent.parent.myIdx] = p; root.editor.pins = arr
+                        }
+                        delegate: ItemDelegate {
+                            width: sigCombo.width
+                            highlighted: sigCombo.highlightedIndex === index
+                            contentItem: Text { text: sigCombo.labelFuer(modelData); font.pixelSize: 10;
+                                                 color: root.editor.theme.textPrimary; leftPadding: 6;
+                                                 verticalAlignment: Text.AlignVCenter }
                         }
                         background: Rectangle { color: root.editor.theme.inputBg; border.color: root.editor.theme.border; radius: 4 }
                         contentItem: Text { text: parent.displayText; color: root.editor.theme.textPrimary; font.pixelSize: 10;

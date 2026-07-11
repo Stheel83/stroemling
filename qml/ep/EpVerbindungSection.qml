@@ -19,6 +19,9 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
+    // Anzeige-Label je Signaltyp-Schlüssel – gespeicherter Wert bleibt der Rohschlüssel
+    function signaltypLabel(key) { return key === "power" ? "L" : key }
+
     component AbschnittTitel: Item {
         property string text: ""
         width: root.width; height: 26
@@ -71,7 +74,7 @@ Item {
                 }
                 Text {
                     anchors.centerIn: parent
-                    text: panel.verbindung ? (panel.verbindung.signaltyp || "neutral") : ""
+                    text: panel.verbindung ? root.signaltypLabel(panel.verbindung.signaltyp || "neutral") : ""
                     font.pixelSize: 10; color: "#ffffff"
                 }
             }

@@ -38,6 +38,9 @@ Dialog {
     // Modus: 0=Reihenfolge, 1=Signalname, 2=Manuell, 3=Pin-Nummer
     property int modus: 0
 
+    // Anzeige-Label je Signaltyp-Schlüssel – gespeicherter Wert bleibt der Rohschlüssel
+    function signaltypLabel(key) { return key === "power" ? "L" : key }
+
     // netKey → anschlusskennzeichnung des Geräte-Pins am Ende des Netzes
     // (wird aus SchaltplanCanvas befüllt, bevor der Dialog geöffnet wird)
     property var pinNummernMap: ({})
@@ -358,7 +361,7 @@ Dialog {
                             text: {
                                 var t = model.bezeichnung
                                 if (model.signaltyp && model.signaltyp !== "neutral")
-                                    t += "  [" + model.signaltyp + "]"
+                                    t += "  [" + root.signaltypLabel(model.signaltyp) + "]"
                                 return t
                             }
                             color: theme.textSecondary

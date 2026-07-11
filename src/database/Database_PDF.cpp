@@ -391,6 +391,85 @@ static QPointF pdfPinWeltPos(double x1, double y1, double x2, double y2,
              scy + cx * std::sin(rot) + cy * std::cos(rot) };
 }
 
+// Pin-Bezeichnungen eines Symbols rendern (Default = symbol_pin.name, je
+// Instanz überschreibbar via extraDaten.pinBez = { "pinName": "Label" }).
+// 1:1-Port des Pin-Label-Blocks in CanvasRenderHandler.qml (maleElement,
+// Abschnitt "Pin-Bezeichnungen rendern"). Nicht für Verbindungshelfer
+// (eigene Beschriftungslogik) und nicht für Stecker/Buchse-Pin "2" (fiktive
+// Steckverbindung, wird stattdessen farblich markiert).
+static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
+                                       double C, double pxPerMm, const QSqlDatabase &db)
+{
+    QString sid = el.value("symbolId").toString();
+    static const QSet<QString> kPbSkip = {
+        "querverweis", "winkel", "treffpunkt", "treffpunkt_l", "klemme_anschluss",
+        "geraeteanschluss", "potenzial", "aderdefinition", "isoliert_gelegte_ader"
+    };
+    if (kPbSkip.contains(sid)) return;
+
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT name, x, y, offen_x, offen_y FROM symbol_pin WHERE symbol_id = :sym"));
+    q.bindValue(":sym", sid);
+    if (!q.exec()) return;
+
+    struct PbPin { QString name; double x, y, offenX, offenY; };
+    QVector<PbPin> pins;
+    while (q.next())
+        pins.append({ q.value(0).toString(), q.value(1).toDouble(), q.value(2).toDouble(),
+                       q.value(3).toDouble(), q.value(4).toDouble() });
+    if (pins.isEmpty()) return;
+
+    QVariantMap ed     = el.value("extraDaten").toMap();
+    QVariantMap pinBez = ed.value("pinBez").toMap();
+
+    double x1 = el.value("x1").toDouble(), y1 = el.value("y1").toDouble();
+    double x2 = el.value("x2").toDouble(), y2 = el.value("y2").toDouble();
+    double rot = el.value("rotation").toDouble();
+    bool spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
+    bool isSteBu = (sid == QLatin1String("stecker") || sid == QLatin1String("buchse"));
+
+    double fsDev = qMax(6.0, 1.8 * pxPerMm);
+    QFont font;
+    font.setFamily(QStringLiteral("sans-serif"));
+    font.setPixelSize(qMax(1, qRound(fsDev)));
+
+    p.save();
+    p.setFont(font);
+    p.setPen(QColor(0x1a, 0x40, 0x60)); // dunkelblau, lesbar auf Weiß (analog Aderdefinitions-Textblock)
+
+    double rotRad = rot * M_PI / 180.0;
+    const double BIG = 1000.0;
+
+    for (const PbPin &pin : pins) {
+        if (isSteBu && pin.name == QLatin1String("2")) continue;
+
+        QString label = pinBez.value(pin.name).toString();
+        if (label.isEmpty()) label = pin.name;
+
+        QPointF pos = pdfPinWeltPos(x1, y1, x2, y2, rot, spX, spY, pin.x, pin.y);
+        double px = pos.x() * C, py = pos.y() * C;
+
+        double ox = pin.offenX, oy = pin.offenY;
+        if (spX) ox = -ox;
+        if (spY) oy = -oy;
+        double tx = ox * std::cos(rotRad) - oy * std::sin(rotRad);
+        double ty = ox * std::sin(rotRad) + oy * std::cos(rotRad);
+        double off = 4.0 * C;
+
+        if (std::abs(ty) > std::abs(tx)) {
+            // Vertikal dominanter Richtungsvektor → Label rechts vom Pin
+            p.drawText(QRectF(px + off, py - BIG / 2, BIG, BIG),
+                       Qt::AlignLeft | Qt::AlignVCenter, label);
+        } else {
+            // Horizontal dominanter Richtungsvektor → Label über dem Pin
+            p.drawText(QRectF(px - BIG / 2, py - off - BIG, BIG, BIG),
+                       Qt::AlignHCenter | Qt::AlignBottom, label);
+        }
+    }
+    p.restore();
+}
+
 // Lokale (unrotierte) Pin-Koordinaten je Symboltyp, aus symbole.sql
 // (symbol_pin) übernommen – nur die für die Winkel-/Treffpunkt-Propagation
 // relevanten Typen.
@@ -1123,6 +1202,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                              symPen, db);
         }
         pdfBeschriftungRendern(p, el, C, pxPerMm, db);
+        pdfPinBezeichnungenRendern(p, el, C, pxPerMm, db);
 
         // ── Aderdefinitions-Textblock ────────────────────────────────────────
         if (sid == QStringLiteral("aderdefinition")) {

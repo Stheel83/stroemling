@@ -732,6 +732,11 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_pin SET signaltyp = 'dc_plus'  WHERE symbol_id = 'netzteil' AND name = '+')",
             R"(UPDATE symbol_pin SET signaltyp = 'dc_minus' WHERE symbol_id = 'netzteil' AND name = '-')",
         }},
+        { 93, "symbol_pin.rolle: Rolle je Pin statt nur je Symbol (NETZTEIL-ROLLE-01) – netzteil-Ausgang (+/-) wird zur Quelle, Eingang (L/N) bleibt Verbraucher", {
+            R"(ALTER TABLE symbol_pin ADD COLUMN rolle TEXT NOT NULL DEFAULT '')",
+            R"(UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'netzteil' AND name IN ('L', 'N'))",
+            R"(UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'netzteil' AND name IN ('+', '-'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

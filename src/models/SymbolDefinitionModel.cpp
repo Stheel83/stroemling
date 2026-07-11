@@ -87,7 +87,7 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
     QVariantList result;
     QSqlQuery q;
     q.prepare(R"(
-        SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe
+        SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle
         FROM symbol_pin
         WHERE symbol_id = :sym
     )");
@@ -112,6 +112,12 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
         m["signaltyp"]    = q.value(6).toString();
         m["kontext"]      = q.value(7).toString();
         m["knotenGruppe"] = q.value(8).toInt();
+        // Rolle je Pin (NETZTEIL-ROLLE-01): leer = Symbol-Rolle erben (Default,
+        // unverändertes Verhalten für alle Symbole ohne Override); gesetzt
+        // (z.B. 'quelle'/'verbraucher') überschreibt die Symbol-Rolle für
+        // genau diesen Pin – nötig für Symbole mit gemischten Rollen
+        // (Netzteil: L/N=Verbraucher, +/-=Quelle).
+        m["rolle"]        = q.value(9).toString();
         result.append(m);
     }
     m_pinCache.insert(symbolId, result);
@@ -515,13 +521,24 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
             const QVariantMap pin = pv.toMap();
             const QPointF pos = pinWeltPos(el, pin["x"].toDouble(), pin["y"].toDouble());
 
+            // Pin-Rolle überschreibt Symbol-Rolle wenn gesetzt (NETZTEIL-ROLLE-01) –
+            // Quell-Signaltyp kommt dann aus dem eigenen (fest hinterlegten)
+            // Pin-Signaltyp statt aus extraDaten (kein Instanz-Toggle nötig,
+            // z.B. Netzteil-Pin "+" ist immer dc_plus).
+            const QString pinRolle = pin.value("rolle").toString();
+            const bool hatPinRolle = !pinRolle.isEmpty();
+
             PinInfo pi;
             pi.x        = pos.x();
             pi.y        = pos.y();
             pi.elIdx    = i;
             pi.richtung = pinEffektiveRichtung(pin["richtung"].toString(), rotation);
-            pi.rolle    = rolle;
-            pi.quellSig = quellSig;
+            pi.rolle    = hatPinRolle ? pinRolle : rolle;
+            pi.quellSig = hatPinRolle
+                          ? (pinRolle == QLatin1String("quelle")
+                             ? pin.value("signaltyp", QStringLiteral("neutral")).toString()
+                             : QStringLiteral("neutral"))
+                          : quellSig;
             pi.symbolId = symbolId;
             pi.pinName  = pin["name"].toString();
             pi.knotenGruppe = pin.value("knotenGruppe", 0).toInt();
@@ -669,21 +686,37 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
     }
 
     // ── 5. Potenzial-Propagation (BFS von Quellen) ──────────────────────
+    // Knoten sind (elIdx, knotenGruppe)-Paare, nicht nur elIdx (NETZTEIL-
+    // ROLLE-01, analog NETZ-MEHRPOL-01 im Union-Find von CanvasNetzberechnung.qml):
+    // ein Symbol kann mehrere galvanisch getrennte Pin-Gruppen mit
+    // UNTERSCHIEDLICHER Rolle/Signaltyp haben (Netzteil: L/N=Verbraucher,
+    // +/-=Quelle mit je eigenem Signaltyp dc_plus/dc_minus). Bei reinem
+    // elIdx-Schlüssel würde der erste "quelle"-Seed eines Elements alle
+    // weiteren Seeds desselben Elements blockieren (nur ein Wert je Knoten
+    // im besucht-Hash) – dasträfe genau auf Netzteils zwei Quell-Pins zu.
+    // Für alle Symbole mit uniformer knotenGruppe=0 ist der Schlüssel
+    // bitidentisch zum bisherigen elIdx-Schlüssel (keine Verhaltensänderung).
     if (!verbindungen.isEmpty()) {
-        struct NbEntry { int nb, ci; };
-        QHash<int, QVector<NbEntry>> adj;
+        auto knotenKey = [](qint64 elIdx, qint64 grp) -> qint64 {
+            return (elIdx << 16) | (grp & 0xFFFF);
+        };
+
+        struct NbEntry { qint64 nb; int ci; };
+        QHash<qint64, QVector<NbEntry>> adj;
         for (int ci = 0; ci < verbindungen.size(); ci++) {
             const QVariantMap c = verbindungen[ci].toMap();
-            const int ia = c["elIdxA"].toInt(), ib = c["elIdxB"].toInt();
+            const qint64 ia = knotenKey(c["elIdxA"].toInt(), c.value("knotenGruppeA", 0).toInt());
+            const qint64 ib = knotenKey(c["elIdxB"].toInt(), c.value("knotenGruppeB", 0).toInt());
             adj[ia].append({ ib, ci });
             adj[ib].append({ ia, ci });
         }
 
-        QHash<int, QString> besucht;
-        QQueue<QPair<int,QString>> queue;
+        QHash<qint64, QString> besucht;
+        QQueue<QPair<qint64,QString>> queue;
         for (int ci = 0; ci < verbindungen.size(); ci++) {
             const QVariantMap &qc = verbindungen[ci].toMap();
-            const int ia = qc["elIdxA"].toInt(), ib = qc["elIdxB"].toInt();
+            const qint64 ia = knotenKey(qc["elIdxA"].toInt(), qc.value("knotenGruppeA", 0).toInt());
+            const qint64 ib = knotenKey(qc["elIdxB"].toInt(), qc.value("knotenGruppeB", 0).toInt());
             if (qc["rolleA"].toString() == QLatin1String("quelle") && !besucht.contains(ia)) {
                 besucht[ia] = qc["quellSigA"].toString();
                 queue.enqueue({ ia, qc["quellSigA"].toString() });
@@ -695,9 +728,10 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         }
 
         while (!queue.isEmpty()) {
-            const auto [curIdx, curSig] = queue.dequeue();
-            for (const NbEntry &nb : adj.value(curIdx)) {
+            const auto [curKey, curSig] = queue.dequeue();
+            for (const NbEntry &nb : adj.value(curKey)) {
                 QVariantMap conn = verbindungen[nb.ci].toMap();
+                const qint64 connA = knotenKey(conn["elIdxA"].toInt(), conn.value("knotenGruppeA", 0).toInt());
 
                 // Verbindungsfarbe setzen
                 const QString st = conn["signaltyp"].toString();
@@ -707,7 +741,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                     conn["signaltyp"] = QStringLiteral("konflikt");
 
                 // Nachbar-Rolle: nicht durch Verbraucher/Ziel propagieren
-                const QString nbRolle = (conn["elIdxA"].toInt() == curIdx)
+                const QString nbRolle = (connA == curKey)
                                         ? conn["rolleB"].toString()
                                         : conn["rolleA"].toString();
                 verbindungen[nb.ci] = conn;
@@ -732,7 +766,8 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         for (int ci2 = 0; ci2 < verbindungen.size(); ci2++) {
             QVariantMap c2 = verbindungen[ci2].toMap();
             if (c2["signaltyp"].toString() != QLatin1String("neutral")) continue;
-            const int ia = c2["elIdxA"].toInt(), ib = c2["elIdxB"].toInt();
+            const qint64 ia = knotenKey(c2["elIdxA"].toInt(), c2.value("knotenGruppeA", 0).toInt());
+            const qint64 ib = knotenKey(c2["elIdxB"].toInt(), c2.value("knotenGruppeB", 0).toInt());
             if (besucht.contains(ia) || besucht.contains(ib)) continue;
             const QString rA = c2["rolleA"].toString(), rB = c2["rolleB"].toString();
             if (rA == QLatin1String("ziel")        || rA == QLatin1String("verbraucher") ||

@@ -238,7 +238,8 @@ CREATE TABLE symbol_pin (
     offen_y       REAL    NOT NULL,
     signaltyp     TEXT    NOT NULL DEFAULT 'neutral',
     kontext       TEXT,
-    knoten_gruppe INTEGER NOT NULL DEFAULT 0
+    knoten_gruppe INTEGER NOT NULL DEFAULT 0,
+    rolle         TEXT    NOT NULL DEFAULT ''
 );
 
 -- Betriebsmittel

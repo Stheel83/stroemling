@@ -197,6 +197,10 @@ UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'brueckengleichrichter
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'netzteil' AND name = 'N';
 UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'netzteil' AND name = '+';
 UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'netzteil' AND name = '-';
+-- netzteil: gemischte Rolle je Pin (NETZTEIL-ROLLE-01) — AC-Eingang (L/N)
+-- verbraucht, DC-Ausgang (+/-) ist Quelle mit eigenem Signaltyp (dc_plus/dc_minus)
+UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'netzteil' AND name IN ('L', 'N');
+UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'netzteil' AND name IN ('+', '-');
 
 -- ── symbol_primitiv ──────────────────────────────────────────
 -- Spalten: symbol_id, reihenfolge, typ,

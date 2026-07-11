@@ -280,7 +280,9 @@ Item {
                 { key: "input_analog",   label: "AI",            farbe: "#88bbff", rollen: ["ziel"]          },
                 { key: "kommunikation",  label: qsTr("Komm."),   farbe: "#cc8800", rollen: ["quelle","ziel"] },
                 { key: "temp",           label: qsTr("Temp"),    farbe: "#e07030", rollen: ["quelle","ziel"] },
-                { key: "stepper",        label: "Stepper",       farbe: "#20a890", rollen: ["quelle","ziel"] }
+                { key: "stepper",        label: "Stepper",       farbe: "#20a890", rollen: ["quelle","ziel"] },
+                { key: "sicherheit",     label: qsTr("Sicherheit"), farbe: "#d4a017", rollen: ["quelle","ziel"] },
+                { key: "fe",             label: "FE",            farbe: "#4caf7d", rollen: ["quelle","ziel"] }
             ]
 
             Repeater {

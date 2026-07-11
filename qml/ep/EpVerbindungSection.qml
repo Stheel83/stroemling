@@ -55,11 +55,17 @@ Item {
                     if (s === "power")           return "#cc3300"
                     if (s === "pe")              return "#88cc00"
                     if (s === "n")               return "#4488ff"
+                    if (s === "dc_plus")         return "#dd5500"
+                    if (s === "dc_minus")        return "#334488"
                     if (s === "input_digital")   return "#44aaff"
                     if (s === "output_digital")  return "#44cc66"
                     if (s === "input_analog")    return "#88bbff"
                     if (s === "output_analog")   return "#66ddaa"
                     if (s === "kommunikation")   return "#aa44cc"
+                    if (s === "temp")            return "#e07030"
+                    if (s === "stepper")         return "#20a890"
+                    if (s === "sicherheit")      return "#d4a017"
+                    if (s === "fe")              return "#4caf7d"
                     if (s === "konflikt")        return "#ff8800"
                     return theme.border
                 }

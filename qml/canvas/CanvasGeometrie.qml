@@ -158,6 +158,8 @@ QtObject {
         if (sig === "kommunikation")   return "#aa44cc"
         if (sig === "temp")            return "#e07030"
         if (sig === "stepper")         return "#20a890"
+        if (sig === "sicherheit")      return "#d4a017"
+        if (sig === "fe")              return "#4caf7d"
         if (sig === "konflikt")        return "#ff2200"
         if (sig === "unversorgt")      return "#ffaa00"
         return "#4a9eff"   // neutral

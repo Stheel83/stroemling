@@ -66,6 +66,8 @@ static QColor pdfSignaltypFarbe(const QString &sig)
     if (sig == "kommunikation")  return QColor("#aa44cc");
     if (sig == "temp")           return QColor("#e07030");
     if (sig == "stepper")        return QColor("#20a890");
+    if (sig == "sicherheit")     return QColor("#d4a017");
+    if (sig == "fe")             return QColor("#4caf7d");
     if (sig == "konflikt")       return QColor("#ff2200");
     if (sig == "unversorgt")     return QColor("#ffaa00");
     return QColor("#4a9eff");   // neutral

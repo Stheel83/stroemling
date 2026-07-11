@@ -81,7 +81,9 @@ Item {
                     { key: "dc_plus",   label: "DC+",           farbe: "#dd5500" },
                     { key: "dc_minus",  label: "DC−",      farbe: "#334488" },
                     { key: "pe",        label: "PE",            farbe: "#88cc00" },
-                    { key: "n",         label: "N",             farbe: "#4488ff" }
+                    { key: "n",         label: "N",             farbe: "#4488ff" },
+                    { key: "fe",        label: "FE",            farbe: "#4caf7d" },
+                    { key: "sicherheit", label: qsTr("Sich."),  farbe: "#d4a017" }
                 ]
                 delegate: Rectangle {
                     width:  sigMa.implicitWidth + 16; height: 24; radius: 4

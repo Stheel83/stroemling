@@ -1238,9 +1238,20 @@ QtObject {
                 var modus     = armAnzahl >= 3 ? "mehrfach"
                                 : (farben[0] === farben[1] ? "gleich" : "verschieden")
 
+                // Referenzpunkt (Weltkoordinate des S1-Pins): legt fest, auf
+                // welcher Seite farben[0] beim Zeichnen landet (s.
+                // _maleGebaenderteLinie) – unabhängig von der zufälligen
+                // Punktreihenfolge der einzelnen Segmente entlang des
+                // Ziel-Arms. Nur bei armAnzahl===2 relevant (jeder andere
+                // Fall landet ohnehin in "mehrfach").
+                var s1Seg = net.segmente[arme.s1]
+                var s1PinX = s1Seg.elIdxA === tIdxs[ti] ? s1Seg.x1 : s1Seg.x2
+                var s1PinY = s1Seg.elIdxA === tIdxs[ti] ? s1Seg.y1 : s1Seg.y2
+
                 propagiere(arme.ziel, { modus: modus, farbe: farben[0], farben: farben,
                                          armAnzahl: armAnzahl,
-                                         breite: _breiteFuerAnzahl(armAnzahl, net.signaltyp) })
+                                         breite: _breiteFuerAnzahl(armAnzahl, net.signaltyp),
+                                         refX: s1PinX, refY: s1PinY })
                 geaendert = true
             }
         }
@@ -1258,7 +1269,15 @@ QtObject {
     // bei Leitungen, lokale Symbol-Pixel bei Treffpunkt-Armen) – kein Zoom-/
     // Welt-Bezug hier. Gemeinsam genutzt von maleAutoVerbindungen() und
     // _maleTreffpunktArme().
-    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band) {
+    // refX/refY (optional, gleiche Einheit wie ax/ay/bx/by): ein Punkt, der
+    // bekanntermaßen auf der Seite von band.farben[0] liegt (der S1-Pin des
+    // Treffpunkts) – legt fest, auf welche Seite der Linie farben[0] bzw.
+    // farben[1] gezeichnet wird. Ohne refX/refY hinge das sonst von der
+    // zufälligen Punktreihenfolge (x1,y1→x2,y2) des jeweiligen Segments ab,
+    // die bei mehreren verketteten Segmenten entlang des Ziel-Arms nicht
+    // konsistent ist – Ergebnis wäre eine an Segmentgrenzen "verdrehte"
+    // Seitenzuordnung (VERBINDUNGSFARBE-04).
+    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band, refX, refY) {
         if (!band) return
         ctx.setLineDash([])
         var modus = band.modus || "einzel"
@@ -1283,12 +1302,17 @@ QtObject {
             ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
         } else {
             var off = basis / 2
-            ctx.strokeStyle = band.farben[0]
+            var flip = false
+            if (refX !== undefined && refY !== undefined)
+                flip = (dx * (refY - ay) - dy * (refX - ax)) >= 0
+            var farbeNeg = flip ? band.farben[1] : band.farben[0]
+            var farbePos = flip ? band.farben[0] : band.farben[1]
+            ctx.strokeStyle = farbeNeg
             ctx.lineWidth   = basis
             ctx.beginPath()
             ctx.moveTo(ax - px*off, ay - py*off); ctx.lineTo(bx - px*off, by - py*off)
             ctx.stroke()
-            ctx.strokeStyle = band.farben[1]
+            ctx.strokeStyle = farbePos
             ctx.lineWidth   = basis
             ctx.beginPath()
             ctx.moveTo(ax + px*off, ay + py*off); ctx.lineTo(bx + px*off, by + py*off)
@@ -1303,7 +1327,10 @@ QtObject {
     function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
         if (!armInfo) return
         function P(nx, ny) { return { x: nx * w, y: ny * h } }
-        var L = function(a, b, band) { _maleGebaenderteLinie(ctx, a.x, a.y, b.x, b.y, band) }
+        // S1-Pin liegt bei beiden Symboltypen lokal auf (0, 0.5) – als
+        // Referenz für die Seitenzuordnung der Bänderung (s. _maleGebaenderteLinie).
+        var s1Ref = P(0, 0.5)
+        var L = function(a, b, band) { _maleGebaenderteLinie(ctx, a.x, a.y, b.x, b.y, band, s1Ref.x, s1Ref.y) }
 
         if (symbolId === "treffpunkt") {
             var j = P(0.5, 0.75)
@@ -1409,6 +1436,10 @@ QtObject {
                     var fb = _segmentFarbeUndBreite(net, sAdps)
                     return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }
                 })()
+                // Referenzpunkt (S1-Pin) in Viewport-Koordinaten für die
+                // Seitenzuordnung der Bänderung (s. _maleGebaenderteLinie).
+                var _refVX = band.refX !== undefined ? band.refX * cv.zoom + cv.worldX : undefined
+                var _refVY = band.refY !== undefined ? band.refY * cv.zoom + cv.worldY : undefined
 
                 var segKey  = ni + "-" + si
                 var kreuzX  = kreuzungsLuecken[segKey]
@@ -1428,16 +1459,19 @@ QtObject {
                         var le  = cx + luecke
                         if (ls > pos)
                             _maleGebaenderteLinie(ctx, pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY,
-                                                        ls  * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band)
+                                                        ls  * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band,
+                                                        _refVX, _refVY)
                         pos = le
                     }
                     if (pos < hx2)
                         _maleGebaenderteLinie(ctx, pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY,
-                                                    hx2 * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band)
+                                                    hx2 * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band,
+                                                    _refVX, _refVY)
                     ctx.restore()
                 } else {
                     _maleGebaenderteLinie(ctx, seg.x1 * cv.zoom + cv.worldX, seg.y1 * cv.zoom + cv.worldY,
-                                                seg.x2 * cv.zoom + cv.worldX, seg.y2 * cv.zoom + cv.worldY, band)
+                                                seg.x2 * cv.zoom + cv.worldX, seg.y2 * cv.zoom + cv.worldY, band,
+                                                _refVX, _refVY)
                 }
 
                 // Zahl-Label ab 3 zusammenlaufenden Adern (Treffpunkt-Ziel-Arm,

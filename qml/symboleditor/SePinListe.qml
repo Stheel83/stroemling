@@ -168,7 +168,7 @@ Rectangle {
 
                     ComboBox {
                         width: 140; height: 30
-                        model: ["neutral","power","pe","n","input_digital","output_digital","input_analog","output_analog"]
+                        model: ["neutral","power","pe","n","dc_plus","dc_minus","input_digital","output_digital","input_analog","output_analog","kommunikation","temp","stepper"]
                         font.pixelSize: 10
                         currentIndex: {
                             var st = parent.parent.myPin.signaltyp || "neutral"

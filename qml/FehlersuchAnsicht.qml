@@ -125,118 +125,132 @@ Item {
         // ── Kopfzeile ─────────────────────────────────────────
         Rectangle {
             Layout.fillWidth: true
-            height: 52
+            implicitHeight: kopfCol.implicitHeight + 16
             color: theme.surfaceDeep
 
-            RowLayout {
-                anchors { fill: parent; leftMargin: 14; rightMargin: 10 }
+            ColumnLayout {
+                id: kopfCol
+                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter;
+                          leftMargin: 14; rightMargin: 10 }
                 spacing: 6
 
-                Text {
-                    text: qsTr("Fehlersuchmodus")
-                    font.pixelSize: 13; font.weight: Font.Medium
-                    color: theme.textPrimary
+                RowLayout {
                     Layout.fillWidth: true
-                }
+                    spacing: 6
 
-                // Toggle: Auto-Weiterverfolgen auf Zielseite
-                Rectangle {
-                    implicitWidth: autoToggleRow.implicitWidth + 12
-                    implicitHeight: 24
-                    radius: 4
-                    color: root.autoWeiterverfolgen ? theme.accent : "transparent"
-                    border.color: root.autoWeiterverfolgen ? theme.accent : theme.border
-                    ToolTip.visible: autoToggleMaus.containsMouse
-                    ToolTip.text: qsTr("Auto-Weiterverfolgen: BFS nach Querverweis-Sprung automatisch starten")
-                    ToolTip.delay: 600
-
-                    RowLayout {
-                        id: autoToggleRow
-                        anchors.centerIn: parent
-                        spacing: 5
-
-                        Text {
-                            text: "⇒"
-                            font.pixelSize: 11
-                            color: root.autoWeiterverfolgen ? "white" : theme.textMuted
-                        }
-                        Text {
-                            text: qsTr("Auto")
-                            font.pixelSize: 10
-                            color: root.autoWeiterverfolgen ? "white" : theme.textMuted
-                        }
+                    Text {
+                        text: qsTr("Fehlersuchmodus")
+                        font.pixelSize: 13; font.weight: Font.Medium
+                        color: theme.textPrimary
+                        Layout.fillWidth: true
                     }
 
-                    MouseArea {
-                        id: autoToggleMaus
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.autoWeiterverfolgen = !root.autoWeiterverfolgen
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 28
+                        contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                        ToolTip.visible: hovered; ToolTip.text: qsTr("Fehlersuchmodus schliessen (Esc)")
+                        ToolTip.delay: 600
+                        onClicked: root.geschlossen()
                     }
                 }
 
-                // Toggle: Aderfarbe statt Signaltyp-/Kategorie-Farbe anzeigen
-                Rectangle {
-                    implicitWidth: aderToggleRow.implicitWidth + 12
-                    implicitHeight: 24
-                    radius: 4
-                    color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? theme.accent : "transparent"
-                    border.color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? theme.accent : theme.border
-                    ToolTip.visible: aderToggleMaus.containsMouse
-                    ToolTip.text: qsTr("Aderfarbe statt Signaltyp-Farbe anzeigen (Abgleich mit der Dokumentation)")
-                    ToolTip.delay: 600
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
 
-                    RowLayout {
-                        id: aderToggleRow
-                        anchors.centerIn: parent
-                        spacing: 5
+                    // Toggle: Auto-Weiterverfolgen auf Zielseite
+                    Rectangle {
+                        implicitWidth: autoToggleRow.implicitWidth + 12
+                        implicitHeight: 24
+                        radius: 4
+                        color: root.autoWeiterverfolgen ? theme.accent : "transparent"
+                        border.color: root.autoWeiterverfolgen ? theme.accent : theme.border
+                        ToolTip.visible: autoToggleMaus.containsMouse
+                        ToolTip.text: qsTr("Auto-Weiterverfolgen: BFS nach Querverweis-Sprung automatisch starten")
+                        ToolTip.delay: 600
 
-                        Text {
-                            text: "🎨"
-                            font.pixelSize: 11
-                            color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? "white" : theme.textMuted
+                        RowLayout {
+                            id: autoToggleRow
+                            anchors.centerIn: parent
+                            spacing: 5
+
+                            Text {
+                                text: "⇒"
+                                font.pixelSize: 11
+                                color: root.autoWeiterverfolgen ? "white" : theme.textMuted
+                            }
+                            Text {
+                                text: qsTr("Auto")
+                                font.pixelSize: 10
+                                color: root.autoWeiterverfolgen ? "white" : theme.textMuted
+                            }
                         }
-                        Text {
-                            text: qsTr("Aderfarbe")
-                            font.pixelSize: 10
-                            color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? "white" : theme.textMuted
+
+                        MouseArea {
+                            id: autoToggleMaus
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.autoWeiterverfolgen = !root.autoWeiterverfolgen
                         }
                     }
 
-                    MouseArea {
-                        id: aderToggleMaus
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: if (root.canvas)
-                                       root.canvas.fehlersuchZeigeAderfarbe = !root.canvas.fehlersuchZeigeAderfarbe
-                    }
-                }
+                    // Toggle: Aderfarbe statt Signaltyp-/Kategorie-Farbe anzeigen
+                    Rectangle {
+                        implicitWidth: aderToggleRow.implicitWidth + 12
+                        implicitHeight: 24
+                        radius: 4
+                        color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? theme.accent : "transparent"
+                        border.color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? theme.accent : theme.border
+                        ToolTip.visible: aderToggleMaus.containsMouse
+                        ToolTip.text: qsTr("Aderfarbe statt Signaltyp-Farbe anzeigen (Abgleich mit der Dokumentation)")
+                        ToolTip.delay: 600
 
-                Button {
-                    flat: true; implicitWidth: 28; implicitHeight: 28
-                    contentItem: Text { text: "🔄"; color: theme.textMuted; font.pixelSize: 13;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Seite aktualisieren (lädt Elemente + Verbindungen neu)")
-                    ToolTip.delay: 600
-                    onClicked: {
-                        if (!root.canvas) return
-                        root.canvas.seiteNeuLaden()
-                        root.canvas.fehlersuchPfadZuruecksetzen()
-                    }
-                }
+                        RowLayout {
+                            id: aderToggleRow
+                            anchors.centerIn: parent
+                            spacing: 5
 
-                Button {
-                    flat: true; implicitWidth: 28; implicitHeight: 28
-                    contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
-                    ToolTip.visible: hovered; ToolTip.text: qsTr("Fehlersuchmodus schliessen (Esc)")
-                    ToolTip.delay: 600
-                    onClicked: root.geschlossen()
+                            Text {
+                                text: "🎨"
+                                font.pixelSize: 11
+                                color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? "white" : theme.textMuted
+                            }
+                            Text {
+                                text: qsTr("Aderfarbe")
+                                font.pixelSize: 10
+                                color: (root.canvas && root.canvas.fehlersuchZeigeAderfarbe) ? "white" : theme.textMuted
+                            }
+                        }
+
+                        MouseArea {
+                            id: aderToggleMaus
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: if (root.canvas)
+                                           root.canvas.fehlersuchZeigeAderfarbe = !root.canvas.fehlersuchZeigeAderfarbe
+                        }
+                    }
+
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 28
+                        contentItem: Text { text: "🔄"; color: theme.textMuted; font.pixelSize: 13;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Seite aktualisieren (lädt Elemente + Verbindungen neu)")
+                        ToolTip.delay: 600
+                        onClicked: {
+                            if (!root.canvas) return
+                            root.canvas.seiteNeuLaden()
+                            root.canvas.fehlersuchPfadZuruecksetzen()
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
                 }
             }
         }

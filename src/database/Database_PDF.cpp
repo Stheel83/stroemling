@@ -1,11 +1,13 @@
 #include "Database.h"
 #include <cmath>
+#include <functional>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QBuffer>
 #include <QFile>
 #include <QImage>
 #include <QSet>
+#include <QHash>
 #include <QUrl>
 #include <QDateTime>
 #include <QJsonDocument>
@@ -331,12 +333,145 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
 // Verbindungssegment für die Winkel/Treffpunkt-Farbübernahme (s.u.) und für
 // pdfLeitungenRendern. Koordinaten in Canvas-Einheiten (1 Einheit = 0.25 mm),
 // noch nicht mit C multipliziert.
+// VERBINDUNGSFARBE-03/04-Port (Jul 2026): gebaendert/zweifarbig/farbeA/farbeB/
+// refPunkt bilden die Treffpunkt-Ziel-Arm-Bänderung ab (1:1-Port von
+// _treffpunktZielBaender()/_maleGebaenderteLinie() in CanvasRenderHandler.qml).
 struct PdfLeitungsSegment {
     double cx1, cy1, cx2, cy2;
     int    verbId;
     QColor color;
-    double lw;   // Linienbreite in Device-Pixeln
+    double lw;   // Linienbreite in Device-Pixeln (bei gebaendert: Vollbreite, s.u.)
+
+    bool    gebaendert = false;   // true: Ziel-Arm eines Treffpunkts mit 2 Adern
+    bool    zweifarbig = false;   // true: farbeA/farbeB nebeneinander; false: farbeA + Trennlinie
+    QColor  farbeA, farbeB;       // bei zweifarbig: farbeA auf der refPunkt-Seite
+    QPointF refPunkt;             // Weltkoordinate (Canvas-Einheiten) des S1-Pins
 };
+
+// Pin-Weltposition eines Symbols (Bbox + Rotation/Spiegel), Canvas-Einheiten.
+// 1:1-Port von pinWeltPos() in src/models/SymbolDefinitionModel.cpp – muss
+// synchron gehalten werden.
+static QPointF pdfPinWeltPos(double x1, double y1, double x2, double y2,
+                              double rotation, bool spiegelX, bool spiegelY,
+                              double pinX, double pinY)
+{
+    const double sw = x2 - x1, sh = y2 - y1;
+    const double scx = x1 + sw / 2.0, scy = y1 + sh / 2.0;
+    double cx = (pinX - 0.5) * std::abs(sw);
+    double cy = (pinY - 0.5) * std::abs(sh);
+    if (spiegelX) cx = -cx;
+    if (spiegelY) cy = -cy;
+    const double rot = rotation * M_PI / 180.0;
+    return { scx + cx * std::cos(rot) - cy * std::sin(rot),
+             scy + cx * std::sin(rot) + cy * std::cos(rot) };
+}
+
+// Lokale (unrotierte) Pin-Koordinaten je Symboltyp, aus symbole.sql
+// (symbol_pin) übernommen – nur die für die Winkel-/Treffpunkt-Propagation
+// relevanten Typen.
+struct PdfPinDef { QString name; double px, py; };
+static QVector<PdfPinDef> pdfPinsFuerTyp(const QString &symbolId)
+{
+    if (symbolId == QLatin1String("winkel"))
+        return { {"1", 0.0, 0.0}, {"2", 1.0, 1.0} };
+    if (symbolId == QLatin1String("querverweis"))
+        return { {"1", 0.0, 0.5} };
+    if (symbolId == QLatin1String("treffpunkt"))
+        return { {"s1", 0.0, 0.5}, {"s2", 1.0, 0.5}, {"ziel", 0.5, 1.0} };
+    if (symbolId == QLatin1String("treffpunkt_l"))
+        return { {"s1", 0.0, 0.5}, {"s2", 0.5, 0.0}, {"ziel", 0.5, 1.0} };
+    return {};
+}
+
+// Linienbreite aus Aderanzahl + Signaltyp-Zuschlägen, Canvas-Einheiten. 1:1-Port
+// von _breiteFuerAnzahl() in CanvasRenderHandler.qml.
+static double pdfBreiteFuerAnzahl(int anz, const QString &signaltyp)
+{
+    double b = anz <= 3 ? anz * 1.5 : 4.5;
+    if (signaltyp == QLatin1String("konflikt"))   b *= 2.0;
+    if (signaltyp == QLatin1String("unversorgt")) b *= 1.5;
+    return b;
+}
+
+// Zeichnet ein Geraden-Stück – einfarbig oder (Treffpunkt-Ziel-Arm) gebändert.
+// 1:1-Port von _maleGebaenderteLinie() in CanvasRenderHandler.qml
+// (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY bereits in derselben
+// Zieleinheit des Aufrufers (Device-Pixel bei Leitungen, lokale Symbol-Pixel
+// bei Treffpunkt-Armen – s. pdfTreffpunktArmeRendern).
+static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
+                                     const PdfLeitungsSegment &s, double refX, double refY,
+                                     double pxPerMm)
+{
+    if (!s.gebaendert) {
+        p.setPen(QPen(s.color, s.lw, Qt::SolidLine, Qt::FlatCap));
+        p.drawLine(QLineF(ax, ay, bx, by));
+        return;
+    }
+    double dx = bx - ax, dy = by - ay;
+    double len = std::sqrt(dx*dx + dy*dy);
+    if (len < 1e-6) return;
+
+    if (!s.zweifarbig) {
+        p.setPen(QPen(s.farbeA, s.lw, Qt::SolidLine, Qt::FlatCap));
+        p.drawLine(QLineF(ax, ay, bx, by));
+        p.setPen(QPen(Qt::white, qMax(0.3, 1.0 * 0.25 * pxPerMm), Qt::SolidLine, Qt::FlatCap));
+        p.drawLine(QLineF(ax, ay, bx, by));
+        return;
+    }
+
+    double px = -dy / len, py = dx / len;
+    double basis = s.lw / 2.0;
+    double off   = basis / 2.0;
+    bool flip = (dx * (refY - ay) - dy * (refX - ax)) >= 0.0;
+    QColor farbeNeg = flip ? s.farbeB : s.farbeA;
+    QColor farbePos = flip ? s.farbeA : s.farbeB;
+
+    p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, Qt::FlatCap));
+    p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
+    p.setPen(QPen(farbePos, basis, Qt::SolidLine, Qt::FlatCap));
+    p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
+}
+
+// Zeichnet die Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln (statt
+// über die generischen symbol_primitiv-Zeilen), damit der Ziel-Arm bei Bedarf
+// gebändert werden kann. 1:1-Analogie zu _maleTreffpunktArme() in
+// CanvasRenderHandler.qml. Läuft im bereits transformierten (translate/
+// rotate/scale) Koordinatensystem wie pdfSymbolRendern – lokale, unrotierte
+// 0..1-Koordinaten (s. symbol_primitiv für 'treffpunkt'/'treffpunkt_l').
+// s1Seg/s2Seg/zielSeg: das jeweils an diesem Pin anliegende, bereits farblich
+// aufgelöste Leitungssegment (nullptr = unverbunden → Default-Blau).
+static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, double w, double h,
+                                     double lwBasis, const PdfLeitungsSegment *s1Seg,
+                                     const PdfLeitungsSegment *s2Seg,
+                                     const PdfLeitungsSegment *zielSeg, double pxPerMm)
+{
+    auto P = [&](double nx, double ny) { return QPointF(nx * w, ny * h); };
+    QPointF s1RefLocal = P(0.0, 0.5); // S1-Pin ist bei beiden Symboltypen lokal (0, 0.5)
+    auto L = [&](QPointF a, QPointF b, const PdfLeitungsSegment *seg) {
+        if (seg) {
+            pdfMaleGebaenderteLinie(p, a.x(), a.y(), b.x(), b.y(), *seg,
+                                    s1RefLocal.x(), s1RefLocal.y(), pxPerMm);
+        } else {
+            p.setPen(QPen(QColor("#4a9eff"), lwBasis, Qt::SolidLine, Qt::FlatCap));
+            p.drawLine(QLineF(a, b));
+        }
+    };
+
+    if (symbolId == QLatin1String("treffpunkt")) {
+        QPointF j = P(0.5, 0.75);
+        L(P(0, 0.5),    P(0.25, 0.5), s1Seg);
+        L(P(0.25, 0.5), j,            s1Seg);
+        L(j,            P(0.5, 1),    zielSeg);
+        L(j,            P(0.75, 0.5), s2Seg);
+        L(P(0.75, 0.5), P(1, 0.5),    s2Seg);
+    } else if (symbolId == QLatin1String("treffpunkt_l")) {
+        QPointF j2 = P(0.5, 0.75);
+        L(P(0, 0.5),    P(0.25, 0.5), s1Seg);
+        L(P(0.25, 0.5), j2,           s1Seg);
+        L(P(0.5, 0),    j2,           s2Seg);
+        L(j2,           P(0.5, 1),    zielSeg);
+    }
+}
 
 // Lotfußpunkt-Test: liegt (cx,cy) auf dem Segment (sx1,sy1)-(sx2,sy2)
 // (± tol)? Gemeinsam genutzt von pdfLeitungenSammeln (ADP-Matching) und
@@ -382,39 +517,185 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         }
     }
 
-    QSqlQuery q(db);
-    q.prepare(R"(
-        SELECT vs.punkte, vs.verbindung_id, v.signaltyp
-        FROM verbindung_segment vs
-        JOIN verbindung v ON vs.verbindung_id = v.id
-        WHERE vs.seite_id = :sid
-    )");
-    q.bindValue(":sid", seiteId);
-    if (!q.exec()) return segs;
+    // Rohe Leitungssegmente (noch ohne Farbe) – Farbauflösung erfolgt erst
+    // nach der Winkel-/Querverweis-Propagation weiter unten.
+    struct RawSeg { double x1, y1, x2, y2; int verbId; QString signaltyp; };
+    QVector<RawSeg> raw;
+    {
+        QSqlQuery q(db);
+        q.prepare(R"(
+            SELECT vs.punkte, vs.verbindung_id, v.signaltyp
+            FROM verbindung_segment vs
+            JOIN verbindung v ON vs.verbindung_id = v.id
+            WHERE vs.seite_id = :sid
+        )");
+        q.bindValue(":sid", seiteId);
+        if (!q.exec()) return segs;
+        while (q.next()) {
+            QJsonDocument doc = QJsonDocument::fromJson(q.value(0).toString().toUtf8());
+            if (!doc.isArray() || doc.array().size() < 2) continue;
+            QJsonArray arr = doc.array();
+            raw.append({ arr[0].toObject()["x"].toDouble(), arr[0].toObject()["y"].toDouble(),
+                         arr[1].toObject()["x"].toDouble(), arr[1].toObject()["y"].toDouble(),
+                         q.value(1).toInt(), q.value(2).toString() });
+        }
+    }
+    const int n = raw.size();
+    if (n == 0) return segs;
 
-    while (q.next()) {
-        QJsonDocument doc = QJsonDocument::fromJson(q.value(0).toString().toUtf8());
-        if (!doc.isArray() || doc.array().size() < 2) continue;
-        QJsonArray arr = doc.array();
-
-        QString signaltyp = q.value(2).toString();
-        double sx1 = arr[0].toObject()["x"].toDouble(), sy1 = arr[0].toObject()["y"].toDouble();
-        double sx2 = arr[1].toObject()["x"].toDouble(), sy2 = arr[1].toObject()["y"].toDouble();
-
-        QColor clr = pdfSignaltypFarbe(signaltyp);
-        if (signaltyp != "konflikt") {
-            for (const Adp &ad : adps) {
-                if (pdfPunktAufSegment(ad.cx, ad.cy, sx1, sy1, sx2, sy2, 3.0)) {
-                    clr = pdfAderFarbeZuCanvas(ad.farbe);
-                    break;
-                }
+    // Direkte ADP-Farbe je Segment (erster Treffer, wie bisher).
+    QVector<QColor> direktFarbe(n);
+    for (int i = 0; i < n; i++) {
+        if (raw[i].signaltyp == QLatin1String("konflikt")) continue;
+        for (const Adp &ad : adps) {
+            if (pdfPunktAufSegment(ad.cx, ad.cy, raw[i].x1, raw[i].y1, raw[i].x2, raw[i].y2, 3.0)) {
+                direktFarbe[i] = pdfAderFarbeZuCanvas(ad.farbe);
+                break;
             }
         }
+    }
 
-        segs.append({ sx1, sy1, sx2, sy2,
-                      q.value(1).toInt(),
-                      clr,
-                      qMax(0.3, 1.5 * 0.25 * pxPerMm) });
+    // Winkel-/Querverweis-transparente Propagation (VERBINDUNGSFARBE-01/03-
+    // Port): Segmente, die über einen gemeinsamen winkel-/querverweis-Pin
+    // verbunden sind, bilden eine Gruppe und teilen sich die erste in der
+    // Gruppe gefundene Aderfarbe – 1:1-Analogie zu adpFuerNetSegmente()/
+    // _winkelAdjazenz() in CanvasGeometrie.qml, hier geometrisch statt über
+    // den elIdx-Netzgraphen (PDF-Export hat keinen Live-Netzgraphen, s.
+    // VERBINDUNGSFARBE-01).
+    QVector<int> parent(n);
+    for (int i = 0; i < n; i++) parent[i] = i;
+    std::function<int(int)> find = [&](int x) {
+        while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        return x;
+    };
+    auto uni = [&](int a, int b) { int ra = find(a), rb = find(b); if (ra != rb) parent[ra] = rb; };
+
+    const double PIN_TOL = 2.0; // Canvas-Einheiten (0.5 mm)
+    auto nah = [&](double px_, double py_, const QPointF &w) {
+        return std::hypot(px_ - w.x(), py_ - w.y()) < PIN_TOL;
+    };
+
+    {
+        QSqlQuery wq(db);
+        wq.prepare(R"(
+            SELECT x1, y1, x2, y2, rotation, spiegel_x, spiegel_y, symbol_id
+            FROM grafik_element
+            WHERE seite_id = :sid AND typ = 'symbol' AND symbol_id IN ('winkel', 'querverweis')
+        )");
+        wq.bindValue(":sid", seiteId);
+        if (wq.exec()) {
+            while (wq.next()) {
+                double ex1 = wq.value(0).toDouble(), ey1 = wq.value(1).toDouble();
+                double ex2 = wq.value(2).toDouble(), ey2 = wq.value(3).toDouble();
+                double rot = wq.value(4).toDouble();
+                bool spX = wq.value(5).toBool(), spY = wq.value(6).toBool();
+                QString sid = wq.value(7).toString();
+
+                QVector<int> beruehrt;
+                for (const PdfPinDef &pin : pdfPinsFuerTyp(sid)) {
+                    QPointF w = pdfPinWeltPos(ex1, ey1, ex2, ey2, rot, spX, spY, pin.px, pin.py);
+                    for (int i = 0; i < n; i++)
+                        if (nah(raw[i].x1, raw[i].y1, w) || nah(raw[i].x2, raw[i].y2, w))
+                            beruehrt.append(i);
+                }
+                for (int k = 1; k < beruehrt.size(); k++) uni(beruehrt[0], beruehrt[k]);
+            }
+        }
+    }
+
+    QHash<int, QColor> gruppenFarbe; // Wurzel → erste gefundene Aderfarbe
+    for (int i = 0; i < n; i++)
+        if (direktFarbe[i].isValid() && !gruppenFarbe.contains(find(i)))
+            gruppenFarbe[find(i)] = direktFarbe[i];
+
+    QVector<QColor> endFarbe(n);
+    for (int i = 0; i < n; i++) {
+        QColor clr = pdfSignaltypFarbe(raw[i].signaltyp);
+        if (raw[i].signaltyp != QLatin1String("konflikt")) {
+            if (direktFarbe[i].isValid())              clr = direktFarbe[i];
+            else if (gruppenFarbe.contains(find(i)))    clr = gruppenFarbe[find(i)];
+        }
+        endFarbe[i] = clr;
+    }
+
+    // Treffpunkt-/Treffpunkt_L-Ziel-Arm-Bänderung (VERBINDUNGSFARBE-03/04-
+    // Port): S1/S2-Pins geometrisch auf ihr jeweiliges Segment matchen, bei
+    // unterschiedlicher (gleicher) Endfarbe den Ziel-Arm zweifarbig (mit
+    // Trennlinie) markieren. Verkettung mehrerer Treffpunkte (Ziel-Arm eines
+    // Treffpunkts = Quell-Arm eines zweiten) wird hier bewusst NICHT
+    // aufgelöst (kein Zahl-Label-Fallback im PDF wie im Live-Canvas) – ein
+    // beteiligter Treffpunkt fällt dann auf die einfache Endfarbe zurück,
+    // statt eine irreführende Bänderung zu zeichnen.
+    auto segAnPunkt = [&](const QPointF &w) -> int {
+        for (int i = 0; i < n; i++)
+            if (nah(raw[i].x1, raw[i].y1, w) || nah(raw[i].x2, raw[i].y2, w))
+                return i;
+        return -1;
+    };
+
+    struct TpKandidat { int s1Idx, s2Idx, zielIdx; QPointF s1Welt; };
+    QVector<TpKandidat> kandidaten;
+    QSet<int> zielIdxSet;
+    {
+        QSqlQuery tq(db);
+        tq.prepare(R"(
+            SELECT x1, y1, x2, y2, rotation, spiegel_x, spiegel_y, symbol_id
+            FROM grafik_element
+            WHERE seite_id = :sid AND typ = 'symbol' AND symbol_id IN ('treffpunkt', 'treffpunkt_l')
+        )");
+        tq.bindValue(":sid", seiteId);
+        if (tq.exec()) {
+            while (tq.next()) {
+                double ex1 = tq.value(0).toDouble(), ey1 = tq.value(1).toDouble();
+                double ex2 = tq.value(2).toDouble(), ey2 = tq.value(3).toDouble();
+                double rot = tq.value(4).toDouble();
+                bool spX = tq.value(5).toBool(), spY = tq.value(6).toBool();
+                QString sid = tq.value(7).toString();
+
+                QPointF s1W, s2W, zielW;
+                for (const PdfPinDef &pin : pdfPinsFuerTyp(sid)) {
+                    QPointF w = pdfPinWeltPos(ex1, ey1, ex2, ey2, rot, spX, spY, pin.px, pin.py);
+                    if      (pin.name == QLatin1String("s1"))   s1W = w;
+                    else if (pin.name == QLatin1String("s2"))   s2W = w;
+                    else if (pin.name == QLatin1String("ziel")) zielW = w;
+                }
+                int s1i = segAnPunkt(s1W), s2i = segAnPunkt(s2W), zi = segAnPunkt(zielW);
+                if (s1i < 0 || s2i < 0 || zi < 0) continue;
+                kandidaten.append({ s1i, s2i, zi, s1W });
+                zielIdxSet.insert(zi);
+            }
+        }
+    }
+    // Finales Zusammenbau: normale Endfarbe, ggf. mit Bänderungsinfo für
+    // Ziel-Arm-Segmente überschrieben.
+    QHash<int, TpKandidat> baenderMap;
+    for (const TpKandidat &k : kandidaten) {
+        if (zielIdxSet.contains(k.s1Idx) || zielIdxSet.contains(k.s2Idx)) continue;
+        if (!endFarbe[k.s1Idx].isValid() || !endFarbe[k.s2Idx].isValid()) continue;
+        baenderMap.insert(k.zielIdx, k);
+    }
+
+    segs.reserve(n);
+    for (int i = 0; i < n; i++) {
+        PdfLeitungsSegment s;
+        s.cx1 = raw[i].x1; s.cy1 = raw[i].y1; s.cx2 = raw[i].x2; s.cy2 = raw[i].y2;
+        s.verbId = raw[i].verbId;
+        s.color  = endFarbe[i];
+        s.lw     = qMax(0.3, 1.5 * 0.25 * pxPerMm);
+
+        auto bit = baenderMap.constFind(i);
+        if (bit != baenderMap.constEnd()) {
+            const TpKandidat &k = bit.value();
+            QColor fa = endFarbe[k.s1Idx], fb = endFarbe[k.s2Idx];
+            double breiteWelt = pdfBreiteFuerAnzahl(2, raw[i].signaltyp);
+            s.gebaendert = true;
+            s.zweifarbig = fa.name() != fb.name();
+            s.farbeA = fa; s.farbeB = fb;
+            s.refPunkt = k.s1Welt;
+            s.lw = qMax(0.3, breiteWelt * 0.25 * pxPerMm);
+            s.color = fa; // Fallback für die Treffpunkt-Symbolfarbe (pdfSegmentFuerPunkt, s.u.)
+        }
+        segs.append(s);
     }
     return segs;
 }
@@ -750,23 +1031,15 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         double symY = qMin(y1, y2);
         QString sid = el.value("symbolId").toString();
 
-        // Winkel/Treffpunkt: transparenter Durchlauf – Farbe+Breite kommen vom
-        // anliegenden Verbindungssegment statt aus el.strichFarbe/strichBreite
-        // (analog CanvasRenderHandler.qml maleElement). Die Pins dieser Symbole
-        // sitzen laut symbol_pin je nach Typ auf Bbox-Ecken (winkel: (0,0)/(1,1))
-        // oder Kanten-Mittelpunkten (treffpunkt/treffpunkt_l), nie im Bbox-Zentrum
-        // – daher werden alle acht Kandidatenpunkte geprüft. Da Rotation bei
-        // diesen Symbolen nur in 90°-Schritten vorkommt, bildet jede Rotation
-        // Ecken auf Ecken und Kanten-Mittelpunkte auf Kanten-Mittelpunkte ab,
-        // die Kandidatenmenge ist also rotations-/spiegelunabhängig.
-        // Reihenfolge links/rechts vor oben/unten vor Ecken: bei einem Treffpunkt
-        // (Y-Verzweigung) sind die beiden seitlichen Schenkel typischerweise die
-        // durchlaufende, bereits mit Aderfarbe dokumentierte Leitung, der
-        // Zielschenkel (unten) oft der noch unklassifizierte Abzweig – erster
-        // Treffer gewinnt, eine Mischfarbe für alle drei Schenkel ist ohnehin
-        // nicht darstellbar (das Symbol wird mit einem einzigen QPen gezeichnet).
+        // Winkel: transparenter Durchlauf – Farbe+Breite kommen vom anliegenden
+        // Verbindungssegment statt aus el.strichFarbe/strichBreite (analog
+        // CanvasRenderHandler.qml maleElement). Die Pins sitzen laut symbol_pin
+        // auf Bbox-Ecken (0,0)/(1,1), nie im Bbox-Zentrum – daher werden alle
+        // acht Kandidatenpunkte geprüft. Da Rotation nur in 90°-Schritten
+        // vorkommt, bildet jede Rotation Ecken auf Ecken ab, die
+        // Kandidatenmenge ist also rotations-/spiegelunabhängig.
         QPen symPen = pen;
-        if (leitungsSegs && (sid == "winkel" || sid == "treffpunkt" || sid == "treffpunkt_l")) {
+        if (leitungsSegs && sid == "winkel") {
             double rx1 = el.value("x1").toDouble(), ry1 = el.value("y1").toDouble();
             double rx2 = el.value("x2").toDouble(), ry2 = el.value("y2").toDouble();
             double rmx = (rx1 + rx2) / 2.0, rmy = (ry1 + ry2) / 2.0;
@@ -784,11 +1057,46 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             }
         }
 
-        pdfSymbolRendern(p, sid, symX, symY, absSw, absSh,
-                         el.value("rotation").toInt(),
-                         el.value("spiegelX").toBool(),
-                         el.value("spiegelY").toBool(),
-                         symPen, db);
+        // Treffpunkt/Treffpunkt_L: eigener 3-Arm-Zeichenpfad (S1/S2/Ziel), da
+        // der Ziel-Arm gebändert sein kann (VERBINDUNGSFARBE-03/04-Port,
+        // 1:1-Analogie zu CanvasRenderHandler.qml maleElement/
+        // _maleTreffpunktArme()) – ersetzt den generischen Einzel-QPen-Pfad
+        // über pdfSymbolRendern für diese beiden Typen.
+        if (leitungsSegs && (sid == "treffpunkt" || sid == "treffpunkt_l")) {
+            double rx1 = el.value("x1").toDouble(), ry1 = el.value("y1").toDouble();
+            double rx2 = el.value("x2").toDouble(), ry2 = el.value("y2").toDouble();
+            double rot = el.value("rotation").toDouble();
+            bool   spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
+
+            const PdfLeitungsSegment *s1Seg = nullptr, *s2Seg = nullptr, *zielSeg = nullptr;
+            for (const PdfPinDef &pin : pdfPinsFuerTyp(sid)) {
+                QPointF w = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, pin.px, pin.py);
+                for (int fi = 0; fi < leitungsSegs->size(); fi++) {
+                    const PdfLeitungsSegment &ls = (*leitungsSegs)[fi];
+                    if (!pdfPunktAufSegment(w.x(), w.y(), ls.cx1, ls.cy1, ls.cx2, ls.cy2, 2.0))
+                        continue;
+                    if      (pin.name == QLatin1String("s1"))   s1Seg = &ls;
+                    else if (pin.name == QLatin1String("s2"))   s2Seg = &ls;
+                    else if (pin.name == QLatin1String("ziel")) zielSeg = &ls;
+                    break;
+                }
+            }
+
+            p.save();
+            p.translate(symX + absSw / 2, symY + absSh / 2);
+            if (el.value("rotation").toInt() != 0) p.rotate(el.value("rotation").toInt());
+            if (spX) p.scale(-1.0, 1.0);
+            if (spY) p.scale(1.0, -1.0);
+            p.translate(-absSw / 2, -absSh / 2);
+            pdfTreffpunktArmeRendern(p, sid, absSw, absSh, pen.widthF(), s1Seg, s2Seg, zielSeg, pxPerMm);
+            p.restore();
+        } else {
+            pdfSymbolRendern(p, sid, symX, symY, absSw, absSh,
+                             el.value("rotation").toInt(),
+                             el.value("spiegelX").toBool(),
+                             el.value("spiegelY").toBool(),
+                             symPen, db);
+        }
         pdfBeschriftungRendern(p, el, C, pxPerMm);
 
         // ── Aderdefinitions-Textblock ────────────────────────────────────────
@@ -1264,7 +1572,7 @@ static void pdfKabelAderBeschriftungRendern(QPainter &p, int seiteId, double C, 
 // Verbindungsleitungen aus verbindung_segment rendern (segs vorab per
 // pdfLeitungenSammeln geladen – gemeinsam genutzt mit der Winkel/Treffpunkt-
 // Farbübernahme in pdfElementRendern).
-static void pdfLeitungenRendern(QPainter &p, double C,
+static void pdfLeitungenRendern(QPainter &p, double C, double pxPerMm,
                                 const QVector<PdfLeitungsSegment> &segs)
 {
     // ── Kreuzungslücken berechnen ────────────────────────────────────────────
@@ -1302,30 +1610,27 @@ static void pdfLeitungenRendern(QPainter &p, double C,
     p.setBrush(Qt::NoBrush);
     for (int i = 0; i < segs.size(); i++) {
         const PdfLeitungsSegment &s = segs[i];
-        QPen pen(s.color, s.lw, Qt::SolidLine, Qt::FlatCap);
+        double refX = s.refPunkt.x() * C, refY = s.refPunkt.y() * C;
 
         auto it = crossings.constFind(i);
         if (it == crossings.constEnd() || it->isEmpty()) {
             // Kein Kreuzungspunkt: normal zeichnen
-            p.setPen(pen);
-            p.drawLine(QLineF(s.cx1*C, s.cy1*C, s.cx2*C, s.cy2*C));
+            pdfMaleGebaenderteLinie(p, s.cx1*C, s.cy1*C, s.cx2*C, s.cy2*C, s, refX, refY, pxPerMm);
         } else {
             // H-Segment mit Lücken: stückweise zeichnen
             double hx1 = qMin(s.cx1, s.cx2);
             double hx2 = qMax(s.cx1, s.cx2);
             double hy  = (s.cy1 + s.cy2) / 2.0;
-            pen.setCapStyle(Qt::FlatCap);
-            p.setPen(pen);
             double pos = hx1;
             for (double cx : *it) {
                 double ls = cx - luecke;
                 double le = cx + luecke;
                 if (ls > pos)
-                    p.drawLine(QLineF(pos*C, hy*C, ls*C, hy*C));
+                    pdfMaleGebaenderteLinie(p, pos*C, hy*C, ls*C, hy*C, s, refX, refY, pxPerMm);
                 pos = le;
             }
             if (pos < hx2)
-                p.drawLine(QLineF(pos*C, hy*C, hx2*C, hy*C));
+                pdfMaleGebaenderteLinie(p, pos*C, hy*C, hx2*C, hy*C, s, refX, refY, pxPerMm);
         }
     }
 }
@@ -1788,7 +2093,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
         for (const QVariant &ev : elemente)
             pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs);
-        pdfLeitungenRendern(painter, C, leitungsSegs);
+        pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
         pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
@@ -1847,7 +2152,7 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
     for (const QVariant &ev : elemente)
         pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs);
-    pdfLeitungenRendern(painter, C, leitungsSegs);
+    pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
     pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
     painter.restore();
 

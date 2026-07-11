@@ -367,6 +367,10 @@ Item {
                     && panel.el.extraDaten
                     && (panel.el.extraDaten.bmk || "").length > 0
                     && panel.canvas.projektId >= 0
+            // Explizite Höhenbindung nötig: Loader.implicitHeight schrumpft nach
+            // active:false→true→false nicht zuverlässig zurück (Qt6-Positioner-
+            // Quirk, EP-LOADER-HOEHE-01).
+            height: active && item ? item.implicitHeight : 0
 
             sourceComponent: Component {
                 Column {

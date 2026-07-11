@@ -189,6 +189,11 @@ Item {
         Loader {
             active: root.zeigtTextposition
             width: parent.width
+            // Explizite Höhenbindung nötig: Loader.implicitHeight schrumpft nach
+            // active:false→true→false nicht zuverlässig zurück (Qt6-Positioner-
+            // Quirk, per qml6-Testfall reproduziert, EP-LOADER-HOEHE-01) –
+            // Column bliebe sonst auf der zuletzt geladenen Höhe stehen.
+            height: active && item ? item.implicitHeight : 0
 
             sourceComponent: Component {
                 Column {
@@ -294,6 +299,8 @@ Item {
         Loader {
             active: root.zeigtPinBez
             width: parent.width
+            // s.o. (Textposition-Loader) – Höhe muss explizit gebunden sein.
+            height: active && item ? item.implicitHeight : 0
 
             sourceComponent: Component {
                 Column {

@@ -245,11 +245,28 @@ static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
     p.restore();
 }
 
-// Beschriftungen (BMK, Freitext) über/neben einem Symbol rendern
-static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
-                                   double C, double pxPerMm)
+// bmk_seite eines Symboltyps ('auto' oder 'vertikal', s. symbol_definition,
+// Schema-Migration 70 – aktuell nur bei 'spule' auf 'vertikal' gesetzt).
+// 1:1-Analogie zu SymbolDefinitionModel::symbolInfo()["bmkSeite"].
+static QString pdfBmkSeite(const QString &symbolId, const QSqlDatabase &db)
 {
-    Q_UNUSED(pxPerMm)
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral("SELECT bmk_seite FROM symbol_definition WHERE id = :id LIMIT 1"));
+    q.bindValue(":id", symbolId);
+    if (q.exec() && q.next()) return q.value(0).toString();
+    return QStringLiteral("auto");
+}
+
+// Beschriftungen (BMK, Freitexte) über/links neben einem Symbol rendern.
+// 1:1-Port des BMK-Renderblocks in CanvasRenderHandler.qml (maleElement,
+// Abschnitt "BMK-Label und Freitexte am Symbol rendern") – Text immer
+// waagerecht; Anker-Seite hängt von Rotation + bmk_seite ab, Position wird
+// zusätzlich per bmkOffsetX/Y (im Canvas per Drag verschiebbar) verschoben.
+// Freitexte respektieren textReihenfolge + <feld>Sichtbar-Flags und sitzen
+// bei waagerechter Anordnung UNTERHALB des Symbols (nicht bei der BMK).
+static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
+                                   double C, double pxPerMm, const QSqlDatabase &db)
+{
     QString sid = el.value("symbolId").toString();
     static const QStringList kNoLabel = {
         "winkel","treffpunkt","treffpunkt_l","geraeteanschluss","unterbrechung",
@@ -257,74 +274,82 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
     };
     if (kNoLabel.contains(sid)) return;
 
-    QVariantMap ed  = el.value("extraDaten").toMap();
-    QString bmk     = ed.value("bmk").toString();
-    QString ft1     = ed.value("freitext1").toString();
-    QString ft2     = ed.value("freitext2").toString();
-    if (bmk.isEmpty() && ft1.isEmpty() && ft2.isEmpty()) return;
+    QVariantMap ed = el.value("extraDaten").toMap();
+    QString bmk    = ed.value("bmk").toString();
+
+    QVariantList reihenfolge = ed.value("textReihenfolge").toList();
+    if (reihenfolge.isEmpty())
+        reihenfolge << QStringLiteral("freitext1") << QStringLiteral("freitext2");
+    QStringList ftZeilen;
+    for (const QVariant &rv : reihenfolge) {
+        QString key = rv.toString();
+        bool sichtbar = ed.value(key + QStringLiteral("Sichtbar"), true).toBool();
+        QString val = ed.value(key).toString();
+        if (sichtbar && !val.isEmpty()) ftZeilen << val;
+    }
+    if (bmk.isEmpty() && ftZeilen.isEmpty()) return;
 
     double x1 = el.value("x1").toDouble() * C;
     double y1 = el.value("y1").toDouble() * C;
     double x2 = el.value("x2").toDouble() * C;
     double y2 = el.value("y2").toDouble() * C;
-    double sw  = qAbs(x2 - x1);
-    double sh  = qAbs(y2 - y1);
-    double cx  = (x1 + x2) / 2;
-    double rot = el.value("rotation").toInt();
+    double vx1 = qMin(x1, x2), vx2 = qMax(x1, x2);
+    double vy1 = qMin(y1, y2), vy2 = qMax(y1, y2);
 
-    double schrift = ed.value("schriftgroesse", 2.5).toDouble();
-    double fsMm    = schrift;
-    double fsDev   = fsMm * pxPerMm;
+    double schrift  = ed.value("schriftgroesse", 2.5).toDouble();
+    double fsDev    = qMax(5.0, schrift * pxPerMm);
+    double ftFsDev  = qMax(4.0, schrift * 0.85 * pxPerMm);
 
     QFont fontBmk, fontFt;
     fontBmk.setFamily(QStringLiteral("sans-serif"));
     fontBmk.setPixelSize(qMax(1, qRound(fsDev)));
     fontBmk.setBold(true);
     fontFt.setFamily(QStringLiteral("sans-serif"));
-    fontFt.setPixelSize(qMax(1, qRound(fsDev * 0.85)));
+    fontFt.setPixelSize(qMax(1, qRound(ftFsDev)));
 
     p.save();
     p.setPen(pdfFarbe(el.value("strichFarbe").toString()));
 
-    // Beschriftung immer waagerecht; Position über/links vom Symbol
-    bool vertikal = (rot == 90 || rot == 270);
-    double anchorX, anchorY;
-    if (vertikal) {
-        anchorX = x1 < x2 ? qMin(x1,x2) - fsDev * 0.3 : qMin(x1,x2) - fsDev * 0.3;
-        anchorY = (y1 + y2) / 2;
-    } else {
-        anchorX = cx;
-        anchorY = qMin(y1, y2) - fsDev * 0.3;
-    }
+    int rot = ((el.value("rotation").toInt() % 360) + 360) % 360;
+    QString bmkSeite = pdfBmkSeite(sid, db);
+    bool senkrecht = (bmkSeite == QLatin1String("vertikal"))
+                     ? (rot == 0 || rot == 180)
+                     : (rot == 90 || rot == 270);
 
-    double ty = anchorY;
-    if (vertikal) {
-        double tx = anchorX - fsDev * 3;
+    double bmkOx = ed.value("bmkOffsetX", 0.0).toDouble() * C;
+    double bmkOy = ed.value("bmkOffsetY", -14.0).toDouble() * C;
+
+    const double BIG = 1000.0; // großzügige Ausricht-Box, kein hartes Clipping bei üblichen Textlängen
+
+    if (senkrecht) {
+        double bkAx = vx1 + bmkOy;
+        double bkCy = (vy1 + vy2) / 2.0 + bmkOx;
         if (!bmk.isEmpty()) {
             p.setFont(fontBmk);
-            p.drawText(QRectF(tx - sw, ty - sh/2, sw, sh), Qt::AlignRight | Qt::AlignVCenter, bmk);
+            p.drawText(QRectF(bkAx - BIG, bkCy - BIG, BIG, BIG),
+                       Qt::AlignRight | Qt::AlignBottom, bmk);
         }
-        if (!ft1.isEmpty()) {
-            p.setFont(fontFt);
-            p.drawText(QRectF(tx - sw, ty - sh/2 + fsDev * 1.3, sw, sh), Qt::AlignRight | Qt::AlignVCenter, ft1);
+        p.setFont(fontFt);
+        double ftOff = bkCy + 2.0 * C;
+        for (const QString &line : ftZeilen) {
+            p.drawText(QRectF(bkAx - BIG, ftOff, BIG, BIG),
+                       Qt::AlignRight | Qt::AlignTop, line);
+            ftOff += ftFsDev * 1.25;
         }
     } else {
+        double bkCx = (vx1 + vx2) / 2.0 + bmkOx;
+        double bkTy = vy1 + bmkOy;
         if (!bmk.isEmpty()) {
             p.setFont(fontBmk);
-            p.drawText(QRectF(cx - sw, ty - fsDev * 1.5, sw*2, fsDev * 1.3),
+            p.drawText(QRectF(bkCx - BIG, bkTy - BIG, 2 * BIG, BIG),
                        Qt::AlignHCenter | Qt::AlignBottom, bmk);
-            ty -= fsDev * 1.4;
         }
-        if (!ft1.isEmpty()) {
-            p.setFont(fontFt);
-            p.drawText(QRectF(cx - sw, ty - fsDev * 1.5, sw*2, fsDev * 1.3),
-                       Qt::AlignHCenter | Qt::AlignBottom, ft1);
-            ty -= fsDev * 1.2;
-        }
-        if (!ft2.isEmpty()) {
-            p.setFont(fontFt);
-            p.drawText(QRectF(cx - sw, ty - fsDev * 1.5, sw*2, fsDev * 1.3),
-                       Qt::AlignHCenter | Qt::AlignBottom, ft2);
+        p.setFont(fontFt);
+        double ftY = vy2 + 3.0 * C;
+        for (const QString &line : ftZeilen) {
+            p.drawText(QRectF(bkCx - BIG, ftY, 2 * BIG, BIG),
+                       Qt::AlignHCenter | Qt::AlignTop, line);
+            ftY += ftFsDev * 1.25;
         }
     }
     p.restore();
@@ -1097,7 +1122,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                              el.value("spiegelY").toBool(),
                              symPen, db);
         }
-        pdfBeschriftungRendern(p, el, C, pxPerMm);
+        pdfBeschriftungRendern(p, el, C, pxPerMm, db);
 
         // ── Aderdefinitions-Textblock ────────────────────────────────────────
         if (sid == QStringLiteral("aderdefinition")) {

@@ -3,6 +3,14 @@
 -- Wird bei jedem neuen Projekt via seedNutzerBauteile() eingespielt.
 -- Alle Statements sind idempotent (WHERE NOT EXISTS-Guard).
 --
+-- ACHTUNG: seedNutzerBauteile() (Database_Schema.cpp) trennt Statements durch
+-- einen NAIVEN split(';') – ohne Berücksichtigung von Anführungszeichen!
+-- Literale Semikolons in Textfeldern (z.B. bemerkung) zerreißen dadurch das
+-- Statement in mehrere ungültige Fragmente und lassen den kompletten Seed
+-- fehlschlagen (BAUTEIL-SEED-SEMIKOLON-01, Jul 2026 – beim Wago-Klemmen-Sync
+-- gefunden). Innerhalb von String-Literalen IMMER Komma statt Semikolon
+-- als Aufzählungstrenner verwenden.
+--
 -- FORMAT KLEMME
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. Bauteil-Stammsatz
@@ -331,3 +339,95 @@ WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Drehstrommotor 0,55kW
 INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, spannung_v, leistung_w, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id)
 SELECT 'Steuertrafo 230/24V 63VA', 'Block', 'STE 63/23/24', 230, 63, 'DIN EN 61558', '-T', 'Steuerspannungstrafo für 24V-AC-Steuerkreis', 'trafo'
 WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuertrafo 230/24V 63VA');
+
+-- ── Wago 2er ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, bemerkung)
+SELECT 'Wago 2er', 'Wago', '221-412', 'Verbindungsklemme mit Hebeln, für alle Leiterarten, max. 4 mm², 2 Leiter, Gehäusefarbe transparent, Umgebungstemperatur max. 85 °C (T85)'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Wago 2er');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b,
+   fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'kaefig', 1, 2, 0, 0, 0, 13.1,
+       (SELECT id FROM farb_definition WHERE hex_wert='transparent' AND ist_standard=1 LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Wago 2er'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 4.0 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.2, 4.0
+   UNION ALL SELECT 'aenh_isoliert', 0.2, 4.0) q
+WHERE b.bezeichnung='Wago 2er'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
+
+-- ── Wago 3er ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, bemerkung)
+SELECT 'Wago 3er', 'Wago', '221-413', 'Verbindungsklemme mit Hebeln, für alle Leiterarten, max. 4 mm², 3 Leiter, Gehäusefarbe transparent, Umgebungstemperatur max. 85 °C (T85)'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Wago 3er');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b,
+   fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'kaefig', 1, 3, 0, 0, 0, 18.8,
+       (SELECT id FROM farb_definition WHERE hex_wert='transparent' AND ist_standard=1 LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Wago 3er'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 4.0 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.2, 4.0
+   UNION ALL SELECT 'aenh_isoliert', 0.2, 4.0) q
+WHERE b.bezeichnung='Wago 3er'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
+
+-- ── Wago 5er ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, bemerkung)
+SELECT 'Wago 5er', 'Wago', '221-415', 'Verbindungsklemme mit Hebeln, für alle Leiterarten, max. 4 mm², 5 Leiter, Gehäusefarbe transparent, Umgebungstemperatur max. 85 °C (T85)'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Wago 5er');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b,
+   fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'push_in', 1, 5, 0, 0, 0, 30.0,
+       (SELECT id FROM farb_definition WHERE hex_wert='transparent' AND ist_standard=1 LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Wago 5er'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 4.0 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.2, 4.0
+   UNION ALL SELECT 'aenh_isoliert', 0.2, 4.0) q
+WHERE b.bezeichnung='Wago 5er'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
+
+-- ── Wago 1er Durchgangsverbinder ──
+INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, bemerkung)
+SELECT 'Wago 1er Durchgangsverbinder', 'Wago', '221-4111', 'Durchgangsverbinder mit Hebeln, für alle Leiterarten, max. 4 mm², 2 Leiter, Gehäusefarbe transparent, Deckelfarbe transparent, Umgebungstemperatur max. 85 °C (T85)'
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Wago 1er Durchgangsverbinder');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b,
+   fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'kaefig', 1, 1, 1, 0, 0, 8.1,
+       (SELECT id FROM farb_definition WHERE hex_wert='transparent' AND ist_standard=1 LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Wago 1er Durchgangsverbinder'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 4.0 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.2, 4.0
+   UNION ALL SELECT 'aenh_isoliert', 0.2, 4.0) q
+WHERE b.bezeichnung='Wago 1er Durchgangsverbinder'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);

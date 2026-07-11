@@ -216,6 +216,21 @@ Item {
 
                 Button {
                     flat: true; implicitWidth: 28; implicitHeight: 28
+                    contentItem: Text { text: "🔄"; color: theme.textMuted; font.pixelSize: 13;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Seite aktualisieren (lädt Elemente + Verbindungen neu)")
+                    ToolTip.delay: 600
+                    onClicked: {
+                        if (!root.canvas) return
+                        root.canvas.seiteNeuLaden()
+                        root.canvas.fehlersuchPfadZuruecksetzen()
+                    }
+                }
+
+                Button {
+                    flat: true; implicitWidth: 28; implicitHeight: 28
                     contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }

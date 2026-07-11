@@ -72,16 +72,16 @@ Item {
             spacing: 4
 
             Repeater {
+                // Potenzial-Punkte markieren Speise-/Bezugspotenziale (AC/DC + PE/N) –
+                // die Digital-/Analog-/Kommunikations-Kategorien der Geräteanschluss-
+                // Sektion sind hier bewusst nicht enthalten (Nutzerentscheidung Jul 2026).
                 model: [
-                    { key: "neutral",        label: qsTr("Neutral"),  farbe: "#4a9eff" },
-                    { key: "power",          label: "L",              farbe: "#cc3300" },
-                    { key: "pe",             label: "PE",             farbe: "#88cc00" },
-                    { key: "n",              label: "N",              farbe: "#4488ff" },
-                    { key: "input_digital",  label: "DI",             farbe: "#44aacc" },
-                    { key: "output_digital", label: "DO",             farbe: "#aa44cc" },
-                    { key: "input_analog",   label: "AI",             farbe: "#88bbff" },
-                    { key: "output_analog",  label: "AO",             farbe: "#66ddaa" },
-                    { key: "kommunikation",  label: qsTr("Komm."),    farbe: "#cc8800" }
+                    { key: "neutral",   label: qsTr("Neutral"), farbe: "#4a9eff" },
+                    { key: "power",     label: "L",             farbe: "#cc3300" },
+                    { key: "dc_plus",   label: "DC+",           farbe: "#dd5500" },
+                    { key: "dc_minus",  label: "DC−",      farbe: "#334488" },
+                    { key: "pe",        label: "PE",            farbe: "#88cc00" },
+                    { key: "n",         label: "N",             farbe: "#4488ff" }
                 ]
                 delegate: Rectangle {
                     width:  sigMa.implicitWidth + 16; height: 24; radius: 4

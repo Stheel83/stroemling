@@ -492,7 +492,13 @@
           "tags": "isolus isolation schutz dunkleosteus panzer IEC klasse II",
           "datei": "stroemlinge/isolus.md",
           "bild_qrc": ":/assets/isolus.png",
-          "bild_dateiname": "isolus.png"
+          "bild_dateiname": "isolus.png",
+          "bilder_weitere": [
+            {
+              "bild_qrc": ":/assets/isolus_logo_collage.png",
+              "bild_dateiname": "isolus_logo_collage.png"
+            }
+          ]
         },
         {
           "titel": "Brauno – Außenleiter L1",

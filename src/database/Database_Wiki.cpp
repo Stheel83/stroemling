@@ -1415,10 +1415,11 @@ bool Database::seedWikiStarterInhalte()
                 }
             }
 
-            // Bild einsäen (einmalig, nur wenn kein Bild vorhanden)
-            const QString bildQrc = art["bild_qrc"].toString();
-            const QString bildFn  = art["bild_dateiname"].toString();
-            if (bildQrc.isEmpty() || bildFn.isEmpty()) continue;
+            // Bild(er) einsäen
+            const QString    bildQrc       = art["bild_qrc"].toString();
+            const QString    bildFn        = art["bild_dateiname"].toString();
+            const QJsonArray weitereBilder = art["bilder_weitere"].toArray();
+            if ((bildQrc.isEmpty() || bildFn.isEmpty()) && weitereBilder.isEmpty()) continue;
 
             QSqlQuery qId(m_wikiDb);
             qId.prepare("SELECT id FROM wiki_artikel WHERE kategorie_id = :kid AND titel = :t");
@@ -1427,42 +1428,101 @@ bool Database::seedWikiStarterInhalte()
             if (!qId.exec() || !qId.next()) continue;
             const int artId = qId.value(0).toInt();
 
-            QSqlQuery qCount(m_wikiDb);
-            qCount.prepare("SELECT COUNT(*) FROM wiki_bild WHERE artikel_id = :aid");
-            qCount.bindValue(":aid", artId);
-            if (!qCount.exec() || !qCount.next() || qCount.value(0).toInt() > 0) continue;
-
-            QFile bf(bildQrc);
-            if (!bf.open(QIODevice::ReadOnly)) {
-                qCWarning(lcDb) << "seedWikiStarterInhalte: Bild nicht gefunden:" << bildQrc;
-                continue;
+            // Hauptbild: einmalig, nur wenn der Artikel noch gar kein Bild hat
+            if (!bildQrc.isEmpty() && !bildFn.isEmpty()) {
+                QSqlQuery qCount(m_wikiDb);
+                qCount.prepare("SELECT COUNT(*) FROM wiki_bild WHERE artikel_id = :aid");
+                qCount.bindValue(":aid", artId);
+                if (qCount.exec() && qCount.next() && qCount.value(0).toInt() == 0) {
+                    QFile bf(bildQrc);
+                    if (!bf.open(QIODevice::ReadOnly)) {
+                        qCWarning(lcDb) << "seedWikiStarterInhalte: Bild nicht gefunden:" << bildQrc;
+                    } else {
+                        const QByteArray daten = bf.readAll();
+                        bf.close();
+                        if (!daten.isEmpty()) {
+                            const QString ext = bildFn.endsWith(".png") ? ".png" : ".jpg";
+                            QSqlQuery qIns(m_wikiDb);
+                            qIns.prepare(R"(
+                                INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung)
+                                VALUES (:aid, :fn, 'image/png', '', 1)
+                            )");
+                            qIns.bindValue(":aid", artId);
+                            qIns.bindValue(":fn",  bildFn);
+                            if (!qIns.exec()) {
+                                qCWarning(lcDb) << "seedWikiStarterInhalte Bild INSERT:" << qIns.lastError().text();
+                            } else {
+                                const int newId = qIns.lastInsertId().toInt();
+                                const QString fn = QString::number(newId) + ext;
+                                QFile out(m_wikiBlobDir + "/" + fn);
+                                if (out.open(QIODevice::WriteOnly)) {
+                                    out.write(daten);
+                                    QSqlQuery upd(m_wikiDb);
+                                    upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                                    upd.bindValue(":p",  fn);
+                                    upd.bindValue(":id", newId);
+                                    upd.exec();
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            const QByteArray daten = bf.readAll();
-            bf.close();
-            if (daten.isEmpty()) continue;
 
-            const QString ext = bildFn.endsWith(".png") ? ".png" : ".jpg";
-            QSqlQuery qIns(m_wikiDb);
-            qIns.prepare(R"(
-                INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung)
-                VALUES (:aid, :fn, 'image/png', '', 1)
-            )");
-            qIns.bindValue(":aid", artId);
-            qIns.bindValue(":fn",  bildFn);
-            if (!qIns.exec()) {
-                qCWarning(lcDb) << "seedWikiStarterInhalte Bild INSERT:" << qIns.lastError().text();
-                continue;
-            }
-            const int newId = qIns.lastInsertId().toInt();
-            const QString fn = QString::number(newId) + ext;
-            QFile out(m_wikiBlobDir + "/" + fn);
-            if (out.open(QIODevice::WriteOnly)) {
-                out.write(daten);
-                QSqlQuery upd(m_wikiDb);
-                upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
-                upd.bindValue(":p",  fn);
-                upd.bindValue(":id", newId);
-                upd.exec();
+            // Weitere Bilder einsäen (Galerie): je Eintrag idempotent anhand Dateiname,
+            // nicht anhand Bildanzahl geprüft – so bleiben nachträgliche Ergänzungen möglich.
+            for (const QJsonValue &bv : weitereBilder) {
+                const QJsonObject b    = bv.toObject();
+                const QString     wQrc = b["bild_qrc"].toString();
+                const QString     wFn  = b["bild_dateiname"].toString();
+                if (wQrc.isEmpty() || wFn.isEmpty()) continue;
+
+                QSqlQuery qExists(m_wikiDb);
+                qExists.prepare("SELECT COUNT(*) FROM wiki_bild WHERE artikel_id = :aid AND dateiname = :fn");
+                qExists.bindValue(":aid", artId);
+                qExists.bindValue(":fn",  wFn);
+                if (!qExists.exec() || !qExists.next() || qExists.value(0).toInt() > 0) continue;
+
+                QFile wbf(wQrc);
+                if (!wbf.open(QIODevice::ReadOnly)) {
+                    qCWarning(lcDb) << "seedWikiStarterInhalte: Zusatzbild nicht gefunden:" << wQrc;
+                    continue;
+                }
+                const QByteArray wDaten = wbf.readAll();
+                wbf.close();
+                if (wDaten.isEmpty()) continue;
+
+                QSqlQuery qMaxSort(m_wikiDb);
+                qMaxSort.prepare("SELECT COALESCE(MAX(sortierung), 0) FROM wiki_bild WHERE artikel_id = :aid");
+                qMaxSort.bindValue(":aid", artId);
+                int naechsteSortierung = 1;
+                if (qMaxSort.exec() && qMaxSort.next())
+                    naechsteSortierung = qMaxSort.value(0).toInt() + 1;
+
+                const QString wExt = wFn.endsWith(".png") ? ".png" : ".jpg";
+                QSqlQuery qInsW(m_wikiDb);
+                qInsW.prepare(R"(
+                    INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung)
+                    VALUES (:aid, :fn, 'image/png', '', :sort)
+                )");
+                qInsW.bindValue(":aid",  artId);
+                qInsW.bindValue(":fn",   wFn);
+                qInsW.bindValue(":sort", naechsteSortierung);
+                if (!qInsW.exec()) {
+                    qCWarning(lcDb) << "seedWikiStarterInhalte Zusatzbild INSERT:" << qInsW.lastError().text();
+                    continue;
+                }
+                const int newIdW = qInsW.lastInsertId().toInt();
+                const QString fnW = QString::number(newIdW) + wExt;
+                QFile outW(m_wikiBlobDir + "/" + fnW);
+                if (outW.open(QIODevice::WriteOnly)) {
+                    outW.write(wDaten);
+                    QSqlQuery updW(m_wikiDb);
+                    updW.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                    updW.bindValue(":p",  fnW);
+                    updW.bindValue(":id", newIdW);
+                    updW.exec();
+                }
             }
         }
     }

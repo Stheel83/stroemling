@@ -339,6 +339,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/schutz/ueberspannungsschutz_spd.md
         src/wiki_seed/schutz/tn_tt_it_netze.md
         src/wiki_seed/schutz/schirmung.md
+        src/wiki_seed/schutz/pe_fe_funktionserde.md
         src/wiki_seed/kabel_aderfarben/aderfarben_normen_geschichte.md
         src/wiki_seed/kabel_aderfarben/din47100_steuerleitungen.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
@@ -474,6 +475,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/schutz/ueberspannungsschutz_spd.md
         src/wiki_seed/schutz/tn_tt_it_netze.md
         src/wiki_seed/schutz/schirmung.md
+        src/wiki_seed/schutz/pe_fe_funktionserde.md
         src/wiki_seed/kabel_aderfarben/aderfarben_normen_geschichte.md
         src/wiki_seed/kabel_aderfarben/din47100_steuerleitungen.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md

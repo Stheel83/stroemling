@@ -227,7 +227,7 @@
     },
     {
       "name": "Schutzmaßnahmen",
-      "beschreibung": "5 Sicherheitsregeln, Überspannungsschutz SPD, Netzformen TN/TT/IT",
+      "beschreibung": "5 Sicherheitsregeln, Überspannungsschutz SPD, Netzformen TN/TT/IT, PE vs. FE",
       "sortierung": 40,
       "ist_system": false,
       "artikel": [
@@ -250,6 +250,11 @@
           "titel": "Schirmung – Konzepte, Feldtypen und Praxis",
           "tags": "Schirmung Schirm EMV E-Feld H-Feld einseitig beidseitig Brummschleife Transferimpedanz Geflechtschirm Folienschirm Twisted Pair Zopf 360-Grad Motorleitung Analogsignal",
           "datei": "schutz/schirmung.md"
+        },
+        {
+          "titel": "PE und FE – Schutzleiter vs. Funktionserde",
+          "tags": "PE FE Schutzleiter Funktionserde DIN EN 60445 VDE 0197 Funktionspotentialausgleich Farbe rosa grün-gelb EMV ICT Personenschutz",
+          "datei": "schutz/pe_fe_funktionserde.md"
         }
       ]
     },

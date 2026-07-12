@@ -441,6 +441,11 @@
           "datei": "waermepumpen/waermepumpen_weltweit_vergleich.md"
         },
         {
+          "titel": "Wärmepumpe richtig einstellen – Heizkurve, Vorlauftemperatur, Betriebsparameter",
+          "tags": "heizkurve neigung niveau vorlauftemperatur heizgrenztemperatur nachtabsenkung hydraulischer abgleich legionellenschutz estrich aufheizen wärmepumpe einstellen",
+          "datei": "waermepumpen/einstellen_betriebsparameter.md"
+        },
+        {
           "titel": "Kuriositäten & typische Planungsfehler",
           "tags": "wärmepumpe planungsfehler kuriositäten praxis schieflast kurztakten kondensatablauf",
           "datei": "waermepumpen/kuriositaeten_planungsfehler.md"

@@ -374,6 +374,21 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/waermepumpen/bestandsgebaeude_heizkoerper.md
         src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
         src/wiki_seed/waermepumpen/wirtschaftlichkeit_gas_oel_vergleich.md
+        src/wiki_seed/kfz_elektrik/von_6v_auf_12v.md
+        src/wiki_seed/kfz_elektrik/plus_minus_masse.md
+        src/wiki_seed/kfz_elektrik/dynamo_zur_lichtmaschine.md
+        src/wiki_seed/kfz_elektrik/zuendanlagen_im_wandel.md
+        src/wiki_seed/kfz_elektrik/anlasser_technik.md
+        src/wiki_seed/kfz_elektrik/sicherungstechnik_im_wandel.md
+        src/wiki_seed/kfz_elektrik/steckverbinder_leitungsfarben_kfz.md
+        src/wiki_seed/kfz_elektrik/batterietechnik_im_wandel.md
+        src/wiki_seed/kfz_elektrik/bordnetz_architektur_can_lin.md
+        src/wiki_seed/kfz_elektrik/diagnose_im_wandel_obd.md
+        src/wiki_seed/kfz_elektrik/beleuchtung_im_wandel.md
+        src/wiki_seed/kfz_elektrik/motorrad_bordnetz.md
+        src/wiki_seed/kfz_elektrik/elektro_hybrid_hochvolt_ausblick.md
+        src/wiki_seed/kfz_elektrik/nachschlagetabelle_sicherungen_klemmen.md
+        src/wiki_seed/kfz_elektrik/kuriositaeten_oldtimer_fehlerbilder.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -532,6 +547,21 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/waermepumpen/bestandsgebaeude_heizkoerper.md
         src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
         src/wiki_seed/waermepumpen/wirtschaftlichkeit_gas_oel_vergleich.md
+        src/wiki_seed/kfz_elektrik/von_6v_auf_12v.md
+        src/wiki_seed/kfz_elektrik/plus_minus_masse.md
+        src/wiki_seed/kfz_elektrik/dynamo_zur_lichtmaschine.md
+        src/wiki_seed/kfz_elektrik/zuendanlagen_im_wandel.md
+        src/wiki_seed/kfz_elektrik/anlasser_technik.md
+        src/wiki_seed/kfz_elektrik/sicherungstechnik_im_wandel.md
+        src/wiki_seed/kfz_elektrik/steckverbinder_leitungsfarben_kfz.md
+        src/wiki_seed/kfz_elektrik/batterietechnik_im_wandel.md
+        src/wiki_seed/kfz_elektrik/bordnetz_architektur_can_lin.md
+        src/wiki_seed/kfz_elektrik/diagnose_im_wandel_obd.md
+        src/wiki_seed/kfz_elektrik/beleuchtung_im_wandel.md
+        src/wiki_seed/kfz_elektrik/motorrad_bordnetz.md
+        src/wiki_seed/kfz_elektrik/elektro_hybrid_hochvolt_ausblick.md
+        src/wiki_seed/kfz_elektrik/nachschlagetabelle_sicherungen_klemmen.md
+        src/wiki_seed/kfz_elektrik/kuriositaeten_oldtimer_fehlerbilder.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

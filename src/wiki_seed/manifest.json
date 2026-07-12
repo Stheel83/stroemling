@@ -463,6 +463,89 @@
       ]
     },
     {
+      "name": "KFZ-Elektrik im Wandel der Zeit",
+      "beschreibung": "Historischer Wandel und heutige Praxis der Fahrzeugelektrik – vom 6V-Bordnetz bis CAN-Bus, für Hobbyisten mit Interesse an Auto- und Motorradtechnik",
+      "sortierung": 66,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Von 6V auf 12V – die große Umstellung",
+          "tags": "6 volt 12 volt bordspannung umstellung käfer historisch",
+          "datei": "kfz_elektrik/von_6v_auf_12v.md"
+        },
+        {
+          "titel": "Plus- vs. Minus-Masse: warum ältere Fahrzeuge oft Plus-Masse hatten",
+          "tags": "plus masse minus masse polung korrosion land rover historisch",
+          "datei": "kfz_elektrik/plus_minus_masse.md"
+        },
+        {
+          "titel": "Vom Dynamo zur Lichtmaschine",
+          "tags": "dynamo lichtmaschine drehstromgenerator gleichstrom regler smart charging",
+          "datei": "kfz_elektrik/dynamo_zur_lichtmaschine.md"
+        },
+        {
+          "titel": "Zündanlagen im Wandel: Kontaktzündung → elektronische Zündung → Steuergerät",
+          "tags": "zündung kontaktzündung transistorzündung hallzündung vollelektronisch einzelfunkenspule",
+          "datei": "kfz_elektrik/zuendanlagen_im_wandel.md"
+        },
+        {
+          "titel": "Anlasser-Technik: Schub-Schraubtrieb bis Start-Stopp",
+          "tags": "anlasser schub schraubtrieb bendix magnetschalter start stopp startergenerator",
+          "datei": "kfz_elektrik/anlasser_technik.md"
+        },
+        {
+          "titel": "Sicherungstechnik im KFZ: Glassicherung → Flachsicherung → elektronische Sicherung",
+          "tags": "sicherung glassicherung flachsicherung ato mini maxi efuse",
+          "datei": "kfz_elektrik/sicherungstechnik_im_wandel.md"
+        },
+        {
+          "titel": "Steckverbinder & Leitungsfarben in der KFZ-Technik",
+          "tags": "din 72552 iso 6722 klemmenbezeichnung leitungsfarbe steckverbinder crimpkontakt",
+          "datei": "kfz_elektrik/steckverbinder_leitungsfarben_kfz.md"
+        },
+        {
+          "titel": "Batterietechnik im Wandel: Nassbatterie → EFB/AGM → Lithium",
+          "tags": "autobatterie nassbatterie efb agm lifepo4 start stopp rekuperation",
+          "datei": "kfz_elektrik/batterietechnik_im_wandel.md"
+        },
+        {
+          "titel": "Bordnetz-Architektur: vom Einzelstromkreis zum CAN-/LIN-Bus",
+          "tags": "can bus lin bus bordnetz architektur steuergerät vernetzung",
+          "datei": "kfz_elektrik/bordnetz_architektur_can_lin.md"
+        },
+        {
+          "titel": "Diagnose im Wandel: OBD → OBD-II/EOBD-Pflicht → Gateway-Steuergeräte",
+          "tags": "obd obd2 eobd diagnose fehlercode gateway steuergerät",
+          "datei": "kfz_elektrik/diagnose_im_wandel_obd.md"
+        },
+        {
+          "titel": "Beleuchtung im Wandel: Glühlampe → Halogen → Xenon → LED",
+          "tags": "scheinwerfer glühlampe halogen h4 xenon led matrix leuchtweitenregulierung",
+          "datei": "kfz_elektrik/beleuchtung_im_wandel.md"
+        },
+        {
+          "titel": "Motorrad-Bordnetz: Besonderheiten gegenüber PKW",
+          "tags": "motorrad bordnetz schwungmagnetzünder cdi zündung moped batterielos",
+          "datei": "kfz_elektrik/motorrad_bordnetz.md"
+        },
+        {
+          "titel": "Elektro-/Hybridfahrzeuge: Hochvolt als Abgrenzung zum 12V-Bordnetz",
+          "tags": "hochvolt elektrofahrzeug hybrid dguv qualifikation sicherheit service disconnect",
+          "datei": "kfz_elektrik/elektro_hybrid_hochvolt_ausblick.md"
+        },
+        {
+          "titel": "Nachschlagetabelle: Sicherungsfarben + DIN-72552-Klemmenbezeichnungen",
+          "tags": "sicherungsfarbe iso 8820 din 72552 klemme nachschlagetabelle",
+          "datei": "kfz_elektrik/nachschlagetabelle_sicherungen_klemmen.md"
+        },
+        {
+          "titel": "Kuriositäten/Praxis: typische Oldtimer-Elektrik-Fehlerbilder",
+          "tags": "oldtimer fehlerbild masseschluss korrosion regler ruhestrom kuriositäten",
+          "datei": "kfz_elektrik/kuriositaeten_oldtimer_fehlerbilder.md"
+        }
+      ]
+    },
+    {
       "name": "Strömlinge",
       "beschreibung": "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
       "sortierung": 70,

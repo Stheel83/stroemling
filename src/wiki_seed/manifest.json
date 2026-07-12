@@ -350,6 +350,104 @@
       ]
     },
     {
+      "name": "Wärmepumpen",
+      "beschreibung": "Technischer Hintergrund, Bauarten, elektrische Installation, Normen, Hersteller und internationaler Vergleich",
+      "sortierung": 65,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Funktionsprinzip – Der Kompressions-Kältekreislauf",
+          "tags": "wärmepumpe kältekreislauf verdampfer verdichter verflüssiger expansionsventil funktionsprinzip",
+          "datei": "waermepumpen/funktionsprinzip_kaeltekreislauf.md"
+        },
+        {
+          "titel": "Kältemittel im Wandel – R290, R32, R454B, CO₂ und die F-Gase-Verordnung",
+          "tags": "kältemittel R290 R32 R454B CO2 R744 GWP f-gase-verordnung wärmepumpe",
+          "datei": "waermepumpen/kaeltemittel_und_f_gase_verordnung.md"
+        },
+        {
+          "titel": "Kennzahlen richtig verstehen – COP, JAZ und Bivalenzpunkt",
+          "tags": "COP JAZ jahresarbeitszahl bivalenzpunkt monovalent monoenergetisch bivalent wärmepumpe",
+          "datei": "waermepumpen/kennzahlen_cop_jaz_bivalenzpunkt.md"
+        },
+        {
+          "titel": "Bauarten im Überblick – Luft-Wasser, Sole-Wasser, Wasser-Wasser, Luft-Luft",
+          "tags": "luft-wasser sole-wasser wasser-wasser luft-luft erdwärme grundwasser wärmepumpe bauarten",
+          "datei": "waermepumpen/bauarten_im_ueberblick.md"
+        },
+        {
+          "titel": "Trinkwarmwasser-Wärmepumpen und Hybrid-Systeme",
+          "tags": "trinkwarmwasser abluft-wärmepumpe hybrid bivalent kessel wärmepumpe",
+          "datei": "waermepumpen/trinkwarmwasser_und_hybrid.md"
+        },
+        {
+          "titel": "Elektrischer Anschluss – Leistung, Absicherung, ein-/dreiphasig",
+          "tags": "wärmepumpe elektrischer anschluss absicherung einphasig dreiphasig schieflast drehstrom",
+          "datei": "waermepumpen/elektrischer_anschluss.md"
+        },
+        {
+          "titel": "§14a EnWG – Steuerbare Verbrauchseinrichtungen und Wärmepumpentarif",
+          "tags": "14a enwg steuerbare verbrauchseinrichtung wärmepumpentarif netzbetreiber dimmen sperrzeit",
+          "datei": "waermepumpen/paragraf14a_enwg_steuerbare_verbrauchseinrichtung.md"
+        },
+        {
+          "titel": "Trennvorrichtung, Not-Aus und Potentialausgleich am Außengerät",
+          "tags": "trennvorrichtung wartungsschalter not-aus potentialausgleich blitzschutz außengerät wärmepumpe VDE 0100-460",
+          "datei": "waermepumpen/trennvorrichtung_notaus_potentialausgleich.md"
+        },
+        {
+          "titel": "Steuer- und Busanbindung – EVU-Sperrkontakt, SG-Ready, Modbus/eBus",
+          "tags": "SG-Ready modbus ebus eebus evu-sperrkontakt smart grid pv-überschuss wärmepumpe",
+          "datei": "waermepumpen/steuer_und_busanbindung_sg_ready.md"
+        },
+        {
+          "titel": "Notheizstab – Auslegung, Absicherung, Redundanzkonzept",
+          "tags": "notheizstab elektroheizstab wärmepumpe absicherung redundanz legionellenschutz",
+          "datei": "waermepumpen/notheizstab_auslegung.md"
+        },
+        {
+          "titel": "Aufstellung und Schallschutz (TA Lärm)",
+          "tags": "schallschutz TA Lärm mindestabstand schallleistung schalldruck wärmepumpe nachbar",
+          "datei": "waermepumpen/aufstellung_schallschutz.md"
+        },
+        {
+          "titel": "Hydraulik-Grundlagen – Pufferspeicher, hydraulische Weiche, Kondensat/Frostschutz",
+          "tags": "pufferspeicher hydraulische weiche kondensatablauf frostschutz wärmepumpe kurztakten",
+          "datei": "waermepumpen/hydraulik_grundlagen.md"
+        },
+        {
+          "titel": "Rechtlicher Rahmen – VDE-AR-N 4100, GEG/Heizungsgesetz, Druckgeräterichtlinie",
+          "tags": "VDE-AR-N 4100 GEG heizungsgesetz druckgeräterichtlinie PED wärmepumpe normen",
+          "datei": "waermepumpen/normen_rechtlicher_rahmen.md"
+        },
+        {
+          "titel": "Kältemittel-Vergleichstabelle",
+          "tags": "kältemittel GWP sicherheitsgruppe A2L A3 ASHRAE 34 tabelle wärmepumpe",
+          "datei": "waermepumpen/kaeltemittel_vergleichstabelle.md"
+        },
+        {
+          "titel": "Wärmepumpentypen im Vergleich",
+          "tags": "wärmepumpentypen vergleich JAZ genehmigungsaufwand tabelle luft-wasser sole-wasser wasser-wasser",
+          "datei": "waermepumpen/waermepumpentypen_vergleich.md"
+        },
+        {
+          "titel": "Hersteller in Deutschland – Marktübersicht",
+          "tags": "wärmepumpe hersteller deutschland viessmann vaillant bosch stiebel eltron daikin mitsubishi marktübersicht",
+          "datei": "waermepumpen/hersteller_deutschland_marktuebersicht.md"
+        },
+        {
+          "titel": "Wärmepumpen weltweit – Japan, Südkorea, China, USA im Vergleich",
+          "tags": "wärmepumpe international japan südkorea china usa klimaanlage marktanteil weltweit",
+          "datei": "waermepumpen/waermepumpen_weltweit_vergleich.md"
+        },
+        {
+          "titel": "Kuriositäten & typische Planungsfehler",
+          "tags": "wärmepumpe planungsfehler kuriositäten praxis schieflast kurztakten kondensatablauf",
+          "datei": "waermepumpen/kuriositaeten_planungsfehler.md"
+        }
+      ]
+    },
+    {
       "name": "Strömlinge",
       "beschreibung": "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
       "sortierung": 70,

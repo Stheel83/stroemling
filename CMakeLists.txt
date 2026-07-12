@@ -351,6 +351,24 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/motorsteuerung/motorschutz_vergleich.md
         src/wiki_seed/motorsteuerung/sanftanlauf.md
         src/wiki_seed/motorsteuerung/frequenzumrichter.md
+        src/wiki_seed/waermepumpen/funktionsprinzip_kaeltekreislauf.md
+        src/wiki_seed/waermepumpen/kaeltemittel_und_f_gase_verordnung.md
+        src/wiki_seed/waermepumpen/kennzahlen_cop_jaz_bivalenzpunkt.md
+        src/wiki_seed/waermepumpen/bauarten_im_ueberblick.md
+        src/wiki_seed/waermepumpen/trinkwarmwasser_und_hybrid.md
+        src/wiki_seed/waermepumpen/elektrischer_anschluss.md
+        src/wiki_seed/waermepumpen/paragraf14a_enwg_steuerbare_verbrauchseinrichtung.md
+        src/wiki_seed/waermepumpen/trennvorrichtung_notaus_potentialausgleich.md
+        src/wiki_seed/waermepumpen/steuer_und_busanbindung_sg_ready.md
+        src/wiki_seed/waermepumpen/notheizstab_auslegung.md
+        src/wiki_seed/waermepumpen/aufstellung_schallschutz.md
+        src/wiki_seed/waermepumpen/hydraulik_grundlagen.md
+        src/wiki_seed/waermepumpen/normen_rechtlicher_rahmen.md
+        src/wiki_seed/waermepumpen/kaeltemittel_vergleichstabelle.md
+        src/wiki_seed/waermepumpen/waermepumpentypen_vergleich.md
+        src/wiki_seed/waermepumpen/hersteller_deutschland_marktuebersicht.md
+        src/wiki_seed/waermepumpen/waermepumpen_weltweit_vergleich.md
+        src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -488,6 +506,24 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/motorsteuerung/motorschutz_vergleich.md
         src/wiki_seed/motorsteuerung/sanftanlauf.md
         src/wiki_seed/motorsteuerung/frequenzumrichter.md
+        src/wiki_seed/waermepumpen/funktionsprinzip_kaeltekreislauf.md
+        src/wiki_seed/waermepumpen/kaeltemittel_und_f_gase_verordnung.md
+        src/wiki_seed/waermepumpen/kennzahlen_cop_jaz_bivalenzpunkt.md
+        src/wiki_seed/waermepumpen/bauarten_im_ueberblick.md
+        src/wiki_seed/waermepumpen/trinkwarmwasser_und_hybrid.md
+        src/wiki_seed/waermepumpen/elektrischer_anschluss.md
+        src/wiki_seed/waermepumpen/paragraf14a_enwg_steuerbare_verbrauchseinrichtung.md
+        src/wiki_seed/waermepumpen/trennvorrichtung_notaus_potentialausgleich.md
+        src/wiki_seed/waermepumpen/steuer_und_busanbindung_sg_ready.md
+        src/wiki_seed/waermepumpen/notheizstab_auslegung.md
+        src/wiki_seed/waermepumpen/aufstellung_schallschutz.md
+        src/wiki_seed/waermepumpen/hydraulik_grundlagen.md
+        src/wiki_seed/waermepumpen/normen_rechtlicher_rahmen.md
+        src/wiki_seed/waermepumpen/kaeltemittel_vergleichstabelle.md
+        src/wiki_seed/waermepumpen/waermepumpentypen_vergleich.md
+        src/wiki_seed/waermepumpen/hersteller_deutschland_marktuebersicht.md
+        src/wiki_seed/waermepumpen/waermepumpen_weltweit_vergleich.md
+        src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

@@ -189,6 +189,11 @@
           "titel": "Maßtabellen M und PG",
           "tags": "kabelverschraubung PG metrisch M Außendurchmesser Steigung Bohrung Klemmbereich IP Schutzart DIN 40430 IEC 60423",
           "datei": "kabelverschraubungen/kabelverschraubungen_masse.md"
+        },
+        {
+          "titel": "Standardkabel Hausinstallation – NYM, NYY, H07RN-F",
+          "tags": "NYM NYY H07RN-F Mantelleitung Erdkabel Gummischlauchleitung Feuchtraumkabel Außendurchmesser Kabelverschraubung VDE 0250 VDE 0276 VDE 0285 3x1,5 5x1,5 3x2,5 5x2,5",
+          "datei": "kabeltypen/standardkabel_hausinstallation.md"
         }
       ]
     },

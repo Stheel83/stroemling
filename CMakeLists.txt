@@ -344,6 +344,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/kabel_aderfarben/din47100_steuerleitungen.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
         src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
+        src/wiki_seed/kabeltypen/standardkabel_hausinstallation.md
         src/wiki_seed/motorsteuerung/drehstrommotor.md
         src/wiki_seed/motorsteuerung/schuetz_thermorelay.md
         src/wiki_seed/motorsteuerung/stern_dreieck_anlasser.md
@@ -480,6 +481,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/kabel_aderfarben/din47100_steuerleitungen.md
         src/wiki_seed/aderendhuelsen/querschnitt_farb_groesstabelle.md
         src/wiki_seed/kabelverschraubungen/kabelverschraubungen_masse.md
+        src/wiki_seed/kabeltypen/standardkabel_hausinstallation.md
         src/wiki_seed/motorsteuerung/drehstrommotor.md
         src/wiki_seed/motorsteuerung/schuetz_thermorelay.md
         src/wiki_seed/motorsteuerung/stern_dreieck_anlasser.md

@@ -61,6 +61,12 @@ bool Database::checkAndApplyWikiSchema()
 
     if (storedVersion == WIKI_SCHEMA_VERSION) {
         qCInfo(lcDb) << "Wiki-Schema bereits auf Version" << WIKI_SCHEMA_VERSION << "– seed prüfen.";
+        // createWikiSchema() ausschließlich CREATE TABLE/TRIGGER IF NOT EXISTS –
+        // hier bewusst auch auf diesem Fast-Path aufgerufen, da sie sonst nie
+        // läuft und m_fts5Verfuegbar (Gate für wikiSuchen()) auf dem Default
+        // "false" stehen bleibt, sobald keine Migration mehr ansteht (WIKI-SUCHE-01).
+        if (!createWikiSchema())
+            return false;
         return seedWikiStarterInhalte();
     }
 

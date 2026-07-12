@@ -90,3 +90,15 @@ Farbgebung identisch mit Einzel-Hülsen, Bezeichnung z. B. „2×1,5 schwarz".
   versperren; Verwendung prüfen.
 - **Verwechslung alter/neuer Farben** beim Erweitern von Altanlagen:
   immer Querschnitt elektrisch messen oder Hülse ausbauen und prüfen.
+
+---
+
+## Quellen
+
+- DIN 46228-4 – Aderendhülsen für Leiter aus Kupfer, Teil 4: Isolierte
+  Aderendhülsen mit Kunststoffkragen, Maße und Prüfung
+
+*Hinweis: Angaben zu „Alten Farben" (vor 1992) beruhen auf verbreiteter
+Praxiserfahrung im Bestand, nicht auf einer erhaltenen Vorgänger-Norm –
+vor Ort immer den physischen Querschnitt prüfen statt der Farbe allein
+zu vertrauen.*

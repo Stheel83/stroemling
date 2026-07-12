@@ -108,3 +108,18 @@ verbunden mit geeigneter Bimetall-Pressklemme oder Quetschverbinder.
 4. Bei Umbau oder Erweiterung: **nur noch Kupfer** verwenden, Übergang mit Bimetall-Klemme
 5. **Kontaktfett** auf alle Alu-Verbindungsstellen auftragen
 6. Prüfprotokoll erstellen, Nachziehzeitpunkt dokumentieren
+
+---
+
+## Quellen
+
+- Elektrodenpotenziale (Aluminium −1,66 V, Kupfer +0,34 V) aus der
+  elektrochemischen Spannungsreihe – [GINO AG: Elektrochemische Spannungsreihe](https://www.gino-ag.com/de/unternehmen/lexikon/elektrochemische-spannungsreihe/)
+- [Wikipedia: Bimetallkorrosion](https://de.wikipedia.org/wiki/Bimetallkorrosion) – Mechanismus der Kontaktkorrosion zwischen unterschiedlich edlen Metallen
+- [pfinder.de: Bimetallkorrosion oder Kontaktkorrosion?](https://pfinder.de/de/wissenswertes/Sammlung/Kontaktkorrosion.php)
+
+*Hinweis: Es existiert keine einzelne VDE-Norm speziell für
+Bimetall-Verbindungsklemmen im Bestand – die Auswahl geeigneter
+Klemmen für Alu/Cu-Übergänge richtet sich nach den allgemeinen
+Anforderungen an Verbindungsmittel in DIN VDE 0100-520
+(Kabel- und Leitungsanlagen, Auswahl und Errichtung).*

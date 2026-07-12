@@ -102,3 +102,11 @@ entsteht eine andere, aber ebenfalls gefährliche Situation
 
 Im TT-Netz ist die N-Unterbrechung durch die fehlende Fixierung
 des Neutralpunkts beim Kunden besonders gefährlich.
+
+---
+
+## Quellen
+
+- DIN VDE 0100-410 (IEC 60364-4-41) – Schutzmaßnahmen, RCD-Pflicht im TT-Netz
+- [Wikipedia: Sternpunktverschiebung](https://de.wikipedia.org/wiki/Sternpunktverschiebung) – Spannungsteiler-Effekt bei unterbrochenem Sternpunkt/Neutralleiter
+- [Freunde des Stroms: Sternpunktverschiebung durch Neutralleiterabriss](https://www.freunde-des-stroms.de/experimente/sternpunktverschiebung-durch-neutralleiterabriss-ein-sehr-schlimmer-fehler/) – anschauliches Experiment zur Spannungsverschiebung

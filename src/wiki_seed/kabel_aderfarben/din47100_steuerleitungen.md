@@ -88,3 +88,13 @@ nummerierte Ader – er wird separat behandelt
 1. 25 − 18 = 7 → Grundfarbe von Ader 7 = **blau**
 2. Ader liegt im Bereich 19–36 → **+ 1 schwarzer Ring**
 3. Ergebnis: **blau mit einem schwarzen Ring**
+
+---
+
+## Quellen
+
+- DIN 47100 – zurückgezogen im November 1998, ohne direkten
+  Nachfolger im gleichen Umfang; Farbcode bleibt de-facto-Standard
+  der Kabelhersteller
+- [Kabeltronik – Farbcode nach DIN 47100](https://www.kabeltronik.de/de/kabeltronik/info-download/technical/color-code-din)
+- [Lapp – Farbcode DIN 47100 (PDF)](https://www.lapp.ch/file/73/CMS/Downloads/farbcode-din-47100-de.pdf)

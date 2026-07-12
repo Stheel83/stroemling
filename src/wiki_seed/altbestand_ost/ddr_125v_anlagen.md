@@ -74,3 +74,22 @@ Die Umstellung von 125 V auf 230 V erfordert:
 In den nach 1960 errichteten DDR-Wohngebäuden (Plattenbau) war
 **220 V** Standard — das 125-V-System findet sich nur in Vorkriegs-Altbauten
 und frühen Nachkriegsgebäuden. Plattenbauanlagen sind davon nicht betroffen.
+
+---
+
+## Quellen
+
+- [Forum Zerspanungsbude: Deutsche Netzspannungen in der Geschichte](https://forum.zerspanungsbude.net/viewtopic.php?t=40129)
+- [Elektro-Elektroinstallation.de: Verkabelung in Aluminium](https://elektro-elektroinstallation.de/elektriker-berlin-2/verkabelung-in-aluminium/)
+
+> **Unsicherheit bei den Jahresangaben:** Für dieses Nischenthema gibt
+> es keine belastbare Primärquelle (z. B. EVU-Archiv oder Norm) —
+> die obigen Foren-Erfahrungsberichte sind die einzigen auffindbaren
+> Quellen und widersprechen sich teils selbst. Ein Beitrag im
+> zerspanungsbude-Forum nennt für den Südosten Berlins ein
+> 127-V-Netz (220 V zwischen zwei Phasen) noch bis in die **späten
+> 1970er oder sogar 1980er Jahre** — später als die oben genannte
+> „Ende der 1960er"-Angabe für Teile Ostberlins. Beide Angaben stammen
+> aus Erfahrungsberichten, nicht aus offiziellen Quellen; vor Ort
+> zählt ohnehin nur die tatsächliche Messung (L–N = 125 V?), nicht das
+> vermutete Baujahr.

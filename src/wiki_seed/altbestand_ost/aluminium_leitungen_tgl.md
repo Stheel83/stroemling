@@ -1,8 +1,5 @@
 # Aluminiumleitungen unter 10mm²
 
-[Alu_Hinweis_01](https://elektro-elektroinstallation.de/elektriker-berlin-2/verkabelung-in-aluminium/)
-[Alu_Hinweis_02](https://www.weka.de/elektrosicherheit/aluminiumleitungen-wichtige-aspekte-zur-elektrosicherheit/)
-
 ## Wie kam es dazu: 
 
 Rohstoffe waren in der DDR knapp, Rohstoffe mussten mit Devisen beschafft werden, die genauso knapp waren. Not macht erfahrungsgemäß erfinderisch und Alu statt Kupfer einzusetzen war durchaus nicht zum Schaden der Wirtschaft. 
@@ -31,9 +28,6 @@ Oft wurden Stegleitung verlegt, ein flaches Kabel mit zwei oder drei Adern neben
 
 Später wurde auch das sogenannte AlCu eingesetzt.
 Das Kupfer wurde auf den Alu-Leiter nicht aufgedampft, sondern es wurde mit einem Kupferband ummantelt und dieses verschweißt. Es konnte auch kein Querschnitt verringert werden (Minimum blieb 2,5 qmm), aber die Strombelastbarkeit stieg, weil der Strom hauptsächlich außen (also im Cu Mantel) fließt.
-[AlCu bzw. Kupferkaschiertes Aluminium](https://de.wikipedia.org/wiki/Kupferkaschiertes_Aluminium)
-
-
 
 **Beim Wechseln von Schaltern oder Steckdosen, dem Anbringen neuer Lampen oder bei einer Erweiterung mit mehr Anschlussmöglichkeiten kommt es häufig zum Bruch von Adern an den Anschlussklemmen.**
 
@@ -45,3 +39,11 @@ Das Auswechseln einer Lampe sollte davon aber ausgenommen sein und von jeder ein
 ---
 
 **Ich entferne immer alle Alu Leitungen, alles andere ist in meine Augen riesiger Mist.**
+
+---
+
+## Quellen
+
+- [Elektro-Elektroinstallation.de: Verkabelung in Aluminium](https://elektro-elektroinstallation.de/elektriker-berlin-2/verkabelung-in-aluminium/)
+- [WEKA: Aluminiumleitungen – wichtige Aspekte zur Elektrosicherheit](https://www.weka.de/elektrosicherheit/aluminiumleitungen-wichtige-aspekte-zur-elektrosicherheit/)
+- [Wikipedia: Kupferkaschiertes Aluminium (AlCu)](https://de.wikipedia.org/wiki/Kupferkaschiertes_Aluminium)

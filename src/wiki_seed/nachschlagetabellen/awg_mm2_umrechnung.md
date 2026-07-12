@@ -90,3 +90,14 @@ Welcher deutsche Normquerschnitt entspricht dem mindestens?
 3. Für die tatsächliche Absicherung zusätzlich Verlegeart und
    Umgebungstemperatur nach VDE 0298-4 prüfen — die AWG-Angabe ersetzt
    diese Prüfung nicht.
+
+---
+
+## Quellen
+
+- ASTM B258 – Standard Specification for Standard Nominal Diameters and
+  Cross-Sectional Areas of AWG Sizes of Solid Round Wires Used as
+  Electrical Conductors (definiert die Stufung 92^(1/39) sowie die
+  Nominaldurchmesser, aus denen sich obige Formel ableitet)
+- DIN VDE 0298-4 – Verwendung von Kabeln und isolierten Leitungen für
+  Starkstromanlagen, Empfohlene Werte für die Strombelastbarkeit

@@ -108,3 +108,12 @@ Die erreichbare Schutzart hängt vom Material und der Ausführung ab:
 
 > Schutzart nur mit geeigneter Gegenmutter und korrekt angezogenem
 > Klemmsystem erreichbar. Herstellervorgaben einhalten.
+
+---
+
+## Quellen
+
+- IEC 60423 / DIN EN 50262 – Elektrische Installationsrohrsysteme,
+  Kabelverschraubungen für Rohrsysteme, metrisches Gewinde M×1,5
+- DIN 40430 – Kabel- und Leitungseinführungen mit Panzerrohrgewinde
+  (PG), zurückgezogen

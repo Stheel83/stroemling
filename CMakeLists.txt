@@ -371,6 +371,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/waermepumpen/einstellen_betriebsparameter.md
         src/wiki_seed/waermepumpen/bestandsgebaeude_heizkoerper.md
         src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
+        src/wiki_seed/waermepumpen/wirtschaftlichkeit_gas_oel_vergleich.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -528,6 +529,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/waermepumpen/einstellen_betriebsparameter.md
         src/wiki_seed/waermepumpen/bestandsgebaeude_heizkoerper.md
         src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
+        src/wiki_seed/waermepumpen/wirtschaftlichkeit_gas_oel_vergleich.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

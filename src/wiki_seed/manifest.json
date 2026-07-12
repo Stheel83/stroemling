@@ -454,6 +454,11 @@
           "titel": "Kuriositäten & typische Planungsfehler",
           "tags": "wärmepumpe planungsfehler kuriositäten praxis schieflast kurztakten kondensatablauf",
           "datei": "waermepumpen/kuriositaeten_planungsfehler.md"
+        },
+        {
+          "titel": "Wirtschaftlichkeit – Wann lohnt sich die Wärmepumpe gegenüber Gas oder Öl?",
+          "tags": "wirtschaftlichkeit amortisation kostenvergleich gasheizung ölheizung förderung BEG klimageschwindigkeitsbonus CO2-Preis betriebskosten wärmepumpe",
+          "datei": "waermepumpen/wirtschaftlichkeit_gas_oel_vergleich.md"
         }
       ]
     },

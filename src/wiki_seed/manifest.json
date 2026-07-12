@@ -546,7 +546,9 @@
         {
           "titel": "Krizzo – der Kurzschluss",
           "tags": "krizzo kurzschluss fehler rot brandspuren chaos",
-          "datei": "stroemlinge/krizzo.md"
+          "datei": "stroemlinge/krizzo.md",
+          "bild_qrc": ":/assets/krizzo_uebersicht.png",
+          "bild_dateiname": "krizzo_uebersicht.png"
         },
         {
           "titel": "Errinka – der allgemeine Fehler",

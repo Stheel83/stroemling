@@ -275,6 +275,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/rosi_rohroeffnung.png
         qml/assets/rosi_roehrenaal_uebersicht.png
         qml/assets/kabeljau_uebersicht.png
+        qml/assets/krizzo_uebersicht.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

@@ -369,6 +369,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/waermepumpen/hersteller_deutschland_marktuebersicht.md
         src/wiki_seed/waermepumpen/waermepumpen_weltweit_vergleich.md
         src/wiki_seed/waermepumpen/einstellen_betriebsparameter.md
+        src/wiki_seed/waermepumpen/bestandsgebaeude_heizkoerper.md
         src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
@@ -525,6 +526,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/waermepumpen/hersteller_deutschland_marktuebersicht.md
         src/wiki_seed/waermepumpen/waermepumpen_weltweit_vergleich.md
         src/wiki_seed/waermepumpen/einstellen_betriebsparameter.md
+        src/wiki_seed/waermepumpen/bestandsgebaeude_heizkoerper.md
         src/wiki_seed/waermepumpen/kuriositaeten_planungsfehler.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md

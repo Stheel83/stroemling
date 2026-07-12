@@ -446,6 +446,11 @@
           "datei": "waermepumpen/einstellen_betriebsparameter.md"
         },
         {
+          "titel": "Wärmepumpe im Bestandsgebäude mit Heizkörpern",
+          "tags": "bestandsgebäude altbau heizkörper thermostatventil mindestvolumenstrom überströmventil referenzraum witterungsgeführt mischer heizkreis wärmepumpe",
+          "datei": "waermepumpen/bestandsgebaeude_heizkoerper.md"
+        },
+        {
           "titel": "Kuriositäten & typische Planungsfehler",
           "tags": "wärmepumpe planungsfehler kuriositäten praxis schieflast kurztakten kondensatablauf",
           "datei": "waermepumpen/kuriositaeten_planungsfehler.md"

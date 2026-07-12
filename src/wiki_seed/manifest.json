@@ -604,6 +604,49 @@
       ]
     },
     {
+      "name": "Boots-Elektrik",
+      "beschreibung": "Marine-Bordnetz, galvanische Korrosion und ABYC-Praxis für Segel- und Motorboot-Elektrik",
+      "sortierung": 68,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Bordnetz-Grundlagen auf Booten: 12V/24V, Anforderungen durch Feuchte/Salzwasser",
+          "tags": "boot bordnetz 12v 24v abyc feuchtigkeit salzwasser",
+          "datei": "boot_elektrik/bordnetz_grundlagen_boot.md"
+        },
+        {
+          "titel": "Galvanische Korrosion & Isolationstransformator",
+          "tags": "galvanische korrosion isolationstransformator trenntransformator landstrom boot",
+          "datei": "boot_elektrik/galvanische_korrosion_isolationstransformator.md"
+        },
+        {
+          "titel": "Batterietechnik: Starter- vs. Versorgerbatterie, Trennung, Ladewege",
+          "tags": "starterbatterie versorgerbatterie batterietrennschalter boot ladewege",
+          "datei": "boot_elektrik/batterietechnik_trennung_boot.md"
+        },
+        {
+          "titel": "Marine-Leitungen & Steckverbinder",
+          "tags": "verzinnte litze marine leitung kapillareffekt wasserdichter steckverbinder",
+          "datei": "boot_elektrik/marine_leitungen_steckverbinder.md"
+        },
+        {
+          "titel": "Sicherungen/Schutzschalter auf Booten",
+          "tags": "elci rcd landstrom boot sicherung electric shock drowning",
+          "datei": "boot_elektrik/sicherungen_schutzschalter_boot.md"
+        },
+        {
+          "titel": "Masseschleifen und Störungen in der Navigationselektronik",
+          "tags": "masseschleife erdschleife nmea navigationselektronik störung boot",
+          "datei": "boot_elektrik/masseschleifen_navigationselektronik.md"
+        },
+        {
+          "titel": "Kuriositäten: elektrolytische Korrosion durch Erdungsfehler, Brandursache unterdimensionierte Verkabelung",
+          "tags": "korrosion erdungsfehler brandursache kuriositäten boot",
+          "datei": "boot_elektrik/kuriositaeten_korrosion_verkabelung.md"
+        }
+      ]
+    },
+    {
       "name": "Strömlinge",
       "beschreibung": "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
       "sortierung": 70,

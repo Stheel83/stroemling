@@ -399,6 +399,13 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/wohnmobil_elektrik/gasanlage_elektrik_schnittstellen.md
         src/wiki_seed/wohnmobil_elektrik/vorschriften_tuev_ausbau.md
         src/wiki_seed/wohnmobil_elektrik/kuriositaeten_haeufige_fehler_selbstausbau.md
+        src/wiki_seed/boot_elektrik/bordnetz_grundlagen_boot.md
+        src/wiki_seed/boot_elektrik/galvanische_korrosion_isolationstransformator.md
+        src/wiki_seed/boot_elektrik/batterietechnik_trennung_boot.md
+        src/wiki_seed/boot_elektrik/marine_leitungen_steckverbinder.md
+        src/wiki_seed/boot_elektrik/sicherungen_schutzschalter_boot.md
+        src/wiki_seed/boot_elektrik/masseschleifen_navigationselektronik.md
+        src/wiki_seed/boot_elektrik/kuriositaeten_korrosion_verkabelung.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -582,6 +589,13 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/wohnmobil_elektrik/gasanlage_elektrik_schnittstellen.md
         src/wiki_seed/wohnmobil_elektrik/vorschriften_tuev_ausbau.md
         src/wiki_seed/wohnmobil_elektrik/kuriositaeten_haeufige_fehler_selbstausbau.md
+        src/wiki_seed/boot_elektrik/bordnetz_grundlagen_boot.md
+        src/wiki_seed/boot_elektrik/galvanische_korrosion_isolationstransformator.md
+        src/wiki_seed/boot_elektrik/batterietechnik_trennung_boot.md
+        src/wiki_seed/boot_elektrik/marine_leitungen_steckverbinder.md
+        src/wiki_seed/boot_elektrik/sicherungen_schutzschalter_boot.md
+        src/wiki_seed/boot_elektrik/masseschleifen_navigationselektronik.md
+        src/wiki_seed/boot_elektrik/kuriositaeten_korrosion_verkabelung.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

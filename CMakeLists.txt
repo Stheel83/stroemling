@@ -389,6 +389,16 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/kfz_elektrik/elektro_hybrid_hochvolt_ausblick.md
         src/wiki_seed/kfz_elektrik/nachschlagetabelle_sicherungen_klemmen.md
         src/wiki_seed/kfz_elektrik/kuriositaeten_oldtimer_fehlerbilder.md
+        src/wiki_seed/wohnmobil_elektrik/bordnetz_grundlagen_zwei_batterien.md
+        src/wiki_seed/wohnmobil_elektrik/trennrelais_und_ladebooster.md
+        src/wiki_seed/wohnmobil_elektrik/batterietechnik_camper.md
+        src/wiki_seed/wohnmobil_elektrik/solaranlage_aufbau_laderegler.md
+        src/wiki_seed/wohnmobil_elektrik/230v_landstrom_wechselrichter.md
+        src/wiki_seed/wohnmobil_elektrik/sicherungstechnik_wohnmobil.md
+        src/wiki_seed/wohnmobil_elektrik/spannungsabfall_lange_leitungswege.md
+        src/wiki_seed/wohnmobil_elektrik/gasanlage_elektrik_schnittstellen.md
+        src/wiki_seed/wohnmobil_elektrik/vorschriften_tuev_ausbau.md
+        src/wiki_seed/wohnmobil_elektrik/kuriositaeten_haeufige_fehler_selbstausbau.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md
@@ -562,6 +572,16 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/kfz_elektrik/elektro_hybrid_hochvolt_ausblick.md
         src/wiki_seed/kfz_elektrik/nachschlagetabelle_sicherungen_klemmen.md
         src/wiki_seed/kfz_elektrik/kuriositaeten_oldtimer_fehlerbilder.md
+        src/wiki_seed/wohnmobil_elektrik/bordnetz_grundlagen_zwei_batterien.md
+        src/wiki_seed/wohnmobil_elektrik/trennrelais_und_ladebooster.md
+        src/wiki_seed/wohnmobil_elektrik/batterietechnik_camper.md
+        src/wiki_seed/wohnmobil_elektrik/solaranlage_aufbau_laderegler.md
+        src/wiki_seed/wohnmobil_elektrik/230v_landstrom_wechselrichter.md
+        src/wiki_seed/wohnmobil_elektrik/sicherungstechnik_wohnmobil.md
+        src/wiki_seed/wohnmobil_elektrik/spannungsabfall_lange_leitungswege.md
+        src/wiki_seed/wohnmobil_elektrik/gasanlage_elektrik_schnittstellen.md
+        src/wiki_seed/wohnmobil_elektrik/vorschriften_tuev_ausbau.md
+        src/wiki_seed/wohnmobil_elektrik/kuriositaeten_haeufige_fehler_selbstausbau.md
         src/wiki_seed/stroemlinge/ueberblick.md
         src/wiki_seed/stroemlinge/schwaerzchen.md
         src/wiki_seed/stroemlinge/impulsino.md

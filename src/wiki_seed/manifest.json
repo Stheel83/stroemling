@@ -546,6 +546,64 @@
       ]
     },
     {
+      "name": "Wohnmobil-/Camper-Elektrik",
+      "beschreibung": "Zwei-Batterien-Bordnetz, Solar, Landstrom und typische Fehlerquellen beim Camper-Selbstausbau",
+      "sortierung": 67,
+      "ist_system": false,
+      "artikel": [
+        {
+          "titel": "Bordnetz-Grundlagen: Starterbatterie vs. Aufbaubatterie",
+          "tags": "starterbatterie aufbaubatterie versorgerbatterie zwei batterien trennung",
+          "datei": "wohnmobil_elektrik/bordnetz_grundlagen_zwei_batterien.md"
+        },
+        {
+          "titel": "Trennrelais und Ladebooster",
+          "tags": "trennrelais ladebooster euro6 intelligente lichtmaschine smart charging",
+          "datei": "wohnmobil_elektrik/trennrelais_und_ladebooster.md"
+        },
+        {
+          "titel": "Batterietechnik für Camper: AGM/Gel vs. LiFePO4 + BMS",
+          "tags": "agm gel lifepo4 bms batteriemanagementsystem camper batterie",
+          "datei": "wohnmobil_elektrik/batterietechnik_camper.md"
+        },
+        {
+          "titel": "Solaranlage: Aufbau, PWM- vs. MPPT-Laderegler, Dimensionierung",
+          "tags": "solaranlage pwm mppt laderegler solarmodul camper",
+          "datei": "wohnmobil_elektrik/solaranlage_aufbau_laderegler.md"
+        },
+        {
+          "titel": "230V an Bord: Landstromanschluss, Wechselrichter, FI-Pflicht",
+          "tags": "cee landstrom wechselrichter fi schutzschalter din vde 0100-721",
+          "datei": "wohnmobil_elektrik/230v_landstrom_wechselrichter.md"
+        },
+        {
+          "titel": "Sicherungstechnik im Wohnmobil: zwei Welten in einem Fahrzeug",
+          "tags": "sicherung 12v 230v flachsicherung leitungsschutzschalter wohnmobil",
+          "datei": "wohnmobil_elektrik/sicherungstechnik_wohnmobil.md"
+        },
+        {
+          "titel": "Spannungsabfall bei langen 12V-Leitungswegen",
+          "tags": "spannungsabfall leitungsquerschnitt 12v camper querschnittsberechnung",
+          "datei": "wohnmobil_elektrik/spannungsabfall_lange_leitungswege.md"
+        },
+        {
+          "titel": "Gasanlage und Elektrik-Schnittstellen",
+          "tags": "gaswarnmelder absperrventil zündautomatik gasanlage camper",
+          "datei": "wohnmobil_elektrik/gasanlage_elektrik_schnittstellen.md"
+        },
+        {
+          "titel": "Vorschriften/TÜV-Aspekte beim nachträglichen Elektrik-Ausbau",
+          "tags": "tüv einzelabnahme stvzo din vde 0100-721 selbstausbau",
+          "datei": "wohnmobil_elektrik/vorschriften_tuev_ausbau.md"
+        },
+        {
+          "titel": "Kuriositäten/häufige Fehler beim Selbstausbau",
+          "tags": "fehler selbstausbau kuriositäten camper praxis",
+          "datei": "wohnmobil_elektrik/kuriositaeten_haeufige_fehler_selbstausbau.md"
+        }
+      ]
+    },
+    {
       "name": "Strömlinge",
       "beschreibung": "Das Maskottchen-System von Strömling Design – ein Charakter pro Leitertyp",
       "sortierung": 70,

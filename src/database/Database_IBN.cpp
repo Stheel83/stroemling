@@ -30,52 +30,74 @@
 
 QVariantList Database::ibnListeLaden(int projektId, int seiteId)
 {
+    // IBN-LISTE-GROUP-01 (Jul 2026): Die urspruengliche Fassung nutzte
+    // MIN(ge.x1)/MIN(ge.x2)/... innerhalb der korrelierten
+    // Strukturkasten-Subquery, obwohl die aeussere Abfrage bereits per
+    // GROUP BY aggregiert -- SQLite lehnt das als "misuse of aggregate
+    // function" beim PREPARE ab. q.exec() schlug dadurch fehl und
+    // ibnListeLaden() lieferte fuer JEDES Projekt eine leere Liste,
+    // ohne dass das im Programm sichtbar wurde (lcDb-Warnung lief still
+    // durch). Fix: Gruppierung + Aggregation vorab in eine CTE (grp)
+    // ausgelagert, die Strukturkasten-Subquery referenziert dort nur noch
+    // einfache Spalten statt erneuter Aggregatfunktionen.
     QSqlQuery q(m_db);
     q.prepare(R"(
+        WITH grp AS (
+            SELECT
+                ge.seite_id                                      AS seite_id,
+                json_extract(ge.extra_daten, '$.bmk')            AS bmk,
+                MIN(ge.id)                                       AS element_id,
+                MIN(ge.x1)                                       AS x1,
+                MIN(ge.y1)                                       AS y1,
+                MIN(ge.x2)                                       AS x2,
+                MIN(ge.y2)                                       AS y2,
+                COALESCE(MAX(sd.ibn_kategorie), '')              AS symbol_kategorie
+            FROM grafik_element ge
+            LEFT JOIN symbol_definition sd ON ge.symbol_id = sd.id
+            WHERE ge.typ = 'symbol'
+              AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
+              AND json_extract(ge.extra_daten, '$.bmk') != ''
+            GROUP BY ge.seite_id, json_extract(ge.extra_daten, '$.bmk')
+        )
         SELECT
-            MIN(ge.id)                                       AS element_id,
-            ge.seite_id,
-            s.blattnummer,
+            grp.element_id                                   AS element_id,
+            grp.seite_id                                     AS seite_id,
+            s.blattnummer                                    AS blattnummer,
             COALESCE(s.bezeichnung, '')                      AS seitenbezeichnung,
-            json_extract(ge.extra_daten, '$.bmk')            AS bmk,
+            grp.bmk                                          AS bmk,
             COALESCE(ibn.status, 'offen')                    AS status,
             COALESCE(ibn.id, 0)                              AS ibn_id,
             COALESCE(ibn.notiz, '')                          AS notiz,
             COALESCE(ibn.bauteil_id, '')                     AS bauteil_id,
             COALESCE(ibn.geprueft_von, '')                   AS geprueft_von,
             COALESCE(ibn.geprueft_am, '')                    AS geprueft_am,
-            MIN(ge.x1)                                       AS x1,
-            MIN(ge.y1)                                       AS y1,
-            COALESCE(MAX(sd.ibn_kategorie), '')              AS symbol_kategorie,
+            grp.x1                                           AS x1,
+            grp.y1                                           AS y1,
+            grp.symbol_kategorie                             AS symbol_kategorie,
             a.kuerzel                                        AS anlage_kz,
             o.kuerzel                                        AS ort_kz,
             COALESCE(a.anlage_uebergeordnet, '')             AS anlage_uo,
             COALESCE(o.standort_uebergeordnet, '')           AS ort_uo,
             (SELECT sk.extra_daten
              FROM grafik_element sk
-             WHERE sk.seite_id = ge.seite_id
+             WHERE sk.seite_id = grp.seite_id
                AND sk.typ = 'strukturkasten'
-               AND (MIN(ge.x1) + MIN(ge.x2)) / 2.0 >= sk.x1
-               AND (MIN(ge.x1) + MIN(ge.x2)) / 2.0 <= sk.x2
-               AND (MIN(ge.y1) + MIN(ge.y2)) / 2.0 >= sk.y1
-               AND (MIN(ge.y1) + MIN(ge.y2)) / 2.0 <= sk.y2
+               AND (grp.x1 + grp.x2) / 2.0 >= sk.x1
+               AND (grp.x1 + grp.x2) / 2.0 <= sk.x2
+               AND (grp.y1 + grp.y2) / 2.0 >= sk.y1
+               AND (grp.y1 + grp.y2) / 2.0 <= sk.y2
              ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
              LIMIT 1)                                         AS sk_extra
-        FROM grafik_element ge
-        JOIN seite   s ON ge.seite_id   = s.id
+        FROM grp
+        JOIN seite   s ON grp.seite_id  = s.id
         JOIN ort     o ON s.ort_id      = o.id
         JOIN anlage  a ON o.anlage_id   = a.id
-        LEFT JOIN symbol_definition sd ON ge.symbol_id = sd.id
         LEFT JOIN inbetriebnahme ibn
-               ON ibn.seite_id = ge.seite_id
-              AND ibn.bmk      = json_extract(ge.extra_daten, '$.bmk')
+               ON ibn.seite_id = grp.seite_id
+              AND ibn.bmk      = grp.bmk
         WHERE a.projekt_id  = :pid
-          AND (:sid = -1 OR ge.seite_id = :sid)
-          AND ge.typ        = 'symbol'
-          AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
-          AND json_extract(ge.extra_daten, '$.bmk') != ''
-        GROUP BY ge.seite_id, json_extract(ge.extra_daten, '$.bmk')
-        ORDER BY a.kuerzel, o.kuerzel, s.blattnummer, bmk
+          AND (:sid = -1 OR grp.seite_id = :sid)
+        ORDER BY a.kuerzel, o.kuerzel, s.blattnummer, grp.bmk
     )");
     q.bindValue(":pid", projektId);
     q.bindValue(":sid", seiteId);

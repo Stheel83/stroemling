@@ -45,6 +45,8 @@ Item {
                                       string anschlussBezeichnung, string bmk)
     signal klemmenSequentiellStarten(string queueJson)
     signal betriebsmittelKontaktPlatzieren(int betriebsmittelId, string symbolId, string bmk, var pinBez)
+    signal steckverbinderKontaktPlatzieren(int geraetekastenId, int positionId, string symbolId, string bmk)
+    signal steckverbinderSequentiellStarten(string queueJson)
     signal bauteilPlatzieren(int bauteilId, string symbolId, string bezeichnung)
     // Sprungfunktion: navigiere zu einem Element auf einer Seite
     signal sprungAngefordert(int seiteId, string blattnr, string seiteBez,
@@ -1499,6 +1501,12 @@ Item {
             }
             onBetriebsmittelKontaktPlatzieren: function(bid, sid, bmk, pb) {
                 root.betriebsmittelKontaktPlatzieren(bid, sid, bmk, pb)
+            }
+            onSteckverbinderKontaktPlatzieren: function(gkId, posId, symId, bmk) {
+                root.steckverbinderKontaktPlatzieren(gkId, posId, symId, bmk)
+            }
+            onSteckverbinderSequentiellStarten: function(json) {
+                root.steckverbinderSequentiellStarten(json)
             }
             onBauteilPlatzieren: function(bId, symId, bez) {
                 root.bauteilPlatzieren(bId, symId, bez)

@@ -53,6 +53,7 @@ Column {
 
             // ── Status-Zeile ──────────────────────────
             Rectangle {
+                id: statusZeile
                 width: parent.width; height: 28
                 color: theme.inputBg; radius: 3
                 border.color: {
@@ -60,6 +61,25 @@ Column {
                     if (verknuepfungItem.hauptfunktionFehlt) return "#cc7700"
                     return theme.border
                 }
+
+                readonly property string statusTip: {
+                    if (!verknuepfungItem.bmId)
+                        return qsTr("○ Nicht verknüpft – dieses Symbol gehört noch zu keinem Betriebsmittel")
+                    if (verknuepfungItem.istHauptfunktion)
+                        return qsTr("★ Hauptfunktion – das steuernde Symbol (z. B. Spule), von dem alle Kontakte die BMK erben")
+                    if (verknuepfungItem.hauptfunktionFehlt)
+                        return qsTr("⚠ Hauptfunktion fehlt – dem Betriebsmittel ist noch kein Symbol als Hauptfunktion zugewiesen")
+                    return qsTr("◆ Nebenfunktion – ein Kontakt dieses Betriebsmittels, BMK wird von der Hauptfunktion übernommen")
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                    ToolTip.visible: containsMouse
+                    ToolTip.text:    statusZeile.statusTip
+                    ToolTip.delay:   500
+                }
+
                 Row {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     spacing: 6

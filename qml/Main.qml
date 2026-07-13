@@ -1645,11 +1645,28 @@ ApplicationWindow {
 
                         onBmkGewaehlt: function(sid, elementId, wx, wy) {
                             if (sid !== root.aktivSeiteId) {
-                                ibnCanvas._querverweisZielPos = { x: wx, y: wy }
-                                root.aktivSeiteId = sid
+                                root._ibnZentriereX = wx
+                                root._ibnZentriereY = wy
+                                root.aktivSeiteId   = sid
+                                ibnZentriereTimer.restart()
                             } else {
                                 ibnCanvas._zoomZuWeltPosition(wx, wy)
+                                ibnCanvas._zeigeMarker(wx, wy)
                             }
+                        }
+                    }
+
+                    // Sprungziel-Markierung analog CanvasPanel.seiteOeffnenUndZentrieren:
+                    // ibnCanvas hängt hier direkt (nicht über CanvasPanel), daher eigener
+                    // kleiner Timer statt Wiederverwendung von dessen Funktion.
+                    property real _ibnZentriereX: 0
+                    property real _ibnZentriereY: 0
+                    Timer {
+                        id:       ibnZentriereTimer
+                        interval: 80
+                        onTriggered: {
+                            ibnCanvas._zoomZuWeltPosition(root._ibnZentriereX, root._ibnZentriereY)
+                            ibnCanvas._zeigeMarker(root._ibnZentriereX, root._ibnZentriereY)
                         }
                     }
 

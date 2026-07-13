@@ -870,6 +870,29 @@ ApplicationWindow {
                             root.aktiverCanvas.aktivesWerkzeug         = "symbol"
                             root.aktiverCanvas.forceActiveFocus()
                         }
+                        onSteckverbinderKontaktPlatzieren: function(geraetekastenId, positionId, symbolId, bmk) {
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
+                            if (db.steckverbinderPositionIstPlatziert(positionId)) { meldungManager.zeigen(qsTr("Diese Position ist bereits platziert."), false); return }
+                            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                            root.aktiverCanvas.paletteSymbolId  = symbolId
+                            root.aktiverCanvas.paletteExtraDaten = {
+                                "platziermodus":   "verknuepft",
+                                "geraetekastenId": geraetekastenId,
+                                "positionId":      positionId,
+                                "bmk":             bmk
+                            }
+                            root.aktiverCanvas.aktivesWerkzeug  = "symbol"
+                            root.aktiverCanvas.forceActiveFocus()
+                        }
+                        onSteckverbinderSequentiellStarten: function(queueJson) {
+                            var queue = JSON.parse(queueJson)
+                            if (!queue || queue.length === 0) return
+                            if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
+                            if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"
+                            root._kontaktQueue      = queue
+                            root._kontaktQueueAktiv = true
+                            root._kontaktQueueNaechste()
+                        }
                         onBauteilPlatzieren: function(bauteilId, symbolId, bezeichnung) {
                             if (root.aktivSeiteId < 0) { meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false); return }
                             if (root.aktiveAnsicht !== "seiten") root.aktiveAnsicht = "seiten"

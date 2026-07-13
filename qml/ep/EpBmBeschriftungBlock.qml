@@ -11,6 +11,22 @@ Column {
     width:   parent ? parent.width : 0
     spacing: 0
 
+    readonly property int  _bmId: (panel.el && (panel.el.betriebsmittelId || 0) > 0)
+                                  ? panel.el.betriebsmittelId : 0
+    readonly property bool _istHf: _bmId > 0
+                                   && (db.betriebsmittelInfo(_bmId).hauptElementId || 0)
+                                      === (panel.el ? panel.el.id : -1)
+    readonly property bool _ksSichtbar: {
+        var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
+        return ed.kontaktspiegelSichtbar !== false
+    }
+    function ksToggleSichtbar() {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        ed.kontaktspiegelSichtbar = !_ksSichtbar
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
     component Trennlinie: Rectangle {
         width: root.width - 16; height: 1; color: root.theme.border
         anchors.horizontalCenter: parent.horizontalCenter
@@ -183,6 +199,47 @@ Column {
                     }
                 }
                 Item { height: 4 }
+            }
+        }
+    }
+
+    // Kontaktspiegel: nur an der Hauptfunktion, zeigt/verbirgt die Zeilen
+    // der Nebenfunktionen im Plan/PDF (Inhalt selbst nicht editierbar hier –
+    // kommt aus den platzierten Kontakten, s. Kontaktspiegel-Tabelle oben).
+    Item {
+        width: root.width; height: root._istHf ? 26 : 0
+        visible: root._istHf
+        clip: true
+
+        Row {
+            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+            spacing: 6
+
+            Rectangle {
+                width: 26; height: 26; radius: 3
+                anchors.verticalCenter: parent.verticalCenter
+                color: ksVisMa.containsMouse ? root.theme.border : root.theme.inputBg
+                border.color: root.theme.border
+                ToolTip.visible: ksVisMa.containsMouse
+                ToolTip.text:    root._ksSichtbar ? qsTr("Kontaktspiegel im Plan/PDF ausblenden")
+                                                   : qsTr("Kontaktspiegel im Plan/PDF einblenden")
+                ToolTip.delay:   400
+                Text {
+                    anchors.centerIn: parent
+                    text:  root._ksSichtbar ? "👁" : "⃠"
+                    color: root._ksSichtbar ? root.theme.accent : root.theme.borderDark
+                    font.pixelSize: 14
+                }
+                MouseArea {
+                    id: ksVisMa; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.ksToggleSichtbar()
+                }
+            }
+            Text {
+                text: qsTr("Kontaktspiegel im Plan")
+                color: root.theme.textMuted; font.pixelSize: 11
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
     }

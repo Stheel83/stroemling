@@ -1785,6 +1785,23 @@ QtObject {
                         if (bmkEd[ftK + "Sichtbar"] !== false && (bmkEd[ftK] || "") !== "")
                             ftZeilen.push(bmkEd[ftK])
                     }
+                    // Kontaktspiegel (nur an der Hauptfunktion, Jul 2026): Zeilen der
+                    // Nebenfunktionen werden dem Freitext-Block angehängt – teilt sich
+                    // Position/Drag mit BMK+Freitext (bmkOffsetX/Y), kein eigener Offset.
+                    if ((el.betriebsmittelId || 0) > 0 && bmkEd.kontaktspiegelSichtbar !== false) {
+                        var ksListe = db.betriebsmittelMitglieder(el.betriebsmittelId)
+                        var ksIstHF = false
+                        for (var ki = 0; ki < ksListe.length; ki++) {
+                            if (ksListe[ki].id === el.id && ksListe[ki].istHauptfunktion) { ksIstHF = true; break }
+                        }
+                        if (ksIstHF) {
+                            for (var kj = 0; kj < ksListe.length; kj++) {
+                                if (ksListe[kj].istHauptfunktion) continue
+                                var kBez = ksListe[kj].anschlusskennzeichnung || "–"
+                                ftZeilen.push(kBez + "   Bl." + ksListe[kj].blattnummer)
+                            }
+                        }
+                    }
                     if (bmkStr !== "" || ftZeilen.length > 0) {
                         // Schriftgröße aus extra_daten (mm), Standard 2.5 mm
                         var schrift = (bmkEd.schriftgroesse !== undefined

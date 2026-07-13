@@ -715,6 +715,19 @@ QVariantList Database::betriebsmittelMitglieder(int betriebsmittelId)
                 auto obj = doc.object();
                 bmk = obj[QStringLiteral("bmk")].toString();
                 anschlusskennzeichnung = obj[QStringLiteral("anschlusskennzeichnung")].toString();
+                // Fallback für Schütz-/Relais-Kontakte: die haben kein
+                // anschlusskennzeichnung (nur für geraeteanschluss/M5 gesetzt),
+                // sondern eine pinBez-Karte (z.B. {"1":"13","2":"14"}) – daraus
+                // eine Anzeige-Bezeichnung wie "13/14" bauen.
+                if (anschlusskennzeichnung.isEmpty()) {
+                    QJsonObject pinBez = obj.value(QStringLiteral("pinBez")).toObject();
+                    if (!pinBez.isEmpty()) {
+                        QStringList werte;
+                        for (auto it = pinBez.constBegin(); it != pinBez.constEnd(); ++it)
+                            werte << it.value().toString();
+                        anschlusskennzeichnung = werte.join(QStringLiteral("/"));
+                    }
+                }
             }
         }
         m[QStringLiteral("bmk")]                   = bmk;

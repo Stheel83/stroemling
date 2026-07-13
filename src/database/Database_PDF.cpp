@@ -259,6 +259,65 @@ static QString pdfBmkSeite(const QString &symbolId, const QSqlDatabase &db)
     return QStringLiteral("auto");
 }
 
+// Kontaktspiegel-Zeilen für die Hauptfunktion eines Betriebsmittels (Jul 2026).
+// 1:1-Port der QML-Logik im Kontaktspiegel-Block von CanvasRenderHandler.qml
+// (maleElement) bzw. Database::betriebsmittelMitglieder() – liefert nur dann
+// Zeilen, wenn eigeneElementId tatsächlich die Hauptfunktion des Betriebsmittels
+// ist. Format je Nebenfunktion: "<Anschlusskennzeichnung>   Bl.<Blattnummer>".
+static QStringList pdfKontaktspiegelZeilen(int betriebsmittelId, int eigeneElementId,
+                                            const QSqlDatabase &db)
+{
+    QStringList zeilen;
+    if (betriebsmittelId <= 0) return zeilen;
+
+    int hauptId = 0;
+    {
+        QSqlQuery hq(db);
+        hq.prepare(QStringLiteral("SELECT haupt_element_id FROM betriebsmittel WHERE id = :id"));
+        hq.bindValue(":id", betriebsmittelId);
+        if (hq.exec() && hq.next() && !hq.value(0).isNull())
+            hauptId = hq.value(0).toInt();
+    }
+    if (hauptId <= 0 || hauptId != eigeneElementId) return zeilen;
+
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT s.blattnummer, g.extra_daten "
+        "FROM grafik_element g JOIN seite s ON s.id = g.seite_id "
+        "WHERE g.betriebsmittel_id = :bid AND g.id != :hid "
+        "ORDER BY s.blattnummer, g.id"));
+    q.bindValue(":bid", betriebsmittelId);
+    q.bindValue(":hid", hauptId);
+    if (!q.exec()) return zeilen;
+    while (q.next()) {
+        QString blattnr = q.value(0).toString();
+        QString extra   = q.value(1).toString();
+        QString anschlusskennzeichnung;
+        if (!extra.isEmpty()) {
+            QJsonParseError err;
+            auto doc = QJsonDocument::fromJson(extra.toUtf8(), &err);
+            if (!err.error && doc.isObject()) {
+                auto obj = doc.object();
+                anschlusskennzeichnung = obj.value(QStringLiteral("anschlusskennzeichnung")).toString();
+                // Fallback für Schütz-/Relais-Kontakte (pinBez statt anschlusskennzeichnung),
+                // 1:1 zu Database::betriebsmittelMitglieder().
+                if (anschlusskennzeichnung.isEmpty()) {
+                    QJsonObject pinBez = obj.value(QStringLiteral("pinBez")).toObject();
+                    if (!pinBez.isEmpty()) {
+                        QStringList werte;
+                        for (auto it = pinBez.constBegin(); it != pinBez.constEnd(); ++it)
+                            werte << it.value().toString();
+                        anschlusskennzeichnung = werte.join(QStringLiteral("/"));
+                    }
+                }
+            }
+        }
+        QString bez = anschlusskennzeichnung.isEmpty() ? QStringLiteral("–") : anschlusskennzeichnung;
+        zeilen << bez + QStringLiteral("   Bl.") + blattnr;
+    }
+    return zeilen;
+}
+
 // Beschriftungen (BMK, Freitexte) über/links neben einem Symbol rendern.
 // 1:1-Port des BMK-Renderblocks in CanvasRenderHandler.qml (maleElement,
 // Abschnitt "BMK-Label und Freitexte am Symbol rendern") – Text immer
@@ -289,6 +348,11 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
         QString val = ed.value(key).toString();
         if (sichtbar && !val.isEmpty()) ftZeilen << val;
     }
+
+    int bmId = el.value(QStringLiteral("betriebsmittelId")).toInt();
+    if (bmId > 0 && ed.value(QStringLiteral("kontaktspiegelSichtbar"), true).toBool())
+        ftZeilen << pdfKontaktspiegelZeilen(bmId, el.value(QStringLiteral("id")).toInt(), db);
+
     if (bmk.isEmpty() && ftZeilen.isEmpty()) return;
 
     double x1 = el.value("x1").toDouble() * C;

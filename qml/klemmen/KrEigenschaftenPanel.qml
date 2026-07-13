@@ -10,7 +10,6 @@ Rectangle {
 
     signal neueStegAngefordert()
     signal bauteilWaehlenAngefordert(int klemmeId)
-    signal modusAPlatzierenAngefordert(int klemmeId, int bauteilKlemmeId, string bmkPrefix)
     signal leisteGeloescht()
     signal leisteKanvasAktualisiert()
 
@@ -648,36 +647,6 @@ Rectangle {
                     font.pixelSize: 11; color: theme.textSecondary
                     Layout.fillWidth: true; wrapMode: Text.Wrap
                 }
-            }
-
-            // Im Canvas platzieren (Modus A – Verknüpft)
-            RowLayout {
-                visible: panel.aktivKlemme !== null && panel.aktivKlemme !== undefined && panel.aktivKlemme.bauteilId > 0
-                Layout.fillWidth: true; spacing: 6
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: qsTr("Im Canvas platzieren")
-                    implicitHeight: 24
-                    contentItem: Text {
-                        text: parent.text; font.pixelSize: 11; color: theme.textPrimary
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: parent.hovered ? theme.accent : theme.inputBg; radius: 3; border.color: theme.accent
-                    }
-                    ToolTip.visible: hovered; ToolTip.delay: 500
-                    ToolTip.text: qsTr("Klemme als verknüpftes Symbol in den Schaltplan platzieren")
-                    onClicked: {
-                        klemmeModel.laden(panel.aktivKlemme.bauteilId)
-                        var bkId      = klemmeModel.klemme["klemmeId"] || -1
-                        var leisteBmk = klemmenreiheModel.leiste["bmkKurz"]
-                                       || ("-" + (klemmenreiheModel.leiste["bezeichnung"] || ""))
-                        root.modusAPlatzierenAngefordert(
-                            panel.aktivKlemme.klemmeId, bkId,
-                            leisteBmk + ":" + (panel.aktivKlemme.nummer || ""))
-                    }
-                }
-                Item { Layout.fillWidth: true }
             }
 
             // Stegbrücken dieser Klemme (gefiltert)

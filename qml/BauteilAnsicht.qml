@@ -16,7 +16,6 @@ Item {
     property string selectedBauteilHersteller:    ""
     property string selectedBauteilArtikelnummer: ""
 
-    signal klemmeAnschlussModusAPlatzieren(int bauteilKlemmeId, string anschlussBezeichnung, string bmk, int klemmeId)
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal leisteKanvasAktualisiert()
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
@@ -72,9 +71,6 @@ Item {
                 theme:     root.theme
                 debug:     root.debug
                 projektId: root.projektId
-                onKlemmeAnschlussModusAPlatzieren: function(bkId, bez, bmk, kId) {
-                    root.klemmeAnschlussModusAPlatzieren(bkId, bez, bmk, kId)
-                }
                 onLeisteKanvasAktualisiert: root.leisteKanvasAktualisiert()
             }
 

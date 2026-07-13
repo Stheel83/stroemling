@@ -1186,24 +1186,6 @@ ApplicationWindow {
                     if (panel1.aktivSeiteId >= 0) elementeModel1.laden(panel1.aktivSeiteId)
                     if (panel2.aktivSeiteId >= 0) elementeModel2.laden(panel2.aktivSeiteId)
                 }
-                onKlemmeAnschlussModusAPlatzieren: function(bauteilKlemmeId, anschlussBezeichnung, bmk, klemmeId) {
-                    if (root.aktivSeiteId < 0) {
-                        meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
-                        return
-                    }
-                    if (db.klemmeAnschlussIstPlatziert(klemmeId, anschlussBezeichnung)) { meldungManager.zeigen(qsTr("Dieser Klemmenanschluss ist bereits platziert."), false); return }
-                    root.aktiveAnsicht = "seiten"
-                    root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
-                    root.aktiverCanvas.paletteExtraDaten = {
-                        "bauteilKlemmeId":      bauteilKlemmeId,
-                        "anschlussBezeichnung": anschlussBezeichnung,
-                        "platziermodus":        "verknuepft",
-                        "bmk":                  bmk,
-                        "klemmeId":             klemmeId
-                    }
-                    root.aktiverCanvas.aktivesWerkzeug  = "symbol"
-                    root.aktiverCanvas.forceActiveFocus()
-                }
                 onKontaktenSequentiellPlatzierenAngefordert: function(queueJson) {
                     var queue = JSON.parse(queueJson)
                     if (!queue || queue.length === 0) return

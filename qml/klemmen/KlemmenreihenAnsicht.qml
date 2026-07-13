@@ -10,8 +10,6 @@ Item {
     property var  theme
     property bool debug:     false
 
-    // Modus-A-Platzierung: Klemme aus Klemmenreihe direkt im Canvas platzieren
-    signal klemmeAnschlussModusAPlatzieren(int bauteilKlemmeId, string anschlussBezeichnung, string bmk, int klemmeId)
     // Platzierte Canvas-Elemente wurden mit aktuellem Bauteil synchronisiert → Canvas neu laden
     signal leisteKanvasAktualisiert()
 
@@ -416,131 +414,6 @@ Item {
         }
     }
 
-    // ── Dialog: Anschluss im Canvas platzieren (Modus A) ───────────
-    Dialog {
-        id: modusAPlatzierDlg
-        title: qsTr("Anschluss platzieren")
-        modal: true
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: 320
-        padding: 16
-
-        property int    klemmeId:        -1
-        property int    bauteilKlemmeId: -1
-        property string bmkPrefix:       ""
-        property string selAnschluss:    ""
-        property var    _platziert:      ({})   // anschlussBezeichnung → true
-
-        function _ladeStatus() {
-            var alle = db.platzierteKlemmenAnschluesse()
-            var map  = {}
-            for (var i = 0; i < alle.length; i++) {
-                if (alle[i].klemmeId === klemmeId)
-                    map[alle[i].anschlussBezeichnung] = true
-            }
-            _platziert = map
-        }
-
-        background: Rectangle {
-            color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6
-        }
-
-        onAboutToShow: {
-            _ladeStatus()
-            selAnschluss = klemmeModel.anschluesse.length > 0
-                           ? klemmeModel.anschluesse[0].bezeichnung : ""
-            if (anschlussComboA.count > 0) anschlussComboA.currentIndex = 0
-        }
-
-        contentItem: ColumnLayout {
-            spacing: 10
-
-            Text {
-                text: aktivKlemme ? (aktivKlemme.bauteilName || "") : ""
-                font.pixelSize: 12; font.weight: Font.Medium
-                color: theme.accent; Layout.fillWidth: true; elide: Text.ElideRight
-                visible: text !== ""
-            }
-
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Text { text: qsTr("Anschluss:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 80 }
-                ComboBox {
-                    id: anschlussComboA
-                    Layout.fillWidth: true
-                    model: klemmeModel.anschluesse
-                    textRole: "bezeichnung"
-                    font.pixelSize: 12
-                    contentItem: Text {
-                        text: anschlussComboA.displayText
-                        font: anschlussComboA.font; color: theme.textPrimary
-                        verticalAlignment: Text.AlignVCenter; leftPadding: 8
-                    }
-                    background: Rectangle { color: theme.inputBg; border.color: theme.border; border.width: 1; radius: 3 }
-                    popup.background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 4 }
-                    delegate: ItemDelegate {
-                        width: anschlussComboA.width
-                        property bool istPlatziert: modusAPlatzierDlg._platziert[modelData.bezeichnung] === true
-                        contentItem: Text {
-                            text: (parent.istPlatziert ? "✓ " : "") + modelData.bezeichnung + "  Eb." + modelData.ebene
-                            color: parent.istPlatziert ? theme.textMuted : theme.textPrimary
-                            font.pixelSize: 12; verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle { color: parent.hovered ? theme.hover : theme.sidebar }
-                    }
-                    onActivated: {
-                        var list = klemmeModel.anschluesse
-                        if (currentIndex >= 0 && currentIndex < list.length)
-                            modusAPlatzierDlg.selAnschluss = list[currentIndex].bezeichnung
-                    }
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true; spacing: 8
-                Text { text: qsTr("BMK:"); font.pixelSize: 11; color: theme.textMuted; Layout.preferredWidth: 80 }
-                Text {
-                    text: modusAPlatzierDlg.bmkPrefix + ":" + modusAPlatzierDlg.selAnschluss
-                    font.pixelSize: 12; font.weight: Font.Bold
-                    color: theme.accent; Layout.fillWidth: true; elide: Text.ElideRight
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: qsTr("Abbrechen"); implicitWidth: 90; implicitHeight: 28
-                    contentItem: Text { text: parent.text; color: theme.textMuted; font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; border.color: theme.border; border.width: 1; radius: 4 }
-                    onClicked: modusAPlatzierDlg.reject()
-                }
-                Button {
-                    text: qsTr("Platzieren"); implicitWidth: 90; implicitHeight: 28
-                    enabled: modusAPlatzierDlg.selAnschluss !== ""
-                             && modusAPlatzierDlg.bauteilKlemmeId >= 0
-                             && !modusAPlatzierDlg._platziert[modusAPlatzierDlg.selAnschluss]
-                    contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle {
-                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
-                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
-                    }
-                    onClicked: modusAPlatzierDlg.accept()
-                }
-            }
-        }
-
-        onAccepted: {
-            if (selAnschluss !== "" && bauteilKlemmeId >= 0) {
-                var fullBmk = bmkPrefix + ":" + selAnschluss
-                panel.klemmeAnschlussModusAPlatzieren(bauteilKlemmeId, selAnschluss, fullBmk, klemmeId)
-            }
-        }
-    }
-
     // ── Hauptlayout ─────────────────────────────────────────────────
     RowLayout {
         anchors.fill: parent
@@ -757,12 +630,6 @@ Item {
             onBauteilWaehlenAngefordert: function(kId) {
                 bauteilWaehlDlg.klemmeId = kId
                 bauteilWaehlDlg.open()
-            }
-            onModusAPlatzierenAngefordert: function(kId, bkId, prefix) {
-                modusAPlatzierDlg.klemmeId        = kId
-                modusAPlatzierDlg.bauteilKlemmeId = bkId
-                modusAPlatzierDlg.bmkPrefix       = prefix
-                modusAPlatzierDlg.open()
             }
             onLeisteGeloescht:           leisteListView.currentIndex = -1
             onLeisteKanvasAktualisiert:  panel.leisteKanvasAktualisiert()

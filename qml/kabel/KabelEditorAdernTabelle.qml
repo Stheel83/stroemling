@@ -51,18 +51,18 @@ Item {
     function vorausfuellenFarben(normTyp) {
         var seq = root._normFarben[normTyp]
         var adern = kabelModel.adern
+        var eintraege = []
         for (var i = 0; i < adern.length; i++) {
             var a = adern[i]
             var eintrag = i < seq.length ? seq[i] : seq[1 + ((i - seq.length) % (seq.length - 1))]
             var farbe  = typeof eintrag === "string" ? eintrag : eintrag.farbe
             var farbe2 = typeof eintrag === "string" ? ""      : (eintrag.farbe2 || "")
-            kabelModel.aderAktualisieren(a.id, {
-                "bezeichnung":     a.bezeichnung,
-                "farbe":           farbe,
-                "farbe2":          farbe2,
-                "querschnitt_mm2": a.querschnittMm2 || 0
-            })
+            eintraege.push({ id: a.id, farbe: farbe, farbe2: farbe2 })
         }
+        // Ein Bulk-Aufruf (eine Transaktion, ein Tabellen-Reload) statt N
+        // einzelner aderAktualisieren()-Aufrufe – sonst baut sich die Tabelle
+        // (2 ComboBoxen je Zeile) bei jeder einzelnen Ader komplett neu auf.
+        kabelModel.adernFarbenVorausfuellen(eintraege)
     }
 
     DebugLabel { panelName: qsTr("Ader-Tabelle"); visible: root.debug }

@@ -313,6 +313,43 @@ bool KabelModel::aderAktualisieren(int aderId, const QVariantMap &daten)
     return true;
 }
 
+bool KabelModel::adernFarbenVorausfuellen(const QVariantList &eintraege)
+{
+    if (eintraege.isEmpty() || m_kabelId < 0) return false;
+
+    QSqlDatabase db = QSqlDatabase::database();
+    db.transaction();
+
+    QSqlQuery q(db);
+    q.prepare("UPDATE bibliothek.bauteil_kabel_ader SET farbe = :farbe, farbe2 = :farbe2 "
+              "WHERE id = :id AND kabel_id = :kid");
+
+    bool ok = true;
+    for (const QVariant &v : eintraege) {
+        QVariantMap e = v.toMap();
+        QString farbe  = e.value("farbe").toString().trimmed();
+        QString farbe2 = e.value("farbe2").toString().trimmed();
+        q.bindValue(":farbe",  farbe.isEmpty()  ? QVariant() : QVariant(farbe));
+        q.bindValue(":farbe2", farbe2.isEmpty() ? QVariant() : QVariant(farbe2));
+        q.bindValue(":id",     e.value("id").toInt());
+        q.bindValue(":kid",    m_kabelId);
+        if (!q.exec()) {
+            qCWarning(lcModel) << "KabelModel::adernFarbenVorausfuellen:" << q.lastError().text();
+            ok = false;
+            break;
+        }
+    }
+
+    if (ok) db.commit();
+    else    db.rollback();
+
+    aktualisiereKanvasBauteilKabel();
+    emit kanvasGeaendert();
+    ladeAdern();
+    emit geladen();
+    return ok;
+}
+
 bool KabelModel::aderSchieben(int aderId, int richtung)
 {
     int idx = -1;

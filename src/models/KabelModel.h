@@ -60,6 +60,14 @@ public:
     // Nur nicht-leere Felder in daten werden gesetzt: "farbe", "farbe2", "bezeichnung", "querschnitt_mm2".
     Q_INVOKABLE bool aderMehrfachAktualisieren(const QVariantList &ids, const QVariantMap &daten);
 
+    // Normreihe vorausfüllen: jede Ader bekommt ihre eigene Farbe/Farbe2 aus
+    // einer vorberechneten Liste – eine Transaktion + ein Reload statt N
+    // einzelner aderAktualisieren()-Aufrufe (war mit der zweiten Farbspalte
+    // pro Zeile spürbar langsam, da jeder Einzelaufruf die komplette
+    // Ader-Tabelle inkl. beider ComboBoxen neu aufbaut).
+    // eintraege: [{id, farbe, farbe2}]
+    Q_INVOKABLE bool adernFarbenVorausfuellen(const QVariantList &eintraege);
+
     // Paar anlegen (nur sinnvoll wenn paarweise_verdrillt = true).
     // paar_nr wird automatisch als MAX+1 vergeben.
     Q_INVOKABLE int  paarAnlegen(int aderA, int aderB);

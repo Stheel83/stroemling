@@ -14,6 +14,15 @@ sich am offenen Kabelende und an beiden Enden zuverlässig zuordnen lässt.
 > (Lapp/ÖLFLEX, Helukabel, Faber) drucken ihre mehradrigen Steuerleitungen
 > weiterhin exakt nach diesem Farbcode.
 
+**Abgrenzung zu IEC 60757:** Die aktuell gültige **DIN EN IEC 60757
+(VDE 0197-757)** – zuletzt 2023-10 nach 37 Jahren grundlegend neu gefasst –
+regelt nur die **Kurzzeichen einzelner Farben** (z. B. BN, BU, GNYE für
+grün-gelb) für die allgemeine Leiterkennzeichnung nach
+[DIN VDE 0293-308](aderfarben_normen_geschichte.md). Sie liefert **keinen**
+eigenen Ring-Farbcode für mehradrige Steuerleitungen – für die
+durchnummerierte Adernfolge 1–61 bleibt der DIN-47100-Farbcode die
+einschlägige (wenn auch zurückgezogene) Referenz.
+
 ---
 
 ## Die 18 Grundfarben (Adern 1–18)
@@ -96,5 +105,10 @@ nummerierte Ader – er wird separat behandelt
 - DIN 47100 – zurückgezogen im November 1998, ohne direkten
   Nachfolger im gleichen Umfang; Farbcode bleibt de-facto-Standard
   der Kabelhersteller
+- DIN EN IEC 60757 (VDE 0197-757) – Kurzzeichen für Farben, Neufassung
+  2023-10 (kein Ring-Farbcode, siehe Abgrenzung oben)
 - [Kabeltronik – Farbcode nach DIN 47100](https://www.kabeltronik.de/de/kabeltronik/info-download/technical/color-code-din)
 - [Lapp – Farbcode DIN 47100 (PDF)](https://www.lapp.ch/file/73/CMS/Downloads/farbcode-din-47100-de.pdf)
+- [SAB Kabel – Farbcode Aderkennzeichnung nach DIN 47100](https://www.sab-kabel.de/kabel-konfektion-temperaturmesstechnik/technische-daten/farbcode-kabel-und-leitungen.html)
+- [medikabel – Ader-Farbcode nach DIN 47100](https://www.medikabel.de/en/technical-information/colorcodes/colorcodes-din47100)
+- [letronic – Kennzeichnung der Verseilelemente nach DIN 47100 (PDF)](https://www.letronic.de/themes/letronic/assets/pdf/DIN%2047100%20Farbcode.pdf)

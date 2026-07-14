@@ -155,6 +155,19 @@ private slots:
         QVERIFY2(maxVersion >= 48,
                  qPrintable(QString("Maximale Schema-Version zu niedrig: %1").arg(maxVersion)));
     }
+
+    void test_07_spalteFarbe2()
+    {
+        // Migration v94 fügt kabel_ader.farbe2 für Bifarb-Adern hinzu
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("PRAGMA table_info(kabel_ader)"));
+        QStringList spalten;
+        while (q.next())
+            spalten << q.value(1).toString();
+
+        QVERIFY2(spalten.contains("farbe2"),
+                 "Spalte kabel_ader.farbe2 fehlt (Migration v94)");
+    }
 };
 
 QTEST_GUILESS_MAIN(TstMigrationen)

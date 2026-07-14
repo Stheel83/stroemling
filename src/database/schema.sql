@@ -306,6 +306,7 @@ CREATE TABLE kabel_ader (
     kabel_id                        INTEGER NOT NULL REFERENCES kabel(id),
     ader_nr                         INTEGER NOT NULL,
     farbe                           TEXT,
+    farbe2                          TEXT,
     bezeichnung                     TEXT,
     verbindung_id                   INTEGER REFERENCES verbindung(id),
     kabellinie_grafik_element_id    INTEGER REFERENCES grafik_element(id) ON DELETE SET NULL,

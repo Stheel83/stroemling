@@ -1128,12 +1128,16 @@ QtObject {
     // umgeschaltet werden kann (Default dort: Signaltyp).
     function _segmentFarbeUndBreite(net, sAdps) {
         var farbe = cv.geometrie.signaltypFarbe(net.signaltyp)
+        var farbe2 = ""
         var zeigeAderfarbe = !cv.fehlersuchModus || cv.fehlersuchZeigeAderfarbe
-        if (zeigeAderfarbe && net.signaltyp !== "konflikt" && sAdps.length > 0 && sAdps[0].ed.aderfarbe)
+        if (zeigeAderfarbe && net.signaltyp !== "konflikt" && sAdps.length > 0 && sAdps[0].ed.aderfarbe) {
             farbe = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
+            if (sAdps[0].ed.aderfarbe2)
+                farbe2 = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe2)
+        }
 
         var anz = Math.max(1, sAdps.length)
-        return { farbe: farbe, breite: _breiteFuerAnzahl(anz, net.signaltyp) }
+        return { farbe: farbe, farbe2: farbe2, breite: _breiteFuerAnzahl(anz, net.signaltyp) }
     }
 
     // Liefert für einen Segment-Index einen Bänderungs-Deskriptor: entweder
@@ -1148,6 +1152,11 @@ QtObject {
             return { modus: "einzel", farbe: "#4a9eff", farben: ["#4a9eff"], breite: 1.5, armAnzahl: 1 }
         if (baender[si] !== undefined) return baender[si]
         var fb = _segmentFarbeUndBreite(net, segAdps[si] || [])
+        // Bifarb-Ader (aderfarbe2): eine einzelne Ader mit zweifarbiger Isolierung,
+        // NICHT zu verwechseln mit der Treffpunkt-Bänderung ("gleich"/"verschieden"
+        // oben) die zwei verschiedene Adern behandelt, die sich treffen.
+        if (fb.farbe2)
+            return { modus: "bifarb", farbe: fb.farbe, farben: [fb.farbe, fb.farbe2], breite: fb.breite, armAnzahl: 1 }
         return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }
     }
 
@@ -1281,6 +1290,23 @@ QtObject {
         if (!band) return
         ctx.setLineDash([])
         var modus = band.modus || "einzel"
+        if (modus === "bifarb") {
+            // Bifarb-Ader (aderfarbe2): längs alternierendes Strich-Band statt
+            // Parallel-Offset (das wäre mit der Treffpunkt-Bänderung "verschieden"
+            // optisch verwechselbar, siehe Feldkommentar an _bandOderEinfach()).
+            var dashLen = Math.max(2, band.breite * 3)
+            ctx.lineCap = "butt"
+            ctx.strokeStyle = band.farben[0]
+            ctx.lineWidth   = band.breite
+            ctx.setLineDash([dashLen, dashLen])
+            ctx.lineDashOffset = 0
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
+            ctx.strokeStyle = band.farben[1]
+            ctx.lineDashOffset = dashLen
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
+            ctx.setLineDash([])
+            return
+        }
         if (modus !== "gleich" && modus !== "verschieden") {
             ctx.strokeStyle = band.farbe
             ctx.lineWidth   = band.breite
@@ -1434,6 +1460,8 @@ QtObject {
                 var _zielBand = treffpunktBaender[si]
                 var band = _zielBand || (function() {
                     var fb = _segmentFarbeUndBreite(net, sAdps)
+                    if (fb.farbe2)
+                        return { modus: "bifarb", farbe: fb.farbe, farben: [fb.farbe, fb.farbe2], breite: fb.breite, armAnzahl: 1 }
                     return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }
                 })()
                 // Referenzpunkt (S1-Pin) in Viewport-Koordinaten für die
@@ -2281,9 +2309,9 @@ QtObject {
                 var aed = el.extraDaten || {}
                 var adpZeilen = []
                 if (aed.bezeichnung) adpZeilen.push({ text: aed.bezeichnung, bold: true })
-                var adpFarb = aed.aderfarbe || "", adpQuer = aed.querschnitt_mm2
+                var adpFarb = aed.aderfarbe || "", adpFarb2 = aed.aderfarbe2 || "", adpQuer = aed.querschnitt_mm2
                 if (adpFarb !== "" || (adpQuer !== undefined && adpQuer > 0))
-                    adpZeilen.push({ text: (adpFarb || "–") + (adpQuer > 0 ? "  " + (adpQuer + "").replace('.', ',') + " mm²" : ""), bold: false })
+                    adpZeilen.push({ text: (adpFarb ? adpFarb + (adpFarb2 ? "/" + adpFarb2 : "") : "–") + (adpQuer > 0 ? "  " + (adpQuer + "").replace('.', ',') + " mm²" : ""), bold: false })
                 if (aed.laenge_m && aed.laenge_m > 0)
                     adpZeilen.push({ text: qsTr("\u2192 ") + (aed.laenge_m + "").replace('.', ',') + " m", bold: false })
                 if (adpZeilen.length > 0) {

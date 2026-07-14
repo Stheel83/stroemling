@@ -48,14 +48,16 @@ public:
     Q_INVOKABLE bool aderLoeschen(int aderId);
 
     // Ader-Felder aktualisieren.
-    // Felder: farbe, nummer, bezeichnung, querschnitt_mm2
+    // Felder: farbe, farbe2, nummer, bezeichnung, querschnitt_mm2
+    // farbe2 ist optional (zweite Isolationsfarbe fuer Bifarb-Adern wie PE oder
+    // DIN-47100-Adern 11-18).
     Q_INVOKABLE bool aderAktualisieren(int aderId, const QVariantMap &daten);
 
     // Ader verschieben (richtung: -1 = hoch / +1 = runter).
     Q_INVOKABLE bool aderSchieben(int aderId, int richtung);
 
     // Mehrere Adern auf einmal aktualisieren.
-    // Nur nicht-leere Felder in daten werden gesetzt: "farbe", "bezeichnung", "querschnitt_mm2".
+    // Nur nicht-leere Felder in daten werden gesetzt: "farbe", "farbe2", "bezeichnung", "querschnitt_mm2".
     Q_INVOKABLE bool aderMehrfachAktualisieren(const QVariantList &ids, const QVariantMap &daten);
 
     // Paar anlegen (nur sinnvoll wenn paarweise_verdrillt = true).

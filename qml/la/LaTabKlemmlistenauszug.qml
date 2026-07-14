@@ -236,8 +236,9 @@ ColumnLayout {
                                     height:  visible ? implicitHeight : 0
                                     spacing: 3
                                     AderfarbenSwatch {
-                                        visible:  (model.vonAderFarbe || "") !== ""
-                                        aderCode: model.vonAderFarbe || ""
+                                        visible:   (model.vonAderFarbe || "") !== ""
+                                        aderCode:  model.vonAderFarbe  || ""
+                                        aderCode2: model.vonAderFarbe2 || ""
                                         width: 10; height: 10
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -416,8 +417,9 @@ ColumnLayout {
                                     height:  visible ? implicitHeight : 0
                                     spacing: 3
                                     AderfarbenSwatch {
-                                        visible:  (model.nachAderFarbe || "") !== ""
-                                        aderCode: model.nachAderFarbe || ""
+                                        visible:   (model.nachAderFarbe || "") !== ""
+                                        aderCode:  model.nachAderFarbe  || ""
+                                        aderCode2: model.nachAderFarbe2 || ""
                                         width: 10; height: 10
                                         anchors.verticalCenter: parent.verticalCenter
                                     }

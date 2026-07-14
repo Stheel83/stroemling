@@ -25,13 +25,13 @@ Popup {
     property int    verbindungId:   0
     property int    aktuelleAderNr: 0     // 0 = keine
     property bool   istLeer:        true
-    property var    alteAder:       ({})  // {aderNr, farbe, bezeichnung} der bisherigen Ader (für Freigabe)
-    property var    freieAdern:     []    // [{aderNr, farbe, bezeichnung}, ...]
+    property var    alteAder:       ({})  // {aderNr, farbe, farbe2, bezeichnung} der bisherigen Ader (für Freigabe)
+    property var    freieAdern:     []    // [{aderNr, farbe, farbe2, bezeichnung}, ...]
 
     // Signal: Nutzer hat eine Ader gewählt (neueNr = 0 → "– keine –").
     signal aderZugewiesen(int kabelId, int kabelGeid, string aderKey, int verbindungId,
-                           int neueNr, string neueFarbe, string neueBezeichnung,
-                           int alteNr, string alteFarbe, string alteBezeichnung)
+                           int neueNr, string neueFarbe, string neueFarbe2, string neueBezeichnung,
+                           int alteNr, string alteFarbe, string alteFarbe2, string alteBezeichnung)
 
     function oeffnen(p_kabelId, p_kabelGeid, p_aderKey, p_verbindungId,
                       p_aktuelleAderNr, p_istLeer, p_alteAder, p_freieAdern,
@@ -49,11 +49,12 @@ Popup {
         open()
     }
 
-    function _zuweisen(neueNr, neueFarbe, neueBezeichnung) {
+    function _zuweisen(neueNr, neueFarbe, neueFarbe2, neueBezeichnung) {
         root.aderZugewiesen(kabelId, kabelGeid, aderKey, verbindungId,
-            neueNr, neueFarbe || "", neueBezeichnung || "",
+            neueNr, neueFarbe || "", neueFarbe2 || "", neueBezeichnung || "",
             istLeer ? 0 : aktuelleAderNr,
             (alteAder && alteAder.farbe) || "",
+            (alteAder && alteAder.farbe2) || "",
             (alteAder && alteAder.bezeichnung) || "")
         close()
     }
@@ -62,7 +63,7 @@ Popup {
         var m = {
             "BK": "#1a1a1a", "BN": "#7B3F00", "RD": "#CC0000", "OG": "#FF7700",
             "YE": "#CCCC00", "GN": "#006600", "BU": "#0044AA", "VT": "#660099",
-            "GY": "#777777", "WH": "#CCCCCC", "PK": "#FF99BB", "GNYE": "#447700"
+            "GY": "#777777", "WH": "#CCCCCC", "PK": "#FF99BB"
         }
         return m[code] || "#888888"
     }
@@ -99,7 +100,7 @@ Popup {
                 id: keineMa
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: root._zuweisen(0, "", "")
+                onClicked: root._zuweisen(0, "", "", "")
             }
         }
 
@@ -125,7 +126,7 @@ Popup {
                     }
                     Text {
                         text: qsTr("Ader %1").arg(modelData.aderNr)
-                              + (modelData.farbe ? "  " + modelData.farbe : "")
+                              + (modelData.farbe ? "  " + modelData.farbe + (modelData.farbe2 ? "/" + modelData.farbe2 : "") : "")
                               + (modelData.bezeichnung ? "  " + modelData.bezeichnung : "")
                         color: root.theme.textSecondary; font.pixelSize: 11
                         elide: Text.ElideRight
@@ -136,7 +137,7 @@ Popup {
                     id: zeileMa
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: root._zuweisen(modelData.aderNr, modelData.farbe || "", modelData.bezeichnung || "")
+                    onClicked: root._zuweisen(modelData.aderNr, modelData.farbe || "", modelData.farbe2 || "", modelData.bezeichnung || "")
                 }
             }
 

@@ -230,7 +230,6 @@ QtObject {
         if (code === "GY")   return "#666666"
         if (code === "WH")   return "#dddddd"
         if (code === "PK")   return "#ff88aa"
-        if (code === "GNYE") return "#88bb00"
         return "#4a9eff"
     }
 

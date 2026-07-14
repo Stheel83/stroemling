@@ -46,7 +46,6 @@ static QColor pdfAderFarbeZuCanvas(const QString &code)
     if (code == "GY")   return QColor("#666666");
     if (code == "WH")   return QColor("#dddddd");
     if (code == "PK")   return QColor("#ff88aa");
-    if (code == "GNYE") return QColor("#88bb00");
     return QColor("#4a9eff");
 }
 
@@ -437,6 +436,12 @@ struct PdfLeitungsSegment {
     bool    zweifarbig = false;   // true: farbeA/farbeB nebeneinander; false: farbeA + Trennlinie
     QColor  farbeA, farbeB;       // bei zweifarbig: farbeA auf der refPunkt-Seite
     QPointF refPunkt;             // Weltkoordinate (Canvas-Einheiten) des S1-Pins
+
+    // Bifarb-Ader (aderfarbe2, z.B. PE oder DIN-47100-Bifarben): einzelne Ader
+    // mit zweifarbiger Isolierung, als Strich-Alternierung gezeichnet – NICHT
+    // zu verwechseln mit obiger Treffpunkt-Bänderung (zwei verschiedene Adern
+    // treffen sich). Nur gesetzt wenn !gebaendert (Bänderung hat Vorrang).
+    QColor  farbe2;
 };
 
 // Pin-Weltposition eines Symbols (Bbox + Rotation/Spiegel), Canvas-Einheiten.
@@ -563,16 +568,43 @@ static double pdfBreiteFuerAnzahl(int anz, const QString &signaltyp)
     return b;
 }
 
-// Zeichnet ein Geraden-Stück – einfarbig oder (Treffpunkt-Ziel-Arm) gebändert.
-// 1:1-Port von _maleGebaenderteLinie() in CanvasRenderHandler.qml
-// (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY bereits in derselben
-// Zieleinheit des Aufrufers (Device-Pixel bei Leitungen, lokale Symbol-Pixel
-// bei Treffpunkt-Armen – s. pdfTreffpunktArmeRendern).
+// Zeichnet eine einzelne Bifarb-Ader (aderfarbe2) als längs alternierendes
+// Strich-Band – zwei Striche gleicher Breite in Grundfarbe/Zweitfarbe, per
+// Dash-Offset gegeneinander versetzt. Bewusst KEIN Parallel-Offset (das wäre
+// mit der Treffpunkt-Bänderung optisch verwechselbar, siehe Feldkommentar an
+// PdfLeitungsSegment::farbe2).
+static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, double by,
+                                const QColor &farbe1, const QColor &farbe2, double lw)
+{
+    const double dashLen = qMax(2.0, lw * 3.0);
+    QPen pen1(farbe1, lw, Qt::CustomDashLine, Qt::FlatCap);
+    pen1.setDashPattern({ dashLen / lw, dashLen / lw });
+    pen1.setDashOffset(0.0);
+    p.setPen(pen1);
+    p.drawLine(QLineF(ax, ay, bx, by));
+
+    QPen pen2(farbe2, lw, Qt::CustomDashLine, Qt::FlatCap);
+    pen2.setDashPattern({ dashLen / lw, dashLen / lw });
+    pen2.setDashOffset(dashLen / lw);
+    p.setPen(pen2);
+    p.drawLine(QLineF(ax, ay, bx, by));
+}
+
+// Zeichnet ein Geraden-Stück – einfarbig, bifarb (aderfarbe2) oder
+// (Treffpunkt-Ziel-Arm) gebändert. 1:1-Port von _maleGebaenderteLinie() in
+// CanvasRenderHandler.qml (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY
+// bereits in derselben Zieleinheit des Aufrufers (Device-Pixel bei
+// Leitungen, lokale Symbol-Pixel bei Treffpunkt-Armen – s.
+// pdfTreffpunktArmeRendern).
 static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
                                      const PdfLeitungsSegment &s, double refX, double refY,
                                      double pxPerMm)
 {
     if (!s.gebaendert) {
+        if (s.farbe2.isValid()) {
+            pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
+            return;
+        }
         p.setPen(QPen(s.color, s.lw, Qt::SolidLine, Qt::FlatCap));
         p.drawLine(QLineF(ax, ay, bx, by));
         return;
@@ -667,22 +699,24 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
     // in Database_Klemmen.cpp (klemmlistenauszug) – Aderfarbe hat Vorrang vor
     // der Signaltyp-Farbe, s.u. (gleiche Priorität wie CanvasRenderHandler.qml
     // _segmentFarbeUndBreite()).
-    struct Adp { double cx, cy; QString farbe; };
+    struct Adp { double cx, cy; QString farbe; QString farbe2; };
     QVector<Adp> adps;
     {
         QSqlQuery aq(db);
         aq.prepare(R"(
             SELECT (x1+x2)/2.0, (y1+y2)/2.0,
-                   COALESCE(json_extract(extra_daten,'$.aderfarbe'),'')
+                   COALESCE(json_extract(extra_daten,'$.aderfarbe'),''),
+                   COALESCE(json_extract(extra_daten,'$.aderfarbe2'),'')
             FROM grafik_element
             WHERE seite_id = :sid AND symbol_id = 'aderdefinition'
         )");
         aq.bindValue(":sid", seiteId);
         if (aq.exec()) {
             while (aq.next()) {
-                QString af = aq.value(2).toString();
+                QString af  = aq.value(2).toString();
+                QString af2 = aq.value(3).toString();
                 if (!af.isEmpty())
-                    adps.append({ aq.value(0).toDouble(), aq.value(1).toDouble(), af });
+                    adps.append({ aq.value(0).toDouble(), aq.value(1).toDouble(), af, af2 });
             }
         }
     }
@@ -713,13 +747,16 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
     const int n = raw.size();
     if (n == 0) return segs;
 
-    // Direkte ADP-Farbe je Segment (erster Treffer, wie bisher).
-    QVector<QColor> direktFarbe(n);
+    // Direkte ADP-Farbe je Segment (erster Treffer, wie bisher). farbe2 (falls
+    // gesetzt) wird parallel mitgeführt für die Bifarb-Ader-Darstellung.
+    QVector<QColor> direktFarbe(n), direktFarbe2(n);
     for (int i = 0; i < n; i++) {
         if (raw[i].signaltyp == QLatin1String("konflikt")) continue;
         for (const Adp &ad : adps) {
             if (pdfPunktAufSegment(ad.cx, ad.cy, raw[i].x1, raw[i].y1, raw[i].x2, raw[i].y2, 3.0)) {
                 direktFarbe[i] = pdfAderFarbeZuCanvas(ad.farbe);
+                if (!ad.farbe2.isEmpty())
+                    direktFarbe2[i] = pdfAderFarbeZuCanvas(ad.farbe2);
                 break;
             }
         }
@@ -773,19 +810,26 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         }
     }
 
-    QHash<int, QColor> gruppenFarbe; // Wurzel → erste gefundene Aderfarbe
-    for (int i = 0; i < n; i++)
+    QHash<int, QColor> gruppenFarbe, gruppenFarbe2; // Wurzel → erste gefundene Aderfarbe/-farbe2
+    for (int i = 0; i < n; i++) {
         if (direktFarbe[i].isValid() && !gruppenFarbe.contains(find(i)))
             gruppenFarbe[find(i)] = direktFarbe[i];
+        if (direktFarbe2[i].isValid() && !gruppenFarbe2.contains(find(i)))
+            gruppenFarbe2[find(i)] = direktFarbe2[i];
+    }
 
-    QVector<QColor> endFarbe(n);
+    QVector<QColor> endFarbe(n), endFarbe2(n);
     for (int i = 0; i < n; i++) {
         QColor clr = pdfSignaltypFarbe(raw[i].signaltyp);
+        QColor clr2;
         if (raw[i].signaltyp != QLatin1String("konflikt")) {
             if (direktFarbe[i].isValid())              clr = direktFarbe[i];
             else if (gruppenFarbe.contains(find(i)))    clr = gruppenFarbe[find(i)];
+            if (direktFarbe2[i].isValid())              clr2 = direktFarbe2[i];
+            else if (gruppenFarbe2.contains(find(i)))    clr2 = gruppenFarbe2[find(i)];
         }
-        endFarbe[i] = clr;
+        endFarbe[i]  = clr;
+        endFarbe2[i] = clr2;
     }
 
     // Treffpunkt-/Treffpunkt_L-Ziel-Arm-Bänderung (VERBINDUNGSFARBE-03/04-
@@ -851,6 +895,7 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         s.cx1 = raw[i].x1; s.cy1 = raw[i].y1; s.cx2 = raw[i].x2; s.cy2 = raw[i].y2;
         s.verbId = raw[i].verbId;
         s.color  = endFarbe[i];
+        s.farbe2 = endFarbe2[i]; // nur gueltig wenn eine Bifarb-ADP getroffen wurde
         s.lw     = qMax(0.3, 1.5 * 0.25 * pxPerMm);
 
         auto bit = baenderMap.constFind(i);
@@ -1277,10 +1322,12 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             QString bez   = ed.value("bezeichnung").toString();
             if (!bez.isEmpty()) zeilen << bez;
 
-            QString aderfarbe = ed.value("aderfarbe").toString();
-            double  quer      = ed.value("querschnitt_mm2").toDouble();
+            QString aderfarbe  = ed.value("aderfarbe").toString();
+            QString aderfarbe2 = ed.value("aderfarbe2").toString();
+            double  quer       = ed.value("querschnitt_mm2").toDouble();
             if (!aderfarbe.isEmpty() || quer > 0) {
-                QString z = aderfarbe.isEmpty() ? QStringLiteral("–") : aderfarbe;
+                QString z = aderfarbe.isEmpty() ? QStringLiteral("–")
+                           : (aderfarbe2.isEmpty() ? aderfarbe : aderfarbe + "/" + aderfarbe2);
                 if (quer > 0)
                     z += QStringLiteral("  ") +
                          QString::number(quer, 'f', quer == qFloor(quer) ? 0 : 1)

@@ -737,6 +737,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'netzteil' AND name IN ('L', 'N'))",
             R"(UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'netzteil' AND name IN ('+', '-'))",
         }},
+        { 94, "kabel_ader: farbe2 fuer echte Zweifarbigkeit (PE, DIN-47100-Bifarben) – GNYE-Sonderfall entfaellt zugunsten farbe=GN/farbe2=YE", {
+            R"(ALTER TABLE kabel_ader ADD COLUMN farbe2 TEXT)",
+            R"(UPDATE kabel_ader SET farbe2 = 'YE', farbe = 'GN' WHERE farbe = 'GNYE')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

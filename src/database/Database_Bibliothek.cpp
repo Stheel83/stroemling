@@ -139,6 +139,7 @@ bool Database::checkAndApplyBibliothekSchema()
             kabel_id        INTEGER NOT NULL REFERENCES bauteil_kabel(id) ON DELETE CASCADE,
             ader_nr         INTEGER NOT NULL,
             farbe           TEXT,
+            farbe2          TEXT,
             nummer          TEXT,
             bezeichnung     TEXT,
             querschnitt_mm2 REAL
@@ -261,6 +262,21 @@ bool Database::checkAndApplyBibliothekSchema()
     // nötig, siehe konzept/features/45_steckverbinder.md §3.1/§12).
     if (!q.exec("DROP TABLE IF EXISTS steckverbinder_kontakt_typ")) {
         qCWarning(lcDb) << "Bibliothek-Schema DROP steckverbinder_kontakt_typ:" << q.lastError().text();
+        m_bibliothekDb.rollback();
+        return false;
+    }
+
+    // Schema v6: bauteil_kabel_ader.farbe2 fuer echte Zweifarbigkeit (PE, DIN-47100-
+    // Bifarben) – GNYE-Sonderfall entfaellt zugunsten farbe=GN/farbe2=YE.
+    if (!q.exec("ALTER TABLE bauteil_kabel_ader ADD COLUMN farbe2 TEXT")) {
+        if (!q.lastError().databaseText().toLower().contains("duplicate column")) {
+            qCWarning(lcDb) << "Bibliothek-Schema ALTER farbe2:" << q.lastError().text();
+            m_bibliothekDb.rollback();
+            return false;
+        }
+    }
+    if (!q.exec("UPDATE bauteil_kabel_ader SET farbe2 = 'YE', farbe = 'GN' WHERE farbe = 'GNYE'")) {
+        qCWarning(lcDb) << "Bibliothek-Schema GNYE-Migration:" << q.lastError().text();
         m_bibliothekDb.rollback();
         return false;
     }

@@ -66,14 +66,16 @@ ColumnLayout {
                         width: panel.alCols[1].w; height: 30
                         AderfarbenSwatch {
                             id: alSwatch
-                            aderCode: model.aderfarbe || ""
+                            aderCode:  model.aderfarbe  || ""
+                            aderCode2: model.aderfarbe2 || ""
                             width: 14; height: 14
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
                             anchors { left: alSwatch.right; leftMargin: 4; verticalCenter: parent.verticalCenter }
                             width: parent.width - (model.aderfarbe ? 18 : 0)
-                            text: model.aderfarbe || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight
+                            text: model.aderfarbe ? (model.aderfarbe + (model.aderfarbe2 ? "/" + model.aderfarbe2 : "")) : "–"
+                            font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight
                         }
                     }
                     Text { width: panel.alCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.querschnittMm2 > 0 ? model.querschnittMm2 + " mm²" : "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }

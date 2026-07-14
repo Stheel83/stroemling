@@ -452,7 +452,7 @@ QVariantList Database::aderliste(int projektId)
         m[QStringLiteral("ortKz")]    = q.value(3).toString();
 
         QString extra = q.value(0).toString();
-        QString bezeichnung, aderfarbe;
+        QString bezeichnung, aderfarbe, aderfarbe2;
         double  querschnitt = 0.0, laenge = 0.0;
         if (!extra.isEmpty()) {
             QJsonParseError err;
@@ -461,12 +461,14 @@ QVariantList Database::aderliste(int projektId)
                 QJsonObject obj = doc.object();
                 bezeichnung = obj[QStringLiteral("bezeichnung")].toString();
                 aderfarbe   = obj[QStringLiteral("aderfarbe")].toString();
+                aderfarbe2  = obj[QStringLiteral("aderfarbe2")].toString();
                 querschnitt = obj[QStringLiteral("querschnitt_mm2")].toDouble(0.0);
                 laenge      = obj[QStringLiteral("laenge_m")].toDouble(0.0);
             }
         }
         m[QStringLiteral("bezeichnung")]    = bezeichnung;
         m[QStringLiteral("aderfarbe")]      = aderfarbe;
+        m[QStringLiteral("aderfarbe2")]     = aderfarbe2;
         m[QStringLiteral("querschnittMm2")] = querschnitt;
         m[QStringLiteral("laengeM")]        = laenge;
 
@@ -1192,8 +1194,10 @@ bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
     };
     for (const QVariant &v : aderliste(projektId)) {
         const QVariantMap row = v.toMap();
+        QString af  = row[QStringLiteral("aderfarbe")].toString();
+        QString af2 = row[QStringLiteral("aderfarbe2")].toString();
         out << csvQ(row[QStringLiteral("bezeichnung")].toString())                          << u';'
-            << csvQ(row[QStringLiteral("aderfarbe")].toString())                            << u';'
+            << csvQ(af2.isEmpty() ? af : af + "/" + af2)                                    << u';'
             << csvQ(row[QStringLiteral("querschnittMm2")].toDouble() > 0
                     ? QString::number(row[QStringLiteral("querschnittMm2")].toDouble()) : QString()) << u';'
             << csvQ(row[QStringLiteral("laengeM")].toDouble() > 0
@@ -1247,12 +1251,14 @@ bool Database::kabellisteCsvSpeichern(int projektId, const QString &pfad)
                 const QString seiteBez = a[QStringLiteral("seitenBez")].toString();
                 const QString seiteSpalte = seite.isEmpty() ? QString()
                     : (seiteBez.isEmpty() ? seite : seite + u' ' + seiteBez);
+                const QString farbe  = a[QStringLiteral("farbe")].toString();
+                const QString farbe2 = a[QStringLiteral("farbe2")].toString();
                 out << csvQ(bmk)     << u';'
                     << csvQ(typ)     << u';'
                     << csvQ(vonOrt)  << u';'
                     << csvQ(nachOrt) << u';'
                     << csvQ(QString::number(a[QStringLiteral("nr")].toInt())) << u';'
-                    << csvQ(a[QStringLiteral("farbe")].toString())       << u';'
+                    << csvQ(farbe2.isEmpty() ? farbe : farbe + "/" + farbe2) << u';'
                     << csvQ(a[QStringLiteral("bezeichnung")].toString()) << u';'
                     << csvQ(seiteSpalte)                                  << u';'
                     << csvQ(a[QStringLiteral("netz")].toString())        << u'\n';

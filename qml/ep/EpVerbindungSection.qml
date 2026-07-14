@@ -150,12 +150,11 @@ Item {
                     anchors { left: parent.left; leftMargin: 12; right: parent.right; rightMargin: 12
                               verticalCenter: parent.verticalCenter }
                     spacing: 6
-                    Rectangle {
-                        visible: modelData && modelData.ed && modelData.ed.aderfarbe
-                        width: 14; height: 14; radius: 2
+                    AderfarbenSwatch {
+                        aderCode:  (modelData && modelData.ed && modelData.ed.aderfarbe)  || ""
+                        aderCode2: (modelData && modelData.ed && modelData.ed.aderfarbe2) || ""
+                        width: 14; height: 14
                         anchors.verticalCenter: parent.verticalCenter
-                        color: (modelData && modelData.ed && modelData.ed.aderfarbe)
-                               ? panel.canvas.aderFarbeZuCanvas(modelData.ed.aderfarbe) : "transparent"
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -165,7 +164,7 @@ Item {
                             var ed = modelData.ed || {}
                             var t = ""
                             if (ed.bezeichnung)         t += ed.bezeichnung + "  "
-                            if (ed.aderfarbe)           t += ed.aderfarbe + "  "
+                            if (ed.aderfarbe)           t += ed.aderfarbe + (ed.aderfarbe2 ? "/" + ed.aderfarbe2 : "") + "  "
                             if (ed.querschnitt_mm2 > 0) t += ed.querschnitt_mm2 + " mm²  "
                             if (ed.laenge_m > 0)        t += "→ " + ed.laenge_m + " m"
                             return t.trim() || "–"

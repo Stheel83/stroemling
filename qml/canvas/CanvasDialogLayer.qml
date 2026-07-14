@@ -209,8 +209,8 @@ Item {
         theme: root.theme
 
         onAderZugewiesen: function(kabelId, kabelGeid, aderKey, verbindungId,
-                                    neueNr, neueFarbe, neueBezeichnung,
-                                    alteNr, alteFarbe, alteBezeichnung) {
+                                    neueNr, neueFarbe, neueFarbe2, neueBezeichnung,
+                                    alteNr, alteFarbe, alteFarbe2, alteBezeichnung) {
             var idx = -1
             for (var i = 0; i < canvas.elementeModel.anzahl; i++) {
                 var e = canvas.elementeModel.element(i)
@@ -226,9 +226,9 @@ Item {
 
             // Alte Ader (falls abweichend) freigeben, neue Ader zuordnen
             if (alteNr > 0 && alteNr !== neueNr)
-                db.kabelAderZuordnen(kabelId, alteNr, alteFarbe, alteBezeichnung, 0, 0)
+                db.kabelAderZuordnen(kabelId, alteNr, alteFarbe, alteFarbe2, alteBezeichnung, 0, 0)
             if (neueNr > 0)
-                db.kabelAderZuordnen(kabelId, neueNr, neueFarbe, neueBezeichnung,
+                db.kabelAderZuordnen(kabelId, neueNr, neueFarbe, neueFarbe2, neueBezeichnung,
                                       verbindungId, kabelGeid)
 
             canvas.grafikSpeichernJetzt()

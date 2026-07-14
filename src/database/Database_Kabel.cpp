@@ -56,6 +56,7 @@ int Database::kabelAnlegen(int projektId, const QString &bezeichnung,
 // ============================================================
 bool Database::kabelAderZuordnen(int kabelId, int aderNr,
                                  const QString &farbe,
+                                 const QString &farbe2,
                                  const QString &bezeichnung,
                                  int verbindungId,
                                  int kabellinieGrafikElementId)
@@ -72,11 +73,12 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
         int existingId = q.value(0).toInt();
         QSqlQuery upd;
         upd.prepare(R"(
-            UPDATE kabel_ader SET farbe=:f, bezeichnung=:b, verbindung_id=:vid,
+            UPDATE kabel_ader SET farbe=:f, farbe2=:f2, bezeichnung=:b, verbindung_id=:vid,
                                   kabellinie_grafik_element_id=:lgeid
             WHERE id=:id
         )");
         upd.bindValue(":f",     farbe.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : farbe);
+        upd.bindValue(":f2",    farbe2.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : farbe2);
         upd.bindValue(":b",     bezeichnung.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : bezeichnung);
         upd.bindValue(":vid",   verbindungId > 0 ? verbindungId : QVariant(QMetaType(QMetaType::Int)));
         upd.bindValue(":lgeid", kabellinieGrafikElementId > 0
@@ -89,13 +91,14 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
     } else {
         QSqlQuery ins;
         ins.prepare(R"(
-            INSERT INTO kabel_ader (kabel_id, ader_nr, farbe, bezeichnung,
+            INSERT INTO kabel_ader (kabel_id, ader_nr, farbe, farbe2, bezeichnung,
                                    verbindung_id, kabellinie_grafik_element_id)
-            VALUES (:kid, :nr, :f, :b, :vid, :lgeid)
+            VALUES (:kid, :nr, :f, :f2, :b, :vid, :lgeid)
         )");
         ins.bindValue(":kid",   kabelId);
         ins.bindValue(":nr",    aderNr);
         ins.bindValue(":f",     farbe.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : farbe);
+        ins.bindValue(":f2",    farbe2.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : farbe2);
         ins.bindValue(":b",     bezeichnung.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : bezeichnung);
         ins.bindValue(":vid",   verbindungId > 0 ? verbindungId : QVariant(QMetaType(QMetaType::Int)));
         ins.bindValue(":lgeid", kabellinieGrafikElementId > 0
@@ -147,7 +150,7 @@ QVariantMap Database::kabelLinieDetails(int grafikElementId)
 
     QSqlQuery qa;
     qa.prepare(R"(
-        SELECT ader_nr, farbe, bezeichnung, verbindung_id, kabellinie_grafik_element_id
+        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id, kabellinie_grafik_element_id
         FROM kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr
     )");
     qa.bindValue(":kid", kabelId);
@@ -157,9 +160,10 @@ QVariantMap Database::kabelLinieDetails(int grafikElementId)
             QVariantMap ader;
             ader[QStringLiteral("aderNr")]                      = qa.value(0).toInt();
             ader[QStringLiteral("farbe")]                       = qa.value(1).toString();
-            ader[QStringLiteral("bezeichnung")]                 = qa.value(2).toString();
-            ader[QStringLiteral("verbindungId")]                = qa.value(3).toInt();
-            ader[QStringLiteral("kabellinieGrafikElementId")]   = qa.value(4).toInt();
+            ader[QStringLiteral("farbe2")]                      = qa.value(2).toString();
+            ader[QStringLiteral("bezeichnung")]                 = qa.value(3).toString();
+            ader[QStringLiteral("verbindungId")]                = qa.value(4).toInt();
+            ader[QStringLiteral("kabellinieGrafikElementId")]   = qa.value(5).toInt();
             adern.append(ader);
         }
     }
@@ -329,7 +333,8 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
     // ─── Pass 2: Adern laden (alle Kabel des Projekts, ein Query) ──
     QSqlQuery q2;
     q2.prepare(R"(
-        SELECT ka.kabel_id, ka.ader_nr, COALESCE(ka.farbe, ''), COALESCE(ka.bezeichnung, ''),
+        SELECT ka.kabel_id, ka.ader_nr, COALESCE(ka.farbe, ''), COALESCE(ka.farbe2, ''),
+               COALESCE(ka.bezeichnung, ''),
                COALESCE(s.blattnummer, ''), COALESCE(s.bezeichnung, ''),
                COALESCE(v.bezeichnung, ''),
                COALESCE(ka.von_gerat_pin, ''), COALESCE(ka.nach_gerat_pin, ''),
@@ -354,15 +359,16 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
         QVariantMap a;
         a[QStringLiteral("nr")]               = q2.value(1).toInt();
         a[QStringLiteral("farbe")]            = q2.value(2).toString();
-        a[QStringLiteral("bezeichnung")]      = q2.value(3).toString();
-        a[QStringLiteral("blattnummer")]      = q2.value(4).toString();
-        a[QStringLiteral("seitenBez")]        = q2.value(5).toString();
-        a[QStringLiteral("netz")]             = q2.value(6).toString();
-        a[QStringLiteral("vonGeratPin")]      = q2.value(7).toString();
-        a[QStringLiteral("nachGeratPin")]     = q2.value(8).toString();
-        a[QStringLiteral("seiteId")]          = q2.value(9).toInt();
-        a[QStringLiteral("weltX")]            = q2.value(10).toDouble();
-        a[QStringLiteral("weltY")]            = q2.value(11).toDouble();
+        a[QStringLiteral("farbe2")]           = q2.value(3).toString();
+        a[QStringLiteral("bezeichnung")]      = q2.value(4).toString();
+        a[QStringLiteral("blattnummer")]      = q2.value(5).toString();
+        a[QStringLiteral("seitenBez")]        = q2.value(6).toString();
+        a[QStringLiteral("netz")]             = q2.value(7).toString();
+        a[QStringLiteral("vonGeratPin")]      = q2.value(8).toString();
+        a[QStringLiteral("nachGeratPin")]     = q2.value(9).toString();
+        a[QStringLiteral("seiteId")]          = q2.value(10).toInt();
+        a[QStringLiteral("weltX")]            = q2.value(11).toDouble();
+        a[QStringLiteral("weltY")]            = q2.value(12).toDouble();
         int idx = kabelIdx[kId];
         QVariantMap kMap = kabel[idx].toMap();
         QVariantList adern = kMap[QStringLiteral("adern")].toList();
@@ -761,7 +767,7 @@ QVariantList Database::bauteilKabelAdernLaden(int kabelId) const
     if (kabelId < 0) return result;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT ader_nr, farbe, nummer, bezeichnung, querschnitt_mm2
+        SELECT ader_nr, farbe, farbe2, nummer, bezeichnung, querschnitt_mm2
         FROM bibliothek.bauteil_kabel_ader
         WHERE kabel_id = :kid
         ORDER BY ader_nr
@@ -775,9 +781,10 @@ QVariantList Database::bauteilKabelAdernLaden(int kabelId) const
         QVariantMap a;
         a[QStringLiteral("aderNr")]        = q.value(0).toInt();
         a[QStringLiteral("farbe")]         = q.value(1).toString();
-        a[QStringLiteral("nummer")]        = q.value(2).toString();
-        a[QStringLiteral("bezeichnung")]   = q.value(3).toString();
-        a[QStringLiteral("querschnittMm2")]= q.value(4).toDouble();
+        a[QStringLiteral("farbe2")]        = q.value(2).toString();
+        a[QStringLiteral("nummer")]        = q.value(3).toString();
+        a[QStringLiteral("bezeichnung")]   = q.value(4).toString();
+        a[QStringLiteral("querschnittMm2")]= q.value(5).toDouble();
         result.append(a);
     }
     return result;
@@ -826,7 +833,7 @@ QVariantList Database::bauteilKabelListe()
         // Aderfarben für Farbvorschau laden
         QSqlQuery qa;
         qa.prepare(R"(
-            SELECT farbe, querschnitt_mm2 FROM bibliothek.bauteil_kabel_ader
+            SELECT farbe, farbe2, querschnitt_mm2 FROM bibliothek.bauteil_kabel_ader
             WHERE kabel_id = :kid ORDER BY ader_nr
         )");
         qa.bindValue(":kid", bkId);
@@ -835,7 +842,8 @@ QVariantList Database::bauteilKabelListe()
             while (qa.next()) {
                 QVariantMap a;
                 a[QStringLiteral("farbe")]          = qa.value(0).toString();
-                a[QStringLiteral("querschnittMm2")] = qa.value(1).toDouble();
+                a[QStringLiteral("farbe2")]         = qa.value(1).toString();
+                a[QStringLiteral("querschnittMm2")] = qa.value(2).toDouble();
                 adern.append(a);
             }
         }
@@ -902,7 +910,7 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
     if (bauteilKabelId > 0) {
         QSqlQuery qa;
         qa.prepare(R"(
-            SELECT ader_nr, farbe, bezeichnung, querschnitt_mm2
+            SELECT ader_nr, farbe, farbe2, bezeichnung, querschnitt_mm2
             FROM bibliothek.bauteil_kabel_ader WHERE kabel_id = :kid ORDER BY ader_nr
         )");
         qa.bindValue(":kid", bauteilKabelId);
@@ -911,8 +919,9 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
                 QVariantMap a;
                 a[QStringLiteral("aderNr")]         = qa.value(0).toInt();
                 a[QStringLiteral("farbe")]          = qa.value(1).toString();
-                a[QStringLiteral("bezeichnung")]    = qa.value(2).toString();
-                a[QStringLiteral("querschnittMm2")] = qa.value(3).toDouble();
+                a[QStringLiteral("farbe2")]         = qa.value(2).toString();
+                a[QStringLiteral("bezeichnung")]    = qa.value(3).toString();
+                a[QStringLiteral("querschnittMm2")] = qa.value(4).toDouble();
                 adern.append(a);
             }
         }
@@ -965,7 +974,7 @@ QVariantList Database::kabelFreieAderLaden(int kabelId)
     QVariantList result;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT ader_nr, farbe, bezeichnung, verbindung_id
+        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id
         FROM kabel_ader
         WHERE kabel_id = :kid AND kabellinie_grafik_element_id IS NULL
         ORDER BY ader_nr
@@ -979,8 +988,9 @@ QVariantList Database::kabelFreieAderLaden(int kabelId)
         QVariantMap ader;
         ader[QStringLiteral("aderNr")]      = q.value(0).toInt();
         ader[QStringLiteral("farbe")]       = q.value(1).toString();
-        ader[QStringLiteral("bezeichnung")] = q.value(2).toString();
-        ader[QStringLiteral("verbindungId")]= q.value(3).toInt();
+        ader[QStringLiteral("farbe2")]      = q.value(2).toString();
+        ader[QStringLiteral("bezeichnung")] = q.value(3).toString();
+        ader[QStringLiteral("verbindungId")]= q.value(4).toInt();
         result.append(ader);
     }
     return result;
@@ -996,7 +1006,7 @@ QVariantList Database::kabelAderFuerLinieLaden(int kabellinieGrafikElementId)
     if (kabellinieGrafikElementId <= 0) return result;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT ader_nr, farbe, bezeichnung, verbindung_id
+        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id
         FROM kabel_ader
         WHERE kabellinie_grafik_element_id = :geid
         ORDER BY ader_nr
@@ -1010,8 +1020,9 @@ QVariantList Database::kabelAderFuerLinieLaden(int kabellinieGrafikElementId)
         QVariantMap ader;
         ader[QStringLiteral("aderNr")]      = q.value(0).toInt();
         ader[QStringLiteral("farbe")]       = q.value(1).toString();
-        ader[QStringLiteral("bezeichnung")] = q.value(2).toString();
-        ader[QStringLiteral("verbindungId")]= q.value(3).toInt();
+        ader[QStringLiteral("farbe2")]      = q.value(2).toString();
+        ader[QStringLiteral("bezeichnung")] = q.value(3).toString();
+        ader[QStringLiteral("verbindungId")]= q.value(4).toInt();
         result.append(ader);
     }
     return result;

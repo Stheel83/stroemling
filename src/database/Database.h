@@ -31,9 +31,9 @@ public:
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION        = 56;
-    static const int CURRENT_SCHEMA_VERSION  = 93;
+    static const int CURRENT_SCHEMA_VERSION  = 94;
     static const int WIKI_SCHEMA_VERSION     = 15;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 5;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 6;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     // schema_migration selbst zählt mit (wird vor createSchema() angelegt, überlebt
@@ -517,6 +517,7 @@ public:
     // kabellinieGrafikElementId = 0 → kabellinie_grafik_element_id bleibt unverändert / NULL.
     Q_INVOKABLE bool kabelAderZuordnen(int kabelId, int aderNr,
                                        const QString &farbe,
+                                       const QString &farbe2,
                                        const QString &bezeichnung,
                                        int verbindungId,
                                        int kabellinieGrafikElementId = 0);
@@ -525,7 +526,7 @@ public:
     // Sucht das Kabel über json_extract(extra_daten, '$.kabelId') des Grafikelements.
     // Gibt {id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, grafikElementId,
     //       vonOrt, nachOrt, bauteilKabelId,
-    //       adern:[{aderNr, farbe, bezeichnung, verbindungId, kabellinieGrafikElementId}]} zurück.
+    //       adern:[{aderNr, farbe, farbe2, bezeichnung, verbindungId, kabellinieGrafikElementId}]} zurück.
     Q_INVOKABLE QVariantMap kabelLinieDetails(int grafikElementId);
 
     // Alle Kabellinie-Grafikelemente eines Kabels (für KABEL-LINIEN-Abschnitt im EP).
@@ -533,11 +534,11 @@ public:
     Q_INVOKABLE QVariantList kabelAlleLinienLaden(int kabelId);
 
     // Alle Adern eines Kabels die keiner Kabellinie zugeordnet sind.
-    // Gibt [{aderNr, farbe, bezeichnung, verbindungId}] zurück.
+    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}] zurück.
     Q_INVOKABLE QVariantList kabelFreieAderLaden(int kabelId);
 
     // Adern einer Kabellinie (für KABEL-ADERN-Abschnitt im EP).
-    // Gibt [{aderNr, farbe, bezeichnung, verbindungId}] zurück.
+    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}] zurück.
     Q_INVOKABLE QVariantList kabelAderFuerLinieLaden(int kabellinieGrafikElementId);
 
     // Alle Kabel eines Projekts für die Kabelliste.
@@ -553,7 +554,7 @@ public:
 
     // Alle Kabel eines Projekts mit Ader-Unterzeilen für die zweistufige Kabelliste.
     // Gibt [{id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, laengeM, vonOrt, nachOrt,
-    //        linienAnzahl, adern:[{nr, farbe, bezeichnung, blattnummer, seitenBezeichnung, netz}]}] zurück.
+    //        linienAnzahl, adern:[{nr, farbe, farbe2, bezeichnung, blattnummer, seitenBezeichnung, netz}]}] zurück.
     Q_INVOKABLE QVariantList kabelListeAufgeschluesselt(int projektId);
 
     // Kabel-Metadaten aktualisieren (nach Änderung im EigenschaftenPanel).
@@ -580,7 +581,7 @@ public:
 
     // Alle Bauteil-Kabel aus der Bibliothek für den Picker-Dialog.
     // Gibt [{id, bauteilId, bezeichnung, kabeltyp, aderzahl, querschnittMm2,
-    //        adern:[{farbe, querschnittMm2}]}] zurück.
+    //        adern:[{farbe, farbe2, querschnittMm2}]}] zurück.
     Q_INVOKABLE QVariantList bauteilKabelListe();
 
     // Vollständige Ader-Liste eines Kabeltyps (inkl. ader_nr, nummer, bezeichnung) —

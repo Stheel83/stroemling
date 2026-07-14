@@ -27,11 +27,12 @@ eigene Felder – das ergibt sich vollständig aus der Ader-Tabelle rechts.
 ## Rechte Spalte – Ader-Tabelle
 
 Pro Zeile eine Ader: Nummer, Bezeichnung (z. B. `L`, `N`, `PE`), Farbe nach
-IEC 60757 (z. B. `BN`, `BU`, `GNYE`), Querschnitt in mm². Alle Felder sind
-inline editierbar (Textfeld, Übernahme beim Verlassen). Reihenfolge per
-↑/↓ ändern, Ader per × entfernen, „+ Ader" hängt eine neue Zeile an. Farbe
-und Bezeichnung können beide gesetzt sein oder auch nur eines von beiden –
-mindestens eines ist Pflicht. Ein Kabel-Fußzeile zeigt die aktuelle
+IEC 60757 (z. B. `BN`, `BU`), optional eine zweite Farbe für Bifarb-Adern
+(z. B. PE = `GN`/`YE`, DIN-47100-Bifarben wie `WH`/`GN`), Querschnitt in mm².
+Alle Felder sind inline editierbar (Textfeld, Übernahme beim Verlassen).
+Reihenfolge per ↑/↓ ändern, Ader per × entfernen, „+ Ader" hängt eine neue
+Zeile an. Farbe und Bezeichnung können beide gesetzt sein oder auch nur
+eines von beiden – mindestens eines ist Pflicht. Ein Kabel-Fußzeile zeigt die aktuelle
 Aderanzahl.
 
 **Paarweise Verdrillung:** Ist der Schalter links aktiv, ordnest du je zwei

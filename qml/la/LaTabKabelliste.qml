@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import stroemling
+import "../components"
 
 ColumnLayout {
     id: root
@@ -107,19 +108,16 @@ ColumnLayout {
                                     Row {
                                         width: panel.klAderCols[1].w; spacing: 4
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Rectangle {
-                                            width: 10; height: 10; radius: 5
-                                            visible: modelData.farbe !== ""
-                                            color: {
-                                                var m = { "BK": "#1a1a1a", "BN": "#7B3F00", "RD": "#CC0000", "OG": "#FF7700",
-                                                          "YE": "#CCCC00", "GN": "#006600", "BU": "#0044AA", "VT": "#660099",
-                                                          "GY": "#777777", "WH": "#CCCCCC", "PK": "#FF99BB", "GNYE": "#447700" }
-                                                return m[modelData.farbe] || "#888888"
-                                            }
-                                            border.color: "#00000044"; border.width: 1
+                                        AderfarbenSwatch {
+                                            aderCode:  modelData.farbe  || ""
+                                            aderCode2: modelData.farbe2 || ""
+                                            width: 10; height: 10
                                             anchors.verticalCenter: parent.verticalCenter
                                         }
-                                        Text { text: modelData.farbe || "–"; font.pixelSize: 11; color: root.theme.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+                                        Text {
+                                            text: modelData.farbe ? (modelData.farbe + (modelData.farbe2 ? "/" + modelData.farbe2 : "")) : "–"
+                                            font.pixelSize: 11; color: root.theme.textSecondary; anchors.verticalCenter: parent.verticalCenter
+                                        }
                                     }
                                     Text { width: panel.klAderCols[2].w; text: modelData.bezeichnung || "–"; font.pixelSize: 11; color: root.theme.textSecondary; elide: Text.ElideRight; anchors.verticalCenter: parent.verticalCenter }
                                     Text {

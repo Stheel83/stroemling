@@ -80,7 +80,7 @@ Dialog {
         var m = {
             "BK": "#1a1a1a", "BN": "#7B3F00", "RD": "#CC0000", "OG": "#FF7700",
             "YE": "#CCCC00", "GN": "#006600", "BU": "#0044AA", "VT": "#660099",
-            "GY": "#777777", "WH": "#CCCCCC", "PK": "#FF99BB", "GNYE": "#447700"
+            "GY": "#777777", "WH": "#CCCCCC", "PK": "#FF99BB"
         }
         return m[code] || "#888888"
     }
@@ -92,7 +92,7 @@ Dialog {
         for (var i = 0; i < ef.length; i++) {
             var ad  = ef[i]
             var lbl = qsTr("Ader") + " " + ad.aderNr
-            if (ad.farbe)       lbl += "  " + ad.farbe
+            if (ad.farbe)       lbl += "  " + ad.farbe + (ad.farbe2 ? "/" + ad.farbe2 : "")
             if (ad.bezeichnung) lbl += "  " + ad.bezeichnung
             opts.push(lbl)
         }
@@ -534,12 +534,12 @@ Dialog {
                     for (var j = 0; j < ef.length; j++) {
                         var ad = ef[j]
                         if (j in aderVerbMap) {
-                            db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.bezeichnung,
+                            db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.farbe2 || "", ad.bezeichnung,
                                                  aderVerbMap[j], root.kabellinieGrafikElementId)
                         } else if ((ad.kabellinieGrafikElementId || 0) === root.kabellinieGrafikElementId
                                    && root.kabellinieGrafikElementId > 0) {
                             // War auf dieser Linie, jetzt abgewählt → freigeben
-                            db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.bezeichnung, 0, 0)
+                            db.kabelAderZuordnen(root.kabelId, ad.aderNr, ad.farbe, ad.farbe2 || "", ad.bezeichnung, 0, 0)
                         }
                         // Freie Adern die nicht ausgewählt wurden: unberührt lassen
                     }

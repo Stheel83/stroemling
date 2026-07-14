@@ -42,8 +42,8 @@ Item {
     }
 
     readonly property var _normFarben: ({
-        "neu":      ["GNYE","BN","BK","GY","BU","RD","OG","YE","VT","WH","PK","CL"],
-        "alt":      ["GNYE","BK","RD","BU","GY","OG","YE","VT","WH","PK","CL"],
+        "neu":      [{farbe:"GN",farbe2:"YE"},"BN","BK","GY","BU","RD","OG","YE","VT","WH","PK","CL"],
+        "alt":      [{farbe:"GN",farbe2:"YE"},"BK","RD","BU","GY","OG","YE","VT","WH","PK","CL"],
         "din47100": ["WH","BN","GN","YE","GY","PK","BU","RD","BK","VT"],
         "iec60757": ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
     })
@@ -53,10 +53,13 @@ Item {
         var adern = kabelModel.adern
         for (var i = 0; i < adern.length; i++) {
             var a = adern[i]
-            var farbe = i < seq.length ? seq[i] : seq[1 + ((i - seq.length) % (seq.length - 1))]
+            var eintrag = i < seq.length ? seq[i] : seq[1 + ((i - seq.length) % (seq.length - 1))]
+            var farbe  = typeof eintrag === "string" ? eintrag : eintrag.farbe
+            var farbe2 = typeof eintrag === "string" ? ""      : (eintrag.farbe2 || "")
             kabelModel.aderAktualisieren(a.id, {
                 "bezeichnung":     a.bezeichnung,
                 "farbe":           farbe,
+                "farbe2":          farbe2,
                 "querschnitt_mm2": a.querschnittMm2 || 0
             })
         }
@@ -103,8 +106,9 @@ Item {
                 }
 
                 Text { text: qsTr("Nr.");             color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 30 }
-                Text { text: qsTr("Bezeichnung");     color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 112 }
-                Text { text: qsTr("Farbe / Kennung"); color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 106 }
+                Text { text: qsTr("Bezeichnung");     color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 100 }
+                Text { text: qsTr("Farbe");           color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 82 }
+                Text { text: qsTr("2. Farbe");        color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 82 }
                 Text { text: qsTr("mm²");             color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.fillWidth: true }
                 Item { width: 70 }
             }
@@ -186,7 +190,7 @@ Item {
                         id: tfAderBez
                         tabTarget:     tfAderMm2
                         backtabTarget: tfAderMm2
-                        Layout.preferredWidth: 108
+                        Layout.preferredWidth: 96
                         text: modelData.bezeichnung
                         font.pixelSize: 11; implicitHeight: 26
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
@@ -194,15 +198,16 @@ Item {
                         onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     text,
                             "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
+                            "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
                             "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
                         })
                     }
 
                     ComboBox {
                         id: cbAderFarbe
-                        Layout.preferredWidth: 102
+                        Layout.preferredWidth: 78
                         implicitHeight: 26
-                        model: ["", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
+                        model: ["", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
                         currentIndex: {
                             var f = modelData.farbe || ""
                             var idx = model.indexOf(f)
@@ -244,11 +249,70 @@ Item {
                             ToolTip.delay: 400
                             ToolTip.text: ({"BK":"Schwarz","BN":"Braun","RD":"Rot","OG":"Orange",
                                 "YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett","GY":"Grau",
-                                "WH":"Weiß","PK":"Rosa","GNYE":"Grün-Gelb (PE)","CL":"Farblos"})[modelData] || ""
+                                "WH":"Weiß","PK":"Rosa","CL":"Farblos"})[modelData] || ""
                         }
                         onActivated: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
                             "farbe":           currentIndex > 0 ? model[currentIndex] : "",
+                            "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
+                            "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                        })
+                    }
+
+                    ComboBox {
+                        id: cbAderFarbe2
+                        Layout.preferredWidth: 78
+                        implicitHeight: 26
+                        model: ["", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK"]
+                        currentIndex: {
+                            var f = modelData.farbe2 || ""
+                            var idx = model.indexOf(f)
+                            return idx >= 0 ? idx : 0
+                        }
+                        font.pixelSize: 11
+                        background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
+                        contentItem: Row {
+                            leftPadding: 4; spacing: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            AderfarbenSwatch {
+                                aderCode: modelData.farbe2 || ""
+                                width: 10; height: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: (modelData.farbe2 || "") !== "" ? modelData.farbe2 : "—"
+                                color: root.theme.textPrimary; font.pixelSize: 11
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        delegate: ItemDelegate {
+                            width: cbAderFarbe2.width; implicitHeight: 24
+                            contentItem: Row {
+                                leftPadding: 6; spacing: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                AderfarbenSwatch {
+                                    aderCode: modelData; width: 10; height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: modelData !== "" ? modelData : "—"; font.pixelSize: 11
+                                    color: root.theme.textPrimary; verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                            background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
+                            highlighted: cbAderFarbe2.highlightedIndex === index
+                            ToolTip.visible: hovered && modelData !== ""
+                            ToolTip.delay: 400
+                            ToolTip.text: ({"BK":"Schwarz","BN":"Braun","RD":"Rot","OG":"Orange",
+                                "YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett","GY":"Grau",
+                                "WH":"Weiß","PK":"Rosa"})[modelData] || ""
+                        }
+                        ToolTip.visible: hovered; ToolTip.delay: 500
+                        ToolTip.text: qsTr("Zweite Farbe für Bifarb-Adern (z.B. PE grün-gelb, DIN-47100-Bifarben)")
+                        onActivated: kabelModel.aderAktualisieren(modelData.id, {
+                            "bezeichnung":     tfAderBez.text,
+                            "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
+                            "farbe2":          currentIndex > 0 ? model[currentIndex] : "",
                             "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
                         })
                     }
@@ -289,6 +353,7 @@ Item {
                         onActivated: kabelModel.aderAktualisieren(modelData.id, {
                             "bezeichnung":     tfAderBez.text,
                             "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
+                            "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
                             "querschnitt_mm2": currentIndex >= 0 ? model[currentIndex] : 0
                         })
                     }
@@ -356,8 +421,8 @@ Item {
                     Text { text: qsTr("Farbe"); color: root.theme.textMuted; font.pixelSize: 10 }
                     ComboBox {
                         id: cbBulkFarbe
-                        implicitWidth: 110; implicitHeight: 24
-                        model: ["—", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
+                        implicitWidth: 96; implicitHeight: 24
+                        model: ["—", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
                         currentIndex: 0
                         font.pixelSize: 11
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
@@ -392,6 +457,52 @@ Item {
                             }
                             background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
                             highlighted: cbBulkFarbe.highlightedIndex === index
+                        }
+                    }
+                }
+
+                // 2. Farbe
+                ColumnLayout {
+                    spacing: 2
+                    Text { text: qsTr("2. Farbe"); color: root.theme.textMuted; font.pixelSize: 10 }
+                    ComboBox {
+                        id: cbBulkFarbe2
+                        implicitWidth: 96; implicitHeight: 24
+                        model: ["—", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK"]
+                        currentIndex: 0
+                        font.pixelSize: 11
+                        background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
+                        contentItem: Row {
+                            leftPadding: 4; spacing: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            AderfarbenSwatch {
+                                aderCode: cbBulkFarbe2.currentIndex > 0 ? cbBulkFarbe2.model[cbBulkFarbe2.currentIndex] : ""
+                                width: 10; height: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: cbBulkFarbe2.currentIndex > 0 ? cbBulkFarbe2.model[cbBulkFarbe2.currentIndex] : "—"
+                                color: root.theme.textPrimary; font.pixelSize: 11
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        delegate: ItemDelegate {
+                            width: cbBulkFarbe2.width; implicitHeight: 24
+                            contentItem: Row {
+                                leftPadding: 6; spacing: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                AderfarbenSwatch {
+                                    aderCode: modelData !== "—" ? modelData : ""
+                                    width: 10; height: 16
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    text: modelData; font.pixelSize: 11
+                                    color: root.theme.textPrimary; verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                            background: Rectangle { color: highlighted ? root.theme.hover : "transparent" }
+                            highlighted: cbBulkFarbe2.highlightedIndex === index
                         }
                     }
                 }
@@ -458,11 +569,12 @@ Item {
                     }
                     onClicked: {
                         var daten = {}
-                        if (cbBulkFarbe.currentIndex > 0) daten["farbe"]           = cbBulkFarbe.model[cbBulkFarbe.currentIndex]
-                        if (bulkMm2.currentIndex     > 0) daten["querschnitt_mm2"] = bulkMm2.model[bulkMm2.currentIndex]
+                        if (cbBulkFarbe.currentIndex  > 0) daten["farbe"]           = cbBulkFarbe.model[cbBulkFarbe.currentIndex]
+                        if (cbBulkFarbe2.currentIndex > 0) daten["farbe2"]          = cbBulkFarbe2.model[cbBulkFarbe2.currentIndex]
+                        if (bulkMm2.currentIndex      > 0) daten["querschnitt_mm2"] = bulkMm2.model[bulkMm2.currentIndex]
                         if (bulkBez.text.trim()     !== "") daten["bezeichnung"]   = bulkBez.text.trim()
                         kabelModel.aderMehrfachAktualisieren(root._ausgewaehlt, daten)
-                        cbBulkFarbe.currentIndex = 0; bulkMm2.currentIndex = 0; bulkBez.text = ""
+                        cbBulkFarbe.currentIndex = 0; cbBulkFarbe2.currentIndex = 0; bulkMm2.currentIndex = 0; bulkBez.text = ""
                     }
                     ToolTip.visible: hovered; ToolTip.delay: 500
                     ToolTip.text: qsTr("Ausgefüllte Felder auf alle markierten Adern anwenden")
@@ -508,8 +620,8 @@ Item {
                     Layout.fillWidth: true; spacing: 6
                     Repeater {
                         model: [
-                            { key: "neu",      label: "Neue Norm (IEC 60446)", akzent: true,  tip: "IEC 60446:2010 / HD 308 S2 — GNYE, BN, BK, GY, BU, …" },
-                            { key: "alt",      label: "Alte Norm (VDE 0293)",  akzent: false, tip: "VDE 0293 / alte deutsche Norm — GNYE, BK, RD, BU, GY, …" },
+                            { key: "neu",      label: "Neue Norm (IEC 60446)", akzent: true,  tip: "IEC 60446:2010 / HD 308 S2 — GN/YE, BN, BK, GY, BU, …" },
+                            { key: "alt",      label: "Alte Norm (VDE 0293)",  akzent: false, tip: "VDE 0293 / alte deutsche Norm — GN/YE, BK, RD, BU, GY, …" },
                             { key: "din47100", label: "DIN 47100",             akzent: false, tip: "DIN 47100 — WH, BN, GN, YE, GY, PK, BU, RD, BK, VT, …" },
                             { key: "iec60757", label: "IEC 60757",             akzent: false, tip: "IEC 60757 Reihenfolge — BK, BN, RD, OG, YE, GN, BU, VT, GY, WH, PK, CL" }
                         ]

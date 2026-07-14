@@ -76,12 +76,12 @@ Item {
             width: parent.width - 16; anchors.horizontalCenter: parent.horizontalCenter
             spacing: 4; bottomPadding: 4
             Repeater {
-                model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","GNYE","CL"]
+                model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
                 delegate: Rectangle {
                     property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData
                     property string sName: ({"BK":"Schwarz","BN":"Braun","RD":"Rot",
                         "OG":"Orange","YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett",
-                        "GY":"Grau","WH":"Weiß","PK":"Rosa","GNYE":"Grün-Gelb (PE)",
+                        "GY":"Grau","WH":"Weiß","PK":"Rosa",
                         "CL":"Farblos"})[modelData] || modelData
                     width: 50; height: 24; radius: 4
                     color:        aktiv ? theme.activeItemAlt : (abMaus.containsMouse ? theme.hover : theme.inputBg)
@@ -91,7 +91,9 @@ Item {
                         anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
                         spacing: 3
                         AderfarbenSwatch {
-                            aderCode: modelData; width: 10; height: 16
+                            aderCode:  modelData
+                            aderCode2: panel.el ? ((panel.el.extraDaten || {}).aderfarbe2 || "") : ""
+                            width: 10; height: 16
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
@@ -109,6 +111,48 @@ Item {
                         }
                     }
                     ToolTip.visible:  abMaus.containsMouse
+                    ToolTip.text:     sName
+                    ToolTip.delay:    500
+                }
+            }
+        }
+
+        FeldLabel { text: qsTr("2. Farbe (optional, Bifarb-Ader)") }
+        Flow {
+            width: parent.width - 16; anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4; bottomPadding: 4
+            Repeater {
+                model: ["", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK"]
+                delegate: Rectangle {
+                    property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe2 === modelData && modelData !== ""
+                    property string sName: modelData === "" ? qsTr("keine zweite Farbe")
+                        : (({"BK":"Schwarz","BN":"Braun","RD":"Rot",
+                        "OG":"Orange","YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett",
+                        "GY":"Grau","WH":"Weiß","PK":"Rosa"})[modelData] || modelData)
+                    width: modelData === "" ? 34 : 50; height: 24; radius: 4
+                    color:        aktiv ? theme.activeItemAlt : (ab2Maus.containsMouse ? theme.hover : theme.inputBg)
+                    border.color: aktiv ? theme.accent : theme.border
+
+                    Row {
+                        anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
+                        spacing: 3
+                        AderfarbenSwatch {
+                            visible:  modelData !== ""
+                            aderCode: modelData; width: 10; height: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData !== "" ? modelData : "—"; font.pixelSize: 9
+                            color: aktiv ? theme.accent : theme.textMuted
+                        }
+                    }
+                    MouseArea {
+                        id: ab2Maus; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.extraSetzen("aderfarbe2", modelData)
+                    }
+                    ToolTip.visible:  ab2Maus.containsMouse
                     ToolTip.text:     sName
                     ToolTip.delay:    500
                 }

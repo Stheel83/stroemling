@@ -1,23 +1,24 @@
 import QtQuick
 
-// Kleines Farbquadrat für IEC 60757 Aderfarben.
-// GNYE (Erdikus/PE) wird mit diagonal-gelben Streifen auf Grün gezeichnet.
+// Kleines Farbquadrat für IEC 60757 Aderfarben. Bei gesetztem aderCode2
+// (Bifarb-Ader, z.B. PE = GN+YE oder DIN-47100-Bifarben) werden diagonale
+// Streifen in beiden Farben gezeichnet statt einer flächigen Farbe.
 // stromlingsName ist für die 5 Netzleiter befüllt, sonst leer.
 Item {
     id: root
 
-    property string aderCode: ""
+    property string aderCode:  ""
+    property string aderCode2: ""
 
     readonly property string stromlingsName: ({
         "BN": "Brauno – Außenleiter L1",
         "BK": "Schwärzchen – Außenleiter L2",
         "GY": "Grausel – Außenleiter L3",
-        "BU": "Blaubertha – Neutralleiter N",
-        "GNYE": "Erdikus – Schutzleiter PE"
-    })[aderCode] || ""
+        "BU": "Blaubertha – Neutralleiter N"
+    })[aderCode] || (aderCode === "GN" && aderCode2 === "YE" ? "Erdikus – Schutzleiter PE" : "")
 
     // IEC 60757 Farbcodes → Hex
-    readonly property string farbe: ({
+    readonly property var _farbMap: ({
         "BK": "#222222",
         "BN": "#7B4020",
         "RD": "#CC2000",
@@ -29,7 +30,9 @@ Item {
         "GY": "#888888",
         "WH": "#E8E8E8",
         "PK": "#E06090"
-    })[aderCode] || ""
+    })
+    readonly property string farbe:  _farbMap[aderCode]  || ""
+    readonly property string farbe2: _farbMap[aderCode2] || ""
 
     visible: aderCode !== ""
 
@@ -41,9 +44,9 @@ Item {
         border.color: "#888888"; border.width: 1
     }
 
-    // Einfarbig (alle außer GNYE und CL)
+    // Einfarbig (kein aderCode2, außer CL)
     Rectangle {
-        visible: root.farbe !== "" && root.aderCode !== "CL"
+        visible: root.farbe !== "" && root.farbe2 === "" && root.aderCode !== "CL"
         anchors.fill: parent
         radius: 2
         color: root.farbe
@@ -52,14 +55,16 @@ Item {
         border.width: 1
     }
 
-    // GNYE: grüner Grund + diagonale gelbe Streifen (wie PE-Isolierung)
+    // Bifarb-Ader: diagonale Streifen in farbe/farbe2 (wie zweifarbige Isolierung)
     Canvas {
-        id: gnyeCanvas
-        visible: root.aderCode === "GNYE"
+        id: bifarbCanvas
+        visible: root.farbe !== "" && root.farbe2 !== ""
         anchors.fill: parent
 
         Component.onCompleted: if (visible) requestPaint()
         onVisibleChanged: if (visible) requestPaint()
+        onWidthChanged:  if (visible) requestPaint()
+        onHeightChanged: if (visible) requestPaint()
 
         onPaint: {
             var ctx = getContext("2d")
@@ -70,10 +75,10 @@ Item {
             ctx.rect(0, 0, width, height)
             ctx.clip()
 
-            ctx.fillStyle = "#4CAF50"
+            ctx.fillStyle = root.farbe
             ctx.fillRect(0, 0, width, height)
 
-            ctx.fillStyle = "#FFD700"
+            ctx.fillStyle = root.farbe2
             var s = Math.max(3, Math.floor(height / 3.5))
             for (var x = -height; x < width + height; x += s * 2) {
                 ctx.beginPath()

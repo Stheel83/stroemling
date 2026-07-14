@@ -207,9 +207,9 @@ QtObject {
         var freieAdern = []
         for (var fi = 0; fi < freieNrn.length; fi++) {
             var nr = freieNrn[fi]
-            freieAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "" })
+            freieAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", farbe2: "", bezeichnung: "" })
         }
-        var alteAder = aderMap[treffer.aktuelleAderNr] || { aderNr: treffer.aktuelleAderNr, farbe: "", bezeichnung: "" }
+        var alteAder = aderMap[treffer.aktuelleAderNr] || { aderNr: treffer.aktuelleAderNr, farbe: "", farbe2: "", bezeichnung: "" }
 
         cv._dialogLayer.aderKreuzungPickerOeffnen(kabelId, freshGeid, treffer.aderKey,
             treffer.verbindungId, treffer.aktuelleAderNr, treffer.istLeer,

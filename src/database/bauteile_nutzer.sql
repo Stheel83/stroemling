@@ -110,8 +110,8 @@ SELECT bk.id, 2, 'BU', 'N', 1.5
 FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x1,5'
 AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
 
-INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
-SELECT bk.id, 3, 'GNYE', 'PE', 1.5
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'YE', 'PE', 1.5
 FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x1,5'
 AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
 
@@ -145,8 +145,8 @@ SELECT bk.id, 4, 'BU', 'N', 1.5
 FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5'
 AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
 
-INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
-SELECT bk.id, 5, 'GNYE', 'PE', 1.5
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'YE', 'PE', 1.5
 FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5'
 AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
 

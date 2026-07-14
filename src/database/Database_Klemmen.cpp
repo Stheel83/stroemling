@@ -391,7 +391,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
     {
         QSqlQuery q(m_db);
         q.prepare(
-            "SELECT ka.verbindung_id, COALESCE(ka.farbe,''), COALESCE(ka.bezeichnung,'')"
+            "SELECT ka.verbindung_id, COALESCE(ka.farbe,''), COALESCE(ka.farbe2,''), COALESCE(ka.bezeichnung,'')"
             " FROM kabel_ader ka"
             " JOIN kabel kb ON kb.id = ka.kabel_id"
             " WHERE kb.projekt_id = :pid AND ka.verbindung_id IS NOT NULL"
@@ -401,20 +401,22 @@ QVariantList Database::klemmlistenauszug(int projektId)
             while (q.next()) {
                 int vid = q.value(0).toInt();
                 QVariantMap m;
-                m[QStringLiteral("farbe")] = q.value(1).toString();
-                m[QStringLiteral("nr")]    = q.value(2).toString();
+                m[QStringLiteral("farbe")]  = q.value(1).toString();
+                m[QStringLiteral("farbe2")] = q.value(2).toString();
+                m[QStringLiteral("nr")]     = q.value(3).toString();
                 kabelAderMap[vid] = m;
             }
         }
     }
 
-    // ── 2b. Aderdefinition-Symbole: seite_id → [{cx,cy,farbe,nr}] ───────────
+    // ── 2b. Aderdefinition-Symbole: seite_id → [{cx,cy,farbe,farbe2,nr}] ────
     QHash<int, QList<QVariantMap>> aderdefMap;
     {
         const QString sql = QString(
             "SELECT ge.seite_id,"
             "       (ge.x1+ge.x2)/2.0, (ge.y1+ge.y2)/2.0,"
             "       COALESCE(json_extract(ge.extra_daten,'$.aderfarbe'),''),"
+            "       COALESCE(json_extract(ge.extra_daten,'$.aderfarbe2'),''),"
             "       COALESCE(json_extract(ge.extra_daten,'$.bezeichnung'),'')"
             " FROM grafik_element ge"
             " JOIN seite s ON s.id = ge.seite_id"
@@ -426,10 +428,11 @@ QVariantList Database::klemmlistenauszug(int projektId)
         if (q.exec(sql)) {
             while (q.next()) {
                 QVariantMap ad;
-                ad[QStringLiteral("cx")]    = q.value(1).toDouble();
-                ad[QStringLiteral("cy")]    = q.value(2).toDouble();
-                ad[QStringLiteral("farbe")] = q.value(3).toString();
-                ad[QStringLiteral("nr")]    = q.value(4).toString();
+                ad[QStringLiteral("cx")]     = q.value(1).toDouble();
+                ad[QStringLiteral("cy")]     = q.value(2).toDouble();
+                ad[QStringLiteral("farbe")]  = q.value(3).toString();
+                ad[QStringLiteral("farbe2")] = q.value(4).toString();
+                ad[QStringLiteral("nr")]     = q.value(5).toString();
                 aderdefMap[q.value(0).toInt()].append(ad);
             }
         }
@@ -458,7 +461,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             double py  = p[QStringLiteral("py")].toDouble();
             int    sid = p[QStringLiteral("sid")].toInt();
             QString key = QString::number(kid) + QLatin1Char('|') + p[QStringLiteral("abez")].toString();
-            QString vb, st, af, an;
+            QString vb, st, af, af2, an;
             for (const QVariantMap &seg : segmente.value(sid)) {
                 bool h1 = qAbs(seg[QStringLiteral("x1")].toDouble() - px) < TOL &&
                           qAbs(seg[QStringLiteral("y1")].toDouble() - py) < TOL;
@@ -469,8 +472,9 @@ QVariantList Database::klemmlistenauszug(int projektId)
                     st = seg[QStringLiteral("st")].toString();
                     int vid = seg[QStringLiteral("vid")].toInt();
                     if (kabelAderMap.contains(vid)) {
-                        af = kabelAderMap[vid][QStringLiteral("farbe")].toString();
-                        an = kabelAderMap[vid][QStringLiteral("nr")].toString();
+                        af  = kabelAderMap[vid][QStringLiteral("farbe")].toString();
+                        af2 = kabelAderMap[vid][QStringLiteral("farbe2")].toString();
+                        an  = kabelAderMap[vid][QStringLiteral("nr")].toString();
                     }
                     if (af.isEmpty() && an.isEmpty()) {
                         double sx1 = seg[QStringLiteral("x1")].toDouble();
@@ -481,8 +485,9 @@ QVariantList Database::klemmlistenauszug(int projektId)
                             if (punktAufSegment(ad[QStringLiteral("cx")].toDouble(),
                                                 ad[QStringLiteral("cy")].toDouble(),
                                                 sx1, sy1, sx2, sy2, 3.0)) {
-                                af = ad[QStringLiteral("farbe")].toString();
-                                an = ad[QStringLiteral("nr")].toString();
+                                af  = ad[QStringLiteral("farbe")].toString();
+                                af2 = ad[QStringLiteral("farbe2")].toString();
+                                an  = ad[QStringLiteral("nr")].toString();
                                 break;
                             }
                         }
@@ -491,11 +496,12 @@ QVariantList Database::klemmlistenauszug(int projektId)
                 }
             }
             QVariantMap vm;
-            vm[QStringLiteral("bl")] = p[QStringLiteral("bl")];
-            vm[QStringLiteral("vb")] = vb;
-            vm[QStringLiteral("st")] = st;
-            vm[QStringLiteral("af")] = af;
-            vm[QStringLiteral("an")] = an;
+            vm[QStringLiteral("bl")]  = p[QStringLiteral("bl")];
+            vm[QStringLiteral("vb")]  = vb;
+            vm[QStringLiteral("st")]  = st;
+            vm[QStringLiteral("af")]  = af;
+            vm[QStringLiteral("af2")] = af2;
+            vm[QStringLiteral("an")]  = an;
             verbInfo[key] = vm;
         }
     }
@@ -649,6 +655,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("vonVerbBez")]      = vA ? viA[QStringLiteral("vb")].toString() : QString();
             row[QStringLiteral("vonSignaltyp")]    = vA ? viA[QStringLiteral("st")].toString() : QString();
             row[QStringLiteral("vonAderFarbe")]    = vA ? viA[QStringLiteral("af")].toString() : QString();
+            row[QStringLiteral("vonAderFarbe2")]   = vA ? viA[QStringLiteral("af2")].toString() : QString();
             row[QStringLiteral("vonAderNr")]       = vA ? viA[QStringLiteral("an")].toString() : QString();
             row[QStringLiteral("anschlussNach")]   = bezB;
             row[QStringLiteral("nachPlatziert")]   = pB;
@@ -656,6 +663,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             row[QStringLiteral("nachVerbBez")]     = vB ? viB[QStringLiteral("vb")].toString() : QString();
             row[QStringLiteral("nachSignaltyp")]   = vB ? viB[QStringLiteral("st")].toString() : QString();
             row[QStringLiteral("nachAderFarbe")]   = vB ? viB[QStringLiteral("af")].toString() : QString();
+            row[QStringLiteral("nachAderFarbe2")]  = vB ? viB[QStringLiteral("af2")].toString() : QString();
             row[QStringLiteral("nachAderNr")]      = vB ? viB[QStringLiteral("an")].toString() : QString();
             row[QStringLiteral("querschnitt")]      = qs;
             row[QStringLiteral("farbeBez")]         = farbBez;
@@ -726,6 +734,13 @@ bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
             return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
         return s;
     };
+    // Bifarb-Ader (farbe2) als "GN/YE" in dieselbe Zelle wie farbe – erhält
+    // die bestehende Spaltenanzahl fuer externe CSV-Auswertung.
+    auto aderFarbeText = [](const QVariantMap &r, const QString &fKey, const QString &f2Key) -> QString {
+        QString f  = r[fKey].toString();
+        QString f2 = r[f2Key].toString();
+        return f2.isEmpty() ? f : f + "/" + f2;
+    };
 
     QString curLeisteBmk;
     for (const QVariant &v : klemmlistenauszug(projektId)) {
@@ -742,13 +757,13 @@ bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
                 << u';' << csvQ(pA ? row[QStringLiteral("vonVerbBez")].toString()     : QString())
                 << u';' << csvQ(pA ? row[QStringLiteral("vonSignaltyp")].toString()   : QString())
                 << u';' << csvQ(pA ? row[QStringLiteral("vonBlattnummer")].toString() : QString())
-                << u';' << csvQ(row[QStringLiteral("vonAderFarbe")].toString())
+                << u';' << csvQ(aderFarbeText(row, QStringLiteral("vonAderFarbe"), QStringLiteral("vonAderFarbe2")))
                 << u';' << csvQ(row[QStringLiteral("vonAderNr")].toString())
                 << u';' << csvQ(row[QStringLiteral("anschlussNach")].toString())
                 << u';' << csvQ(pB ? row[QStringLiteral("nachVerbBez")].toString()     : QString())
                 << u';' << csvQ(pB ? row[QStringLiteral("nachSignaltyp")].toString()   : QString())
                 << u';' << csvQ(pB ? row[QStringLiteral("nachBlattnummer")].toString() : QString())
-                << u';' << csvQ(row[QStringLiteral("nachAderFarbe")].toString())
+                << u';' << csvQ(aderFarbeText(row, QStringLiteral("nachAderFarbe"), QStringLiteral("nachAderFarbe2")))
                 << u';' << csvQ(row[QStringLiteral("nachAderNr")].toString())
                 << u';' << csvQ(row[QStringLiteral("querschnitt")].toString())
                 << u';' << csvQ(row[QStringLiteral("farbeBez")].toString())

@@ -1264,6 +1264,51 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('zeitschaltuhr', 4, 'linie',       0.5,  0.17, 0.5,  0.09, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('zeitschaltuhr', 5, 'linie',       0.5,  0.17, 0.58, 0.12, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
+-- ══════════════════════════════════════════════════════════════
+-- Erdungszeichen nach EN 60617 (Zeichen 02-15-01 bis 02-15-04) –
+-- je 1 Pin oben, rolle='quelle' analog zu 'potenzial' (definierter
+-- Referenzpunkt fürs Netz), Kategorie 'Erdung'
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('erde_allgemein',   'Erde (allgemein)',                     'Erdung', 16, 22, 'quelle', 1),
+('funktionserdung',  'Funktionserdung',                      'Erdung', 24, 18, 'quelle', 1),
+('schutzerdung',     'Schutzerdung',                         'Erdung', 24, 24, 'quelle', 1),
+('masse_gehaeuse',   'Masse, Gehäuse',                       'Erdung', 18, 20, 'quelle', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('erde_allgemein',  '1', 0.5, 0, 0, -1, 'neutral'),
+('funktionserdung', '1', 0.5, 0, 0, -1, 'neutral'),
+('schutzerdung',    '1', 0.5, 0, 0, -1, 'neutral'),
+('masse_gehaeuse',  '1', 0.5, 0, 0, -1, 'neutral');
+
+-- Proportionen aller vier Erdungszeichen per Pixelvermessung der Vorlage
+-- (EN-60617-Referenztabelle, Screenshot) bestimmt, nicht freihändig geschätzt.
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
+-- erde_allgemein: Stab + 3 nach unten kürzer werdende Querstriche (02-15-01)
+('erde_allgemein', 0, 'linie', 0.5,  0,    0.5,  0.73, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('erde_allgemein', 1, 'linie', 0.06, 0.75, 0.94, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('erde_allgemein', 2, 'linie', 0.20, 0.86, 0.80, 0.86, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('erde_allgemein', 3, 'linie', 0.34, 0.97, 0.66, 0.97, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- funktionserdung: wie erde_allgemein + breiter, flacher offener Bogen über dem Stab (02-15-02)
+('funktionserdung', 0, 'linie', 0.5,  0,    0.5,  0.65, 0, 0, 0,   0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('funktionserdung', 1, 'bogen', 0.5,  1.0,  0,    0,    0, 0, 0.5, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('funktionserdung', 2, 'linie', 0.16, 0.66, 0.86, 0.66, 0, 0, 0,   0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('funktionserdung', 3, 'linie', 0.28, 0.81, 0.74, 0.81, 0, 0, 0,   0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('funktionserdung', 4, 'linie', 0.39, 0.96, 0.63, 0.96, 0, 0, 0,   0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- schutzerdung: wie erde_allgemein, eingeschlossen in Vollkreis der den Pin berührt (02-15-03)
+('schutzerdung', 0, 'kreis_offen', 0.5,  0.5,  0,    0,    0, 0, 0.5, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schutzerdung', 1, 'linie',       0.5,  0.15, 0.5,  0.61, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schutzerdung', 2, 'linie',       0.15, 0.62, 0.85, 0.62, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schutzerdung', 3, 'linie',       0.26, 0.73, 0.74, 0.73, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schutzerdung', 4, 'linie',       0.37, 0.84, 0.63, 0.84, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- masse_gehaeuse: Stab + Querbalken + 3 parallele, gleich geneigte Schraffurstriche (02-15-04)
+('masse_gehaeuse', 0, 'linie', 0.5,  0,    0.5,  0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('masse_gehaeuse', 1, 'linie', 0.11, 0.80, 0.89, 0.80, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('masse_gehaeuse', 2, 'linie', 0.11, 0.83, 0.00, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('masse_gehaeuse', 3, 'linie', 0.50, 0.83, 0.39, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('masse_gehaeuse', 4, 'linie', 0.89, 0.83, 0.78, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
 -- ── bmk_seite: Symbole mit vertikaler Hauptachse (BMK links statt oben) ──────
 -- Wird nach Migration v70 auch für bestehende DBs gesetzt.
 UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule';

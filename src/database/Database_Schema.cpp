@@ -741,6 +741,17 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE kabel_ader ADD COLUMN farbe2 TEXT)",
             R"(UPDATE kabel_ader SET farbe2 = 'YE', farbe = 'GN' WHERE farbe = 'GNYE')",
         }},
+        { 95, "Neue Symbole sensor_niveau (Niveauschalter/Schwimmer) und zeitschaltuhr (Zeitschaltuhr)", {
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sensor_niveau', 'Niveauschalter (Schwimmer)', 'sensoren', 'IEC,ANSI', 3))",
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sensor_niveau', 'Niveauschalter (Schwimmer)', 'Sensoren', 32, 16, 'variabel', 1))",
+            R"(INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sensor_niveau', 'L+', 0, 0.25, -1, 0, 'power'), ('sensor_niveau', 'M', 0, 0.75, -1, 0, 'power'), ('sensor_niveau', 'Q', 1, 0.5, 1, 0, 'neutral'))",
+            R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('sensor_niveau', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 1, 'linie', 0, 0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 2, 'linie', 0, 0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 3, 'linie', 0.85, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 4, 'text', 0.5, 0.22, 0, 0, 0, 0, 0, 0, 0, 0, 'NIV', 0.16, 1, 'center', 'middle', 'solid'), ('sensor_niveau', 5, 'kreis_offen', 0.5, 0.42, 0, 0, 0, 0, 0.12, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 6, 'linie', 0.5, 0.54, 0.5, 0.68, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 7, 'bogen', 0.36, 0.78, 0, 0, 0, 0, 0.10, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('sensor_niveau', 8, 'bogen', 0.64, 0.78, 0, 0, 0, 0, 0.10, 0, 180, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+            R"(UPDATE symbol_definition SET ibn_kategorie = 'fuellstandssensor' WHERE id = 'sensor_niveau')",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('zeitschaltuhr', 'Zeitschaltuhr', 'kontakte', 'IEC,ANSI', 2))",
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('zeitschaltuhr', 'Zeitschaltuhr', 'Kontakte', 32, 16, 'durchleiter', 1))",
+            R"(INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('zeitschaltuhr', '1', 0, 0.5, -1, 0, 'neutral'), ('zeitschaltuhr', '2', 1, 0.5, 1, 0, 'neutral'))",
+            R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('zeitschaltuhr', 0, 'linie', 0, 0.5, 0.3, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('zeitschaltuhr', 1, 'linie', 0.3, 0.5, 0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('zeitschaltuhr', 2, 'linie', 0.7, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('zeitschaltuhr', 3, 'kreis_offen', 0.5, 0.17, 0, 0, 0, 0, 0.12, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('zeitschaltuhr', 4, 'linie', 0.5, 0.17, 0.5, 0.09, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('zeitschaltuhr', 5, 'linie', 0.5, 0.17, 0.58, 0.12, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -1127,6 +1138,7 @@ bool Database::seedSymbolKatalog()
         { "taster_no",       "Taster (NO)",             "kontakte",       "IEC,ANSI", 2 },
         { "taster_nc",       "Taster NC",               "kontakte",       "IEC,ANSI", 2 },
         { "not_halt",        "Not-Halt (NC)",           "kontakte",       "IEC,ANSI", 2 },
+        { "zeitschaltuhr",   "Zeitschaltuhr",           "kontakte",       "IEC,ANSI", 2 },
         // Schutzgeräte
         { "sicherung",       "Sicherung",               "schutz",         "IEC,ANSI", 2 },
         { "lss",             "Leitungsschutzschalter",  "schutz",         "IEC",      2 },
@@ -1187,6 +1199,7 @@ bool Database::seedSymbolKatalog()
         { "sensor_ultraschall","Ultraschallsensor",             "sensoren", "IEC,ANSI", 3 },
         { "sensor_druck",      "Drucksensor",                   "sensoren", "IEC,ANSI", 3 },
         { "sensor_temp",       "Temperatursensor (PT100)",       "sensoren", "IEC,ANSI", 2 },
+        { "sensor_niveau",     "Niveauschalter (Schwimmer)",     "sensoren", "IEC,ANSI", 3 },
     };
 
     QSqlQuery q(m_db);

@@ -1309,6 +1309,74 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('masse_gehaeuse', 3, 'linie', 0.50, 0.83, 0.39, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('masse_gehaeuse', 4, 'linie', 0.89, 0.83, 0.78, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
+-- ══════════════════════════════════════════════════════════════
+-- Sicherungen (Schutz): netzseitige Kennzeichnung, NH-Sicherung,
+-- Sicherungsschalter/-trennschalter/-lasttrennschalter
+-- Aus Nutzer-Screenshot (Reihe "Sicherungen"/"Sicherungsschalter")
+-- per PIL/numpy-Pixelvermessung nachgebaut, s. SYM-BILDVORLAGE-01.
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('sicherung_netzseitig',        'Sicherung mit netzseitiger Kennzeichnung', 'Schutz', 32, 16, 'durchleiter', 1),
+('nh_sicherung',                'NH-Sicherung',                            'Schutz', 32, 16, 'durchleiter', 1),
+('sicherungsschalter',          'Sicherungsschalter',                      'Schutz', 36, 24, 'durchleiter', 1),
+('sicherungstrennschalter',     'Sicherungstrennschalter',                 'Schutz', 36, 24, 'durchleiter', 1),
+('sicherungslasttrennschalter', 'Sicherungslasttrennschalter',             'Schutz', 36, 24, 'durchleiter', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('sicherung_netzseitig',        '1', 0, 0.5, -1, 0, 'neutral'),
+('sicherung_netzseitig',        '2', 1, 0.5,  1, 0, 'neutral'),
+('nh_sicherung',                '1', 0, 0.5, -1, 0, 'neutral'),
+('nh_sicherung',                '2', 1, 0.5,  1, 0, 'neutral'),
+('sicherungsschalter',          '1', 0, 0.5, -1, 0, 'neutral'),
+('sicherungsschalter',          '2', 1, 0.5,  1, 0, 'neutral'),
+('sicherungstrennschalter',     '1', 0, 0.5, -1, 0, 'neutral'),
+('sicherungstrennschalter',     '2', 1, 0.5,  1, 0, 'neutral'),
+('sicherungslasttrennschalter', '1', 0, 0.5, -1, 0, 'neutral'),
+('sicherungslasttrennschalter', '2', 1, 0.5,  1, 0, 'neutral');
+
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
+-- sicherung_netzseitig: wie 'sicherung', rechtes Rechteck-Drittel als Kennzeichnung des netzseitigen Anschlusses gefüllt
+('sicherung_netzseitig', 0, 'linie',           0,     0.5,  1.0,  0.5,  0,     0,    0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherung_netzseitig', 1, 'rechteck',        0.25,  0.21, 0.75, 0.79, 0,     0,    0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherung_netzseitig', 2, 'dreieck_gefuellt',0.575, 0.21, 0.75, 0.21, 0.75,  0.79, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherung_netzseitig', 3, 'dreieck_gefuellt',0.575, 0.21, 0.75, 0.79, 0.575, 0.79, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- nh_sicherung: wie 'sicherung', zusätzlich zwei kurze Messerkontakt-Striche außerhalb des Rechtecks (NH-Sicherungshalter)
+('nh_sicherung', 0, 'linie', 0,    0.5,  1.0,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 1, 'linie', 0.20, 0.21, 0.20, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 2, 'rechteck', 0.25, 0.21, 0.75, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 3, 'linie', 0.80, 0.21, 0.80, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- sicherungsschalter/-trennschalter/-lasttrennschalter: gemeinsame Basis (Zuleitung, gekippte Sicherung als
+-- Schaltstrecke, offener Kontaktspalt) + Betätigungs-Symbol (Strich / Strich+Trennsteg / Strich+Kreis)
+('sicherungsschalter', 0, 'linie', 0,     0.5,   0.28,  0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 1, 'linie', 0.28,  0.5,   0.62,  0.273, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 2, 'linie', 0.62,  0.5,   1,     0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 3, 'linie', 0.320, 0.359, 0.524, 0.223, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 4, 'linie', 0.376, 0.550, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 5, 'linie', 0.320, 0.359, 0.376, 0.550, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 6, 'linie', 0.524, 0.223, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+
+('sicherungstrennschalter', 0, 'linie', 0,     0.5,   0.28,  0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 1, 'linie', 0.28,  0.5,   0.62,  0.273, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 2, 'linie', 0.62,  0.5,   1,     0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 3, 'linie', 0.320, 0.359, 0.524, 0.223, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 4, 'linie', 0.376, 0.550, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 5, 'linie', 0.320, 0.359, 0.376, 0.550, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 6, 'linie', 0.524, 0.223, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 8, 'linie', 0.696, 0.222, 0.696, 0.055, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+
+('sicherungslasttrennschalter', 0, 'linie', 0,     0.5,   0.28,  0.5,   0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 1, 'linie', 0.28,  0.5,   0.62,  0.273, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 2, 'linie', 0.62,  0.5,   1,     0.5,   0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 3, 'linie', 0.320, 0.359, 0.524, 0.223, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 4, 'linie', 0.376, 0.550, 0.580, 0.414, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 5, 'linie', 0.320, 0.359, 0.376, 0.550, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 6, 'linie', 0.524, 0.223, 0.580, 0.414, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 8, 'kreis_offen', 0.696, 0.130, 0, 0, 0, 0, 0.044,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
 -- ── bmk_seite: Symbole mit vertikaler Hauptachse (BMK links statt oben) ──────
 -- Wird nach Migration v70 auch für bestehende DBs gesetzt.
 UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule';

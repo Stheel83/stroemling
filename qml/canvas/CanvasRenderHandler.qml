@@ -1537,58 +1537,6 @@ QtObject {
         }
     }
 
-    // ── Generischer Primitiv-Renderer (Phase B Symboleditor) ──────
-    // Zeichnet Erweiterungsmodifier über dem Grundsymbol im lokalen Koordinatensystem
-    // (0..w × 0..h, nach Rotation/Spiegelung des Symbols transformiert).
-    function maleModifier(ctx, erweiterungen, w, h) {
-        if (!erweiterungen || erweiterungen.length === 0) return
-        ctx.save()
-        ctx.setLineDash([])
-        ctx.lineWidth = Math.max(1.0, h * 0.055)
-
-        for (var ei = 0; ei < erweiterungen.length; ei++) {
-            var ew = erweiterungen[ei]
-
-            if (ew === "zeit_an") {
-                // Anzugsverzögert: ∩-Bogen (öffnet nach unten) + kleines Rechteck
-                ctx.beginPath()
-                ctx.arc(w * 0.5, h * 0.22, h * 0.10, Math.PI, 0, false) // ∩
-                ctx.stroke()
-                ctx.strokeRect(w * 0.44, h * 0.04, w * 0.12, h * 0.09)
-
-            } else if (ew === "zeit_ab") {
-                // Abfallverzögert: ∪-Bogen (öffnet nach oben) + kleines Rechteck
-                ctx.beginPath()
-                ctx.arc(w * 0.5, h * 0.12, h * 0.10, 0, Math.PI, false) // ∪
-                ctx.stroke()
-                ctx.strokeRect(w * 0.44, h * 0.04, w * 0.12, h * 0.09)
-
-            } else if (ew === "voreilung") {
-                // Voreilung: kleiner Pfeil (↑) links neben Pin 1
-                var vx = w * 0.09, vy = h * 0.42, vl = h * 0.18
-                ctx.beginPath()
-                ctx.moveTo(vx, vy)
-                ctx.lineTo(vx, vy - vl)
-                ctx.lineTo(vx - vl * 0.35, vy - vl * 0.55)
-                ctx.moveTo(vx, vy - vl)
-                ctx.lineTo(vx + vl * 0.35, vy - vl * 0.55)
-                ctx.stroke()
-
-            } else if (ew === "nacheilung") {
-                // Nacheilung: kleiner Pfeil (↓) rechts neben Pin 2
-                var nx = w * 0.91, ny = h * 0.25, nl = h * 0.18
-                ctx.beginPath()
-                ctx.moveTo(nx, ny)
-                ctx.lineTo(nx, ny + nl)
-                ctx.lineTo(nx - nl * 0.35, ny + nl * 0.55)
-                ctx.moveTo(nx, ny + nl)
-                ctx.lineTo(nx + nl * 0.35, ny + nl * 0.55)
-                ctx.stroke()
-            }
-        }
-        ctx.restore()
-    }
-
     // Liest Primitive aus symbol_primitiv über symbolDefinitionModel und
     // zeichnet sie in den Koordinaten 0..w × 0..h.
     // ctx.strokeStyle und ctx.lineWidth werden vom Aufrufer gesetzt.
@@ -1696,13 +1644,6 @@ QtObject {
                 _maleTreffpunktArme(ctx, el.symbolId, Math.abs(sw), Math.abs(sh), rc.armInfo)
             else
                 drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
-            // Erweiterungsmodifier im lokalen Koordinatensystem (dreht/spiegelt mit)
-            if (!vorschau) {
-                var erw = (el.extraDaten && Array.isArray(el.extraDaten.erweiterungen))
-                          ? el.extraDaten.erweiterungen : []
-                if (erw.length > 0)
-                    maleModifier(ctx, erw, Math.abs(sw), Math.abs(sh))
-            }
             ctx.restore()
 
             // Pin-Marker zeichnen (immer sichtbar, selektiert = hervorgehoben)

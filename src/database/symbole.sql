@@ -1342,40 +1342,44 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('sicherung_netzseitig', 2, 'dreieck_gefuellt',0.575, 0.21, 0.75, 0.21, 0.75,  0.79, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherung_netzseitig', 3, 'dreieck_gefuellt',0.575, 0.21, 0.75, 0.79, 0.575, 0.79, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- nh_sicherung: wie 'sicherung', zusätzlich zwei kurze Messerkontakt-Striche außerhalb des Rechtecks (NH-Sicherungshalter)
-('nh_sicherung', 0, 'linie', 0,    0.5,  1.0,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('nh_sicherung', 1, 'linie', 0.20, 0.21, 0.20, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('nh_sicherung', 2, 'rechteck', 0.25, 0.21, 0.75, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('nh_sicherung', 3, 'linie', 0.80, 0.21, 0.80, 0.79, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- (Jul 2026 aus Nutzer-Korrektur im Symboleditor übernommen: Zuleitung in Segmente aufgeteilt statt einer durchgehenden Linie)
+('nh_sicherung', 0, 'linie', 0,        0.5,     0.203125, 0.5,     0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 1, 'linie', 0.203125, 0.21875, 0.203125, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 2, 'rechteck', 0.25,  0.21875, 0.75,     0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 3, 'linie', 0.796875, 0.21875, 0.796875, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 4, 'linie', 0.796875, 0.5,     1.0,      0.5,     0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('nh_sicherung', 5, 'linie', 0.25,     0.5,     0.75,     0.5,     0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- sicherungsschalter/-trennschalter/-lasttrennschalter: gemeinsame Basis (Zuleitung, gekippte Sicherung als
--- Schaltstrecke, offener Kontaktspalt) + Betätigungs-Symbol (Strich / Strich+Trennsteg / Strich+Kreis)
+-- Schaltstrecke, offener Kontaktspalt) + Betätigungs-Symbol (kein Strich / Strich+Trennsteg / Strich+Kreis)
+-- Jul 2026 aus Nutzer-Korrektur im Symboleditor übernommen: freistehender Betätigungs-Strich entfernt, Trenn-/
+-- Lastschaltmarkierung sitzt jetzt direkt am Kontaktspalt statt frei zu schweben (elektrotechnisch korrekter:
+-- Lasttrennschalter zeigt jetzt sowohl den Trennsteg als auch den Kreis, da er beide Eigenschaften vereint).
 ('sicherungsschalter', 0, 'linie', 0,     0.5,   0.28,  0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungsschalter', 1, 'linie', 0.28,  0.5,   0.62,  0.273, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungsschalter', 2, 'linie', 0.62,  0.5,   1,     0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungsschalter', 2, 'linie', 0.652777777777778, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungsschalter', 3, 'linie', 0.320, 0.359, 0.524, 0.223, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungsschalter', 4, 'linie', 0.376, 0.550, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungsschalter', 5, 'linie', 0.320, 0.359, 0.376, 0.550, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungsschalter', 6, 'linie', 0.524, 0.223, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungsschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 ('sicherungstrennschalter', 0, 'linie', 0,     0.5,   0.28,  0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungstrennschalter', 1, 'linie', 0.28,  0.5,   0.62,  0.273, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungstrennschalter', 2, 'linie', 0.62,  0.5,   1,     0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 2, 'linie', 0.638888888888889, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungstrennschalter', 3, 'linie', 0.320, 0.359, 0.524, 0.223, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungstrennschalter', 4, 'linie', 0.376, 0.550, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungstrennschalter', 5, 'linie', 0.320, 0.359, 0.376, 0.550, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungstrennschalter', 6, 'linie', 0.524, 0.223, 0.580, 0.414, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungstrennschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungstrennschalter', 8, 'linie', 0.696, 0.222, 0.696, 0.055, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungstrennschalter', 7, 'linie', 0.638888888888889, 0.5625, 0.638888888888889, 0.4375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 ('sicherungslasttrennschalter', 0, 'linie', 0,     0.5,   0.28,  0.5,   0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungslasttrennschalter', 1, 'linie', 0.28,  0.5,   0.62,  0.273, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungslasttrennschalter', 2, 'linie', 0.62,  0.5,   1,     0.5,   0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 2, 'linie', 0.694444444444444, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungslasttrennschalter', 3, 'linie', 0.320, 0.359, 0.524, 0.223, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungslasttrennschalter', 4, 'linie', 0.376, 0.550, 0.580, 0.414, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungslasttrennschalter', 5, 'linie', 0.320, 0.359, 0.376, 0.550, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungslasttrennschalter', 6, 'linie', 0.524, 0.223, 0.580, 0.414, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungslasttrennschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sicherungslasttrennschalter', 8, 'kreis_offen', 0.696, 0.130, 0, 0, 0, 0, 0.044,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+('sicherungslasttrennschalter', 7, 'kreis_offen', 0.666666666666667, 0.5, 0, 0, 0, 0, 0.0277777777777778, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sicherungslasttrennschalter', 8, 'linie', 0.694444444444444, 0.458333333333333, 0.694444444444444, 0.541666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
 -- ══════════════════════════════════════════════════════════════
 -- Wischkontakte + voreilende/nacheilende Schließer/Öffner
@@ -1390,21 +1394,21 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('wischkontakt_betaetigung', 'Wischkontakt (bei Betätigung)',        'Kontakte', 10, 32, 'durchleiter', 1),
-('wischkontakt_rueckfall',   'Wischkontakt (bei Rückfall)',          'Kontakte', 10, 32, 'durchleiter', 1),
-('wischkontakt_beide',       'Wischkontakt (bei Betätigung+Rückfall)','Kontakte', 10, 32, 'durchleiter', 1),
+('wischkontakt_betaetigung', 'Wischkontakt (bei Betätigung)',        'Kontakte', 16, 32, 'durchleiter', 1),
+('wischkontakt_rueckfall',   'Wischkontakt (bei Rückfall)',          'Kontakte', 16, 32, 'durchleiter', 1),
+('wischkontakt_beide',       'Wischkontakt (bei Betätigung+Rückfall)','Kontakte', 16, 32, 'durchleiter', 1),
 ('schliesser_voreilend',     'Voreilender Schließer',                'Kontakte', 12, 32, 'durchleiter', 1),
 ('schliesser_nacheilend',    'Nacheilender Schließer',               'Kontakte', 12, 32, 'durchleiter', 1),
 ('oeffner_voreilend',        'Voreilender Öffner',                   'Kontakte', 12, 32, 'durchleiter', 1),
 ('oeffner_nacheilend',       'Nacheilender Öffner',                  'Kontakte', 12, 32, 'durchleiter', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
-('wischkontakt_betaetigung', '1', 0.74, 0, 0, -1, 'neutral'),
-('wischkontakt_betaetigung', '2', 0.74, 1, 0,  1, 'neutral'),
-('wischkontakt_rueckfall',   '1', 0.74, 0, 0, -1, 'neutral'),
-('wischkontakt_rueckfall',   '2', 0.74, 1, 0,  1, 'neutral'),
-('wischkontakt_beide',       '1', 0.74, 0, 0, -1, 'neutral'),
-('wischkontakt_beide',       '2', 0.74, 1, 0,  1, 'neutral'),
+('wischkontakt_betaetigung', '1', 0.5, 0, 0, -1, 'neutral'),
+('wischkontakt_betaetigung', '2', 0.5, 1, 0,  1, 'neutral'),
+('wischkontakt_rueckfall',   '1', 0.5, 0, 0, -1, 'neutral'),
+('wischkontakt_rueckfall',   '2', 0.5, 1, 0,  1, 'neutral'),
+('wischkontakt_beide',       '1', 0.5, 0, 0, -1, 'neutral'),
+('wischkontakt_beide',       '2', 0.5, 1, 0,  1, 'neutral'),
 ('schliesser_voreilend',     '1', 0.35, 0, 0, -1, 'neutral'),
 ('schliesser_voreilend',     '2', 0.65, 1, 0,  1, 'neutral'),
 ('schliesser_nacheilend',    '1', 0.65, 0, 0, -1, 'neutral'),
@@ -1416,21 +1420,23 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
 -- wischkontakt_betaetigung: Schaft+Zeitpfeil links, Wischkontakt-Diagonale, Stummel
-('wischkontakt_betaetigung', 0, 'linie', 0.74, 0,    0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_betaetigung', 1, 'linie', 0.0,  0.26, 0.74, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_betaetigung', 2, 'linie', 0.74, 0.78, 0.74, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_betaetigung', 3, 'linie', 0.48, 0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- (Jul 2026 aus Nutzer-Korrektur im Symboleditor übernommen: Spindel auf x=0.5 zentriert statt x=0.74,
+-- Symbolbreite 10→16mm für symmetrischen Platz beider Pfeil-Widerhaken)
+('wischkontakt_betaetigung', 0, 'linie', 0.5,  0,       0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_betaetigung', 1, 'linie', 0.0,  0.265625,0.5, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_betaetigung', 2, 'linie', 0.5,  0.78125, 0.5, 1.0,     0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_betaetigung', 3, 'linie', 0.25, 0.15625, 0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- wischkontakt_rueckfall: wie oben, Zeitpfeil rechts
-('wischkontakt_rueckfall', 0, 'linie', 0.74, 0,    0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_rueckfall', 1, 'linie', 0.0,  0.26, 0.74, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_rueckfall', 2, 'linie', 0.74, 0.78, 0.74, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_rueckfall', 3, 'linie', 1.0,  0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 0, 'linie', 0.5,  0,        0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 1, 'linie', 0.0,  0.265625, 0.5, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 2, 'linie', 0.5,  0.78125,  0.5, 1.0,     0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 3, 'linie', 0.75, 0.15625,  0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- wischkontakt_beide: Zeitpfeil beidseitig (voller Pfeilkopf)
-('wischkontakt_beide', 0, 'linie', 0.74, 0,    0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_beide', 1, 'linie', 0.0,  0.26, 0.74, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_beide', 2, 'linie', 0.74, 0.78, 0.74, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_beide', 3, 'linie', 0.48, 0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wischkontakt_beide', 4, 'linie', 1.0,  0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 0, 'linie', 0.5,     0,        0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 1, 'linie', 0.0,     0.265625, 0.5, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 2, 'linie', 0.5,     0.78125,  0.5, 1.0,     0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 3, 'linie', 0.21875, 0.15625,  0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 4, 'linie', 0.75,    0.15625,  0.5, 0.25,    0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- schliesser_voreilend: Knick früh (nahe Pin 1) + separater Voreil-Strich
 ('schliesser_voreilend', 0, 'linie', 0.35, 0,    0.35, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('schliesser_voreilend', 1, 'linie', 0.35, 0.15, 0.15, 0.30, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),

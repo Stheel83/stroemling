@@ -1607,9 +1607,11 @@ ApplicationWindow {
                 vorlageId:    root.symbolEditorVorlageId
 
                 onGespeichert: function(symbolId) {
+                    // Editor bleibt nach dem Speichern offen (Nutzerwunsch) – nur die
+                    // Palette aktualisieren, damit Änderungen sofort sichtbar sind.
+                    // Verlassen weiterhin über «Abbrechen» (schließt ohne Datenverlust,
+                    // da bereits gespeichert wurde).
                     symbolPalette.laden()
-                    root.aktiveAnsicht = (root.symbolEditorVorher !== "symbol_editor")
-                                          ? root.symbolEditorVorher : "seiten"
                 }
                 onAbgebrochen: {
                     root.aktiveAnsicht = (root.symbolEditorVorher !== "symbol_editor")

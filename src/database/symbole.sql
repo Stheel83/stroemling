@@ -1377,6 +1377,90 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('sicherungslasttrennschalter', 7, 'linie', 0.696, 0.222, 0.807, 0.222, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sicherungslasttrennschalter', 8, 'kreis_offen', 0.696, 0.130, 0, 0, 0, 0, 0.044,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
+-- ══════════════════════════════════════════════════════════════
+-- Wischkontakte + voreilende/nacheilende Schließer/Öffner
+-- Aus zwei Nutzer-Screenshots ("Wischkontakte", "Voreilende und
+-- Nacheilende") per PIL/numpy-Pixelvermessung + Matplotlib-Vorschau
+-- nachgebaut, s. SYM-BILDVORLAGE-01. Vertikale 2-Pin-Symbole (analog
+-- 'spule'): Pin oben/unten statt links/rechts.
+-- Der geschwungene Voreil-/Nacheil-Haken der Vorlage ist im
+-- Primitiv-System (nur Geraden, keine Splines) nicht exakt abbildbar –
+-- vereinfacht zu einem Knick früh (voreilend) bzw. spät (nacheilend)
+-- im Kontaktverlauf, spiegelbildlich zueinander.
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('wischkontakt_betaetigung', 'Wischkontakt (bei Betätigung)',        'Kontakte', 10, 32, 'durchleiter', 1),
+('wischkontakt_rueckfall',   'Wischkontakt (bei Rückfall)',          'Kontakte', 10, 32, 'durchleiter', 1),
+('wischkontakt_beide',       'Wischkontakt (bei Betätigung+Rückfall)','Kontakte', 10, 32, 'durchleiter', 1),
+('schliesser_voreilend',     'Voreilender Schließer',                'Kontakte', 12, 32, 'durchleiter', 1),
+('schliesser_nacheilend',    'Nacheilender Schließer',               'Kontakte', 12, 32, 'durchleiter', 1),
+('oeffner_voreilend',        'Voreilender Öffner',                   'Kontakte', 12, 32, 'durchleiter', 1),
+('oeffner_nacheilend',       'Nacheilender Öffner',                  'Kontakte', 12, 32, 'durchleiter', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('wischkontakt_betaetigung', '1', 0.74, 0, 0, -1, 'neutral'),
+('wischkontakt_betaetigung', '2', 0.74, 1, 0,  1, 'neutral'),
+('wischkontakt_rueckfall',   '1', 0.74, 0, 0, -1, 'neutral'),
+('wischkontakt_rueckfall',   '2', 0.74, 1, 0,  1, 'neutral'),
+('wischkontakt_beide',       '1', 0.74, 0, 0, -1, 'neutral'),
+('wischkontakt_beide',       '2', 0.74, 1, 0,  1, 'neutral'),
+('schliesser_voreilend',     '1', 0.35, 0, 0, -1, 'neutral'),
+('schliesser_voreilend',     '2', 0.65, 1, 0,  1, 'neutral'),
+('schliesser_nacheilend',    '1', 0.65, 0, 0, -1, 'neutral'),
+('schliesser_nacheilend',    '2', 0.35, 1, 0,  1, 'neutral'),
+('oeffner_voreilend',        '1', 0.35, 0, 0, -1, 'neutral'),
+('oeffner_voreilend',        '2', 0.65, 1, 0,  1, 'neutral'),
+('oeffner_nacheilend',       '1', 0.65, 0, 0, -1, 'neutral'),
+('oeffner_nacheilend',       '2', 0.35, 1, 0,  1, 'neutral');
+
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
+-- wischkontakt_betaetigung: Schaft+Zeitpfeil links, Wischkontakt-Diagonale, Stummel
+('wischkontakt_betaetigung', 0, 'linie', 0.74, 0,    0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_betaetigung', 1, 'linie', 0.0,  0.26, 0.74, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_betaetigung', 2, 'linie', 0.74, 0.78, 0.74, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_betaetigung', 3, 'linie', 0.48, 0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- wischkontakt_rueckfall: wie oben, Zeitpfeil rechts
+('wischkontakt_rueckfall', 0, 'linie', 0.74, 0,    0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 1, 'linie', 0.0,  0.26, 0.74, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 2, 'linie', 0.74, 0.78, 0.74, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_rueckfall', 3, 'linie', 1.0,  0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- wischkontakt_beide: Zeitpfeil beidseitig (voller Pfeilkopf)
+('wischkontakt_beide', 0, 'linie', 0.74, 0,    0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 1, 'linie', 0.0,  0.26, 0.74, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 2, 'linie', 0.74, 0.78, 0.74, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 3, 'linie', 0.48, 0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wischkontakt_beide', 4, 'linie', 1.0,  0.16, 0.74, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- schliesser_voreilend: Knick früh (nahe Pin 1) + separater Voreil-Strich
+('schliesser_voreilend', 0, 'linie', 0.35, 0,    0.35, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_voreilend', 1, 'linie', 0.35, 0.15, 0.15, 0.30, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_voreilend', 2, 'linie', 0.15, 0.30, 0.65, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_voreilend', 3, 'linie', 0.65, 0.75, 0.65, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_voreilend', 4, 'linie', 0.55, 0.02, 0.55, 0.28, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- schliesser_nacheilend: Knick spät (nahe Pin 2) + separater Nacheil-Strich, gespiegelt
+('schliesser_nacheilend', 0, 'linie', 0.65, 0,    0.15, 0.70, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_nacheilend', 1, 'linie', 0.15, 0.70, 0.35, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_nacheilend', 2, 'linie', 0.35, 0.85, 0.35, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('schliesser_nacheilend', 3, 'linie', 0.45, 0.75, 0.45, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- oeffner_voreilend: wie schliesser_voreilend + Öffner-Quersteg am Knick
+('oeffner_voreilend', 0, 'linie', 0.35, 0,    0.35, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_voreilend', 1, 'linie', 0.35, 0.15, 0.15, 0.30, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_voreilend', 2, 'linie', 0.15, 0.30, 0.65, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_voreilend', 3, 'linie', 0.65, 0.75, 0.65, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_voreilend', 4, 'linie', 0.55, 0.02, 0.55, 0.28, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_voreilend', 5, 'linie', 0.35, 0.15, 0.55, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- oeffner_nacheilend: wie schliesser_nacheilend + Öffner-Quersteg am Knick
+('oeffner_nacheilend', 0, 'linie', 0.65, 0,    0.15, 0.70, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_nacheilend', 1, 'linie', 0.15, 0.70, 0.35, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_nacheilend', 2, 'linie', 0.35, 0.85, 0.35, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_nacheilend', 3, 'linie', 0.45, 0.75, 0.45, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('oeffner_nacheilend', 4, 'linie', 0.35, 0.85, 0.45, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
 -- ── bmk_seite: Symbole mit vertikaler Hauptachse (BMK links statt oben) ──────
 -- Wird nach Migration v70 auch für bestehende DBs gesetzt.
 UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule';
+UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id IN (
+    'wischkontakt_betaetigung', 'wischkontakt_rueckfall', 'wischkontakt_beide',
+    'schliesser_voreilend', 'schliesser_nacheilend',
+    'oeffner_voreilend', 'oeffner_nacheilend'
+);

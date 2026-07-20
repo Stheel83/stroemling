@@ -451,9 +451,26 @@ Item {
                                     text: qsTr("Praxisrichtwert  (Daumenregel Cu, B2)")
                                     font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted
                                 }
+                                // Schnellmodus: versteckte Annahmen explizit machen
+                                Text {
+                                    visible: !root.istGenau
+                                    width: parent.width
+                                    font.pixelSize: 10
+                                    color: theme.textMuted
+                                    wrapMode: Text.Wrap
+                                    text: qsTr("Schnellmodus rechnet mit festen Annahmen: %1, Verlegeart B2, 230 V AC, cos φ = 1,0, ΔU max 3 %. Weicht dein Fall davon ab (andere Spannung, Verlegeart, Häufung, spannungsempfindliche Last) → Genau-Modus verwenden.")
+                                          .arg(root.material === "cu" ? qsTr("Kupfer") : qsTr("Aluminium"))
+                                }
                                 Text {
                                     text: (erg && erg["praxis"]) ? erg["praxis"]["formel"] : "I / 6  =  … mm²"
                                     font.pixelSize: 14; color: theme.textPrimary
+                                }
+                                Text {
+                                    width: parent.width
+                                    font.pixelSize: 10
+                                    color: theme.textMuted
+                                    wrapMode: Text.Wrap
+                                    text: qsTr("I/6 ist eine grobe, aus den Belastbarkeitstabellen (VDE 0298-4) abgeleitete Faustformel für Kupfer bei Verlegeart B2 – deckt die meisten Standard-Installationen ab, ersetzt aber nicht die Prüfung von Spannungsfall, Thermik und Abschaltbedingung im Genau-Modus.")
                                 }
                                 // L_max (Schnellmodus)
                                 Text {

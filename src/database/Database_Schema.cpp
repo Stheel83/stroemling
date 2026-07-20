@@ -838,6 +838,12 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DELETE FROM symbol_pin WHERE symbol_id IN ('wischkontakt_betaetigung', 'wischkontakt_rueckfall', 'wischkontakt_beide'))",
             R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_betaetigung', '1', 0.5, 0, 0, -1, 'neutral'), ('wischkontakt_betaetigung', '2', 0.5, 1, 0, 1, 'neutral'), ('wischkontakt_rueckfall', '1', 0.5, 0, 0, -1, 'neutral'), ('wischkontakt_rueckfall', '2', 0.5, 1, 0, 1, 'neutral'), ('wischkontakt_beide', '1', 0.5, 0, 0, -1, 'neutral'), ('wischkontakt_beide', '2', 0.5, 1, 0, 1, 'neutral'))",
         }},
+        // Alte Default-Strichstärke 1.5mm auf DIN-gerechte 0.35mm gesenkt (Grafik-/Symbol-Elemente
+        // erschienen im PDF-Export nach dem 4x-Skalierungsfix, s. Commit 945c313, deutlich zu kräftig).
+        // Nur Zeilen mit dem alten Default treffen, individuell gesetzte Werte bleiben unangetastet.
+        { 100, "Default-Strichstaerke bestehender Elemente 1.5mm->0.35mm (nur wo noch Alt-Default gesetzt)", {
+            R"(UPDATE grafik_element SET strich_breite = 0.35 WHERE strich_breite = 1.5)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

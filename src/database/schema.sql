@@ -135,7 +135,7 @@ CREATE TABLE grafik_element (
     x2              REAL NOT NULL DEFAULT 0,
     y2              REAL NOT NULL DEFAULT 0,
     strich_farbe    TEXT NOT NULL DEFAULT '#4a9eff',
-    strich_breite   REAL NOT NULL DEFAULT 1.5,
+    strich_breite   REAL NOT NULL DEFAULT 0.35,
     strich_art      TEXT NOT NULL DEFAULT 'solid',
     fuell           INTEGER NOT NULL DEFAULT 0,
     fuell_farbe     TEXT NOT NULL DEFAULT '#1a3a6a',

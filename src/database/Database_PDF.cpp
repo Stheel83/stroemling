@@ -583,13 +583,13 @@ static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, dou
                                 const QColor &farbe1, const QColor &farbe2, double lw)
 {
     const double dashLen = qMax(2.0, lw * 3.0);
-    QPen pen1(farbe1, lw, Qt::CustomDashLine, Qt::FlatCap);
+    QPen pen1(farbe1, lw, Qt::CustomDashLine, Qt::RoundCap);
     pen1.setDashPattern({ dashLen / lw, dashLen / lw });
     pen1.setDashOffset(0.0);
     p.setPen(pen1);
     p.drawLine(QLineF(ax, ay, bx, by));
 
-    QPen pen2(farbe2, lw, Qt::CustomDashLine, Qt::FlatCap);
+    QPen pen2(farbe2, lw, Qt::CustomDashLine, Qt::RoundCap);
     pen2.setDashPattern({ dashLen / lw, dashLen / lw });
     pen2.setDashOffset(dashLen / lw);
     p.setPen(pen2);
@@ -601,7 +601,11 @@ static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, dou
 // CanvasRenderHandler.qml (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY
 // bereits in derselben Zieleinheit des Aufrufers (Device-Pixel bei
 // Leitungen, lokale Symbol-Pixel bei Treffpunkt-Armen – s.
-// pdfTreffpunktArmeRendern).
+// pdfTreffpunktArmeRendern). RoundCap statt FlatCap: Treffpunkt-Arme und
+// Leitungssegmente treffen sich an Ecken/Verzweigungen als mehrere separate
+// drawLine()-Aufrufe (nicht ein QPainterPath) - Qt-Line-Joins greifen nur
+// innerhalb eines Path, sonst bleibt am gemeinsamen Punkt eine keilförmige
+// Lücke sichtbar (analog Winkel-Symbol, s. pdfElementRendern).
 static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
                                      const PdfLeitungsSegment &s, double refX, double refY,
                                      double pxPerMm)
@@ -611,7 +615,7 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
             pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
             return;
         }
-        p.setPen(QPen(s.color, s.lw, Qt::SolidLine, Qt::FlatCap));
+        p.setPen(QPen(s.color, s.lw, Qt::SolidLine, Qt::RoundCap));
         p.drawLine(QLineF(ax, ay, bx, by));
         return;
     }
@@ -620,9 +624,9 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     if (len < 1e-6) return;
 
     if (!s.zweifarbig) {
-        p.setPen(QPen(s.farbeA, s.lw, Qt::SolidLine, Qt::FlatCap));
+        p.setPen(QPen(s.farbeA, s.lw, Qt::SolidLine, Qt::RoundCap));
         p.drawLine(QLineF(ax, ay, bx, by));
-        p.setPen(QPen(Qt::white, qMax(0.3, 1.0 * 0.25 * pxPerMm), Qt::SolidLine, Qt::FlatCap));
+        p.setPen(QPen(Qt::white, qMax(0.3, 1.0 * 0.25 * pxPerMm), Qt::SolidLine, Qt::RoundCap));
         p.drawLine(QLineF(ax, ay, bx, by));
         return;
     }
@@ -634,9 +638,9 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     QColor farbeNeg = flip ? s.farbeB : s.farbeA;
     QColor farbePos = flip ? s.farbeA : s.farbeB;
 
-    p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, Qt::FlatCap));
+    p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, Qt::RoundCap));
     p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
-    p.setPen(QPen(farbePos, basis, Qt::SolidLine, Qt::FlatCap));
+    p.setPen(QPen(farbePos, basis, Qt::SolidLine, Qt::RoundCap));
     p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
 }
 
@@ -1308,6 +1312,13 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         // vorkommt, bildet jede Rotation Ecken auf Ecken ab, die
         // Kandidatenmenge ist also rotations-/spiegelunabhängig.
         QPen symPen = pen;
+        // Winkel besteht aus zwei separaten linie-Primitiven, die sich in einer
+        // Ecke treffen (0,0)-(0,1) + (0,1)-(1,1) - mit FlatCap bleibt am
+        // gemeinsamen Eckpunkt eine keilförmige Lücke sichtbar, da Qt Line-Joins
+        // nur innerhalb EINES QPainterPath greifen, nicht über zwei separate
+        // drawLine()-Aufrufe hinweg. RoundCap schließt die Lücke (rundes
+        // Eck-„Blob", analog zu abgerundeten Leitungsecken).
+        if (sid == "winkel") symPen.setCapStyle(Qt::RoundCap);
         if (leitungsSegs && sid == "winkel") {
             double rx1 = el.value("x1").toDouble(), ry1 = el.value("y1").toDouble();
             double rx2 = el.value("x2").toDouble(), ry2 = el.value("y2").toDouble();

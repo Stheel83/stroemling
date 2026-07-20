@@ -343,7 +343,7 @@ QtObject {
         }
 
         var sf  = el.strichFarbe     !== undefined ? el.strichFarbe     : "#4a9eff"
-        var sb  = el.strichBreite    !== undefined ? el.strichBreite    : 1.5
+        var sb  = el.strichBreite    !== undefined ? el.strichBreite    : 0.35
         var sa  = el.strichArt       !== undefined ? el.strichArt       : "solid"
         var fu  = el.fuell           !== undefined ? el.fuell           : false
         var ff  = el.fuellFarbe      !== undefined ? el.fuellFarbe      : "#1a3a6a"
@@ -2330,7 +2330,7 @@ QtObject {
             ctx.save()
             ctx.globalAlpha = 0.7
             ctx.strokeStyle = "#4a9eff"
-            ctx.lineWidth   = cv.stilVorlage.strichBreite || 1.5
+            ctx.lineWidth   = cv.stilVorlage.strichBreite || 0.35
             ctx.setLineDash([])
             ctx.lineCap     = "round"
             ctx.beginPath()

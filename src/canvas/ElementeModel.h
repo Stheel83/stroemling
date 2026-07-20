@@ -13,7 +13,7 @@ struct GrafikElement {
     double  x2              = 0.0;
     double  y2              = 0.0;
     QString strichFarbe;
-    double  strichBreite    = 1.5;
+    double  strichBreite    = 0.35;
     QString strichArt;
     bool    fuell           = false;
     QString fuellFarbe;

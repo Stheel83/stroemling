@@ -137,7 +137,7 @@ Item {
                         MiniButton { theme: root.theme;
                             label:   modelData.anzeige
                             tooltip: modelData.anzeige + " mm"
-                            aktiv:   Math.abs(panel.s("strichBreite", 1.5) - modelData.wert) < 0.01
+                            aktiv:   Math.abs(panel.s("strichBreite", 0.35) - modelData.wert) < 0.01
                             breite:  32
                             onKlick: panel.canvas.eigenschaftAktualisieren("strichBreite", modelData.wert)
                         }

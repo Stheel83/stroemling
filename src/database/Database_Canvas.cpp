@@ -308,7 +308,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
         qIns.bindValue(":x2",   el.value(QStringLiteral("x2")).toDouble());
         qIns.bindValue(":y2",   el.value(QStringLiteral("y2")).toDouble());
         qIns.bindValue(":sf",   el.value(QStringLiteral("strichFarbe"),    QStringLiteral("#4a9eff")).toString());
-        qIns.bindValue(":sb",   el.value(QStringLiteral("strichBreite"),   1.5).toDouble());
+        qIns.bindValue(":sb",   el.value(QStringLiteral("strichBreite"),   0.35).toDouble());
         qIns.bindValue(":sa",   el.value(QStringLiteral("strichArt"),      QStringLiteral("solid")).toString());
         qIns.bindValue(":fu",   el.value(QStringLiteral("fuell"),          false).toBool() ? 1 : 0);
         qIns.bindValue(":ff",   el.value(QStringLiteral("fuellFarbe"),     QStringLiteral("#1a3a6a")).toString());

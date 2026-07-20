@@ -945,7 +945,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     double sw  = x2 - x1;
     double sh  = y2 - y1;
 
-    double strichBr = qMax(0.3, el.value("strichBreite", 1.5).toDouble() * pxPerMm);
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
     QPen pen = pdfPen(el, strichBr);
 
     if (typ == "linie") {

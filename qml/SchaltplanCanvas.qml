@@ -260,7 +260,7 @@ Item {
     // Stilvorlage für neue Elemente
     property var stilVorlage: ({
         strichFarbe:    "#4a9eff",
-        strichBreite:   1.5,
+        strichBreite:   0.35,
         strichArt:      "solid",
         fuell:          false,
         fuellFarbe:     "#1a3a6a",

@@ -1239,11 +1239,20 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     } else if (typ == "strukturkasten") {
         double rx = qMin(x1,x2), ry = qMin(y1,y2);
         double rw = qAbs(sw),    rh = qAbs(sh);
+        double skEr = el.value("eckenRadius", 0.0).toDouble() * pxPerMm;
         QPen skPen = pen;
         skPen.setStyle(Qt::DashLine);
         p.setPen(skPen);
+        if (el.value("fuell").toBool()) {
+            QColor fc = pdfFarbe(el.value("fuellFarbe").toString());
+            fc.setAlphaF(el.value("fuellOpazitaet", 0.3).toDouble());
+            p.setBrush(fc);
+        } else {
+            p.setBrush(Qt::NoBrush);
+        }
+        if (skEr > 0.5) p.drawRoundedRect(QRectF(rx, ry, rw, rh), skEr, skEr);
+        else            p.drawRect(QRectF(rx, ry, rw, rh));
         p.setBrush(Qt::NoBrush);
-        p.drawRect(QRectF(rx, ry, rw, rh));
         QVariantMap ed  = el.value("extraDaten").toMap();
         double schrift  = ed.value("schriftgroesse", 2.5).toDouble();
         double fsDev    = schrift * pxPerMm;
@@ -1268,12 +1277,21 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     } else if (typ == "makrokasten") {
         double rx = qMin(x1,x2), ry = qMin(y1,y2);
         double rw = qAbs(sw),    rh = qAbs(sh);
+        double mkEr = el.value("eckenRadius", 0.0).toDouble() * pxPerMm;
         QPen mkPen = pen;
         mkPen.setStyle(Qt::DotLine);
         mkPen.setColor(QColor(0xa0, 0x60, 0xc0));
         p.setPen(mkPen);
+        if (el.value("fuell").toBool()) {
+            QColor fc = pdfFarbe(el.value("fuellFarbe").toString());
+            fc.setAlphaF(el.value("fuellOpazitaet", 0.3).toDouble());
+            p.setBrush(fc);
+        } else {
+            p.setBrush(Qt::NoBrush);
+        }
+        if (mkEr > 0.5) p.drawRoundedRect(QRectF(rx, ry, rw, rh), mkEr, mkEr);
+        else            p.drawRect(QRectF(rx, ry, rw, rh));
         p.setBrush(Qt::NoBrush);
-        p.drawRect(QRectF(rx, ry, rw, rh));
 
     } else if (typ == "symbol") {
         double absSw = qAbs(sw), absSh = qAbs(sh);

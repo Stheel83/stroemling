@@ -357,10 +357,15 @@ QtObject {
         // gebändert) statt einer einzelnen Farbe – wird unten über rc.armInfo
         // an _renderSymbol()/_maleTreffpunktArme() weitergereicht.
         var _armInfo = null
+        // _breiteFuerAnzahl() liefert bereits eine fertige Bildschirm-Pixelbreite
+        // (überall sonst, z.B. _maleGebaenderteLinie, unskaliert als ctx.lineWidth
+        // benutzt) - keine mm-Angabe wie strichBreite, darf unten NICHT nochmal mit
+        // mmToPx*zoom skaliert werden.
+        var _sbIstFertigePixelbreite = false
         if (routingFarben && el.typ === "symbol") {
             if (el.symbolId === "winkel") {
                 var _rf = routingFarben[idx]
-                if (_rf) { sf = _rf.farbe; sb = _rf.breite }
+                if (_rf) { sf = _rf.farbe; sb = _rf.breite; _sbIstFertigePixelbreite = true }
             } else if (el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") {
                 _armInfo = routingFarben[idx] || null
             }
@@ -394,7 +399,7 @@ QtObject {
         // bleibt die Linie bei höherem Zoom (Symbole wachsen, Strich nicht) unsichtbar
         // dünn. Auswahl-Hervorhebung (+0.5) bewusst als fixer Bildschirm-Pixel-Zuschlag,
         // nicht mitskaliert.
-        var lwBasis = sb * cv.mmToPx * cv.zoom
+        var lwBasis = _sbIstFertigePixelbreite ? sb : sb * cv.mmToPx * cv.zoom
         var lw = Math.max(0.5, gewaehlt ? lwBasis + 0.5 : lwBasis)
         if (vorschau)           { ctx.setLineDash([5,4]);              ctx.lineCap = "butt"  }
         else if (sa==="gestrichelt") { ctx.setLineDash([lw*5,lw*3]);   ctx.lineCap = "butt"  }

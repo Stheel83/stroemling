@@ -171,5 +171,5 @@ Rectangle {
         }
     }
 
-    DebugLabel { panelName: qsTr("Canvas-Werkzeuge"); visible: canvas.debug }
+    DebugLabel { panelName: qsTr("Canvas-Werkzeuge"); corner: "bl"; visible: canvas.debug }
 }

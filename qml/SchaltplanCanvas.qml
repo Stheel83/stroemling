@@ -1025,7 +1025,7 @@ Item {
     onWidthChanged:  root.repaintAll()
     onHeightChanged: root.repaintAll()
 
-    DebugLabel { panelName: qsTr("Schaltplan-Canvas"); visible: root.debug }
+    DebugLabel { panelName: qsTr("Schaltplan-Canvas"); corner: "bl"; visible: root.debug }
 
     Dialog {
         id: duplizierAnzahlDialog

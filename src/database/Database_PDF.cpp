@@ -500,7 +500,7 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
     bool spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
     bool isSteBu = (sid == QLatin1String("stecker") || sid == QLatin1String("buchse"));
 
-    double fsDev = qMax(6.0, 1.8 * pxPerMm);
+    double fsDev = qMax(6.0, 2.2 * pxPerMm);
     QFont font;
     font.setFamily(QStringLiteral("sans-serif"));
     font.setPixelSize(qMax(1, qRound(fsDev)));

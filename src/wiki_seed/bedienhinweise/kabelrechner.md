@@ -20,6 +20,33 @@ angelehnt an VDE 0298-4. Das Ergebnis ist eine Orientierungshilfe, kein zertifiz
 Der Rechner gibt den **empfohlenen Querschnitt** in mm² aus und zeigt
 den berechneten Spannungsfall.
 
+## Leistungsfaktor cos φ – Richtwerte
+
+`cos φ` beschreibt, wie stark Strom und Spannung zeitlich gegeneinander
+verschoben sind. Für die Querschnittsermittlung zählt nur der **Betrag**
+`|cos φ|` – ob die Last induktiv (Strom eilt nach) oder kapazitiv (Strom
+eilt vor) ist, ändert am Ergebnis nichts, weil die Formel nur den ohmschen
+Spannungsfall-Anteil (Wirkwiderstand) berücksichtigt, nicht den
+Blindanteil (Reaktanz). Bei sehr langen Leitungen mit stark induktiver
+Last (z. B. Motoranlauf) kann der reale Spannungsfall dadurch etwas höher
+liegen als berechnet.
+
+| Verbraucher | cos φ | Charakter |
+|---|---|---|
+| Ohmsche Last (Heizung, Glühlampe, Kochplatte) | 1,0 | – |
+| Asynchronmotor, Volllast | 0,80–0,85 | induktiv (nacheilend) |
+| Asynchronmotor, Teillast/Leerlauf | 0,5–0,7 | induktiv (nacheilend) |
+| Schweißtransformator | 0,5–0,6 | induktiv (nacheilend) |
+| Leuchtstofflampe, unkompensiert (KVG) | ~0,5 | induktiv (nacheilend) |
+| Leuchtstofflampe, kompensiert | ~0,9 | leicht kapazitiv (voreilend) |
+| LED-/Schaltnetzteil ohne aktive PFC | 0,5–0,7 | kapazitiv verzerrt (voreilend, oberwellenbehaftet) |
+| LED-/Schaltnetzteil mit aktiver PFC | > 0,95 | nahezu ohmsch |
+| Kondensator / Blindleistungskompensation | – | rein kapazitiv (voreilend) |
+
+> **Praxis-Hinweis:** Ohne Herstellerangabe (Typenschild, Datenblatt) sind
+> obige Werte grobe Richtwerte. Bei Motoren steht der genaue cos φ meist
+> auf dem Typenschild (siehe auch Wiki-Artikel „Drehstrommotor").
+
 ## Zulässiger Spannungsfall ΔU max
 
 Der Grenzwert für den Spannungsfall ist im Genau-Modus einstellbar

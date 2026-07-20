@@ -134,6 +134,16 @@ Item {
                             visible: root.istGenau && betriebsartBox.currentIndex !== 2
                             label: "cos φ"; wert: "1,00"; einheit: ""; theme: root.theme
                         }
+                        Text {
+                            visible: root.istGenau && betriebsartBox.currentIndex !== 2
+                            width: parent.width
+                            leftPadding: 88
+                            rightPadding: 28
+                            font.pixelSize: 10
+                            color: theme.textMuted
+                            wrapMode: Text.Wrap
+                            text: qsTr("Richtwerte: ohmsch (Heizung/Glühlampe) 1,0 · Asynchronmotor Volllast 0,8–0,85, Teillast/Leerlauf 0,5–0,7 (induktiv) · Leuchtstofflampe unkompensiert ~0,5 (induktiv), kompensiert ~0,9 · Schaltnetzteil ohne aktive PFC 0,5–0,7 (kapazitiv/verzerrt), mit PFC >0,95. Für diese Formel zählt nur der Betrag |cos φ| – induktiv/kapazitiv ändert nichts am Ergebnis, da nur der ohmsche Spannungsfall-Anteil berücksichtigt wird.")
+                        }
 
                         KrZeile {
                             id: duMaxZeile

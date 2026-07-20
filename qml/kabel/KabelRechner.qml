@@ -316,6 +316,9 @@ Item {
                                     kabelRechnerModel.schutzOrganStrom = parseFloat(schutzOrganStromFeld.text.replace(",", ".")) || 16
                                     kabelRechnerModel.berechnen()
                                 } else {
+                                    // Schnellmodus rechnet immer mit fixen 3% ΔU, unabhängig davon,
+                                    // was zuletzt im Genau-Modus ins duMaxZeile-Feld eingetragen wurde.
+                                    kabelRechnerModel.duMaxProzent = 3
                                     kabelRechnerModel.berechnenSchnell()
                                 }
                             }

@@ -135,6 +135,22 @@ Item {
                             label: "cos φ"; wert: "1,00"; einheit: ""; theme: root.theme
                         }
 
+                        KrZeile {
+                            id: duMaxZeile
+                            visible: root.istGenau
+                            label: qsTr("ΔU max"); wert: "3"; einheit: "%"; theme: root.theme
+                        }
+                        Text {
+                            visible: root.istGenau
+                            width: parent.width
+                            leftPadding: 88
+                            rightPadding: 28
+                            font.pixelSize: 10
+                            color: theme.textMuted
+                            wrapMode: Text.Wrap
+                            text: qsTr("Empfehlung DIN VDE 0100-520 (Anhang, informativ): 3 % für Beleuchtung, 5 % für sonstige Verbraucher, ab Anlagenübergabepunkt. Für empfindliche Lasten (Motoranlauf, Elektronik) auch kleinere Werte sinnvoll.")
+                        }
+
                         Item { height: 8 }
 
                         // ── Leitung ──────────────────────────────────────
@@ -282,6 +298,7 @@ Item {
                                     kabelRechnerModel.betriebsart      = betriebsartBox.currentIndex
                                     kabelRechnerModel.spannung         = parseFloat(spannungZeile.feldText.replace(",", ".")) || 230
                                     kabelRechnerModel.cosPhi           = parseFloat(cosPhiZeile.feldText.replace(",", ".")) || 1
+                                    kabelRechnerModel.duMaxProzent     = parseFloat(duMaxZeile.feldText.replace(",", ".")) || 3
                                     kabelRechnerModel.verlegeart       = verlegeartBox.currentIndex
                                     kabelRechnerModel.temperatur       = parseFloat(temperaturZeile.feldText.replace(",", ".")) || 30
                                     kabelRechnerModel.haefung          = haefungBox.currentIndex

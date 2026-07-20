@@ -82,7 +82,13 @@ static Qt::PenStyle pdfLinienart(const QString &art)
 static QPen pdfPen(const QVariantMap &el, double lw_dev)
 {
     QPen pen;
-    pen.setColor(pdfFarbe(el.value("strichFarbe").toString()));
+    QColor farbe = pdfFarbe(el.value("strichFarbe").toString());
+    // "Linien-Deckkraft" (opazitaet) im Eigenschaften-Panel für Grafik-Elemente -
+    // 1:1-Analogie zu CanvasRenderHandler.qml maleElement() (ctx.globalAlpha = op
+    // beim Stroke). Betrifft nur den Strich, Füllung läuft separat über
+    // fuellOpazitaet.
+    farbe.setAlphaF(farbe.alphaF() * el.value("opazitaet", 1.0).toDouble());
+    pen.setColor(farbe);
     pen.setWidthF(lw_dev);
     pen.setCapStyle(Qt::FlatCap);
     pen.setJoinStyle(Qt::MiterJoin);
@@ -1007,7 +1013,9 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         font.setPixelSize(qMax(1, qRound(fsDev)));
         font.setBold(true);
         p.setFont(font);
-        p.setPen(pdfFarbe(el.value("strichFarbe").toString(), QColor(192,216,240)));
+        QColor txtFarbe = pdfFarbe(el.value("strichFarbe").toString(), QColor(192,216,240));
+        txtFarbe.setAlphaF(txtFarbe.alphaF() * el.value("opazitaet", 1.0).toDouble());
+        p.setPen(txtFarbe);
         p.setBrush(Qt::NoBrush);
 
         QString ausrichtung = el.value("textAusrichtung", "links").toString();
@@ -1015,11 +1023,14 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         if (ausrichtung == "mitte") qa = Qt::AlignHCenter;
         else if (ausrichtung == "rechts") qa = Qt::AlignRight;
 
-        int normRot = el.value("rotation", 0).toInt();
-        // Nur 0° und 90° (senkrecht) sind erlaubt
+        // 1:1-Port von normTextRot() in CanvasRenderHandler.qml: erst auf [0,360)
+        // normalisieren (Mehrfachauswahl-Drehung kann auch 180/270 liefern), dann
+        // auf 0°/90° einschränken - Text darf nie kopfstehen.
+        int rawRot  = el.value("rotation", 0).toInt();
+        int normRot = ((rawRot % 360) + 360) % 360;
         p.save();
         p.translate(x1, y1);
-        if (normRot == 90 || normRot == -270) p.rotate(-90);
+        if (normRot == 90 || normRot == 270) p.rotate(-90);
         QStringList lines = inhalt.split('\n');
         double lineH = fsDev * 1.3;
         for (int i = 0; i < lines.size(); i++)
@@ -1074,7 +1085,9 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         p.drawRect(QRectF(rx, ry, rw, rh));
         p.setBrush(Qt::NoBrush);
         QPen borderPen = pen;
-        borderPen.setColor(pdfFarbe(el.value("strichFarbe").toString(), QColor(204,204,34)));
+        QColor borderFarbe = pdfFarbe(el.value("strichFarbe").toString(), QColor(204,204,34));
+        borderFarbe.setAlphaF(borderFarbe.alphaF() * el.value("opazitaet", 1.0).toDouble());
+        borderPen.setColor(borderFarbe);
         borderPen.setWidthF(strichBr);
         p.setPen(borderPen);
         p.drawRect(QRectF(rx, ry, rw, rh));
@@ -1088,7 +1101,9 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         font.setFamily(QStringLiteral("sans-serif"));
         font.setPixelSize(qMax(1, qRound(fsDev)));
         p.setFont(font);
-        p.setPen(pdfFarbe(el.value("strichFarbe").toString(), QColor(204,204,34)));
+        QColor notizTxtFarbe = pdfFarbe(el.value("strichFarbe").toString(), QColor(204,204,34));
+        notizTxtFarbe.setAlphaF(notizTxtFarbe.alphaF() * el.value("opazitaet", 1.0).toDouble());
+        p.setPen(notizTxtFarbe);
         double pad = qMax(4.0, fsDev * 0.35);
         p.drawText(QRectF(rx + pad, ry + pad, rw - 2*pad, rh - 2*pad),
                    Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, text);

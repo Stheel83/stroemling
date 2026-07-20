@@ -945,7 +945,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     double sw  = x2 - x1;
     double sh  = y2 - y1;
 
-    double strichBr = qMax(0.3, el.value("strichBreite", 1.5).toDouble() * 0.25 * pxPerMm);
+    double strichBr = qMax(0.3, el.value("strichBreite", 1.5).toDouble() * pxPerMm);
     QPen pen = pdfPen(el, strichBr);
 
     if (typ == "linie") {
@@ -967,7 +967,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
 
     } else if (typ == "rechteck") {
         p.setPen(pen);
-        double er = el.value("eckenRadius", 0.0).toDouble() * 0.25 * pxPerMm;
+        double er = el.value("eckenRadius", 0.0).toDouble() * pxPerMm;
         bool fu   = el.value("fuell").toBool();
         if (fu) {
             QColor fc = pdfFarbe(el.value("fuellFarbe").toString(), QColor(26,58,106));
@@ -1001,7 +1001,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         if (inhalt.isEmpty()) return;
         QVariantMap edTxt = el.value("extraDaten").toMap();
         double fsMm = edTxt.value("schriftgroesse", 3.5).toDouble();
-        double fsDev = fsMm * 0.25 * pxPerMm;
+        double fsDev = fsMm * pxPerMm;
         QFont font;
         font.setFamily(QStringLiteral("sans-serif"));
         font.setPixelSize(qMax(1, qRound(fsDev)));
@@ -1037,9 +1037,30 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         QByteArray bytes = QByteArray::fromBase64(dataUrl.mid(commaPos + 1).toLatin1());
         QImage img;
         if (!img.loadFromData(bytes)) return;
+
+        double bw = qAbs(sw), bh = qAbs(sh);
+        if (bw < 1 || bh < 1) return;
+        double bcx = qMin(x1,x2) + bw / 2.0, bcy = qMin(y1,y2) + bh / 2.0;
+
+        // 1:1-Port von CanvasRenderHandler.qml _renderBild: Rotation um den
+        // Mittelpunkt, Spiegelung per Skalierung, Ausschnitt als Clip auf das
+        // volle (auf bw×bh gestreckte) Bild - nicht als Zuschnitt der Quellpixel.
         p.save();
         p.setOpacity(el.value("opazitaet", 1.0).toDouble());
-        p.drawImage(QRectF(qMin(x1,x2), qMin(y1,y2), qAbs(sw), qAbs(sh)), img);
+        p.translate(bcx, bcy);
+        p.rotate(el.value("rotation", 0.0).toDouble());
+        p.scale(el.value("spiegelX").toBool() ? -1.0 : 1.0,
+                el.value("spiegelY").toBool() ? -1.0 : 1.0);
+
+        double aL = el.value("ausschnittLinks",  0.0).toDouble();
+        double aR = el.value("ausschnittRechts", 0.0).toDouble();
+        double aO = el.value("ausschnittOben",   0.0).toDouble();
+        double aU = el.value("ausschnittUnten",  0.0).toDouble();
+        double cw = bw * (1.0 - aL - aR), ch = bh * (1.0 - aO - aU);
+        if (cw > 0 && ch > 0) {
+            p.setClipRect(QRectF(-bw/2 + aL * bw, -bh/2 + aO * bh, cw, ch));
+            p.drawImage(QRectF(-bw/2, -bh/2, bw, bh), img);
+        }
         p.restore();
 
     } else if (typ == "notiz") {

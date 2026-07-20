@@ -844,6 +844,19 @@ static QList<SchemaMigration> alleMigrationen()
         { 100, "Default-Strichstaerke bestehender Elemente 1.5mm->0.35mm (nur wo noch Alt-Default gesetzt)", {
             R"(UPDATE grafik_element SET strich_breite = 0.35 WHERE strich_breite = 1.5)",
         }},
+        // funktionserdung/masse_gehaeuse: einzelne Projekte (unter anderem "Pokeströms
+        // Aquarium") tragen noch die alte, VOR dem SYM-BILDVORLAGE-01-Fix eingefrorene
+        // Geometrie (masse_gehaeuse z.B. als 3-Strahlen-Fächer statt der per Pixel-
+        // vermessung korrigierten parallelen Schraffur, s. 18_debugging.md). Migration 96
+        // selbst enthält schon die korrekte Geometrie - dieser Schritt zieht bereits
+        // migrierte Projekte, deren symbol_primitiv-Zeilen unabhängig davon eingefroren
+        // wurden, einmalig auf denselben (unveränderten) Stand nach. Reiner Idempotenz-
+        // Fix, keine Design-Änderung.
+        { 101, "funktionserdung/masse_gehaeuse: auf Migration-96-Geometrie nachgezogen (einzelne Projekte hatten eingefrorene Vor-Fix-Geometrie)", {
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id IN ('funktionserdung', 'masse_gehaeuse'))",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('funktionserdung', 0, 'linie', 0.5, 0, 0.5, 0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('funktionserdung', 1, 'bogen', 0.5, 1.0, 0, 0, 0, 0, 0.5, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('funktionserdung', 2, 'linie', 0.16, 0.66, 0.86, 0.66, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('funktionserdung', 3, 'linie', 0.28, 0.81, 0.74, 0.81, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('funktionserdung', 4, 'linie', 0.39, 0.96, 0.63, 0.96, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('masse_gehaeuse', 0, 'linie', 0.5, 0, 0.5, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('masse_gehaeuse', 1, 'linie', 0.11, 0.80, 0.89, 0.80, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('masse_gehaeuse', 2, 'linie', 0.11, 0.83, 0.00, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('masse_gehaeuse', 3, 'linie', 0.50, 0.83, 0.39, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('masse_gehaeuse', 4, 'linie', 0.89, 0.83, 0.78, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

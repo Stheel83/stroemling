@@ -181,6 +181,11 @@
           "datei": "nachschlagetabellen/awg_mm2_umrechnung.md"
         },
         {
+          "titel": "Wallbox / E-Auto-Ladepunkt – Kabel richtig dimensionieren",
+          "tags": "wallbox e-auto ladestation elektrofahrzeug ladepunkt kabeldimensionierung drehstrom cosphi gleichzeitigkeitsfaktor VDE 0100-722",
+          "datei": "nachschlagetabellen/wallbox_kabeldimensionierung.md"
+        },
+        {
           "titel": "Querschnitt–Farb–Größentabelle",
           "tags": "aderendhülse querschnitt farbe tabelle",
           "datei": "aderendhuelsen/querschnitt_farb_groesstabelle.md"

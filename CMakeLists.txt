@@ -326,6 +326,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/nachschlagetabellen/ik_schutzklassen.md
         src/wiki_seed/nachschlagetabellen/anzugsdrehmomente_klemmen.md
         src/wiki_seed/nachschlagetabellen/awg_mm2_umrechnung.md
+        src/wiki_seed/nachschlagetabellen/wallbox_kabeldimensionierung.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
         src/wiki_seed/altbestand_west/nullleiter_unterbrechung_tt.md
@@ -516,6 +517,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/nachschlagetabellen/ik_schutzklassen.md
         src/wiki_seed/nachschlagetabellen/anzugsdrehmomente_klemmen.md
         src/wiki_seed/nachschlagetabellen/awg_mm2_umrechnung.md
+        src/wiki_seed/nachschlagetabellen/wallbox_kabeldimensionierung.md
         src/wiki_seed/altbestand_west/klassische_nullung_grundlagen.md
         src/wiki_seed/altbestand_west/klassische_nullung_verbotsdaten.md
         src/wiki_seed/altbestand_west/nullleiter_unterbrechung_tt.md

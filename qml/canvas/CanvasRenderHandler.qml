@@ -1690,10 +1690,10 @@ QtObject {
                 if (!_pbSkip[el.symbolId || ""]) {
                     var _pbPins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
                     if (_pbPins.length > 0) {
-                        var _pbFs = Math.max(6, Math.round(2.2 * cv.mmToPx * cv.zoom))
+                        var _pbFs = Math.max(6, Math.round(3.0 * cv.mmToPx * cv.zoom))
                         ctx.save()
                         ctx.font      = _pbFs + "px sans-serif"
-                        ctx.fillStyle = gewaehlt ? "#f0a030" : "#8ac4e0"
+                        ctx.fillStyle = gewaehlt ? "#f0a030" : "#3a7ca8"
                         ctx.globalAlpha = 1.0
                         for (var _pbI = 0; _pbI < _pbPins.length; _pbI++) {
                             var _pbPin   = _pbPins[_pbI]

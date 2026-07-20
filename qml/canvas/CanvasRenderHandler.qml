@@ -389,7 +389,13 @@ QtObject {
 
         ctx.globalAlpha = vorschau ? 0.55 : op
 
-        var lw = gewaehlt ? sb + 0.5 : sb
+        // sb ist eine physische mm-Angabe (wie strichBreite in der DB) - muss wie
+        // Position/Größe mit mmToPx*zoom auf Bildschirm-Pixel skaliert werden, sonst
+        // bleibt die Linie bei höherem Zoom (Symbole wachsen, Strich nicht) unsichtbar
+        // dünn. Auswahl-Hervorhebung (+0.5) bewusst als fixer Bildschirm-Pixel-Zuschlag,
+        // nicht mitskaliert.
+        var lwBasis = sb * cv.mmToPx * cv.zoom
+        var lw = Math.max(0.5, gewaehlt ? lwBasis + 0.5 : lwBasis)
         if (vorschau)           { ctx.setLineDash([5,4]);              ctx.lineCap = "butt"  }
         else if (sa==="gestrichelt") { ctx.setLineDash([lw*5,lw*3]);   ctx.lineCap = "butt"  }
         else if (sa==="gepunktet")   { ctx.setLineDash([0.1,lw*3]);    ctx.lineCap = "round" }
@@ -2330,7 +2336,7 @@ QtObject {
             ctx.save()
             ctx.globalAlpha = 0.7
             ctx.strokeStyle = "#4a9eff"
-            ctx.lineWidth   = cv.stilVorlage.strichBreite || 0.35
+            ctx.lineWidth   = Math.max(0.5, (cv.stilVorlage.strichBreite || 0.35) * cv.mmToPx * cv.zoom)
             ctx.setLineDash([])
             ctx.lineCap     = "round"
             ctx.beginPath()

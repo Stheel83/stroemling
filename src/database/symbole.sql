@@ -1530,6 +1530,166 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('kreuzschalter', 5, 'linie',     0.3, 0.25, 0.7, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('kreuzschalter', 6, 'linie',     0.3, 0.75, 0.7, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
+-- ── SYM-ERWEITERUNG-01 Teil 2: Steckdosen/Zaehler/Melder/SPD/Rollladen ───────
+-- (Jul 2026, Schema v103). rauchmelder/bewegungsmelder/daemmerungsschalter/
+-- ueberspannungsschutz sind eigene vereinfachte Piktogramme ohne Bildvorlage
+-- (analog kreuzschalter-Einschraenkung, s. §11.1) — steckdose_*/zaehler/
+-- rollladenmotor/rollladenschalter lehnen sich enger an etablierte IEC-
+-- Konventionen an (Schuko-Rundsteckdose, Messgeraet-Kreis+Einheit, Motor-
+-- Kreis+M analog motor/motor_dc, Wechselschalter-Grafik analog wechsler).
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('steckdose_schuko', 'Steckdose (Schuko)', 'Installation', 24, 24, 'verbraucher', 1),
+('steckdose_schalter', 'Steckdose mit Schalter', 'Installation', 24, 24, 'verbraucher', 1),
+('steckdose_feuchtraum', 'Feuchtraum-/Außensteckdose', 'Installation', 24, 24, 'verbraucher', 1),
+('steckdose_cee16', 'CEE-Steckdose (16A)', 'Installation', 24, 24, 'verbraucher', 1),
+('zaehler', 'Stromzähler (kWh)', 'Installation', 24, 24, 'durchleiter', 1),
+('rauchmelder', 'Rauchmelder', 'Installation', 24, 24, 'verbraucher', 1),
+('bewegungsmelder', 'Bewegungsmelder', 'Installation', 28, 24, 'verbraucher', 1),
+('daemmerungsschalter', 'Dämmerungsschalter', 'Installation', 28, 28, 'verbraucher', 1),
+('ueberspannungsschutz', 'Überspannungsschutz (SPD)', 'Installation', 32, 28, 'durchleiter', 1),
+('rollladenmotor', 'Rollladenmotor', 'Installation', 32, 24, 'verbraucher', 1),
+('rollladenschalter', 'Rollladenschalter (Auf/Ab)', 'Installation', 32, 16, 'durchleiter', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('steckdose_schuko', 'L', 0, 0.3, -1, 0, 'power'),
+('steckdose_schuko', 'N', 0, 0.6, -1, 0, 'n'),
+('steckdose_schuko', 'PE', 0.55, 1.0, 0, 1, 'pe'),
+('steckdose_schalter', 'L', 0, 0.3, -1, 0, 'power'),
+('steckdose_schalter', 'N', 0, 0.6, -1, 0, 'n'),
+('steckdose_schalter', 'PE', 0.55, 1.0, 0, 1, 'pe'),
+('steckdose_feuchtraum', 'L', 0, 0.3, -1, 0, 'power'),
+('steckdose_feuchtraum', 'N', 0, 0.6, -1, 0, 'n'),
+('steckdose_feuchtraum', 'PE', 0.55, 1.0, 0, 1, 'pe'),
+('steckdose_cee16', 'L', 0, 0.3, -1, 0, 'power'),
+('steckdose_cee16', 'N', 0, 0.6, -1, 0, 'n'),
+('steckdose_cee16', 'PE', 0.55, 1.0, 0, 1, 'pe'),
+('zaehler', '1', 0, 0.5, -1, 0, 'power'),
+('zaehler', '2', 1, 0.5, 1, 0, 'power'),
+('rauchmelder', '1', 0, 0.5, -1, 0, 'power'),
+('rauchmelder', '2', 1, 0.5, 1, 0, 'n'),
+('bewegungsmelder', 'L', 0, 0.3, -1, 0, 'power'),
+('bewegungsmelder', 'N', 0, 0.6, -1, 0, 'n'),
+('bewegungsmelder', 'Q', 1, 0.45, 1, 0, 'neutral'),
+('daemmerungsschalter', 'L', 0, 0.4, -1, 0, 'power'),
+('daemmerungsschalter', 'N', 0, 0.7, -1, 0, 'n'),
+('daemmerungsschalter', 'Q', 1, 0.55, 1, 0, 'neutral'),
+('ueberspannungsschutz', '1', 0, 0.4, -1, 0, 'power'),
+('ueberspannungsschutz', '2', 1, 0.4, 1, 0, 'power'),
+('ueberspannungsschutz', 'PE', 0.5, 1.0, 0, 1, 'pe'),
+('rollladenmotor', 'Auf', 0, 0.25, -1, 0, 'power'),
+('rollladenmotor', 'N', 0, 0.5, -1, 0, 'n'),
+('rollladenmotor', 'Ab', 0, 0.75, -1, 0, 'power'),
+('rollladenschalter', '1', 0, 0.5, -1, 0, 'neutral'),
+('rollladenschalter', '2', 1, 0.25, 1, 0, 'neutral'),
+('rollladenschalter', '3', 1, 0.75, 1, 0, 'neutral');
+
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
+('steckdose_schuko', 0, 'linie', 0, 0.3, 0.2902, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schuko', 1, 'linie', 0, 0.6, 0.2902, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schuko', 2, 'linie', 0.55, 0.75, 0.55, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schuko', 3, 'kreis_offen', 0.55, 0.45, 0, 0, 0, 0, 0.3, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schuko', 4, 'linie', 0.45, 0.28, 0.45, 0.36, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schuko', 5, 'linie', 0.65, 0.28, 0.65, 0.36, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 0, 'linie', 0, 0.3, 0.2902, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 1, 'linie', 0, 0.6, 0.2902, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 2, 'linie', 0.55, 0.75, 0.55, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 3, 'kreis_offen', 0.55, 0.45, 0, 0, 0, 0, 0.3, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 4, 'linie', 0.45, 0.28, 0.45, 0.36, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 5, 'linie', 0.65, 0.28, 0.65, 0.36, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_schalter', 6, 'linie', 0.11, 0.36, 0.18, 0.24, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 0, 'linie', 0, 0.3, 0.2902, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 1, 'linie', 0, 0.6, 0.2902, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 2, 'linie', 0.55, 0.75, 0.55, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 3, 'rechteck', 0.08, 0.03, 0.98, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 4, 'kreis_offen', 0.55, 0.45, 0, 0, 0, 0, 0.3, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 5, 'linie', 0.45, 0.28, 0.45, 0.36, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_feuchtraum', 6, 'linie', 0.65, 0.28, 0.65, 0.36, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 0, 'linie', 0, 0.3, 0.2902, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 1, 'linie', 0, 0.6, 0.2902, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 2, 'linie', 0.55, 0.75, 0.55, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 3, 'kreis_offen', 0.55, 0.45, 0, 0, 0, 0, 0.3, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 4, 'kreis_offen', 0.55, 0.45, 0, 0, 0, 0, 0.22, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 5, 'kreis_gefuellt', 0.55, 0.34, 0, 0, 0, 0, 0.035, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 6, 'kreis_gefuellt', 0.47, 0.52, 0, 0, 0, 0, 0.035, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('steckdose_cee16', 7, 'kreis_gefuellt', 0.63, 0.52, 0, 0, 0, 0, 0.035, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('zaehler', 0, 'linie', 0, 0.5, 0.22, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('zaehler', 1, 'linie', 0.78, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('zaehler', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.28, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('zaehler', 3, 'text', 0.5, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 'kWh', 0.16, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 0, 'linie', 0, 0.5, 0.22, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 1, 'linie', 0.78, 0.5, 1, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.28, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 3, 'kreis_gefuellt', 0.5, 0.42, 0, 0, 0, 0, 0.05, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 4, 'linie', 0.5, 0.42, 0.4, 0.28, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 5, 'linie', 0.5, 0.42, 0.5, 0.24, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rauchmelder', 6, 'linie', 0.5, 0.42, 0.6, 0.28, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 0, 'linie', 0, 0.3, 0.3676, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 1, 'linie', 0, 0.6, 0.3676, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 2, 'linie', 0.84, 0.45, 1, 0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 3, 'kreis_offen', 0.58, 0.45, 0, 0, 0, 0, 0.26, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 4, 'linie', 0.58, 0.71, 0.46, 0.92, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 5, 'linie', 0.58, 0.71, 0.7, 0.92, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('bewegungsmelder', 6, 'linie', 0.46, 0.92, 0.7, 0.92, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 0, 'linie', 0, 0.4, 0.3627, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 1, 'linie', 0, 0.7, 0.3627, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 2, 'linie', 0.79, 0.55, 1, 0.55, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 3, 'kreis_offen', 0.55, 0.55, 0, 0, 0, 0, 0.24, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 4, 'linie', 0.95, 0.15, 0.72, 0.38, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 5, 'linie', 0.72, 0.38, 0.8, 0.34, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 6, 'linie', 0.72, 0.38, 0.76, 0.46, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 7, 'linie', 0.8, 0.05, 0.632, 0.324, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 8, 'linie', 0.632, 0.324, 0.7, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('daemmerungsschalter', 9, 'linie', 0.632, 0.324, 0.66, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 0, 'linie', 0, 0.4, 0.25, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 1, 'linie', 0.75, 0.4, 1, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 2, 'rechteck', 0.25, 0.28, 0.75, 0.52, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 3, 'linie', 0.5, 0.52, 0.5, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 4, 'linie', 0.32, 0.46, 0.68, 0.34, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 5, 'linie', 0.5, 0.85, 0.44, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ueberspannungsschutz', 6, 'linie', 0.5, 0.85, 0.56, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenmotor', 0, 'linie', 0, 0.25, 0.524, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenmotor', 1, 'linie', 0, 0.5, 0.37, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenmotor', 2, 'linie', 0, 0.75, 0.524, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenmotor', 3, 'kreis_offen', 0.65, 0.5, 0, 0, 0, 0, 0.28, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenmotor', 4, 'text', 0.65, 0.46, 0, 0, 0, 0, 0, 0, 0, 0, 'M', 0.2, 1, 'center', 'middle', 'solid'),
+('rollladenmotor', 5, 'text', 0.65, 0.62, 0, 0, 0, 0, 0, 0, 0, 0, '1~', 0.14, 0, 'center', 'middle', 'solid'),
+('rollladenschalter', 0, 'linie', 0, 0.5, 0.3, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenschalter', 1, 'linie', 0.3, 0.5, 0.75, 0.35, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenschalter', 2, 'linie', 0.7, 0.25, 0.7, 0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenschalter', 3, 'linie', 0.7, 0.25, 1, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('rollladenschalter', 4, 'linie', 0.7, 0.75, 1, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- knoten_gruppe/rolle-Overrides fuer die neuen mehrpoligen Symbole (analog
+-- NETZ-MEHRPOL-01/02 Teil A, s. Zeile 150ff) — jeder galvanisch getrennte
+-- Anschluss bekommt einen eigenen Knoten, damit die Netzberechnung nicht
+-- faelschlich mehrere Potenziale zusammenfuehrt.
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'steckdose_schuko' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'steckdose_schuko' AND name = 'PE';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'steckdose_schalter' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'steckdose_schalter' AND name = 'PE';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'steckdose_feuchtraum' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'steckdose_feuchtraum' AND name = 'PE';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'steckdose_cee16' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'steckdose_cee16' AND name = 'PE';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'rauchmelder' AND name = '2';
+-- bewegungsmelder/daemmerungsschalter: L/N-Eingang bleibt Rolle 'verbraucher'
+-- (Symbol-Default), Q-Ausgang wird zur eigenen Quelle (schaltet die Last),
+-- analog netzteil (NETZTEIL-ROLLE-01).
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'bewegungsmelder' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'bewegungsmelder' AND name = 'Q';
+UPDATE symbol_pin SET rolle = 'quelle' WHERE symbol_id = 'bewegungsmelder' AND name = 'Q';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'daemmerungsschalter' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'daemmerungsschalter' AND name = 'Q';
+UPDATE symbol_pin SET rolle = 'quelle' WHERE symbol_id = 'daemmerungsschalter' AND name = 'Q';
+-- ueberspannungsschutz: L-Ein/Aus bleiben EIN Knoten (Durchleiter, wie
+-- Sicherung/LSS), PE-Ableitung ist ein eigener, separater Knoten und
+-- beendet die Potenzial-Weitergabe (Rolle 'verbraucher' statt geerbtem
+-- 'durchleiter').
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'ueberspannungsschutz' AND name = 'PE';
+UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'ueberspannungsschutz' AND name = 'PE';
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'rollladenmotor' AND name = 'N';
+UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'rollladenmotor' AND name = 'Ab';
+
 -- ── bmk_seite: Symbole mit vertikaler Hauptachse (BMK links statt oben) ──────
 -- Wird nach Migration v70 auch für bestehende DBs gesetzt.
 UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule';

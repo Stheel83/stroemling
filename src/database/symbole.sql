@@ -1462,6 +1462,74 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('oeffner_nacheilend', 3, 'linie', 0.45, 0.75, 0.45, 1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('oeffner_nacheilend', 4, 'linie', 0.35, 0.85, 0.45, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
+-- ── Kategorie "Installation" (Elektroinstallation, Jul 2026, Schema v102) ────
+-- Schalter-Familie: ausschalter/wechselschalter grafisch identisch zu
+-- schliesser/wechsler (gleiche IEC-Kontaktdarstellung), aber eigene
+-- Symbol-IDs fuer Kategorie/Suche im Installationskontext (Hausschaltplan).
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('ausschalter',       'Ausschalter',         'Installation', 32, 16, 'durchleiter', 1),
+('wechselschalter',   'Wechselschalter',     'Installation', 32, 16, 'durchleiter', 1),
+('serienschalter',    'Serienschalter',      'Installation', 32, 32, 'durchleiter', 1),
+('taster_beleuchtet', 'Taster (beleuchtet)', 'Installation', 32, 24, 'durchleiter', 1),
+('kreuzschalter',     'Kreuzschalter',       'Installation', 32, 24, 'durchleiter', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
+('ausschalter',       '1', 0, 0.5,  -1, 0, 'neutral'),
+('ausschalter',       '2', 1, 0.5,   1, 0, 'neutral'),
+('wechselschalter',   '1', 0, 0.5,  -1, 0, 'neutral'),
+('wechselschalter',   '2', 1, 0.25,  1, 0, 'neutral'),
+('wechselschalter',   '3', 1, 0.75,  1, 0, 'neutral'),
+('serienschalter',    '1', 0, 0.25, -1, 0, 'neutral'),
+('serienschalter',    '2', 1, 0.25,  1, 0, 'neutral'),
+('serienschalter',    '3', 0, 0.75, -1, 0, 'neutral'),
+('serienschalter',    '4', 1, 0.75,  1, 0, 'neutral'),
+('taster_beleuchtet', '1', 0, 0.667,-1, 0, 'neutral'),
+('taster_beleuchtet', '2', 1, 0.667, 1, 0, 'neutral'),
+('kreuzschalter',     '1', 0, 0.25, -1, 0, 'neutral'),
+('kreuzschalter',     '2', 0, 0.75, -1, 0, 'neutral'),
+('kreuzschalter',     '3', 1, 0.25,  1, 0, 'neutral'),
+('kreuzschalter',     '4', 1, 0.75,  1, 0, 'neutral');
+
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
+-- ausschalter: 1:1 wie schliesser (Einpolschalter = IEC-Schließer-Grafik)
+('ausschalter', 0, 'linie', 0,    0.5,  0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ausschalter', 1, 'linie', 0.3,  0.5,  0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('ausschalter', 2, 'linie', 0.7,  0.5,  1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- wechselschalter: 1:1 wie wechsler (Umschalt-Grafik), Pins 1/2/3 statt K/NO/NC
+('wechselschalter', 0, 'linie', 0,    0.5,  0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wechselschalter', 1, 'linie', 0.3,  0.5,  0.75, 0.35, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wechselschalter', 2, 'linie', 0.7,  0.25, 0.7,  0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wechselschalter', 3, 'linie', 0.7,  0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wechselschalter', 4, 'linie', 0.7,  0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- serienschalter: zwei ausschalter-Kontaktstrecken uebereinander + gestrichelte
+-- mechanische Kupplungslinie (IEC 60617-Konvention fuer gekoppelte Schaltglieder)
+('serienschalter', 0, 'linie', 0,    0.25, 0.3,  0.25,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('serienschalter', 1, 'linie', 0.3,  0.25, 0.75, 0.125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('serienschalter', 2, 'linie', 0.7,  0.25, 1,    0.25,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('serienschalter', 3, 'linie', 0,    0.75, 0.3,  0.75,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('serienschalter', 4, 'linie', 0.3,  0.75, 0.75, 0.625, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('serienschalter', 5, 'linie', 0.7,  0.75, 1,    0.75,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('serienschalter', 6, 'linie', 0.5,  0.05, 0.5,  0.95,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'dash'),
+-- taster_beleuchtet: taster_no-Kontakt (in unteres 2/3 gestaucht) + Meldelampe darueber
+('taster_beleuchtet', 0, 'linie',       0,    0.667, 0.3,  0.667, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 1, 'linie',       0.3,  0.667, 0.75, 0.5,   0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 2, 'linie',       0.7,  0.667, 1,    0.667, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 3, 'linie',       0.5,  0.427, 0.5,  0.573, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 4, 'linie',       0.35, 0.427, 0.65, 0.427, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 5, 'linie',       0.5,  0.287, 0.5,  0.427, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 6, 'kreis_offen', 0.5,  0.167, 0,    0,     0, 0, 0.09, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 7, 'linie',       0.42, 0.107, 0.58, 0.227, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('taster_beleuchtet', 8, 'linie',       0.42, 0.227, 0.58, 0.107, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kreuzschalter: Schaltkasten mit gekreuzten Kontaktlinien (4 Anschluesse) —
+-- eigene Vereinfachung ohne Bildvorlage, vor Praxiseinsatz gegenpruefen (§11.2)
+('kreuzschalter', 0, 'linie',     0,   0.25, 0.3, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kreuzschalter', 1, 'linie',     0,   0.75, 0.3, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kreuzschalter', 2, 'linie',     0.7, 0.25, 1,   0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kreuzschalter', 3, 'linie',     0.7, 0.75, 1,   0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kreuzschalter', 4, 'rechteck',  0.3, 0.15, 0.7, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kreuzschalter', 5, 'linie',     0.3, 0.25, 0.7, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kreuzschalter', 6, 'linie',     0.3, 0.75, 0.7, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
 -- ── bmk_seite: Symbole mit vertikaler Hauptachse (BMK links statt oben) ──────
 -- Wird nach Migration v70 auch für bestehende DBs gesetzt.
 UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id = 'spule';

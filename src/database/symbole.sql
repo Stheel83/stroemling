@@ -1905,3 +1905,92 @@ UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id IN (
     'schliesser_voreilend', 'schliesser_nacheilend',
     'oeffner_voreilend', 'oeffner_nacheilend'
 );
+
+-- ══════════════════════════════════════════════════════════════
+-- Waermepumpe Symbole (Kategorie 'Wärmepumpe', SYM-ERWEITERUNG-01 Prioritaet 3, Jul 2026)
+-- wp_umwaelzpumpe: Umwaelzpumpe 32x16mm (Kreis+P+1~, Stil wie motor/rollladenmotor)
+-- wp_mischer:      Mischer-Stellantrieb 32x32mm (3-Punkt: gemeinsam/Auf/Zu + Ventilkegel)
+-- wp_heizstab:     Heizstab/Zusatzheizer 32x24mm (Rechteck + Hitze-Schwuenge, analog widerstand_iec)
+-- wp_regler:       Waermepumpen-Regler 32x32mm (Box mit Regel-Skala, analog kfz_kombiinstrument)
+-- wp_sgready:      SG-Ready-Schnittstelle 32x24mm (Box mit 2 potentialfreien Mini-Kontakten)
+-- Frequenzumrichter/Inverter bewusst NICHT als Symbol (faellt unter Geraetekasten-Makro-
+-- Regel §10). Vor-/Ruecklauf-/Aussentemperaturfuehler nutzen bestehendes sensor_temp,
+-- kein neues Symbol (mehrfach platziert, Unterscheidung nur ueber Anschlusskennzeichnung/BMK).
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('wp_umwaelzpumpe', 'Umwälzpumpe',              'Wärmepumpe', 32, 16, 'verbraucher', 1),
+('wp_mischer',       'Mischer-Stellantrieb',     'Wärmepumpe', 32, 32, 'verbraucher', 1),
+('wp_heizstab',      'Heizstab (Zusatzheizer)',  'Wärmepumpe', 32, 24, 'verbraucher', 1),
+('wp_regler',        'Wärmepumpen-Regler',       'Wärmepumpe', 32, 32, 'variabel', 1),
+('wp_sgready',       'SG-Ready-Schnittstelle',   'Wärmepumpe', 32, 24, 'variabel', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES
+-- wp_umwaelzpumpe: L/N, getrennte Potenziale
+('wp_umwaelzpumpe', 'L', 0, 0.5, -1, 0, 'power', 0),
+('wp_umwaelzpumpe', 'N', 1, 0.5,  1, 0, 'n',     1),
+-- wp_mischer: 3-Punkt-Stellantrieb, gemeinsam + Auf + Zu, je eigener Pfad
+('wp_mischer', '1',   0, 0.2,  -1, 0, 'neutral', 0),
+('wp_mischer', 'AUF', 0, 0.45, -1, 0, 'neutral', 1),
+('wp_mischer', 'ZU',  0, 0.7,  -1, 0, 'neutral', 2),
+-- wp_heizstab: einfacher Lastwiderstand, ein Strompfad
+('wp_heizstab', '1', 0, 0.5, -1, 0, 'power', 0),
+('wp_heizstab', '2', 1, 0.5,  1, 0, 'power', 0),
+-- wp_regler: L/N-Versorgung + Bus/Signal, getrennte Pfade
+('wp_regler', '30',   0, 0.25, -1, 0, 'power',   0),
+('wp_regler', '31',   0, 0.75, -1, 0, 'n',       1),
+('wp_regler', 'Bus',  1, 0.5,   1, 0, 'neutral', 2),
+-- wp_sgready: gemeinsame Rueckleitung + 2 potentialfreie Relaisausgaenge
+('wp_sgready', '1',   0, 0.5,  -1, 0, 'neutral', 0),
+('wp_sgready', 'SG1', 1, 0.25,  1, 0, 'neutral', 1),
+('wp_sgready', 'SG2', 1, 0.75,  1, 0, 'neutral', 2);
+
+INSERT INTO symbol_primitiv
+(symbol_id, reihenfolge, typ,
+ x1, y1, x2, y2, x3, y3,
+ radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+ text_inhalt, schrift_relativ, schrift_fett,
+ text_align, text_baseline, linienart)
+VALUES
+-- ── wp_umwaelzpumpe (32x16mm, Kreis+P+1~) ──
+('wp_umwaelzpumpe', 0, 'linie',       0,    0.5,  0.28, 0.5,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_umwaelzpumpe', 1, 'linie',       0.72, 0.5,  1,    0.5,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_umwaelzpumpe', 2, 'kreis_offen', 0.5,  0.5,  0,    0,    0, 0, 0.22, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_umwaelzpumpe', 3, 'text',        0.5,  0.42, 0,    0,    0, 0, 0,    0, 0, 0, 'P',  0.3,  1, 'center', 'middle', 'solid'),
+('wp_umwaelzpumpe', 4, 'text',        0.5,  0.62, 0,    0,    0, 0, 0,    0, 0, 0, '1~', 0.16, 0, 'center', 'middle', 'solid'),
+-- ── wp_mischer (32x32mm, Stellmotor + Ventilkegel) ──
+('wp_mischer', 0, 'linie',       0,    0.2,  0.25, 0.2,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 1, 'linie',       0,    0.45, 0.25, 0.45, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 2, 'linie',       0,    0.7,  0.25, 0.7,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 3, 'kreis_offen', 0.5,  0.35, 0,    0,    0, 0, 0.2,  0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 4, 'text',        0.5,  0.35, 0,    0,    0, 0, 0,    0, 0, 0, 'M',  0.28, 1, 'center', 'middle', 'solid'),
+('wp_mischer', 5, 'linie',       0.5,  0.55, 0.5,  0.68, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 6, 'linie',       0.32, 0.68, 0.68, 0.68, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 7, 'linie',       0.32, 0.68, 0.5,  0.95, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_mischer', 8, 'linie',       0.68, 0.68, 0.5,  0.95, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+-- ── wp_heizstab (32x24mm, Rechteck + Hitze-Schwuenge) ──
+('wp_heizstab', 0, 'linie',    0,    0.5,  0.2,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 1, 'linie',    0.8,  0.5,  1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 2, 'rechteck', 0.2,  0.35, 0.8,  0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 3, 'linie',    0.35, 0.30, 0.40, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 4, 'linie',    0.50, 0.30, 0.55, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 5, 'linie',    0.65, 0.30, 0.70, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── wp_regler (32x32mm, Box + Regel-Skala) ──
+('wp_regler', 0, 'linie',        0,    0.25, 0.15, 0.25, 0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 1, 'linie',        0,    0.75, 0.15, 0.75, 0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 2, 'linie',        0.85, 0.5,  1,    0.5,  0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 3, 'rechteck',     0.15, 0.1,  0.85, 0.9,  0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 4, 'bogen',        0.5,  0.55, 0,    0,    0, 0, 0.2,  200, 340, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 5, 'linie',        0.5,  0.55, 0.6,  0.4,  0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 6, 'kreis_gefuellt', 0.5, 0.55, 0,   0,    0, 0, 0.03, 0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('wp_regler', 7, 'text',         0.5,  0.78, 0,    0,    0, 0, 0,    0,   0,   0, 'WP',  0.16, 1, 'center', 'middle', 'solid'),
+-- ── wp_sgready (32x24mm, Box + 2 Mini-Kontakte) ──
+('wp_sgready', 0, 'linie',    0,    0.5,  0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 1, 'rechteck', 0.15, 0.1,  0.85, 0.9,  0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 2, 'linie',    0.85, 0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 3, 'linie',    0.85, 0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 4, 'linie',    0.3,  0.25, 0.45, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 5, 'linie',    0.55, 0.25, 0.7,  0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 6, 'linie',    0.3,  0.75, 0.45, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 7, 'linie',    0.55, 0.75, 0.7,  0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('wp_sgready', 8, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'SG', 0.18, 1, 'center', 'middle', 'solid');

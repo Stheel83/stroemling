@@ -27,6 +27,7 @@ ColumnLayout {
 
     property var  _kabelAufgeklappt:   ({})
     property var  _kabellinienCache:   ({})    // kabelId → [{grafikElementId, seiteId, blattnr, …}]
+    property int  _kabelVersion:       0       // Zähler: Increment zwingt _kabelListe zur Neuauswertung (KABEL-VERWAIST-01)
 
     property var  _gkAufgeklappt:     ({})    // bmk → bool
     property int  _gkVersion:         0       // Zähler: Increment zwingt _gkFlachListe zur Neuauswertung
@@ -209,7 +210,15 @@ ColumnLayout {
             root._mitgliederCache = {}
             root._geraeteVersion++
             root._gkVersion++
+            root._kabelVersion++
         }
+    }
+
+    // KABEL-VERWAIST-01: Kabel ohne jede Kabellinie löschen (Datenleiche,
+    // z.B. wenn die gezeichnete Linie gelöscht, aber nie neu platziert wurde).
+    function kabelOhneLinieLoeschen(kabelId) {
+        db.kabelLoeschen(kabelId)
+        root._kabelVersion++
     }
     Connections { target: elementeModel1; function onGeaendert() { root._onElementeGeaendert() } }
     Connections { target: elementeModel2; function onGeaendert() { root._onElementeGeaendert() } }
@@ -829,9 +838,12 @@ ColumnLayout {
             Column {
             visible: root._aktiveTab === "alles" || root._aktiveTab === "kabel"
             width: parent.width
-            property var _kabelListe: root.visible && root.projektId >= 0
-                ? db.kabelListeMitPos(root.projektId)
-                : []
+            property var _kabelListe: {
+                var _v = root._kabelVersion
+                return root.visible && root.projektId >= 0
+                    ? db.kabelListeMitPos(root.projektId)
+                    : []
+            }
 
             Rectangle {
                 width: parent.width; height: 1; color: root.theme.divider
@@ -910,6 +922,43 @@ ColumnLayout {
                         width: parent.width
                         visible: kabelItem.aufgeklappt
                         property var linien: root._kabellinienCache[kabelItem.kId] || []
+
+                        // KABEL-VERWAIST-01: keine Kabellinie vorhanden — nie
+                        // platziert oder die gezeichnete Linie wurde gelöscht.
+                        Rectangle {
+                            width: parent.width; height: 40
+                            visible: parent.linien.length === 0
+                            color: "transparent"
+                            RowLayout {
+                                anchors { fill: parent; leftMargin: 22; rightMargin: 8 }
+                                spacing: 6
+                                Text {
+                                    text: qsTr("Keine Kabellinie – nie platziert")
+                                    font.pixelSize: 10; font.italic: true
+                                    color: root.theme.textMuted; opacity: 0.75
+                                    Layout.fillWidth: true; elide: Text.ElideRight
+                                    wrapMode: Text.WordWrap
+                                }
+                                Rectangle {
+                                    implicitWidth: kabelLoeschenText.implicitWidth + 12
+                                    Layout.minimumWidth: 0
+                                    height: 20; radius: 3
+                                    color: kabelLoeschenMA.containsMouse ? root.theme.hover : "transparent"
+                                    border.color: root.theme.border; border.width: 1
+                                    Text {
+                                        id: kabelLoeschenText
+                                        anchors.centerIn: parent
+                                        text: qsTr("Löschen")
+                                        font.pixelSize: 10; color: root.theme.textSecondary
+                                    }
+                                    MouseArea {
+                                        id: kabelLoeschenMA; anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.kabelOhneLinieLoeschen(kabelItem.kId)
+                                    }
+                                }
+                            }
+                        }
 
                         Repeater {
                             model: parent.linien

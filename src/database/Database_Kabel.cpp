@@ -741,10 +741,24 @@ bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &a
 // gelöscht (grafikSpeichern); ON DELETE SET NULL sorgt dafür,
 // dass kabel.grafik_element_id auf NULL gesetzt wird falls das
 // Element zuerst gelöscht wird.
+//
+// KABEL-VERWAIST-01: kabel_ader.kabel_id hat kein ON DELETE CASCADE
+// (anders als z.B. ibn_kabel.kabel_id) — bei aktivem
+// PRAGMA foreign_keys=ON scheiterte "DELETE FROM kabel" bisher
+// stillschweigend an jeder noch vorhandenen Ader-Zeile (der QML-
+// Aufrufer in CanvasAktionenHandler.qml prüft den Rückgabewert
+// nicht), das Kabel blieb dauerhaft als Datenleiche zurück. Adern
+// jetzt zuerst explizit gelöscht.
 // ============================================================
 bool Database::kabelLoeschen(int kabelId)
 {
     QSqlQuery q(m_db);
+    q.prepare("DELETE FROM kabel_ader WHERE kabel_id = :id");
+    q.bindValue(":id", kabelId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "kabelLoeschen (Adern):" << q.lastError().text();
+        return false;
+    }
     q.prepare("DELETE FROM kabel WHERE id = :id");
     q.bindValue(":id", kabelId);
     if (!q.exec()) {

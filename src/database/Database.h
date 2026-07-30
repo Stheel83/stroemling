@@ -783,6 +783,9 @@ public:
     // (KONFKABEL-01), daher hier D-11.
     // Rückgabe: [{elementId, seiteId, seiteName, bezeichnung}]
     Q_INVOKABLE QVariantList drcSchirmOhneAnschluss(int projektId);
+    // D-12 (KABEL-VERWAIST-01): Kabel-Datensatz ohne jedes Kabellinie-Grafikelement.
+    // Rückgabe: [{kabelId, kabelName}]
+    Q_INVOKABLE QVariantList drcKabelOhneKabellinie(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

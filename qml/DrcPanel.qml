@@ -156,6 +156,18 @@ Item {
             })
         }
 
+        var d12 = db.drcKabelOhneKabellinie(root.projektId)
+        for (var t = 0; t < d12.length; t++) {
+            var ko = d12[t]
+            ergebnisModel.append({
+                "typ":       "kabel_ohne_kabellinie",
+                "meldung":   qsTr("Kabel ohne Kabellinie: %1").arg(ko.kabelName || "?"),
+                "detail":    qsTr("Nie platziert oder Kabellinie gelöscht — im BAUTEILE-Panel prüfen"),
+                "seiteId":   -1,
+                "elementId": -1
+            })
+        }
+
         root.hatGeprueft = true
         achievementManager.ereignis("drc_ausgefuehrt", { "fehlerAnzahl": ergebnisModel.count })
     }

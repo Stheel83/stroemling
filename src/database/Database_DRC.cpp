@@ -770,6 +770,43 @@ QVariantList Database::drcSchirmOhneAnschluss(int projektId)
     return ergebnis;
 }
 
+// ============================================================
+// drcKabelOhneKabellinie (D-12, KABEL-VERWAIST-01)
+// Kabel-Datensatz ohne jedes 'kabellinie'-Grafikelement — z.B. wenn
+// die gezeichnete Linie gelöscht wurde und die Wiederverwendung über
+// "bestehendes Kabel" im Kabellinie-Dialog nie stattfand. Gleicher
+// JOIN-Ansatz wie kabelAlleLinienLaden() (extra_daten.kabelId ist die
+// maßgebliche Verknüpfung, nicht kabel.grafik_element_id).
+// ============================================================
+QVariantList Database::drcKabelOhneKabellinie(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT k.id, k.bezeichnung
+        FROM kabel k
+        WHERE k.projekt_id = :pid
+          AND NOT EXISTS (
+              SELECT 1 FROM grafik_element ge
+              WHERE ge.typ = 'kabellinie'
+                AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = k.id
+          )
+        ORDER BY k.bezeichnung
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "drcKabelOhneKabellinie:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap fund;
+        fund["kabelId"]   = q.value(0).toInt();
+        fund["kabelName"] = q.value(1).toString();
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::bauteilAlleKategorienFlach()
 {
     QVariantList result;

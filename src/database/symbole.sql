@@ -814,6 +814,213 @@ VALUES
 ('kfz_stecker_4', 8, 'linie',    0,    0.75,   0.15, 0.75,   0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid');
 
 -- ══════════════════════════════════════════════════════════════
+-- KFZ + Motorrad Symbole, Teil 2 (SYM-ERWEITERUNG-01 Prioritaet 2, Schema v104)
+-- Fuenf 1:1-Wiedernutzungen bestehender Grafiken unter neuer ID:
+--   kfz_zuendschloss (= wechselschalter), kfz_lichtschalter/
+--   kfz_seitenstaenderschalter/kfz_kupplungsschalter/kfz_bremslichtschalter (= ausschalter)
+-- Elf eigene, unverifizierte Piktogramme ohne Bildvorlage (vor Praxiseinsatz
+-- gegenpruefen, analog kreuzschalter/rauchmelder/bewegungsmelder):
+--   kfz_anlasser, kfz_gluehkerze, kfz_scheinwerfer, kfz_blinkerrelais,
+--   kfz_scheibenwischermotor, kfz_lambdasonde, kfz_steuergeraet, kfz_cdi,
+--   kfz_kombiinstrument, kfz_sicherungskasten, kfz_zuendspule
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('kfz_zuendschloss',          'Zündschloss',                 'KFZ', 32, 16, 'variabel', 1),
+('kfz_lichtschalter',         'Lichtschalter',                'KFZ', 32, 16, 'variabel', 1),
+('kfz_seitenstaenderschalter','Seitenständerschalter',        'KFZ', 32, 16, 'variabel', 1),
+('kfz_kupplungsschalter',     'Kupplungsschalter',            'KFZ', 32, 16, 'variabel', 1),
+('kfz_bremslichtschalter',    'Bremslichtschalter',           'KFZ', 32, 16, 'variabel', 1),
+('kfz_anlasser',              'Anlasser (Starter)',           'KFZ', 32, 16, 'variabel', 1),
+('kfz_gluehkerze',            'Glühkerze',                    'KFZ', 24, 16, 'variabel', 1),
+('kfz_scheinwerfer',          'Scheinwerfer (Abblend/Fern)',  'KFZ', 32, 24, 'variabel', 1),
+('kfz_blinkerrelais',         'Blinkerrelais',                'KFZ', 32, 24, 'variabel', 1),
+('kfz_scheibenwischermotor',  'Scheibenwischermotor',         'KFZ', 36, 32, 'variabel', 1),
+('kfz_lambdasonde',           'Lambdasonde',                  'KFZ', 16, 16, 'variabel', 1),
+('kfz_steuergeraet',          'Steuergerät (ECU)',            'KFZ', 32, 32, 'variabel', 1),
+('kfz_cdi',                   'CDI-Zündbox',                  'KFZ', 32, 32, 'variabel', 1),
+('kfz_kombiinstrument',       'Kombiinstrument',              'KFZ', 40, 32, 'variabel', 1),
+('kfz_sicherungskasten',      'Sicherungskasten',             'KFZ', 40, 48, 'variabel', 1),
+('kfz_zuendspule',            'Zündspule',                    'KFZ', 32, 32, 'variabel', 1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES
+-- kfz_zuendschloss: 1:1 wechselschalter-Pins, umbenannt (30 Common, 15/50 Ausgaenge) -- ein Strompfad, alle knoten_gruppe 0
+('kfz_zuendschloss', '30', 0, 0.5,  -1, 0, 'neutral', 0),
+('kfz_zuendschloss', '15', 1, 0.25,  1, 0, 'neutral', 0),
+('kfz_zuendschloss', '50', 1, 0.75,  1, 0, 'neutral', 0),
+-- kfz_lichtschalter/kfz_seitenstaenderschalter/kfz_kupplungsschalter/kfz_bremslichtschalter: 1:1 ausschalter-Pins
+('kfz_lichtschalter', '1', 0, 0.5, -1, 0, 'neutral', 0),
+('kfz_lichtschalter', '2', 1, 0.5,  1, 0, 'neutral', 0),
+('kfz_seitenstaenderschalter', '1', 0, 0.5, -1, 0, 'neutral', 0),
+('kfz_seitenstaenderschalter', '2', 1, 0.5,  1, 0, 'neutral', 0),
+('kfz_kupplungsschalter', '1', 0, 0.5, -1, 0, 'neutral', 0),
+('kfz_kupplungsschalter', '2', 1, 0.5,  1, 0, 'neutral', 0),
+('kfz_bremslichtschalter', '1', 0, 0.5, -1, 0, 'neutral', 0),
+('kfz_bremslichtschalter', '2', 1, 0.5,  1, 0, 'neutral', 0),
+-- kfz_anlasser: 50 Steuerklemme/Solenoid, 30 B+ Hauptstrom -- getrennte Kreise
+('kfz_anlasser', '50', 0, 0.5, -1, 0, 'neutral', 0),
+('kfz_anlasser', '30', 1, 0.5,  1, 0, 'neutral', 1),
+-- kfz_gluehkerze: 1 Anschluss, Rueckleitung ueber Zylinderkopf (kein zweiter Pin)
+('kfz_gluehkerze', '1', 0, 0.5, -1, 0, 'neutral', 0),
+-- kfz_scheinwerfer: 31 Masse/gemeinsame Rueckleitung, 56b Abblendlicht, 56a Fernlicht
+('kfz_scheinwerfer', '31',  0, 0.5,  -1, 0, 'neutral', 0),
+('kfz_scheinwerfer', '56b', 1, 0.25,  1, 0, 'neutral', 1),
+('kfz_scheinwerfer', '56a', 1, 0.75,  1, 0, 'neutral', 2),
+-- kfz_blinkerrelais: 49 Eingang+, 49a Ausgang blinkend, 31 Masse
+('kfz_blinkerrelais', '49',  0,   0.3, -1, 0, 'neutral', 0),
+('kfz_blinkerrelais', '49a', 1,   0.3,  1, 0, 'neutral', 1),
+('kfz_blinkerrelais', '31',  0.5, 1.0,  0, 1, 'neutral', 2),
+-- kfz_scheibenwischermotor: 31 Masse, 53 langsam, 53b schnell
+('kfz_scheibenwischermotor', '31',  0, 0.2, -1, 0, 'neutral', 0),
+('kfz_scheibenwischermotor', '53',  0, 0.5, -1, 0, 'neutral', 1),
+('kfz_scheibenwischermotor', '53b', 0, 0.8, -1, 0, 'neutral', 2),
+-- kfz_lambdasonde: Signalschleife, ein Knoten (wie sensor_temp)
+('kfz_lambdasonde', '1', 0, 0.5, -1, 0, 'neutral', 0),
+('kfz_lambdasonde', '2', 1, 0.5,  1, 0, 'neutral', 0),
+-- kfz_steuergeraet: 30 B+, 31 Masse, Signal generisch
+('kfz_steuergeraet', '30',     0, 0.25, -1, 0, 'neutral', 0),
+('kfz_steuergeraet', '31',     0, 0.75, -1, 0, 'neutral', 1),
+('kfz_steuergeraet', 'Signal', 1, 0.5,   1, 0, 'neutral', 2),
+-- kfz_cdi: 30 B+, 31 Masse, Impuls Geber-Signal, 4 Zuendspulen-Ausgang
+('kfz_cdi', '30',     0, 0.25, -1, 0, 'neutral', 0),
+('kfz_cdi', '31',     0, 0.75, -1, 0, 'neutral', 1),
+('kfz_cdi', 'Impuls', 1, 0.25,  1, 0, 'neutral', 2),
+('kfz_cdi', '4',      1, 0.75,  1, 0, 'neutral', 3),
+-- kfz_kombiinstrument: 30 B+, 31 Masse, Signal generisch
+('kfz_kombiinstrument', '30',     0, 0.25, -1, 0, 'neutral', 0),
+('kfz_kombiinstrument', '31',     0, 0.75, -1, 0, 'neutral', 1),
+('kfz_kombiinstrument', 'Signal', 1, 0.5,   1, 0, 'neutral', 2),
+-- kfz_sicherungskasten: 30 Batterie-Eingang, F1..F4 Ausgaenge
+('kfz_sicherungskasten', '30', 0, 0.5,   -1, 0, 'neutral', 0),
+('kfz_sicherungskasten', 'F1', 1, 0.15,   1, 0, 'neutral', 1),
+('kfz_sicherungskasten', 'F2', 1, 0.383,  1, 0, 'neutral', 2),
+('kfz_sicherungskasten', 'F3', 1, 0.617,  1, 0, 'neutral', 3),
+('kfz_sicherungskasten', 'F4', 1, 0.85,   1, 0, 'neutral', 4),
+-- kfz_zuendspule: 15 +12V, 1 Unterbrecher/Steuerung, 4 Hochspannungsausgang
+('kfz_zuendspule', '15', 0, 0.25, -1, 0, 'neutral', 0),
+('kfz_zuendspule', '1',  0, 0.75, -1, 0, 'neutral', 1),
+('kfz_zuendspule', '4',  1, 0.5,   1, 0, 'neutral', 2);
+
+INSERT INTO symbol_primitiv
+(symbol_id, reihenfolge, typ,
+ x1, y1, x2, y2, x3, y3,
+ radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+ text_inhalt, schrift_relativ, schrift_fett,
+ text_align, text_baseline, linienart)
+VALUES
+-- kfz_zuendschloss: 1:1 wechselschalter-Grafik
+('kfz_zuendschloss', 0, 'linie', 0,    0.5,  0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendschloss', 1, 'linie', 0.3,  0.5,  0.75, 0.35, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendschloss', 2, 'linie', 0.7,  0.25, 0.7,  0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendschloss', 3, 'linie', 0.7,  0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendschloss', 4, 'linie', 0.7,  0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_lichtschalter/seitenstaenderschalter/kupplungsschalter/bremslichtschalter: 1:1 ausschalter-Grafik
+('kfz_lichtschalter', 0, 'linie', 0,   0.5, 0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_lichtschalter', 1, 'linie', 0.3, 0.5, 0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_lichtschalter', 2, 'linie', 0.7, 0.5, 1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_seitenstaenderschalter', 0, 'linie', 0,   0.5, 0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_seitenstaenderschalter', 1, 'linie', 0.3, 0.5, 0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_seitenstaenderschalter', 2, 'linie', 0.7, 0.5, 1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kupplungsschalter', 0, 'linie', 0,   0.5, 0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kupplungsschalter', 1, 'linie', 0.3, 0.5, 0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kupplungsschalter', 2, 'linie', 0.7, 0.5, 1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_bremslichtschalter', 0, 'linie', 0,   0.5, 0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_bremslichtschalter', 1, 'linie', 0.3, 0.5, 0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_bremslichtschalter', 2, 'linie', 0.7, 0.5, 1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_anlasser: Kreis+M, Stil wie kfz_lichtmaschine
+('kfz_anlasser', 0, 'linie',       0,    0.5, 0.28, 0.5, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_anlasser', 1, 'linie',       0.72, 0.5, 1,    0.5, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_anlasser', 2, 'kreis_offen', 0.5,  0.5, 0,    0,   0, 0, 0.22, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_anlasser', 3, 'text',        0.5,  0.5, 0,    0,   0, 0, 0,    0, 0, 0, 'M',  0.35, 1, 'center', 'middle', 'solid'),
+-- kfz_gluehkerze: Koerper + Heizwendel-Zickzack + Hitze-Schwuenge
+('kfz_gluehkerze', 0, 'linie',    0,    0.5,  0.15, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 1, 'rechteck', 0.15, 0.25, 0.65, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 2, 'linie',    0.22, 0.35, 0.30, 0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 3, 'linie',    0.30, 0.65, 0.38, 0.35, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 4, 'linie',    0.38, 0.35, 0.46, 0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 5, 'linie',    0.46, 0.65, 0.54, 0.35, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 6, 'linie',    0.65, 0.4,  0.78, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 7, 'linie',    0.65, 0.55, 0.80, 0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_gluehkerze', 8, 'linie',    0.65, 0.7,  0.78, 0.78, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_scheinwerfer: Kreis+X (wie lampe) + 3 Anschluesse
+('kfz_scheinwerfer', 0, 'linie',       0,    0.5,  0.3,  0.5,  0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 1, 'kreis_offen', 0.5,  0.5,  0,    0,    0, 0, 0.2, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 2, 'linie',       0.4,  0.4,  0.6,  0.6,  0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 3, 'linie',       0.4,  0.6,  0.6,  0.4,  0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 4, 'linie',       0.7,  0.5,  0.85, 0.25, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 5, 'linie',       0.85, 0.25, 1,    0.25, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 6, 'linie',       0.7,  0.5,  0.85, 0.75, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_scheinwerfer', 7, 'linie',       0.85, 0.75, 1,    0.75, 0, 0, 0,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_blinkerrelais: Rechteck + Rechteckwellen-Zickzack (Oszillation)
+('kfz_blinkerrelais', 0,  'linie',    0,    0.3,  0.15, 0.3,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 1,  'linie',    0.85, 0.3,  1,    0.3,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 2,  'linie',    0.5,  0.6,  0.5,  1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 3,  'rechteck', 0.15, 0.15, 0.85, 0.6,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 4,  'linie',    0.25, 0.45, 0.35, 0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 5,  'linie',    0.35, 0.45, 0.35, 0.3,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 6,  'linie',    0.35, 0.3,  0.5,  0.3,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 7,  'linie',    0.5,  0.3,  0.5,  0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 8,  'linie',    0.5,  0.45, 0.65, 0.45, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 9,  'linie',    0.65, 0.45, 0.65, 0.3,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_blinkerrelais', 10, 'linie',    0.65, 0.3,  0.75, 0.3,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_scheibenwischermotor: 3 Stubs in Kreis+M
+('kfz_scheibenwischermotor', 0, 'linie',       0,    0.2,  0.35, 0.2,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_scheibenwischermotor', 1, 'linie',       0,    0.5,  0.3,  0.5,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_scheibenwischermotor', 2, 'linie',       0,    0.8,  0.35, 0.8,  0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_scheibenwischermotor', 3, 'kreis_offen', 0.65, 0.5,  0,    0,    0, 0, 0.32, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
+('kfz_scheibenwischermotor', 4, 'text',        0.65, 0.46, 0,    0,    0, 0, 0,    0, 0, 0, 'M',  0.28, 1, 'center', 'middle', 'solid'),
+-- kfz_lambdasonde: Rechteck + O2 (wie sensor_temp)
+('kfz_lambdasonde', 0, 'rechteck', 0.1, 0.1, 0.9, 0.9, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_lambdasonde', 1, 'linie',    0,   0.5, 0.1, 0.5, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_lambdasonde', 2, 'linie',    0.9, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_lambdasonde', 3, 'text',     0.5, 0.5, 0,   0,   0, 0, 0, 0, 0, 0, 'O2', 0.32, 1, 'center', 'middle', 'solid'),
+-- kfz_steuergeraet (ECU): Rechteck + IC-Anschlussstriche + Text
+('kfz_steuergeraet', 0, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 1, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 2, 'linie',    0.85, 0.5,  1,    0.5,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 3, 'rechteck', 0.15, 0.1,  0.85, 0.9,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 4, 'linie',    0.3,  0.3,  0.3,  0.4,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 5, 'linie',    0.45, 0.3,  0.45, 0.4,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 6, 'linie',    0.6,  0.3,  0.6,  0.4,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_steuergeraet', 7, 'text',     0.5,  0.65, 0,    0,    0, 0, 0, 0, 0, 0, 'ECU', 0.16, 1, 'center', 'middle', 'solid'),
+-- kfz_cdi: Rechteck + Kondensator-Plattenpaar
+('kfz_cdi', 0, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 1, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 2, 'linie',    0.85, 0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 3, 'linie',    0.85, 0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 4, 'rechteck', 0.15, 0.1,  0.85, 0.9,  0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 5, 'linie',    0.4,  0.35, 0.4,  0.65, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 6, 'linie',    0.6,  0.35, 0.6,  0.65, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('kfz_cdi', 7, 'text',     0.5,  0.78, 0,    0,    0, 0, 0, 0, 0, 0, 'CDI', 0.14, 1, 'center', 'middle', 'solid'),
+-- kfz_kombiinstrument: Rechteck + Rundinstrument-Skala + Zeiger
+('kfz_kombiinstrument', 0, 'linie',          0,    0.25, 0.15, 0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kombiinstrument', 1, 'linie',          0,    0.75, 0.15, 0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kombiinstrument', 2, 'linie',          0.85, 0.5,  1,    0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kombiinstrument', 3, 'rechteck',       0.15, 0.1,  0.85, 0.9,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kombiinstrument', 4, 'bogen',          0.5,  0.6,  0,    0,    0, 0, 0.22, 200, 340, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kombiinstrument', 5, 'linie',          0.5,  0.6,  0.62, 0.42, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_kombiinstrument', 6, 'kreis_gefuellt', 0.5,  0.6,  0,    0,    0, 0, 0.03, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_sicherungskasten: Rahmen + 4 Slots
+('kfz_sicherungskasten', 0, 'linie',    0,    0.5,   0.15, 0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 1, 'rechteck', 0.15, 0.05,  0.85, 0.95,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 2, 'linie',    0.85, 0.15,  1,    0.15,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 3, 'linie',    0.85, 0.383, 1,    0.383, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 4, 'linie',    0.85, 0.617, 1,    0.617, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 5, 'linie',    0.85, 0.85,  1,    0.85,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 6, 'rechteck', 0.3,  0.1,   0.7,  0.2,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 7, 'rechteck', 0.3,  0.333, 0.7,  0.433, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 8, 'rechteck', 0.3,  0.567, 0.7,  0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_sicherungskasten', 9, 'rechteck', 0.3,  0.8,   0.7,  0.9,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- kfz_zuendspule: wie trafo, nur 1 Sekundaer-Pin
+('kfz_zuendspule', 0, 'linie',       0,    0.25,  0.3,  0.25,  0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendspule', 1, 'linie',       0,    0.75,  0.3,  0.75,  0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendspule', 2, 'linie',       0.7,  0.5,   1,    0.5,   0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendspule', 3, 'kreis_offen', 0.3,  0.5,   0,    0,     0, 0, 0.25, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendspule', 4, 'kreis_offen', 0.7,  0.5,   0,    0,     0, 0, 0.25, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendspule', 5, 'linie',       0.48, 0.275, 0.48, 0.725, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('kfz_zuendspule', 6, 'linie',       0.52, 0.275, 0.52, 0.725, 0, 0, 0,    0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
 -- Arduino Symbole (Kategorie 'Arduino')
 -- ard_uno:    Arduino UNO  32x64mm  (14 links D0-D13 + 13 rechts + NC bei k=7)
 -- ard_nano:   Arduino Nano 32x64mm  (14 links D0-D13 + 14 rechts)

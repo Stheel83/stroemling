@@ -211,12 +211,34 @@ ColumnLayout {
             root._geraeteVersion++
             root._gkVersion++
             root._kabelVersion++
+
+            // KABEL-VERWAIST-01-NACHTRAG: _kabellinienCache sonst nur beim
+            // ersten Aufklappen befüllt — eine danach neu gezeichnete/gelöschte
+            // Kabellinie würde sich hier sonst nie zeigen (stale), und der
+            // "Keine Kabellinie"-Hinweis inkl. Löschen-Button könnte fälschlich
+            // auf einem längst platzierten Kabel stehen bleiben.
+            var kabellinienCache = Object.assign({}, root._kabellinienCache)
+            for (var kkid in root._kabelAufgeklappt) {
+                if (root._kabelAufgeklappt[kkid])
+                    kabellinienCache[kkid] = db.kabellinienMitPos(parseInt(kkid))
+            }
+            root._kabellinienCache = kabellinienCache
         }
     }
 
     // KABEL-VERWAIST-01: Kabel ohne jede Kabellinie löschen (Datenleiche,
     // z.B. wenn die gezeichnete Linie gelöscht, aber nie neu platziert wurde).
+    // Live-Nachprüfung statt Blindvertrauen auf den Cache — verhindert, dass
+    // ein zwischenzeitlich stale gewordener Anzeigezustand ein tatsächlich
+    // platziertes Kabel löscht (KABEL-VERWAIST-01-NACHTRAG).
     function kabelOhneLinieLoeschen(kabelId) {
+        var aktuelleLinien = db.kabellinienMitPos(kabelId)
+        if (aktuelleLinien.length > 0) {
+            var c = Object.assign({}, root._kabellinienCache)
+            c[kabelId] = aktuelleLinien
+            root._kabellinienCache = c
+            return
+        }
         db.kabelLoeschen(kabelId)
         root._kabelVersion++
     }

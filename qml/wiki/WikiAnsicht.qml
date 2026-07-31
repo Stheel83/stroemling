@@ -464,7 +464,7 @@ Item {
                 // Suchfeld
                 Rectangle {
                     Layout.fillWidth: true
-                    height:           36
+                    height:           44
                     color:            root.theme.surface
                     Rectangle {
                         anchors.bottom: parent.bottom
@@ -473,19 +473,19 @@ Item {
                     TextField {
                         id: suchFeld
                         anchors { fill: parent; margins: 6 }
-                        font.pixelSize: 11
+                        font.pixelSize: 13
                         color:          root.theme.textPrimary
-                        leftPadding:    28
+                        leftPadding:    30
                         background: Rectangle {
-                            radius: 3
+                            radius: 4
                             color:  root.theme.inputBg
                             border.color: suchFeld.activeFocus ? root.theme.accent : root.theme.borderLight
                         }
                         placeholderText: qsTr("Suchen …")
                         Text {
-                            anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                            anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                             text:           "🔍"
-                            font.pixelSize: 11
+                            font.pixelSize: 13
                         }
                         onTextChanged: {
                             if (text.trim() !== "") {

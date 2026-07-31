@@ -39,12 +39,19 @@ ColumnLayout {
             spacing: 10
 
             Image {
-                Layout.fillWidth:         true
-                Layout.maximumWidth:      220
-                Layout.alignment:         Qt.AlignHCenter
-                source:                   "qrc:/assets/hilfe_kontakt.png"
-                fillMode:                 Image.PreserveAspectFit
-                smooth:                   true; mipmap: true
+                id:                   hilfeBild
+                Layout.alignment:     Qt.AlignHCenter
+                Layout.preferredWidth:  190
+                // ColumnLayout gibt Image ohne explizite Höhe die rohe
+                // Pixelhöhe der Quelldatei als Layout-Platz vor (unabhängig
+                // von PreserveAspectFit) — deshalb Höhe hier selbst aus dem
+                // Seitenverhältnis der Quelle berechnen.
+                Layout.preferredHeight: sourceSize.width > 0
+                                         ? Layout.preferredWidth * sourceSize.height / sourceSize.width
+                                         : 190
+                source:               "qrc:/assets/hilfe_kontakt.png"
+                fillMode:             Image.PreserveAspectFit
+                smooth:               true; mipmap: true
             }
 
             Text {

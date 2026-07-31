@@ -1994,3 +1994,194 @@ VALUES
 ('wp_sgready', 6, 'linie',    0.3,  0.75, 0.45, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 ('wp_sgready', 7, 'linie',    0.55, 0.75, 0.7,  0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 ('wp_sgready', 8, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'SG', 0.18, 1, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- Caravan Symbole (Kategorie 'Caravan', SYM-ERWEITERUNG-01 Prioritaet 4, Jul 2026)
+-- caravan_batterie:            Aufbaubatterie 12V 32x16mm (1:1 Grafik-Wiedernutzung kfz_batterie)
+-- caravan_trennrelais:         Batterie-Trennrelais 32x48mm (1:1 Grafik-Wiedernutzung kfz_relais_4, Label TR statt K4)
+-- caravan_ladebooster:         DC/DC-Ladebooster 32x32mm (Box IN+/IN-/OUT+/OUT-, analog kfz_steuergeraet)
+-- caravan_solarladeregler:     Solarladeregler (MPPT) 32x32mm (Box PV+/PV-/BAT+/BAT-)
+-- caravan_solarpanel:          Solarmodul (PV-Panel) 32x32mm (Rechteck mit Zell-Gitter, eigenes Piktogramm)
+-- caravan_wechselrichter:      Wechselrichter 12V->230V 32x32mm (Spiegelung von netzteil: DC-Eingang/AC-Ausgang)
+-- caravan_landanschluss:       Landstromanschluss/CEE-Einspeisesteckdose 24x24mm (1:1 Grafik-Wiedernutzung
+--                               steckdose_cee16, Pins rolle=quelle statt Default)
+-- caravan_wasserpumpe:         Frischwasserpumpe 12V 32x16mm (analog wp_umwaelzpumpe, DC statt 1~)
+-- caravan_kuehlschrank:        Absorberkuehlschrank 12V/230V/Gas 40x48mm (Box, 4 elektrische Pins;
+--                               GAS nur als Piktogramm-Text, kein elektrischer Pin)
+-- caravan_anhaengerstecker_13: Anhaenger-Steckdose 13-polig 32x112mm (analog kfz_stecker-Familie/sps_di_16,
+--                               Pinnummern 1-13 nach ISO 11446)
+-- Wassertank-Fuellstandsgeber/Abwassertank-Sensor bewusst KEIN eigenes Symbol: bestehendes
+-- sensor_niveau mehrfach platziert (Unterscheidung nur ueber Anschlusskennzeichnung/BMK),
+-- analog zur Waermepumpe-Fuehler-Entscheidung (§11.3).
+-- Frequenzumrichter/Wechselrichter-Interna, Gasarmaturen: bewusst nicht elektrisch modelliert.
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
+('caravan_batterie',            'Aufbaubatterie 12V',                          'Caravan', 32,  16, 'variabel',    1),
+('caravan_trennrelais',         'Batterie-Trennrelais',                        'Caravan', 32,  48, 'variabel',    1),
+('caravan_ladebooster',         'DC/DC-Ladebooster',                           'Caravan', 32,  32, 'verbraucher', 1),
+('caravan_solarladeregler',     'Solarladeregler (MPPT)',                      'Caravan', 32,  32, 'variabel',    1),
+('caravan_solarpanel',          'Solarmodul (PV-Panel)',                       'Caravan', 32,  32, 'quelle',      1),
+('caravan_wechselrichter',      'Wechselrichter 12V→230V',                     'Caravan', 32,  32, 'verbraucher', 1),
+('caravan_landanschluss',       'Landstromanschluss (CEE-Einspeisesteckdose)', 'Caravan', 24,  24, 'verbraucher', 1),
+('caravan_wasserpumpe',         'Frischwasserpumpe 12V',                       'Caravan', 32,  16, 'verbraucher', 1),
+('caravan_kuehlschrank',        'Absorberkühlschrank (12V/230V/Gas)',          'Caravan', 40,  48, 'verbraucher', 1),
+('caravan_anhaengerstecker_13', 'Anhänger-Steckdose (13-polig)',               'Caravan', 32, 112, 'variabel',    1);
+
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES
+-- caravan_batterie: + links, - rechts (wie kfz_batterie, keine Knoten-Trennung)
+('caravan_batterie', '+', 0, 0.5, -1, 0, 'neutral', 0),
+('caravan_batterie', '-', 1, 0.5,  1, 0, 'neutral', 0),
+-- caravan_trennrelais: Spule 85/86, Kontakt 30/87 (wie kfz_relais_4)
+('caravan_trennrelais', '85', 0, 0.25, -1, 0, 'neutral', 0),
+('caravan_trennrelais', '86', 1, 0.25,  1, 0, 'neutral', 1),
+('caravan_trennrelais', '30', 0, 0.75, -1, 0, 'neutral', 2),
+('caravan_trennrelais', '87', 1, 0.75,  1, 0, 'neutral', 3),
+-- caravan_ladebooster: getrennte DC-Kreise Ein-/Ausgang
+('caravan_ladebooster', 'IN+',  0, 0.25, -1, 0, 'dc_plus',  0),
+('caravan_ladebooster', 'IN-',  0, 0.75, -1, 0, 'dc_minus', 1),
+('caravan_ladebooster', 'OUT+', 1, 0.25,  1, 0, 'dc_plus',  2),
+('caravan_ladebooster', 'OUT-', 1, 0.75,  1, 0, 'dc_minus', 3),
+-- caravan_solarladeregler: PV-Eingang / Batterie-Ausgang, getrennte Kreise
+('caravan_solarladeregler', 'PV+',  0, 0.25, -1, 0, 'dc_plus',  0),
+('caravan_solarladeregler', 'PV-',  0, 0.75, -1, 0, 'dc_minus', 1),
+('caravan_solarladeregler', 'BAT+', 1, 0.25,  1, 0, 'dc_plus',  2),
+('caravan_solarladeregler', 'BAT-', 1, 0.75,  1, 0, 'dc_minus', 3),
+-- caravan_solarpanel: Ausgang unten
+('caravan_solarpanel', '+', 0.3, 1.0, 0, 1, 'dc_plus',  0),
+('caravan_solarpanel', '-', 0.7, 1.0, 0, 1, 'dc_minus', 1),
+-- caravan_wechselrichter: DC-Eingang links / AC-Ausgang rechts (Spiegelung netzteil)
+('caravan_wechselrichter', 'DC+', 0, 0.25, -1, 0, 'dc_plus',  0),
+('caravan_wechselrichter', 'DC-', 0, 0.75, -1, 0, 'dc_minus', 1),
+('caravan_wechselrichter', 'L',   1, 0.25,  1, 0, 'power',    2),
+('caravan_wechselrichter', 'N',   1, 0.75,  1, 0, 'n',        3),
+-- caravan_landanschluss: L/N/PE wie steckdose_cee16
+('caravan_landanschluss', 'L',  0,    0.3, -1, 0, 'power', 0),
+('caravan_landanschluss', 'N',  0,    0.6, -1, 0, 'n',     1),
+('caravan_landanschluss', 'PE', 0.55, 1.0,  0, 1, 'pe',    2),
+-- caravan_wasserpumpe: DC statt 1~
+('caravan_wasserpumpe', '+', 0, 0.5, -1, 0, 'dc_plus',  0),
+('caravan_wasserpumpe', '-', 1, 0.5,  1, 0, 'dc_minus', 1),
+-- caravan_kuehlschrank: 12V-DC + 230V-AC-Zuleitung, Gas nicht elektrisch modelliert
+('caravan_kuehlschrank', '12V+', 0, 0.15,  -1, 0, 'dc_plus',  0),
+('caravan_kuehlschrank', '12V-', 0, 0.383, -1, 0, 'dc_minus', 1),
+('caravan_kuehlschrank', 'L',    0, 0.617, -1, 0, 'power',    2),
+('caravan_kuehlschrank', 'N',    0, 0.85,  -1, 0, 'n',        3),
+-- caravan_anhaengerstecker_13: ISO 11446, Pinnummern 1-13
+('caravan_anhaengerstecker_13', '1',  0, 0.0714, -1, 0, 'neutral', 0),
+('caravan_anhaengerstecker_13', '2',  0, 0.1429, -1, 0, 'neutral', 1),
+('caravan_anhaengerstecker_13', '3',  0, 0.2143, -1, 0, 'neutral', 2),
+('caravan_anhaengerstecker_13', '4',  0, 0.2857, -1, 0, 'neutral', 3),
+('caravan_anhaengerstecker_13', '5',  0, 0.3571, -1, 0, 'neutral', 4),
+('caravan_anhaengerstecker_13', '6',  0, 0.4286, -1, 0, 'neutral', 5),
+('caravan_anhaengerstecker_13', '7',  0, 0.5,    -1, 0, 'neutral', 6),
+('caravan_anhaengerstecker_13', '8',  0, 0.5714, -1, 0, 'neutral', 7),
+('caravan_anhaengerstecker_13', '9',  0, 0.6429, -1, 0, 'neutral', 8),
+('caravan_anhaengerstecker_13', '10', 0, 0.7143, -1, 0, 'neutral', 9),
+('caravan_anhaengerstecker_13', '11', 0, 0.7857, -1, 0, 'neutral', 10),
+('caravan_anhaengerstecker_13', '12', 0, 0.8571, -1, 0, 'neutral', 11),
+('caravan_anhaengerstecker_13', '13', 0, 0.9286, -1, 0, 'neutral', 12);
+
+-- Caravan: Pin-Rollen fuer Stromfluss-Richtung (BFS-Propagation, analog netzteil, s. NETZTEIL-ROLLE-01)
+UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'caravan_ladebooster' AND name IN ('IN+', 'IN-');
+UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'caravan_ladebooster' AND name IN ('OUT+', 'OUT-');
+UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'caravan_solarladeregler' AND name IN ('PV+', 'PV-');
+UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'caravan_solarladeregler' AND name IN ('BAT+', 'BAT-');
+UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'caravan_solarpanel' AND name IN ('+', '-');
+UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'caravan_wechselrichter' AND name IN ('DC+', 'DC-');
+UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'caravan_wechselrichter' AND name IN ('L', 'N');
+UPDATE symbol_pin SET rolle = 'quelle'      WHERE symbol_id = 'caravan_landanschluss' AND name IN ('L', 'N', 'PE');
+
+INSERT INTO symbol_primitiv
+(symbol_id, reihenfolge, typ,
+ x1, y1, x2, y2, x3, y3,
+ radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
+ text_inhalt, schrift_relativ, schrift_fett,
+ text_align, text_baseline, linienart)
+VALUES
+-- ── caravan_batterie (32x16mm, 1:1 wie kfz_batterie) ──
+('caravan_batterie', 0, 'linie', 0,    0.5, 0.25, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_batterie', 1, 'linie', 0.25, 0.1, 0.25, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_batterie', 2, 'linie', 0.42, 0.3, 0.42, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_batterie', 3, 'linie', 0.58, 0.1, 0.58, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_batterie', 4, 'linie', 0.75, 0.3, 0.75, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_batterie', 5, 'linie', 0.75, 0.5, 1.0,  0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── caravan_trennrelais (32x48mm, wie kfz_relais_4, Label TR) ──
+('caravan_trennrelais', 0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 1, 'linie',    0.15, 0.5,  0.85, 0.5,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 2, 'text',     0.5,  0.25, 0,    0,    0, 0, 0, 0, 0, 0, 'Spule', 0.10, 0, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 3, 'text',     0.5,  0.75, 0,    0,    0, 0, 0, 0, 0, 0, 'TR',    0.14, 1, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 4, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 5, 'linie',    0.85, 0.25, 1.0,  0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 6, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_trennrelais', 7, 'linie',    0.85, 0.75, 1.0,  0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+-- ── caravan_ladebooster (32x32mm, Box IN/OUT) ──
+('caravan_ladebooster', 0, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_ladebooster', 1, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_ladebooster', 2, 'linie',    0.85, 0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_ladebooster', 3, 'linie',    0.85, 0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_ladebooster', 4, 'rechteck', 0.15, 0.1,  0.85, 0.9,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
+('caravan_ladebooster', 5, 'text',     0.5,  0.42, 0,    0,    0, 0, 0, 0, 0, 0, 'B2B',   0.16, 1, 'center', 'middle', 'solid'),
+('caravan_ladebooster', 6, 'text',     0.5,  0.63, 0,    0,    0, 0, 0, 0, 0, 0, 'DC/DC', 0.10, 0, 'center', 'middle', 'solid'),
+-- ── caravan_solarladeregler (32x32mm, Box PV/BAT) ──
+('caravan_solarladeregler', 0, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_solarladeregler', 1, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_solarladeregler', 2, 'linie',    0.85, 0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_solarladeregler', 3, 'linie',    0.85, 0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_solarladeregler', 4, 'rechteck', 0.15, 0.1,  0.85, 0.9,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_solarladeregler', 5, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'MPPT', 0.15, 1, 'center', 'middle', 'solid'),
+-- ── caravan_solarpanel (32x32mm, Zell-Gitter, eigenes Piktogramm) ──
+('caravan_solarpanel', 0, 'rechteck', 0.1,  0.15, 0.9,  0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_solarpanel', 1, 'linie',    0.37, 0.15, 0.37, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_solarpanel', 2, 'linie',    0.63, 0.15, 0.63, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_solarpanel', 3, 'linie',    0.1,  0.5,  0.9,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_solarpanel', 4, 'linie',    0.3,  0.85, 0.3,  1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_solarpanel', 5, 'linie',    0.7,  0.85, 0.7,  1.0,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── caravan_wechselrichter (32x32mm, Spiegelung netzteil) ──
+('caravan_wechselrichter', 0, 'rechteck', 0.15, 0.15, 0.85, 0.85, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wechselrichter', 1, 'linie',    0,    0.25, 0.15, 0.25, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wechselrichter', 2, 'linie',    0,    0.75, 0.15, 0.75, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wechselrichter', 3, 'linie',    0.85, 0.25, 1,    0.25, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wechselrichter', 4, 'linie',    0.85, 0.75, 1,    0.75, 0, 0, 0, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wechselrichter', 5, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'INV', 0.15, 1, 'center', 'middle', 'solid'),
+-- ── caravan_landanschluss (24x24mm, 1:1 wie steckdose_cee16) ──
+('caravan_landanschluss', 0, 'linie',         0,    0.3,  0.2902, 0.3, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 1, 'linie',         0,    0.6,  0.2902, 0.6, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 2, 'linie',         0.55, 0.75, 0.55,   1.0, 0, 0, 0,     0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 3, 'kreis_offen',   0.55, 0.45, 0,      0,   0, 0, 0.3,   0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 4, 'kreis_offen',   0.55, 0.45, 0,      0,   0, 0, 0.22,  0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 5, 'kreis_gefuellt',0.55, 0.34, 0,      0,   0, 0, 0.035, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 6, 'kreis_gefuellt',0.47, 0.52, 0,      0,   0, 0, 0.035, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('caravan_landanschluss', 7, 'kreis_gefuellt',0.63, 0.52, 0,      0,   0, 0, 0.035, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── caravan_wasserpumpe (32x16mm, wie wp_umwaelzpumpe, DC statt 1~) ──
+('caravan_wasserpumpe', 0, 'linie',       0,    0.5,  0.28, 0.5,  0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wasserpumpe', 1, 'linie',       0.72, 0.5,  1,    0.5,  0, 0, 0,    0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wasserpumpe', 2, 'kreis_offen', 0.5,  0.5,  0,    0,    0, 0, 0.22, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
+('caravan_wasserpumpe', 3, 'text',        0.5,  0.42, 0,    0,    0, 0, 0,    0, 0, 0, 'P',   0.3,  1, 'center', 'middle', 'solid'),
+('caravan_wasserpumpe', 4, 'text',        0.5,  0.62, 0,    0,    0, 0, 0,    0, 0, 0, '12V', 0.13, 0, 'center', 'middle', 'solid'),
+-- ── caravan_kuehlschrank (40x48mm, Box mit 4 el. Pins + GAS-Text ohne Pin) ──
+('caravan_kuehlschrank', 0, 'rechteck', 0.15, 0.05,  0.85, 0.95,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 1, 'linie',    0,    0.15,  0.15, 0.15,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 2, 'linie',    0,    0.383, 0.15, 0.383, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 3, 'linie',    0,    0.617, 0.15, 0.617, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 4, 'linie',    0,    0.85,  0.15, 0.85,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 5, 'text',     0.5,  0.22,  0,    0,     0, 0, 0, 0, 0, 0, 'ABS',  0.15, 1, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 6, 'text',     0.5,  0.42,  0,    0,     0, 0, 0, 0, 0, 0, '12V',  0.10, 0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 7, 'text',     0.5,  0.55,  0,    0,     0, 0, 0, 0, 0, 0, '230V', 0.10, 0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 8, 'text',     0.5,  0.75,  0,    0,     0, 0, 0, 0, 0, 0, 'GAS',  0.12, 0, 'center', 'middle', 'solid'),
+-- ── caravan_anhaengerstecker_13 (32x112mm, ISO 11446, analog kfz_stecker-Familie/sps_di_16) ──
+('caravan_anhaengerstecker_13', 0,  'rechteck', 0.15, 0.02,   0.85, 0.98,   0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 1,  'text',     0.5,  0.5,    0,    0,      0, 0, 0, 0, 0, 0, '13-pol', 0.055, 1, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 2,  'linie',    0,    0.0714, 0.15, 0.0714, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 3,  'linie',    0,    0.1429, 0.15, 0.1429, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 4,  'linie',    0,    0.2143, 0.15, 0.2143, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 5,  'linie',    0,    0.2857, 0.15, 0.2857, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 6,  'linie',    0,    0.3571, 0.15, 0.3571, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 7,  'linie',    0,    0.4286, 0.15, 0.4286, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 8,  'linie',    0,    0.5,    0.15, 0.5,    0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 9,  'linie',    0,    0.5714, 0.15, 0.5714, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 10, 'linie',    0,    0.6429, 0.15, 0.6429, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 11, 'linie',    0,    0.7143, 0.15, 0.7143, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 12, 'linie',    0,    0.7857, 0.15, 0.7857, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 13, 'linie',    0,    0.8571, 0.15, 0.8571, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid'),
+('caravan_anhaengerstecker_13', 14, 'linie',    0,    0.9286, 0.15, 0.9286, 0, 0, 0, 0, 0, 0, NULL,     0.5,   0, 'center', 'middle', 'solid');

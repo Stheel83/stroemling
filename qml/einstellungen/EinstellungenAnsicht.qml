@@ -251,8 +251,9 @@ Item {
                         }
                     }
 
-                    EinEntstehungBlock  { theme: root.theme }
-                    EinMitwirkendeBlock { theme: root.theme }
+                    EinEntstehungBlock   { theme: root.theme }
+                    EinHilfeKontaktBlock { theme: root.theme }
+                    EinMitwirkendeBlock  { theme: root.theme }
 
                     // ── Lizenz & Open Source ──────────────────────
                     Item { implicitHeight: 28 }

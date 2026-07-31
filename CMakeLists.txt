@@ -227,6 +227,7 @@ qt_add_qml_module(stroemling_app
         qml/einstellungen/EinRosiBlock.qml
         qml/einstellungen/EinMitwirkendeBlock.qml
         qml/einstellungen/EinEntstehungBlock.qml
+        qml/einstellungen/EinHilfeKontaktBlock.qml
         qml/sps/SpsAnsicht.qml
         qml/sps/SpsRackDialog.qml
         qml/sps/SpsBaugruppeDialog.qml
@@ -277,6 +278,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/rosi_roehrenaal_uebersicht.png
         qml/assets/kabeljau_uebersicht.png
         qml/assets/krizzo_uebersicht.png
+        qml/assets/hilfe_kontakt.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

@@ -25,7 +25,7 @@ Zusatzfelder (PLS zeigt z. B. Einheit, Messbereich und Alarmgrenzen).
 
 ## Ansicht öffnen
 
-Sidebar → **⚙ SPS/PLS**. Drei Tabs:
+Sidebar → **🖥 SPS/PLS**. Drei Tabs:
 
 | Tab | Inhalt |
 |---|---|

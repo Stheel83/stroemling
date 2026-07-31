@@ -15,7 +15,7 @@
 
 ## Eigene Symbole erstellen
 
-1. Seitenleiste → **Symbole** (🔧).
+1. Seitenleiste → **Symbole** (✏).
 2. **Neues Symbol** anlegen, Namen und Größe festlegen.
 3. Mit den Zeichenwerkzeugen (Linien, Kreise, Bögen, Text) das Symbol zeichnen.
 4. **Pins** definieren: Position und Bezeichnung für jeden Anschlusspunkt.

@@ -22,10 +22,11 @@ Die Zeichenfläche arbeitet mit einem **Raster** (Standardeinheit: Werkeinheiten
 
 ## Elemente platzieren
 
-1. Im **Eigenschaftenpanel rechts** (oder über Tastenkürzel) Werkzeug wählen.
+1. In der **Werkzeugleiste links** am Canvas-Rand (oder über Tastenkürzel)
+   ein Werkzeug wählen.
 2. Linksklick auf die Zeichenfläche → Element wird platziert.
-3. Element anklicken → Eigenschaften erscheinen im Panel rechts, darunter
-   auch die Kennzeichnung (BMK) nach DIN EN 81346.
+3. Element anklicken → Eigenschaften erscheinen im **Eigenschaftenpanel
+   rechts**, darunter auch die Kennzeichnung (BMK) nach DIN EN 81346.
 
 ---
 

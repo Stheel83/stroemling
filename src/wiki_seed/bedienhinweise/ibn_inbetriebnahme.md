@@ -8,7 +8,7 @@ neben dem Schaltplan-Modus und dem Fehlersuchmodus.
 
 ## Ablauf
 
-1. Sidebar → **IBN** (✅).
+1. Sidebar → **IBN** (✔).
 2. Die platzierten **Betriebsmittel** aus dem Schaltplan werden automatisch
    als Prüfpositionen aufgelistet.
 3. Für jedes Betriebsmittel können **Messwerte** (Spannung, Strom,

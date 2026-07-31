@@ -2109,6 +2109,10 @@ ApplicationWindow {
         var c = root.aktiverCanvas
         if (root.aktiveAnsicht === "seiten" && c) c.handleEscape()
         else if (root.aktiveAnsicht === "symbol_editor") { symbolEditorAnsicht.werkzeugPunkte = []; symbolEditorAnsicht.repaintAll() }
+        else if (root.aktiveAnsicht === "fehlersuche") {
+            if (fehlersuchAnsicht.suchfeldAktiv) fehlersuchAnsicht.suchfeldSchliessen()
+            else fehlersuchCanvas.fehlersuchPfadZuruecksetzen()
+        }
     } }
 
     // Undo / Redo

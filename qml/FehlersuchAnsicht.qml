@@ -69,6 +69,11 @@ Item {
         fsTextInput.forceActiveFocus()
     }
 
+    function suchfeldSchliessen() {
+        root.suchfeldAktiv = false
+        root._fsSuchText   = ""
+    }
+
     function _navigiereZuEintrag(eintrag) {
         root.suchfeldAktiv = false
         root.fehlersuchNavigieren(eintrag.seiteId || -1, eintrag.cx || 0,
@@ -273,7 +278,7 @@ Item {
                 // Suchfeld
                 Rectangle {
                     width: parent.width
-                    height: 36
+                    height: 44
                     color: "transparent"
 
                     Rectangle {
@@ -284,28 +289,25 @@ Item {
                         border.width: 1
 
                         RowLayout {
-                            anchors { fill: parent; leftMargin: 8; rightMargin: 6 }
-                            spacing: 4
+                            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+                            spacing: 6
 
                             Text {
                                 text: "🔍"
-                                font.pixelSize: 11
+                                font.pixelSize: 13
                                 color: theme.textMuted
                             }
 
                             TextInput {
                                 id: fsTextInput
                                 Layout.fillWidth: true
-                                font.pixelSize: 12
+                                font.pixelSize: 13
                                 color: theme.textPrimary
                                 selectedTextColor: "white"
                                 selectionColor: theme.accent
                                 clip: true
                                 onTextChanged:     root._fsSuchText = text
-                                Keys.onEscapePressed: {
-                                    root.suchfeldAktiv = false
-                                    root._fsSuchText   = ""
-                                }
+                                Keys.onEscapePressed: root.suchfeldSchliessen()
                                 Keys.onReturnPressed: {
                                     if (root._fsGefiltert.length > 0)
                                         root._navigiereZuEintrag(root._fsGefiltert[0])
@@ -322,7 +324,7 @@ Item {
                                 color: theme.borderLight
                                 MouseArea {
                                     anchors.fill: parent
-                                    onClicked: { root.suchfeldAktiv = false; root._fsSuchText = "" }
+                                    onClicked: root.suchfeldSchliessen()
                                 }
                             }
                         }

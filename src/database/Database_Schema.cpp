@@ -1066,6 +1066,27 @@ static QList<SchemaMigration> alleMigrationen()
             R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('caravan_kuehlschrank', 0, 'rechteck', 0.15, 0.05, 0.85, 0.95, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 1, 'linie', 0, 0.15, 0.15, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 2, 'linie', 0, 0.383, 0.15, 0.383, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 3, 'linie', 0, 0.617, 0.15, 0.617, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 4, 'linie', 0, 0.85, 0.15, 0.85, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 5, 'text', 0.5, 0.22, 0, 0, 0, 0, 0, 0, 0, 0, 'ABS', 0.15, 1, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 6, 'text', 0.5, 0.42, 0, 0, 0, 0, 0, 0, 0, 0, '12V', 0.1, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 7, 'text', 0.5, 0.55, 0, 0, 0, 0, 0, 0, 0, 0, '230V', 0.1, 0, 'center', 'middle', 'solid'), ('caravan_kuehlschrank', 8, 'text', 0.5, 0.75, 0, 0, 0, 0, 0, 0, 0, 0, 'GAS', 0.12, 0, 'center', 'middle', 'solid'))",
             R"(INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('caravan_anhaengerstecker_13', 0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 1, 'text', 0.5, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, '13-pol', 0.055, 1, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 2, 'linie', 0, 0.0714, 0.15, 0.0714, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 3, 'linie', 0, 0.1429, 0.15, 0.1429, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 4, 'linie', 0, 0.2143, 0.15, 0.2143, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 5, 'linie', 0, 0.2857, 0.15, 0.2857, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 6, 'linie', 0, 0.3571, 0.15, 0.3571, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 7, 'linie', 0, 0.4286, 0.15, 0.4286, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 8, 'linie', 0, 0.5, 0.15, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 9, 'linie', 0, 0.5714, 0.15, 0.5714, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 10, 'linie', 0, 0.6429, 0.15, 0.6429, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 11, 'linie', 0, 0.7143, 0.15, 0.7143, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 12, 'linie', 0, 0.7857, 0.15, 0.7857, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 13, 'linie', 0, 0.8571, 0.15, 0.8571, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('caravan_anhaengerstecker_13', 14, 'linie', 0, 0.9286, 0.15, 0.9286, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
         }},
+        { 107, "BMK-DOPPEL-MINUS-01: betriebsmittel_bmk-View haengte bedingungslos ein weiteres '-' vor betriebsmittel_kz, obwohl die Spalte das Minus bereits enthaelt (EP-Feld setzt es beim Speichern) - analog zum in Migration 85 behobenen Bug bei klemmenleiste_bmk, hier aber vergessen. Bestehende Werte normalisiert, View korrigiert, betroffene Canvas-Elemente neu synchronisiert.", {
+            R"(UPDATE betriebsmittel SET betriebsmittel_kz = '-' || LTRIM(betriebsmittel_kz, '-') WHERE betriebsmittel_kz LIKE '--%')",
+            R"(DROP VIEW betriebsmittel_bmk)",
+            R"(CREATE VIEW betriebsmittel_bmk AS
+                SELECT b.id, b.betriebsmittel_kz, b.projekt_id,
+                       COALESCE('==' || a.anlage_uebergeordnet, '') ||
+                       COALESCE('++' || o.standort_uebergeordnet, '') ||
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       b.betriebsmittel_kz AS bmk_vollstaendig,
+                       COALESCE('=' || a.kuerzel, '') ||
+                       COALESCE('+' || o.kuerzel, '') ||
+                       b.betriebsmittel_kz AS bmk_kurz
+                FROM betriebsmittel b
+                LEFT JOIN ort o ON o.id = b.ort_id
+                LEFT JOIN anlage a ON a.id = o.anlage_id)",
+            R"(UPDATE grafik_element
+                SET extra_daten = json_set(COALESCE(extra_daten, '{}'), '$.bmk',
+                    (SELECT bmk_vollstaendig FROM betriebsmittel_bmk WHERE id = grafik_element.betriebsmittel_id))
+                WHERE betriebsmittel_id IN (SELECT id FROM betriebsmittel_bmk))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

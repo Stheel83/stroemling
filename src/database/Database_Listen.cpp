@@ -116,7 +116,8 @@ QVariantList Database::spotlightEintraege(int projektId)
 // querverweiseLadenProjekt
 // Alle Querverweis-Elemente eines Projekts seitenübergreifend.
 // Gibt [{seiteId, blattnummer, seitenBezeichnung,
-//        signalname, richtung, x1, y1}] zurück.
+//        signalname, richtung, suchmodus, x1, y1,
+//        anlageKuerzel, ortKuerzel}] zurück.
 // ============================================================
 QVariantList Database::querverweiseLadenProjekt(int projektId)
 {
@@ -153,7 +154,7 @@ QVariantList Database::querverweiseLadenProjekt(int projektId)
         m[QStringLiteral("anlageKuerzel")]       = q.value(6).toString();
         m[QStringLiteral("ortKuerzel")]          = q.value(7).toString();
 
-        QString signalname, richtung;
+        QString signalname, richtung, suchmodus;
         QString extraStr = q.value(3).toString();
         if (!extraStr.isEmpty()) {
             QJsonParseError err;
@@ -162,11 +163,19 @@ QVariantList Database::querverweiseLadenProjekt(int projektId)
                 QJsonObject obj = doc.object();
                 signalname = obj[QStringLiteral("signalname")].toString();
                 richtung   = obj[QStringLiteral("richtung")].toString();
+                suchmodus  = obj[QStringLiteral("suchmodus")].toString();
             }
         }
-        if (richtung.isEmpty()) richtung = QStringLiteral("ausgang");
+        if (richtung.isEmpty())  richtung  = QStringLiteral("ausgang");
+        if (suchmodus.isEmpty()) suchmodus = QStringLiteral("signal");
         m[QStringLiteral("signalname")] = signalname;
         m[QStringLiteral("richtung")]   = richtung;
+        // KLEMME-KONFLIKT-01-Folgefix (Querverweis-Cross-Page-Teil): suchmodus
+        // wird gebraucht, damit der Cross-Page-Signaltyp-Import "bmk"-Modus-
+        // Querverweise nicht fälschlich per reinem Signalnamen mit
+        // "signal"-Modus-Querverweisen zusammenführt (unterschiedlicher
+        // Paarungs-Schlüssel, s. SymbolDefinitionModel.cpp §4).
+        m[QStringLiteral("suchmodus")]  = suchmodus;
 
         result.append(m);
     }

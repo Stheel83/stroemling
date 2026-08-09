@@ -166,7 +166,8 @@ public:
     Q_INVOKABLE QVariantList spotlightEintraege(int projektId);
 
     // Alle Querverweis-Elemente eines Projekts liefern (seitenübergreifend).
-    // Gibt [{seiteId, blattnummer, seitenBezeichnung, signalname, richtung, x1, y1}] zurück.
+    // Gibt [{seiteId, blattnummer, seitenBezeichnung, signalname, richtung,
+    //        suchmodus, x1, y1, anlageKuerzel, ortKuerzel}] zurück.
     Q_INVOKABLE QVariantList querverweiseLadenProjekt(int projektId);
 
     // Stückliste: alle platzierten Symbole mit BMK, Freitexten, Seite.

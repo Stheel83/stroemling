@@ -332,15 +332,22 @@ QtObject {
             result.push(net)
         }
 
-        // ── Cross-page klemmen signaltyp import (KLEMME-NET-01) ──────────────
+        // ── Cross-page klemmen + querverweis signaltyp import (KLEMME-NET-01) ─
         // Für Netze auf dieser Seite die noch kein Potenzial haben:
-        // Partner-Anschlüsse gleicher klemmeId+Ebene auf anderen Seiten laden.
-        // Die Partnerseite bekommt dieselbe A↔B- und Stegbrücken-Injektion
-        // wie die aktuelle Seite, damit Potenziale die nur über Stegbrücken
-        // ankommen ebenfalls erkannt werden.
+        // Partner-Anschlüsse gleicher klemmeId+Ebene ODER Querverweise mit
+        // gleichem signalname auf anderen Seiten laden. Die Partnerseite
+        // bekommt dieselbe A↔B- und Stegbrücken-Injektion wie die aktuelle
+        // Seite, damit Potenziale die nur über Stegbrücken ankommen ebenfalls
+        // erkannt werden. Querverweis-Cross-Page-Import (KLEMME-KONFLIKT-01-
+        // Folgefix, Aug 2026): nur suchmodus "signal" (Default) unterstützt —
+        // "bmk"-Modus bräuchte den Strukturkasten-Anlage/Ort-Lookup aus
+        // SymbolDefinitionModel.cpp §4, der in QML nicht verfügbar ist; für
+        // solche Querverweise findet einfach kein Cross-Page-Import statt
+        // (kein Rückschritt ggü. vorher, nur unausgebaute Erweiterung).
         if (cv.projektId >= 0) {
             var _cpAlleKa = db.klemmenAnschlussAlleSeiten(cv.projektId)
             var _cpStege  = db.klemmenStegbrueckenGruppen(cv.projektId)
+            var _cpAlleQv = db.querverweiseLadenProjekt(cv.projektId)
             // Fremdseiten: "klemmeId:ebene" → [seiteId, ...]
             var _cpFremd = {}
             for (var _cpI = 0; _cpI < _cpAlleKa.length; _cpI++) {
@@ -354,6 +361,17 @@ QtObject {
                 if (_cpFremd[_cpKey].indexOf(_cpKa.seiteId) < 0)
                     _cpFremd[_cpKey].push(_cpKa.seiteId)
             }
+            // Fremdseiten: signalname → [seiteId, ...] (nur suchmodus "signal")
+            var _qvFremd = {}
+            for (var _qvI = 0; _qvI < _cpAlleQv.length; _qvI++) {
+                var _qvKa = _cpAlleQv[_qvI]
+                if (_qvKa.seiteId === cv.seiteId) continue
+                if ((_qvKa.suchmodus || "signal") === "bmk") continue
+                if (!_qvKa.signalname) continue
+                if (!_qvFremd[_qvKa.signalname]) _qvFremd[_qvKa.signalname] = []
+                if (_qvFremd[_qvKa.signalname].indexOf(_qvKa.seiteId) < 0)
+                    _qvFremd[_qvKa.signalname].push(_qvKa.seiteId)
+            }
             var _cpCache = {}  // seiteId → {els, vbs}
             for (var _cpRi = 0; _cpRi < result.length; _cpRi++) {
                 var _cpNet = result[_cpRi]
@@ -364,19 +382,37 @@ QtObject {
                 // abweichender Kandidat auf einer ANDEREN Fremdseite ist
                 // ebenso ein echter Konflikt wie einer auf derselben.
                 var _cpNetSig = "neutral"
+                var _cpMerge = function(cand) {
+                    if (cand === "neutral" || cand === "unversorgt") return
+                    if (_cpNetSig === "neutral") _cpNetSig = cand
+                    else if (_cpNetSig !== cand) _cpNetSig = "konflikt"
+                }
                 for (var _cpSi = 0; _cpSi < _cpNet.segmente.length; _cpSi++) {
                     var _cpSeg = _cpNet.segmente[_cpSi]
                     for (var _cpSide = 0; _cpSide < 2; _cpSide++) {
                         var _cpEIdx = _cpSide === 0 ? _cpSeg.elIdxA : _cpSeg.elIdxB
                         if (_cpEIdx === undefined) continue
                         var _cpEl = elemente[_cpEIdx]
-                        if (!_cpEl || _cpEl.symbolId !== "klemme_anschluss") continue
-                        var _cpEd  = _cpEl.extraDaten || {}
-                        var _cpKId = _cpEd.klemmeId || 0
-                        if (_cpKId <= 0) continue
-                        var _cpEBez = _cpEd.anschlussBezeichnung || ""
-                        var _cpEEb  = (_cpEBez === "PE" || _cpEBez.indexOf(".") < 0) ? _cpEBez : _cpEBez.split(".")[0]
-                        var _cpFPs  = _cpFremd[_cpKId + ":" + _cpEEb]
+                        if (!_cpEl) continue
+                        var _cpIsKlemme = _cpEl.symbolId === "klemme_anschluss"
+                        var _cpIsQv     = _cpEl.symbolId === "querverweis"
+                        if (!_cpIsKlemme && !_cpIsQv) continue
+
+                        var _cpFPs, _cpKId, _cpEEb, _cpQvSn
+                        if (_cpIsKlemme) {
+                            var _cpEd  = _cpEl.extraDaten || {}
+                            _cpKId = _cpEd.klemmeId || 0
+                            if (_cpKId <= 0) continue
+                            var _cpEBez = _cpEd.anschlussBezeichnung || ""
+                            _cpEEb = (_cpEBez === "PE" || _cpEBez.indexOf(".") < 0) ? _cpEBez : _cpEBez.split(".")[0]
+                            _cpFPs = _cpFremd[_cpKId + ":" + _cpEEb]
+                        } else {
+                            var _cpQed = _cpEl.extraDaten || {}
+                            if ((_cpQed.suchmodus || "signal") === "bmk") continue
+                            _cpQvSn = _cpQed.signalname || ""
+                            if (!_cpQvSn) continue
+                            _cpFPs = _qvFremd[_cpQvSn]
+                        }
                         if (!_cpFPs || !_cpFPs.length) continue
                         for (var _cpFPi = 0; _cpFPi < _cpFPs.length; _cpFPi++) {
                             var _cpSId = _cpFPs[_cpFPi]
@@ -431,23 +467,36 @@ QtObject {
                                 _cpCache[_cpSId] = { els: _cpPEls, vbs: _cpPVbs }
                             }
                             var _cpPC = _cpCache[_cpSId]
-                            for (var _cpPEi = 0; _cpPEi < _cpPC.els.length; _cpPEi++) {
-                                var _cpPEl = _cpPC.els[_cpPEi]
-                                if (!_cpPEl || _cpPEl.symbolId !== "klemme_anschluss") continue
-                                var _cpPEd = _cpPEl.extraDaten || {}
-                                if ((_cpPEd.klemmeId || 0) !== _cpKId) continue
-                                var _cpPBez = _cpPEd.anschlussBezeichnung || ""
-                                var _cpPEb  = (_cpPBez === "PE" || _cpPBez.indexOf(".") < 0) ? _cpPBez : _cpPBez.split(".")[0]
-                                if (_cpPEb !== _cpEEb) continue
-                                var _cpCand = cv._signaltypInVerbindungen(_cpPEi, _cpPC.vbs)
-                                if (_cpCand === "neutral" || _cpCand === "unversorgt") continue
-                                // KLEMME-KONFLIKT-01: fließt in den netweiten
-                                // Akkumulator _cpNetSig ein statt direkt zu
-                                // schreiben — ein abweichender Kandidat, egal ob
-                                // auf derselben oder einer anderen Fremdseite
-                                // gefunden, ist ein echter Konflikt.
-                                if (_cpNetSig === "neutral") _cpNetSig = _cpCand
-                                else if (_cpNetSig !== _cpCand) _cpNetSig = "konflikt"
+                            // Kandidaten fließen über _cpMerge() in den netweiten
+                            // Akkumulator _cpNetSig ein statt direkt zu schreiben —
+                            // ein abweichender Kandidat, egal ob auf derselben oder
+                            // einer anderen Fremdseite gefunden, ist ein echter
+                            // Konflikt (KLEMME-KONFLIKT-01).
+                            if (_cpIsKlemme) {
+                                for (var _cpPEi = 0; _cpPEi < _cpPC.els.length; _cpPEi++) {
+                                    var _cpPEl = _cpPC.els[_cpPEi]
+                                    if (!_cpPEl || _cpPEl.symbolId !== "klemme_anschluss") continue
+                                    var _cpPEd = _cpPEl.extraDaten || {}
+                                    if ((_cpPEd.klemmeId || 0) !== _cpKId) continue
+                                    var _cpPBez = _cpPEd.anschlussBezeichnung || ""
+                                    var _cpPEb  = (_cpPBez === "PE" || _cpPBez.indexOf(".") < 0) ? _cpPBez : _cpPBez.split(".")[0]
+                                    if (_cpPEb !== _cpEEb) continue
+                                    _cpMerge(cv._signaltypInVerbindungen(_cpPEi, _cpPC.vbs))
+                                }
+                            } else {
+                                // Querverweis-Cross-Page-Import (KLEMME-KONFLIKT-01-
+                                // Folgefix): dieselbe Fremdseiten-vbs (inkl. Klemmen-
+                                // Injektion) wird wiederverwendet — ein Querverweis
+                                // bekommt seinen Signaltyp genauso über die normale
+                                // Kantenauflösung wie ein klemme_anschluss.
+                                for (var _cpQPEi = 0; _cpQPEi < _cpPC.els.length; _cpQPEi++) {
+                                    var _cpQPEl = _cpPC.els[_cpQPEi]
+                                    if (!_cpQPEl || _cpQPEl.symbolId !== "querverweis") continue
+                                    var _cpQPEd = _cpQPEl.extraDaten || {}
+                                    if ((_cpQPEd.suchmodus || "signal") === "bmk") continue
+                                    if ((_cpQPEd.signalname || "") !== _cpQvSn) continue
+                                    _cpMerge(cv._signaltypInVerbindungen(_cpQPEi, _cpPC.vbs))
+                                }
                             }
                         }
                     }

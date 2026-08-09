@@ -253,9 +253,23 @@ QtObject {
                 var k2 = Math.round(v.x2/g) + "," + Math.round(v.y2/g)
                 net.pinSet[k1] = true; net.pinSet[k2] = true
             }
-            if (v.signaltyp === "konflikt")   net.signaltyp = "konflikt"
-            else if (v.signaltyp === "unversorgt" && net.signaltyp !== "konflikt") net.signaltyp = "unversorgt"
-            else if (v.signaltyp !== "neutral" && net.signaltyp === "neutral") net.signaltyp = v.signaltyp
+            // KLEMME-KONFLIKT-01: Klemmen-Stegbrücken/-interne Brücken (_addLog
+            // oben) hängen Kanten mit signaltyp:"neutral" NACH der C++-BFS-
+            // Konfliktprüfung an, verschmelzen im Union-Find aber trotzdem
+            // zuvor unabhängige Netze (z.B. Ebene 1 = L, Ebene 2 = N derselben
+            // Klemme). Ohne den else-if-Zweig unten würde die erste nicht-
+            // neutrale Kante (z.B. "power") stehen bleiben und eine spätere,
+            // abweichende Kante (z.B. "n") stillschweigend ignoriert – kein
+            // Konflikt sichtbar, obwohl zwei unterschiedliche Potenziale im
+            // selben Netz liegen.
+            if (v.signaltyp === "konflikt") {
+                net.signaltyp = "konflikt"
+            } else if (v.signaltyp === "unversorgt") {
+                if (net.signaltyp !== "konflikt") net.signaltyp = "unversorgt"
+            } else if (v.signaltyp !== "neutral") {
+                if (net.signaltyp === "neutral" || net.signaltyp === "unversorgt") net.signaltyp = v.signaltyp
+                else if (net.signaltyp !== "konflikt" && net.signaltyp !== v.signaltyp) net.signaltyp = "konflikt"
+            }
         }
 
         // Querverweis-Symbole: Bezeichnung + Querverweise
@@ -422,7 +436,13 @@ QtObject {
                                 var _cpPEb  = (_cpPBez === "PE" || _cpPBez.indexOf(".") < 0) ? _cpPBez : _cpPBez.split(".")[0]
                                 if (_cpPEb !== _cpEEb) continue
                                 var _cpCand = cv._signaltypInVerbindungen(_cpPEi, _cpPC.vbs)
-                                if (_cpCand !== "neutral" && _cpCand !== "unversorgt") { _cpSig = _cpCand; break }
+                                if (_cpCand === "neutral" || _cpCand === "unversorgt") continue
+                                // KLEMME-KONFLIKT-01: nicht beim ersten Treffer abbrechen –
+                                // ein zweiter, abweichender Kandidat (z.B. andere Ebene über
+                                // eine interne Brücke mit anderem Signaltyp) ist ein echter
+                                // Konflikt und darf nicht stillschweigend überschrieben werden.
+                                if (_cpSig === "neutral") _cpSig = _cpCand
+                                else if (_cpSig !== _cpCand) { _cpSig = "konflikt"; break }
                             }
                             if (_cpSig !== "neutral" && _cpSig !== "unversorgt") {
                                 _cpNet.signaltyp = _cpSig

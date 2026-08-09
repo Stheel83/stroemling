@@ -358,10 +358,15 @@ QtObject {
             for (var _cpRi = 0; _cpRi < result.length; _cpRi++) {
                 var _cpNet = result[_cpRi]
                 if (_cpNet.signaltyp !== "neutral" && _cpNet.signaltyp !== "unversorgt") continue
-                var _cpDone = false
-                for (var _cpSi = 0; _cpSi < _cpNet.segmente.length && !_cpDone; _cpSi++) {
+                // KLEMME-KONFLIKT-01 (Fremdseiten-Teil): über ALLE Segmente,
+                // beide Seiten und ALLE Fremdseiten hinweg sammeln statt beim
+                // ersten Treffer abzubrechen (früheres _cpDone) — ein
+                // abweichender Kandidat auf einer ANDEREN Fremdseite ist
+                // ebenso ein echter Konflikt wie einer auf derselben.
+                var _cpNetSig = "neutral"
+                for (var _cpSi = 0; _cpSi < _cpNet.segmente.length; _cpSi++) {
                     var _cpSeg = _cpNet.segmente[_cpSi]
-                    for (var _cpSide = 0; _cpSide < 2 && !_cpDone; _cpSide++) {
+                    for (var _cpSide = 0; _cpSide < 2; _cpSide++) {
                         var _cpEIdx = _cpSide === 0 ? _cpSeg.elIdxA : _cpSeg.elIdxB
                         if (_cpEIdx === undefined) continue
                         var _cpEl = elemente[_cpEIdx]
@@ -373,7 +378,7 @@ QtObject {
                         var _cpEEb  = (_cpEBez === "PE" || _cpEBez.indexOf(".") < 0) ? _cpEBez : _cpEBez.split(".")[0]
                         var _cpFPs  = _cpFremd[_cpKId + ":" + _cpEEb]
                         if (!_cpFPs || !_cpFPs.length) continue
-                        for (var _cpFPi = 0; _cpFPi < _cpFPs.length && !_cpDone; _cpFPi++) {
+                        for (var _cpFPi = 0; _cpFPi < _cpFPs.length; _cpFPi++) {
                             var _cpSId = _cpFPs[_cpFPi]
                             if (!_cpCache[_cpSId]) {
                                 var _cpPEls = db.grafikLaden(_cpSId)
@@ -426,7 +431,6 @@ QtObject {
                                 _cpCache[_cpSId] = { els: _cpPEls, vbs: _cpPVbs }
                             }
                             var _cpPC = _cpCache[_cpSId]
-                            var _cpSig = "neutral"
                             for (var _cpPEi = 0; _cpPEi < _cpPC.els.length; _cpPEi++) {
                                 var _cpPEl = _cpPC.els[_cpPEi]
                                 if (!_cpPEl || _cpPEl.symbolId !== "klemme_anschluss") continue
@@ -437,20 +441,18 @@ QtObject {
                                 if (_cpPEb !== _cpEEb) continue
                                 var _cpCand = cv._signaltypInVerbindungen(_cpPEi, _cpPC.vbs)
                                 if (_cpCand === "neutral" || _cpCand === "unversorgt") continue
-                                // KLEMME-KONFLIKT-01: nicht beim ersten Treffer abbrechen –
-                                // ein zweiter, abweichender Kandidat (z.B. andere Ebene über
-                                // eine interne Brücke mit anderem Signaltyp) ist ein echter
-                                // Konflikt und darf nicht stillschweigend überschrieben werden.
-                                if (_cpSig === "neutral") _cpSig = _cpCand
-                                else if (_cpSig !== _cpCand) { _cpSig = "konflikt"; break }
-                            }
-                            if (_cpSig !== "neutral" && _cpSig !== "unversorgt") {
-                                _cpNet.signaltyp = _cpSig
-                                _cpDone = true
+                                // KLEMME-KONFLIKT-01: fließt in den netweiten
+                                // Akkumulator _cpNetSig ein statt direkt zu
+                                // schreiben — ein abweichender Kandidat, egal ob
+                                // auf derselben oder einer anderen Fremdseite
+                                // gefunden, ist ein echter Konflikt.
+                                if (_cpNetSig === "neutral") _cpNetSig = _cpCand
+                                else if (_cpNetSig !== _cpCand) _cpNetSig = "konflikt"
                             }
                         }
                     }
                 }
+                if (_cpNetSig !== "neutral") _cpNet.signaltyp = _cpNetSig
             }
         }
         // ─────────────────────────────────────────────────────────────────────

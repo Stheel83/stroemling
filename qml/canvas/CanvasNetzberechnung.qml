@@ -348,31 +348,183 @@ QtObject {
             var _cpAlleKa = db.klemmenAnschlussAlleSeiten(cv.projektId)
             var _cpStege  = db.klemmenStegbrueckenGruppen(cv.projektId)
             var _cpAlleQv = db.querverweiseLadenProjekt(cv.projektId)
-            // Fremdseiten: "klemmeId:ebene" → [seiteId, ...]
-            var _cpFremd = {}
+            // Fremdseiten-Lookup projektweit, KEINE Seite ausgeschlossen —
+            // die Ausschluss-Seite wird erst an der jeweiligen Verwendungs-
+            // stelle gefiltert (_cpFremdSeiten/_qvFremdSeiten), weil dieselbe
+            // Tabelle sowohl von der ursprünglichen Seite (Ausschluss:
+            // cv.seiteId) als auch — beim zweiten Hop, s.u. — von einer
+            // Fremdseite selbst (Ausschluss: die Fremdseite) gebraucht wird.
+            // "klemmeId:ebene" → [seiteId, ...]
+            var _cpFremdAlle = {}
             for (var _cpI = 0; _cpI < _cpAlleKa.length; _cpI++) {
                 var _cpKa  = _cpAlleKa[_cpI]
-                if (_cpKa.seiteId === cv.seiteId) continue
                 var _cpBez = _cpKa.anschlussBezeichnung || ""
                 var _cpEb  = (_cpBez === "PE" || _cpBez.indexOf(".") < 0) ? _cpBez : _cpBez.split(".")[0]
                 if (!_cpEb) continue
                 var _cpKey = _cpKa.klemmeId + ":" + _cpEb
-                if (!_cpFremd[_cpKey]) _cpFremd[_cpKey] = []
-                if (_cpFremd[_cpKey].indexOf(_cpKa.seiteId) < 0)
-                    _cpFremd[_cpKey].push(_cpKa.seiteId)
+                if (!_cpFremdAlle[_cpKey]) _cpFremdAlle[_cpKey] = []
+                if (_cpFremdAlle[_cpKey].indexOf(_cpKa.seiteId) < 0)
+                    _cpFremdAlle[_cpKey].push(_cpKa.seiteId)
             }
-            // Fremdseiten: signalname → [seiteId, ...] (nur suchmodus "signal")
-            var _qvFremd = {}
+            // signalname → [seiteId, ...] (nur suchmodus "signal")
+            var _qvFremdAlle = {}
             for (var _qvI = 0; _qvI < _cpAlleQv.length; _qvI++) {
                 var _qvKa = _cpAlleQv[_qvI]
-                if (_qvKa.seiteId === cv.seiteId) continue
                 if ((_qvKa.suchmodus || "signal") === "bmk") continue
                 if (!_qvKa.signalname) continue
-                if (!_qvFremd[_qvKa.signalname]) _qvFremd[_qvKa.signalname] = []
-                if (_qvFremd[_qvKa.signalname].indexOf(_qvKa.seiteId) < 0)
-                    _qvFremd[_qvKa.signalname].push(_qvKa.seiteId)
+                if (!_qvFremdAlle[_qvKa.signalname]) _qvFremdAlle[_qvKa.signalname] = []
+                if (_qvFremdAlle[_qvKa.signalname].indexOf(_qvKa.seiteId) < 0)
+                    _qvFremdAlle[_qvKa.signalname].push(_qvKa.seiteId)
             }
-            var _cpCache = {}  // seiteId → {els, vbs}
+            var _cpFremdSeiten = function(key, ausschlussSeiteId) {
+                var _alle = _cpFremdAlle[key] || []
+                return _alle.filter(function(s) { return s !== ausschlussSeiteId })
+            }
+            var _qvFremdSeiten = function(key, ausschlussSeiteId) {
+                var _alle = _qvFremdAlle[key] || []
+                return _alle.filter(function(s) { return s !== ausschlussSeiteId })
+            }
+
+            var _cpCache = {}  // "seiteId:tiefe" → {els, vbs}
+
+            // Lädt + berechnet die Fremdseiten-Kantenliste inkl. A↔B-/
+            // Stegbrücken-Injektion (wie bisher). KLEMME-KONFLIKT-01-Folgefix
+            // ("Seite 01 zeigt nix", Aug 2026): bei tiefe > 0 wird zusätzlich
+            // EINE weitere Fremdseiten-Ebene aufgelöst (tiefe-1, dort ohne
+            // weitere Rekursion) und als logische Selbstkante eingespeist —
+            // eine reine Brücken-/Testseite ohne eigene Quelle kann sonst
+            // selbst nur durch Cross-Page-Import (z.B. zurück zur
+            // ursprünglichen Seite) einen Konflikt haben; ohne diesen zweiten
+            // Hop sähe die ursprüngliche Seite dort nur "neutral" statt des
+            // tatsächlichen (erst dort entstehenden) Konflikts. tiefe ist
+            // strikt fallend (nie erneuter Aufruf mit gleicher/höherer Tiefe
+            // für dieselbe Seite) → Terminierung garantiert, kein Zyklus-Risiko.
+            function _cpBaueFremdVbs(seiteId, tiefe) {
+                var _cpCacheKey = seiteId + ":" + tiefe
+                if (_cpCache[_cpCacheKey]) return _cpCache[_cpCacheKey]
+
+                var _cpPEls = db.grafikLaden(seiteId)
+                var _cpPVbs = symbolDefinitionModel.autoVerbindungenBerechnen(_cpPEls, cv.gridPx, {})
+                // A↔B- und Stegbrücken-Injektion für die Partnerseite
+                var _ppKGrp = {}, _ppKMap = {}
+                for (var _ppI = 0; _ppI < _cpPEls.length; _ppI++) {
+                    var _ppEl = _cpPEls[_ppI]
+                    if (!_ppEl || _ppEl.symbolId !== "klemme_anschluss") continue
+                    var _ppEd = _ppEl.extraDaten || {}
+                    var _ppKId = _ppEd.klemmeId || 0
+                    if (_ppKId <= 0) continue
+                    var _ppBez = _ppEd.anschlussBezeichnung || ""
+                    var _ppEb  = (_ppBez === "PE" || _ppBez.indexOf(".") < 0) ? _ppBez : _ppBez.split(".")[0]
+                    if (!_ppEb) continue
+                    if (!_ppKMap[_ppKId]) _ppKMap[_ppKId] = []
+                    _ppKMap[_ppKId].push({elIdx: _ppI, ebene: _ppEb})
+                    var _ppGk = _ppKId + ":" + _ppEb
+                    if (!_ppKGrp[_ppGk]) _ppKGrp[_ppGk] = []
+                    _ppKGrp[_ppGk].push(_ppI)
+                }
+                var _ppLog = function(iA, iB) {
+                    var _ppEA = _cpPEls[iA], _ppEB = _cpPEls[iB]
+                    _cpPVbs.push({
+                        x1: (_ppEA.x1+_ppEA.x2)/2, y1: (_ppEA.y1+_ppEA.y2)/2,
+                        x2: (_ppEB.x1+_ppEB.x2)/2, y2: (_ppEB.y1+_ppEB.y2)/2,
+                        elIdxA: iA, rolleA: "durchleiter", quellSigA: "neutral",
+                        elIdxB: iB, rolleB: "durchleiter", quellSigB: "neutral",
+                        signaltyp: "neutral", logisch: true
+                    })
+                }
+                for (var _ppGkk in _ppKGrp) {
+                    var _ppGrp2 = _ppKGrp[_ppGkk]
+                    for (var _ppGi = 1; _ppGi < _ppGrp2.length; _ppGi++) _ppLog(_ppGrp2[0], _ppGrp2[_ppGi])
+                }
+                for (var _ppSi = 0; _ppSi < _cpStege.length; _ppSi++) {
+                    var _ppSteg = _cpStege[_ppSi]
+                    var _ppSEb  = String(_ppSteg.ebene)
+                    var _ppSIds = _ppSteg.klemmeIds
+                    var _ppSIdx = []
+                    for (var _ppSkI = 0; _ppSkI < _ppSIds.length; _ppSkI++) {
+                        var _ppEnts = _ppKMap[_ppSIds[_ppSkI]] || []
+                        for (var _ppEiI = 0; _ppEiI < _ppEnts.length; _ppEiI++) {
+                            if (String(_ppEnts[_ppEiI].ebene) === _ppSEb)
+                                _ppSIdx.push(_ppEnts[_ppEiI].elIdx)
+                        }
+                    }
+                    for (var _ppSii = 1; _ppSii < _ppSIdx.length; _ppSii++) _ppLog(_ppSIdx[0], _ppSIdx[_ppSii])
+                }
+
+                var _cpResult = { els: _cpPEls, vbs: _cpPVbs }
+                _cpCache[_cpCacheKey] = _cpResult
+
+                if (tiefe > 0) {
+                    for (var _dpI = 0; _dpI < _cpPEls.length; _dpI++) {
+                        var _dpEl = _cpPEls[_dpI]
+                        if (!_dpEl) continue
+                        var _dpIsK = _dpEl.symbolId === "klemme_anschluss"
+                        var _dpIsQ = _dpEl.symbolId === "querverweis"
+                        if (!_dpIsK && !_dpIsQ) continue
+
+                        var _dpFPs, _dpKId, _dpEEb, _dpSn
+                        if (_dpIsK) {
+                            var _dpEd = _dpEl.extraDaten || {}
+                            _dpKId = _dpEd.klemmeId || 0
+                            if (_dpKId <= 0) continue
+                            var _dpBez = _dpEd.anschlussBezeichnung || ""
+                            _dpEEb = (_dpBez === "PE" || _dpBez.indexOf(".") < 0) ? _dpBez : _dpBez.split(".")[0]
+                            _dpFPs = _cpFremdSeiten(_dpKId + ":" + _dpEEb, seiteId)
+                        } else {
+                            var _dpQed = _dpEl.extraDaten || {}
+                            if ((_dpQed.suchmodus || "signal") === "bmk") continue
+                            _dpSn = _dpQed.signalname || ""
+                            if (!_dpSn) continue
+                            _dpFPs = _qvFremdSeiten(_dpSn, seiteId)
+                        }
+                        if (!_dpFPs.length) continue
+
+                        var _dpSig = "neutral"
+                        var _dpMerge = function(cand) {
+                            if (cand === "neutral" || cand === "unversorgt") return
+                            if (_dpSig === "neutral") _dpSig = cand
+                            else if (_dpSig !== cand) _dpSig = "konflikt"
+                        }
+                        for (var _dpFi = 0; _dpFi < _dpFPs.length; _dpFi++) {
+                            var _dpFC = _cpBaueFremdVbs(_dpFPs[_dpFi], tiefe - 1)
+                            if (_dpIsK) {
+                                for (var _dpPi = 0; _dpPi < _dpFC.els.length; _dpPi++) {
+                                    var _dpPEl = _dpFC.els[_dpPi]
+                                    if (!_dpPEl || _dpPEl.symbolId !== "klemme_anschluss") continue
+                                    var _dpPEd = _dpPEl.extraDaten || {}
+                                    if ((_dpPEd.klemmeId || 0) !== _dpKId) continue
+                                    var _dpPBez = _dpPEd.anschlussBezeichnung || ""
+                                    var _dpPEb  = (_dpPBez === "PE" || _dpPBez.indexOf(".") < 0) ? _dpPBez : _dpPBez.split(".")[0]
+                                    if (_dpPEb !== _dpEEb) continue
+                                    _dpMerge(cv._signaltypInVerbindungen(_dpPi, _dpFC.vbs))
+                                }
+                            } else {
+                                for (var _dpQi = 0; _dpQi < _dpFC.els.length; _dpQi++) {
+                                    var _dpQEl = _dpFC.els[_dpQi]
+                                    if (!_dpQEl || _dpQEl.symbolId !== "querverweis") continue
+                                    var _dpQEd = _dpQEl.extraDaten || {}
+                                    if ((_dpQEd.suchmodus || "signal") === "bmk") continue
+                                    if ((_dpQEd.signalname || "") !== _dpSn) continue
+                                    _dpMerge(cv._signaltypInVerbindungen(_dpQi, _dpFC.vbs))
+                                }
+                            }
+                        }
+                        if (_dpSig !== "neutral") {
+                            // Als logische Selbstkante einspeisen, damit
+                            // _signaltypInVerbindungen() diesen Wert für
+                            // dieses Element findet.
+                            _cpPVbs.push({
+                                x1: _dpEl.x1, y1: _dpEl.y1, x2: _dpEl.x1, y2: _dpEl.y1,
+                                elIdxA: _dpI, rolleA: "durchleiter", quellSigA: "neutral",
+                                elIdxB: _dpI, rolleB: "durchleiter", quellSigB: "neutral",
+                                signaltyp: _dpSig, logisch: true
+                            })
+                        }
+                    }
+                }
+
+                return _cpResult
+            }
             for (var _cpRi = 0; _cpRi < result.length; _cpRi++) {
                 var _cpNet = result[_cpRi]
                 // KLEMME-KONFLIKT-01-Folgefix (Aug 2026, "Seite 01 zeigt nix"):
@@ -416,68 +568,23 @@ QtObject {
                             if (_cpKId <= 0) continue
                             var _cpEBez = _cpEd.anschlussBezeichnung || ""
                             _cpEEb = (_cpEBez === "PE" || _cpEBez.indexOf(".") < 0) ? _cpEBez : _cpEBez.split(".")[0]
-                            _cpFPs = _cpFremd[_cpKId + ":" + _cpEEb]
+                            _cpFPs = _cpFremdSeiten(_cpKId + ":" + _cpEEb, cv.seiteId)
                         } else {
                             var _cpQed = _cpEl.extraDaten || {}
                             if ((_cpQed.suchmodus || "signal") === "bmk") continue
                             _cpQvSn = _cpQed.signalname || ""
                             if (!_cpQvSn) continue
-                            _cpFPs = _qvFremd[_cpQvSn]
+                            _cpFPs = _qvFremdSeiten(_cpQvSn, cv.seiteId)
                         }
-                        if (!_cpFPs || !_cpFPs.length) continue
+                        if (!_cpFPs.length) continue
                         for (var _cpFPi = 0; _cpFPi < _cpFPs.length; _cpFPi++) {
                             var _cpSId = _cpFPs[_cpFPi]
-                            if (!_cpCache[_cpSId]) {
-                                var _cpPEls = db.grafikLaden(_cpSId)
-                                var _cpPVbs = symbolDefinitionModel.autoVerbindungenBerechnen(_cpPEls, cv.gridPx, {})
-                                // A↔B- und Stegbrücken-Injektion für die Partnerseite
-                                var _ppKGrp = {}, _ppKMap = {}
-                                for (var _ppI = 0; _ppI < _cpPEls.length; _ppI++) {
-                                    var _ppEl = _cpPEls[_ppI]
-                                    if (!_ppEl || _ppEl.symbolId !== "klemme_anschluss") continue
-                                    var _ppEd = _ppEl.extraDaten || {}
-                                    var _ppKId = _ppEd.klemmeId || 0
-                                    if (_ppKId <= 0) continue
-                                    var _ppBez = _ppEd.anschlussBezeichnung || ""
-                                    var _ppEb  = (_ppBez === "PE" || _ppBez.indexOf(".") < 0) ? _ppBez : _ppBez.split(".")[0]
-                                    if (!_ppEb) continue
-                                    if (!_ppKMap[_ppKId]) _ppKMap[_ppKId] = []
-                                    _ppKMap[_ppKId].push({elIdx: _ppI, ebene: _ppEb})
-                                    var _ppGk = _ppKId + ":" + _ppEb
-                                    if (!_ppKGrp[_ppGk]) _ppKGrp[_ppGk] = []
-                                    _ppKGrp[_ppGk].push(_ppI)
-                                }
-                                var _ppLog = function(iA, iB) {
-                                    var _ppEA = _cpPEls[iA], _ppEB = _cpPEls[iB]
-                                    _cpPVbs.push({
-                                        x1: (_ppEA.x1+_ppEA.x2)/2, y1: (_ppEA.y1+_ppEA.y2)/2,
-                                        x2: (_ppEB.x1+_ppEB.x2)/2, y2: (_ppEB.y1+_ppEB.y2)/2,
-                                        elIdxA: iA, rolleA: "durchleiter", quellSigA: "neutral",
-                                        elIdxB: iB, rolleB: "durchleiter", quellSigB: "neutral",
-                                        signaltyp: "neutral", logisch: true
-                                    })
-                                }
-                                for (var _ppGkk in _ppKGrp) {
-                                    var _ppGrp2 = _ppKGrp[_ppGkk]
-                                    for (var _ppGi = 1; _ppGi < _ppGrp2.length; _ppGi++) _ppLog(_ppGrp2[0], _ppGrp2[_ppGi])
-                                }
-                                for (var _ppSi = 0; _ppSi < _cpStege.length; _ppSi++) {
-                                    var _ppSteg = _cpStege[_ppSi]
-                                    var _ppSEb  = String(_ppSteg.ebene)
-                                    var _ppSIds = _ppSteg.klemmeIds
-                                    var _ppSIdx = []
-                                    for (var _ppSkI = 0; _ppSkI < _ppSIds.length; _ppSkI++) {
-                                        var _ppEnts = _ppKMap[_ppSIds[_ppSkI]] || []
-                                        for (var _ppEiI = 0; _ppEiI < _ppEnts.length; _ppEiI++) {
-                                            if (String(_ppEnts[_ppEiI].ebene) === _ppSEb)
-                                                _ppSIdx.push(_ppEnts[_ppEiI].elIdx)
-                                        }
-                                    }
-                                    for (var _ppSii = 1; _ppSii < _ppSIdx.length; _ppSii++) _ppLog(_ppSIdx[0], _ppSIdx[_ppSii])
-                                }
-                                _cpCache[_cpSId] = { els: _cpPEls, vbs: _cpPVbs }
-                            }
-                            var _cpPC = _cpCache[_cpSId]
+                            // tiefe=1: erlaubt der Fremdseite EINEN weiteren
+                            // Hop zurück (s. _cpBaueFremdVbs oben) — deckt den
+                            // Fall ab, dass die Fremdseite selbst nur über
+                            // Cross-Page-Import (z.B. zurück zu dieser Seite)
+                            // ihren tatsächlichen Signaltyp/Konflikt bekommt.
+                            var _cpPC = _cpBaueFremdVbs(_cpSId, 1)
                             // Kandidaten fließen über _cpMerge() in den netweiten
                             // Akkumulator _cpNetSig ein statt direkt zu schreiben —
                             // ein abweichender Kandidat, egal ob auf derselben oder

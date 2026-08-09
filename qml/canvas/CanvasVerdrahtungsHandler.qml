@@ -260,14 +260,24 @@ QtObject {
             if (_ra !== _rb) _sp[_ra] = _rb
         }
         var _ziel = _sf(elIdx)
+        // KLEMME-KONFLIKT-01-Folgefix (Aug 2026): nicht mehr beim ersten
+        // Treffer zurückkehren — kommen in derselben Union-Find-Gruppe
+        // mehrere UNTERSCHIEDLICHE nicht-neutrale Signaltypen vor (z.B. durch
+        // die Zwei-Hop-Fremdseiten-Injektion in CanvasNetzberechnung.qml),
+        // ist das ein echter Konflikt, kein "erster Treffer gewinnt". Sonst
+        // hängt das Ergebnis zufällig von der Array-Reihenfolge ab.
+        var _erg = "neutral"
         for (var _sj = 0; _sj < verbindungen.length; _sj++) {
             var _sv = verbindungen[_sj]
             if (_sf(_sv.elIdxA) === _ziel || _sf(_sv.elIdxB) === _ziel) {
                 var _ssig = _sv.signaltyp || "neutral"
-                if (_ssig !== "neutral" && _ssig !== "unversorgt") return _ssig
+                if (_ssig === "konflikt") return "konflikt"
+                if (_ssig === "neutral" || _ssig === "unversorgt") continue
+                if (_erg === "neutral") _erg = _ssig
+                else if (_erg !== _ssig) _erg = "konflikt"
             }
         }
-        return "neutral"
+        return _erg
     }
 
     // Baut pin-basierten Adj-Graph aus einem db.grafikLaden()-Ergebnis.

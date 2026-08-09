@@ -375,13 +375,24 @@ QtObject {
             var _cpCache = {}  // seiteId → {els, vbs}
             for (var _cpRi = 0; _cpRi < result.length; _cpRi++) {
                 var _cpNet = result[_cpRi]
-                if (_cpNet.signaltyp !== "neutral" && _cpNet.signaltyp !== "unversorgt") continue
-                // KLEMME-KONFLIKT-01 (Fremdseiten-Teil): über ALLE Segmente,
-                // beide Seiten und ALLE Fremdseiten hinweg sammeln statt beim
-                // ersten Treffer abzubrechen (früheres _cpDone) — ein
-                // abweichender Kandidat auf einer ANDEREN Fremdseite ist
-                // ebenso ein echter Konflikt wie einer auf derselben.
-                var _cpNetSig = "neutral"
+                // KLEMME-KONFLIKT-01-Folgefix (Aug 2026, "Seite 01 zeigt nix"):
+                // vorher wurde ein bereits lokal aufgelöstes Netz (z.B. "power"
+                // durch eine eigene Quelle auf DIESER Seite) komplett
+                // übersprungen — ein widersprechender Fremdseiten-Kandidat
+                // (Klemme/Querverweis derselben klemmeId+Ebene bzw. desselben
+                // signalname, aber mit anderem tatsächlichem Signaltyp auf der
+                // Fremdseite) wurde dadurch nie erkannt. Bereits als "konflikt"
+                // markierte Netze werden weiterhin übersprungen (kann nicht
+                // mehr "weniger" Konflikt werden).
+                if (_cpNet.signaltyp === "konflikt") continue
+                var _cpLokalSig = (_cpNet.signaltyp === "neutral" || _cpNet.signaltyp === "unversorgt")
+                                   ? "neutral" : _cpNet.signaltyp
+                // Über ALLE Segmente, beide Seiten und ALLE Fremdseiten hinweg
+                // sammeln statt beim ersten Treffer abzubrechen (früheres
+                // _cpDone) — ein abweichender Kandidat auf einer ANDEREN
+                // Fremdseite ist ebenso ein echter Konflikt wie einer auf
+                // derselben.
+                var _cpNetSig = _cpLokalSig
                 var _cpMerge = function(cand) {
                     if (cand === "neutral" || cand === "unversorgt") return
                     if (_cpNetSig === "neutral") _cpNetSig = cand

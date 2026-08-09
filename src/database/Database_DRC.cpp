@@ -493,11 +493,21 @@ QVariantList Database::drcPotenzialkonflikte(int projektId)
 
 QVariantList Database::drcParallelQuellen(int projektId)
 {
-    // Findet Netze auf denen >= 2 Quell-Symbole (rolle='quelle') liegen.
+    // Findet Netze auf denen >= 2 Quell-Pins (rolle='quelle') liegen.
     // Variabel-Symbole mit extraDaten.rolle='quelle' werden ebenfalls erfasst.
     // PE- und N-Netze sind bewusst ausgenommen (mehrere Erdungspunkte sind normal).
-
-    struct PinDef { double x, y; };
+    //
+    // D-08-PRUEFUNG-01 (Aug 2026): Rolle wird PRO PIN aufgelöst
+    // (symbol_pin.rolle überschreibt die Symbol-/Instanz-Rolle, analog
+    // NETZTEIL-ROLLE-01 in SymbolDefinitionModel.cpp), nicht mehr pauschal
+    // pro Symbol. Vorher wurde ein ganzes Symbol übersprungen sobald seine
+    // Symbol-Rolle != "quelle" war — genau die Symbole mit gemischten
+    // Pin-Rollen (netzteil +/-, bewegungsmelder/daemmerungsschalter Q,
+    // mehrere Caravan-Symbole) haben aber eine Symbol-Rolle wie
+    // "verbraucher"/"variabel" und wurden dadurch komplett unsichtbar für
+    // diese Prüfung — ihre echten Quelle-Pins konnten nie als „zwei Ausgänge
+    // direkt verbunden" erkannt werden.
+    struct PinDef { double x, y; QString rolle; };
     const double eps = 0.5;
 
     // verbindung_id → {seiten-Set, quellen-Anzahl}
@@ -579,23 +589,24 @@ QVariantList Database::drcParallelQuellen(int projektId)
             const QString rolleSd = symQ.value(10).toString();
             const QString extJson = symQ.value(9).toString();
 
-            // Rolle bestimmen (variabel kann durch extraDaten überschrieben werden)
+            // Symbol-/Instanz-Rolle bestimmen (variabel kann durch extraDaten
+            // überschrieben werden) — dient nur noch als FALLBACK für Pins
+            // ohne eigene Rolle, gated nicht mehr das ganze Symbol.
             QString rolle = rolleSd;
             if (rolle == "variabel") {
                 const QJsonObject ext = QJsonDocument::fromJson(extJson.toUtf8()).object();
                 rolle = ext["rolle"].toString("ziel");
             }
-            if (rolle != "quelle") continue;
 
-            // Pin-Weltpositionen berechnen
+            // Pin-Weltpositionen + Pin-Rolle berechnen
             if (!pinCache.contains(symId)) {
                 QList<PinDef> pList;
                 QSqlQuery pQ;
-                pQ.prepare("SELECT x, y FROM symbol_pin WHERE symbol_id = :sid");
+                pQ.prepare("SELECT x, y, rolle FROM symbol_pin WHERE symbol_id = :sid");
                 pQ.bindValue(":sid", symId);
                 if (pQ.exec())
                     while (pQ.next())
-                        pList.push_back({pQ.value(0).toDouble(), pQ.value(1).toDouble()});
+                        pList.push_back({pQ.value(0).toDouble(), pQ.value(1).toDouble(), pQ.value(2).toString()});
                 pinCache[symId] = pList;
             }
 
@@ -609,6 +620,9 @@ QVariantList Database::drcParallelQuellen(int projektId)
             const bool   spY = symQ.value(8).toInt() != 0;
 
             for (const PinDef &p : pinCache[symId]) {
+                const QString pinRolle = p.rolle.isEmpty() ? rolle : p.rolle;
+                if (pinRolle != "quelle") continue;
+
                 double cx = (p.x - 0.5) * std::abs(sw);
                 double cy = (p.y - 0.5) * std::abs(sh);
                 if (spX) cx = -cx;

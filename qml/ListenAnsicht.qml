@@ -21,7 +21,7 @@ Item {
         if (projektId < 0) {
             stuecklisteModel.clear(); querverweisModel.clear()
             aderlisteModel.clear();   klemmenplanModel.clear()
-            klaModel.clear()
+            klaModel.clear();         bestellisteModel.clear()
             panel._kabelDaten = []; return
         }
         stuecklisteModel.clear()
@@ -49,6 +49,10 @@ Item {
 
         panel._svDaten = db.steckverbinderListe(projektId)
         panel._bpDaten = db.steckverbinderBelegungsplan(projektId)
+
+        bestellisteModel.clear()
+        var bl = db.bestellliste(projektId)
+        for (var p = 0; p < bl.length; p++) bestellisteModel.append(bl[p])
     }
 
     ListModel { id: stuecklisteModel }
@@ -56,12 +60,14 @@ Item {
     ListModel { id: aderlisteModel }
     ListModel { id: klemmenplanModel }
     ListModel { id: klaModel }
+    ListModel { id: bestellisteModel }
 
     property alias _stuecklisteModel: stuecklisteModel
     property alias _querverweisModel: querverweisModel
     property alias _aderlisteModel:   aderlisteModel
     property alias _klemmenplanModel: klemmenplanModel
     property alias _klaModel:         klaModel
+    property alias _bestellisteModel: bestellisteModel
 
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
@@ -194,6 +200,12 @@ Item {
         { header: "Netz",        w: 130 }, { header: "Von",         w: 90  },
         { header: "Nach",        w: 90  }, { header: "",            w: 30  }
     ]
+    property var boCols: [
+        { header: "Bezeichnung",     w: 180 }, { header: "Hersteller",    w: 120 },
+        { header: "Artikelnr.",      w: 110 }, { header: "Bestellnr.",    w: 110 },
+        { header: "Lieferant",       w: 110 }, { header: "Menge",         w: 80  },
+        { header: "Einzelpreis EUR", w: 100 }, { header: "Summe EUR",     w: 100 }
+    ]
 
     // ── Spaltenbreiten: Nutzer-Resizing + Persistenz ──────────────────
     // (klaCols/klAderCols bewusst nicht resizebar: klaCols hat handgeschriebene
@@ -209,6 +221,7 @@ Item {
         property string klCols: ""
         property string svCols: ""
         property string bpCols: ""
+        property string boCols: ""
     }
 
     function _spaltenLaden(propName) {
@@ -232,7 +245,7 @@ Item {
         _spaltenLaden("slCols"); _spaltenLaden("qvCols")
         _spaltenLaden("alCols"); _spaltenLaden("kpCols")
         _spaltenLaden("klCols"); _spaltenLaden("svCols")
-        _spaltenLaden("bpCols")
+        _spaltenLaden("bpCols"); _spaltenLaden("boCols")
     }
 
     Rectangle { anchors.fill: parent; color: theme.surface }
@@ -433,7 +446,8 @@ Item {
                         { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler + ")", tab: 4 },
                         { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
                         { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 },
-                        { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl    + ")",  tab: 7 }
+                        { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl    + ")",  tab: 7 },
+                        { label: qsTr("Bestellliste  (")      + bestellisteModel.count    + ")",  tab: 8 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5
@@ -471,6 +485,7 @@ Item {
             LaTabKabelliste        { panel: panel; theme: panel.theme }
             LaTabSteckverbinder    { panel: panel; theme: panel.theme }
             LaTabBelegungsplan     { panel: panel; theme: panel.theme }
+            LaTabBestellliste      { panel: panel; theme: panel.theme }
         }
     }
 

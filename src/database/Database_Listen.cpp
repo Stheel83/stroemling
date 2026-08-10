@@ -1150,6 +1150,104 @@ bool Database::stuecklisteCsvSpeichern(int projektId, const QString &pfad)
 }
 
 // ============================================================
+// bestellliste (BESTELLLISTE-01, v1)
+// Aggregiert Bauteile über die drei bereits bauteil_id-verknüpften
+// Pfade (Klemmen, Kabel, Kontaktspiegel-Geräte). Normale Symbole ohne
+// Bauteil-Verknüpfung erscheinen hier bewusst nicht, siehe Roadmap.
+// ============================================================
+QVariantList Database::bestellliste(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        WITH pos AS (
+            SELECT k.bauteil_id AS bauteil_id, 1.0 AS menge, 'Stk' AS einheit
+            FROM klemme k
+            JOIN klemmenleiste kl ON kl.id = k.klemmenleiste_id
+            WHERE kl.projekt_id = :pid1 AND k.bauteil_id IS NOT NULL
+            UNION ALL
+            SELECT bk.bauteil_id AS bauteil_id, COALESCE(ka.laenge_m, 0) AS menge, 'm' AS einheit
+            FROM kabel ka
+            JOIN bibliothek.bauteil_kabel bk ON bk.id = ka.bauteil_kabel_id
+            WHERE ka.projekt_id = :pid2
+            UNION ALL
+            SELECT b.bauteil_id AS bauteil_id, 1.0 AS menge, 'Stk' AS einheit
+            FROM betriebsmittel b
+            WHERE b.projekt_id = :pid3 AND b.bauteil_id IS NOT NULL
+        )
+        SELECT bt.id, bt.bezeichnung, COALESCE(bt.hersteller, ''), COALESCE(bt.artikelnummer, ''),
+               COALESCE(bt.bestellnummer, ''), COALESCE(bt.lieferant, ''), bt.preis_eur,
+               SUM(pos.menge), pos.einheit
+        FROM pos
+        JOIN bibliothek.bauteil bt ON bt.id = pos.bauteil_id
+        GROUP BY pos.bauteil_id, pos.einheit
+        ORDER BY bt.bezeichnung COLLATE NOCASE
+    )");
+    q.bindValue(":pid1", projektId);
+    q.bindValue(":pid2", projektId);
+    q.bindValue(":pid3", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bestellliste:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        const double preis = q.value(6).isNull() ? 0.0 : q.value(6).toDouble();
+        const double menge = q.value(7).toDouble();
+        m[QStringLiteral("bauteilId")]     = q.value(0).toInt();
+        m[QStringLiteral("bezeichnung")]   = q.value(1).toString();
+        m[QStringLiteral("hersteller")]    = q.value(2).toString();
+        m[QStringLiteral("artikelnummer")] = q.value(3).toString();
+        m[QStringLiteral("bestellnummer")] = q.value(4).toString();
+        m[QStringLiteral("lieferant")]     = q.value(5).toString();
+        m[QStringLiteral("preisEur")]      = preis;
+        m[QStringLiteral("menge")]         = menge;
+        m[QStringLiteral("einheit")]       = q.value(8).toString();
+        m[QStringLiteral("summeEur")]      = preis * menge;
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
+// bestellisteCsvSpeichern
+// ============================================================
+bool Database::bestellisteCsvSpeichern(int projektId, const QString &pfad)
+{
+    QString localPath = QUrl(pfad).toLocalFile();
+    if (localPath.isEmpty()) localPath = pfad;
+    QFile file(localPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qCWarning(lcDb) << "bestellisteCsvSpeichern: kann nicht öffnen:" << localPath;
+        return false;
+    }
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+    out << "\xEF\xBB\xBF";
+    out << "Bezeichnung;Hersteller;Artikelnummer;Bestellnummer;Lieferant;Menge;Einheit;Einzelpreis EUR;Summe EUR\n";
+    auto csvQ = [](const QString &s) -> QString {
+        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
+            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
+        return s;
+    };
+    for (const QVariant &v : bestellliste(projektId)) {
+        const QVariantMap row = v.toMap();
+        const double preis = row[QStringLiteral("preisEur")].toDouble();
+        const double summe = row[QStringLiteral("summeEur")].toDouble();
+        out << csvQ(row[QStringLiteral("bezeichnung")].toString())   << u';'
+            << csvQ(row[QStringLiteral("hersteller")].toString())    << u';'
+            << csvQ(row[QStringLiteral("artikelnummer")].toString()) << u';'
+            << csvQ(row[QStringLiteral("bestellnummer")].toString()) << u';'
+            << csvQ(row[QStringLiteral("lieferant")].toString())     << u';'
+            << QString::number(row[QStringLiteral("menge")].toDouble(), 'f', 2) << u';'
+            << csvQ(row[QStringLiteral("einheit")].toString())       << u';'
+            << (preis > 0 ? QString::number(preis, 'f', 2) : QString()) << u';'
+            << (summe > 0 ? QString::number(summe, 'f', 2) : QString()) << u'\n';
+    }
+    return true;
+}
+
+// ============================================================
 // querverweislisteCsvSpeichern
 // ============================================================
 bool Database::querverweislisteCsvSpeichern(int projektId, const QString &pfad)

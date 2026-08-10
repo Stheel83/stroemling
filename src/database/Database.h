@@ -174,6 +174,15 @@ public:
     // Gibt [{bmk, symbolId, freitext1, freitext2, seite, anlagekz, ortkz}] zurück.
     Q_INVOKABLE QVariantList stueckliste(int projektId);
 
+    // Bestellliste (v1, BESTELLLISTE-01): Bauteile mit bereits vorhandener
+    // bauteil_id-Verknüpfung (Klemmen, Kabel, Kontaktspiegel-Geräte), nach
+    // Bauteil gruppiert mit Menge/Einheit/Summe. Symbole ohne Bauteil-
+    // Verknüpfung (die Mehrheit der Stückliste) tauchen hier bewusst nicht
+    // auf, siehe konzept/projekt/08_roadmap.md.
+    // Gibt [{bauteilId, bezeichnung, hersteller, artikelnummer, bestellnummer,
+    //        lieferant, preisEur, menge, einheit, summeEur}] zurück.
+    Q_INVOKABLE QVariantList bestellliste(int projektId);
+
     // Querverweisliste: alle Querverweis-Symbole mit Signalname, Richtung, Seite, Zielseite.
     // Gibt [{signalname, richtung, seite, zielSeite}] zurück.
     Q_INVOKABLE QVariantList querverweisListe(int projektId);
@@ -324,6 +333,7 @@ public:
     Q_INVOKABLE bool querverweislisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool aderlisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool kabellisteCsvSpeichern(int projektId, const QString &pfad);
+    Q_INVOKABLE bool bestellisteCsvSpeichern(int projektId, const QString &pfad);
 
     // Normblatt: alle Daten einer Seite für Canvas-Rendering laden.
     // Gibt {blattnummer, bezeichnung, anlageKuerzel, ortKuerzel, breiteMm, hoeheMm,

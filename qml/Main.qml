@@ -1240,15 +1240,23 @@ ApplicationWindow {
                 }
             }
 
-            // Listen (Stückliste + Querverweise)
-            ListenAnsicht {
+            // Listen (Stückliste + Querverweise) – lazy per Loader (RESSOURCEN-MESSUNG-01):
+            // ListenAnsicht.laden() ruft beim Erzeugen sofort alle 9 Listen-Queries über
+            // das gesamte Projekt ab (bei großen Projekten mehrere Sekunden). Component
+            // wird daher erst beim ersten Tab-Besuch instanziiert, bleibt danach aber
+            // (active bleibt true) erhalten, damit Scroll-Position/Auswahl nicht bei
+            // jedem Tab-Wechsel verloren geht.
+            Loader {
                 anchors.fill: parent
-                visible:      root.aktiveAnsicht === "stueckliste"
-                theme:        appTheme
-                debug:        root.debugModeAktiv
-                projektId:    root.aktivProjektId
-                projektName:  root.aktivProjektName
-                canvas:       root.aktiverCanvas
+                active:  root.aktiveAnsicht === "stueckliste" || item !== null
+                visible: root.aktiveAnsicht === "stueckliste"
+                sourceComponent: ListenAnsicht {
+                    theme:        appTheme
+                    debug:        root.debugModeAktiv
+                    projektId:    root.aktivProjektId
+                    projektName:  root.aktivProjektName
+                    canvas:       root.aktiverCanvas
+                }
             }
 
             // Klemmen-Editor Vollbild

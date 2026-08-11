@@ -669,12 +669,18 @@ Item {
                                 zeichneCanvas.zeichnePrimitiv(ctx, p, dx, dy, dw, dh)
                                 ctx.setLineDash([])
 
-                                // Griffe bei Auswahl
+                                // Griffe + Koordinaten-Label bei Auswahl (Nutzerwunsch:
+                                // X1/Y1/X2/Y2 direkt am Primitiv statt nur im Eigenschaften-Panel)
                                 if (isSel) {
                                     ctx.strokeStyle = "#00e5a0"
                                     zeichneCanvas.zeichneGriff(ctx, n2sx(p.x1 || 0), n2sy(p.y1 || 0))
-                                    if (p.typ === "linie" || p.typ === "rechteck")
+                                    zeichneCanvas.zeichneKoordLabel(ctx, n2sx(p.x1 || 0), n2sy(p.y1 || 0),
+                                        "X1", "Y1", root.normToMmX(p.x1 || 0), root.normToMmY(p.y1 || 0))
+                                    if (p.typ === "linie" || p.typ === "rechteck") {
                                         zeichneCanvas.zeichneGriff(ctx, n2sx(p.x2 || 0), n2sy(p.y2 || 0))
+                                        zeichneCanvas.zeichneKoordLabel(ctx, n2sx(p.x2 || 0), n2sy(p.y2 || 0),
+                                            "X2", "Y2", root.normToMmX(p.x2 || 0), root.normToMmY(p.y2 || 0))
+                                    }
                                 }
                             }
 
@@ -759,6 +765,23 @@ Item {
                             ctx.save()
                             ctx.fillStyle = "#00e5a0"; ctx.strokeStyle = "#004d35"; ctx.lineWidth = 1.5
                             ctx.beginPath(); ctx.arc(px, py, 5, 0, 2*Math.PI); ctx.fill(); ctx.stroke()
+                            ctx.restore()
+                        }
+
+                        // Koordinaten-Label neben einem Griff (mm, aus Normkoordinaten
+                        // umgerechnet) — Nutzerwunsch: Orientierung direkt am Primitiv.
+                        function zeichneKoordLabel(ctx, px, py, labelX, labelY, mmX, mmY) {
+                            ctx.save()
+                            ctx.font = "10px sans-serif"
+                            ctx.textAlign    = "left"
+                            ctx.textBaseline = "top"
+                            var text = labelX + ": " + mmX.toFixed(2) + "mm   " + labelY + ": " + mmY.toFixed(2) + "mm"
+                            var boxX = px + 8, boxY = py + 8
+                            var tw   = ctx.measureText(text).width
+                            ctx.fillStyle = "rgba(10, 20, 15, 0.78)"
+                            ctx.fillRect(boxX - 3, boxY - 2, tw + 6, 15)
+                            ctx.fillStyle = "#00e5a0"
+                            ctx.fillText(text, boxX, boxY)
                             ctx.restore()
                         }
 

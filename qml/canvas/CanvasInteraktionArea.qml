@@ -240,9 +240,13 @@ MouseArea {
                 if (canvas.rastend) {
                     var snapEl0  = canvas.auswahl.length > 0 ? em.element(canvas.auswahl[0]) : null
                     var snapOffX = 0, snapOffY = 0
-                    if (snapEl0 && snapEl0.typ === "symbol" && snapEl0.symbolId === "aderdefinition") {
-                        snapOffX = (snapEl0.x2 - snapEl0.x1) / 2
-                        snapOffY = (snapEl0.y2 - snapEl0.y1) / 2
+                    // Anker-Pin (nicht x1/y1) einrasten (SYMBOL-ANKER-01) —
+                    // deckt den bisherigen aderdefinition-Sonderfall mit ab
+                    // (kein Pin registriert → Fallback Bbox-Mittelpunkt,
+                    // identisch zum alten Verhalten).
+                    if (snapEl0 && snapEl0.typ === "symbol") {
+                        var off = canvas.ankerOffsetFuerElement(snapEl0)
+                        snapOffX = off.x; snapOffY = off.y
                     }
                     var sn = canvas.rasterPunkt(sp0.x1 + dwX + snapOffX, sp0.y1 + dwY + snapOffY)
                     dwX = sn.x - snapOffX - sp0.x1; dwY = sn.y - snapOffY - sp0.y1

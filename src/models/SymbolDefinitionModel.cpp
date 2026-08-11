@@ -78,6 +78,10 @@ bool SymbolDefinitionModel::hatPrimitive(const QString &symbolId) const
     return false;
 }
 
+// ORDER BY id ASC ist bewusst: pins[0] gilt als Anker-Pin fuers Platzieren/
+// Verschieben (SYMBOL-ANKER-01, CanvasGeometrie.qml ankerPinFuerSymbolId),
+// muss also deterministisch der zuerst angelegte Pin (ueblich Anschluss "1")
+// sein statt von SQLite-interner Rowid-Reihenfolge ohne Garantie abzuhaengen.
 QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
 {
     auto it = m_pinCache.find(symbolId);
@@ -90,6 +94,7 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
         SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle
         FROM symbol_pin
         WHERE symbol_id = :sym
+        ORDER BY id ASC
     )");
     q.bindValue(":sym", symbolId);
     if (!q.exec()) {

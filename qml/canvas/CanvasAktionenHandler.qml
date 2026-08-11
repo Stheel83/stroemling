@@ -43,10 +43,21 @@ QtObject {
             var el  = cv.elementeModel.element(idx)
             if (!el) continue
             var g   = cv.gridPx
-            var rx1 = Math.round(el.x1 / g) * g
-            var ry1 = Math.round(el.y1 / g) * g
             var w   = el.x2 - el.x1
             var h   = el.y2 - el.y1
+            var rx1, ry1
+            if (el.typ === "symbol") {
+                // Anker-Pin einrasten statt x1/y1 (SYMBOL-ANKER-01) — sonst
+                // "snappt" diese Funktion die Bbox-Ecke, während der Pin bei
+                // ungeraden Rastereinheiten weiterhin daneben liegt.
+                var off = cv.ankerOffsetFuerElement(el)
+                var ax  = Math.round((el.x1 + off.x) / g) * g
+                var ay  = Math.round((el.y1 + off.y) / g) * g
+                rx1 = ax - off.x; ry1 = ay - off.y
+            } else {
+                rx1 = Math.round(el.x1 / g) * g
+                ry1 = Math.round(el.y1 / g) * g
+            }
             if (rx1 !== el.x1 || ry1 !== el.y1)
                 cv.elementeModel.elementAktualisieren(idx, { x1: rx1, y1: ry1, x2: rx1 + w, y2: ry1 + h })
         }

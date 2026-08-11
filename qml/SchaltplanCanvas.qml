@@ -885,7 +885,12 @@ Item {
             else if (rot === 180) { x1 = wx - defW; y1 = wy        }
             else                  { x1 = wx - defW; y1 = wy - defH }
         } else {
-            x1 = wx - defW / 2; y1 = wy - defH / 2
+            // Anker-Pin (nicht der Bbox-Mittelpunkt) landet auf dem
+            // gesnappten Mauspunkt (SYMBOL-ANKER-01) — wichtig bei Symbolen
+            // mit ungeraden Rastereinheiten (z.B. 12mm-Kontakte), deren
+            // Mittelpunkt sonst nicht selbst aufs 4mm-Raster fiele.
+            var pos = geometrieHandler.boxPositionFuerAnker(sid, defW, defH, rot, wx, wy)
+            x1 = pos.x1; y1 = pos.y1
         }
         return { typ: "symbol", symbolId: sid,
             x1: x1, y1: y1, x2: x1 + defW, y2: y1 + defH,
@@ -905,6 +910,7 @@ Item {
     function elementBeiPosition(vpX, vpY)  { return geometrieHandler.elementBeiPosition(vpX, vpY) }
     function griffBeiPosition(vpX, vpY)    { return geometrieHandler.griffBeiPosition(vpX, vpY) }
     function pinWeltPos(el, pinX, pinY)    { return geometrieHandler.pinWeltPos(el, pinX, pinY) }
+    function ankerOffsetFuerElement(el)    { return geometrieHandler.ankerOffsetFuerElement(el) }
 
     // --------------------------------------------------------
     // Ansicht

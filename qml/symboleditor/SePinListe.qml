@@ -9,6 +9,31 @@ Rectangle {
 
     color:  editor.theme.sidebar
 
+    // SYMBOL-ANKER-01: prüft, ob ein Pin bei jeder 90°-Rotation aufs
+    // 4mm-Platzierraster fällt. Platziert/verschoben wird über den
+    // Anker-Pin (= erster Pin der Liste, CanvasGeometrie.ankerPinFuerSymbolId),
+    // Rotation dreht um den Bbox-Mittelpunkt (pinWeltPos) — entscheidend ist
+    // daher nicht der Abstand zur Mitte, sondern der Abstand **zum
+    // Anker-Pin** auf jeder Achse: der Term "-0,5" (Mittelpunkt) kürzt sich
+    // beim Vergleich zweier Pins exakt heraus, es bleibt
+    // (pin.x - anker.x) × Breite bzw. (pin.y - anker.y) × Höhe. Beide
+    // müssen ein Vielfaches von 4mm sein, sonst bleibt der Pin bei Rotation
+    // nicht am Anker-Pin ausgerichtet (siehe
+    // konzept/features/04_symbolsystem.md §13/ARD-GRID-01).
+    function pinAufRaster(pin, idx) {
+        if (!pin || idx === 0) return true
+        var anker = (root.editor.pins && root.editor.pins.length > 0) ? root.editor.pins[0] : pin
+        function vielfachesVon4(mm) {
+            var eps = 0.02
+            var r = mm % 4
+            if (r < 0) r += 4
+            return r < eps || r > 4 - eps
+        }
+        var offXmm = (pin.x - anker.x) * root.editor.breiteMm
+        var offYmm = (pin.y - anker.y) * root.editor.hoeheMm
+        return vielfachesVon4(offXmm) && vielfachesVon4(offYmm)
+    }
+
     ColumnLayout {
         anchors { fill: parent; margins: 8 }
         spacing: 4
@@ -164,6 +189,20 @@ Rectangle {
                                 }
                             }
                         }
+                    }
+
+                    // SYMBOL-ANKER-01: Warnung wenn der Pin bei Rotation
+                    // nicht aufs 4mm-Raster fällt.
+                    Rectangle {
+                        width: 20; height: 30; radius: 3; color: "transparent"
+                        visible: !root.pinAufRaster(parent.parent.myPin, parent.parent.myIdx)
+                        Text {
+                            anchors.centerIn: parent; text: "⚠"; font.pixelSize: 13; color: "#ffaa00"
+                        }
+                        ToolTip.visible: warnHover.hovered
+                        ToolTip.delay: 300
+                        ToolTip.text: qsTr("Pin fällt bei Rotation nicht aufs 4mm-Platzierraster: Abstand vom Symbol-Mittelpunkt muss auf beiden Achsen ein Vielfaches von 4mm sein.")
+                        HoverHandler { id: warnHover }
                     }
 
                     ComboBox {

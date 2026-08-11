@@ -92,6 +92,44 @@ QtObject {
                  y: scy + cx * Math.sin(rot) + cy * Math.cos(rot) }
     }
 
+    // Anker-Pin eines Symbols (SYMBOL-ANKER-01): der Pin mit der kleinsten ID
+    // (= zuerst angelegter Pin, üblich Anschluss "1", pinsForSymbol() liefert
+    // ORDER BY id ASC). Symbole ohne Pins (z.B. aderdefinition) fallen auf
+    // den Bbox-Mittelpunkt zurück — reproduziert das bisherige Verhalten für
+    // diese Fälle unverändert.
+    function ankerPinFuerSymbolId(sid) {
+        if (!sid) return { x: 0.5, y: 0.5 }
+        var pins = symbolDefinitionModel.pinsForSymbol(sid)
+        if (!pins || pins.length === 0) return { x: 0.5, y: 0.5 }
+        return { x: pins[0].x, y: pins[0].y }
+    }
+
+    // Welt-Offset vom Element-Ursprung (x1,y1) zum Anker-Pin, unter
+    // Berücksichtigung der aktuellen Rotation/Spiegelung — reine
+    // Umformung von pinWeltPos() relativ zu (x1,y1) statt absolut.
+    function ankerOffsetFuerElement(el) {
+        var ap = ankerPinFuerSymbolId(el.symbolId)
+        var wp = pinWeltPos(el, ap.x, ap.y)
+        return { x: wp.x - el.x1, y: wp.y - el.y1 }
+    }
+
+    // Inverse zu pinWeltPos(): Bbox-Ursprung (x1,y1) so berechnen, dass der
+    // Anker-Pin bei gegebener Rotation exakt auf (ankerWeltX, ankerWeltY)
+    // landet. Wird beim Platzieren neuer Symbole genutzt, damit der
+    // Anker-Pin (nicht der Bbox-Mittelpunkt) aufs Raster einrastet — nötig
+    // weil Breite/Höhe nicht immer ein gerades Vielfaches des 4mm-Rasters
+    // sind (z.B. 12mm-Kontakte, SYMBOL-GROESSE-01), der Mittelpunkt bei
+    // solchen Symbolen also selbst nicht rasterecht ist.
+    function boxPositionFuerAnker(sid, w, h, rotDeg, ankerWeltX, ankerWeltY) {
+        var ap   = ankerPinFuerSymbolId(sid)
+        var cx   = (ap.x - 0.5) * w
+        var cy   = (ap.y - 0.5) * h
+        var rot  = (rotDeg || 0) * Math.PI / 180
+        var offX = cx * Math.cos(rot) - cy * Math.sin(rot)
+        var offY = cx * Math.sin(rot) + cy * Math.cos(rot)
+        return { x1: ankerWeltX - offX - w / 2, y1: ankerWeltY - offY - h / 2 }
+    }
+
     // Gibt den korrekten Pin für ein Querverweis-Element zurück.
     // Ausgang: Pin am Schwanz (x=0), Eingang: Pin an der Spitze (x=1).
     function querverweisPin(el) {

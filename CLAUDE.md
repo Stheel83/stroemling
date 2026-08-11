@@ -81,6 +81,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/architektur/37_button_design_standard.md` | Button-Design-Standard für Dialoge: Primär/Abbrechen-Optik, hover-Logik, Referenz-Implementierungen | ✅ |
 | **`konzept/features/`** | **Was kann die App?** | |
 | `konzept/features/04_symbolsystem.md` | Haupt-/Nebenfunktion, Erweiterungen, Pinkatalog, Rotation; Domain-Symbole Arduino (§9) | ✅ |
+| `konzept/features/symbolgroessen_audit.md` | Symbolgrößen-Audit gegen EPLAN-Referenzmaße (Bounding-Box-Korrektur, familienweise) | 🔄 Messphase |
 | `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas | ✅ |
 | `konzept/features/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen | ✅ |
 | `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771, NKZ-04 Default-Anlage/Ort | 🔄 NKZ-01 offen (DIN EN 81346 alt vs. IEC 81346 neu) |

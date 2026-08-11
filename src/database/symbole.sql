@@ -2534,3 +2534,42 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 -- der obige DELETE+INSERT fuer symbol_pin hat sie auf den Default zurueckgesetzt.
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'ueberspannungsschutz' AND name = 'PE';
 UPDATE symbol_pin SET rolle = 'verbraucher' WHERE symbol_id = 'ueberspannungsschutz' AND name = 'PE';
+
+-- ══════════════════════════════════════════════════════════════
+-- SYM-KOPIE-STRESSTEST-01 (Aug 2026): Nutzer hatte im Projekt "Stresstest"
+-- Kopien von schliesser/schliesser_nacheilend/schliesser_voreilend angelegt
+-- und im Symboleditor überarbeitet (Kontaktdiagonale nach links statt
+-- rechts gezogen). Auf Nutzerwunsch 1:1 übernommen inkl. der dabei
+-- verlorenen Pin-Versatz-Differenzierung zwischen schliesser_voreilend/
+-- _nacheilend (Nutzer: "kann die Symbole so gut auseinanderhalten, den
+-- Pin-Versatz benötigen wir nicht") sowie der auf 8mm verbreiterten Box von
+-- schliesser_voreilend (bewusste Nutzer-Anpassung, nicht symmetrisch zu
+-- schliesser_nacheilend das bei 4mm bleibt). Details:
+-- konzept/features/04_symbolsystem.md §17.
+-- ══════════════════════════════════════════════════════════════
+DELETE FROM symbol_pin WHERE symbol_id = 'schliesser';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('schliesser', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('schliesser', '2', 0.5, 1, 0, 1, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser', 0, 'linie', 0.5, 0, 0.5, 0.291666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser', 1, 'linie', 0, 0.25, 0.5, 0.708333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser', 2, 'linie', 0.5, 0.708333333333333, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+DELETE FROM symbol_pin WHERE symbol_id = 'schliesser_nacheilend';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('schliesser_nacheilend', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('schliesser_nacheilend', '2', 0.5, 1, 0, 1, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser_nacheilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 0, 'linie', 0, 0.25, 0.5, 0.708333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 1, 'linie', 0, 0.25, 0.25, 0.225, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 2, 'linie', 0.5, 0, 0.5, 0.291666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 3, 'linie', 0.5, 0.708333333333333, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8 WHERE id = 'schliesser_voreilend';
+DELETE FROM symbol_pin WHERE symbol_id = 'schliesser_voreilend';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('schliesser_voreilend', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('schliesser_voreilend', '2', 0.5, 1, 0, 1, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser_voreilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 0, 'linie', 0.25, 0.25, 0.5, 0.708333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 1, 'linie', 0.125, 0.283333333333333, 0.25, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 2, 'linie', 0.5, 0, 0.5, 0.291666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 3, 'linie', 0.5, 0.708333333333333, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');

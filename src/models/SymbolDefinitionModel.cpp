@@ -180,16 +180,17 @@ QVariantList SymbolDefinitionModel::alleSymbole() const
 
 bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name,
                                            const QString &kategorie, int breiteMm, int hoeheMm,
-                                           const QString &rolle)
+                                           const QString &rolle, const QString &bmkSeite)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0)");
-    q.bindValue(":id",    id);
-    q.bindValue(":name",  name);
-    q.bindValue(":kat",   kategorie);
-    q.bindValue(":bMm",   breiteMm);
-    q.bindValue(":hMm",   hoeheMm);
-    q.bindValue(":rolle", rolle);
+    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0, :bmkSeite)");
+    q.bindValue(":id",       id);
+    q.bindValue(":name",     name);
+    q.bindValue(":kat",      kategorie);
+    q.bindValue(":bMm",      breiteMm);
+    q.bindValue(":hMm",      hoeheMm);
+    q.bindValue(":rolle",    rolle);
+    q.bindValue(":bmkSeite", bmkSeite);
     if (!q.exec()) {
         qCWarning(lcModel) << "symbolAnlegen:" << q.lastError().text();
         return false;
@@ -199,16 +200,17 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
 
 bool SymbolDefinitionModel::symbolAktualisieren(const QString &id, const QString &name,
                                                   const QString &kategorie, int breiteMm, int hoeheMm,
-                                                  const QString &rolle)
+                                                  const QString &rolle, const QString &bmkSeite)
 {
     QSqlQuery q;
-    q.prepare("UPDATE symbol_definition SET name=:name, kategorie=:kat, breite_mm=:bMm, hoehe_mm=:hMm, rolle=:rolle WHERE id=:id AND ist_builtin=0");
-    q.bindValue(":name",  name);
-    q.bindValue(":kat",   kategorie);
-    q.bindValue(":bMm",   breiteMm);
-    q.bindValue(":hMm",   hoeheMm);
-    q.bindValue(":rolle", rolle);
-    q.bindValue(":id",    id);
+    q.prepare("UPDATE symbol_definition SET name=:name, kategorie=:kat, breite_mm=:bMm, hoehe_mm=:hMm, rolle=:rolle, bmk_seite=:bmkSeite WHERE id=:id AND ist_builtin=0");
+    q.bindValue(":name",     name);
+    q.bindValue(":kat",      kategorie);
+    q.bindValue(":bMm",      breiteMm);
+    q.bindValue(":hMm",      hoeheMm);
+    q.bindValue(":rolle",    rolle);
+    q.bindValue(":bmkSeite", bmkSeite);
+    q.bindValue(":id",       id);
     if (!q.exec()) {
         qCWarning(lcModel) << "symbolAktualisieren:" << q.lastError().text();
         return false;

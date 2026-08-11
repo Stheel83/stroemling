@@ -34,6 +34,11 @@ Item {
     property int    breiteMm:      32
     property int    hoeheMm:       16
     property string rolleText:     "durchleiter"
+    // BMK-Label-Position (SYMBOL-BMKSEITE-EDITOR-01): "auto" (0°/180°→oben,
+    // 90°/270°→seitlich) oder "vertikal" (umgekehrt — für Symbole deren
+    // Grundausrichtung bei 0° bereits vertikal ist, z.B. Kontakte nach
+    // SYMBOL-VERTIKAL-01). Siehe CanvasRenderHandler.qml maleElement().
+    property string bmkSeiteText:  "auto"
     property bool   istBuiltin:    false
     property string vorlageId:     ""   // wenn gesetzt: Geometrie aus diesem Symbol als Vorlage laden
     property bool   _kopierModus:  false
@@ -111,6 +116,7 @@ Item {
             breiteMm      = vInfo.breiteMm  || 32
             hoeheMm       = vInfo.hoeheMm   || 16
             rolleText     = vInfo.rolle     || "durchleiter"
+            bmkSeiteText  = vInfo.bmkSeite  || "auto"
             istBuiltin    = false
 
             var vPrims   = symbolDefinitionModel.primitiveFuerSymbol(vorlageId)
@@ -136,6 +142,7 @@ Item {
             breiteMm      = 32
             hoeheMm       = 16
             rolleText     = "durchleiter"
+            bmkSeiteText  = "auto"
             istBuiltin    = false
             primitive     = []
             pins          = []
@@ -146,6 +153,7 @@ Item {
             breiteMm      = info.breiteMm  || 32
             hoeheMm       = info.hoeheMm   || 16
             rolleText     = info.rolle     || "durchleiter"
+            bmkSeiteText  = info.bmkSeite  || "auto"
             istBuiltin    = info.ist_builtin     || false
 
             var prims = symbolDefinitionModel.primitiveFuerSymbol(editSymbolId)
@@ -304,13 +312,13 @@ Item {
         }
 
         if (editSymbolId === "") {
-            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText)) {
+            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText)) {
                 speichernFehlerText.text = qsTr("Symbol-ID bereits vergeben. Bitte anderen Namen wählen.")
                 speichernFehlerDialog.open()
                 return
             }
         } else {
-            symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText)
+            symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText)
         }
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)

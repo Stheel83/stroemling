@@ -53,14 +53,16 @@ public:
     // ── Schreibmethoden ─────────────────────────────────────────────
 
     // Neues Symbol anlegen (ist_builtin = 0). Gibt false zurück wenn id schon belegt.
+    // bmkSeite ("auto"|"vertikal", SYMBOL-BMKSEITE-EDITOR-01): steuert wie in
+    // symbol_definition, Default "auto" für Aufrufer die (noch) keinen Wert mitgeben.
     Q_INVOKABLE bool symbolAnlegen(const QString &id, const QString &name,
                                     const QString &kategorie, int breiteMm, int hoeheMm,
-                                    const QString &rolle);
+                                    const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"));
 
     // Metadaten eines nicht-eingebauten Symbols aktualisieren.
     Q_INVOKABLE bool symbolAktualisieren(const QString &id, const QString &name,
                                           const QString &kategorie, int breiteMm, int hoeheMm,
-                                          const QString &rolle);
+                                          const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"));
 
     // Symbol löschen (nur ist_builtin = 0). Primitive und Pins werden per FK gelöscht.
     Q_INVOKABLE bool symbolLoeschen(const QString &symbolId);

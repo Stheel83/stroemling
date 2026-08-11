@@ -1312,13 +1312,19 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         // vorkommt, bildet jede Rotation Ecken auf Ecken ab, die
         // Kandidatenmenge ist also rotations-/spiegelunabhängig.
         QPen symPen = pen;
-        // Winkel besteht aus zwei separaten linie-Primitiven, die sich in einer
-        // Ecke treffen (0,0)-(0,1) + (0,1)-(1,1) - mit FlatCap bleibt am
-        // gemeinsamen Eckpunkt eine keilförmige Lücke sichtbar, da Qt Line-Joins
-        // nur innerhalb EINES QPainterPath greifen, nicht über zwei separate
-        // drawLine()-Aufrufe hinweg. RoundCap schließt die Lücke (rundes
-        // Eck-„Blob", analog zu abgerundeten Leitungsecken).
-        if (sid == "winkel") symPen.setCapStyle(Qt::RoundCap);
+        // SYMBOL-ECKE-RUND-01 (Aug 2026): jedes Symbol-Primitiv (linie/rechteck/…)
+        // wird einzeln per drawLine()/etc. gezeichnet (pdfPrimitivRendern) - mit
+        // FlatCap bleibt am gemeinsamen Eckpunkt zweier Primitive eine
+        // keilförmige Lücke sichtbar, da Qt Line-Joins nur innerhalb EINES
+        // QPainterPath greifen, nicht über separate drawLine()-Aufrufe hinweg
+        // (ursprünglich nur für "winkel" gefixt, PDF-WINKEL-TREFFPUNKT-ECKE-01 -
+        // betraf aber jedes mehrsegmentige Symbol, z.B. schliesser nach
+        // SYMBOL-VERTIKAL-01). RoundCap generisch für alle Symbol-Primitive
+        // schließt die Lücke (rundes Eck-„Blob", analog zu abgerundeten
+        // Leitungsecken); für geschlossene Formen (Rechteck/Kreis) und
+        // freistehende Linienenden ohne Lücken-Nachbarn ist der Effekt bei den
+        // dünnen Symbol-Strichbreiten nicht wahrnehmbar.
+        symPen.setCapStyle(Qt::RoundCap);
         if (leitungsSegs && sid == "winkel") {
             double rx1 = el.value("x1").toDouble(), ry1 = el.value("y1").toDouble();
             double rx2 = el.value("x2").toDouble(), ry2 = el.value("y2").toDouble();

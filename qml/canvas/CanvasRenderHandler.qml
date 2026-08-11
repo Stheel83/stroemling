@@ -406,6 +406,15 @@ QtObject {
         else if (sa==="gepunktet")   { ctx.setLineDash([0.1,lw*3]);    ctx.lineCap = "round" }
         else                    { ctx.setLineDash([]);                 ctx.lineCap = "butt"  }
 
+        // SYMBOL-ECKE-RUND-01 (Aug 2026): Symbol-Primitive (jede linie/rechteck/…
+        // ein eigener stroke()-Aufruf, s. drawByPrimitiv()) bekommen an
+        // Eckpunkten sonst mit "butt"-Kappe eine keilförmige Lücke, sobald zwei
+        // Segmente in einem Winkel ≠180° aufeinandertreffen (z.B. schliesser nach
+        // SYMBOL-VERTIKAL-01). RoundCap schließt das, analog zum bereits
+        // bestehenden PDF-Fix PDF-WINKEL-TREFFPUNKT-ECKE-01 — hier aber generisch
+        // für alle Symbol-Primitive statt nur winkel/Verbindungslinien.
+        if (el.typ === "symbol" && !vorschau && sa === "solid") ctx.lineCap = "round"
+
         ctx.lineWidth   = lw
         ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : sf)
 
@@ -1126,11 +1135,20 @@ QtObject {
     // Linienbreite aus Aderanzahl + Signaltyp-Zuschlägen (Konflikt/unversorgt).
     // Gemeinsam genutzt von _segmentFarbeUndBreite() und der Treffpunkt-
     // Ziel-Bänderung (dort ersetzt "Aderanzahl" die Anzahl verschmolzener Arme).
+    //
+    // LEITUNG-ZOOM-BREITE-01 (Aug 2026): Basis jetzt mm statt fixer
+    // Bildschirm-Pixel, mit derselben mmToPx*zoom-Skalierung + 0.5px-Mindestwert
+    // wie strichBreite bei Symbolen (maleElement() oben) — vorher blieben
+    // Leitungen bei jedem Zoom exakt gleich breit, während Symbol-Linien mit dem
+    // Zoom mitwuchsen (sichtbarer werdender Stärke-Unterschied beim Reinzoomen).
+    // mm-Basis so gewählt, dass sich bei Zoom 1 exakt dieselben Pixelwerte wie
+    // vorher ergeben (alte px-Werte / mmToPx): 1 Ader 1.5px→0.375mm, 3 Adern
+    // 4.5px→1.125mm.
     function _breiteFuerAnzahl(anz, signaltyp) {
-        var b = anz <= 3 ? anz * 1.5 : 4.5
-        if (signaltyp === "konflikt")   b = b * 2
-        if (signaltyp === "unversorgt") b = b * 1.5
-        return b
+        var bMm = anz <= 3 ? anz * 0.375 : 1.125
+        if (signaltyp === "konflikt")   bMm = bMm * 2
+        if (signaltyp === "unversorgt") bMm = bMm * 1.5
+        return Math.max(0.5, bMm * cv.mmToPx * cv.zoom)
     }
 
     // Farbe + Linienbreite für ein Netzsegment. Aderfarbe überschreibt die
@@ -1160,7 +1178,7 @@ QtObject {
     // beiden Fällen unterscheiden müssen.
     function _bandOderEinfach(net, segAdps, baender, si) {
         if (si < 0)
-            return { modus: "einzel", farbe: "#4a9eff", farben: ["#4a9eff"], breite: 1.5, armAnzahl: 1 }
+            return { modus: "einzel", farbe: "#4a9eff", farben: ["#4a9eff"], breite: _breiteFuerAnzahl(1, ""), armAnzahl: 1 }
         if (baender[si] !== undefined) return baender[si]
         var fb = _segmentFarbeUndBreite(net, segAdps[si] || [])
         // Bifarb-Ader (aderfarbe2): eine einzelne Ader mit zweifarbiger Isolierung,

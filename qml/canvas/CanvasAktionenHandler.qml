@@ -162,6 +162,31 @@ QtObject {
                     x1: newCx - g / 2, y1: newCy - g / 2,
                     x2: newCx + g / 2, y2: newCy + g / 2
                 })
+            } else if (key === "rotation" && el.typ === "symbol") {
+                // SYMBOL-ANKER-ROTATION-01 (Aug 2026): Rotation läuft im Renderer
+                // um den Bbox-Mittelpunkt, nicht um den Anker-Pin — dessen Versatz
+                // vom Mittelpunkt ist aber nicht zwingend ein Vielfaches von 4mm
+                // (z.B. schliesser: Anker-Pin am Rand, halbe Höhe 6mm). Ohne
+                // Korrektur fiele der Anker-Pin bei jeder 90°-Drehung vom Raster.
+                // Analog zum winkel-Sonderfall oben: Bbox so verschieben, dass der
+                // Anker-Pin exakt an seiner alten Weltposition stehen bleibt (nicht
+                // nur nachträglich aufs Raster runden — bleibt exakt, da er vorher
+                // schon dort stand, siehe SYMBOL-ANKER-01 Platzieren/Verschieben).
+                var w2  = el.x2 - el.x1, h2 = el.y2 - el.y1
+                var cx2 = el.x1 + w2 / 2, cy2 = el.y1 + h2 / 2
+                var ap2 = cv.geometrie.ankerPinFuerSymbolId(el.symbolId)
+                var ox2 = (ap2.x - 0.5) * w2, oy2 = (ap2.y - 0.5) * h2
+                var oldRad2 = (el.rotation || 0) * Math.PI / 180
+                var ankerWx = cx2 + ox2 * Math.cos(oldRad2) - oy2 * Math.sin(oldRad2)
+                var ankerWy = cy2 + ox2 * Math.sin(oldRad2) + oy2 * Math.cos(oldRad2)
+                var newRad2 = value * Math.PI / 180
+                var newCx2  = ankerWx - (ox2 * Math.cos(newRad2) - oy2 * Math.sin(newRad2))
+                var newCy2  = ankerWy - (ox2 * Math.sin(newRad2) + oy2 * Math.cos(newRad2))
+                cv.elementeModel.elementAktualisieren(i, {
+                    rotation: value,
+                    x1: newCx2 - w2 / 2, y1: newCy2 - h2 / 2,
+                    x2: newCx2 + w2 / 2, y2: newCy2 + h2 / 2
+                })
             } else {
                 cv.elementeModel.eigenschaftSetzen(i, key, value)
             }

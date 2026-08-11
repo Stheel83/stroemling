@@ -9,12 +9,12 @@
 -- (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin)
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('schliesser',      'Schließer (NO)',          'Kontakte',     32, 16, 'durchleiter', 1),
-('oeffner',         'Öffner (NC)',             'Kontakte',     32, 16, 'durchleiter', 1),
-('wechsler',        'Wechsler',                'Kontakte',     32, 16, 'durchleiter', 1),
+('schliesser',      'Schließer (NO)',          'Kontakte',     12, 4, 'durchleiter', 1),
+('oeffner',         'Öffner (NC)',             'Kontakte',     12, 4, 'durchleiter', 1),
+('wechsler',        'Wechsler',                'Kontakte',     12, 4, 'durchleiter', 1),
 ('sicherung',       'Sicherung',               'Schutz',       32, 16, 'durchleiter', 1),
-('lss',             'Leitungsschutzschalter',  'Schutz',       32, 16, 'durchleiter', 1),
-('fi',              'FI-Schutzschalter',       'Schutz',       32, 16, 'durchleiter', 1),
+('lss',             'Leitungsschutzschalter',  'Schutz',       12, 4, 'durchleiter', 1),
+('fi',              'FI-Schutzschalter',       'Schutz',       12, 4, 'durchleiter', 1),
 ('motor',           'Motor',                   'Antriebe',     32, 16, 'verbraucher', 1),
 ('motor_dc',        'Gleichstrommotor',        'Antriebe',     32, 16, 'verbraucher', 1),
 ('spule',           'Spule / Relais',          'Antriebe',     16, 16, 'verbraucher', 1),
@@ -1457,7 +1457,7 @@ UPDATE symbol_definition SET ibn_kategorie = 'fuellstandssensor' WHERE id = 'sen
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('zeitschaltuhr', 'Zeitschaltuhr', 'Kontakte', 32, 16, 'durchleiter', 1);
+('zeitschaltuhr', 'Zeitschaltuhr', 'Kontakte', 12, 4, 'durchleiter', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
 ('zeitschaltuhr', '1', 0, 0.5, -1, 0, 'neutral'),
@@ -1601,13 +1601,13 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('wischkontakt_betaetigung', 'Wischkontakt (bei Betätigung)',        'Kontakte', 16, 32, 'durchleiter', 1),
-('wischkontakt_rueckfall',   'Wischkontakt (bei Rückfall)',          'Kontakte', 16, 32, 'durchleiter', 1),
-('wischkontakt_beide',       'Wischkontakt (bei Betätigung+Rückfall)','Kontakte', 16, 32, 'durchleiter', 1),
-('schliesser_voreilend',     'Voreilender Schließer',                'Kontakte', 12, 32, 'durchleiter', 1),
-('schliesser_nacheilend',    'Nacheilender Schließer',               'Kontakte', 12, 32, 'durchleiter', 1),
-('oeffner_voreilend',        'Voreilender Öffner',                   'Kontakte', 12, 32, 'durchleiter', 1),
-('oeffner_nacheilend',       'Nacheilender Öffner',                  'Kontakte', 12, 32, 'durchleiter', 1);
+('wischkontakt_betaetigung', 'Wischkontakt (bei Betätigung)',        'Kontakte', 4, 12, 'durchleiter', 1),
+('wischkontakt_rueckfall',   'Wischkontakt (bei Rückfall)',          'Kontakte', 4, 12, 'durchleiter', 1),
+('wischkontakt_beide',       'Wischkontakt (bei Betätigung+Rückfall)','Kontakte', 4, 12, 'durchleiter', 1),
+('schliesser_voreilend',     'Voreilender Schließer',                'Kontakte', 4, 12, 'durchleiter', 1),
+('schliesser_nacheilend',    'Nacheilender Schließer',               'Kontakte', 4, 12, 'durchleiter', 1),
+('oeffner_voreilend',        'Voreilender Öffner',                   'Kontakte', 4, 12, 'durchleiter', 1),
+('oeffner_nacheilend',       'Nacheilender Öffner',                  'Kontakte', 4, 12, 'durchleiter', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
 ('wischkontakt_betaetigung', '1', 0.5, 0, 0, -1, 'neutral'),

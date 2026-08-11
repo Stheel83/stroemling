@@ -1087,6 +1087,21 @@ static QList<SchemaMigration> alleMigrationen()
                     (SELECT bmk_vollstaendig FROM betriebsmittel_bmk WHERE id = grafik_element.betriebsmittel_id))
                 WHERE betriebsmittel_id IN (SELECT id FROM betriebsmittel_bmk))",
         }},
+        { 108, "SYMBOL-GROESSE-01 Teil 1: Kontakte/Schutz-Batch, 13 sauber skalierende Symbole auf EPLAN-Referenzmasse korrigiert (Bounding-Box-Korrektur, symbol_primitiv unveraendert da normiert 0..1 - Details konzept/features/symbolgroessen_audit.md). Sicherung/Sicherung_netzseitig/nh_sicherung/taster_no/taster_nc/not_halt/bimetall_nc/sicherungsschalter-Familie bewusst zurueckgestellt, dort wuerde naive Skalierung die Geometrie sichtbar verzerren - eigener Folgeschritt mit Primitiv-Rework.", {
+            R"(UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 4 WHERE id = 'schliesser')",
+            R"(UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 4 WHERE id = 'oeffner')",
+            R"(UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 4 WHERE id = 'wechsler')",
+            R"(UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 4 WHERE id = 'lss')",
+            R"(UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 4 WHERE id = 'fi')",
+            R"(UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 4 WHERE id = 'zeitschaltuhr')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'wischkontakt_betaetigung')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'wischkontakt_rueckfall')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'wischkontakt_beide')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'schliesser_voreilend')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'schliesser_nacheilend')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'oeffner_voreilend')",
+            R"(UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 12 WHERE id = 'oeffner_nacheilend')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

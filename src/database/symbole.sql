@@ -2684,3 +2684,69 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('ventil', 8, 'linie', 0.9375, 0.208333333333333, 0.6875, 0.208333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('ventil', 9, 'linie', 0.8125, 0.5, 0.9375, 0.791666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('ventil', 10, 'linie', 0.6875, 0.791666666666667, 0.9375, 0.791666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- SYM-KOPIE-STRESSTEST-03 (Aug 2026, Migration 112): wischkontakt_betaetigung/
+-- _rueckfall/_beide (Kontakte) und widerstand_iec/kondensator (Passive) nach
+-- Nutzer-Kopien im Projekt "Görke" überarbeitet. Wischkontakt-Familie
+-- 4x12mm -> 8x12mm. widerstand_iec/kondensator waren bisher horizontal und
+-- nie Teil von SYMBOL-VERTIKAL-01 — jetzt analog dazu auf vertikal gedreht
+-- + auf 8x12mm verkleinert (vorher 32x16mm). Dabei bewusst NICHT 1:1 aus der
+-- Kopie übernommen: knoten_gruppe=1 auf dem zweiten Pin (widerstand_iec '2',
+-- kondensator '-') aus NETZ-MEHRPOL-02 blieb erhalten, obwohl die Kopie im
+-- Symboleditor (dort kein editierbares Feld) implizit auf den Default 0
+-- zurückfiel — sonst wären beide Pins wieder als derselbe
+-- Netzberechnungs-Knoten behandelt worden, exakt der vor NETZ-MEHRPOL-02
+-- behobene Fehler.
+-- ══════════════════════════════════════════════════════════════
+UPDATE symbol_definition SET breite_mm = 8 WHERE id = 'wischkontakt_betaetigung';
+DELETE FROM symbol_pin WHERE symbol_id = 'wischkontakt_betaetigung';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_betaetigung', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_betaetigung', '2', 0.5, 1, 0, 1, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'wischkontakt_betaetigung';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_betaetigung', 0, 'linie', 0.5, 0, 0.5, 0.333333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_betaetigung', 1, 'linie', 0.25, 0.291666666666667, 0.5, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_betaetigung', 2, 'linie', 0.5, 0.78125, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_betaetigung', 3, 'linie', 0.375, 0.25, 0.5, 0.333333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8 WHERE id = 'wischkontakt_beide';
+DELETE FROM symbol_pin WHERE symbol_id = 'wischkontakt_beide';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_beide', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_beide', '2', 0.5, 1, 0, 1, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'wischkontakt_beide';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_beide', 0, 'linie', 0.5, 0, 0.5, 0.333333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_beide', 1, 'linie', 0.25, 0.291666666666667, 0.5, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_beide', 2, 'linie', 0.5, 0.78125, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_beide', 3, 'linie', 0.375, 0.25, 0.5, 0.333333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_beide', 4, 'linie', 0.5, 0.333333333333333, 0.625, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8 WHERE id = 'wischkontakt_rueckfall';
+DELETE FROM symbol_pin WHERE symbol_id = 'wischkontakt_rueckfall';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_rueckfall', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wischkontakt_rueckfall', '2', 0.5, 1, 0, 1, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'wischkontakt_rueckfall';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_rueckfall', 0, 'linie', 0.5, 0, 0.5, 0.333333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_rueckfall', 1, 'linie', 0.25, 0.291666666666667, 0.5, 0.78125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_rueckfall', 2, 'linie', 0.5, 0.78125, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wischkontakt_rueckfall', 3, 'linie', 0.5, 0.333333333333333, 0.625, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 12, bmk_seite = 'vertikal' WHERE id = 'widerstand_iec';
+DELETE FROM symbol_pin WHERE symbol_id = 'widerstand_iec';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('widerstand_iec', '1', 0.5, 0, 0, -1, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('widerstand_iec', '2', 0.5, 1, 0, 1, 'neutral');
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'widerstand_iec' AND name = '2';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'widerstand_iec';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('widerstand_iec', 0, 'rechteck', 0.3125, 0.25, 0.6875, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('widerstand_iec', 1, 'linie', 0.5, 0, 0.5, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('widerstand_iec', 2, 'linie', 0.5, 0.75, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 12, bmk_seite = 'vertikal' WHERE id = 'kondensator';
+DELETE FROM symbol_pin WHERE symbol_id = 'kondensator';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('kondensator', '+', 0.5, 0, 0, -1, 'power');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('kondensator', '-', 0.5, 1, 0, 1, 'power');
+UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'kondensator' AND name = '-';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'kondensator';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 0, 'linie', 0.1875, 0.583333333333333, 0.8125, 0.583333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 1, 'linie', 0.8125, 0.416666666666667, 0.1875, 0.416666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 2, 'linie', 0.5, 0, 0.5, 0.416666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 3, 'linie', 0.5, 0.583333333333333, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');

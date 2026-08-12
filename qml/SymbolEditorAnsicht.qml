@@ -132,7 +132,8 @@ Item {
                     offenX:    vp.offenX !== undefined ? vp.offenX : (vp.offen ? vp.offen.x : -1),
                     offenY:    vp.offenY !== undefined ? vp.offenY : (vp.offen ? vp.offen.y : 0),
                     signaltyp: vp.signaltyp || "neutral",
-                    kontext:   vp.kontext   || ""
+                    kontext:   vp.kontext   || "",
+                    knotenGruppe: vp.knotenGruppe !== undefined ? vp.knotenGruppe : 0
                 })
             }
             primitive = vPrims.slice()
@@ -171,7 +172,8 @@ Item {
                     offenX:    p.offenX !== undefined ? p.offenX : (p.offen ? p.offen.x : -1),
                     offenY:    p.offenY !== undefined ? p.offenY : (p.offen ? p.offen.y : 0),
                     signaltyp: p.signaltyp || "neutral",
-                    kontext:   p.kontext   || ""
+                    kontext:   p.kontext   || "",
+                    knotenGruppe: p.knotenGruppe !== undefined ? p.knotenGruppe : 0
                 })
             }
             primitive = prims.slice()
@@ -274,7 +276,7 @@ Item {
 
     // ── Pin hinzufügen ─────────────────────────────────────────────
     function addPin(nx, ny) {
-        var neu = {name: "P" + (pins.length + 1), x: nx, y: ny, offenX: -1, offenY: 0, signaltyp: "neutral", kontext: ""}
+        var neu = {name: "P" + (pins.length + 1), x: nx, y: ny, offenX: -1, offenY: 0, signaltyp: "neutral", kontext: "", knotenGruppe: 0}
         pins = pins.concat([neu])
         undoStack = undoStack.concat([{typ: "pin"}])
         ausgewaehltPinIdx = pins.length - 1

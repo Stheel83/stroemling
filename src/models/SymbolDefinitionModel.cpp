@@ -299,8 +299,8 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
 {
     QSqlQuery q;
     q.prepare(R"(
-        INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, kontext)
-        VALUES (:sym, :name, :x, :y, :ox, :oy, :sig, :ctx)
+        INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe)
+        VALUES (:sym, :name, :x, :y, :ox, :oy, :sig, :ctx, :kg)
     )");
     q.bindValue(":sym",  symbolId);
     q.bindValue(":name", daten.value("name", ""));
@@ -310,6 +310,7 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
     q.bindValue(":oy",   daten.value("offenY", 0.0));
     q.bindValue(":sig",  daten.value("signaltyp", "neutral"));
     q.bindValue(":ctx",  daten.value("kontext", ""));
+    q.bindValue(":kg",   daten.value("knotenGruppe", 0));
     if (!q.exec()) {
         qCWarning(lcModel) << "pinHinzufuegen:" << q.lastError().text();
         return -1;

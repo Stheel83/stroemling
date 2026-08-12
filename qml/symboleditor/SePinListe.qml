@@ -46,6 +46,14 @@ Rectangle {
             Text { text: qsTr("y (mm)");    width: 62; font.pixelSize: 10; color: root.editor.theme.textMuted }
             Text { text: qsTr("Richtung"); width: 96; font.pixelSize: 10; color: root.editor.theme.textMuted }
             Text { text: qsTr("Signaltyp"); width: 95; font.pixelSize: 10; color: root.editor.theme.textMuted }
+            Text {
+                text: qsTr("Kn.-Gr.")
+                width: 48; font.pixelSize: 10; color: root.editor.theme.textMuted
+                ToolTip.visible: knGrHeaderHover.hovered
+                ToolTip.delay: 400
+                ToolTip.text: qsTr("Knoten-Gruppe: Pins mit unterschiedlicher Zahl gelten in der Netzberechnung als getrennte Anschlüsse desselben Symbols (z.B. bei Widerstand/Kondensator/Spule nötig, damit beide Pole nicht intern kurzgeschlossen erscheinen). Gleiche Zahl (Default 0) = Pins gelten als intern verbunden, wie bei Klemme/Schalter.")
+                HoverHandler { id: knGrHeaderHover }
+            }
             Item { Layout.fillWidth: true }
 
             Button {
@@ -55,8 +63,8 @@ Rectangle {
                 onClicked: {
                     var yMid = 0.5
                     root.editor.pins = [
-                        {name:"1", x:0.0, y:yMid, offenX:-1, offenY:0, signaltyp:"neutral", kontext:""},
-                        {name:"2", x:1.0, y:yMid, offenX:1,  offenY:0, signaltyp:"neutral", kontext:""}
+                        {name:"1", x:0.0, y:yMid, offenX:-1, offenY:0, signaltyp:"neutral", kontext:"", knotenGruppe:0},
+                        {name:"2", x:1.0, y:yMid, offenX:1,  offenY:0, signaltyp:"neutral", kontext:"", knotenGruppe:0}
                     ]
                     root.editor.ausgewaehltPinIdx = -1
                     root.editor.repaintAll()
@@ -72,8 +80,8 @@ Rectangle {
                 onClicked: {
                     var xMid = 0.5
                     root.editor.pins = [
-                        {name:"1", x:xMid, y:0.0, offenX:0, offenY:-1, signaltyp:"neutral", kontext:""},
-                        {name:"2", x:xMid, y:1.0, offenX:0, offenY:1,  signaltyp:"neutral", kontext:""}
+                        {name:"1", x:xMid, y:0.0, offenX:0, offenY:-1, signaltyp:"neutral", kontext:"", knotenGruppe:0},
+                        {name:"2", x:xMid, y:1.0, offenX:0, offenY:1,  signaltyp:"neutral", kontext:"", knotenGruppe:0}
                     ]
                     root.editor.ausgewaehltPinIdx = -1
                     root.editor.repaintAll()
@@ -85,7 +93,7 @@ Rectangle {
             Button {
                 text: qsTr("+ Pin"); implicitHeight: 24; implicitWidth: 58
                 onClicked: {
-                    root.editor.pins = root.editor.pins.concat([{name:"P"+(root.editor.pins.length+1),x:0.5,y:1,offenX:0,offenY:1,signaltyp:"neutral",kontext:""}])
+                    root.editor.pins = root.editor.pins.concat([{name:"P"+(root.editor.pins.length+1),x:0.5,y:1,offenX:0,offenY:1,signaltyp:"neutral",kontext:"",knotenGruppe:0}])
                     root.editor.ausgewaehltPinIdx = root.editor.pins.length - 1
                     root.editor.repaintAll()
                 }
@@ -232,6 +240,24 @@ Rectangle {
                         background: Rectangle { color: root.editor.theme.inputBg; border.color: root.editor.theme.border; radius: 4 }
                         contentItem: Text { text: parent.displayText; color: root.editor.theme.textPrimary; font.pixelSize: 10;
                                             leftPadding: 6; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                    }
+
+                    TextField {
+                        width: 40; height: 30; font.pixelSize: 11
+                        text: (parent.parent.myPin.knotenGruppe !== undefined ? parent.parent.myPin.knotenGruppe : 0).toString()
+                        validator: IntValidator { bottom: 0; top: 9 }
+                        horizontalAlignment: Text.AlignHCenter
+                        background: Rectangle { color: root.editor.theme.inputBg; radius: 3; border.color: root.editor.theme.border }
+                        color: root.editor.theme.textPrimary
+                        ToolTip.visible: hovered
+                        ToolTip.delay: 600
+                        ToolTip.text: qsTr("Knoten-Gruppe (0 = mit anderen Pins gleicher Gruppe intern verbunden)")
+                        onEditingFinished: {
+                            var arr = root.editor.pins.slice()
+                            var p   = Object.assign({}, arr[parent.parent.myIdx])
+                            p.knotenGruppe = parseInt(text) || 0
+                            arr[parent.parent.myIdx] = p; root.editor.pins = arr
+                        }
                     }
 
                     Rectangle {

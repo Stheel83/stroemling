@@ -39,7 +39,8 @@ Rectangle {
                 if (!p2) return []
                 switch (p2.typ) {
                 case "linie":             return ["x1","y1","x2","y2"]
-                case "rechteck":          return ["x1","y1","x2","y2"]
+                case "rechteck":
+                case "rechteck_gefuellt": return ["x1","y1","x2","y2"]
                 case "kreis_offen":
                 case "kreis_gefuellt":    return ["x1","y1","radius"]
                 case "bogen":             return ["x1","y1","radius","winkel_von","winkel_bis"]

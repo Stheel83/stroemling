@@ -70,6 +70,36 @@ Rectangle {
                                 leftPadding: 6; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
 
+        Rectangle {
+            width: 64; height: 26; radius: 4
+            color: editor.aktGefuellt ? editor.theme.accent : editor.theme.inputBg
+            border.color: editor.theme.border
+            ToolTip.visible: fuellArea.containsMouse
+            ToolTip.delay: 600
+            ToolTip.text: qsTr("Rechteck/Kreis gefüllt zeichnen")
+            Row {
+                anchors.centerIn: parent
+                spacing: 4
+                Text {
+                    text: "■"
+                    font.pixelSize: 11
+                    color: editor.aktGefuellt ? "white" : editor.theme.textPrimary
+                }
+                Text {
+                    text: qsTr("Gefüllt")
+                    font.pixelSize: 9
+                    color: editor.aktGefuellt ? "white" : editor.theme.textMuted
+                }
+            }
+            MouseArea {
+                id: fuellArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: editor.aktGefuellt = !editor.aktGefuellt
+            }
+        }
+
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "⌘Z"

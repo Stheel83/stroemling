@@ -50,6 +50,11 @@ Dialog {
                 case "rechteck":
                     ctx.strokeRect(p.x1 * w, p.y1 * h, (p.x2 - p.x1) * w, (p.y2 - p.y1) * h)
                     break
+                case "rechteck_gefuellt":
+                    ctx.save(); ctx.fillStyle = ctx.strokeStyle
+                    ctx.fillRect(p.x1 * w, p.y1 * h, (p.x2 - p.x1) * w, (p.y2 - p.y1) * h)
+                    ctx.restore()
+                    break
                 case "kreis_offen":
                     ctx.beginPath()
                     ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)

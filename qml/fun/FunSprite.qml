@@ -76,6 +76,12 @@ Item {
                     case "rechteck":
                         ctx.strokeRect(p.x1*pw, p.y1*ph, (p.x2-p.x1)*pw, (p.y2-p.y1)*ph)
                         break
+                    case "rechteck_gefuellt":
+                        ctx.save()
+                        ctx.fillStyle = ctx.strokeStyle
+                        ctx.fillRect(p.x1*pw, p.y1*ph, (p.x2-p.x1)*pw, (p.y2-p.y1)*ph)
+                        ctx.restore()
+                        break
                     case "kreis_offen":
                         ctx.beginPath()
                         ctx.arc(p.x1*pw, p.y1*ph, p.radius*pw, 0, 2*Math.PI)

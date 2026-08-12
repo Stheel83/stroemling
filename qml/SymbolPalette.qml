@@ -484,6 +484,13 @@ Rectangle {
                                     ctx.strokeRect(sx(p.x1), sy(p.y1),
                                                    (p.x2 - p.x1) * scale, (p.y2 - p.y1) * scale)
                                     break
+                                case "rechteck_gefuellt":
+                                    ctx.save()
+                                    ctx.fillStyle = ctx.strokeStyle
+                                    ctx.fillRect(sx(p.x1), sy(p.y1),
+                                                 (p.x2 - p.x1) * scale, (p.y2 - p.y1) * scale)
+                                    ctx.restore()
+                                    break
                                 case "kreis_offen":
                                     ctx.beginPath()
                                     ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)

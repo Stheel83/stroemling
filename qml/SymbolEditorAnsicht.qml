@@ -54,6 +54,7 @@ Item {
     property int    ausgewaehltPrimIdx: -1
     property int    ausgewaehltPinIdx:  -1
     property string aktLinienart:       "solid"
+    property bool   aktGefuellt:        false
 
     // Zwischenpunkte für Mehrstufenwerkzeuge (Linie, Rechteck, Kreis, Bogen)
     property var    werkzeugPunkte: []
@@ -388,6 +389,14 @@ Item {
                 distPunktZuSegment(nx, ny, p.x2, p.y1, p.x2, p.y2),
                 distPunktZuSegment(nx, ny, p.x1, p.y2, p.x2, p.y2),
                 distPunktZuSegment(nx, ny, p.x1, p.y1, p.x1, p.y2))
+        case "rechteck_gefuellt":
+            if (nx >= Math.min(p.x1,p.x2) && nx <= Math.max(p.x1,p.x2) &&
+                ny >= Math.min(p.y1,p.y2) && ny <= Math.max(p.y1,p.y2)) return 0
+            return Math.min(
+                distPunktZuSegment(nx, ny, p.x1, p.y1, p.x2, p.y1),
+                distPunktZuSegment(nx, ny, p.x2, p.y1, p.x2, p.y2),
+                distPunktZuSegment(nx, ny, p.x1, p.y2, p.x2, p.y2),
+                distPunktZuSegment(nx, ny, p.x1, p.y1, p.x1, p.y2))
         case "kreis_offen":
             return Math.abs(Math.sqrt((nx-p.x1)*(nx-p.x1)+(ny-p.y1)*(ny-p.y1))-p.radius)
         case "kreis_gefuellt":
@@ -684,7 +693,7 @@ Item {
                                     zeichneCanvas.zeichneGriff(ctx, n2sx(p.x1 || 0), n2sy(p.y1 || 0))
                                     zeichneCanvas.zeichneKoordLabel(ctx, n2sx(p.x1 || 0), n2sy(p.y1 || 0),
                                         "X1", "Y1", root.normToMmX(p.x1 || 0), root.normToMmY(p.y1 || 0))
-                                    if (p.typ === "linie" || p.typ === "rechteck") {
+                                    if (p.typ === "linie" || p.typ === "rechteck" || p.typ === "rechteck_gefuellt") {
                                         zeichneCanvas.zeichneGriff(ctx, n2sx(p.x2 || 0), n2sy(p.y2 || 0))
                                         zeichneCanvas.zeichneKoordLabel(ctx, n2sx(p.x2 || 0), n2sy(p.y2 || 0),
                                             "X2", "Y2", root.normToMmX(p.x2 || 0), root.normToMmY(p.y2 || 0))
@@ -804,6 +813,13 @@ Item {
                             case "rechteck":
                                 ctx.strokeRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh,
                                                ((p.x2||0)-(p.x1||0))*dw, ((p.y2||0)-(p.y1||0))*dh)
+                                break
+                            case "rechteck_gefuellt":
+                                ctx.save()
+                                ctx.fillStyle = ctx.strokeStyle
+                                ctx.fillRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh,
+                                             ((p.x2||0)-(p.x1||0))*dw, ((p.y2||0)-(p.y1||0))*dh)
+                                ctx.restore()
                                 break
                             case "kreis_offen":
                                 ctx.beginPath()
@@ -946,7 +962,7 @@ Item {
                                         var o   = dragObjStart
                                         p.x1 = Math.max(0, Math.min(1, root.snapX((o.x1 || 0) + ddx)))
                                         p.y1 = Math.max(0, Math.min(1, root.snapY((o.y1 || 0) + ddy)))
-                                        if (p.typ === "linie" || p.typ === "rechteck") {
+                                        if (p.typ === "linie" || p.typ === "rechteck" || p.typ === "rechteck_gefuellt") {
                                             p.x2 = Math.max(0, Math.min(1, root.snapX((o.x2 || 0) + ddx)))
                                             p.y2 = Math.max(0, Math.min(1, root.snapY((o.y2 || 0) + ddy)))
                                         }
@@ -1011,7 +1027,7 @@ Item {
                                     } else {
                                         var rx1=Math.min(root.werkzeugPunkte[0].x,nx), ry1=Math.min(root.werkzeugPunkte[0].y,ny)
                                         var rx2=Math.max(root.werkzeugPunkte[0].x,nx), ry2=Math.max(root.werkzeugPunkte[0].y,ny)
-                                        root.addPrimitiv({typ:"rechteck",x1:rx1,y1:ry1,x2:rx2,y2:ry2,linienart:root.aktLinienart})
+                                        root.addPrimitiv({typ:(root.aktGefuellt?"rechteck_gefuellt":"rechteck"),x1:rx1,y1:ry1,x2:rx2,y2:ry2,linienart:root.aktLinienart})
                                         root.werkzeugPunkte = []
                                     }
                                     break
@@ -1022,7 +1038,7 @@ Item {
                                     } else {
                                         var kdw = zeichneCanvas.drawW, kdh = zeichneCanvas.drawH
                                         var krad = Math.sqrt(Math.pow((nx-root.werkzeugPunkte[0].x)*kdw, 2) + Math.pow((ny-root.werkzeugPunkte[0].y)*kdh, 2)) / kdw
-                                        root.addPrimitiv({typ:"kreis_offen",x1:root.werkzeugPunkte[0].x,y1:root.werkzeugPunkte[0].y,radius:krad,linienart:root.aktLinienart})
+                                        root.addPrimitiv({typ:(root.aktGefuellt?"kreis_gefuellt":"kreis_offen"),x1:root.werkzeugPunkte[0].x,y1:root.werkzeugPunkte[0].y,radius:krad,linienart:root.aktLinienart})
                                         root.werkzeugPunkte = []
                                     }
                                     break

@@ -122,6 +122,17 @@ static void pdfPrimitivRendern(QPainter &p, const QVariantMap &pr,
         double rh = (pr.value("y2").toDouble() - pr.value("y1").toDouble()) * h;
         p.drawRect(QRectF(rx, ry, rw, rh));
 
+    } else if (typ == "rechteck_gefuellt") {
+        double rx = pr.value("x1").toDouble() * w;
+        double ry = pr.value("y1").toDouble() * h;
+        double rw = (pr.value("x2").toDouble() - pr.value("x1").toDouble()) * w;
+        double rh = (pr.value("y2").toDouble() - pr.value("y1").toDouble()) * h;
+        p.setBrush(pen.color());
+        p.setPen(Qt::NoPen);
+        p.drawRect(QRectF(rx, ry, rw, rh));
+        p.setPen(pen);
+        p.setBrush(Qt::NoBrush);
+
     } else if (typ == "kreis_offen") {
         double cx = pr.value("x1").toDouble() * w;
         double cy = pr.value("y1").toDouble() * h;

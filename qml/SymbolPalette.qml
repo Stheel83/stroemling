@@ -49,11 +49,6 @@ Rectangle {
     // Eigene (nicht-eingebaute) Symbole aus symbol_definition
     property var eigeneSymboleList: []
 
-    // Zum Löschen markierte Symbol-IDs (SYM-LOESCH-MARKIERUNG-01,
-    // Entwicklungsphase-Werkzeug — reine Merkliste für spätere manuelle
-    // Bereinigung, kein automatisches Löschen).
-    property var markierteLoeschen: []
-
     // ── Hilfsfunktionen ───────────────────────────────────────
     function laden() {
         alleSymbole = db.symboleNachNorm("IEC")
@@ -73,22 +68,6 @@ Rectangle {
             }
         }
         eigeneSymboleList = eigene
-        markierteLoeschenLaden()
-    }
-
-    function markierteLoeschenLaden() {
-        markierteLoeschen = symbolDefinitionModel.symboleMarkiertLoeschen()
-    }
-
-    function istMarkiertLoeschen(code) {
-        return code !== undefined && markierteLoeschen.indexOf(code) !== -1
-    }
-
-    function markierungLoeschenToggle(sym) {
-        if (!sym || sym.code === undefined) return
-        var neu = !root.istMarkiertLoeschen(sym.code)
-        symbolDefinitionModel.markierungLoeschenSetzen(sym.code, neu)
-        root.markierteLoeschenLaden()
     }
 
     function abwaehlen() {
@@ -394,11 +373,9 @@ Rectangle {
                                     root.zuletztHinzufuegen(root.aktivesSymbol)
                                 }
                             }
-                            markiertLoeschen: root.istMarkiertLoeschen(modelData.code)
                             onFavKlick:       root.favoritToggle(modelData)
                             onVorlageKopieren: root.vorlageFuerEditor(modelData.code)
                             onBearbeiten:      root.editorOeffnen(modelData.code)
-                            onMarkierenToggle: root.markierungLoeschenToggle(modelData)
                             onLoeschen: {
                                 symbolDefinitionModel.symbolLoeschen(modelData.code)
                                 root.laden()
@@ -447,14 +424,12 @@ Rectangle {
     }
 
     component SymbolZeile: Item {
-        property var  sym:              null
-        property bool aktiv:            false
-        property bool markiertLoeschen: false
+        property var  sym:   null
+        property bool aktiv: false
         signal symbolKlick()
         signal favKlick()
         signal vorlageKopieren()
         signal bearbeiten()
-        signal markierenToggle()
         signal loeschen()
 
         width: root.width; height: 52
@@ -568,18 +543,6 @@ Rectangle {
                         function onAlleSymboleChanged()   { vorschau.requestPaint() }
                         function onThemeChanged()         { vorschau.requestPaint() }
                     }
-
-                    // Löschmarkierung-Badge (SYM-LOESCH-MARKIERUNG-01)
-                    Text {
-                        anchors { top: parent.top; right: parent.right; margins: -2 }
-                        visible: markiertLoeschen
-                        text: "🗑"
-                        font.pixelSize: 12
-                        ToolTip.visible: markierBadgeMa.containsMouse
-                        ToolTip.text: qsTr("Zum Löschen markiert")
-                        ToolTip.delay: 400
-                        MouseArea { id: markierBadgeMa; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
-                    }
                 }
 
                 // Name + Favorit-Knopf
@@ -637,11 +600,6 @@ Rectangle {
                     height:  visible ? implicitHeight : 0
                     text:    qsTr("Löschen")
                     onTriggered: loeschen()
-                }
-                MenuSeparator {}
-                MenuItem {
-                    text: markiertLoeschen ? qsTr("Löschmarkierung aufheben") : qsTr("Zum Löschen markieren")
-                    onTriggered: markierenToggle()
                 }
             }
 

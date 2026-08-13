@@ -162,16 +162,17 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 QVariantList SymbolDefinitionModel::alleSymbole() const
 {
     QVariantList result;
-    QSqlQuery q("SELECT id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin FROM symbol_definition ORDER BY ist_builtin DESC, kategorie, name");
+    QSqlQuery q("SELECT id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, markiert_loeschen FROM symbol_definition ORDER BY ist_builtin DESC, kategorie, name");
     while (q.next()) {
         QVariantMap m;
-        m["id"]          = q.value(0).toString();
-        m["name"]        = q.value(1).toString();
-        m["kategorie"]   = q.value(2).toString();
-        m["breiteMm"]    = q.value(3).toInt();
-        m["hoeheMm"]     = q.value(4).toInt();
-        m["rolle"]       = q.value(5).toString();
-        m["ist_builtin"] = q.value(6).toInt() != 0;
+        m["id"]               = q.value(0).toString();
+        m["name"]             = q.value(1).toString();
+        m["kategorie"]        = q.value(2).toString();
+        m["breiteMm"]         = q.value(3).toInt();
+        m["hoeheMm"]          = q.value(4).toInt();
+        m["rolle"]            = q.value(5).toString();
+        m["ist_builtin"]      = q.value(6).toInt() != 0;
+        m["markiertLoeschen"] = q.value(7).toInt() != 0;
         result.append(m);
     }
     return result;

@@ -98,6 +98,8 @@ Rectangle {
                             ? root.editor.theme.badge
                             : (listeItemHover.hovered ? root.editor.theme.surfaceDeep : "transparent")
                     radius: 2
+                    border.width: modelData.markiertLoeschen ? 1 : 0
+                    border.color: "#cc4444"
 
                     ColumnLayout {
                         anchors { fill: parent; leftMargin: 8; rightMargin: 6; topMargin: 5; bottomMargin: 5 }
@@ -146,6 +148,24 @@ Rectangle {
                                         root.editor.vorlageId      = ""
                                         Qt.callLater(function() { root.editor.vorlageId = src })
                                     }
+                                }
+                            }
+
+                            // Zum Löschen markieren (SYM-LOESCH-MARKIERUNG-01) — built-in + eigene
+                            Rectangle {
+                                width: 22; height: 22; radius: 3
+                                visible: listeItemHover.hovered || root.editor.aktiveListenId === modelData.id ||
+                                         modelData.markiertLoeschen
+                                color:   listeMarkHover.hovered ? root.editor.theme.badge : "transparent"
+                                ToolTip.visible: listeMarkHover.hovered; ToolTip.delay: 600
+                                ToolTip.text: modelData.markiertLoeschen ? qsTr("Löschmarkierung aufheben") : qsTr("Zum Löschen markieren")
+                                Text {
+                                    anchors.centerIn: parent; text: "🗑"; font.pixelSize: 12
+                                    color: modelData.markiertLoeschen ? "#cc4444" : root.editor.theme.textSecondary
+                                }
+                                HoverHandler { id: listeMarkHover }
+                                TapHandler {
+                                    onTapped: root.editor.markierungLoeschenToggle(modelData.id)
                                 }
                             }
 

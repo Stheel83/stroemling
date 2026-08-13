@@ -186,6 +186,18 @@ Item {
         listenSymbole = symbolDefinitionModel.alleSymbole()
     }
 
+    // Löschmarkierung umschalten (SYM-LOESCH-MARKIERUNG-01, Entwicklungsphase-
+    // Werkzeug) — funktioniert für built-in UND eigene Symbole, im Gegensatz
+    // zum harten Löschen-Button (nur eigene). Reiner Merker, löscht nichts.
+    function markierungLoeschenToggle(symbolId) {
+        var alt = false
+        for (var i = 0; i < listenSymbole.length; i++) {
+            if (listenSymbole[i].id === symbolId) { alt = !!listenSymbole[i].markiertLoeschen; break }
+        }
+        symbolDefinitionModel.markierungLoeschenSetzen(symbolId, !alt)
+        symbollisteAktualisieren()
+    }
+
     function neuesSymbol() {
         aktiveListenId = ""
         vorlageId      = ""

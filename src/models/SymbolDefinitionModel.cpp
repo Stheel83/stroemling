@@ -142,7 +142,7 @@ QString SymbolDefinitionModel::rolleForSymbol(const QString &symbolId) const
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
@@ -153,6 +153,7 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
         m["rolle"]       = q.value(4).toString();
         m["ist_builtin"] = q.value(5).toInt() != 0;
         m["bmkSeite"]    = q.value(6).toString();
+        m["kopieVonId"]  = q.value(7).toString();
         return m;
     }
     return {};

@@ -186,7 +186,7 @@ Rectangle {
             }
             Timer { id: sqlKopiertTimer; interval: 1500 }
             ToolTip.visible: hovered; ToolTip.delay: 600
-            ToolTip.text: qsTr("SQL-INSERT für dieses Symbol in Zwischenablage kopieren")
+            ToolTip.text: qsTr("Fertigen SQL-Block (Migration bei Kopie eines Originals, sonst Seed-INSERT) in Zwischenablage kopieren")
         }
 
         Button {

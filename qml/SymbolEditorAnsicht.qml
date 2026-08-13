@@ -215,49 +215,113 @@ Item {
         klipboardHelper.copy()
     }
 
+    // SYM-KOPIE-VON-01/-EXPORT-01: liefert direkt einsetzbares SQL statt
+    // roher INSERTs, die Claude von Hand in eine Migration umbauen müsste.
+    // Zwei Modi je nach kopie_von_id des Symbols:
+    //  - Zielt die Kopie auf ein bestehendes (i.d.R. built-in) Symbol, wird
+    //    ein fertiger Migrationsblock erzeugt, der dessen Geometrie ersetzt
+    //    (UPDATE + DELETE/INSERT, exakt das Format aus Database_Schema.cpp).
+    //  - Sonst ein Seed-Block (INSERT OR IGNORE, inkl. Legacy-symbol-Tabelle)
+    //    für ein komplett neues Symbol.
     function sqlAlsText(symbolId) {
         var info    = symbolDefinitionModel.symbolInfo(symbolId)
         var prims   = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
         var pinList = symbolDefinitionModel.pinsForSymbol(symbolId)
         if (!info || !info.name) return ""
         function esc(s) { return (s || "").replace(/'/g, "''") }
-        var lines = []
-        lines.push("-- ── " + info.name + " ──")
-        lines.push("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES")
-        lines.push("('" + esc(symbolId) + "', '" + esc(info.name) + "', '" + esc(info.kategorie || "") + "', " +
-                   (info.breiteMm || 32) + ", " + (info.hoeheMm || 16) + ", '" + esc(info.rolle || "durchleiter") + "', 0);")
-        lines.push("")
-        if (pinList.length > 0) {
-            lines.push("INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES")
-            for (var pi = 0; pi < pinList.length; pi++) {
-                var pin = pinList[pi]
-                var ox  = pin.offenX !== undefined ? pin.offenX : (pin.offen ? pin.offen.x : -1)
-                var oy  = pin.offenY !== undefined ? pin.offenY : (pin.offen ? pin.offen.y : 0)
-                lines.push("('" + esc(symbolId) + "', '" + esc(pin.name) + "', " +
-                            fmtN(pin.x) + ", " + fmtN(pin.y) + ", " + fmtN(ox) + ", " + fmtN(oy) +
-                            ", '" + esc(pin.signaltyp || "neutral") + "')" +
-                            (pi < pinList.length - 1 ? "," : ";"))
+
+        function pinWerte(zielId) {
+            var t = []
+            for (var i = 0; i < pinList.length; i++) {
+                var p  = pinList[i]
+                var ox = p.offenX !== undefined ? p.offenX : (p.offen ? p.offen.x : -1)
+                var oy = p.offenY !== undefined ? p.offenY : (p.offen ? p.offen.y : 0)
+                t.push("('" + esc(zielId) + "', '" + esc(p.name) + "', " +
+                       fmtN(p.x) + ", " + fmtN(p.y) + ", " + fmtN(ox) + ", " + fmtN(oy) +
+                       ", '" + esc(p.signaltyp || "neutral") + "')")
             }
-            lines.push("")
+            return t.join(", ")
         }
-        if (prims.length > 0) {
-            lines.push("INSERT INTO symbol_primitiv")
-            lines.push("    (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3,")
-            lines.push("     radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,")
-            lines.push("     text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart)")
-            lines.push("VALUES")
-            for (var pri = 0; pri < prims.length; pri++) {
-                var p  = prims[pri]
+
+        function primWerte(zielId) {
+            var t = []
+            for (var i = 0; i < prims.length; i++) {
+                var p  = prims[i]
                 var ti = (p.text_inhalt && p.text_inhalt.length > 0) ? "'" + esc(p.text_inhalt) + "'" : "NULL"
-                lines.push("('" + esc(symbolId) + "', " + pri + ", '" + esc(p.typ) + "', " +
-                            fmtN(p.x1) + ", " + fmtN(p.y1) + ", " + fmtN(p.x2) + ", " + fmtN(p.y2) + ", " +
-                            fmtN(p.x3) + ", " + fmtN(p.y3) + ", " +
-                            fmtN(p.radius) + ", " + fmtN(p.winkel_von) + ", " + fmtN(p.winkel_bis) + ", " +
-                            (p.bogen_gegen_uhrzeiger ? 1 : 0) + ", " +
-                            ti + ", " + fmtN(p.schrift_relativ || 0.5) + ", " + (p.schrift_fett ? 1 : 0) + ", " +
-                            "'" + esc(p.text_align || "center") + "', '" + esc(p.text_baseline || "middle") + "', '" +
-                            esc(p.linienart || "solid") + "')" +
-                            (pri < prims.length - 1 ? "," : ";"))
+                t.push("('" + esc(zielId) + "', " + i + ", '" + esc(p.typ) + "', " +
+                       fmtN(p.x1) + ", " + fmtN(p.y1) + ", " + fmtN(p.x2) + ", " + fmtN(p.y2) + ", " +
+                       fmtN(p.x3) + ", " + fmtN(p.y3) + ", " +
+                       fmtN(p.radius) + ", " + fmtN(p.winkel_von) + ", " + fmtN(p.winkel_bis) + ", " +
+                       (p.bogen_gegen_uhrzeiger ? 1 : 0) + ", " +
+                       ti + ", " + fmtN(p.schrift_relativ || 0.5) + ", " + (p.schrift_fett ? 1 : 0) + ", " +
+                       "'" + esc(p.text_align || "center") + "', '" + esc(p.text_baseline || "middle") + "', '" +
+                       esc(p.linienart || "solid") + "')")
+            }
+            return t.join(", ")
+        }
+
+        var zielId       = symbolId
+        var zielName     = info.name
+        var replaceModus = false
+        if (info.kopieVonId && info.kopieVonId !== "") {
+            var orig = symbolDefinitionModel.symbolInfo(info.kopieVonId)
+            if (orig && orig.name) {
+                replaceModus = true
+                zielId   = info.kopieVonId
+                zielName = orig.name
+            }
+        }
+        // Ohne eigene Umbenennung trägt die Kopie noch "Kopie von <Original>"
+        // (s. ladeDaten()) — dann den Original-Namen beibehalten statt ihn
+        // mit dem Kopie-Titel zu überschreiben.
+        var neuerName = (info.name.indexOf(qsTr("Kopie von ")) === 0) ? zielName : info.name
+
+        var lines = []
+        if (replaceModus) {
+            lines.push("-- Fertiger Migrationsblock für Database_Schema.cpp (alleMigrationen()).")
+            lines.push("-- <VERSION> auf die nächste freie Nummer setzen, Beschreibung ergänzen.")
+            lines.push("-- Ersetzt die Geometrie von '" + zielId + "' durch diese überarbeitete Kopie ('" + symbolId + "').")
+            lines.push('{ <VERSION>, "<BESCHREIBUNG>: \'' + zielId + '\' ueberarbeitet (aus Nutzer-Kopie \'' + symbolId + '\').", {')
+            lines.push('    R"(UPDATE symbol_definition SET name=' + "'" + esc(neuerName) + "'" +
+                        ', kategorie=' + "'" + esc(info.kategorie || "") + "'" +
+                        ', breite_mm=' + (info.breiteMm || 32) + ', hoehe_mm=' + (info.hoeheMm || 16) +
+                        ', rolle=' + "'" + esc(info.rolle || "durchleiter") + "'" +
+                        ', bmk_seite=' + "'" + esc(info.bmkSeite || "auto") + "'" +
+                        ' WHERE id=' + "'" + esc(zielId) + "'" + ')",')
+            lines.push('    R"(DELETE FROM symbol_pin WHERE symbol_id = ' + "'" + esc(zielId) + "'" + ')",')
+            if (pinList.length > 0)
+                lines.push('    R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ' + pinWerte(zielId) + ')",')
+            lines.push('    R"(DELETE FROM symbol_primitiv WHERE symbol_id = ' + "'" + esc(zielId) + "'" + ')",')
+            if (prims.length > 0)
+                lines.push('    R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ' + primWerte(zielId) + ')",')
+            lines.push("}},")
+            if (neuerName !== zielName) {
+                lines.push("")
+                lines.push("-- Name in der Legacy-symbol-Tabelle mitpflegen (steuert SymbolPalette.qml-Kategorieliste):")
+                lines.push('-- UPDATE symbol SET name = ' + "'" + esc(neuerName) + "'" + ' WHERE code = ' + "'" + esc(zielId) + "'" + ';')
+            }
+        } else {
+            lines.push("-- Neues Symbol (kopie_von_id leer oder Original nicht mehr vorhanden).")
+            lines.push("-- Ziel: symbole.sql (Basis-Seed) ODER neue Migration in Database_Schema.cpp,")
+            lines.push("-- je nachdem wo verwandte Symbole bereits geseedet werden.")
+            lines.push("-- kategorie_pfad/norm in der Legacy-symbol-Tabelle prüfen (Platzhalter unten).")
+            lines.push("")
+            lines.push("INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES")
+            lines.push("('" + esc(symbolId) + "', '" + esc(info.name) + "', '" + esc((info.kategorie || "").toLowerCase()) + "', 'IEC,ANSI', " + pinList.length + ");")
+            lines.push("")
+            lines.push("INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES")
+            lines.push("('" + esc(symbolId) + "', '" + esc(info.name) + "', '" + esc(info.kategorie || "") + "', " +
+                       (info.breiteMm || 32) + ", " + (info.hoeheMm || 16) + ", '" + esc(info.rolle || "durchleiter") + "', 1, '" +
+                       esc(info.bmkSeite || "auto") + "');")
+            if (pinList.length > 0) {
+                lines.push("")
+                lines.push("INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES")
+                lines.push(pinWerte(symbolId) + ";")
+            }
+            if (prims.length > 0) {
+                lines.push("")
+                lines.push("INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES")
+                lines.push(primWerte(symbolId) + ";")
             }
         }
         return lines.join("\n")

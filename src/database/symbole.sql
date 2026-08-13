@@ -15,15 +15,15 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('sicherung',       'Sicherung',               'Schutz',       32, 16, 'durchleiter', 1),
 ('lss',             'Leitungsschutzschalter',  'Schutz',       12, 4, 'durchleiter', 1),
 ('fi',              'FI-Schutzschalter',       'Schutz',       12, 4, 'durchleiter', 1),
-('motor',           'Motor',                   'Antriebe',     32, 16, 'verbraucher', 1),
+('motor',           'Motor',                   'Antriebe',     16, 12, 'verbraucher', 1),
 ('motor_dc',        'Gleichstrommotor',        'Antriebe',     32, 16, 'verbraucher', 1),
-('spule',           'Spule / Relais',          'Antriebe',     16, 16, 'verbraucher', 1),
+('spule',           'Spule / Relais',          'Antriebe',     8, 12, 'verbraucher', 1),
 ('spule_ansi',      'Coil / Relay (ANSI)',     'Antriebe',     32, 16, 'verbraucher', 1),
 ('lampe',           'Lampe',                   'Signalgeräte', 32, 16, 'verbraucher', 1),
 ('hupe',            'Hupe / Klingel',          'Signalgeräte', 32, 16, 'verbraucher', 1),
 ('summer',          'Summer',                  'Signalgeräte', 32, 16, 'verbraucher', 1),
-('trafo',           'Transformator',           'Antriebe',     32, 32, 'verbraucher', 1),
-('netzteil',        'Netzteil',                'Antriebe',     32, 32, 'verbraucher', 1),
+('trafo',           'Transformator',           'Antriebe',     16, 16, 'verbraucher', 1),
+('netzteil',        'Netzteil',                'Antriebe',     16, 16, 'verbraucher', 1),
 ('widerstand_iec',  'Widerstand (IEC)',        'Passive',      32, 16, 'verbraucher', 1),
 ('widerstand_ansi', 'Resistor (ANSI)',         'Passive',      32, 16, 'verbraucher', 1),
 ('kondensator',     'Kondensator',             'Passive',      32, 16, 'verbraucher', 1),
@@ -36,7 +36,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('treffpunkt_l',    'Treffpunkt L',            'Verbindungen', 16, 16, 'durchleiter', 1),
 ('geraeteanschluss','Geräteanschluss',         'Verbindungen',  8,  8, 'variabel',    1),
 ('unterbrechung',   'Unterbrechung',           'Verbindungen', 16, 16, 'trenner',     1),
-('querverweis',     'Querverweis',             'Verbindungen', 16, 16, 'durchleiter', 1),
+('querverweis',     'Querverweis',             'Verbindungen', 8, 8, 'durchleiter', 1),
 ('aderdefinition',  'Aderdefinition',          'Verbindungen', 4, 4, 'durchleiter', 1),
 ('klemme_anschluss','Klemmenanschluss',        'Verbindungen',  8,  8, 'durchleiter', 1),
 ('potenzial',       'Potenzialpunkt',          'Verbindungen',  8,  8, 'quelle',      1),
@@ -66,16 +66,16 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('lss',             '2',   1,    0.5,   1,  0, 'neutral'),
 ('fi',              '1',   0,    0.5,  -1,  0, 'neutral'),
 ('fi',              '2',   1,    0.5,   1,  0, 'neutral'),
--- motor
-('motor',           'U',   0,    0.25, -1,  0, 'power'),
-('motor',           'V',   0,    0.5,  -1,  0, 'power'),
-('motor',           'W',   0,    0.75, -1,  0, 'power'),
+-- motor (SYM-KOPIE-VON-01-Sync Aug 2026, Projekt Görke: Pins links -> oben gedreht)
+('motor',           'U',   0.25, 0,    0,  -1, 'power'),
+('motor',           'V',   0.5,  0,    0,  -1, 'power'),
+('motor',           'W',   0.75, 0,    0,  -1, 'power'),
 -- motor_dc (Permanentmagnet, 2 Anker-Anschlüsse)
 ('motor_dc',        'A1',  0,    0.5,  -1,  0, 'power'),
 ('motor_dc',        'A2',  1,    0.5,   1,  0, 'power'),
 -- spule / spule_ansi
 ('spule',           'A1',  0.5,  0,    0,  -1, 'power'),
-('spule',           'A2',  0.5,  1,    0,   1, 'power'),
+('spule',           'A2',  0.5,  1,    0,   1, 'n'),
 ('spule_ansi',      '1',   0,    0.5,  -1,  0, 'power'),
 ('spule_ansi',      '2',   1,    0.5,   1,  0, 'power'),
 -- lampe / hupe / summer
@@ -258,13 +258,13 @@ VALUES
 ('fi',         5, 'bogen',          0.435, 0.82, 0,     0,    0, 0, 0.065, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('fi',         6, 'bogen',          0.565, 0.82, 0,     0,    0, 0, 0.065,  0,  180, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
--- ── Motor ──
-('motor',      0, 'linie',          0,     0.25, 0.524, 0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('motor',      1, 'linie',          0,     0.5,  0.37,  0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('motor',      2, 'linie',          0,     0.75, 0.524, 0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('motor',      3, 'kreis_offen',    0.65,  0.5,  0,     0,    0, 0, 0.28, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('motor',      4, 'text',           0.65,  0.46, 0,     0,    0, 0, 0,    0,   0,   0, 'M',  0.20,1, 'center', 'middle', 'solid'),
-('motor',      5, 'text',           0.65,  0.61, 0,     0,    0, 0, 0,    0,   0,   0, '3~', 0.14,0, 'center', 'middle', 'solid'),
+-- ── Motor (SYM-KOPIE-VON-01-Sync Aug 2026, Projekt Görke: 32x16mm->16x12mm, Pins links->oben) ──
+('motor',      0, 'kreis_offen',    0.5,   0.625,0,     0,    0, 0, 0.28, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('motor',      1, 'text',           0.5,   0.541666666666667,0, 0, 0, 0, 0,   0,   0,   0, 'M',  0.20,1, 'center', 'middle', 'solid'),
+('motor',      2, 'text',           0.5,   0.75, 0,     0,    0, 0, 0,    0,   0,   0, '3~', 0.14,0, 'center', 'middle', 'solid'),
+('motor',      3, 'linie',          0.25,  0.458333333333333,0.25,0,0,0,0, 0, 360,   0, NULL, 0.15,0, 'center', 'middle', 'solid'),
+('motor',      4, 'linie',          0.5,   0.25, 0.5,   0,    0, 0, 0,    0, 360,   0, NULL, 0.15,0, 'center', 'middle', 'solid'),
+('motor',      5, 'linie',          0.75,  0.458333333333333,0.75,0,0,0,0, 0, 360,   0, NULL, 0.15,0, 'center', 'middle', 'solid'),
 
 -- ── Motor DC (Permanentmagnet) – Kreis mittig, Gleichstromzeichen (IEC 60417-5031-2:
 --    durchgezogene Linie über gestrichelter Linie) statt "3~" ──
@@ -275,10 +275,10 @@ VALUES
 ('motor_dc',   4, 'linie',          0.36,  0.585,0.64,  0.585,0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('motor_dc',   5, 'linie',          0.36,  0.65, 0.64,  0.65, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'dash'),
 
--- ── Spule IEC (A1 oben, A2 unten) ──
-('spule',      0, 'linie',          0.5,   0,    0.5,   0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('spule',      1, 'linie',          0.5,   0.75, 0.5,   1,    0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('spule',      2, 'rechteck',       0.0,   0.25, 1.0,   0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── Spule IEC (A1 oben, A2 unten; SYM-KOPIE-VON-01-Sync Aug 2026, Projekt Görke: 16x16mm->8x12mm) ──
+('spule',      0, 'linie',          0.5,   0,    0.5,   0.333333333333333, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('spule',      1, 'linie',          0.5,   0.666666666666667, 0.5,   1,    0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('spule',      2, 'rechteck',       0.0,   0.333333333333333, 1.0,   0.666666666666667, 0, 0, 0,    0, 360,   0, NULL, 0.15, 0, 'center', 'middle', 'solid'),
 
 -- ── Spule ANSI ──
 ('spule_ansi', 0, 'linie',          0,     0.5,  0.2,   0.5,  0, 0, 0,     0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
@@ -326,11 +326,11 @@ VALUES
 -- ── Netzteil – bewusst leerer Rechteck-Block ohne festen Text, damit
 --    Eingangs-/Ausgangsspannung frei über die Pin-Bezeichnungen im EP
 --    beschriftet werden kann (L/N/+/- sind nur Vorbelegung) ──
-('netzteil',   0, 'rechteck',       0.15,  0.15, 0.85,  0.85, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('netzteil',   1, 'linie',          0,     0.25, 0.15,  0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('netzteil',   2, 'linie',          0,     0.75, 0.15,  0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('netzteil',   3, 'linie',          0.85,  0.25, 1,     0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('netzteil',   4, 'linie',          0.85,  0.75, 1,     0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   0, 'rechteck',       0.15625, 0.15625, 0.84375, 0.84375, 0, 0, 0, 0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   1, 'linie',          0,     0.25, 0.15625, 0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   2, 'linie',          0,     0.75, 0.15625, 0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   3, 'linie',          0.84375, 0.25, 1,   0.25, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('netzteil',   4, 'linie',          0.84375, 0.75, 1,   0.75, 0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 
 -- ── Widerstand IEC ──
 ('widerstand_iec',  0, 'linie',     0,     0.5,  0.2,   0.5,  0, 0, 0,    0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
@@ -467,8 +467,8 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('sps_di_16', 'DI-Baugruppe 16-Kanal',    'SPS/PLS', 32, 136, 'variabel', 1),
 ('sps_do_8',  'DO-Baugruppe 8-Kanal',     'SPS/PLS', 32,  72, 'variabel', 1),
 ('sps_do_16', 'DO-Baugruppe 16-Kanal',    'SPS/PLS', 32, 136, 'variabel', 1),
-('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'SPS/PLS', 32,  40, 'variabel', 1),
-('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'SPS/PLS', 32,  72, 'variabel', 1),
+('sps_ai_4',  'AI-Baugruppe 4-Kanal',     'SPS/PLS', 12,  20, 'variabel', 1),
+('sps_ai_8',  'AI-Baugruppe 8-Kanal',     'SPS/PLS', 16,  36, 'variabel', 1),
 ('sps_ao_4',  'AO-Baugruppe 4-Kanal',     'SPS/PLS', 32,  40, 'variabel', 1),
 ('sps_cpu',   'CPU-Baugruppe',            'SPS/PLS', 32,  48, 'variabel', 1),
 ('pls_ai_8',  'PLS AI-Baugruppe 8-Kanal', 'SPS/PLS', 32,  72, 'variabel', 1),
@@ -631,24 +631,24 @@ VALUES
 ('sps_do_16', 15, 'linie', 0.85, 0.824, 1.0, 0.824, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sps_do_16', 16, 'linie', 0.85, 0.882, 1.0, 0.882, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('sps_do_16', 17, 'linie', 0.85, 0.941, 1.0, 0.941, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
--- ── sps_ai_4 (Analog Input 4-Kanal, 32x64mm, Pins links) ──
-('sps_ai_4',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+-- ── sps_ai_4 (Analog Input 4-Kanal, 12x20mm, Pins links; SYM-KOPIE-VON-01-Sync Aug 2026, Projekt Görke) ──
+('sps_ai_4',  0, 'rechteck', 0.166666666666667, 0.025, 0.833333333333333, 0.975, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
 ('sps_ai_4',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'AI 4', 0.10, 1, 'center', 'middle', 'solid'),
-('sps_ai_4',  2, 'linie', 0, 0.2, 0.15, 0.2, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_4',  3, 'linie', 0, 0.4, 0.15, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_4',  4, 'linie', 0, 0.6, 0.15, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_4',  5, 'linie', 0, 0.8, 0.15, 0.8, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
--- ── sps_ai_8 (Analog Input 8-Kanal, 32x80mm, Pins links) ──
-('sps_ai_8',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('sps_ai_4',  2, 'linie', 0, 0.2, 0.166666666666667, 0.2, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_4',  3, 'linie', 0, 0.4, 0.166666666666667, 0.4, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_4',  4, 'linie', 0, 0.6, 0.166666666666667, 0.6, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_4',  5, 'linie', 0, 0.8, 0.166666666666667, 0.8, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── sps_ai_8 (Analog Input 8-Kanal, 16x36mm, Pins links; SYM-KOPIE-VON-01-Sync Aug 2026, Projekt Görke) ──
+('sps_ai_8',  0, 'rechteck', 0.15625, 0.0138888888888889, 0.84375, 0.986111111111111, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
 ('sps_ai_8',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'AI 8', 0.08, 1, 'center', 'middle', 'solid'),
-('sps_ai_8',  2, 'linie', 0, 0.111, 0.15, 0.111, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  3, 'linie', 0, 0.222, 0.15, 0.222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  4, 'linie', 0, 0.333, 0.15, 0.333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  5, 'linie', 0, 0.444, 0.15, 0.444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  6, 'linie', 0, 0.556, 0.15, 0.556, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  7, 'linie', 0, 0.667, 0.15, 0.667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  8, 'linie', 0, 0.778, 0.15, 0.778, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('sps_ai_8',  9, 'linie', 0, 0.889, 0.15, 0.889, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  2, 'linie', 0, 0.111111111111111, 0.15625, 0.111111111111111, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  3, 'linie', 0, 0.222222222222222, 0.15625, 0.222222222222222, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  4, 'linie', 0, 0.333333333333333, 0.15625, 0.333333333333333, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  5, 'linie', 0, 0.444444444444444, 0.15625, 0.444444444444444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  6, 'linie', 0, 0.555555555555556, 0.15625, 0.555555555555556, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  7, 'linie', 0, 0.666666666666667, 0.15625, 0.666666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  8, 'linie', 0, 0.777777777777778, 0.15625, 0.777777777777778, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('sps_ai_8',  9, 'linie', 0, 0.888888888888889, 0.15625, 0.888888888888889, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- ── sps_ao_4 (Analog Output 4-Kanal, 32x64mm, Pins rechts) ──
 ('sps_ao_4',  0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
 ('sps_ao_4',  1, 'text',     0.5,  0.5,  0,    0,    0, 0, 0, 0, 0, 0, 'AO 4', 0.10, 1, 'center', 'middle', 'solid'),
@@ -838,7 +838,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('kfz_scheibenwischermotor',  'Scheibenwischermotor',         'KFZ', 36, 32, 'variabel', 1),
 ('kfz_lambdasonde',           'Lambdasonde',                  'KFZ', 16, 16, 'variabel', 1),
 ('kfz_steuergeraet',          'Steuergerät (ECU)',            'KFZ', 32, 32, 'variabel', 1),
-('kfz_cdi',                   'CDI-Zündbox',                  'KFZ', 32, 32, 'variabel', 1),
+('kfz_cdi',                   'CDI-Zündbox',                  'KFZ', 16, 16, 'variabel', 1),
 ('kfz_kombiinstrument',       'Kombiinstrument',              'KFZ', 40, 32, 'variabel', 1),
 ('kfz_sicherungskasten',      'Sicherungskasten',             'KFZ', 40, 48, 'variabel', 1),
 ('kfz_zuendspule',            'Zündspule',                    'KFZ', 32, 32, 'variabel', 1);
@@ -1396,7 +1396,7 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('brueckengleichrichter', 'Brückengleichrichter', 'Passive', 32, 32, 'verbraucher', 1);
+('brueckengleichrichter', 'Brückengleichrichter', 'Passive', 8, 8, 'verbraucher', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
 ('brueckengleichrichter', '~1', 0,   0.5,  -1,  0, 'power'),
@@ -2018,7 +2018,7 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('caravan_wechselrichter',      'Wechselrichter 12V→230V',                     'Caravan', 32,  32, 'verbraucher', 1),
 ('caravan_landanschluss',       'Landstromanschluss (CEE-Einspeisesteckdose)', 'Caravan', 24,  24, 'verbraucher', 1),
 ('caravan_wasserpumpe',         'Frischwasserpumpe 12V',                       'Caravan', 32,  16, 'verbraucher', 1),
-('caravan_kuehlschrank',        'Absorberkühlschrank (12V/230V/Gas)',          'Caravan', 40,  48, 'verbraucher', 1),
+('caravan_kuehlschrank',        'Absorberkühlschrank (12V/230V/Gas)',          'Caravan', 16,  20, 'verbraucher', 1),
 ('caravan_anhaengerstecker_13', 'Anhänger-Steckdose (13-polig)',               'Caravan', 32, 112, 'variabel',    1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES
@@ -2053,10 +2053,10 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knot
 ('caravan_wasserpumpe', '+', 0, 0.5, -1, 0, 'dc_plus',  0),
 ('caravan_wasserpumpe', '-', 1, 0.5,  1, 0, 'dc_minus', 1),
 -- caravan_kuehlschrank: 12V-DC + 230V-AC-Zuleitung, Gas nicht elektrisch modelliert
-('caravan_kuehlschrank', '12V+', 0, 0.15,  -1, 0, 'dc_plus',  0),
-('caravan_kuehlschrank', '12V-', 0, 0.383, -1, 0, 'dc_minus', 1),
-('caravan_kuehlschrank', 'L',    0, 0.617, -1, 0, 'power',    2),
-('caravan_kuehlschrank', 'N',    0, 0.85,  -1, 0, 'n',        3),
+('caravan_kuehlschrank', '12V+', 0, 0.2,   -1, 0, 'dc_plus',  0),
+('caravan_kuehlschrank', '12V-', 0, 0.4,   -1, 0, 'dc_minus', 1),
+('caravan_kuehlschrank', 'L',    0, 0.6,   -1, 0, 'power',    2),
+('caravan_kuehlschrank', 'N',    0, 0.8,   -1, 0, 'n',        3),
 -- caravan_anhaengerstecker_13: ISO 11446, Pinnummern 1-13
 ('caravan_anhaengerstecker_13', '1',  0, 0.0714, -1, 0, 'neutral', 0),
 ('caravan_anhaengerstecker_13', '2',  0, 0.1429, -1, 0, 'neutral', 1),
@@ -2142,12 +2142,12 @@ VALUES
 ('caravan_wasserpumpe', 2, 'kreis_offen', 0.5,  0.5,  0,    0,    0, 0, 0.22, 0, 0, 0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
 ('caravan_wasserpumpe', 3, 'text',        0.5,  0.42, 0,    0,    0, 0, 0,    0, 0, 0, 'P',   0.3,  1, 'center', 'middle', 'solid'),
 ('caravan_wasserpumpe', 4, 'text',        0.5,  0.62, 0,    0,    0, 0, 0,    0, 0, 0, '12V', 0.13, 0, 'center', 'middle', 'solid'),
--- ── caravan_kuehlschrank (40x48mm, Box mit 4 el. Pins + GAS-Text ohne Pin) ──
-('caravan_kuehlschrank', 0, 'rechteck', 0.15, 0.05,  0.85, 0.95,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
-('caravan_kuehlschrank', 1, 'linie',    0,    0.15,  0.15, 0.15,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
-('caravan_kuehlschrank', 2, 'linie',    0,    0.383, 0.15, 0.383, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
-('caravan_kuehlschrank', 3, 'linie',    0,    0.617, 0.15, 0.617, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
-('caravan_kuehlschrank', 4, 'linie',    0,    0.85,  0.15, 0.85,  0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+-- ── caravan_kuehlschrank (16x20mm, Box mit 4 el. Pins + GAS-Text ohne Pin; SYM-KOPIE-VON-01-Sync Aug 2026, Projekt Görke) ──
+('caravan_kuehlschrank', 0, 'rechteck', 0.15625, 0.05, 0.84375, 0.95, 0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 1, 'linie',    0,    0.2,   0.15625, 0.2,   0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 2, 'linie',    0,    0.4,   0.15625, 0.4,   0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 3, 'linie',    0,    0.6,   0.15625, 0.6,   0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
+('caravan_kuehlschrank', 4, 'linie',    0,    0.8,   0.15625, 0.8,   0, 0, 0, 0, 0, 0, NULL,   0.5,  0, 'center', 'middle', 'solid'),
 ('caravan_kuehlschrank', 5, 'text',     0.5,  0.22,  0,    0,     0, 0, 0, 0, 0, 0, 'ABS',  0.15, 1, 'center', 'middle', 'solid'),
 ('caravan_kuehlschrank', 6, 'text',     0.5,  0.42,  0,    0,     0, 0, 0, 0, 0, 0, '12V',  0.10, 0, 'center', 'middle', 'solid'),
 ('caravan_kuehlschrank', 7, 'text',     0.5,  0.55,  0,    0,     0, 0, 0, 0, 0, 0, '230V', 0.10, 0, 'center', 'middle', 'solid'),

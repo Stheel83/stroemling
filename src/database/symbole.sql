@@ -1478,7 +1478,7 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('erde_allgemein',   'Erde (allgemein)',                     'Erdung', 16, 22, 'quelle', 1),
+('erde_allgemein',   'Erde (allgemein)',                     'Erdung', 8, 8, 'quelle', 1),
 ('funktionserdung',  'Funktionserdung',                      'Erdung', 24, 18, 'quelle', 1),
 ('schutzerdung',     'Schutzerdung',                         'Erdung', 24, 24, 'quelle', 1),
 ('masse_gehaeuse',   'Masse, Gehäuse',                       'Erdung', 18, 20, 'quelle', 1);
@@ -1493,10 +1493,11 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 -- (EN-60617-Referenztabelle, Screenshot) bestimmt, nicht freihändig geschätzt.
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
 -- erde_allgemein: Stab + 3 nach unten kürzer werdende Querstriche (02-15-01)
-('erde_allgemein', 0, 'linie', 0.5,  0,    0.5,  0.73, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('erde_allgemein', 1, 'linie', 0.06, 0.75, 0.94, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('erde_allgemein', 2, 'linie', 0.20, 0.86, 0.80, 0.86, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('erde_allgemein', 3, 'linie', 0.34, 0.97, 0.66, 0.97, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- SYM-KOPIE-VON-01-Sync (Aug 2026, Projekt Görke): 16x22mm -> 8x8mm
+('erde_allgemein', 0, 'linie', 0.5,    0.0,   0.5,    0.375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('erde_allgemein', 1, 'linie', 0.0625, 0.375, 0.9375, 0.375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('erde_allgemein', 2, 'linie', 0.1875, 0.625, 0.8125, 0.625, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('erde_allgemein', 3, 'linie', 0.3125, 0.875, 0.6875, 0.875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- funktionserdung: wie erde_allgemein + breiter, flacher offener Bogen über dem Stab (02-15-02)
 ('funktionserdung', 0, 'linie', 0.5,  0,    0.5,  0.65, 0, 0, 0,   0,   0,   0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('funktionserdung', 1, 'bogen', 0.5,  1.0,  0,    0,    0, 0, 0.5, 180, 360, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
@@ -1674,15 +1675,12 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 -- schliesser/wechsler (gleiche IEC-Kontaktdarstellung), aber eigene
 -- Symbol-IDs fuer Kategorie/Suche im Installationskontext (Hausschaltplan).
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('ausschalter',       'Ausschalter',         'Installation', 32, 16, 'durchleiter', 1),
 ('wechselschalter',   'Wechselschalter',     'Installation', 32, 16, 'durchleiter', 1),
 ('serienschalter',    'Serienschalter',      'Installation', 32, 32, 'durchleiter', 1),
 ('taster_beleuchtet', 'Taster (beleuchtet)', 'Installation', 32, 24, 'durchleiter', 1),
 ('kreuzschalter',     'Kreuzschalter',       'Installation', 32, 24, 'durchleiter', 1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES
-('ausschalter',       '1', 0, 0.5,  -1, 0, 'neutral'),
-('ausschalter',       '2', 1, 0.5,   1, 0, 'neutral'),
 ('wechselschalter',   '1', 0, 0.5,  -1, 0, 'neutral'),
 ('wechselschalter',   '2', 1, 0.25,  1, 0, 'neutral'),
 ('wechselschalter',   '3', 1, 0.75,  1, 0, 'neutral'),
@@ -1698,10 +1696,6 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 ('kreuzschalter',     '4', 1, 0.75,  1, 0, 'neutral');
 
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES
--- ausschalter: 1:1 wie schliesser (Einpolschalter = IEC-Schließer-Grafik)
-('ausschalter', 0, 'linie', 0,    0.5,  0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('ausschalter', 1, 'linie', 0.3,  0.5,  0.75, 0.25, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('ausschalter', 2, 'linie', 0.7,  0.5,  1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- wechselschalter: 1:1 wie wechsler (Umschalt-Grafik), Pins 1/2/3 statt K/NO/NC
 ('wechselschalter', 0, 'linie', 0,    0.5,  0.3,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 ('wechselschalter', 1, 'linie', 0.3,  0.5,  0.75, 0.35, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
@@ -1921,7 +1915,7 @@ UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id IN (
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
 ('wp_umwaelzpumpe', 'Umwälzpumpe',              'Wärmepumpe', 32, 16, 'verbraucher', 1),
 ('wp_mischer',       'Mischer-Stellantrieb',     'Wärmepumpe', 32, 32, 'verbraucher', 1),
-('wp_heizstab',      'Heizstab (Zusatzheizer)',  'Wärmepumpe', 32, 24, 'verbraucher', 1),
+('wp_heizstab',      'Heizstab (Zusatzheizer)',  'Wärmepumpe', 8, 4, 'verbraucher', 1),
 ('wp_regler',        'Wärmepumpen-Regler',       'Wärmepumpe', 32, 32, 'variabel', 1),
 ('wp_sgready',       'SG-Ready-Schnittstelle',   'Wärmepumpe', 32, 24, 'variabel', 1);
 
@@ -1968,13 +1962,14 @@ VALUES
 ('wp_mischer', 6, 'linie',       0.32, 0.68, 0.68, 0.68, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 ('wp_mischer', 7, 'linie',       0.32, 0.68, 0.5,  0.95, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
 ('wp_mischer', 8, 'linie',       0.68, 0.68, 0.5,  0.95, 0, 0, 0,    0, 0, 0, NULL, 0.5,  0, 'center', 'middle', 'solid'),
--- ── wp_heizstab (32x24mm, Rechteck + Hitze-Schwuenge) ──
-('wp_heizstab', 0, 'linie',    0,    0.5,  0.2,  0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wp_heizstab', 1, 'linie',    0.8,  0.5,  1,    0.5,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wp_heizstab', 2, 'rechteck', 0.2,  0.35, 0.8,  0.65, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wp_heizstab', 3, 'linie',    0.35, 0.30, 0.40, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wp_heizstab', 4, 'linie',    0.50, 0.30, 0.55, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('wp_heizstab', 5, 'linie',    0.65, 0.30, 0.70, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+-- ── wp_heizstab (8x4mm, Rechteck + Hitze-Schwuenge) ──
+-- SYM-KOPIE-VON-01-Sync (Aug 2026, Projekt Görke): 32x24mm -> 8x4mm, dritte Hitze-Schwinge durch senkrechten Verbindungsstrich ersetzt
+('wp_heizstab', 0, 'linie',    0.0,    0.5,  0.1875, 0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 1, 'linie',    0.8125, 0.5,  1.0,    0.5,   0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 2, 'rechteck', 0.1875, 0.25, 0.8125, 0.75,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 3, 'linie',    0.3125, 0.5,  0.3125, 0.375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 4, 'linie',    0.5,    0.3,  0.55,   0.15,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
+('wp_heizstab', 5, 'linie',    0.65,   0.3,  0.7,    0.15,  0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- ── wp_regler (32x32mm, Box + Regel-Skala) ──
 ('wp_regler', 0, 'linie',        0,    0.25, 0.15, 0.25, 0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
 ('wp_regler', 1, 'linie',        0,    0.75, 0.15, 0.75, 0, 0, 0,    0,   0,   0, NULL,  0.5,  0, 'center', 'middle', 'solid'),
@@ -1997,7 +1992,6 @@ VALUES
 
 -- ══════════════════════════════════════════════════════════════
 -- Caravan Symbole (Kategorie 'Caravan', SYM-ERWEITERUNG-01 Prioritaet 4, Jul 2026)
--- caravan_batterie:            Aufbaubatterie 12V 32x16mm (1:1 Grafik-Wiedernutzung kfz_batterie)
 -- caravan_trennrelais:         Batterie-Trennrelais 32x48mm (1:1 Grafik-Wiedernutzung kfz_relais_4, Label TR statt K4)
 -- caravan_ladebooster:         DC/DC-Ladebooster 32x32mm (Box IN+/IN-/OUT+/OUT-, analog kfz_steuergeraet)
 -- caravan_solarladeregler:     Solarladeregler (MPPT) 32x32mm (Box PV+/PV-/BAT+/BAT-)
@@ -2017,7 +2011,6 @@ VALUES
 -- ══════════════════════════════════════════════════════════════
 
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES
-('caravan_batterie',            'Aufbaubatterie 12V',                          'Caravan', 32,  16, 'variabel',    1),
 ('caravan_trennrelais',         'Batterie-Trennrelais',                        'Caravan', 32,  48, 'variabel',    1),
 ('caravan_ladebooster',         'DC/DC-Ladebooster',                           'Caravan', 32,  32, 'verbraucher', 1),
 ('caravan_solarladeregler',     'Solarladeregler (MPPT)',                      'Caravan', 32,  32, 'variabel',    1),
@@ -2029,9 +2022,6 @@ INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, 
 ('caravan_anhaengerstecker_13', 'Anhänger-Steckdose (13-polig)',               'Caravan', 32, 112, 'variabel',    1);
 
 INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES
--- caravan_batterie: + links, - rechts (wie kfz_batterie, keine Knoten-Trennung)
-('caravan_batterie', '+', 0, 0.5, -1, 0, 'neutral', 0),
-('caravan_batterie', '-', 1, 0.5,  1, 0, 'neutral', 0),
 -- caravan_trennrelais: Spule 85/86, Kontakt 30/87 (wie kfz_relais_4)
 ('caravan_trennrelais', '85', 0, 0.25, -1, 0, 'neutral', 0),
 ('caravan_trennrelais', '86', 1, 0.25,  1, 0, 'neutral', 1),
@@ -2099,13 +2089,6 @@ INSERT INTO symbol_primitiv
  text_inhalt, schrift_relativ, schrift_fett,
  text_align, text_baseline, linienart)
 VALUES
--- ── caravan_batterie (32x16mm, 1:1 wie kfz_batterie) ──
-('caravan_batterie', 0, 'linie', 0,    0.5, 0.25, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('caravan_batterie', 1, 'linie', 0.25, 0.1, 0.25, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('caravan_batterie', 2, 'linie', 0.42, 0.3, 0.42, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('caravan_batterie', 3, 'linie', 0.58, 0.1, 0.58, 0.9, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('caravan_batterie', 4, 'linie', 0.75, 0.3, 0.75, 0.7, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
-('caravan_batterie', 5, 'linie', 0.75, 0.5, 1.0,  0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'),
 -- ── caravan_trennrelais (32x48mm, wie kfz_relais_4, Label TR) ──
 ('caravan_trennrelais', 0, 'rechteck', 0.15, 0.02, 0.85, 0.98, 0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
 ('caravan_trennrelais', 1, 'linie',    0.15, 0.5,  0.85, 0.5,  0, 0, 0, 0, 0, 0, NULL,    0.5,  0, 'center', 'middle', 'solid'),
@@ -2420,16 +2403,6 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('sicherungslasttrennschalter', 6, 'linie', 0.777, 0.524, 0.586, 0.58, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('sicherungslasttrennschalter', 7, 'kreis_offen', 0.5, 0.666667, 0, 0, 0, 0, 0.041667, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('sicherungslasttrennschalter', 8, 'linie', 0.541667, 0.694444, 0.458333, 0.694444, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
-
--- ausschalter: 32x16mm -> 16x32mm
-UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 32, bmk_seite = 'vertikal' WHERE id = 'ausschalter';
-DELETE FROM symbol_pin WHERE symbol_id = 'ausschalter';
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('ausschalter', '1', 0.5, 0, 0, -1, 'neutral');
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('ausschalter', '2', 0.5, 1, 0, 1, 'neutral');
-DELETE FROM symbol_primitiv WHERE symbol_id = 'ausschalter';
-INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('ausschalter', 0, 'linie', 0.5, 0, 0.5, 0.3, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
-INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('ausschalter', 1, 'linie', 0.5, 0.3, 0.75, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
-INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('ausschalter', 2, 'linie', 0.5, 0.7, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 
 -- wechselschalter: 32x16mm -> 16x32mm
 UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 32, bmk_seite = 'vertikal' WHERE id = 'wechselschalter';

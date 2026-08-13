@@ -1549,6 +1549,29 @@ static QList<SchemaMigration> alleMigrationen()
         { 114, "SYM-KOPIE-VON-01: neue Spalte symbol_definition.kopie_von_id (Entwicklungsphase-Werkzeug) - wird beim ersten Speichern einer per 'Als Vorlage kopieren' erzeugten Kopie automatisch auf die Quell-Symbol-ID gesetzt. Ersetzt die bisherige informelle Konvention (Namenspraefix 'Kopie von'/ID-Praefix 'kopie_von_*', s. SYM-KOPIE-STRESSTEST-01/02/03), damit Claude offene Nutzer-Kopien fuer den Seed-Sync per SQL findet statt Projekte manuell durchsuchen zu muessen.", {
             R"(ALTER TABLE symbol_definition ADD COLUMN kopie_von_id TEXT)",
         }},
+        { 115, "SYM-LOESCH-MARKIERUNG-01/SYM-KOPIE-VON-01 erster Praxis-Durchlauf (Projekt Goerke): 'ausschalter'/'caravan_batterie' per Nutzer-Markierung geloescht (samt Legacy-symbol-Tabelle); 'erde_allgemein' 16x22mm->8x8mm und 'wp_heizstab' 32x24mm->8x4mm nach Nutzer-Kopien 'kopie_von_erde_allgemein'/'kopie_von_heizstab_zusatzheizer' ueberarbeitet, Kopien danach entfernt.", {
+            // erde_allgemein <- kopie_von_erde_allgemein (Pins unveraendert, nur Groesse+Geometrie)
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='erde_allgemein')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='erde_allgemein')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('erde_allgemein', '1', 0.5, 0, 0, -1, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='erde_allgemein')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('erde_allgemein', 0, 'linie', 0.5, 0.0, 0.5, 0.375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('erde_allgemein', 1, 'linie', 0.0625, 0.375, 0.9375, 0.375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('erde_allgemein', 2, 'linie', 0.1875, 0.625, 0.8125, 0.625, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('erde_allgemein', 3, 'linie', 0.3125, 0.875, 0.6875, 0.875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // wp_heizstab <- kopie_von_heizstab_zusatzheizer (Pins unveraendert, nur Groesse+Geometrie)
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=4 WHERE id='wp_heizstab')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='wp_heizstab')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wp_heizstab', '1', 0, 0.5, -1, 0, 'power'), ('wp_heizstab', '2', 1, 0.5, 1, 0, 'power'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='wp_heizstab')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wp_heizstab', 0, 'linie', 0.0, 0.5, 0.1875, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wp_heizstab', 1, 'linie', 0.8125, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wp_heizstab', 2, 'rechteck', 0.1875, 0.25, 0.8125, 0.75, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wp_heizstab', 3, 'linie', 0.3125, 0.5, 0.3125, 0.375, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wp_heizstab', 4, 'linie', 0.5, 0.3, 0.55, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wp_heizstab', 5, 'linie', 0.65, 0.3, 0.7, 0.15, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // Werkstatt-Kopien nach Uebernahme entfernen
+            R"(DELETE FROM symbol_definition WHERE id IN ('kopie_von_erde_allgemein', 'kopie_von_heizstab_zusatzheizer'))",
+
+            // Vom Nutzer per Loeschmarkierung markierte built-in-Symbole entfernen
+            // (Cascade auf symbol_pin/symbol_primitiv via ON DELETE CASCADE)
+            R"(DELETE FROM symbol WHERE code IN ('ausschalter', 'caravan_batterie'))",
+            R"(DELETE FROM symbol_definition WHERE id IN ('ausschalter', 'caravan_batterie'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -2015,7 +2038,6 @@ bool Database::seedSymbolKatalog()
         { "wp_regler",       "Wärmepumpen-Regler",      "waermepumpe", "IEC,ANSI", 3 },
         { "wp_sgready",      "SG-Ready-Schnittstelle",  "waermepumpe", "IEC,ANSI", 3 },
         // Caravan (SYM-ERWEITERUNG-01 Prioritaet 4)
-        { "caravan_batterie",            "Aufbaubatterie 12V",                          "caravan", "IEC,ANSI", 2  },
         { "caravan_trennrelais",         "Batterie-Trennrelais",                        "caravan", "IEC,ANSI", 4  },
         { "caravan_ladebooster",         "DC/DC-Ladebooster",                           "caravan", "IEC,ANSI", 4  },
         { "caravan_solarladeregler",     "Solarladeregler (MPPT)",                      "caravan", "IEC,ANSI", 4  },
@@ -2052,7 +2074,6 @@ bool Database::seedSymbolKatalog()
         { "sicherungstrennschalter",     "Sicherungstrennschalter",                 "schutz", "IEC", 2 },
         { "sicherungslasttrennschalter", "Sicherungslasttrennschalter",             "schutz", "IEC", 2 },
         // Elektroinstallation
-        { "ausschalter",       "Ausschalter",         "installation", "IEC", 2 },
         { "wechselschalter",   "Wechselschalter",     "installation", "IEC", 3 },
         { "serienschalter",    "Serienschalter",      "installation", "IEC", 4 },
         { "taster_beleuchtet", "Taster (beleuchtet)", "installation", "IEC", 2 },

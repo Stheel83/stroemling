@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QString>
+#include <QStringList>
 #include <QHash>
 
 // Bietet QML-Zugriff auf das Primitiv-Symbolsystem (Lesen + Schreiben).
@@ -50,6 +51,13 @@ public:
     // Gibt alle Symbole zurück: [{id, name, kategorie, breiteMm, hoeheMm, rolle, ist_builtin}, …]
     Q_INVOKABLE QVariantList alleSymbole() const;
 
+    // True wenn das Symbol zum Löschen markiert ist (SYM-LOESCH-MARKIERUNG-01,
+    // Entwicklungsphase-Werkzeug — reine Merker-Spalte, löscht nichts selbst).
+    Q_INVOKABLE bool istMarkiertLoeschen(const QString &symbolId) const;
+
+    // IDs aller aktuell zum Löschen markierten Symbole (built-in + eigene).
+    Q_INVOKABLE QStringList symboleMarkiertLoeschen() const;
+
     // ── Schreibmethoden ─────────────────────────────────────────────
 
     // Neues Symbol anlegen (ist_builtin = 0). Gibt false zurück wenn id schon belegt.
@@ -66,6 +74,11 @@ public:
 
     // Symbol löschen (nur ist_builtin = 0). Primitive und Pins werden per FK gelöscht.
     Q_INVOKABLE bool symbolLoeschen(const QString &symbolId);
+
+    // Löschmarkierung setzen/aufheben (auch für ist_builtin=1 — Entfernen aus
+    // dem Seed macht Claude auf Zuruf anhand dieser Markierung, nicht die App
+    // selbst). SYM-LOESCH-MARKIERUNG-01.
+    Q_INVOKABLE bool markierungLoeschenSetzen(const QString &symbolId, bool markiert);
 
     // Einzelnes Primitiv hinzufügen; gibt neue Zeilen-ID zurück (-1 bei Fehler).
     // daten: {typ, reihenfolge, x1, y1, x2, y2, x3, y3, radius,

@@ -176,6 +176,25 @@ QVariantList SymbolDefinitionModel::alleSymbole() const
     return result;
 }
 
+bool SymbolDefinitionModel::istMarkiertLoeschen(const QString &symbolId) const
+{
+    QSqlQuery q;
+    q.prepare("SELECT markiert_loeschen FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.bindValue(":id", symbolId);
+    if (q.exec() && q.next())
+        return q.value(0).toInt() != 0;
+    return false;
+}
+
+QStringList SymbolDefinitionModel::symboleMarkiertLoeschen() const
+{
+    QStringList result;
+    QSqlQuery q("SELECT id FROM symbol_definition WHERE markiert_loeschen = 1 ORDER BY id");
+    while (q.next())
+        result << q.value(0).toString();
+    return result;
+}
+
 // ── Schreibmethoden ─────────────────────────────────────────────────────────
 
 bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name,
@@ -229,6 +248,19 @@ bool SymbolDefinitionModel::symbolLoeschen(const QString &symbolId)
     }
     m_primitivCache.remove(symbolId);
     m_pinCache.remove(symbolId);
+    return q.numRowsAffected() > 0;
+}
+
+bool SymbolDefinitionModel::markierungLoeschenSetzen(const QString &symbolId, bool markiert)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE symbol_definition SET markiert_loeschen = :m WHERE id = :id");
+    q.bindValue(":m",  markiert ? 1 : 0);
+    q.bindValue(":id", symbolId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "markierungLoeschenSetzen:" << q.lastError().text();
+        return false;
+    }
     return q.numRowsAffected() > 0;
 }
 

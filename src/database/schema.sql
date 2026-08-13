@@ -202,7 +202,8 @@ CREATE TABLE symbol_definition (
     rolle          TEXT    NOT NULL DEFAULT 'durchleiter',
     ist_builtin    INTEGER NOT NULL DEFAULT 0,
     ibn_kategorie  TEXT    NOT NULL DEFAULT '',
-    bmk_seite      TEXT    NOT NULL DEFAULT 'auto'
+    bmk_seite      TEXT    NOT NULL DEFAULT 'auto',
+    markiert_loeschen INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE symbol_primitiv (

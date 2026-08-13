@@ -1543,6 +1543,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 2, 'linie', 0.5, 0, 0.5, 0.416666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
             R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 3, 'linie', 0.5, 0.583333333333333, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
         }},
+        { 113, "SYM-LOESCH-MARKIERUNG-01: neue Spalte symbol_definition.markiert_loeschen (Entwicklungsphase-Werkzeug) - Nutzer markiert Symbole (auch built-in) in der Palette per Rechtsklick zum Loeschen, Claude wertet die Markierung dann per SQL aus und entfernt die Symbole inkl. Seed-Eintraegen auf Zuruf. Reine Merker-Spalte, kein automatisches Loeschen.", {
+            R"(ALTER TABLE symbol_definition ADD COLUMN markiert_loeschen INTEGER NOT NULL DEFAULT 0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

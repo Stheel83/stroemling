@@ -194,8 +194,9 @@ Item {
 
     function kopieErstellen() {
         _kopierModus   = true
+        var quelle     = editSymbolId !== "" ? editSymbolId : vorlageId
         aktiveListenId = ""
-        vorlageId      = ""
+        vorlageId      = quelle
         editSymbolId   = ""
         istBuiltin     = false
         nameText       = qsTr("Kopie von ") + nameText
@@ -315,7 +316,7 @@ Item {
         }
 
         if (editSymbolId === "") {
-            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText)) {
+            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, vorlageId)) {
                 speichernFehlerText.text = qsTr("Symbol-ID bereits vergeben. Bitte anderen Namen wählen.")
                 speichernFehlerDialog.open()
                 return

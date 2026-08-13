@@ -195,14 +195,37 @@ QStringList SymbolDefinitionModel::symboleMarkiertLoeschen() const
     return result;
 }
 
+QVariantList SymbolDefinitionModel::symboleMitKopieVon() const
+{
+    QVariantList result;
+    QSqlQuery q(R"(
+        SELECT k.id, k.name, k.kategorie, k.kopie_von_id, o.name
+        FROM symbol_definition k
+        LEFT JOIN symbol_definition o ON o.id = k.kopie_von_id
+        WHERE k.kopie_von_id IS NOT NULL AND k.kopie_von_id != ''
+        ORDER BY k.kopie_von_id, k.id
+    )");
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]           = q.value(0).toString();
+        m["name"]         = q.value(1).toString();
+        m["kategorie"]    = q.value(2).toString();
+        m["kopieVonId"]   = q.value(3).toString();
+        m["kopieVonName"] = q.value(4).toString();
+        result.append(m);
+    }
+    return result;
+}
+
 // ── Schreibmethoden ─────────────────────────────────────────────────────────
 
 bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name,
                                            const QString &kategorie, int breiteMm, int hoeheMm,
-                                           const QString &rolle, const QString &bmkSeite)
+                                           const QString &rolle, const QString &bmkSeite,
+                                           const QString &kopieVonId)
 {
     QSqlQuery q;
-    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0, :bmkSeite)");
+    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0, :bmkSeite, :kopieVon)");
     q.bindValue(":id",       id);
     q.bindValue(":name",     name);
     q.bindValue(":kat",      kategorie);
@@ -210,6 +233,7 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
     q.bindValue(":hMm",      hoeheMm);
     q.bindValue(":rolle",    rolle);
     q.bindValue(":bmkSeite", bmkSeite);
+    q.bindValue(":kopieVon", kopieVonId.isEmpty() ? QVariant() : QVariant(kopieVonId));
     if (!q.exec()) {
         qCWarning(lcModel) << "symbolAnlegen:" << q.lastError().text();
         return false;

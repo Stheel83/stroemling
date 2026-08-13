@@ -1546,6 +1546,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 113, "SYM-LOESCH-MARKIERUNG-01: neue Spalte symbol_definition.markiert_loeschen (Entwicklungsphase-Werkzeug) - Nutzer markiert Symbole (auch built-in) in der Palette per Rechtsklick zum Loeschen, Claude wertet die Markierung dann per SQL aus und entfernt die Symbole inkl. Seed-Eintraegen auf Zuruf. Reine Merker-Spalte, kein automatisches Loeschen.", {
             R"(ALTER TABLE symbol_definition ADD COLUMN markiert_loeschen INTEGER NOT NULL DEFAULT 0)",
         }},
+        { 114, "SYM-KOPIE-VON-01: neue Spalte symbol_definition.kopie_von_id (Entwicklungsphase-Werkzeug) - wird beim ersten Speichern einer per 'Als Vorlage kopieren' erzeugten Kopie automatisch auf die Quell-Symbol-ID gesetzt. Ersetzt die bisherige informelle Konvention (Namenspraefix 'Kopie von'/ID-Praefix 'kopie_von_*', s. SYM-KOPIE-STRESSTEST-01/02/03), damit Claude offene Nutzer-Kopien fuer den Seed-Sync per SQL findet statt Projekte manuell durchsuchen zu muessen.", {
+            R"(ALTER TABLE symbol_definition ADD COLUMN kopie_von_id TEXT)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

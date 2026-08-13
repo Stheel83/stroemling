@@ -203,7 +203,8 @@ CREATE TABLE symbol_definition (
     ist_builtin    INTEGER NOT NULL DEFAULT 0,
     ibn_kategorie  TEXT    NOT NULL DEFAULT '',
     bmk_seite      TEXT    NOT NULL DEFAULT 'auto',
-    markiert_loeschen INTEGER NOT NULL DEFAULT 0
+    markiert_loeschen INTEGER NOT NULL DEFAULT 0,
+    kopie_von_id   TEXT
 );
 
 CREATE TABLE symbol_primitiv (

@@ -58,14 +58,24 @@ public:
     // IDs aller aktuell zum Löschen markierten Symbole (built-in + eigene).
     Q_INVOKABLE QStringList symboleMarkiertLoeschen() const;
 
+    // Alle Symbole mit gesetztem kopie_von_id (SYM-KOPIE-VON-01, Entwicklungsphase-
+    // Werkzeug): offene Nutzer-Kopien, die noch auf Seed-Sync warten.
+    // Jeder Eintrag: {id, name, kategorie, kopieVonId, kopieVonName}
+    Q_INVOKABLE QVariantList symboleMitKopieVon() const;
+
     // ── Schreibmethoden ─────────────────────────────────────────────
 
     // Neues Symbol anlegen (ist_builtin = 0). Gibt false zurück wenn id schon belegt.
     // bmkSeite ("auto"|"vertikal", SYMBOL-BMKSEITE-EDITOR-01): steuert wie in
     // symbol_definition, Default "auto" für Aufrufer die (noch) keinen Wert mitgeben.
+    // kopieVonId (SYM-KOPIE-VON-01): Quell-Symbol-ID wenn dieses Symbol per
+    // "Als Vorlage kopieren" entstanden ist, sonst leer. Wird nur beim
+    // allerersten Anlegen gesetzt (nicht bei symbolAktualisieren), da die
+    // Vorlagen-Beziehung nur zum Erstellungszeitpunkt bekannt ist.
     Q_INVOKABLE bool symbolAnlegen(const QString &id, const QString &name,
                                     const QString &kategorie, int breiteMm, int hoeheMm,
-                                    const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"));
+                                    const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"),
+                                    const QString &kopieVonId = QString());
 
     // Metadaten eines nicht-eingebauten Symbols aktualisieren.
     Q_INVOKABLE bool symbolAktualisieren(const QString &id, const QString &name,

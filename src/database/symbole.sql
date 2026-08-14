@@ -2723,3 +2723,138 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 1, 'linie', 0.8125, 0.416666666666667, 0.1875, 0.416666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 2, 'linie', 0.5, 0, 0.5, 0.416666666666667, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('kondensator', 3, 'linie', 0.5, 0.583333333333333, 0.5, 1, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- ══════════════════════════════════════════════════════════════
+-- SYM-KOPIE-VON-01 vierter Sync-Durchlauf (Schema v118, Projekt
+-- Görke): 23 Nutzer-Kopien übernommen. Gruppe A (reine
+-- Maßkorrekturen, Pins/Primitive unverändert), Gruppe B
+-- (Anschluss-Symbole stecker/buchse/klemme/lampe, Pins von
+-- eingerückt auf echte Kanten korrigiert), Gruppe C (oeffner +
+-- Voreilend/Nacheilend-Kontaktfamilie neu gezeichnet, auf 4x8mm
+-- vereinheitlicht — Zuordnung über die vom Nutzer vergebenen
+-- Namen, da die kopie_von_id-Kette durch mehrfaches
+-- Editor-internes Kopieren nicht direkt auf die echten Originale
+-- zeigt), Gruppe D (wechsler → "Wechsler schmal" umbenannt +
+-- verkleinert, neues Symbol wechsler_breit "Wechsler" ergänzt,
+-- Nutzerbestätigung per AskUserQuestion). Zusätzlich 5 vom
+-- Nutzer zur Löschung markierte, nirgends platzierte
+-- built-in-Symbole entfernt (spule_ansi, widerstand_ansi,
+-- wechselschalter, kfz_lichtschalter, kfz_kupplungsschalter) —
+-- deren ursprüngliche INSERT-Zeilen weiter oben bleiben aus
+-- Gründen der Textstabilität unangetastet, die DELETEs am Ende
+-- dieses Skripts entfernen sie im selben Lauf wieder (net-Effekt:
+-- brandneue Projekte bekommen sie nie).
+-- ══════════════════════════════════════════════════════════════
+
+-- Gruppe A: reine Maßkorrekturen
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 56 WHERE id = 'caravan_anhaengerstecker_13';
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 20 WHERE id = 'sps_ao_4';
+UPDATE symbol_definition SET breite_mm = 8,  hoehe_mm = 8  WHERE id = 'kfz_batterie';
+UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 16 WHERE id = 'caravan_trennrelais';
+UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 20 WHERE id = 'sps_cpu';
+UPDATE symbol_definition SET breite_mm = 12, hoehe_mm = 8  WHERE id = 'kfz_gluehkerze';
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 8  WHERE id = 'caravan_wasserpumpe';
+UPDATE symbol_definition SET breite_mm = 8,  hoehe_mm = 8  WHERE id = 'isoliert_gelegte_ader';
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 68 WHERE id = 'sps_do_16';
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 36 WHERE id = 'sps_do_8';
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 12 WHERE id = 'funktionserdung';
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 8  WHERE id = 'hupe';
+UPDATE symbol_definition SET breite_mm = 20, hoehe_mm = 16 WHERE id = 'kfz_kombiinstrument';
+
+-- Gruppe B: Anschluss-Symbole, Pins auf echte Kanten korrigiert
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'stecker';
+DELETE FROM symbol_pin WHERE symbol_id = 'stecker';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('stecker', '1', 0.0, 0.5, -1.0, 0.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('stecker', '2', 0.5, 0.5, 1.0, 0.0, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'stecker';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('stecker', 0, 'linie', 0.0, 0.5, 0.1875, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('stecker', 1, 'rechteck', 0.1875, 0.4375, 0.5, 0.5625, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'buchse';
+DELETE FROM symbol_pin WHERE symbol_id = 'buchse';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('buchse', '1', 0.0, 0.5, -1.0, 0.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('buchse', '2', 0.5, 0.5, 1.0, 0.0, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'buchse';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('buchse', 0, 'linie', 0.0, 0.5, 0.5, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('buchse', 1, 'bogen', 0.625, 0.5, 0, 0, 0, 0, 0.125, 90, 270, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'klemme';
+DELETE FROM symbol_pin WHERE symbol_id = 'klemme';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('klemme', '1', 0.0, 0.5, -1.0, 0.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('klemme', '2', 1.0, 0.5, 1.0, 0.0, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'klemme';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('klemme', 0, 'linie', 0.0, 0.5, 0.375, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('klemme', 1, 'linie', 0.625, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('klemme', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.125, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'lampe';
+DELETE FROM symbol_pin WHERE symbol_id = 'lampe';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('lampe', '1', 0.0, 0.5, -1.0, 0.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('lampe', '2', 1.0, 0.5, 1.0, 0.0, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'lampe';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('lampe', 0, 'linie', 0.0, 0.5, 0.23125, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('lampe', 1, 'linie', 0.76875, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('lampe', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.2675, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('lampe', 3, 'linie', 0.3125, 0.3125, 0.6875, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('lampe', 4, 'linie', 0.3125, 0.6875, 0.6875, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+-- Gruppe C: oeffner + Voreilend/Nacheilend-Kontaktfamilie
+UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 8 WHERE id = 'oeffner';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'oeffner';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner', 3, 'linie', 0.25, 0.3125, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 8 WHERE id = 'oeffner_nacheilend';
+DELETE FROM symbol_pin WHERE symbol_id = 'oeffner_nacheilend';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('oeffner_nacheilend', '1', 0.5, 0.0, 0.0, -1.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('oeffner_nacheilend', '2', 0.5, 1.0, 0.0, 1.0, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'oeffner_nacheilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner_nacheilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner_nacheilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner_nacheilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner_nacheilend', 3, 'linie', 0.25, 0.3125, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner_nacheilend', 4, 'linie', 0.25, 0.25, 0.375, 0.2325, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 8 WHERE id = 'schliesser_nacheilend';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser_nacheilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 3, 'linie', 0.25, 0.25, 0.375, 0.2325, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid');
+
+UPDATE symbol_definition SET breite_mm = 4, hoehe_mm = 8 WHERE id = 'schliesser_voreilend';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser_voreilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 3, 'linie', 0.075, 0.28125, 0.25, 0.25, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid');
+
+-- Gruppe D: Wechsler-Aufspaltung (Nutzerbestätigung per AskUserQuestion)
+UPDATE symbol_definition SET name = 'Wechsler schmal', breite_mm = 4, hoehe_mm = 8 WHERE id = 'wechsler';
+DELETE FROM symbol_pin WHERE symbol_id = 'wechsler';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler', 'K', 1.0, 1.0, 0.0, 1.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler', 'NO', 1.0, 0.0, 0.0, -1.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler', 'NC', 0.0, 0.0, 0.0, -1.0, 'neutral');
+DELETE FROM symbol_primitiv WHERE symbol_id = 'wechsler';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler', 0, 'linie', 1.0, 0.0, 1.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler', 1, 'linie', 0.25, 0.25, 1.0, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler', 2, 'linie', 0.0, 0.0, 0.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler', 3, 'linie', 1.0, 0.6875, 1.0, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler', 4, 'linie', 0.0, 0.3125, 0.5, 0.3125, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid');
+
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('wechsler_breit', 'Wechsler', 'Kontakte', 8, 8, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler_breit', 'K', 0.5, 1.0, 0.0, 1.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler_breit', 'NO', 1.0, 0.0, 0.0, -1.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler_breit', 'NC', 0.0, 0.0, 0.0, -1.0, 'neutral');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler_breit', 0, 'linie', 1.0, 0.0, 1.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler_breit', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler_breit', 2, 'linie', 0.0, 0.0, 0.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler_breit', 3, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid');
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler_breit', 4, 'linie', 0.0, 0.3125, 0.375, 0.3125, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid');
+
+-- Vom Nutzer per Löschmarkierung markierte built-in-Symbole entfernen (0 platzierte Instanzen)
+DELETE FROM symbol_pin WHERE symbol_id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter');
+DELETE FROM symbol_primitiv WHERE symbol_id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter');
+DELETE FROM symbol_definition WHERE id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter');

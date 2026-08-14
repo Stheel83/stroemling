@@ -1653,6 +1653,104 @@ static QList<SchemaMigration> alleMigrationen()
             // Werkstatt-Kopien nach Uebernahme entfernen
             R"(DELETE FROM symbol_definition WHERE id IN ('kopie_von_treffpunkt_t', 'kopie_von_treffpunkt_l', 'kopie_von_motor'))",
         }},
+        { 118, "SYM-KOPIE-VON-01 vierter Sync-Durchlauf (Projekt Goerke): 23 Nutzer-Kopien uebernommen - 13 reine Massenkorrekturen, 4 Anschluss-Symbole (stecker/buchse/klemme/lampe) mit Pins von eingerueckt auf echte Kanten korrigiert, oeffner + die Voreilend/Nacheilend-Kontaktfamilie (oeffner_nacheilend/schliesser_nacheilend/schliesser_voreilend) neu gezeichnet und auf 4x8mm vereinheitlicht (Zuordnung ueber die vom Nutzer vergebenen Namen, da die kopie_von_id-Kette durch mehrfaches Editor-internes Kopieren nicht direkt auf die echten Originale zeigt), wechsler auf die schmale Kopie-Geometrie korrigiert und in 'Wechsler schmal' umbenannt, neues Symbol wechsler_breit ('Wechsler', 8x8mm) aus der zweiten, breiteren Kopie ergaenzt (Nutzerbestaetigung per AskUserQuestion). Zusaetzlich 5 vom Nutzer zur Loeschung markierte, nirgends platzierte built-in-Symbole entfernt (spule_ansi, widerstand_ansi, wechselschalter, kfz_lichtschalter, kfz_kupplungsschalter).", {
+            // --- Gruppe A: reine Massenkorrekturen (Pins/Primitive unveraendert) ---
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=56 WHERE id='caravan_anhaengerstecker_13')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=20 WHERE id='sps_ao_4')",
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='kfz_batterie')",
+            R"(UPDATE symbol_definition SET breite_mm=12, hoehe_mm=16 WHERE id='caravan_trennrelais')",
+            R"(UPDATE symbol_definition SET breite_mm=12, hoehe_mm=20 WHERE id='sps_cpu')",
+            R"(UPDATE symbol_definition SET breite_mm=12, hoehe_mm=8 WHERE id='kfz_gluehkerze')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=8 WHERE id='caravan_wasserpumpe')",
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='isoliert_gelegte_ader')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=68 WHERE id='sps_do_16')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=36 WHERE id='sps_do_8')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=12 WHERE id='funktionserdung')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=8 WHERE id='hupe')",
+            R"(UPDATE symbol_definition SET breite_mm=20, hoehe_mm=16 WHERE id='kfz_kombiinstrument')",
+
+            // --- Gruppe B: Anschluss-Symbole, Pins auf echte Kanten korrigiert ---
+            // stecker <- kopie_von_stecker
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='stecker')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='stecker')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('stecker', '1', 0.0, 0.5, -1.0, 0.0, 'neutral'), ('stecker', '2', 0.5, 0.5, 1.0, 0.0, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='stecker')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('stecker', 0, 'linie', 0.0, 0.5, 0.1875, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('stecker', 1, 'rechteck', 0.1875, 0.4375, 0.5, 0.5625, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // buchse <- kopie_von_buchse
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='buchse')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='buchse')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('buchse', '1', 0.0, 0.5, -1.0, 0.0, 'neutral'), ('buchse', '2', 0.5, 0.5, 1.0, 0.0, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='buchse')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('buchse', 0, 'linie', 0.0, 0.5, 0.5, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('buchse', 1, 'bogen', 0.625, 0.5, 0, 0, 0, 0, 0.125, 90, 270, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // klemme <- kopie_von_klemme
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='klemme')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='klemme')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('klemme', '1', 0.0, 0.5, -1.0, 0.0, 'neutral'), ('klemme', '2', 1.0, 0.5, 1.0, 0.0, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='klemme')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('klemme', 0, 'linie', 0.0, 0.5, 0.375, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('klemme', 1, 'linie', 0.625, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('klemme', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.125, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // lampe <- kopie_von_lampe
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='lampe')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='lampe')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('lampe', '1', 0.0, 0.5, -1.0, 0.0, 'neutral'), ('lampe', '2', 1.0, 0.5, 1.0, 0.0, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='lampe')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('lampe', 0, 'linie', 0.0, 0.5, 0.23125, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('lampe', 1, 'linie', 0.76875, 0.5, 1.0, 0.5, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('lampe', 2, 'kreis_offen', 0.5, 0.5, 0, 0, 0, 0, 0.2675, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('lampe', 3, 'linie', 0.3125, 0.3125, 0.6875, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('lampe', 4, 'linie', 0.3125, 0.6875, 0.6875, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // --- Gruppe C: oeffner + Voreilend/Nacheilend-Kontaktfamilie (Zuordnung ueber Namen, s. Beschreibung oben) ---
+            // oeffner <- kopie_von_oeffner_nc (Pins unveraendert, nur Groesse+Primitive)
+            R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=8 WHERE id='oeffner')",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='oeffner')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner', 3, 'linie', 0.25, 0.3125, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'))",
+
+            // oeffner_nacheilend <- kopie_von_nacheilender_oeffner_nc (Pins UND Primitive geaendert - Geometrie komplett neu gezeichnet, an oeffner angeglichen)
+            R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=8 WHERE id='oeffner_nacheilend')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='oeffner_nacheilend')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('oeffner_nacheilend', '1', 0.5, 0.0, 0.0, -1.0, 'neutral'), ('oeffner_nacheilend', '2', 0.5, 1.0, 0.0, 1.0, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='oeffner_nacheilend')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('oeffner_nacheilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner_nacheilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner_nacheilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner_nacheilend', 3, 'linie', 0.25, 0.3125, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('oeffner_nacheilend', 4, 'linie', 0.25, 0.25, 0.375, 0.2325, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
+
+            // schliesser_nacheilend <- kopie_von_kopie_von_nacheilender_oeffner_nc (Pins unveraendert, nur Groesse+Primitive)
+            R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=8 WHERE id='schliesser_nacheilend')",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='schliesser_nacheilend')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_nacheilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('schliesser_nacheilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('schliesser_nacheilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('schliesser_nacheilend', 3, 'linie', 0.25, 0.25, 0.375, 0.2325, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
+
+            // schliesser_voreilend <- kopie_von_voreilender_schliesser_no (Pins unveraendert, nur Groesse+Primitive)
+            R"(UPDATE symbol_definition SET breite_mm=4, hoehe_mm=8 WHERE id='schliesser_voreilend')",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='schliesser_voreilend')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('schliesser_voreilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('schliesser_voreilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('schliesser_voreilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('schliesser_voreilend', 3, 'linie', 0.075, 0.28125, 0.25, 0.25, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
+
+            // --- Gruppe D: Wechsler-Aufspaltung (Nutzerbestaetigung per AskUserQuestion) ---
+            // wechsler <- kopie_von_wechsler, umbenannt in "Wechsler schmal" (bisherige 4x12mm-Geometrie war die schmale Variante)
+            R"(UPDATE symbol_definition SET name='Wechsler schmal', breite_mm=4, hoehe_mm=8 WHERE id='wechsler')",
+            R"(UPDATE symbol SET name='Wechsler schmal' WHERE code='wechsler')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='wechsler')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler', 'K', 1.0, 1.0, 0.0, 1.0, 'neutral'), ('wechsler', 'NO', 1.0, 0.0, 0.0, -1.0, 'neutral'), ('wechsler', 'NC', 0.0, 0.0, 0.0, -1.0, 'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='wechsler')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler', 0, 'linie', 1.0, 0.0, 1.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler', 1, 'linie', 0.25, 0.25, 1.0, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler', 2, 'linie', 0.0, 0.0, 0.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler', 3, 'linie', 1.0, 0.6875, 1.0, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler', 4, 'linie', 0.0, 0.3125, 0.5, 0.3125, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
+
+            // wechsler_breit (neu) <- kopie_von_kopie_von_wechsler_schmal, die breitere zweite Variante
+            R"(INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('wechsler_breit', 'Wechsler', 'Kontakte', 8, 8, 'durchleiter', 1, 'vertikal'))",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wechsler_breit', 'K', 0.5, 1.0, 0.0, 1.0, 'neutral'), ('wechsler_breit', 'NO', 1.0, 0.0, 0.0, -1.0, 'neutral'), ('wechsler_breit', 'NC', 0.0, 0.0, 0.0, -1.0, 'neutral'))",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ('wechsler_breit', 0, 'linie', 1.0, 0.0, 1.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler_breit', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler_breit', 2, 'linie', 0.0, 0.0, 0.0, 0.3125, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler_breit', 3, 'linie', 0.5, 0.6875, 0.5, 1.0, 0, 0, 0, 0, 0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid'), ('wechsler_breit', 4, 'linie', 0.0, 0.3125, 0.375, 0.3125, 0, 0, 0, 0, 360, 0, NULL, 0.15, 0, 'center', 'middle', 'solid'))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('wechsler_breit', 'Wechsler', 'kontakte', 'IEC,ANSI', 3))",
+
+            // --- Werkstatt-Kopien nach Uebernahme entfernen ---
+            R"(DELETE FROM symbol_definition WHERE id IN (
+                'kopie_von_anhaenger_steckdose_13_polig', 'kopie_von_ao_baugruppe_4_kanal', 'kopie_von_batterie_12v',
+                'kopie_von_batterie_trennrelais', 'kopie_von_stecker', 'kopie_von_buchse', 'kopie_von_cpu_baugruppe',
+                'kopie_von_gluehkerze', 'kopie_von_frischwasserpumpe_12v', 'kopie_von_isoliert_gelegte_ader',
+                'kopie_von_do_baugruppe_16_kanal', 'kopie_von_do_baugruppe_8_kanal', 'kopie_von_funktionserdung',
+                'kopie_von_hupe_klingel', 'kopie_von_klemme', 'kopie_von_kombiinstrument', 'kopie_von_lampe',
+                'kopie_von_oeffner_nc', 'kopie_von_nacheilender_oeffner_nc', 'kopie_von_kopie_von_nacheilender_oeffner_nc',
+                'kopie_von_voreilender_schliesser_no', 'kopie_von_wechsler', 'kopie_von_kopie_von_wechsler_schmal'
+            ))",
+
+            // --- Vom Nutzer per Loeschmarkierung markierte built-in-Symbole entfernen (0 platzierte Instanzen) ---
+            R"(DELETE FROM symbol WHERE code IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter'))",
+            R"(DELETE FROM symbol_definition WHERE id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -2035,7 +2133,8 @@ bool Database::seedSymbolKatalog()
         // Kontakte
         { "schliesser",      "Schließer (NO)",          "kontakte",       "IEC,ANSI", 2 },
         { "oeffner",         "Öffner (NC)",             "kontakte",       "IEC,ANSI", 2 },
-        { "wechsler",        "Wechsler",                "kontakte",       "IEC,ANSI", 3 },
+        { "wechsler",        "Wechsler schmal",         "kontakte",       "IEC,ANSI", 3 },
+        { "wechsler_breit",  "Wechsler",                "kontakte",       "IEC,ANSI", 3 },
         { "taster_no",       "Taster (NO)",             "kontakte",       "IEC,ANSI", 2 },
         { "taster_nc",       "Taster NC",               "kontakte",       "IEC,ANSI", 2 },
         { "not_halt",        "Not-Halt (NC)",           "kontakte",       "IEC,ANSI", 2 },
@@ -2056,13 +2155,11 @@ bool Database::seedSymbolKatalog()
         { "motor",           "Motor",                   "antriebe",       "IEC,ANSI", 2 },
         { "motor_dc",        "Gleichstrommotor",        "antriebe",       "IEC,ANSI", 2 },
         { "spule",           "Spule / Relais",          "antriebe",       "IEC",      2 },
-        { "spule_ansi",      "Coil / Relay",            "antriebe",       "ANSI",     2 },
         { "trafo",           "Transformator",           "antriebe",       "IEC,ANSI", 4 },
         { "netzteil",        "Netzteil",                "antriebe",       "IEC,ANSI", 4 },
         { "ventil",          "Ventil",                  "antriebe",       "IEC,ANSI", 2 },
         // Passive Bauelemente
         { "widerstand_iec",  "Widerstand",              "passive",        "IEC",      2 },
-        { "widerstand_ansi", "Resistor",                "passive",        "ANSI",     2 },
         { "kondensator",     "Kondensator",             "passive",        "IEC,ANSI", 2 },
         { "diode",           "Diode",                   "passive",        "IEC,ANSI", 2 },
         { "led",             "LED",                     "passive",        "IEC,ANSI", 2 },
@@ -2097,9 +2194,7 @@ bool Database::seedSymbolKatalog()
         { "kfz_stecker_4",    "KFZ-Stecker 4-polig",        "kfz", "IEC,ANSI", 4 },
         // KFZ + Motorrad, Teil 2 (SYM-ERWEITERUNG-01 Prioritaet 2)
         { "kfz_zuendschloss",          "Zündschloss",                 "kfz", "IEC,ANSI", 3 },
-        { "kfz_lichtschalter",         "Lichtschalter",               "kfz", "IEC,ANSI", 2 },
         { "kfz_seitenstaenderschalter","Seitenständerschalter",       "kfz", "IEC,ANSI", 2 },
-        { "kfz_kupplungsschalter",     "Kupplungsschalter",           "kfz", "IEC,ANSI", 2 },
         { "kfz_bremslichtschalter",    "Bremslichtschalter",          "kfz", "IEC,ANSI", 2 },
         { "kfz_anlasser",              "Anlasser (Starter)",          "kfz", "IEC,ANSI", 2 },
         { "kfz_gluehkerze",            "Glühkerze",                   "kfz", "IEC,ANSI", 1 },
@@ -2155,7 +2250,6 @@ bool Database::seedSymbolKatalog()
         { "sicherungstrennschalter",     "Sicherungstrennschalter",                 "schutz", "IEC", 2 },
         { "sicherungslasttrennschalter", "Sicherungslasttrennschalter",             "schutz", "IEC", 2 },
         // Elektroinstallation
-        { "wechselschalter",   "Wechselschalter",     "installation", "IEC", 3 },
         { "serienschalter",    "Serienschalter",      "installation", "IEC", 4 },
         { "taster_beleuchtet", "Taster (beleuchtet)", "installation", "IEC", 2 },
         { "kreuzschalter",     "Kreuzschalter",       "installation", "IEC", 4 },

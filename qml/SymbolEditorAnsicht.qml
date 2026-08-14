@@ -68,6 +68,12 @@ Item {
     property string loeschenSymbolId:  ""
     property string loeschenSymbolName: ""
 
+    // Vergleichs-Warteschlange (SE-VERGLEICH-01, Entwicklungsphase-Werkzeug):
+    // rein sitzungsbasierte Merkliste (kein DB-Feld, kein Schema-Update) zum
+    // schnellen Durchblättern mehrerer ähnlicher Symbole, ohne die Liste/
+    // Suche jedes Mal neu zu bedienen. Geht beim Schließen des Editors verloren.
+    property var    vergleichsListe:   []
+
     property var gefilterteSymbole: {
         var f = listeFilter.toLowerCase()
         var result = f ? listenSymbole.filter(function(s) {
@@ -184,6 +190,45 @@ Item {
 
     function symbollisteAktualisieren() {
         listenSymbole = symbolDefinitionModel.alleSymbole()
+        if (vergleichsListe.length > 0) {
+            var gueltigeIds = listenSymbole.map(function(s) { return s.id })
+            vergleichsListe = vergleichsListe.filter(function(id) { return gueltigeIds.indexOf(id) >= 0 })
+        }
+    }
+
+    // Vergleichs-Warteschlange: Symbol hinzufügen/entfernen, dann sequentiell
+    // durchblättern (vergleichVor/vergleichZurueck) — lädt jeweils wie ein
+    // normaler Listenklick, nur ohne die Liste erneut anzufassen.
+    function vergleichToggle(symbolId) {
+        var idx = vergleichsListe.indexOf(symbolId)
+        var neu = vergleichsListe.slice()
+        if (idx >= 0) neu.splice(idx, 1)
+        else neu.push(symbolId)
+        vergleichsListe = neu
+    }
+
+    function vergleichLeeren() {
+        vergleichsListe = []
+    }
+
+    function _vergleichSpringeZu(symbolId) {
+        aktiveListenId = symbolId
+        vorlageId      = ""
+        editSymbolId   = symbolId
+    }
+
+    function vergleichVor() {
+        if (vergleichsListe.length < 2) return
+        var idx  = vergleichsListe.indexOf(editSymbolId)
+        var next = (idx < 0) ? 0 : (idx + 1) % vergleichsListe.length
+        _vergleichSpringeZu(vergleichsListe[next])
+    }
+
+    function vergleichZurueck() {
+        if (vergleichsListe.length < 2) return
+        var idx  = vergleichsListe.indexOf(editSymbolId)
+        var prev = (idx < 0) ? 0 : (idx - 1 + vergleichsListe.length) % vergleichsListe.length
+        _vergleichSpringeZu(vergleichsListe[prev])
     }
 
     // Löschmarkierung umschalten (SYM-LOESCH-MARKIERUNG-01, Entwicklungsphase-

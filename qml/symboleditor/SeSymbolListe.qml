@@ -151,6 +151,24 @@ Rectangle {
                                 }
                             }
 
+                            // Zum Vergleichen markieren (SE-VERGLEICH-01) — sitzungsbasiert, keine DB
+                            Rectangle {
+                                width: 22; height: 22; radius: 3
+                                property bool markiert: root.editor.vergleichsListe.indexOf(modelData.id) >= 0
+                                visible: listeItemHover.hovered || root.editor.aktiveListenId === modelData.id || markiert
+                                color:   listeVglHover.hovered ? root.editor.theme.badge : "transparent"
+                                ToolTip.visible: listeVglHover.hovered; ToolTip.delay: 600
+                                ToolTip.text: markiert ? qsTr("Aus Vergleichsliste entfernen") : qsTr("Zum Vergleichen markieren")
+                                Text {
+                                    anchors.centerIn: parent; text: "📌"; font.pixelSize: 12
+                                    color: parent.markiert ? root.editor.theme.accent : root.editor.theme.textSecondary
+                                }
+                                HoverHandler { id: listeVglHover }
+                                TapHandler {
+                                    onTapped: root.editor.vergleichToggle(modelData.id)
+                                }
+                            }
+
                             // Zum Löschen markieren (SYM-LOESCH-MARKIERUNG-01) — built-in + eigene
                             Rectangle {
                                 width: 22; height: 22; radius: 3

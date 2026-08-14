@@ -40,11 +40,11 @@ Rectangle {
                 switch (p2.typ) {
                 case "linie":             return ["x1","y1","x2","y2"]
                 case "rechteck":
-                case "rechteck_gefuellt": return ["x1","y1","x2","y2"]
+                case "rechteck_gefuellt": return ["x1","y1","x2","y2","rotation"]
                 case "kreis_offen":
                 case "kreis_gefuellt":    return ["x1","y1","radius"]
                 case "bogen":             return ["x1","y1","radius","winkel_von","winkel_bis"]
-                case "text":              return ["x1","y1","schrift_relativ"]
+                case "text":              return ["x1","y1","schrift_relativ","rotation"]
                 case "dreieck_gefuellt":  return ["x1","y1","x2","y2","x3","y3"]
                 default: return []
                 }
@@ -53,7 +53,7 @@ Rectangle {
                 Layout.fillWidth: true; spacing: 6
                 Text {
                     text: {
-                        var angFelder = ["winkel_von","winkel_bis"]
+                        var angFelder = ["winkel_von","winkel_bis","rotation"]
                         if (editor.istPositionsfeld(modelData)) return modelData + " (mm):"
                         if (angFelder.indexOf(modelData) >= 0)  return modelData + " (°):"
                         return modelData + ":"
@@ -86,6 +86,42 @@ Rectangle {
                         arr[idx3] = pm
                         editor.primitive = arr
                         editor.repaintAll()
+                    }
+                }
+            }
+        }
+
+        // Rotation: Schnellauswahl-Winkel (SE-ROTATION-01) — das Zahlenfeld
+        // oben deckt beliebige Winkel ab, hier nur die gängigen DIN-Winkel
+        // als Ein-Klick-Vorauswahl.
+        RowLayout {
+            Layout.fillWidth: true; spacing: 4
+            visible: editor.ausgewaehltPrimIdx >= 0 &&
+                     editor.primitive[editor.ausgewaehltPrimIdx] &&
+                     ["rechteck","rechteck_gefuellt","text"].indexOf(editor.primitive[editor.ausgewaehltPrimIdx].typ) >= 0
+            Repeater {
+                model: [0, 45, 90, 135]
+                delegate: Button {
+                    Layout.fillWidth: true
+                    implicitHeight: 24
+                    text: modelData + "°"
+                    font.pixelSize: 10
+                    onClicked: {
+                        var idxR = editor.ausgewaehltPrimIdx; if (idxR < 0) return
+                        var arrR = editor.primitive.slice()
+                        var pmR  = Object.assign({}, arrR[idxR])
+                        pmR.rotation = modelData
+                        arrR[idxR] = pmR
+                        editor.primitive = arrR
+                        editor.repaintAll()
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? editor.theme.hover : editor.theme.inputBg
+                        radius: 3; border.color: editor.theme.border
+                    }
+                    contentItem: Text {
+                        text: parent.text; color: editor.theme.textSecondary; font.pixelSize: 10
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                 }
             }

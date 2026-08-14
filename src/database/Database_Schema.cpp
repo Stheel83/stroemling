@@ -1758,6 +1758,9 @@ static QList<SchemaMigration> alleMigrationen()
             // Werkstatt-Kopie nach Uebernahme entfernen
             R"(DELETE FROM symbol_definition WHERE id='kopie_von_unterbrechung')",
         }},
+        { 120, "SE-ROTATION-01: symbol_primitiv.rotation-Spalte (Grad, Default 0) - freie Rotation von rechteck/rechteck_gefuellt/text-Primitiven im Symboleditor, unabhaengig von der 90-Grad-Ausrichtung ganzer platzierter Symbole.", {
+            R"(ALTER TABLE symbol_primitiv ADD COLUMN rotation REAL NOT NULL DEFAULT 0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

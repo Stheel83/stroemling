@@ -47,14 +47,32 @@ Dialog {
                     ctx.lineTo(p.x2 * w, p.y2 * h)
                     ctx.stroke()
                     break
-                case "rechteck":
-                    ctx.strokeRect(p.x1 * w, p.y1 * h, (p.x2 - p.x1) * w, (p.y2 - p.y1) * h)
+                case "rechteck": {
+                    var rrw = (p.x2 - p.x1) * w, rrh = (p.y2 - p.y1) * h
+                    if (p.rotation) {
+                        ctx.save()
+                        ctx.translate((p.x1+p.x2)/2 * w, (p.y1+p.y2)/2 * h)
+                        ctx.rotate(p.rotation * Math.PI / 180)
+                        ctx.strokeRect(-rrw / 2, -rrh / 2, rrw, rrh)
+                        ctx.restore()
+                    } else {
+                        ctx.strokeRect(p.x1 * w, p.y1 * h, rrw, rrh)
+                    }
                     break
-                case "rechteck_gefuellt":
+                }
+                case "rechteck_gefuellt": {
+                    var rgw = (p.x2 - p.x1) * w, rgh = (p.y2 - p.y1) * h
                     ctx.save(); ctx.fillStyle = ctx.strokeStyle
-                    ctx.fillRect(p.x1 * w, p.y1 * h, (p.x2 - p.x1) * w, (p.y2 - p.y1) * h)
+                    if (p.rotation) {
+                        ctx.translate((p.x1+p.x2)/2 * w, (p.y1+p.y2)/2 * h)
+                        ctx.rotate(p.rotation * Math.PI / 180)
+                        ctx.fillRect(-rgw / 2, -rgh / 2, rgw, rgh)
+                    } else {
+                        ctx.fillRect(p.x1 * w, p.y1 * h, rgw, rgh)
+                    }
                     ctx.restore()
                     break
+                }
                 case "kreis_offen":
                     ctx.beginPath()
                     ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
@@ -80,7 +98,13 @@ Dialog {
                                        Math.round(p.schrift_relativ * h) + "px sans-serif"
                     ctx.textAlign    = p.text_align    || "center"
                     ctx.textBaseline = p.text_baseline || "middle"
-                    ctx.fillText(p.text_inhalt, p.x1 * w, p.y1 * h)
+                    if (p.rotation) {
+                        ctx.translate(p.x1 * w, p.y1 * h)
+                        ctx.rotate(p.rotation * Math.PI / 180)
+                        ctx.fillText(p.text_inhalt, 0, 0)
+                    } else {
+                        ctx.fillText(p.text_inhalt, p.x1 * w, p.y1 * h)
+                    }
                     ctx.restore()
                     break
                 case "dreieck_gefuellt":

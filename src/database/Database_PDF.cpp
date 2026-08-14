@@ -116,22 +116,30 @@ static void pdfPrimitivRendern(QPainter &p, const QVariantMap &pr,
                           pr.value("x2").toDouble() * w, pr.value("y2").toDouble() * h));
 
     } else if (typ == "rechteck") {
-        double rx = pr.value("x1").toDouble() * w;
-        double ry = pr.value("y1").toDouble() * h;
-        double rw = (pr.value("x2").toDouble() - pr.value("x1").toDouble()) * w;
-        double rh = (pr.value("y2").toDouble() - pr.value("y1").toDouble()) * h;
-        p.drawRect(QRectF(rx, ry, rw, rh));
+        double x1v = pr.value("x1").toDouble(), y1v = pr.value("y1").toDouble();
+        double x2v = pr.value("x2").toDouble(), y2v = pr.value("y2").toDouble();
+        double rw  = (x2v - x1v) * w, rh = (y2v - y1v) * h;
+        double cx  = (x1v + x2v) / 2.0 * w, cy = (y1v + y2v) / 2.0 * h;
+        double rot = pr.value("rotation").toDouble();
+        p.save();
+        p.translate(cx, cy);
+        if (rot != 0.0) p.rotate(rot);
+        p.drawRect(QRectF(-rw / 2.0, -rh / 2.0, rw, rh));
+        p.restore();
 
     } else if (typ == "rechteck_gefuellt") {
-        double rx = pr.value("x1").toDouble() * w;
-        double ry = pr.value("y1").toDouble() * h;
-        double rw = (pr.value("x2").toDouble() - pr.value("x1").toDouble()) * w;
-        double rh = (pr.value("y2").toDouble() - pr.value("y1").toDouble()) * h;
+        double x1v = pr.value("x1").toDouble(), y1v = pr.value("y1").toDouble();
+        double x2v = pr.value("x2").toDouble(), y2v = pr.value("y2").toDouble();
+        double rw  = (x2v - x1v) * w, rh = (y2v - y1v) * h;
+        double cx  = (x1v + x2v) / 2.0 * w, cy = (y1v + y2v) / 2.0 * h;
+        double rot = pr.value("rotation").toDouble();
+        p.save();
+        p.translate(cx, cy);
+        if (rot != 0.0) p.rotate(rot);
         p.setBrush(pen.color());
         p.setPen(Qt::NoPen);
-        p.drawRect(QRectF(rx, ry, rw, rh));
-        p.setPen(pen);
-        p.setBrush(Qt::NoBrush);
+        p.drawRect(QRectF(-rw / 2.0, -rh / 2.0, rw, rh));
+        p.restore();
 
     } else if (typ == "kreis_offen") {
         double cx = pr.value("x1").toDouble() * w;
@@ -173,6 +181,7 @@ static void pdfPrimitivRendern(QPainter &p, const QVariantMap &pr,
         double ty     = pr.value("y1").toDouble() * h;
         double fs     = pr.value("schrift_relativ").toDouble() * h;
         bool   bold   = pr.value("schrift_fett").toBool();
+        double rot    = pr.value("rotation").toDouble();
         QString align    = pr.value("text_align").toString();
         QString baseline = pr.value("text_baseline").toString();
         QString inhalt   = pr.value("text_inhalt").toString();
@@ -189,13 +198,19 @@ static void pdfPrimitivRendern(QPainter &p, const QVariantMap &pr,
         if (align == "center") qa = Qt::AlignHCenter;
         else if (align == "right") qa = Qt::AlignRight;
 
+        // Rotiert um den Textanker (tx,ty) selbst, daher relativ zu (0,0)
+        // nach dem translate/rotate statt zu (tx,ty) im Ausgangssystem.
         double rectW = w, rectH = qMax(fs * 2, 4.0);
-        double rx = tx, ry = ty;
+        double rx = 0.0, ry = 0.0;
         if (align == "center") rx -= w / 2;
         if (baseline == "middle")       ry -= fs * 0.5;
         else if (baseline == "bottom")  ry -= fs;
 
+        p.save();
+        p.translate(tx, ty);
+        if (rot != 0.0) p.rotate(rot);
         p.drawText(QRectF(rx, ry, rectW, rectH), qa | Qt::AlignTop, inhalt);
+        p.restore();
 
     } else if (typ == "dreieck_gefuellt") {
         QPolygonF tri;
@@ -221,7 +236,7 @@ static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
     QSqlQuery q(db);
     q.prepare(R"(SELECT typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,
                         bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,
-                        text_align,text_baseline,linienart
+                        text_align,text_baseline,linienart,rotation
                  FROM symbol_primitiv WHERE symbol_id=:sid ORDER BY reihenfolge)");
     q.bindValue(":sid", symbolId);
     if (!q.exec()) return;
@@ -246,6 +261,7 @@ static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
         m["text_align"]             = q.value(14).toString();
         m["text_baseline"]          = q.value(15).toString();
         m["linienart"]              = q.value(16).toString();
+        m["rotation"]               = q.value(17).toDouble();
         prims.append(m);
     }
     if (prims.isEmpty()) return;

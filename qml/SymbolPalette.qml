@@ -480,17 +480,33 @@ Rectangle {
                                     ctx.lineTo(sx(p.x2), sy(p.y2))
                                     ctx.stroke()
                                     break
-                                case "rechteck":
-                                    ctx.strokeRect(sx(p.x1), sy(p.y1),
-                                                   (p.x2 - p.x1) * scale, (p.y2 - p.y1) * scale)
+                                case "rechteck": {
+                                    var rrw = (p.x2 - p.x1) * scale, rrh = (p.y2 - p.y1) * scale
+                                    if (p.rotation) {
+                                        ctx.save()
+                                        ctx.translate(sx((p.x1+p.x2)/2), sy((p.y1+p.y2)/2))
+                                        ctx.rotate(p.rotation * Math.PI / 180)
+                                        ctx.strokeRect(-rrw / 2, -rrh / 2, rrw, rrh)
+                                        ctx.restore()
+                                    } else {
+                                        ctx.strokeRect(sx(p.x1), sy(p.y1), rrw, rrh)
+                                    }
                                     break
-                                case "rechteck_gefuellt":
+                                }
+                                case "rechteck_gefuellt": {
+                                    var rgw = (p.x2 - p.x1) * scale, rgh = (p.y2 - p.y1) * scale
                                     ctx.save()
                                     ctx.fillStyle = ctx.strokeStyle
-                                    ctx.fillRect(sx(p.x1), sy(p.y1),
-                                                 (p.x2 - p.x1) * scale, (p.y2 - p.y1) * scale)
+                                    if (p.rotation) {
+                                        ctx.translate(sx((p.x1+p.x2)/2), sy((p.y1+p.y2)/2))
+                                        ctx.rotate(p.rotation * Math.PI / 180)
+                                        ctx.fillRect(-rgw / 2, -rgh / 2, rgw, rgh)
+                                    } else {
+                                        ctx.fillRect(sx(p.x1), sy(p.y1), rgw, rgh)
+                                    }
                                     ctx.restore()
                                     break
+                                }
                                 case "kreis_offen":
                                     ctx.beginPath()
                                     ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
@@ -519,7 +535,13 @@ Rectangle {
                                                        Math.round(p.schrift_relativ * scale) + "px sans-serif"
                                     ctx.textAlign    = p.text_align    || "center"
                                     ctx.textBaseline = p.text_baseline || "middle"
-                                    ctx.fillText(p.text_inhalt, sx(p.x1), sy(p.y1))
+                                    if (p.rotation) {
+                                        ctx.translate(sx(p.x1), sy(p.y1))
+                                        ctx.rotate(p.rotation * Math.PI / 180)
+                                        ctx.fillText(p.text_inhalt, 0, 0)
+                                    } else {
+                                        ctx.fillText(p.text_inhalt, sx(p.x1), sy(p.y1))
+                                    }
                                     ctx.restore()
                                     break
                                 case "dreieck_gefuellt":

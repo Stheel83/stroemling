@@ -312,7 +312,7 @@ Item {
                        (p.bogen_gegen_uhrzeiger ? 1 : 0) + ", " +
                        ti + ", " + fmtN(p.schrift_relativ || 0.5) + ", " + (p.schrift_fett ? 1 : 0) + ", " +
                        "'" + esc(p.text_align || "center") + "', '" + esc(p.text_baseline || "middle") + "', '" +
-                       esc(p.linienart || "solid") + "')")
+                       esc(p.linienart || "solid") + "', " + fmtN(p.rotation || 0) + ")")
             }
             return t.join(", ")
         }
@@ -350,7 +350,7 @@ Item {
                 lines.push('    R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ' + pinWerte(zielId) + ')",')
             lines.push('    R"(DELETE FROM symbol_primitiv WHERE symbol_id = ' + "'" + esc(zielId) + "'" + ')",')
             if (prims.length > 0)
-                lines.push('    R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES ' + primWerte(zielId) + ')",')
+                lines.push('    R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ' + primWerte(zielId) + ')",')
             lines.push("}},")
             if (neuerName !== zielName) {
                 lines.push("")
@@ -377,7 +377,7 @@ Item {
             }
             if (prims.length > 0) {
                 lines.push("")
-                lines.push("INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart) VALUES")
+                lines.push("INSERT OR IGNORE INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES")
                 lines.push(primWerte(symbolId) + ";")
             }
         }
@@ -503,7 +503,29 @@ Item {
         return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy))
     }
 
+    // Rotiert einen Normkoordinaten-Punkt um das Primitiv-Zentrum zurück in
+    // dessen unrotierten lokalen Rahmen — im mm-Raum (uniformer Maßstab),
+    // nicht in normierten 0..1-Koordinaten, da breiteMm != hoeheMm sonst eine
+    // Rotation zu einer Scherung verzerren würde. Vorzeichen (-rotation)
+    // entspricht der Umkehrung des ctx.rotate(rotation)-Renderings.
+    function entdreheNormPunkt(p, nx, ny) {
+        if (!p.rotation) return {x: nx, y: ny}
+        var cx = ((p.x1||0) + (p.x2||0)) / 2
+        var cy = ((p.y1||0) + (p.y2||0)) / 2
+        var mmX = (nx - cx) * root.breiteMm
+        var mmY = (ny - cy) * root.hoeheMm
+        var rad = -p.rotation * Math.PI / 180
+        var cos = Math.cos(rad), sin = Math.sin(rad)
+        var rx = mmX * cos - mmY * sin
+        var ry = mmX * sin + mmY * cos
+        return { x: cx + rx / root.breiteMm, y: cy + ry / root.hoeheMm }
+    }
+
     function distZuPrimitiv(p, nx, ny) {
+        if (p.rotation && (p.typ === "rechteck" || p.typ === "rechteck_gefuellt")) {
+            var lokal = entdreheNormPunkt(p, nx, ny)
+            nx = lokal.x; ny = lokal.y
+        }
         switch (p.typ) {
         case "linie":
             return distPunktZuSegment(nx, ny, p.x1, p.y1, p.x2, p.y2)
@@ -814,12 +836,26 @@ Item {
                                 // X1/Y1/X2/Y2 direkt am Primitiv statt nur im Eigenschaften-Panel)
                                 if (isSel) {
                                     ctx.strokeStyle = "#00e5a0"
-                                    zeichneCanvas.zeichneGriff(ctx, n2sx(p.x1 || 0), n2sy(p.y1 || 0))
-                                    zeichneCanvas.zeichneKoordLabel(ctx, n2sx(p.x1 || 0), n2sy(p.y1 || 0),
+                                    // Bei rotierten Rechtecken zeigen die Griffe die tatsächliche
+                                    // (gedrehte) Bildschirmposition der Ecken, sonst würden sie
+                                    // sichtbar neben dem gezeichneten Rechteck schweben.
+                                    var g1x = n2sx(p.x1 || 0), g1y = n2sy(p.y1 || 0)
+                                    var g2x = n2sx(p.x2 || 0), g2y = n2sy(p.y2 || 0)
+                                    if (p.rotation && (p.typ === "rechteck" || p.typ === "rechteck_gefuellt")) {
+                                        var gcx = n2sx(((p.x1||0)+(p.x2||0))/2), gcy = n2sy(((p.y1||0)+(p.y2||0))/2)
+                                        var grad = p.rotation * Math.PI / 180
+                                        var gcos = Math.cos(grad), gsin = Math.sin(grad)
+                                        var d1x = g1x - gcx, d1y = g1y - gcy
+                                        var d2x = g2x - gcx, d2y = g2y - gcy
+                                        g1x = gcx + d1x*gcos - d1y*gsin; g1y = gcy + d1x*gsin + d1y*gcos
+                                        g2x = gcx + d2x*gcos - d2y*gsin; g2y = gcy + d2x*gsin + d2y*gcos
+                                    }
+                                    zeichneCanvas.zeichneGriff(ctx, g1x, g1y)
+                                    zeichneCanvas.zeichneKoordLabel(ctx, g1x, g1y,
                                         "X1", "Y1", root.normToMmX(p.x1 || 0), root.normToMmY(p.y1 || 0))
                                     if (p.typ === "linie" || p.typ === "rechteck" || p.typ === "rechteck_gefuellt") {
-                                        zeichneCanvas.zeichneGriff(ctx, n2sx(p.x2 || 0), n2sy(p.y2 || 0))
-                                        zeichneCanvas.zeichneKoordLabel(ctx, n2sx(p.x2 || 0), n2sy(p.y2 || 0),
+                                        zeichneCanvas.zeichneGriff(ctx, g2x, g2y)
+                                        zeichneCanvas.zeichneKoordLabel(ctx, g2x, g2y,
                                             "X2", "Y2", root.normToMmX(p.x2 || 0), root.normToMmY(p.y2 || 0))
                                     }
                                 }
@@ -934,17 +970,33 @@ Item {
                                 ctx.lineTo(dx+(p.x2||0)*dw, dy+(p.y2||0)*dh)
                                 ctx.stroke()
                                 break
-                            case "rechteck":
-                                ctx.strokeRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh,
-                                               ((p.x2||0)-(p.x1||0))*dw, ((p.y2||0)-(p.y1||0))*dh)
+                            case "rechteck": {
+                                var rrw = ((p.x2||0)-(p.x1||0))*dw, rrh = ((p.y2||0)-(p.y1||0))*dh
+                                if (p.rotation) {
+                                    ctx.save()
+                                    ctx.translate(dx+((p.x1||0)+(p.x2||0))/2*dw, dy+((p.y1||0)+(p.y2||0))/2*dh)
+                                    ctx.rotate(p.rotation * Math.PI / 180)
+                                    ctx.strokeRect(-rrw/2, -rrh/2, rrw, rrh)
+                                    ctx.restore()
+                                } else {
+                                    ctx.strokeRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, rrw, rrh)
+                                }
                                 break
-                            case "rechteck_gefuellt":
+                            }
+                            case "rechteck_gefuellt": {
+                                var rgw = ((p.x2||0)-(p.x1||0))*dw, rgh = ((p.y2||0)-(p.y1||0))*dh
                                 ctx.save()
                                 ctx.fillStyle = ctx.strokeStyle
-                                ctx.fillRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh,
-                                             ((p.x2||0)-(p.x1||0))*dw, ((p.y2||0)-(p.y1||0))*dh)
+                                if (p.rotation) {
+                                    ctx.translate(dx+((p.x1||0)+(p.x2||0))/2*dw, dy+((p.y1||0)+(p.y2||0))/2*dh)
+                                    ctx.rotate(p.rotation * Math.PI / 180)
+                                    ctx.fillRect(-rgw/2, -rgh/2, rgw, rgh)
+                                } else {
+                                    ctx.fillRect(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, rgw, rgh)
+                                }
                                 ctx.restore()
                                 break
+                            }
                             case "kreis_offen":
                                 ctx.beginPath()
                                 ctx.arc(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, (p.radius||0.1)*dw, 0, 2*Math.PI)
@@ -973,7 +1025,13 @@ Item {
                                             Math.round((p.schrift_relativ||0.15)*dw) + "px sans-serif")
                                 ctx.textAlign    = p.text_align    || "center"
                                 ctx.textBaseline = p.text_baseline || "middle"
-                                ctx.fillText(p.text_inhalt||"?", dx+(p.x1||0)*dw, dy+(p.y1||0)*dh)
+                                if (p.rotation) {
+                                    ctx.translate(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh)
+                                    ctx.rotate(p.rotation * Math.PI / 180)
+                                    ctx.fillText(p.text_inhalt||"?", 0, 0)
+                                } else {
+                                    ctx.fillText(p.text_inhalt||"?", dx+(p.x1||0)*dw, dy+(p.y1||0)*dh)
+                                }
                                 ctx.restore()
                                 break
                             case "dreieck_gefuellt":

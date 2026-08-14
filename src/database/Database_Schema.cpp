@@ -1751,6 +1751,13 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DELETE FROM symbol WHERE code IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter'))",
             R"(DELETE FROM symbol_definition WHERE id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter'))",
         }},
+        { 119, "SYM-KOPIE-VON-01 fuenfter Sync-Durchlauf (Projekt Goerke): unterbrechung 16x16mm->8x8mm uebernommen (reine Massenkorrektur, Pins/Primitive unveraendert - unterbrechung hat wie aderdefinition grundsaetzlich keine Pins). Im Zuge dessen echten Bug in autoVerbindungenBerechnen() (SymbolDefinitionModel.cpp) behoben: die Sperrelement-Erkennung fuer die automatische Rasterverbindungs-Vorschlagslogik pruefte hart auf die Symbol-ID 'unterbrechung' statt auf rolle='trenner' - jede Symboleditor-Kopie von 'unterbrechung' (neue, andere ID) wurde dadurch nie als Blockierer erkannt und die automatische Verbindungsvorschau lief einfach durch die Kopie hindurch, obwohl deren rolle-Spalte korrekt 'trenner' mitkopiert wurde. Vom Nutzer beim Testen der eigenen Kopie bemerkt.", {
+            // unterbrechung <- kopie_von_unterbrechung (nur Groesse, Pins/Primitive unveraendert)
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='unterbrechung')",
+
+            // Werkstatt-Kopie nach Uebernahme entfernen
+            R"(DELETE FROM symbol_definition WHERE id='kopie_von_unterbrechung')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

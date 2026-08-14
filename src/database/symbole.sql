@@ -2858,3 +2858,11 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 DELETE FROM symbol_pin WHERE symbol_id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter');
 DELETE FROM symbol_primitiv WHERE symbol_id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter');
 DELETE FROM symbol_definition WHERE id IN ('spule_ansi', 'widerstand_ansi', 'wechselschalter', 'kfz_lichtschalter', 'kfz_kupplungsschalter');
+
+-- ══════════════════════════════════════════════════════════════
+-- SYM-KOPIE-VON-01 fünfter Sync-Durchlauf (Schema v119, Projekt
+-- Görke): unterbrechung 16x16mm->8x8mm, reine Maßkorrektur
+-- (Pins/Primitive unverändert, unterbrechung hat wie
+-- aderdefinition grundsätzlich keine Pins).
+-- ══════════════════════════════════════════════════════════════
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'unterbrechung';

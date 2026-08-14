@@ -538,7 +538,14 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         if (typ != QLatin1String("symbol")) continue;
 
         const QString symbolId = el["symbolId"].toString();
-        const bool istSperrelement = (symbolId == QLatin1String("unterbrechung") ||
+        // Sperrelemente unterbrechen die H/V-Rasterverbindung an dieser Stelle:
+        // rolle='trenner' generisch (nicht id-basiert, damit auch Symboleditor-
+        // Kopien von 'unterbrechung' mit neuer ID weiterhin blockieren, s.
+        // UNTERBRECHUNG-KOPIE-01), querverweis zusaetzlich id-basiert (eigene
+        // rolle='durchleiter', blockiert aber strukturell weil kein
+        // durchgehender Draht ueber die Seite hinweg existiert).
+        QString rolle = rolleForSymbol(symbolId);
+        const bool istSperrelement = (rolle == QLatin1String("trenner") ||
                                       symbolId == QLatin1String("querverweis"));
         if (istSperrelement) {
             unterbrechungen.append({
@@ -570,7 +577,6 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         if (pins.isEmpty()) continue;
 
         // Rolle + Quell-Signaltyp
-        QString rolle = rolleForSymbol(symbolId);
         const QVariantMap ed = el["extraDaten"].toMap();
         if (rolle == QLatin1String("variabel"))
             rolle = ed.value("rolle", QStringLiteral("ziel")).toString();

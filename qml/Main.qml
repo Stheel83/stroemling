@@ -1611,6 +1611,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "symbol_editor"
                 theme:        appTheme
+                debug:        root.debugModeAktiv
                 editSymbolId: root.symbolEditorId
                 vorlageId:    root.symbolEditorVorlageId
 

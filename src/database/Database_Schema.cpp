@@ -1640,6 +1640,19 @@ static QList<SchemaMigration> alleMigrationen()
                 'kopie_von_kopie_von_wischkontakt_bei_betaetigung_rueckfall'
             ))",
         }},
+        { 117, "SYM-KOPIE-VON-01 dritter Sync-Durchlauf (Projekt Goerke): 3 weitere Nutzer-Kopien uebernommen - reine Massenkorrekturen ohne Geometrie-/Pin-Aenderung (treffpunkt/treffpunkt_l 16x16mm->8x8mm, motor 16x12mm->32x24mm). Treffpunkt/Treffpunkt_L behalten bewusst ihre von normalen Symbolen abweichenden Pin-Positionen auf Kanten-Mittelpunkten statt Bbox-Ecken bei (s. 05_leitungen_kabel.md) - unveraendert aus der Kopie uebernommen.", {
+            // treffpunkt <- kopie_von_treffpunkt_t (nur Groesse, Pins/Primitive unveraendert)
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='treffpunkt')",
+
+            // treffpunkt_l <- kopie_von_treffpunkt_l (nur Groesse, Pins/Primitive unveraendert)
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=8 WHERE id='treffpunkt_l')",
+
+            // motor <- kopie_von_motor (nur Groesse, Pins/Primitive unveraendert)
+            R"(UPDATE symbol_definition SET breite_mm=32, hoehe_mm=24 WHERE id='motor')",
+
+            // Werkstatt-Kopien nach Uebernahme entfernen
+            R"(DELETE FROM symbol_definition WHERE id IN ('kopie_von_treffpunkt_t', 'kopie_von_treffpunkt_l', 'kopie_von_motor'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

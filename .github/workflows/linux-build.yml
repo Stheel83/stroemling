@@ -1,0 +1,113 @@
+name: Linux Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  APPIMAGE_EXTRACT_AND_RUN: '1'
+  ARCH: x86_64
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Qt installieren
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          modules: 'qttools'
+          cache: true
+
+      - name: Version ermitteln
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            version="${GITHUB_REF#refs/tags/}"
+          else
+            version="dev-${GITHUB_SHA:0:7}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: CMake konfigurieren
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Bauen
+        run: cmake --build build --config Release --target stroemling_app -j$(nproc)
+
+      - name: Tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Deploy-Werkzeuge herunterladen
+        run: |
+          mkdir -p tools
+          curl -L -o tools/linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -L -o tools/linuxdeploy-plugin-qt-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          curl -L -o tools/appimagetool-x86_64.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x tools/*.AppImage
+
+      - name: AppDir bauen (linuxdeploy + Qt-Plugin)
+        run: |
+          export QMAKE="$QT_ROOT_DIR/bin/qmake6"
+          export PATH="$(pwd)/tools:$PATH"
+          rm -rf appimage/AppDir
+          linuxdeploy-x86_64.AppImage \
+            --appdir appimage/AppDir \
+            --executable build/stroemling_app \
+            --desktop-file appimage/stroemling-design.desktop \
+            --icon-file appimage/stroemling-design.png \
+            --plugin qt
+
+      # linuxdeploy-plugin-qt deployt die QML-Module nicht zuverlässig
+      # (QML-DEPLOY-01/02, s. BUILDING.md) - zwei manuelle Nachzieh-Schritte
+      # vor dem Packen, 1:1 aus dem lokal etablierten Ablauf übernommen.
+      - name: QML-Module nachziehen (QML-DEPLOY-01)
+        run: |
+          QT_QML="$QT_ROOT_DIR/qml"
+          mkdir -p appimage/AppDir/usr/qml
+          cp -r "$QT_QML"/. appimage/AppDir/usr/qml/
+
+      - name: Transitive Qt-Bibliotheken nachziehen (QML-DEPLOY-02)
+        run: |
+          QT_LIBS="$QT_ROOT_DIR/lib"
+          while :; do
+            added=0
+            while IFS= read -r -d '' so; do
+              for needed in $(readelf -d "$so" 2>/dev/null | grep NEEDED | grep -oP '\[\K[^\]]+'); do
+                if [[ "$needed" == libQt6* ]] && [ ! -e "appimage/AppDir/usr/lib/$needed" ]; then
+                  src="$QT_LIBS/$needed"
+                  if [ -e "$src" ]; then
+                    cp -L "$src" "appimage/AppDir/usr/lib/$needed"
+                    echo "  nachgezogen: $needed"
+                    added=1
+                  fi
+                fi
+              done
+            done < <(find appimage/AppDir/usr -name '*.so' -print0)
+            [ "$added" -eq 0 ] && break
+          done
+
+      - name: AppImage packen
+        run: |
+          export PATH="$(pwd)/tools:$PATH"
+          appimagetool-x86_64.AppImage appimage/AppDir \
+            "Stroemling-Design-${{ steps.version.outputs.version }}-x86_64.AppImage"
+
+      - name: Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stroemling-Design-${{ steps.version.outputs.version }}-linux-x86_64
+          path: Stroemling-Design-${{ steps.version.outputs.version }}-x86_64.AppImage
+          retention-days: 30

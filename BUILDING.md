@@ -170,9 +170,11 @@ Leap-16-Build ist bisher als Kompatibilitäts-Baseline geprüft.
 - Übernimmt die beiden QML-Nachzieh-Schritte (QML-DEPLOY-01/02) 1:1 aus
   dem oben dokumentierten manuellen Ablauf als eigene Workflow-Steps.
 - **Status:** ✅ läuft grün durch (Aug 2026). Bis dahin behobene Stolpersteine:
-  - `qttools` ist unter Linux (anders als Windows) kein separates
-    Zusatzmodul, sondern Teil der Basis-Installation — `modules`-Angabe
-    beim Qt-Install-Schritt entfernt.
+  - `qttools` ist kein separates Zusatzmodul mehr, sondern Teil der
+    Basis-Installation — `modules`-Angabe beim Qt-Install-Schritt entfernt
+    (traf beim ersten Versuch nur Linux, ist aber inzwischen auch beim
+    Windows-Workflow aufgetreten und dort ebenfalls entfernt — offenbar
+    eine Änderung im Qt-Paketformat, nicht plattformspezifisch).
   - `Qt6PrintSupport` braucht CUPS-Entwicklungsheader
     (`apt-get install libcups2-dev`), die der Runner nicht mitbringt.
   - Der Bauen-Schritt war auf `--target stroemling_app` beschränkt,

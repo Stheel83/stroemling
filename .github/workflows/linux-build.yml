@@ -62,6 +62,17 @@ jobs:
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x tools/*.AppImage
 
+      - name: Nicht benötigte SQL-Treiber-Plugins entfernen
+        # Die App nutzt ausschließlich QSQLITE (s. QSqlDatabase::addDatabase-
+        # Aufrufe). linuxdeploy-plugin-qt versucht sonst automatisch alle
+        # gefundenen sqldrivers-Plugins zu bündeln (MySQL, Mimer, ODBC, ...)
+        # und bricht ab, wenn deren native Client-Libs (z.B. libmimerapi.so)
+        # auf dem Runner fehlen - obwohl die App sie nie lädt.
+        run: |
+          cd "$QT_ROOT_DIR/plugins/sqldrivers"
+          find . -type f ! -name '*sqlite*' -delete
+          ls -la
+
       - name: AppDir bauen (linuxdeploy + Qt-Plugin)
         run: |
           export QMAKE="$QT_ROOT_DIR/bin/qmake6"

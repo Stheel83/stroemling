@@ -38,7 +38,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Bauen
-        run: cmake --build build --config Release --target stroemling_app -j 4
+        run: cmake --build build --config Release --target stroemling_app -j 2
 
       - name: Deploy-Ordner erstellen (windeployqt)
         run: |

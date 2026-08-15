@@ -183,10 +183,18 @@ Leap-16-Build ist bisher als Kompatibilitäts-Baseline geprüft.
     wenn deren native Client-Libs fehlen (`libmimerapi.so`) — die App
     nutzt ausschließlich `QSQLITE`, alle anderen Treiber-Plugins vor dem
     Deploy-Schritt aus der Qt-Installation entfernt.
-  - **GLIBC-Kompatibilität des Ergebnis-AppImage weiterhin nicht
-    verifiziert** — nur „baut erfolgreich", noch nicht auf einem älteren
-    Zielsystem getestet. Der lokale Leap-16-Build bleibt bis dahin die
-    geprüfte Release-Quelle.
+  - Zusätzlich ein zweiter QML-DEPLOY-02-Bug im Nachzieh-Loop selbst
+    gefunden: `find AppDir/usr -name '*.so'` erfasste nur unversionierte
+    QML-Plugin-Dateien, nicht die versionierten Qt-Kernbibliotheken
+    (`libQt6QuickDialogs2.so.6` u. ä.) — dadurch wurden deren eigene
+    transitive Abhängigkeiten nie durchsucht. Betraf auch den lokal
+    dokumentierten Ablauf oben, dort mitkorrigiert (Details: § „QML-DEPLOY-02
+    — Hintergrund").
+  - **Vom Nutzer getestet und bestätigt:** AppImage startet und lädt QML
+    korrekt (Aug 2026). GLIBC-Kompatibilität auf einem älteren Zielsystem
+    (nicht der eigenen Tumbleweed-Entwicklungsmaschine) noch nicht separat
+    verifiziert — der lokale Leap-16-Build bleibt bis dahin die geprüfte
+    Release-Quelle für tatsächliche Downloads.
 
 ---
 

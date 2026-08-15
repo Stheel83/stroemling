@@ -2866,3 +2866,94 @@ DELETE FROM symbol_definition WHERE id IN ('spule_ansi', 'widerstand_ansi', 'wec
 -- aderdefinition grundsätzlich keine Pins).
 -- ══════════════════════════════════════════════════════════════
 UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'unterbrechung';
+
+-- ══════════════════════════════════════════════════════════════
+-- SYM-KOPIE-VON-01 sechster Sync-Durchlauf (Schema v121, Projekt
+-- Görke): 8 Nutzer-Kopien übernommen. oeffner reine Maßkorrektur
+-- (Pins/Primitive unverändert). oeffner_nacheilend/
+-- schliesser_nacheilend/schliesser_voreilend mit leicht
+-- angepasster Diagonalmarkierung. schliesser mit verkürzter
+-- Diagonale. sicherungslasttrennschalter komplett neu gezeichnet
+-- (rotiertes Rechteck statt Zickzack-Linien, nutzt
+-- SE-ROTATION-01). kfz_sicherungskasten proportional skaliert.
+-- oeffner_voreilend komplett neu gezeichnet, altes asymmetrisches
+-- Design ersetzt durch einheitliches Design im Stil der übrigen
+-- Öffner/Schließer-Familie - Zuordnung über den vom Nutzer
+-- vergebenen Namen, da kopie_von_id der Werkstatt-Kopie nur auf
+-- eine andere, noch offene Zwischenkopie zeigte (s. KOPIE-KETTE-01
+-- in SymbolDefinitionModel.cpp).
+-- ══════════════════════════════════════════════════════════════
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'oeffner';
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'oeffner_nacheilend';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'oeffner_nacheilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_nacheilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_nacheilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_nacheilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_nacheilend', 3, 'linie', 0.25, 0.3125, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_nacheilend', 4, 'linie', 0.25, 0.25, 0.375, 0.2, 0.0, 0.0, 0.0, 0.0, 360.0, 0, NULL, 0.15, 0, 'center', 'middle', 'solid', 0.0);
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'schliesser';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser', 1, 'linie', 0.25, 0.25, 0.5, 0.70833333333333304, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser', 2, 'linie', 0.5, 0.70833333333333304, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'schliesser_nacheilend';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser_nacheilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_nacheilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_nacheilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_nacheilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_nacheilend', 3, 'linie', 0.25, 0.25, 0.375, 0.2, 0.0, 0.0, 0.0, 0.0, 360.0, 0, NULL, 0.15, 0, 'center', 'middle', 'solid', 0.0);
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'schliesser_voreilend';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'schliesser_voreilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_voreilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_voreilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_voreilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser_voreilend', 3, 'linie', 0.125, 0.3125, 0.25, 0.25, 0.0, 0.0, 0.0, 0.0, 360.0, 0, NULL, 0.15, 0, 'center', 'middle', 'solid', 0.0);
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 12 WHERE id = 'sicherungslasttrennschalter';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'sicherungslasttrennschalter';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungslasttrennschalter', 0, 'linie', 0.5, 0.0, 0.5, 0.29166666666666669, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungslasttrennschalter', 1, 'linie', 0.1875, 0.33333333333333332, 0.5, 0.66666666666666663, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungslasttrennschalter', 2, 'linie', 0.5, 0.66666666666666663, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungslasttrennschalter', 3, 'kreis_offen', 0.5, 0.33333333333333332, 0.0, 0.0, 0.0, 0.0, 0.0625, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungslasttrennschalter', 4, 'linie', 0.5625, 0.29166666666666669, 0.4375, 0.29166666666666669, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungslasttrennschalter', 5, 'rechteck', 0.25, 0.41666666666666669, 0.4375, 0.58333333333333337, 0.0, 0.0, 0.0, 0.0, 360.0, 0, '', 0.15, 0, 'center', 'middle', 'solid', 147.0);
+
+UPDATE symbol_definition SET breite_mm = 16, hoehe_mm = 20 WHERE id = 'kfz_sicherungskasten';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'kfz_sicherungskasten';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 0, 'linie', 0.0, 0.4, 0.15625, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 1, 'rechteck', 0.15625, 0.075, 0.84375, 0.925, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 2, 'linie', 0.84375, 0.2, 1.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 3, 'linie', 0.84375, 0.4, 1.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 4, 'linie', 0.84375, 0.6, 1.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 5, 'linie', 0.84375, 0.8, 1.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 6, 'rechteck', 0.3125, 0.15, 0.6875, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 7, 'rechteck', 0.3125, 0.35, 0.6875, 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 8, 'rechteck', 0.3125, 0.55, 0.6875, 0.65, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('kfz_sicherungskasten', 9, 'rechteck', 0.3125, 0.75, 0.6875, 0.85, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+DELETE FROM symbol_pin WHERE symbol_id = 'kfz_sicherungskasten';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('kfz_sicherungskasten', '30', 0.0, 0.4, -1.0, 0.0, 'neutral', 0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('kfz_sicherungskasten', 'F1', 1.0, 0.2, 1.0, 0.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('kfz_sicherungskasten', 'F2', 1.0, 0.4, 1.0, 0.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('kfz_sicherungskasten', 'F3', 1.0, 0.6, 1.0, 0.0, 'neutral', 3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('kfz_sicherungskasten', 'F4', 1.0, 0.8, 1.0, 0.0, 'neutral', 4);
+
+UPDATE symbol_definition SET breite_mm = 8, hoehe_mm = 8 WHERE id = 'oeffner_voreilend';
+DELETE FROM symbol_primitiv WHERE symbol_id = 'oeffner_voreilend';
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_voreilend', 0, 'linie', 0.5, 0.0, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_voreilend', 1, 'linie', 0.25, 0.25, 0.5, 0.6875, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_voreilend', 2, 'linie', 0.5, 0.6875, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_voreilend', 3, 'linie', 0.25, 0.3125, 0.5, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_voreilend', 4, 'linie', 0.125, 0.3125, 0.25, 0.25, 0.0, 0.0, 0.0, 0.0, 360.0, 0, NULL, 0.15, 0, 'center', 'middle', 'solid', 0.0);
+DELETE FROM symbol_pin WHERE symbol_id = 'oeffner_voreilend';
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('oeffner_voreilend', '1', 0.5, 0.0, 0.0, -1.0, 'neutral');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('oeffner_voreilend', '2', 0.5, 1.0, 0.0, 1.0, 'neutral');
+
+-- Vom Nutzer per Löschmarkierung markierte built-in-Symbole entfernen (0 platzierte Instanzen)
+DELETE FROM symbol_pin WHERE symbol_id IN ('rollladenschalter', 'kfz_seitenstaenderschalter', 'kfz_bremslichtschalter');
+DELETE FROM symbol_primitiv WHERE symbol_id IN ('rollladenschalter', 'kfz_seitenstaenderschalter', 'kfz_bremslichtschalter');
+DELETE FROM symbol_definition WHERE id IN ('rollladenschalter', 'kfz_seitenstaenderschalter', 'kfz_bremslichtschalter');
+DELETE FROM symbol WHERE code IN ('rollladenschalter', 'kfz_seitenstaenderschalter', 'kfz_bremslichtschalter');

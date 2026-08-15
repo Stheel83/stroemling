@@ -60,7 +60,12 @@ public:
 
     // Alle Symbole mit gesetztem kopie_von_id (SYM-KOPIE-VON-01, Entwicklungsphase-
     // Werkzeug): offene Nutzer-Kopien, die noch auf Seed-Sync warten.
-    // Jeder Eintrag: {id, name, kategorie, kopieVonId, kopieVonName}
+    // Jeder Eintrag: {id, name, kategorie, kopieVonId, kopieVonName,
+    // nameAbweichend, alternativZielId}. nameAbweichend=true (KOPIE-KETTE-01):
+    // der Name "Kopie von <X>" passt zu einem ANDEREN existierenden Symbol als
+    // kopie_von_id anzeigt (z.B. Kopie wurde als Zeichenvorlage für ein
+    // anderes Familienmitglied umgewidmet) - alternativZielId nennt das
+    // wahrscheinlichere Sync-Ziel, kopie_von_id bleibt trotzdem gesetzt.
     Q_INVOKABLE QVariantList symboleMitKopieVon() const;
 
     // ── Schreibmethoden ─────────────────────────────────────────────

@@ -208,13 +208,38 @@ QVariantList SymbolDefinitionModel::symboleMitKopieVon() const
         WHERE k.kopie_von_id IS NOT NULL AND k.kopie_von_id != ''
         ORDER BY k.kopie_von_id, k.id
     )");
+
+    // KOPIE-KETTE-01: eine Kopie kann als Zeichenvorlage für ein anderes,
+    // ähnliches Symbol umgewidmet worden sein (z.B. "Kopie von Nacheilender
+    // Öffner" umbenannt zu "Kopie von Voreilender Öffner", weil der Nutzer
+    // die Geometrie als Startpunkt für ein anderes Familienmitglied genutzt
+    // hat) - dann zeigt kopie_von_id auf das falsche Sync-Ziel. Erkennung
+    // über den Namen: "Kopie von <X>" ↔ existiert ein anderes Symbol <X>
+    // als das per kopie_von_id verknüpfte?
+    QSqlQuery altQ;
+    altQ.prepare("SELECT id FROM symbol_definition WHERE name = :name AND id != :ausschluss LIMIT 1");
+    const QString praefix = QStringLiteral("Kopie von ");
+
     while (q.next()) {
         QVariantMap m;
+        const QString name       = q.value(1).toString();
+        const QString kopieVonId = q.value(3).toString();
         m["id"]           = q.value(0).toString();
-        m["name"]         = q.value(1).toString();
+        m["name"]         = name;
         m["kategorie"]    = q.value(2).toString();
-        m["kopieVonId"]   = q.value(3).toString();
+        m["kopieVonId"]   = kopieVonId;
         m["kopieVonName"] = q.value(4).toString();
+        m["nameAbweichend"]   = false;
+        m["alternativZielId"] = QString();
+
+        if (name.startsWith(praefix)) {
+            altQ.bindValue(":name",       name.mid(praefix.length()));
+            altQ.bindValue(":ausschluss", kopieVonId);
+            if (altQ.exec() && altQ.next()) {
+                m["nameAbweichend"]   = true;
+                m["alternativZielId"] = altQ.value(0).toString();
+            }
+        }
         result.append(m);
     }
     return result;
@@ -227,6 +252,27 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
                                            const QString &rolle, const QString &bmkSeite,
                                            const QString &kopieVonId)
 {
+    // KOPIE-KETTE-01: entsteht die Kopie aus einer bereits offenen, noch nicht
+    // gesynchten Kopie (mehrfaches Editor-"⧉ Kopie" hintereinander), soll
+    // kopie_von_id auf das echte Wurzel-Original zeigen statt auf die
+    // Zwischenkopie - sonst muss Claude beim Seed-Sync wieder über den Namen
+    // raten (vorher: SYM-KOPIE-VON-01 vierter Sync-Durchlauf). Tiefenlimit
+    // nur als Sicherheitsnetz gegen einen (eigentlich unmöglichen) Zyklus.
+    QString wurzelId = kopieVonId;
+    if (!wurzelId.isEmpty()) {
+        QSqlQuery kette;
+        kette.prepare("SELECT kopie_von_id FROM symbol_definition WHERE id = :id");
+        for (int tiefe = 0; tiefe < 10; ++tiefe) {
+            kette.bindValue(":id", wurzelId);
+            if (!kette.exec() || !kette.next())
+                break;
+            QString eltern = kette.value(0).toString();
+            if (eltern.isEmpty())
+                break;
+            wurzelId = eltern;
+        }
+    }
+
     QSqlQuery q;
     q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0, :bmkSeite, :kopieVon)");
     q.bindValue(":id",       id);
@@ -236,7 +282,7 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
     q.bindValue(":hMm",      hoeheMm);
     q.bindValue(":rolle",    rolle);
     q.bindValue(":bmkSeite", bmkSeite);
-    q.bindValue(":kopieVon", kopieVonId.isEmpty() ? QVariant() : QVariant(kopieVonId));
+    q.bindValue(":kopieVon", wurzelId.isEmpty() ? QVariant() : QVariant(wurzelId));
     if (!q.exec()) {
         qCWarning(lcModel) << "symbolAnlegen:" << q.lastError().text();
         return false;

@@ -116,7 +116,7 @@ jobs:
                   fi
                 fi
               done
-            done < <(find appimage/AppDir/usr -name '*.so' -print0)
+            done < <(find appimage/AppDir/usr \( -name '*.so' -o -name '*.so.*' \) -print0)
             [ "$added" -eq 0 ] && break
           done
 

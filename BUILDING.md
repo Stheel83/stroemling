@@ -94,7 +94,7 @@ while :; do
                 fi
             fi
         done
-    done < <(find AppDir/usr -name '*.so' -print0)
+    done < <(find AppDir/usr \( -name '*.so' -o -name '*.so.*' \) -print0)
     [ "$added" -eq 0 ] && break
 done
 
@@ -125,6 +125,22 @@ System-Qt exakt zur AppImage-Qt-Version passt, und bricht sonst mit obigem
 Versionsfehler. Zum Testen: AppImage auf einem System ohne exakt passendes
 System-Qt starten, oder `ldd` der gepackten `libqtquickcontrols2plugin.so`
 gegen `AppDir/usr/lib/` abgleichen.
+
+**Nachtrag (Aug 2026, beim GitHub-Actions-Testaufbau gefunden):** Der
+Nachzieh-Loop selbst hatte einen zweiten, subtileren Bug — `find AppDir/usr
+-name '*.so'` matcht nur Dateien, die **exakt** auf `.so` endet (z. B.
+QML-Plugins wie `libqtquickdialogsplugin.so`). Die eigentlichen
+versionierten Qt-Bibliotheken tragen aber Namen wie `libQt6QuickDialogs2.so.6`
+— die enden auf `.6`, nicht auf `.so`, und wurden vom `find` nie erfasst.
+Ergebnis: eine bereits nachgezogene Bibliothek wurde selbst nie auf *ihre
+eigenen* transitiven Abhängigkeiten hin durchsucht, die Kette brach eine
+Ebene zu früh ab (konkret: `libQt6QuickDialogs2.so.6` wurde kopiert, aber
+deren eigene Abhängigkeit `libQt6QuickDialogs2Utils.so.6` nie entdeckt).
+Fix: `find AppDir/usr \( -name '*.so' -o -name '*.so.*' \) -print0` erfasst
+beide Namensformen. Auf der lokalen Leap-16-Maschine ist der Fehler
+offenbar nie aufgefallen (vermutlich andere Abhängigkeitskette bei dortiger
+Qt-Version/-Konfiguration) — der Fix schadet dort aber nicht und macht den
+Loop grundsätzlich korrekter.
 
 ---
 

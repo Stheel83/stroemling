@@ -25,7 +25,6 @@ jobs:
           host: 'linux'
           target: 'desktop'
           arch: 'linux_gcc_64'
-          modules: 'qttools'
           cache: true
 
       - name: Version ermitteln

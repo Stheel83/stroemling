@@ -1748,7 +1748,7 @@ QtObject {
                 if (!_pbSkip[el.symbolId || ""]) {
                     var _pbPins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
                     if (_pbPins.length > 0) {
-                        var _pbFs = Math.max(6, Math.round(3.0 * cv.mmToPx * cv.zoom))
+                        var _pbFs = Math.max(6, Math.round(2.0 * cv.mmToPx * cv.zoom))
                         ctx.save()
                         ctx.font      = _pbFs + "px sans-serif"
                         ctx.fillStyle = gewaehlt ? "#f0a030" : "#3a7ca8"
@@ -1771,39 +1771,36 @@ QtObject {
                             var _pbRad = ((el.rotation || 0) * Math.PI / 180)
                             var _pbTx  = _pbOx * Math.cos(_pbRad) - _pbOy * Math.sin(_pbRad)
                             var _pbTy  = _pbOx * Math.sin(_pbRad) + _pbOy * Math.cos(_pbRad)
-                            var _pbOff = 4 * cv.zoom
+                            var _pbOff = 2.5 * cv.zoom
                             var _pbX, _pbY
-                            // Label wird in dieselbe Richtung versetzt, in die der Pin
-                            // zeigt (_pbT{x,y}, bereits um Spiegelung+Rotation transformiert) -
-                            // nicht quer dazu. Sonst laufen bei eng stehenden Pins (z.B.
-                            // Arduino-Symbole, 4mm-Raster) die Labels benachbarter Pins
-                            // derselben Reihe/Spalte ineinander (PIN-LABEL-UEBERLAPP-01).
+                            // Label wird QUER zur Pin-Richtung versetzt, nicht in dieselbe
+                            // Richtung wie der Pin zeigt - eine Verbindungslinie verläuft
+                            // exakt entlang des (transformierten) Pin-Richtungsvektors
+                            // _pbT{x,y}, ein Versatz in dieselbe Richtung legt das Label
+                            // also direkt in den Leitungsweg (PIN-LABEL-UEBERLAPP-02,
+                            // Nutzer-Screenshot: Verbindung lief durch "D0"-Beschriftung).
+                            // Bei eng stehenden Pins (z.B. Arduino-Symbole, 4mm-Raster)
+                            // bleibt dafür kleinere Schrift nötig (s. _pbFs oben), sonst
+                            // laufen Labels benachbarter Pins ineinander (PIN-LABEL-
+                            // UEBERLAPP-01).
                             if (Math.abs(_pbTy) > Math.abs(_pbTx)) {
-                                // Pin zeigt vorwiegend hoch/runter (Pins meist in einer
-                                // waagerechten Reihe) -> Label senkrecht versetzen,
-                                // horizontal auf den Pin zentriert.
-                                _pbX = _pbPos.x
-                                ctx.textAlign = "center"
-                                if (_pbTy < 0) {
-                                    _pbY = _pbPos.y - _pbOff
-                                    ctx.textBaseline = "bottom"
-                                } else {
-                                    _pbY = _pbPos.y + _pbOff
-                                    ctx.textBaseline = "top"
-                                }
-                            } else {
-                                // Pin zeigt vorwiegend links/rechts (Pins meist in einer
-                                // senkrechten Spalte) -> Label seitlich versetzen,
-                                // vertikal auf den Pin zentriert.
+                                // Pin zeigt vorwiegend hoch/runter (Leitung verläuft
+                                // senkrecht) -> Label seitlich versetzen, damit es nicht
+                                // auf der Leitung liegt.
                                 _pbY = _pbPos.y
                                 ctx.textBaseline = "middle"
-                                if (_pbTx < 0) {
-                                    _pbX = _pbPos.x - _pbOff
-                                    ctx.textAlign = "right"
-                                } else {
-                                    _pbX = _pbPos.x + _pbOff
-                                    ctx.textAlign = "left"
-                                }
+                                _pbX = _pbPos.x + _pbOff
+                                ctx.textAlign = "left"
+                            } else {
+                                // Pin zeigt vorwiegend links/rechts (Leitung verläuft
+                                // waagerecht) -> Label senkrecht versetzen, damit es nicht
+                                // auf der Leitung liegt. Richtung (oben) ist unabhängig vom
+                                // Vorzeichen sinnvoll, da die Leitung so oder so waagerecht
+                                // durch die Pin-Position verläuft.
+                                _pbX = _pbPos.x
+                                _pbY = _pbPos.y - _pbOff
+                                ctx.textAlign    = "center"
+                                ctx.textBaseline = "bottom"
                             }
                             ctx.fillText(_pbLabel, _pbX, _pbY)
                         }

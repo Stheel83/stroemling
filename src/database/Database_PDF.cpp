@@ -533,7 +533,7 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
     bool spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
     bool isSteBu = (sid == QLatin1String("stecker") || sid == QLatin1String("buchse"));
 
-    double fsDev = qMax(6.0, 3.0 * pxPerMm);
+    double fsDev = qMax(6.0, 2.0 * pxPerMm);
     QFont font;
     font.setFamily(QStringLiteral("sans-serif"));
     font.setPixelSize(qMax(1, qRound(fsDev)));
@@ -559,31 +559,26 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
         if (spY) oy = -oy;
         double tx = ox * std::cos(rotRad) - oy * std::sin(rotRad);
         double ty = ox * std::sin(rotRad) + oy * std::cos(rotRad);
-        double off = 4.0 * C;
+        double off = 2.5 * C;
 
-        // Label wird in dieselbe Richtung versetzt, in die der Pin zeigt -
-        // nicht quer dazu (PIN-LABEL-UEBERLAPP-01, 1:1-Port des Fixes in
-        // CanvasRenderHandler.qml). Sonst laufen bei eng stehenden Pins
-        // (z.B. Arduino-Symbole, 4mm-Raster) die Labels benachbarter Pins
-        // derselben Reihe/Spalte ineinander.
+        // Label wird QUER zur Pin-Richtung versetzt, nicht in dieselbe Richtung
+        // wie der Pin zeigt - eine Verbindungslinie verläuft exakt entlang des
+        // (transformierten) Pin-Richtungsvektors tx/ty, ein Versatz in dieselbe
+        // Richtung legt das Label direkt in den Leitungsweg
+        // (PIN-LABEL-UEBERLAPP-02, Nutzer-Screenshot: Verbindung lief durch
+        // "D0"-Beschriftung). 1:1-Port des Fixes in CanvasRenderHandler.qml.
         if (std::abs(ty) > std::abs(tx)) {
-            // Pin zeigt vorwiegend hoch/runter -> Label senkrecht versetzen,
-            // horizontal auf den Pin zentriert.
-            if (ty < 0)
-                p.drawText(QRectF(px - BIG / 2, py - off - BIG, BIG, BIG),
-                           Qt::AlignHCenter | Qt::AlignBottom, label);
-            else
-                p.drawText(QRectF(px - BIG / 2, py + off, BIG, BIG),
-                           Qt::AlignHCenter | Qt::AlignTop, label);
+            // Pin zeigt vorwiegend hoch/runter (Leitung verläuft senkrecht) ->
+            // Label seitlich versetzen, damit es nicht auf der Leitung liegt.
+            p.drawText(QRectF(px + off, py - BIG / 2, BIG, BIG),
+                       Qt::AlignLeft | Qt::AlignVCenter, label);
         } else {
-            // Pin zeigt vorwiegend links/rechts -> Label seitlich versetzen,
-            // vertikal auf den Pin zentriert.
-            if (tx < 0)
-                p.drawText(QRectF(px - off - BIG, py - BIG / 2, BIG, BIG),
-                           Qt::AlignRight | Qt::AlignVCenter, label);
-            else
-                p.drawText(QRectF(px + off, py - BIG / 2, BIG, BIG),
-                           Qt::AlignLeft | Qt::AlignVCenter, label);
+            // Pin zeigt vorwiegend links/rechts (Leitung verläuft waagerecht) ->
+            // Label senkrecht versetzen, damit es nicht auf der Leitung liegt.
+            // Richtung (oben) ist unabhängig vom Vorzeichen sinnvoll, da die
+            // Leitung so oder so waagerecht durch die Pin-Position verläuft.
+            p.drawText(QRectF(px - BIG / 2, py - off - BIG, BIG, BIG),
+                       Qt::AlignHCenter | Qt::AlignBottom, label);
         }
     }
     p.restore();

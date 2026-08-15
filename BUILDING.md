@@ -153,8 +153,24 @@ Leap-16-Build ist bisher als Kompatibilitäts-Baseline geprüft.
   (`Stroemling-Design-<version>-x86_64.AppImage`), 30 Tage aufbewahrt.
 - Übernimmt die beiden QML-Nachzieh-Schritte (QML-DEPLOY-01/02) 1:1 aus
   dem oben dokumentierten manuellen Ablauf als eigene Workflow-Steps.
-- **Status:** noch nicht erfolgreich durchgelaufen getestet — erster Lauf
-  steht aus.
+- **Status:** ✅ läuft grün durch (Aug 2026). Bis dahin behobene Stolpersteine:
+  - `qttools` ist unter Linux (anders als Windows) kein separates
+    Zusatzmodul, sondern Teil der Basis-Installation — `modules`-Angabe
+    beim Qt-Install-Schritt entfernt.
+  - `Qt6PrintSupport` braucht CUPS-Entwicklungsheader
+    (`apt-get install libcups2-dev`), die der Runner nicht mitbringt.
+  - Der Bauen-Schritt war auf `--target stroemling_app` beschränkt,
+    wodurch `stroemling_test` fehlte und `ctest` es nicht fand — ohne
+    Target-Einschränkung gebaut (baut alles, wie lokal `make -j$(nproc)`).
+  - `linuxdeploy-plugin-qt` versucht automatisch alle gefundenen
+    `sqldrivers`-Plugins zu bündeln (MySQL, Mimer, ODBC, …) und scheitert,
+    wenn deren native Client-Libs fehlen (`libmimerapi.so`) — die App
+    nutzt ausschließlich `QSQLITE`, alle anderen Treiber-Plugins vor dem
+    Deploy-Schritt aus der Qt-Installation entfernt.
+  - **GLIBC-Kompatibilität des Ergebnis-AppImage weiterhin nicht
+    verifiziert** — nur „baut erfolgreich", noch nicht auf einem älteren
+    Zielsystem getestet. Der lokale Leap-16-Build bleibt bis dahin die
+    geprüfte Release-Quelle.
 
 ---
 

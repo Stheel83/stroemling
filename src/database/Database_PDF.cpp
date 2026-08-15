@@ -561,14 +561,29 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
         double ty = ox * std::sin(rotRad) + oy * std::cos(rotRad);
         double off = 4.0 * C;
 
+        // Label wird in dieselbe Richtung versetzt, in die der Pin zeigt -
+        // nicht quer dazu (PIN-LABEL-UEBERLAPP-01, 1:1-Port des Fixes in
+        // CanvasRenderHandler.qml). Sonst laufen bei eng stehenden Pins
+        // (z.B. Arduino-Symbole, 4mm-Raster) die Labels benachbarter Pins
+        // derselben Reihe/Spalte ineinander.
         if (std::abs(ty) > std::abs(tx)) {
-            // Vertikal dominanter Richtungsvektor → Label rechts vom Pin
-            p.drawText(QRectF(px + off, py - BIG / 2, BIG, BIG),
-                       Qt::AlignLeft | Qt::AlignVCenter, label);
+            // Pin zeigt vorwiegend hoch/runter -> Label senkrecht versetzen,
+            // horizontal auf den Pin zentriert.
+            if (ty < 0)
+                p.drawText(QRectF(px - BIG / 2, py - off - BIG, BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignBottom, label);
+            else
+                p.drawText(QRectF(px - BIG / 2, py + off, BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignTop, label);
         } else {
-            // Horizontal dominanter Richtungsvektor → Label über dem Pin
-            p.drawText(QRectF(px - BIG / 2, py - off - BIG, BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignBottom, label);
+            // Pin zeigt vorwiegend links/rechts -> Label seitlich versetzen,
+            // vertikal auf den Pin zentriert.
+            if (tx < 0)
+                p.drawText(QRectF(px - off - BIG, py - BIG / 2, BIG, BIG),
+                           Qt::AlignRight | Qt::AlignVCenter, label);
+            else
+                p.drawText(QRectF(px + off, py - BIG / 2, BIG, BIG),
+                           Qt::AlignLeft | Qt::AlignVCenter, label);
         }
     }
     p.restore();

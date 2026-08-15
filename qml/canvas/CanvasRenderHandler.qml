@@ -1773,18 +1773,37 @@ QtObject {
                             var _pbTy  = _pbOx * Math.sin(_pbRad) + _pbOy * Math.cos(_pbRad)
                             var _pbOff = 4 * cv.zoom
                             var _pbX, _pbY
-                            // Vertikal dominanter Richtungsvektor → Label rechts
-                            // Horizontal dominanter Richtungsvektor → Label oben
+                            // Label wird in dieselbe Richtung versetzt, in die der Pin
+                            // zeigt (_pbT{x,y}, bereits um Spiegelung+Rotation transformiert) -
+                            // nicht quer dazu. Sonst laufen bei eng stehenden Pins (z.B.
+                            // Arduino-Symbole, 4mm-Raster) die Labels benachbarter Pins
+                            // derselben Reihe/Spalte ineinander (PIN-LABEL-UEBERLAPP-01).
                             if (Math.abs(_pbTy) > Math.abs(_pbTx)) {
-                                _pbX = _pbPos.x + _pbOff
-                                _pbY = _pbPos.y
-                                ctx.textAlign    = "left"
-                                ctx.textBaseline = "middle"
-                            } else {
+                                // Pin zeigt vorwiegend hoch/runter (Pins meist in einer
+                                // waagerechten Reihe) -> Label senkrecht versetzen,
+                                // horizontal auf den Pin zentriert.
                                 _pbX = _pbPos.x
-                                _pbY = _pbPos.y - _pbOff
-                                ctx.textAlign    = "center"
-                                ctx.textBaseline = "bottom"
+                                ctx.textAlign = "center"
+                                if (_pbTy < 0) {
+                                    _pbY = _pbPos.y - _pbOff
+                                    ctx.textBaseline = "bottom"
+                                } else {
+                                    _pbY = _pbPos.y + _pbOff
+                                    ctx.textBaseline = "top"
+                                }
+                            } else {
+                                // Pin zeigt vorwiegend links/rechts (Pins meist in einer
+                                // senkrechten Spalte) -> Label seitlich versetzen,
+                                // vertikal auf den Pin zentriert.
+                                _pbY = _pbPos.y
+                                ctx.textBaseline = "middle"
+                                if (_pbTx < 0) {
+                                    _pbX = _pbPos.x - _pbOff
+                                    ctx.textAlign = "right"
+                                } else {
+                                    _pbX = _pbPos.x + _pbOff
+                                    ctx.textAlign = "left"
+                                }
                             }
                             ctx.fillText(_pbLabel, _pbX, _pbY)
                         }

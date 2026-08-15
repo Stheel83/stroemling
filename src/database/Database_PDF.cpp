@@ -2232,7 +2232,7 @@ static void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
     QString bez   = nb.value("bezeichnung").toString();
     QString mitte = blatt.isEmpty() ? bez
                   : bez.isEmpty()   ? blatt
-                  : blatt + QStringLiteral(" \x2013 ") + bez;
+                  : blatt + QStringLiteral(" – ") + bez;
     QFont fontB = font; fontB.setBold(true);
     p.setFont(fontB);
     p.drawText(QRectF(x1 + pad, tY, x2 - x1 - 2*pad, tH),

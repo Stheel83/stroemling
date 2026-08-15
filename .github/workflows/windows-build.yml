@@ -37,17 +37,8 @@ jobs:
       - name: CMake konfigurieren
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Speicherplatz prüfen (vor dem Bauen)
-        shell: pwsh
-        run: Get-PSDrive C | Select-Object Used,Free
-
       - name: Bauen
-        run: cmake --build build --config Release --target stroemling_app -j 1
-
-      - name: Speicherplatz prüfen (nach dem Bauen)
-        if: always()
-        shell: pwsh
-        run: Get-PSDrive C | Select-Object Used,Free
+        run: cmake --build build --config Release --target stroemling_app -j 4
 
       - name: Deploy-Ordner erstellen (windeployqt)
         run: |

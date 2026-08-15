@@ -3,6 +3,14 @@ project(stroemling VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Der Quellcode enthält direkt eingebettete UTF-8-Zeichen (Umlaute,
+# Sonderzeichen wie "–") in String-Literalen - MSVC interpretiert
+# Quelldateien ohne /utf-8 nicht zuverlässig als UTF-8 (im Gegensatz zu
+# GCC/Clang, die UTF-8-Quellen standardmäßig korrekt lesen).
+if (MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Sql LinguistTools PrintSupport Test)
 qt_standard_project_setup(REQUIRES 6.5)
 

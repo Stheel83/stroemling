@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Qt installieren
         uses: jurplel/install-qt-action@v4
@@ -51,7 +51,7 @@ jobs:
         run: Compress-Archive -Path deploy\* -DestinationPath "Stroemling-Design-${{ steps.version.outputs.version }}-windows-x64.zip"
 
       - name: Artefakt hochladen
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Stroemling-Design-${{ steps.version.outputs.version }}-windows-x64
           path: Stroemling-Design-${{ steps.version.outputs.version }}-windows-x64.zip

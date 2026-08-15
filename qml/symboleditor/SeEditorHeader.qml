@@ -98,6 +98,35 @@ Rectangle {
                 MouseArea { anchors.fill: parent; hoverEnabled: true }
             }
 
+            Text {
+                text: qsTr("Pin-Schrift:"); color: editor.theme.textMuted; font.pixelSize: 11
+                ToolTip.visible: pinSchriftHover.containsMouse; ToolTip.delay: 400
+                ToolTip.text: qsTr("Schriftgröße der Pin-Beschriftungen im Canvas/PDF-Export.\nBei eng stehenden Pins (z.B. Arduino, SPS-Baugruppen) kleiner wählen.")
+                MouseArea { id: pinSchriftHover; anchors.fill: parent; hoverEnabled: true }
+            }
+            SpinBox {
+                id: pinSchriftBox
+                from: 10; to: 50; stepSize: 5
+                value: Math.round(editor.pinSchriftMm * 10)
+                onValueModified: editor.pinSchriftMm = value / 10
+                textFromValue: function(value) { return (value / 10).toFixed(1) }
+                valueFromText: function(text)  { return Math.round(parseFloat(text) * 10) }
+                implicitWidth: 70; implicitHeight: 28
+                background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+                contentItem: TextInput {
+                    text: pinSchriftBox.textFromValue(pinSchriftBox.value)
+                    color: editor.theme.textPrimary; font.pixelSize: 12
+                    horizontalAlignment: Qt.AlignHCenter; verticalAlignment: Qt.AlignVCenter
+                    readOnly: !pinSchriftBox.editable; validator: pinSchriftBox.validator
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                }
+                up.indicator:   Rectangle { x: parent.width - width; width: 22; height: parent.height; color: "transparent"
+                    Text { anchors.centerIn: parent; text: "▲"; font.pixelSize: 8; color: editor.theme.textMuted } }
+                down.indicator: Rectangle { width: 22; height: parent.height; color: "transparent"
+                    Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: editor.theme.textMuted } }
+            }
+            Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
+
             Item { Layout.fillWidth: true }
         }
 

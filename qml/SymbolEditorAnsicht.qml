@@ -39,6 +39,11 @@ Item {
     // Grundausrichtung bei 0° bereits vertikal ist, z.B. Kontakte nach
     // SYMBOL-VERTIKAL-01). Siehe CanvasRenderHandler.qml maleElement().
     property string bmkSeiteText:  "auto"
+    // Symbolweite Schriftgröße (mm) für Pin-Beschriftungen im Canvas/PDF-Export
+    // (PIN-LABEL-SCHRIFTGROESSE-01) — eng bestückte Symbole (Arduino, SPS-
+    // Baugruppen im 4mm-Raster) brauchen kleinere Schrift als Symbole mit
+    // wenigen, weit auseinanderstehenden Pins.
+    property real   pinSchriftMm:  2.0
     property bool   istBuiltin:    false
     property string vorlageId:     ""   // wenn gesetzt: Geometrie aus diesem Symbol als Vorlage laden
     property bool   _kopierModus:  false
@@ -124,6 +129,7 @@ Item {
             hoeheMm       = vInfo.hoeheMm   || 16
             rolleText     = vInfo.rolle     || "durchleiter"
             bmkSeiteText  = vInfo.bmkSeite  || "auto"
+            pinSchriftMm  = vInfo.pinSchriftMm || 2.0
             istBuiltin    = false
 
             var vPrims   = symbolDefinitionModel.primitiveFuerSymbol(vorlageId)
@@ -151,6 +157,7 @@ Item {
             hoeheMm       = 16
             rolleText     = "durchleiter"
             bmkSeiteText  = "auto"
+            pinSchriftMm  = 2.0
             istBuiltin    = false
             primitive     = []
             pins          = []
@@ -162,6 +169,7 @@ Item {
             hoeheMm       = info.hoeheMm   || 16
             rolleText     = info.rolle     || "durchleiter"
             bmkSeiteText  = info.bmkSeite  || "auto"
+            pinSchriftMm  = info.pinSchriftMm || 2.0
             istBuiltin    = info.ist_builtin     || false
 
             var prims = symbolDefinitionModel.primitiveFuerSymbol(editSymbolId)
@@ -344,6 +352,7 @@ Item {
                         ', breite_mm=' + (info.breiteMm || 32) + ', hoehe_mm=' + (info.hoeheMm || 16) +
                         ', rolle=' + "'" + esc(info.rolle || "durchleiter") + "'" +
                         ', bmk_seite=' + "'" + esc(info.bmkSeite || "auto") + "'" +
+                        ', pin_schrift_mm=' + fmtN(info.pinSchriftMm || 2.0) +
                         ' WHERE id=' + "'" + esc(zielId) + "'" + ')",')
             lines.push('    R"(DELETE FROM symbol_pin WHERE symbol_id = ' + "'" + esc(zielId) + "'" + ')",')
             if (pinList.length > 0)
@@ -366,10 +375,10 @@ Item {
             lines.push("INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES")
             lines.push("('" + esc(symbolId) + "', '" + esc(info.name) + "', '" + esc((info.kategorie || "").toLowerCase()) + "', 'IEC,ANSI', " + pinList.length + ");")
             lines.push("")
-            lines.push("INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES")
+            lines.push("INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, pin_schrift_mm) VALUES")
             lines.push("('" + esc(symbolId) + "', '" + esc(info.name) + "', '" + esc(info.kategorie || "") + "', " +
                        (info.breiteMm || 32) + ", " + (info.hoeheMm || 16) + ", '" + esc(info.rolle || "durchleiter") + "', 1, '" +
-                       esc(info.bmkSeite || "auto") + "');")
+                       esc(info.bmkSeite || "auto") + "', " + fmtN(info.pinSchriftMm || 2.0) + ");")
             if (pinList.length > 0) {
                 lines.push("")
                 lines.push("INSERT OR IGNORE INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES")
@@ -437,13 +446,13 @@ Item {
         }
 
         if (editSymbolId === "") {
-            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, vorlageId)) {
+            if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm, vorlageId)) {
                 speichernFehlerText.text = qsTr("Symbol-ID bereits vergeben. Bitte anderen Namen wählen.")
                 speichernFehlerDialog.open()
                 return
             }
         } else {
-            symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText)
+            symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm)
         }
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)

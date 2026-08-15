@@ -1748,7 +1748,8 @@ QtObject {
                 if (!_pbSkip[el.symbolId || ""]) {
                     var _pbPins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
                     if (_pbPins.length > 0) {
-                        var _pbFs = Math.max(6, Math.round(2.0 * cv.mmToPx * cv.zoom))
+                        var _pbFsMm = symbolDefinitionModel.pinSchriftMm(el.symbolId || "")
+                        var _pbFs = Math.max(6, Math.round(_pbFsMm * cv.mmToPx * cv.zoom))
                         ctx.save()
                         ctx.font      = _pbFs + "px sans-serif"
                         ctx.fillStyle = gewaehlt ? "#f0a030" : "#3a7ca8"

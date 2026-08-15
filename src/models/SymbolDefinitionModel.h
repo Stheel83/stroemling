@@ -48,6 +48,12 @@ public:
     // Gibt Basisdaten eines Symbols zurück: {name, kategorie, breiteMm, hoeheMm, rolle, ist_builtin}
     Q_INVOKABLE QVariantMap symbolInfo(const QString &symbolId) const;
 
+    // Schriftgröße (mm) für Pin-Beschriftungen dieses Symbols
+    // (PIN-LABEL-SCHRIFTGROESSE-01). Eigener leichtgewichtiger Lookup statt
+    // vollem symbolInfo(), da im Canvas-Renderer pro platziertem Symbol und
+    // Redraw aufgerufen. Default 2.0 wenn Symbol nicht gefunden.
+    Q_INVOKABLE double pinSchriftMm(const QString &symbolId) const;
+
     // Gibt alle Symbole zurück: [{id, name, kategorie, breiteMm, hoeheMm, rolle, ist_builtin}, …]
     Q_INVOKABLE QVariantList alleSymbole() const;
 
@@ -77,15 +83,19 @@ public:
     // "Als Vorlage kopieren" entstanden ist, sonst leer. Wird nur beim
     // allerersten Anlegen gesetzt (nicht bei symbolAktualisieren), da die
     // Vorlagen-Beziehung nur zum Erstellungszeitpunkt bekannt ist.
+    // pinSchriftMm (PIN-LABEL-SCHRIFTGROESSE-01): symbolweite Schriftgröße
+    // für Pin-Beschriftungen in mm, Default 2.0 (bisherige feste Konstante).
     Q_INVOKABLE bool symbolAnlegen(const QString &id, const QString &name,
                                     const QString &kategorie, int breiteMm, int hoeheMm,
                                     const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"),
+                                    double pinSchriftMm = 2.0,
                                     const QString &kopieVonId = QString());
 
     // Metadaten eines nicht-eingebauten Symbols aktualisieren.
     Q_INVOKABLE bool symbolAktualisieren(const QString &id, const QString &name,
                                           const QString &kategorie, int breiteMm, int hoeheMm,
-                                          const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"));
+                                          const QString &rolle, const QString &bmkSeite = QStringLiteral("auto"),
+                                          double pinSchriftMm = 2.0);
 
     // Symbol löschen (nur ist_builtin = 0). Primitive und Pins werden per FK gelöscht.
     Q_INVOKABLE bool symbolLoeschen(const QString &symbolId);

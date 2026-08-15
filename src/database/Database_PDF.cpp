@@ -533,7 +533,15 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
     bool spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
     bool isSteBu = (sid == QLatin1String("stecker") || sid == QLatin1String("buchse"));
 
-    double fsDev = qMax(6.0, 2.0 * pxPerMm);
+    // Symbolweite Pin-Schriftgröße (PIN-LABEL-SCHRIFTGROESSE-01), Default 2.0mm.
+    double pinSchriftMm = 2.0;
+    QSqlQuery fsQ(db);
+    fsQ.prepare(QStringLiteral("SELECT pin_schrift_mm FROM symbol_definition WHERE id = :sym LIMIT 1"));
+    fsQ.bindValue(":sym", sid);
+    if (fsQ.exec() && fsQ.next())
+        pinSchriftMm = fsQ.value(0).toDouble();
+
+    double fsDev = qMax(6.0, pinSchriftMm * pxPerMm);
     QFont font;
     font.setFamily(QStringLiteral("sans-serif"));
     font.setPixelSize(qMax(1, qRound(fsDev)));

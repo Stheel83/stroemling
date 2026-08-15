@@ -204,7 +204,8 @@ CREATE TABLE symbol_definition (
     ibn_kategorie  TEXT    NOT NULL DEFAULT '',
     bmk_seite      TEXT    NOT NULL DEFAULT 'auto',
     markiert_loeschen INTEGER NOT NULL DEFAULT 0,
-    kopie_von_id   TEXT
+    kopie_von_id   TEXT,
+    pin_schrift_mm REAL    NOT NULL DEFAULT 2.0
 );
 
 CREATE TABLE symbol_primitiv (

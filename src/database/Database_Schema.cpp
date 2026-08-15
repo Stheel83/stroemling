@@ -1816,6 +1816,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DELETE FROM symbol WHERE code IN ('rollladenschalter', 'kfz_seitenstaenderschalter', 'kfz_bremslichtschalter'))",
             R"(DELETE FROM symbol_definition WHERE id IN ('rollladenschalter', 'kfz_seitenstaenderschalter', 'kfz_bremslichtschalter'))",
         }},
+        { 122, "PIN-LABEL-SCHRIFTGROESSE-01: neue Spalte symbol_definition.pin_schrift_mm (REAL, Default 2.0) - symbolweite Schriftgroesse fuer Pin-Beschriftungen im Canvas/PDF-Export, im Symboleditor editierbar. Ersetzt die bisher fest codierte 2.0mm-Konstante in CanvasRenderHandler.qml/Database_PDF.cpp, damit eng bestueckte Symbole (Arduino, SPS-Baugruppen im 4mm-Pin-Raster) eine kleinere Schrift bekommen koennen als Symbole mit wenigen, weit auseinanderstehenden Pins.", {
+            R"(ALTER TABLE symbol_definition ADD COLUMN pin_schrift_mm REAL NOT NULL DEFAULT 2.0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

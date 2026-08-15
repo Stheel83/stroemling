@@ -143,21 +143,32 @@ QString SymbolDefinitionModel::rolleForSymbol(const QString &symbolId) const
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
-        m["name"]        = q.value(0).toString();
-        m["kategorie"]   = q.value(1).toString();
-        m["breiteMm"]    = q.value(2).toInt();
-        m["hoeheMm"]     = q.value(3).toInt();
-        m["rolle"]       = q.value(4).toString();
-        m["ist_builtin"] = q.value(5).toInt() != 0;
-        m["bmkSeite"]    = q.value(6).toString();
-        m["kopieVonId"]  = q.value(7).toString();
+        m["name"]         = q.value(0).toString();
+        m["kategorie"]    = q.value(1).toString();
+        m["breiteMm"]     = q.value(2).toInt();
+        m["hoeheMm"]      = q.value(3).toInt();
+        m["rolle"]        = q.value(4).toString();
+        m["ist_builtin"]  = q.value(5).toInt() != 0;
+        m["bmkSeite"]     = q.value(6).toString();
+        m["kopieVonId"]   = q.value(7).toString();
+        m["pinSchriftMm"] = q.value(8).toDouble();
         return m;
     }
     return {};
+}
+
+double SymbolDefinitionModel::pinSchriftMm(const QString &symbolId) const
+{
+    QSqlQuery q;
+    q.prepare("SELECT pin_schrift_mm FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.bindValue(":id", symbolId);
+    if (q.exec() && q.next())
+        return q.value(0).toDouble();
+    return 2.0;
 }
 
 QVariantList SymbolDefinitionModel::alleSymbole() const
@@ -250,6 +261,7 @@ QVariantList SymbolDefinitionModel::symboleMitKopieVon() const
 bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name,
                                            const QString &kategorie, int breiteMm, int hoeheMm,
                                            const QString &rolle, const QString &bmkSeite,
+                                           double pinSchriftMm,
                                            const QString &kopieVonId)
 {
     // KOPIE-KETTE-01: entsteht die Kopie aus einer bereits offenen, noch nicht
@@ -274,15 +286,16 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
     }
 
     QSqlQuery q;
-    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0, :bmkSeite, :kopieVon)");
-    q.bindValue(":id",       id);
-    q.bindValue(":name",     name);
-    q.bindValue(":kat",      kategorie);
-    q.bindValue(":bMm",      breiteMm);
-    q.bindValue(":hMm",      hoeheMm);
-    q.bindValue(":rolle",    rolle);
-    q.bindValue(":bmkSeite", bmkSeite);
-    q.bindValue(":kopieVon", wurzelId.isEmpty() ? QVariant() : QVariant(wurzelId));
+    q.prepare("INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, pin_schrift_mm, kopie_von_id) VALUES (:id, :name, :kat, :bMm, :hMm, :rolle, 0, :bmkSeite, :pinSchrift, :kopieVon)");
+    q.bindValue(":id",         id);
+    q.bindValue(":name",       name);
+    q.bindValue(":kat",        kategorie);
+    q.bindValue(":bMm",        breiteMm);
+    q.bindValue(":hMm",        hoeheMm);
+    q.bindValue(":rolle",      rolle);
+    q.bindValue(":bmkSeite",   bmkSeite);
+    q.bindValue(":pinSchrift", pinSchriftMm);
+    q.bindValue(":kopieVon",   wurzelId.isEmpty() ? QVariant() : QVariant(wurzelId));
     if (!q.exec()) {
         qCWarning(lcModel) << "symbolAnlegen:" << q.lastError().text();
         return false;
@@ -292,17 +305,19 @@ bool SymbolDefinitionModel::symbolAnlegen(const QString &id, const QString &name
 
 bool SymbolDefinitionModel::symbolAktualisieren(const QString &id, const QString &name,
                                                   const QString &kategorie, int breiteMm, int hoeheMm,
-                                                  const QString &rolle, const QString &bmkSeite)
+                                                  const QString &rolle, const QString &bmkSeite,
+                                                  double pinSchriftMm)
 {
     QSqlQuery q;
-    q.prepare("UPDATE symbol_definition SET name=:name, kategorie=:kat, breite_mm=:bMm, hoehe_mm=:hMm, rolle=:rolle, bmk_seite=:bmkSeite WHERE id=:id AND ist_builtin=0");
-    q.bindValue(":name",     name);
-    q.bindValue(":kat",      kategorie);
-    q.bindValue(":bMm",      breiteMm);
-    q.bindValue(":hMm",      hoeheMm);
-    q.bindValue(":rolle",    rolle);
-    q.bindValue(":bmkSeite", bmkSeite);
-    q.bindValue(":id",       id);
+    q.prepare("UPDATE symbol_definition SET name=:name, kategorie=:kat, breite_mm=:bMm, hoehe_mm=:hMm, rolle=:rolle, bmk_seite=:bmkSeite, pin_schrift_mm=:pinSchrift WHERE id=:id AND ist_builtin=0");
+    q.bindValue(":name",       name);
+    q.bindValue(":kat",        kategorie);
+    q.bindValue(":bMm",        breiteMm);
+    q.bindValue(":hMm",        hoeheMm);
+    q.bindValue(":rolle",      rolle);
+    q.bindValue(":bmkSeite",   bmkSeite);
+    q.bindValue(":pinSchrift", pinSchriftMm);
+    q.bindValue(":id",         id);
     if (!q.exec()) {
         qCWarning(lcModel) << "symbolAktualisieren:" << q.lastError().text();
         return false;

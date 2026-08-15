@@ -1947,6 +1947,14 @@ static QList<SchemaMigration> alleMigrationen()
             // ══════ Gruppe D: fehlerhafte Dopplung (Nutzerbestaetigung: "wohl falsch und somit doppelt") ══════
             R"(DELETE FROM symbol_definition WHERE id='kopie_von_kopie_von_taster_no_beleuchtet')",
         }},
+        { 124, "SYM-KOPIE-VON-01 siebter Sync-Durchlauf, Nachtrag (Projekt Goerke): 10 der 14 in Migration 123 neu eingefuehrten Symbole hatten in Goerke selbst bereits eine gleichnamige lokale ist_builtin=0-Zeile (der Nutzer hatte sie dort ohne Werkstatt-Praefix direkt unter der finalen ID angelegt) - INSERT OR IGNORE griff deshalb nicht und liess sie dort faelschlich unter 'Eigene Symbole' stehen, obwohl sie jetzt echte Built-ins sind. Betroffen: schalter_allgemein_uebersicht, ausschalter_einpolig_uebersicht, ausschalter_zweipolig_uebersicht, serienschalter_einpolig_uebersicht, taster_mit_leuchte_uebersicht, taster_uebersicht, beruehrungsempfindlicher_schalter, druckschalter_taster, handbetaetigter_schalter, naeherungsempfindlicher_schalter. Direkt auf ist_builtin=1 gesetzt und die (jetzt ueberholte) kopie_von_id-Werkstattmarkierung geloescht - Geometrie/Groesse bereits korrekt, keine weitere Aenderung noetig.", {
+            R"(UPDATE symbol_definition SET ist_builtin=1, kopie_von_id=NULL WHERE id IN (
+                'schalter_allgemein_uebersicht', 'ausschalter_einpolig_uebersicht', 'ausschalter_zweipolig_uebersicht',
+                'serienschalter_einpolig_uebersicht', 'taster_mit_leuchte_uebersicht', 'taster_uebersicht',
+                'beruehrungsempfindlicher_schalter', 'druckschalter_taster', 'handbetaetigter_schalter',
+                'naeherungsempfindlicher_schalter'
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

@@ -135,6 +135,29 @@ gegen `AppDir/usr/lib/` abgleichen.
 
 ---
 
+## Linux-Build via GitHub Actions (Test, Aug 2026)
+
+`.github/workflows/linux-build.yml` baut das AppImage automatisiert auf
+einem `ubuntu-latest`-Runner — als Alternative/Ergänzung zum lokalen
+Leap-16-Build oben. Bewusst **kein** Docker-Container mit openSUSE Leap 16
+(würde die lokale Build-Maschine 1:1 spiegeln, ist aber aufwendiger
+aufzusetzen, da Qt6 dort kein offizielles Zypper-Paket hat), sondern Qt6
+über `jurplel/install-qt-action` (offizielle Qt-Binärpakete, dieselbe
+Action wie beim Windows-Workflow) — einfacher, aber die GLIBC-Kompatibilität
+des Ergebnisses ist damit **noch nicht verifiziert**, nur der lokale
+Leap-16-Build ist bisher als Kompatibilitäts-Baseline geprüft.
+
+- **Auslösen:** manuell über „Run workflow" (Tab „Actions") oder
+  automatisch bei jedem Tag-Push (`v*`).
+- **Ergebnis:** AppImage als Workflow-Artefakt zum Download
+  (`Stroemling-Design-<version>-x86_64.AppImage`), 30 Tage aufbewahrt.
+- Übernimmt die beiden QML-Nachzieh-Schritte (QML-DEPLOY-01/02) 1:1 aus
+  dem oben dokumentierten manuellen Ablauf als eigene Workflow-Steps.
+- **Status:** noch nicht erfolgreich durchgelaufen getestet — erster Lauf
+  steht aus.
+
+---
+
 ## Windows 11 Build
 
 ### Voraussetzungen

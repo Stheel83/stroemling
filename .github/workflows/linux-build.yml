@@ -46,7 +46,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Bauen
-        run: cmake --build build --config Release --target stroemling_app -j$(nproc)
+        run: cmake --build build --config Release -j$(nproc)
 
       - name: Tests
         run: ctest --test-dir build --output-on-failure

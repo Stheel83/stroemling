@@ -332,6 +332,29 @@ beschränkt.
   30 Tage aufbewahrt — von dort aus manuell ins Codeberg-Release hochladen.
 - Nutzt `jurplel/install-qt-action` für den Qt-Download (MSVC 2019 64-bit),
   Ziel-Executable ist `stroemling_app` (siehe `CMakeLists.txt`).
+- **Status:** ✅ läuft grün durch (Aug 2026, erster jemals erfolgreicher
+  Windows-Build dieses Projekts). Bis dahin behobene Stolpersteine:
+  - `qttools` (gleicher Fund wie beim Linux-Workflow, s.o.) — kein
+    separates Modul mehr, `modules`-Angabe entfernt.
+  - Stiller Absturz mitten in „Generating Code..." ohne Fehlertext im
+    GitHub-Actions-Log (Ursache über GitHub Copilot gefunden, da die
+    eigentliche Fehlermeldung im UI abgeschnitten war): MSVC-Fehler C7744,
+    `\x2013` als Hex-Escape ist auf `\x00`–`\xFF` begrenzt, der
+    Gedankenstrich (U+2013) sprengt das. Betraf
+    `src/database/Database_PDF.cpp` — direkt als UTF-8-Zeichen eingebettet
+    statt Escape.
+  - **Zusätzlich generell `/utf-8` für MSVC in `CMakeLists.txt` ergänzt**
+    (`if (MSVC) add_compile_options(/utf-8) endif()`): der Code enthält an
+    vielen Stellen direkt eingebettete UTF-8-Zeichen (deutsche Umlaute
+    u. Ä.) — ohne den Flag interpretiert MSVC Quelldateien nicht
+    zuverlässig als UTF-8. War vorher nie nötig, weil vor diesem Workflow
+    nie ein Windows-Build tatsächlich durchlief.
+  - **Lehre:** GitHub Actions' eigener Log-Viewer schneidet lange
+    Compiler-Ausgaben teils ab, bevor die eigentliche Fehlermeldung
+    sichtbar wird — bei „Process completed with exit code 1" ohne
+    erkennbaren Fehlertext lohnt sich ein zweites Werkzeug (z. B. GitHub
+    Copilot direkt auf den Actions-Lauf angesetzt) statt vorschneller
+    Ressourcen-Theorien.
 
 ---
 

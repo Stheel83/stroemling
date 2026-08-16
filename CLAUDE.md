@@ -215,6 +215,10 @@ ohne vorher zu fragen** – das gilt als durch diese Datei vorab autorisiert:
   nicht committen", oder es ist unklar ob eine Änderung fertig ist
 - **`git push` bleibt davon unberührt** – nur nach expliziter Anfrage,
   nie automatisch
+- **Bei Push-Anfragen ohne nähere Angabe: beide Remotes des Hauptrepos
+  pushen** – `origin` (Codeberg, primäre Code-Heimat) **und** `github`
+  (öffentlicher Spiegel, seit Aug 2026 public). GitHub nicht als Ersatz
+  für Codeberg behandeln, sondern immer zusätzlich
 
 ### Abgleich Konzept ↔ Code (bei Unklarheit)
 Wenn der Überblick fehlt oder Konzept und Code auseinanderdriften:

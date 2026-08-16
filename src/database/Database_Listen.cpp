@@ -187,9 +187,71 @@ QVariantList Database::querverweiseLadenProjekt(int projektId)
 // Alle platzierten Symbole (ohne Verbindungshelfer) mit BMK,
 // Freitexten und Seiteninfo für ein Projekt.
 // ============================================================
+namespace {
+
+// STUECKLISTE-SUBQUERY-01: Ersetzt die pro-Zeile korrelierte Strukturkasten-
+// Subquery (kein Index auf die Bounding-Box-Spalten, daher Faktor ~700
+// langsamer bei 7200 Elementen, real gemessen bei RESSOURCEN-MESSUNG-01)
+// durch eine einmalige Vorabladung aller Strukturkästen des Projekts,
+// gruppiert nach Seite. Der Punkt-in-Box-Test läuft danach in C++ nur noch
+// gegen die (typischerweise wenigen) Kästen der jeweiligen Seite statt
+// gegen die gesamte grafik_element-Tabelle pro Zeile.
+struct StrukturkastenBox {
+    double x1, y1, x2, y2, flaeche;
+    QString extraDaten;
+};
+
+QHash<int, QVector<StrukturkastenBox>> strukturkaestenNachSeiteLaden(QSqlDatabase &db, int projektId)
+{
+    QHash<int, QVector<StrukturkastenBox>> result;
+    QSqlQuery q(db);
+    q.prepare(R"(
+        SELECT sk.seite_id, sk.x1, sk.y1, sk.x2, sk.y2, sk.extra_daten
+        FROM grafik_element sk
+        JOIN seite  s ON s.id = sk.seite_id
+        JOIN ort    o ON o.id = s.ort_id
+        JOIN anlage a ON a.id = o.anlage_id
+        WHERE a.projekt_id = :pid AND sk.typ = 'strukturkasten'
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) return result;
+    while (q.next()) {
+        StrukturkastenBox b;
+        int seiteId = q.value(0).toInt();
+        b.x1 = q.value(1).toDouble();
+        b.y1 = q.value(2).toDouble();
+        b.x2 = q.value(3).toDouble();
+        b.y2 = q.value(4).toDouble();
+        b.flaeche = (b.x2 - b.x1) * (b.y2 - b.y1);
+        b.extraDaten = q.value(5).toString();
+        result[seiteId].append(b);
+    }
+    return result;
+}
+
+// Kleinster (flächenmäßig engster) Strukturkasten der Seite, der (x, y)
+// enthält – gleiche Priorität wie das bisherige SQL ORDER BY … LIMIT 1.
+QString strukturkastenExtraFuerPunkt(const QHash<int, QVector<StrukturkastenBox>> &boxen,
+                                      int seiteId, double x, double y)
+{
+    auto it = boxen.constFind(seiteId);
+    if (it == boxen.constEnd()) return QString();
+    const StrukturkastenBox *best = nullptr;
+    for (const StrukturkastenBox &b : it.value()) {
+        if (x < b.x1 || x > b.x2 || y < b.y1 || y > b.y2) continue;
+        if (!best || b.flaeche < best->flaeche) best = &b;
+    }
+    return best ? best->extraDaten : QString();
+}
+
+} // namespace
+
 QVariantList Database::stueckliste(int projektId)
 {
     QVariantList result;
+    const QHash<int, QVector<StrukturkastenBox>> strukturkaesten =
+        strukturkaestenNachSeiteLaden(m_db, projektId);
+
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT ge.extra_daten, ge.symbol_id,
@@ -199,16 +261,6 @@ QVariantList Database::stueckliste(int projektId)
                o.kuerzel AS ort_kz,
                COALESCE(a.anlage_uebergeordnet, '')   AS anlage_uo,
                COALESCE(o.standort_uebergeordnet, '') AS ort_uo,
-               (SELECT sk.extra_daten
-                FROM grafik_element sk
-                WHERE sk.seite_id = ge.seite_id
-                  AND sk.typ = 'strukturkasten'
-                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
-                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
-                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
-                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
-                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
-                LIMIT 1) AS sk_extra,
                s.id AS seite_id,
                (ge.x1 + ge.x2) / 2.0 AS welt_x,
                (ge.y1 + ge.y2) / 2.0 AS welt_y
@@ -235,9 +287,12 @@ QVariantList Database::stueckliste(int projektId)
         m[QStringLiteral("seiteBez")]  = q.value(3).toString();
         m[QStringLiteral("anlageKz")]  = q.value(4).toString();
         m[QStringLiteral("ortKz")]     = q.value(5).toString();
-        m[QStringLiteral("seiteId")]   = q.value(9).toInt();
-        m[QStringLiteral("weltX")]     = q.value(10).toDouble();
-        m[QStringLiteral("weltY")]     = q.value(11).toDouble();
+        const int    seiteId = q.value(8).toInt();
+        const double weltX   = q.value(9).toDouble();
+        const double weltY   = q.value(10).toDouble();
+        m[QStringLiteral("seiteId")]   = seiteId;
+        m[QStringLiteral("weltX")]     = weltX;
+        m[QStringLiteral("weltY")]     = weltY;
 
         QString extra = q.value(0).toString();
         QString bmk, ft1, ft2;
@@ -259,7 +314,8 @@ QVariantList Database::stueckliste(int projektId)
         QString ortKz    = m[QStringLiteral("ortKz")].toString();
         QString anlageUO = q.value(6).toString();
         QString ortUO    = q.value(7).toString();
-        strukturkastenOverrideAnwenden(q.value(8).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        QString skExtra  = strukturkastenExtraFuerPunkt(strukturkaesten, seiteId, weltX, weltY);
+        strukturkastenOverrideAnwenden(skExtra, anlageKz, ortKz, anlageUO, ortUO);
         m[QStringLiteral("anlageKz")] = anlageKz;
         m[QStringLiteral("ortKz")]    = ortKz;
         m[QStringLiteral("anlageUO")] = anlageUO;
@@ -281,16 +337,6 @@ QVariantList Database::stueckliste(int projektId)
                o.kuerzel,
                COALESCE(a.anlage_uebergeordnet, ''),
                COALESCE(o.standort_uebergeordnet, ''),
-               (SELECT sk.extra_daten
-                FROM grafik_element sk
-                WHERE sk.seite_id = ge.seite_id
-                  AND sk.typ = 'strukturkasten'
-                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
-                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
-                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
-                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
-                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
-                LIMIT 1),
                s.id AS seite_id,
                (ge.x1 + ge.x2) / 2.0 AS welt_x,
                (ge.y1 + ge.y2) / 2.0 AS welt_y
@@ -328,14 +374,18 @@ QVariantList Database::stueckliste(int projektId)
             QString ortKz2    = m[QStringLiteral("ortKz")].toString();
             QString anlageUO2 = qGk.value(8).toString();
             QString ortUO2    = qGk.value(9).toString();
-            strukturkastenOverrideAnwenden(qGk.value(10).toString(), anlageKz2, ortKz2, anlageUO2, ortUO2);
+            const int    seiteId2 = qGk.value(10).toInt();
+            const double weltX2   = qGk.value(11).toDouble();
+            const double weltY2   = qGk.value(12).toDouble();
+            QString skExtra2 = strukturkastenExtraFuerPunkt(strukturkaesten, seiteId2, weltX2, weltY2);
+            strukturkastenOverrideAnwenden(skExtra2, anlageKz2, ortKz2, anlageUO2, ortUO2);
             m[QStringLiteral("anlageKz")] = anlageKz2;
             m[QStringLiteral("ortKz")]    = ortKz2;
             m[QStringLiteral("anlageUO")] = anlageUO2;
             m[QStringLiteral("ortUO")]    = ortUO2;
-            m[QStringLiteral("seiteId")]  = qGk.value(11).toInt();
-            m[QStringLiteral("weltX")]    = qGk.value(12).toDouble();
-            m[QStringLiteral("weltY")]    = qGk.value(13).toDouble();
+            m[QStringLiteral("seiteId")]  = seiteId2;
+            m[QStringLiteral("weltX")]    = weltX2;
+            m[QStringLiteral("weltY")]    = weltY2;
             result.append(m);
         }
     }

@@ -1,5 +1,10 @@
 # Strömling Design – Bauanleitung
 
+**Release-Plattformen:** Linux (AppImage) und Windows (ZIP), beide ab der
+nächsten Version über GitHub Actions gebaut (s.u.). **macOS bewusst nicht
+im Umfang** — kein Zugriff auf einen Mac zum Gegentesten, keine
+Nutzernachfrage bisher.
+
 ## Voraussetzungen (Linux)
 
 - Qt 6.5 oder neuer (inkl. Qt Quick, Qt Quick Controls 2, Qt SQL)
@@ -151,17 +156,24 @@ Loop grundsätzlich korrekter.
 
 ---
 
-## Linux-Build via GitHub Actions (Test, Aug 2026)
+## Linux-Build via GitHub Actions (ab v0.667 der reguläre Release-Weg)
+
+**Update Aug 2026:** Ab der nächsten Version wird das Linux-Paket regulär
+über GitHub Actions gebaut, nicht mehr auf dem separaten Leap-16-Rechner.
+Der lokale Leap-16-Ablauf oben bleibt als Referenz/Fallback dokumentiert,
+ist aber ab jetzt nicht mehr der Standardweg.
 
 `.github/workflows/linux-build.yml` baut das AppImage automatisiert auf
-einem `ubuntu-latest`-Runner — als Alternative/Ergänzung zum lokalen
-Leap-16-Build oben. Bewusst **kein** Docker-Container mit openSUSE Leap 16
-(würde die lokale Build-Maschine 1:1 spiegeln, ist aber aufwendiger
-aufzusetzen, da Qt6 dort kein offizielles Zypper-Paket hat), sondern Qt6
-über `jurplel/install-qt-action` (offizielle Qt-Binärpakete, dieselbe
-Action wie beim Windows-Workflow) — einfacher, aber die GLIBC-Kompatibilität
-des Ergebnisses ist damit **noch nicht verifiziert**, nur der lokale
-Leap-16-Build ist bisher als Kompatibilitäts-Baseline geprüft.
+einem `ubuntu-latest`-Runner. Bewusst **kein** Docker-Container mit
+openSUSE Leap 16 (würde die alte lokale Build-Maschine 1:1 spiegeln, ist
+aber aufwendiger aufzusetzen, da Qt6 dort kein offizielles Zypper-Paket
+hat), sondern Qt6 über `jurplel/install-qt-action` (offizielle
+Qt-Binärpakete, dieselbe Action wie beim Windows-Workflow) — einfacher,
+aber die GLIBC-Kompatibilität des Ergebnisses ist damit **noch nicht
+verifiziert**, nur der bisherige lokale Leap-16-Build war als
+Kompatibilitäts-Baseline geprüft. Vor dem nächsten Release auf einem
+älteren Zielsystem gegenprüfen, dann den GLIBC-Hinweistext auf der
+Website (`Website/stroemling/index.html`, Download-Sektion) aktualisieren.
 
 - **Auslösen:** manuell über „Run workflow" (Tab „Actions") oder
   automatisch bei jedem Tag-Push (`v*`).
@@ -315,13 +327,17 @@ Der Nutzer entpackt das ZIP und startet `stroemling_app.exe` — fertig.
 
 ---
 
-## Windows-Build via GitHub Actions (nativer Build ohne Wine/MXE)
+## Windows-Build via GitHub Actions (ab v0.667 der reguläre Release-Weg)
 
-Alternative zum lokalen Windows-Build: `.github/workflows/windows-build.yml`
-baut auf einem echten `windows-latest`-Runner (kein Wine, kein
-QML-Erkennungsrisiko bei `windeployqt`). Funktioniert auch bei einem
-**privaten** GitHub-Repo — GitHub Actions ist nicht auf öffentliche Repos
-beschränkt.
+**Update Aug 2026:** Ab der nächsten Version wird auch das Windows-Paket
+regulär über GitHub Actions gebaut, nicht mehr manuell lokal per
+`windeployqt`. Die lokalen Schritte oben bleiben als Referenz/Fallback
+dokumentiert, sind aber ab jetzt nicht mehr der Standardweg.
+
+`.github/workflows/windows-build.yml` baut auf einem echten
+`windows-latest`-Runner (kein Wine, kein QML-Erkennungsrisiko bei
+`windeployqt`). Funktioniert auch bei einem **privaten** GitHub-Repo —
+GitHub Actions ist nicht auf öffentliche Repos beschränkt.
 
 - **Kontingent (privat, kostenloser Account):** 2.000 Minuten/Monat,
   Windows-Runner zählen mit 2× dagegen → effektiv ~1.000 Min. echte

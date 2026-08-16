@@ -88,6 +88,12 @@ Item {
         laden()
     }
 
+    function _loeschenBestaetigen(id, label) {
+        dlgFeldLoeschen.loeschId    = id
+        dlgFeldLoeschen.loeschLabel = label
+        dlgFeldLoeschen.open()
+    }
+
     function _kategorieAnlegen() {
         var kat = tfNeuKat.text.trim()
         if (!kat) return
@@ -467,7 +473,7 @@ Item {
                                 }
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: root._loeschen(modelData.id)
+                                    onClicked: root._loeschenBestaetigen(modelData.id, modelData.label)
                                 }
                             }
                             Item { visible: modelData.erstelltVon !== "user"; width: 22; height: 22 }
@@ -715,6 +721,65 @@ Item {
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                         onClicked: { _formReset(); root._formSichtbar = true }
+                    }
+                }
+            }
+        }
+    }
+
+    // --------------------------------------------------------
+    // Dialog – Feld löschen (mit Bestätigung, IBN-05-Nachtrag)
+    // --------------------------------------------------------
+    Dialog {
+        id: dlgFeldLoeschen
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 320
+        padding: 20
+
+        property int    loeschId:    -1
+        property string loeschLabel: ""
+
+        background: Rectangle { color: root.theme.sidebar; border.color: "#5a2020"; border.width: 1; radius: 6 }
+
+        contentItem: ColumnLayout {
+            spacing: 12
+
+            Text {
+                text: qsTr("Feld löschen")
+                font.pixelSize: 15; font.weight: Font.Medium; color: "#cc3300"
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#3a1a1a" }
+
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.pixelSize: 13
+                color: root.theme.textSecondary
+                text: "\"" + dlgFeldLoeschen.loeschLabel + "\" wirklich löschen? Bereits erfasste Werte für dieses Feld gehen verloren."
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#3a1a1a"; Layout.topMargin: 4 }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: qsTr("Abbrechen"); flat: true; implicitHeight: 34
+                    contentItem: Text { text: parent.text; color: root.theme.textSecondary; font.pixelSize: 13;
+                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    onClicked: dlgFeldLoeschen.close()
+                }
+                Button {
+                    text: qsTr("Löschen"); implicitWidth: 90; implicitHeight: 34
+                    contentItem: Text { text: parent.text; color: "#ffe0e0"; font.pixelSize: 13;
+                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? "#6a1a1a" : "#3a1010"; radius: 4 }
+                    onClicked: {
+                        root._loeschen(dlgFeldLoeschen.loeschId)
+                        dlgFeldLoeschen.close()
                     }
                 }
             }

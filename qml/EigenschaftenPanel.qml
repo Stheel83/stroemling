@@ -318,6 +318,9 @@ Rectangle {
             // ABSCHNITT: BETRIEBSMITTEL → EpBetriebsmittelSection.qml
             EpBetriebsmittelSection { canvas: canvas; panel: panel; theme: panel.theme }
 
+            // ABSCHNITT: BAUTEIL (generische Zuordnung, BESTELLLISTE-02) → EpBauteilZuordnungSection.qml
+            EpBauteilZuordnungSection { canvas: canvas; panel: panel; theme: panel.theme }
+
             // ABSCHNITT: INBETRIEBNAHME-STATUS (read-only) → EpIbnStatusSection.qml
             EpIbnStatusSection { panel: panel; theme: panel.theme }
 

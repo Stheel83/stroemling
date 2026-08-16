@@ -174,14 +174,22 @@ public:
     // Gibt [{bmk, symbolId, freitext1, freitext2, seite, anlagekz, ortkz}] zurück.
     Q_INVOKABLE QVariantList stueckliste(int projektId);
 
-    // Bestellliste (v1, BESTELLLISTE-01): Bauteile mit bereits vorhandener
-    // bauteil_id-Verknüpfung (Klemmen, Kabel, Kontaktspiegel-Geräte), nach
-    // Bauteil gruppiert mit Menge/Einheit/Summe. Symbole ohne Bauteil-
-    // Verknüpfung (die Mehrheit der Stückliste) tauchen hier bewusst nicht
-    // auf, siehe konzept/projekt/08_roadmap.md.
+    // Bestellliste: Bauteile mit vorhandener bauteil_id-Verknüpfung, nach
+    // Bauteil gruppiert mit Menge/Einheit/Summe. Vier Quellen: Klemmen, Kabel,
+    // Kontaktspiegel-Geräte (v1, BESTELLLISTE-01) sowie seit BESTELLLISTE-02
+    // beliebige platzierte Symbole mit generischer Bauteil-Zuordnung im EP
+    // (grafik_element.extra_daten.bauteil_id, s. EpBauteilZuordnungSection.qml).
+    // Kontaktspiegel-Geräte sind davon ausgenommen (eigener Pfad, sonst
+    // Doppelzählung).
     // Gibt [{bauteilId, bezeichnung, hersteller, artikelnummer, bestellnummer,
     //        lieferant, preisEur, menge, einheit, summeEur}] zurück.
     Q_INVOKABLE QVariantList bestellliste(int projektId);
+
+    // Alle Bauteile der Bibliothek für den generischen Symbol-Bauteil-Picker
+    // (BESTELLLISTE-02) – keine Kategorie-Einschränkung, anders als die
+    // Klemmen-/Kabel-/Steckverbinder-spezifischen Picker-Listen.
+    // Gibt [{id, bezeichnung, hersteller, artikelnummer}] zurück.
+    Q_INVOKABLE QVariantList bauteilAlleFuerPicker() const;
 
     // Querverweisliste: alle Querverweis-Symbole mit Signalname, Richtung, Seite, Zielseite.
     // Gibt [{signalname, richtung, seite, zielSeite}] zurück.

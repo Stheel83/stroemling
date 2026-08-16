@@ -1155,6 +1155,36 @@ bool Database::stuecklisteCsvSpeichern(int projektId, const QString &pfad)
 // Pfade (Klemmen, Kabel, Kontaktspiegel-Geräte). Normale Symbole ohne
 // Bauteil-Verknüpfung erscheinen hier bewusst nicht, siehe Roadmap.
 // ============================================================
+// ============================================================
+// bauteilAlleFuerPicker
+// Alle Bauteile der Bibliothek für den generischen Symbol-Bauteil-Picker
+// (BESTELLLISTE-02, EpBauteilZuordnungSection.qml) – keine Kategorie-
+// Einschränkung wie bei den Klemmen-/Kabel-/Steckverbinder-Pickern.
+// ============================================================
+QVariantList Database::bauteilAlleFuerPicker() const
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT id, COALESCE(bezeichnung, ''), COALESCE(hersteller, ''), COALESCE(artikelnummer, '')
+        FROM bibliothek.bauteil
+        ORDER BY bezeichnung COLLATE NOCASE
+    )");
+    if (!q.exec()) {
+        qCWarning(lcDb) << "bauteilAlleFuerPicker:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m[QStringLiteral("id")]            = q.value(0).toInt();
+        m[QStringLiteral("bezeichnung")]   = q.value(1).toString();
+        m[QStringLiteral("hersteller")]    = q.value(2).toString();
+        m[QStringLiteral("artikelnummer")] = q.value(3).toString();
+        result.append(m);
+    }
+    return result;
+}
+
 QVariantList Database::bestellliste(int projektId)
 {
     QVariantList result;
@@ -1174,6 +1204,23 @@ QVariantList Database::bestellliste(int projektId)
             SELECT b.bauteil_id AS bauteil_id, 1.0 AS menge, 'Stk' AS einheit
             FROM betriebsmittel b
             WHERE b.projekt_id = :pid3 AND b.bauteil_id IS NOT NULL
+            UNION ALL
+            -- BESTELLLISTE-02: beliebige platzierte Symbole mit generischer
+            -- Bauteil-Zuordnung im EP (extra_daten.bauteil_id). Symbole, die
+            -- bereits über ein Kontaktspiegel-Betriebsmittel (s. oben) einen
+            -- Bauteil-Bezug haben, sind ausgenommen, sonst Doppelzählung.
+            SELECT CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) AS bauteil_id,
+                   1.0 AS menge, 'Stk' AS einheit
+            FROM grafik_element ge
+            JOIN seite  s ON s.id = ge.seite_id
+            JOIN ort    o ON o.id = s.ort_id
+            JOIN anlage a ON a.id = o.anlage_id
+            WHERE ge.typ = 'symbol' AND a.projekt_id = :pid4
+              AND CAST(json_extract(ge.extra_daten, '$.bauteil_id') AS INTEGER) > 0
+              AND NOT EXISTS (
+                  SELECT 1 FROM betriebsmittel bm
+                  WHERE bm.id = ge.betriebsmittel_id AND bm.bauteil_id IS NOT NULL
+              )
         )
         SELECT bt.id, bt.bezeichnung, COALESCE(bt.hersteller, ''), COALESCE(bt.artikelnummer, ''),
                COALESCE(bt.bestellnummer, ''), COALESCE(bt.lieferant, ''), bt.preis_eur,
@@ -1186,6 +1233,7 @@ QVariantList Database::bestellliste(int projektId)
     q.bindValue(":pid1", projektId);
     q.bindValue(":pid2", projektId);
     q.bindValue(":pid3", projektId);
+    q.bindValue(":pid4", projektId);
     if (!q.exec()) {
         qCWarning(lcDb) << "bestellliste:" << q.lastError().text();
         return result;

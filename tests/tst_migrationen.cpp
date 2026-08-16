@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QDateTime>
+#include <QSet>
 #include "database/Database.h"
 
 // Testet das Migrations-System auf einer temporären SQLite-Datei.
@@ -167,6 +168,61 @@ private slots:
 
         QVERIFY2(spalten.contains("farbe2"),
                  "Spalte kabel_ader.farbe2 fehlt (Migration v94)");
+    }
+
+    void test_08_symbolKatalogDualitaet()
+    {
+        // SYMBOL-DUALITAET-01: symbol_definition (Rendering/Pins/DRC/IBN/PDF)
+        // und die separate Legacy-Tabelle `symbol` (Palette-Listing, gefüllt
+        // von seedSymbolKatalog(), gelesen von SymbolPalette.qml über
+        // db.symboleNachNorm()) müssen für jedes Built-in-Symbol synchron
+        // gepflegt werden. Beide Fehlerrichtungen sind schon real passiert:
+        // Migration 90 (motor_dc fehlte in `symbol` – Symbol unsichtbar in
+        // der Palette trotz korrektem Rendering) und Migration 121
+        // (rollladenschalter u.a. aus symbol_definition gelöscht, aber
+        // Karteileiche in `symbol` vergessen – Platzieren schlug fehl).
+        //
+        // Ausnahme: die "Verbindungshilfen" werden bewusst NICHT in `symbol`
+        // geseedet, sondern direkt in SymbolPalette.qml
+        // (symboleInKategorie("verbindungen")) hartcodiert. Diese Liste hier
+        // muss mit der dortigen QML-Liste synchron gehalten werden.
+        // klemme_anschluss ist ebenfalls ausgenommen: wird nie über die
+        // normale Palette gesucht, sondern von Main.qml direkt per
+        // canvas.paletteSymbolId="klemme_anschluss" gesetzt (Klemmenreihen-
+        // Editor-Workflow) - siehe auch SK.VERB_SYMS in SymbolKlassen.js.
+        static const QSet<QString> verbindungshilfen = {
+            "winkel", "treffpunkt", "treffpunkt_l", "geraeteanschluss",
+            "potenzial", "unterbrechung", "querverweis", "aderdefinition",
+            "isoliert_gelegte_ader", "klemme_anschluss"
+        };
+
+        QSqlQuery q(QSqlDatabase::database());
+
+        QVERIFY(q.exec("SELECT id FROM symbol_definition WHERE ist_builtin = 1"));
+        QSet<QString> definitionen;
+        while (q.next()) definitionen.insert(q.value(0).toString());
+
+        QVERIFY(q.exec("SELECT code FROM symbol"));
+        QSet<QString> katalog;
+        while (q.next()) katalog.insert(q.value(0).toString());
+
+        // Jedes Built-in-Symbol (außer Verbindungshilfen) braucht einen
+        // Palette-Eintrag, sonst ist es unsichtbar (Migration-90-Fehlerklasse).
+        QSet<QString> fehltInKatalog = definitionen - verbindungshilfen - katalog;
+        QStringList fehltListe;
+        for (const QString &s : fehltInKatalog) fehltListe << s;
+        QVERIFY2(fehltInKatalog.isEmpty(),
+                 qPrintable("Built-in-Symbole ohne Eintrag in `symbol` (Palette zeigt sie nicht an): "
+                            + fehltListe.join(", ")));
+
+        // Jeder Palette-Eintrag braucht eine Definition, sonst schlägt das
+        // Platzieren fehl (Migration-121-Fehlerklasse, umgekehrte Richtung).
+        QSet<QString> verwaistImKatalog = katalog - definitionen;
+        QStringList verwaistListe;
+        for (const QString &s : verwaistImKatalog) verwaistListe << s;
+        QVERIFY2(verwaistImKatalog.isEmpty(),
+                 qPrintable("Karteileichen in `symbol` ohne symbol_definition (Platzieren schlägt fehl): "
+                            + verwaistListe.join(", ")));
     }
 };
 

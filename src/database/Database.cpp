@@ -846,6 +846,34 @@ bool Database::projektHintergrundSpeichern(int projektId, const QString &farbe)
 }
 
 // ============================================================
+// projektZuletztVerwendeteSymbole / projektZuletztVerwendeteSymboleSpeichern
+// ============================================================
+QStringList Database::projektZuletztVerwendeteSymbole(int projektId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("SELECT zuletzt_verwendete_symbole FROM projekt WHERE id = :pid");
+    q.bindValue(":pid", projektId);
+    if (q.exec() && q.next()) {
+        QString liste = q.value(0).toString().trimmed();
+        if (!liste.isEmpty()) return liste.split(',', Qt::SkipEmptyParts);
+    }
+    return QStringList();
+}
+
+bool Database::projektZuletztVerwendeteSymboleSpeichern(int projektId, const QStringList &codes)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE projekt SET zuletzt_verwendete_symbole = :liste WHERE id = :pid");
+    q.bindValue(":liste", codes.join(','));
+    q.bindValue(":pid",   projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "projektZuletztVerwendeteSymboleSpeichern:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
 // grafikLaden
 // Gibt alle Grafik-Elemente einer Seite als QVariantList zurück.
 // Die Maps verwenden dieselben camelCase-Schlüssel wie das QML-Modell.

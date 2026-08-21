@@ -31,7 +31,7 @@ public:
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION        = 56;
-    static const int CURRENT_SCHEMA_VERSION  = 125;
+    static const int CURRENT_SCHEMA_VERSION  = 126;
     static const int WIKI_SCHEMA_VERSION     = 15;
     static const int BIBLIOTHEK_SCHEMA_VERSION = 6;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
@@ -150,6 +150,10 @@ public:
     // Canvas-Hintergrundfarbe eines Projekts lesen / schreiben
     Q_INVOKABLE QString projektHintergrundLaden(int projektId);
     Q_INVOKABLE bool    projektHintergrundSpeichern(int projektId, const QString &farbe);
+
+    // Zuletzt in der Symbolpalette verwendete Symbol-Codes (LRU, max. 8) lesen / schreiben
+    Q_INVOKABLE QStringList projektZuletztVerwendeteSymbole(int projektId);
+    Q_INVOKABLE bool         projektZuletztVerwendeteSymboleSpeichern(int projektId, const QStringList &codes);
 
     // Nächste freie BMK-Nummer für ein Präfix ermitteln.
     // Durchsucht alle grafik_element.extra_daten im Projekt nach vorhandenen

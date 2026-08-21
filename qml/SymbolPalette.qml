@@ -44,6 +44,14 @@ Rectangle {
     property string ansicht: "kategorien"
     property string aktiveKategorie: ""
 
+    // Suchtext für die Volltextsuche über alle Symbole (Punkt 1)
+    property string suchtext: ""
+
+    // Hover-Großvorschau (Punkt 4)
+    property string _hoverCode:    ""
+    property string _hoverName:    ""
+    property real   _hoverGlobalY: 0
+
     // Symbolliste aus der DB (für aktive Norm)
     property var alleSymbole: []
     // Eigene (nicht-eingebaute) Symbole aus symbol_definition
@@ -68,6 +76,7 @@ Rectangle {
             }
         }
         eigeneSymboleList = eigene
+        zuletzt = projektId >= 0 ? db.projektZuletztVerwendeteSymbole(projektId) : []
     }
 
     function abwaehlen() {
@@ -81,6 +90,28 @@ Rectangle {
             if (!seen[k]) { seen[k] = true; result.push(k) }
         }
         return result
+    }
+
+    function kategorieAnzahl(kat) {
+        var r = 0
+        for (var i = 0; i < alleSymbole.length; i++)
+            if (alleSymbole[i].kategoriePfad === kat) r++
+        return r
+    }
+
+    // Volltextsuche über Name (alle Symbole, eigene + Verbindungshilfen)
+    function sucheErgebnisse() {
+        var q = root.suchtext.toLowerCase()
+        if (q === "") return []
+        var r = [], i
+        for (i = 0; i < alleSymbole.length; i++)
+            if (alleSymbole[i].name.toLowerCase().indexOf(q) >= 0) r.push(alleSymbole[i])
+        for (i = 0; i < eigeneSymboleList.length; i++)
+            if (eigeneSymboleList[i].name.toLowerCase().indexOf(q) >= 0) r.push(eigeneSymboleList[i])
+        var verb = symboleInKategorie("verbindungen")
+        for (i = 0; i < verb.length; i++)
+            if (verb[i].name.toLowerCase().indexOf(q) >= 0) r.push(verb[i])
+        return r
     }
 
     function symboleInKategorie(kat) {
@@ -115,7 +146,7 @@ Rectangle {
         return false
     }
 
-    // ── Zuletzt verwendet (session-only, max. 8 Einträge) ────────
+    // ── Zuletzt verwendet (projektgebunden persistent, max. 8 Einträge) ──
     property var zuletzt: []
 
     function zuletztHinzufuegen(code) {
@@ -124,6 +155,7 @@ Rectangle {
             if (zuletzt[i] !== code) neu.push(zuletzt[i])
         }
         zuletzt = neu
+        if (root.projektId >= 0) db.projektZuletztVerwendeteSymboleSpeichern(root.projektId, neu)
     }
 
     function symbolFinden(code) {
@@ -184,6 +216,108 @@ Rectangle {
         alleSymbole = neu
     }
 
+    // Zeichnet ein Symbol per Primitiv-Liste in einen 2D-Context, normiert auf
+    // die übergebene Box (w×h). Wird sowohl für die kleine Zeilen-Vorschau als
+    // auch für die große Hover-Vorschau verwendet.
+    function zeichnePrimitive(ctx, symbolId, w, h) {
+        var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
+        // Einheitlicher Skalierungsfaktor statt getrennt w/h, damit Kreise/Bögen
+        // nicht zu Ellipsen verzerrt werden, wenn die Vorschau-Box ein anderes
+        // Seitenverhältnis hat als die Symbolgröße (z.B. 16x16mm).
+        var scale = Math.min(w, h)
+        var offX  = (w - scale) / 2
+        var offY  = (h - scale) / 2
+        function sx(nx) { return nx * scale + offX }
+        function sy(ny) { return ny * scale + offY }
+        for (var i = 0; i < prims.length; i++) {
+            var p = prims[i]
+            ctx.setLineDash([])
+            switch (p.typ) {
+                case "linie":
+                    ctx.beginPath()
+                    ctx.moveTo(sx(p.x1), sy(p.y1))
+                    ctx.lineTo(sx(p.x2), sy(p.y2))
+                    ctx.stroke()
+                    break
+                case "rechteck": {
+                    var rrw = (p.x2 - p.x1) * scale, rrh = (p.y2 - p.y1) * scale
+                    if (p.rotation) {
+                        ctx.save()
+                        ctx.translate(sx((p.x1+p.x2)/2), sy((p.y1+p.y2)/2))
+                        ctx.rotate(p.rotation * Math.PI / 180)
+                        ctx.strokeRect(-rrw / 2, -rrh / 2, rrw, rrh)
+                        ctx.restore()
+                    } else {
+                        ctx.strokeRect(sx(p.x1), sy(p.y1), rrw, rrh)
+                    }
+                    break
+                }
+                case "rechteck_gefuellt": {
+                    var rgw = (p.x2 - p.x1) * scale, rgh = (p.y2 - p.y1) * scale
+                    ctx.save()
+                    ctx.fillStyle = ctx.strokeStyle
+                    if (p.rotation) {
+                        ctx.translate(sx((p.x1+p.x2)/2), sy((p.y1+p.y2)/2))
+                        ctx.rotate(p.rotation * Math.PI / 180)
+                        ctx.fillRect(-rgw / 2, -rgh / 2, rgw, rgh)
+                    } else {
+                        ctx.fillRect(sx(p.x1), sy(p.y1), rgw, rgh)
+                    }
+                    ctx.restore()
+                    break
+                }
+                case "kreis_offen":
+                    ctx.beginPath()
+                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
+                    ctx.stroke()
+                    break
+                case "kreis_gefuellt":
+                    ctx.save()
+                    ctx.fillStyle = ctx.strokeStyle
+                    ctx.beginPath()
+                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
+                    ctx.fill()
+                    ctx.restore()
+                    break
+                case "bogen":
+                    ctx.beginPath()
+                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale,
+                            p.winkel_von * Math.PI / 180,
+                            p.winkel_bis * Math.PI / 180,
+                            p.bogen_gegen_uhrzeiger)
+                    ctx.stroke()
+                    break
+                case "text":
+                    ctx.save()
+                    ctx.fillStyle    = ctx.strokeStyle
+                    ctx.font         = (p.schrift_fett ? "bold " : "") +
+                                       Math.round(p.schrift_relativ * scale) + "px sans-serif"
+                    ctx.textAlign    = p.text_align    || "center"
+                    ctx.textBaseline = p.text_baseline || "middle"
+                    if (p.rotation) {
+                        ctx.translate(sx(p.x1), sy(p.y1))
+                        ctx.rotate(p.rotation * Math.PI / 180)
+                        ctx.fillText(p.text_inhalt, 0, 0)
+                    } else {
+                        ctx.fillText(p.text_inhalt, sx(p.x1), sy(p.y1))
+                    }
+                    ctx.restore()
+                    break
+                case "dreieck_gefuellt":
+                    ctx.save()
+                    ctx.fillStyle = ctx.strokeStyle
+                    ctx.beginPath()
+                    ctx.moveTo(sx(p.x1), sy(p.y1))
+                    ctx.lineTo(sx(p.x2), sy(p.y2))
+                    ctx.lineTo(sx(p.x3), sy(p.y3))
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.restore()
+                    break
+            }
+        }
+    }
+
     Component.onCompleted: laden()
 
     // ── Gesamt-Layout ─────────────────────────────────────────
@@ -228,6 +362,50 @@ Rectangle {
 
         Rectangle { height: 1; color: theme.border; Layout.fillWidth: true }
 
+        // ── Suchfeld (Volltextsuche über alle Symbole) ────────
+        Rectangle {
+            Layout.fillWidth: true
+            height: visible ? 28 : 0
+            visible: root.paletteModus === "symbole"
+            color: theme.surface
+
+            RowLayout {
+                anchors { fill: parent; leftMargin: 6; rightMargin: 4 }
+                spacing: 3
+
+                Text { text: "🔍"; font.pixelSize: 10; color: theme.textMuted }
+
+                TextField {
+                    id: suchfeld
+                    Layout.fillWidth: true
+                    implicitHeight: 22
+                    placeholderText: qsTr("Symbol suchen …")
+                    font.pixelSize: 10
+                    color: theme.textPrimary
+                    background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 3 }
+                    text: root.suchtext
+                    onTextChanged: root.suchtext = text
+                }
+
+                Rectangle {
+                    visible: suchfeld.text.length > 0
+                    width: 18; height: 18; radius: 3
+                    color: suchClearMa.containsMouse ? theme.hover : "transparent"
+                    Text {
+                        anchors.centerIn: parent; text: "×"
+                        font.pixelSize: 12; color: theme.textMuted
+                    }
+                    MouseArea {
+                        id: suchClearMa; anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: suchfeld.text = ""
+                    }
+                }
+            }
+        }
+
+        Rectangle { height: root.paletteModus === "symbole" ? 1 : 0; color: theme.border; Layout.fillWidth: true }
+
         // ── Makro-Palette ─────────────────────────────────────
         MakroPalette {
             id: makroPalette
@@ -244,7 +422,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: visible ? 28 : 0
-            visible: root.paletteModus === "symbole" && root.ansicht !== "kategorien"
+            visible: root.paletteModus === "symbole" && root.ansicht !== "kategorien" && root.suchtext.length === 0
             color: "transparent"
 
             RowLayout {
@@ -277,7 +455,7 @@ Rectangle {
         }
 
         Rectangle {
-            height: (root.paletteModus === "symbole" && root.ansicht !== "kategorien") ? 1 : 0
+            height: (root.paletteModus === "symbole" && root.ansicht !== "kategorien" && root.suchtext.length === 0) ? 1 : 0
             color: theme.border; Layout.fillWidth: true
         }
 
@@ -297,19 +475,19 @@ Rectangle {
                 // ------------------------------------------------
                 Column {
                     width: parent.width
-                    visible: root.ansicht === "kategorien"
+                    visible: root.ansicht === "kategorien" && root.suchtext.length === 0
 
                     // Zuletzt verwendet (nur wenn vorhanden, ganz oben)
                     KategorieZeile {
                         visible: root.zuletzt.length > 0
-                        label: qsTr("\u23f3  Zuletzt verwendet")
+                        label: qsTr("\u23f3  Zuletzt verwendet (%1)").arg(root.zuletzt.length)
                         onKlick: root.ansicht = "zuletzt"
                     }
 
                     // Favoriten-Zeile (nur wenn vorhanden)
                     KategorieZeile {
                         visible: root.hatFavoriten()
-                        label: qsTr("\u2605  Favoriten")
+                        label: qsTr("\u2605  Favoriten (%1)").arg(root.favoritenListe().length)
                         highlight: true
                         onKlick: root.ansicht = "favoriten"
                     }
@@ -318,7 +496,7 @@ Rectangle {
                     Repeater {
                         model: root.alleSymbole.length > 0 ? root.kategorienListe() : []
                         delegate: KategorieZeile {
-                            label: root.kategorieName(modelData)
+                            label: root.kategorieName(modelData) + " (" + root.kategorieAnzahl(modelData) + ")"
                             onKlick: {
                                 root.aktiveKategorie = modelData
                                 root.ansicht = "symbole"
@@ -328,7 +506,7 @@ Rectangle {
 
                     // Feste Verbindungselemente-Kategorie
                     KategorieZeile {
-                        label: qsTr("\u21AA  Verbindungen")
+                        label: qsTr("\u21AA  Verbindungen (%1)").arg(root.symboleInKategorie("verbindungen").length)
                         onKlick: { root.aktiveKategorie = "verbindungen"; root.ansicht = "symbole" }
                     }
 
@@ -336,7 +514,7 @@ Rectangle {
                     KategorieZeile {
                         visible:   root.eigeneSymboleList.length > 0
                         height:    visible ? 34 : 0
-                        label:     qsTr("\u2B50  Eigene Symbole")
+                        label:     qsTr("\u2B50  Eigene Symbole (%1)").arg(root.eigeneSymboleList.length)
                         highlight: true
                         onKlick:   { root.aktiveKategorie = "eigene"; root.ansicht = "symbole" }
                     }
@@ -353,7 +531,8 @@ Rectangle {
                 // ------------------------------------------------
                 Column {
                     width: parent.width
-                    visible: root.ansicht === "symbole" || root.ansicht === "favoriten" || root.ansicht === "zuletzt"
+                    visible: root.suchtext.length === 0
+                        && (root.ansicht === "symbole" || root.ansicht === "favoriten" || root.ansicht === "zuletzt")
 
                     Repeater {
                         model: {
@@ -383,6 +562,48 @@ Rectangle {
                                     root.ansicht = "kategorien"
                             }
                         }
+                    }
+                }
+
+                // ------------------------------------------------
+                // SUCHERGEBNISSE
+                // ------------------------------------------------
+                Column {
+                    width: parent.width
+                    visible: root.suchtext.length > 0
+
+                    Repeater {
+                        model: root.sucheErgebnisse()
+
+                        delegate: SymbolZeile {
+                            sym:    modelData
+                            aktiv:  root.aktivesSymbol === modelData.code
+                            onSymbolKlick: {
+                                root.aktivesSymbol = (root.aktivesSymbol === modelData.code) ? "" : modelData.code
+                                if (root.aktivesSymbol !== "") {
+                                    root.symbolGewaehlt(root.aktivesSymbol)
+                                    root.zuletztHinzufuegen(root.aktivesSymbol)
+                                }
+                            }
+                            onFavKlick:       root.favoritToggle(modelData)
+                            onVorlageKopieren: root.vorlageFuerEditor(modelData.code)
+                            onBearbeiten:      root.editorOeffnen(modelData.code)
+                            onLoeschen: {
+                                symbolDefinitionModel.symbolLoeschen(modelData.code)
+                                root.laden()
+                            }
+                        }
+                    }
+
+                    Text {
+                        visible: root.suchtext.length > 0 && root.sucheErgebnisse().length === 0
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        topPadding: 24
+                        wrapMode: Text.WordWrap
+                        text: qsTr("Keine Symbole f\u00FCr \"%1\"").arg(root.suchtext)
+                        font.pixelSize: 11
+                        color: theme.textMuted
                     }
                 }
             }
@@ -457,106 +678,7 @@ Rectangle {
                         ctx.clearRect(0, 0, width, height)
                         ctx.strokeStyle = aktiv ? theme.accent : theme.textSubtle
                         ctx.lineWidth   = 1.5
-                        drawByPrimitivPalette(ctx, symCode, width, height)
-                    }
-
-                    function drawByPrimitivPalette(ctx, symbolId, w, h) {
-                        var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
-                        // Einheitlicher Skalierungsfaktor statt getrennt w/h, damit Kreise/Bögen
-                        // nicht zu Ellipsen verzerrt werden, wenn die Vorschau-Box (56x32) ein
-                        // anderes Seitenverhältnis hat als die Symbolgröße (z.B. 16x16mm).
-                        var scale = Math.min(w, h)
-                        var offX  = (w - scale) / 2
-                        var offY  = (h - scale) / 2
-                        function sx(nx) { return nx * scale + offX }
-                        function sy(ny) { return ny * scale + offY }
-                        for (var i = 0; i < prims.length; i++) {
-                            var p = prims[i]
-                            ctx.setLineDash([])
-                            switch (p.typ) {
-                                case "linie":
-                                    ctx.beginPath()
-                                    ctx.moveTo(sx(p.x1), sy(p.y1))
-                                    ctx.lineTo(sx(p.x2), sy(p.y2))
-                                    ctx.stroke()
-                                    break
-                                case "rechteck": {
-                                    var rrw = (p.x2 - p.x1) * scale, rrh = (p.y2 - p.y1) * scale
-                                    if (p.rotation) {
-                                        ctx.save()
-                                        ctx.translate(sx((p.x1+p.x2)/2), sy((p.y1+p.y2)/2))
-                                        ctx.rotate(p.rotation * Math.PI / 180)
-                                        ctx.strokeRect(-rrw / 2, -rrh / 2, rrw, rrh)
-                                        ctx.restore()
-                                    } else {
-                                        ctx.strokeRect(sx(p.x1), sy(p.y1), rrw, rrh)
-                                    }
-                                    break
-                                }
-                                case "rechteck_gefuellt": {
-                                    var rgw = (p.x2 - p.x1) * scale, rgh = (p.y2 - p.y1) * scale
-                                    ctx.save()
-                                    ctx.fillStyle = ctx.strokeStyle
-                                    if (p.rotation) {
-                                        ctx.translate(sx((p.x1+p.x2)/2), sy((p.y1+p.y2)/2))
-                                        ctx.rotate(p.rotation * Math.PI / 180)
-                                        ctx.fillRect(-rgw / 2, -rgh / 2, rgw, rgh)
-                                    } else {
-                                        ctx.fillRect(sx(p.x1), sy(p.y1), rgw, rgh)
-                                    }
-                                    ctx.restore()
-                                    break
-                                }
-                                case "kreis_offen":
-                                    ctx.beginPath()
-                                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
-                                    ctx.stroke()
-                                    break
-                                case "kreis_gefuellt":
-                                    ctx.save()
-                                    ctx.fillStyle = ctx.strokeStyle
-                                    ctx.beginPath()
-                                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI)
-                                    ctx.fill()
-                                    ctx.restore()
-                                    break
-                                case "bogen":
-                                    ctx.beginPath()
-                                    ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale,
-                                            p.winkel_von * Math.PI / 180,
-                                            p.winkel_bis * Math.PI / 180,
-                                            p.bogen_gegen_uhrzeiger)
-                                    ctx.stroke()
-                                    break
-                                case "text":
-                                    ctx.save()
-                                    ctx.fillStyle    = ctx.strokeStyle
-                                    ctx.font         = (p.schrift_fett ? "bold " : "") +
-                                                       Math.round(p.schrift_relativ * scale) + "px sans-serif"
-                                    ctx.textAlign    = p.text_align    || "center"
-                                    ctx.textBaseline = p.text_baseline || "middle"
-                                    if (p.rotation) {
-                                        ctx.translate(sx(p.x1), sy(p.y1))
-                                        ctx.rotate(p.rotation * Math.PI / 180)
-                                        ctx.fillText(p.text_inhalt, 0, 0)
-                                    } else {
-                                        ctx.fillText(p.text_inhalt, sx(p.x1), sy(p.y1))
-                                    }
-                                    ctx.restore()
-                                    break
-                                case "dreieck_gefuellt":
-                                    ctx.save()
-                                    ctx.fillStyle = ctx.strokeStyle
-                                    ctx.beginPath()
-                                    ctx.moveTo(sx(p.x1), sy(p.y1))
-                                    ctx.lineTo(sx(p.x2), sy(p.y2))
-                                    ctx.lineTo(sx(p.x3), sy(p.y3))
-                                    ctx.closePath()
-                                    ctx.fill()
-                                    ctx.restore()
-                                    break
-                            }
-                        }
+                        root.zeichnePrimitive(ctx, symCode, width, height)
                     }
 
                     Connections {
@@ -628,10 +750,81 @@ Rectangle {
             ToolTip.visible: szHover.containsMouse && sym !== null && sym.tooltip !== undefined && sym.tooltip !== ""
             ToolTip.text:    (sym && sym.tooltip) ? sym.tooltip : ""
             ToolTip.delay:   600
-            MouseArea { id: szHover; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
+            MouseArea {
+                id: szHover; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton
+                onEntered: {
+                    if (!sym) return
+                    root._hoverCode    = sym.code
+                    root._hoverName    = sym.name
+                    root._hoverGlobalY = szHover.mapToItem(null, 0, szHover.height / 2).y
+                }
+                onExited: root._hoverCode = ""
+            }
         }
 
         Rectangle { anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; width: parent.width - 8; height: 1; color: theme.divider }
+    }
+
+    // ── Hover-Großvorschau ─────────────────────────────────────
+    // Analog zum Muster in MakroPalette.qml: Popup rechts neben der Palette,
+    // vertikal an der gehoverten Zeile ausgerichtet.
+    Popup {
+        id: vorschauGross
+        parent:      Overlay.overlay
+        modal:       false
+        closePolicy: Popup.NoAutoClose
+        focus:       false
+        width:       160
+        padding:     8
+
+        x: root.mapToItem(null, root.width + 6, 0).x
+        y: Math.max(8, Math.min(root._hoverGlobalY - height / 2,
+                                (parent ? parent.height : 600) - height - 8))
+
+        visible: root._hoverCode !== "" && root.paletteModus === "symbole"
+
+        background: Rectangle {
+            color:        root.theme.sidebar
+            border.color: root.theme.accent
+            border.width: 1
+            radius: 5
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 6
+
+            Text {
+                Layout.fillWidth: true
+                text:  root._hoverName
+                font.pixelSize: 12; font.weight: Font.Medium
+                color: root.theme.textPrimary
+                elide: Text.ElideRight
+            }
+
+            Canvas {
+                id: vorschauGrossCanvas
+                Layout.fillWidth: true
+                height: 100
+                property string symCode: root._hoverCode
+
+                onSymCodeChanged: requestPaint()
+
+                Connections {
+                    target: vorschauGross
+                    function onVisibleChanged() { if (vorschauGross.visible) vorschauGrossCanvas.requestPaint() }
+                }
+
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    if (symCode === "") return
+                    ctx.strokeStyle = root.theme.accent
+                    ctx.lineWidth   = 1.5
+                    root.zeichnePrimitive(ctx, symCode, width, height)
+                }
+            }
+        }
     }
 
     DebugLabel { panelName: qsTr("Symbolpalette"); visible: root.debug }

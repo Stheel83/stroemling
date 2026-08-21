@@ -1958,6 +1958,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 125, "SYMBOL-DUALITAET-01-TEST-01: neuer Konsistenztest (tst_migrationen.cpp) deckte auf, dass 'brueckengleichrichter' (seit Migration 75/B9) nie einen Eintrag in der Legacy-symbol-Tabelle bekam - Symbol war seither in der Palette fuer JEDES Projekt unsichtbar, obwohl Rendering/Pins/Primitive korrekt waren. seedSymbolKatalog() fuer neue Projekte direkt ergaenzt, hier zusaetzlich fuer Bestandsprojekte nachgetragen.", {
             R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('brueckengleichrichter', 'Brückengleichrichter', 'passive', 'IEC,ANSI', 4))",
         }},
+        { 126, "SYMBOLPALETTE-VERBESSERUNG-01: neue Spalte projekt.zuletzt_verwendete_symbole (TEXT, kommagetrennte Symbol-Codes, Default leer) - macht die 'Zuletzt verwendet'-Liste der Symbolpalette projektgebunden persistent statt nur sitzungsbasiert (bisher ging sie bei jedem App-Neustart verloren).", {
+            R"(ALTER TABLE projekt ADD COLUMN zuletzt_verwendete_symbole TEXT NOT NULL DEFAULT '')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

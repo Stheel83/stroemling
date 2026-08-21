@@ -83,12 +83,29 @@ Rectangle {
         aktivesSymbol = ""
     }
 
+    // Feste Priorität statt reiner DB-Insertion-Order (SYMBOLPALETTE-VERBESSERUNG-01
+    // Punkt 5): häufig genutzte Kategorien oben, Domain-Nischen unten. Kategorien, die
+    // hier nicht gelistet sind (z.B. künftige Erweiterungen), landen alphabetisch danach.
+    readonly property var kategoriePrioritaet: [
+        "kontakte", "schutz", "antriebe", "passive", "signalgeraete",
+        "klemmen", "sps_pls", "sensoren", "installation", "erdung",
+        "arduino", "kfz", "caravan", "waermepumpe"
+    ]
+
     function kategorienListe() {
         var seen = {}, result = []
         for (var i = 0; i < alleSymbole.length; i++) {
             var k = alleSymbole[i].kategoriePfad
             if (!seen[k]) { seen[k] = true; result.push(k) }
         }
+        result.sort(function(a, b) {
+            var ia = root.kategoriePrioritaet.indexOf(a)
+            var ib = root.kategoriePrioritaet.indexOf(b)
+            if (ia === -1) ia = root.kategoriePrioritaet.length
+            if (ib === -1) ib = root.kategoriePrioritaet.length
+            if (ia !== ib) return ia - ib
+            return a.localeCompare(b)
+        })
         return result
     }
 
@@ -192,6 +209,10 @@ Rectangle {
             "kfz":           "KFZ-Elektrik",
             "arduino":       "Arduino",
             "sensoren":      "Sensoren",
+            "caravan":       "Caravan / Wohnwagen",
+            "erdung":        "Erdung",
+            "installation":  "Installation",
+            "waermepumpe":   "Wärmepumpe",
             "eigene":        qsTr("Eigene Symbole")
         }
         return namen[id] || id

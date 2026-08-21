@@ -31,7 +31,7 @@ public:
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION        = 56;
-    static const int CURRENT_SCHEMA_VERSION  = 126;
+    static const int CURRENT_SCHEMA_VERSION  = 127;
     static const int WIKI_SCHEMA_VERSION     = 15;
     static const int BIBLIOTHEK_SCHEMA_VERSION = 6;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.

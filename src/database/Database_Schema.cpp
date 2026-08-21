@@ -1961,6 +1961,110 @@ static QList<SchemaMigration> alleMigrationen()
         { 126, "SYMBOLPALETTE-VERBESSERUNG-01: neue Spalte projekt.zuletzt_verwendete_symbole (TEXT, kommagetrennte Symbol-Codes, Default leer) - macht die 'Zuletzt verwendet'-Liste der Symbolpalette projektgebunden persistent statt nur sitzungsbasiert (bisher ging sie bei jedem App-Neustart verloren).", {
             R"(ALTER TABLE projekt ADD COLUMN zuletzt_verwendete_symbole TEXT NOT NULL DEFAULT '')",
         }},
+        { 127, "SYM-KOPIE-VON-01 achter Sync-Durchlauf (Projekt Goerke): Gruppe A - 4 reine Massenkorrekturen (Pins/Primitive unveraendert): zaehler 24x24mm->16x16mm, wp_regler 32x32mm->16x16mm, wp_sgready 32x24mm->12x8mm, wp_umwaelzpumpe 32x16mm->16x8mm. Gruppe A2 - 2 Groessenkorrekturen mit proportional neupositionierten Primitiven/Pins (Aspektverhaeltnis-Aenderung): wp_mischer 32x32mm->16x16mm, ueberspannungsschutz 28x32mm->16x20mm. Gruppe B - 4 Geometrie-Redesigns bei gleicher 8x8mm-Groesse, Diagonale/Unterbrechungs-/Voreil-Markierung einheitlich von links auf rechts gespiegelt (schliesser zusaetzlich nur Diagonalen-Endpunkt normalisiert): schliesser, oeffner, oeffner_nacheilend, oeffner_voreilend. Gruppe C - sicherungsschalter 24x36mm->8x12mm komplett neu gezeichnet (Zickzack-Linien ersetzt durch rotiertes Rechteck, analog sicherungslasttrennschalter aus Migration 121). Gruppe D - 4 neue Symbole 'Verzoegerte Kontakte' (Kategorie Kontakte, 8x8mm, 2 Pins, Vorlage oeffner/schliesser): anzugsverzoegerter_oeffner_nc, abfallverzoegerter_oeffner_nc, anzugsverzoegerter_schliesser_no, abfallverzoegerter_schliesser_no - konsequente Umsetzung der in Punkt 3 von 04_symbolsystem.md dokumentierten Jul-2026-Entscheidung, zeit_an/zeit_ab als eigenstaendige IEC-Symbole statt als entfernte Checkbox-Modifier zu fuehren. Beim Sync einen Tippfehler in ID+Name einer der vier Werkstatt-Neuanlagen korrigiert (abffallverzoegerter_oeffner_nc -> abfallverzoegerter_oeffner_nc, 'Abffallverzoegerter' -> 'Abfallverzoegerter'). SEED-DUPLIKAT-01 (unabhaengiger Bugfix, waehrend dieser Sitzung entdeckt): Migration 123 hatte fuer die 14 damals neuen Symbole INSERT OR IGNORE auf symbol_pin/symbol_primitiv genutzt - beide Tabellen haben nur eine autoincrement id als PK, wodurch bei den 10 Symbolen, die in Goerke schon lokal existierten, Pins/Primitive dupliziert wurden (Rendering unauffaellig, da deckungsgleich; SQL-Export/Hit-Test/Stueckliste betroffen). Generischer Dedup-Fix (behaelt pro Symbol nur die erste Zeile je reihenfolge/name) direkt mitgezogen.", {
+            // ══════ Gruppe A: reine Massenkorrekturen (Pins/Primitive unveraendert) ══════
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=16 WHERE id='zaehler')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=16 WHERE id='wp_regler')",
+            R"(UPDATE symbol_definition SET breite_mm=12, hoehe_mm=8 WHERE id='wp_sgready')",
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=8 WHERE id='wp_umwaelzpumpe')",
+
+            // ══════ Gruppe A2: Groesse + proportional neupositionierte Primitive/Pins ══════
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=16 WHERE id='wp_mischer')",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='wp_mischer')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('wp_mischer',0,'linie',0.0,0.25,0.25,0.25,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',1,'linie',0.0,0.5,0.25,0.5,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',2,'linie',0.0,0.75,0.25,0.75,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',3,'kreis_offen',0.5,0.35,0.0,0.0,0.0,0.0,0.2,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',4,'text',0.5,0.35,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,'M',0.28,1,'center','middle','solid',0.0), ('wp_mischer',5,'linie',0.5,0.55,0.5,0.68,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',6,'linie',0.32,0.68,0.68,0.68,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',7,'linie',0.32,0.68,0.5,0.95,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('wp_mischer',8,'linie',0.68,0.68,0.5,0.95,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='wp_mischer')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('wp_mischer','1',0.0,0.25,-1.0,0.0,'neutral'), ('wp_mischer','AUF',0.0,0.5,-1.0,0.0,'neutral'), ('wp_mischer','ZU',0.0,0.75,-1.0,0.0,'neutral'))",
+
+            R"(UPDATE symbol_definition SET breite_mm=16, hoehe_mm=20 WHERE id='ueberspannungsschutz')",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='ueberspannungsschutz')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('ueberspannungsschutz',0,'linie',0.5,0.0,0.5,0.25,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('ueberspannungsschutz',1,'linie',0.5,0.75,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('ueberspannungsschutz',2,'rechteck',0.625,0.25,0.375,0.75,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('ueberspannungsschutz',3,'linie',0.375,0.5,0.0,0.5,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('ueberspannungsschutz',4,'linie',0.4375,0.3,0.5625,0.65,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('ueberspannungsschutz',5,'linie',0.0,0.5,0.0625,0.45,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('ueberspannungsschutz',6,'linie',0.0,0.5,0.0625,0.55,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='ueberspannungsschutz')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('ueberspannungsschutz','1',0.5,0.0,0.0,-1.0,'power'), ('ueberspannungsschutz','2',0.5,1.0,0.0,1.0,'power'), ('ueberspannungsschutz','PE',0.0,0.5,-1.0,0.0,'pe'))",
+
+            // ══════ Gruppe B: Geometrie-Redesign, Groesse bleibt 8x8mm ══════
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='schliesser')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('schliesser',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('schliesser',1,'linie',0.25,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('schliesser',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0))",
+
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='oeffner')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner',1,'linie',0.75,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner',3,'linie',0.5,0.3125,0.75,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0))",
+
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='oeffner_nacheilend')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_nacheilend',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_nacheilend',1,'linie',0.75,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_nacheilend',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_nacheilend',3,'linie',0.5,0.3125,0.75,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_nacheilend',4,'linie',0.75,0.25,0.625,0.1875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0))",
+
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='oeffner_voreilend')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('oeffner_voreilend',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_voreilend',1,'linie',0.75,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_voreilend',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_voreilend',3,'linie',0.5,0.3125,0.75,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('oeffner_voreilend',4,'linie',0.875,0.3125,0.75,0.25,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0))",
+
+            // ══════ Gruppe C: Komplett-Redesign inkl. Groesse ══════
+            R"(UPDATE symbol_definition SET breite_mm=8, hoehe_mm=12 WHERE id='sicherungsschalter')",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sicherungsschalter')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('sicherungsschalter',0,'linie',0.5,0.0,0.5,0.33333333333333332,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('sicherungsschalter',1,'linie',0.25,0.33333333333333332,0.5,0.66666666666666663,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('sicherungsschalter',2,'linie',0.5,0.66666666666666663,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('sicherungsschalter',3,'rechteck',0.25,0.375,0.4375,0.58333333333333337,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',154.0))",
+
+            // ══════ Gruppe D: 4 neue Symbole 'Verzoegerte Kontakte' (Kontakte, 8x8mm, 2 Pins) ══════
+            // anzugsverzoegerter_oeffner_nc/anzugsverzoegerter_schliesser_no/abfallverzoegerter_schliesser_no lagen in Goerke
+            // bereits lokal unter der finalen ID (ist_builtin=0, kein kopie_von_id) - INSERT OR IGNORE (PK-sicher) fuer
+            // symbol_definition, aber DELETE+INSERT statt INSERT OR IGNORE fuer symbol_pin/symbol_primitiv: diese Tabellen
+            // haben nur eine autoincrement id als PK, "OR IGNORE" findet dort nie einen Konflikt und wuerde Zeilen
+            // duplizieren (exakt der SEED-DUPLIKAT-01-Bug weiter unten in diesem Migrationseintrag).
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('anzugsverzoegerter_oeffner_nc', 'Anzugsverzögerter Öffner (NC)', 'Kontakte', 8, 8, 'durchleiter', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='anzugsverzoegerter_oeffner_nc')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('anzugsverzoegerter_oeffner_nc','1',0.5,0.0,0.0,-1.0,'neutral'), ('anzugsverzoegerter_oeffner_nc','2',0.5,1.0,0.0,1.0,'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='anzugsverzoegerter_oeffner_nc')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('anzugsverzoegerter_oeffner_nc',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_oeffner_nc',1,'linie',0.75,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_oeffner_nc',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_oeffner_nc',3,'linie',0.5,0.3125,0.75,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_oeffner_nc',4,'linie',0.1875,0.5625,0.56875,0.5625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugsverzoegerter_oeffner_nc',5,'bogen',0.1875,0.5,0.0,0.0,0.0,0.0,0.125,90.0,270.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugsverzoegerter_oeffner_nc',6,'linie',0.1875,0.4375,0.64125,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('anzugsverzoegerter_schliesser_no', 'Anzugsverzögerter Schließer (NO)', 'Kontakte', 8, 8, 'durchleiter', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='anzugsverzoegerter_schliesser_no')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('anzugsverzoegerter_schliesser_no','1',0.5,0.0,0.0,-1.0,'neutral'), ('anzugsverzoegerter_schliesser_no','2',0.5,1.0,0.0,1.0,'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='anzugsverzoegerter_schliesser_no')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('anzugsverzoegerter_schliesser_no',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_schliesser_no',1,'linie',0.25,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_schliesser_no',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugsverzoegerter_schliesser_no',3,'linie',0.3125,0.375,0.1875,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugsverzoegerter_schliesser_no',4,'linie',0.375,0.5,0.1875,0.5,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugsverzoegerter_schliesser_no',5,'bogen',0.1875,0.4375,0.0,0.0,0.0,0.0,0.125,90.0,270.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('abfallverzoegerter_schliesser_no', 'Abfallverzögerter Schließer (NO)', 'Kontakte', 8, 8, 'durchleiter', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='abfallverzoegerter_schliesser_no')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('abfallverzoegerter_schliesser_no','1',0.5,0.0,0.0,-1.0,'neutral'), ('abfallverzoegerter_schliesser_no','2',0.5,1.0,0.0,1.0,'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='abfallverzoegerter_schliesser_no')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('abfallverzoegerter_schliesser_no',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_schliesser_no',1,'linie',0.25,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_schliesser_no',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_schliesser_no',3,'linie',0.3125,0.375,0.1875,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('abfallverzoegerter_schliesser_no',4,'linie',0.375,0.5,0.1875,0.5,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('abfallverzoegerter_schliesser_no',5,'bogen',0.0625,0.4375,0.0,0.0,0.0,0.0,0.125,270.0,90.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            R"(UPDATE symbol_definition SET ist_builtin=1, kopie_von_id=NULL WHERE id IN ('anzugsverzoegerter_oeffner_nc', 'anzugsverzoegerter_schliesser_no', 'abfallverzoegerter_schliesser_no') AND ist_builtin=0)",
+
+            // ── Tippfehler-Korrektur: 'abffallverzoegerter_oeffner_nc' (Werkstatt-ID+Name mit doppeltem f)
+            // -> 'abfallverzoegerter_oeffner_nc'. Alte Zeile zuerst entfernen (cascadiert Pins/Primitive in
+            // Goerke selbst), dann sauber unter der korrekten ID neu anlegen (kein Duplikat-Risiko, da die
+            // ID zuvor per DELETE frei gemacht wurde).
+            R"(DELETE FROM symbol_definition WHERE id='abffallverzoegerter_oeffner_nc')",
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('abfallverzoegerter_oeffner_nc', 'Abfallverzögerter Öffner (NC)', 'Kontakte', 8, 8, 'durchleiter', 1, 'vertikal'))",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('abfallverzoegerter_oeffner_nc','1',0.5,0.0,0.0,-1.0,'neutral'), ('abfallverzoegerter_oeffner_nc','2',0.5,1.0,0.0,1.0,'neutral'))",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('abfallverzoegerter_oeffner_nc',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_oeffner_nc',1,'linie',0.75,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_oeffner_nc',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_oeffner_nc',3,'linie',0.5,0.3125,0.75,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('abfallverzoegerter_oeffner_nc',4,'linie',0.1875,0.5625,0.56875,0.5625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('abfallverzoegerter_oeffner_nc',5,'linie',0.1875,0.4375,0.64125,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('abfallverzoegerter_oeffner_nc',6,'bogen',0.0625,0.5,0.0,0.0,0.0,0.0,0.125,270.0,90.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            // ── Legacy-symbol-Tabelle (Paletten-Kategorieliste) ──
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('anzugsverzoegerter_oeffner_nc', 'Anzugsverzögerter Öffner (NC)', 'kontakte', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('abfallverzoegerter_oeffner_nc', 'Abfallverzögerter Öffner (NC)', 'kontakte', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('anzugsverzoegerter_schliesser_no', 'Anzugsverzögerter Schließer (NO)', 'kontakte', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('abfallverzoegerter_schliesser_no', 'Abfallverzögerter Schließer (NO)', 'kontakte', 'IEC', 2))",
+
+            // ══════ SEED-DUPLIKAT-01 (echter, unabhaengiger Bugfix, waehrend dieser Sync-Sitzung entdeckt):
+            // Migration 123 nutzte fuer die 14 damals neuen 'Uebersichtsschaltplan'/'Betaetigungsarten'-Symbole
+            // INSERT OR IGNORE auf symbol_pin/symbol_primitiv. Diese beiden Tabellen haben nur eine autoincrement
+            // id als Primary Key - "OR IGNORE" findet dort nie einen Konflikt (anders als bei symbol_definition,
+            // dessen PK die Text-ID ist) und fuegt bei Datenbanken, die eine der Ziel-IDs bereits lokal besassen
+            // (in Goerke betraf das 10 der 14 Symbole, s. Migration 124), Pins/Primitive ein zweites Mal ein.
+            // Rendering blieb dadurch unauffaellig (beide Kopien liegen exakt uebereinander), aber SQL-Export,
+            // Editor-Hit-Test und Stueckliste sahen doppelte Geometrie. Generischer Fix: pro (symbol_id,
+            // reihenfolge) bzw. (symbol_id, name) nur die jeweils erste (niedrigste id) Zeile behalten - deckt
+            // Goerke ab und jede andere Datenbank mit demselben historischen Migrationspfad. ══════
+            R"(DELETE FROM symbol_primitiv WHERE id NOT IN (
+                SELECT MIN(id) FROM symbol_primitiv GROUP BY symbol_id, reihenfolge
+            ))",
+            R"(DELETE FROM symbol_pin WHERE id NOT IN (
+                SELECT MIN(id) FROM symbol_pin GROUP BY symbol_id, name
+            ))",
+
+            // ── Werkstatt-Kopien nach Uebernahme entfernen ──
+            R"(DELETE FROM symbol_definition WHERE id IN (
+                'kopie_von_stromzaehler_kwh', 'kopie_von_waermepumpen_regler', 'kopie_von_mischer_stellantrieb',
+                'kopie_von_sg_ready_schnittstelle', 'kopie_von_umwaelzpumpe', 'kopie_von_ueberspannungsschutz_spd',
+                'kopie_von_sicherungsschalter', 'kopie_von_schliesser_no', 'kopie_von_oeffner_nc',
+                'kopie_von_nacheilender_oeffner', 'kopie_von_voreilender_oeffner'
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -2361,6 +2465,11 @@ bool Database::seedSymbolKatalog()
         { "druckschalter_taster",              "Druckschalter, Taster",            "kontakte", "IEC", 2 },
         { "handbetaetigter_schalter",          "Handbetätigter Schalter",          "kontakte", "IEC", 2 },
         { "naeherungsempfindlicher_schalter",  "Näherungsempfindlicher Schalter",  "kontakte", "IEC", 2 },
+        // Verzoegerte Kontakte (SYM-KOPIE-VON-01 achter Sync-Durchlauf, Schema v127)
+        { "anzugsverzoegerter_oeffner_nc",     "Anzugsverzögerter Öffner (NC)",    "kontakte", "IEC", 2 },
+        { "abfallverzoegerter_oeffner_nc",     "Abfallverzögerter Öffner (NC)",    "kontakte", "IEC", 2 },
+        { "anzugsverzoegerter_schliesser_no",  "Anzugsverzögerter Schließer (NO)", "kontakte", "IEC", 2 },
+        { "abfallverzoegerter_schliesser_no",  "Abfallverzögerter Schließer (NO)", "kontakte", "IEC", 2 },
         // Schutzgeräte
         { "sicherung",       "Sicherung",               "schutz",         "IEC,ANSI", 2 },
         { "lss",             "Leitungsschutzschalter",  "schutz",         "IEC",      2 },

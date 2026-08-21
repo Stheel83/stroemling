@@ -2065,6 +2065,52 @@ static QList<SchemaMigration> alleMigrationen()
                 'kopie_von_nacheilender_oeffner', 'kopie_von_voreilender_oeffner'
             ))",
         }},
+        { 128, "SYM-KOPIE-VON-01 neunter Sync-Durchlauf (Projekt Goerke): Gruppe A - 3 neue Symbole 'Verzoegerte Spulen/Relais' (Kategorie Antriebe, Vorlage spule): rueckfallverzoegerte_spule_relais (12x12mm, gefuellter Kurzschlussring), anzugverzoegerte_spule_relais (12x12mm, offener Ring mit Diagonalkreuz), thermo_spule_relais (8x12mm, Stufen-Symbol fuer Thermoelement). Gruppe B - 1 neues Symbol 'heizelement' (Kategorie Passive, 8x12mm, Vorlage widerstand_iec, Widerstandsrechteck + Zickzack-Heizwendel-Andeutung). Gruppe C - 'kopie_von_anlasser_starter' war byte-identisch mit kfz_anlasser (folgenlose Werkstattkopie, per Nutzerbestaetigung nur geloescht, keine Uebernahme noetig). Gruppe D - kfz_zuendschloss vom Nutzer zur Loeschung markiert, 0 platzierte Instanzen, entfernt (built-in-Definition stammt aus einer frueheren Migration und bleibt dort unveraendert stehen, wird hier per neuer Migration wieder ausgetragen - keine Aenderung an alten Migrationen).", {
+            // ══════ Gruppe A: 3 neue Symbole 'Verzoegerte Spulen/Relais' (Antriebe, Vorlage spule) ══════
+            // Alle drei lagen in Goerke bereits lokal unter der finalen ID (ist_builtin=0, kopie_von_id=spule) -
+            // INSERT OR IGNORE fuer symbol_definition (Text-PK, sicher), aber DELETE+INSERT statt INSERT OR IGNORE
+            // fuer symbol_pin/symbol_primitiv (Lehre aus SEED-DUPLIKAT-01, s. Migration 127).
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('rueckfallverzoegerte_spule_relais', 'Rückfallverzögerte Spule / Relais', 'Antriebe', 12, 12, 'verbraucher', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='rueckfallverzoegerte_spule_relais')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('rueckfallverzoegerte_spule_relais','A1',0.66666666666666663,0.0,0.0,-1.0,'power'), ('rueckfallverzoegerte_spule_relais','A2',0.66666666666666663,1.0,0.0,1.0,'n'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='rueckfallverzoegerte_spule_relais')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('rueckfallverzoegerte_spule_relais',0,'linie',0.66666666666666663,0.0,0.66666666666666663,0.33333333333333332,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('rueckfallverzoegerte_spule_relais',1,'linie',0.66666666666666663,0.66666666666666663,0.66666666666666663,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('rueckfallverzoegerte_spule_relais',2,'rechteck',0.33333333333333332,0.33333333333333332,1.0,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('rueckfallverzoegerte_spule_relais',3,'rechteck_gefuellt',0.16666666666666666,0.33333333333333332,0.33333333333333332,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('anzugverzoegerte_spule_relais', 'Anzugverzögerte Spule / Relais', 'Antriebe', 12, 12, 'verbraucher', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='anzugverzoegerte_spule_relais')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('anzugverzoegerte_spule_relais','A1',0.66666666666666663,0.0,0.0,-1.0,'power'), ('anzugverzoegerte_spule_relais','A2',0.66666666666666663,1.0,0.0,1.0,'n'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='anzugverzoegerte_spule_relais')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('anzugverzoegerte_spule_relais',0,'linie',0.66666666666666663,0.0,0.66666666666666663,0.33333333333333332,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugverzoegerte_spule_relais',1,'linie',0.66666666666666663,0.66666666666666663,0.66666666666666663,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('anzugverzoegerte_spule_relais',2,'rechteck',0.33333333333333332,0.33333333333333332,1.0,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugverzoegerte_spule_relais',3,'rechteck',0.16666666666666666,0.33333333333333332,0.33333333333333332,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugverzoegerte_spule_relais',4,'linie',0.16666666666666666,0.33333333333333332,0.33333333333333332,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('anzugverzoegerte_spule_relais',5,'linie',0.33333333333333332,0.33333333333333332,0.16666666666666666,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('thermo_spule_relais', 'Thermo Spule / Relais', 'Antriebe', 8, 12, 'verbraucher', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='thermo_spule_relais')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('thermo_spule_relais','A1',0.5,0.0,0.0,-1.0,'power'), ('thermo_spule_relais','A2',0.5,1.0,0.0,1.0,'n'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='thermo_spule_relais')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('thermo_spule_relais',0,'linie',0.5,0.0,0.5,0.33333333333333332,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('thermo_spule_relais',1,'linie',0.5,0.66666666666666663,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('thermo_spule_relais',2,'rechteck',0.0,0.33333333333333332,1.0,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('thermo_spule_relais',3,'linie',0.5,0.33333333333333332,0.5,0.41666666666666669,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('thermo_spule_relais',4,'linie',0.5,0.41666666666666669,0.75,0.41666666666666669,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('thermo_spule_relais',5,'linie',0.75,0.41666666666666669,0.75,0.58333333333333337,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('thermo_spule_relais',6,'linie',0.75,0.58333333333333337,0.5,0.58333333333333337,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('thermo_spule_relais',7,'linie',0.5,0.58333333333333337,0.5,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0))",
+
+            R"(UPDATE symbol_definition SET ist_builtin=1, kopie_von_id=NULL WHERE id IN ('rueckfallverzoegerte_spule_relais', 'anzugverzoegerte_spule_relais', 'thermo_spule_relais') AND ist_builtin=0)",
+
+            // ══════ Gruppe B: neues Symbol 'heizelement' (Passive, Vorlage widerstand_iec) ══════
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('heizelement', 'Heizelement', 'Passive', 8, 12, 'verbraucher', 1, 'vertikal'))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='heizelement')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('heizelement','1',0.5,0.0,0.0,-1.0,'neutral'), ('heizelement','2',0.5,1.0,0.0,1.0,'neutral'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='heizelement')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('heizelement',0,'rechteck',0.3125,0.25,0.6875,0.75,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('heizelement',1,'linie',0.5,0.0,0.5,0.25,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('heizelement',2,'linie',0.5,0.75,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('heizelement',3,'linie',0.3125,0.33333333333333332,0.6875,0.33333333333333332,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('heizelement',4,'linie',0.6875,0.41666666666666669,0.3125,0.41666666666666669,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('heizelement',5,'linie',0.3125,0.5,0.6875,0.5,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('heizelement',6,'linie',0.6875,0.58333333333333337,0.3125,0.58333333333333337,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0), ('heizelement',7,'linie',0.6875,0.66666666666666663,0.3125,0.66666666666666663,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0))",
+            R"(UPDATE symbol_definition SET ist_builtin=1, kopie_von_id=NULL WHERE id='heizelement' AND ist_builtin=0)",
+
+            // ── Legacy-symbol-Tabelle (Paletten-Kategorieliste) ──
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('rueckfallverzoegerte_spule_relais', 'Rückfallverzögerte Spule / Relais', 'antriebe', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('anzugverzoegerte_spule_relais', 'Anzugverzögerte Spule / Relais', 'antriebe', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('thermo_spule_relais', 'Thermo Spule / Relais', 'antriebe', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('heizelement', 'Heizelement', 'passive', 'IEC', 2))",
+
+            // ══════ Gruppe C: folgenlose Werkstattkopie entfernen (byte-identisch mit kfz_anlasser) ══════
+            R"(DELETE FROM symbol_definition WHERE id='kopie_von_anlasser_starter')",
+
+            // ══════ Gruppe D: kfz_zuendschloss auf Nutzerwunsch entfernen (0 platzierte Instanzen) ══════
+            R"(DELETE FROM symbol WHERE code='kfz_zuendschloss')",
+            R"(DELETE FROM symbol_definition WHERE id='kfz_zuendschloss')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -2479,11 +2525,15 @@ bool Database::seedSymbolKatalog()
         { "motor",           "Motor",                   "antriebe",       "IEC,ANSI", 2 },
         { "motor_dc",        "Gleichstrommotor",        "antriebe",       "IEC,ANSI", 2 },
         { "spule",           "Spule / Relais",          "antriebe",       "IEC",      2 },
+        { "rueckfallverzoegerte_spule_relais", "Rückfallverzögerte Spule / Relais", "antriebe", "IEC", 2 },
+        { "anzugverzoegerte_spule_relais",     "Anzugverzögerte Spule / Relais",    "antriebe", "IEC", 2 },
+        { "thermo_spule_relais",               "Thermo Spule / Relais",             "antriebe", "IEC", 2 },
         { "trafo",           "Transformator",           "antriebe",       "IEC,ANSI", 4 },
         { "netzteil",        "Netzteil",                "antriebe",       "IEC,ANSI", 4 },
         { "ventil",          "Ventil",                  "antriebe",       "IEC,ANSI", 2 },
         // Passive Bauelemente
         { "widerstand_iec",  "Widerstand",              "passive",        "IEC",      2 },
+        { "heizelement",     "Heizelement",             "passive",        "IEC",      2 },
         { "kondensator",     "Kondensator",             "passive",        "IEC,ANSI", 2 },
         { "diode",           "Diode",                   "passive",        "IEC,ANSI", 2 },
         { "led",             "LED",                     "passive",        "IEC,ANSI", 2 },
@@ -2518,7 +2568,6 @@ bool Database::seedSymbolKatalog()
         { "kfz_stecker_3",    "KFZ-Stecker 3-polig",        "kfz", "IEC,ANSI", 3 },
         { "kfz_stecker_4",    "KFZ-Stecker 4-polig",        "kfz", "IEC,ANSI", 4 },
         // KFZ + Motorrad, Teil 2 (SYM-ERWEITERUNG-01 Prioritaet 2)
-        { "kfz_zuendschloss",          "Zündschloss",                 "kfz", "IEC,ANSI", 3 },
         { "kfz_anlasser",              "Anlasser (Starter)",          "kfz", "IEC,ANSI", 2 },
         { "kfz_gluehkerze",            "Glühkerze",                   "kfz", "IEC,ANSI", 1 },
         { "kfz_scheinwerfer",          "Scheinwerfer (Abblend/Fern)", "kfz", "IEC,ANSI", 3 },

@@ -365,7 +365,7 @@ Rectangle {
         // ── Suchfeld (Volltextsuche über alle Symbole) ────────
         Rectangle {
             Layout.fillWidth: true
-            height: visible ? 32 : 0
+            Layout.preferredHeight: visible ? 32 : 0
             visible: root.paletteModus === "symbole"
             color: theme.surface
             clip: true

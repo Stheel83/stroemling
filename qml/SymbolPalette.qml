@@ -365,23 +365,30 @@ Rectangle {
         // ── Suchfeld (Volltextsuche über alle Symbole) ────────
         Rectangle {
             Layout.fillWidth: true
-            height: visible ? 28 : 0
+            height: visible ? 32 : 0
             visible: root.paletteModus === "symbole"
             color: theme.surface
+            clip: true
 
             RowLayout {
                 anchors { fill: parent; leftMargin: 6; rightMargin: 4 }
                 spacing: 3
 
-                Text { text: "🔍"; font.pixelSize: 10; color: theme.textMuted }
+                Text {
+                    text: "🔍"; font.pixelSize: 10; color: theme.textMuted
+                    Layout.alignment: Qt.AlignVCenter
+                }
 
                 TextField {
                     id: suchfeld
                     Layout.fillWidth: true
-                    implicitHeight: 22
+                    Layout.alignment: Qt.AlignVCenter
+                    implicitHeight: 24
+                    topPadding: 2; bottomPadding: 2; leftPadding: 6; rightPadding: 6
                     placeholderText: qsTr("Symbol suchen …")
                     font.pixelSize: 10
                     color: theme.textPrimary
+                    verticalAlignment: TextInput.AlignVCenter
                     background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 3 }
                     text: root.suchtext
                     onTextChanged: root.suchtext = text

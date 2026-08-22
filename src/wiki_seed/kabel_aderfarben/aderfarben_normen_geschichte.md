@@ -10,9 +10,6 @@ vorgeschrieben waren, **mussten nicht** nachträglich an neue Farbvorgaben
 angepasst werden. In bestehenden Anlagen dürfen Erweiterungen mit alten
 Farben erfolgen — in neu erstellten Anlagenteilen gilt die neue Norm.
 
-> **Quelle:** Werner Hörmann, „Aderfarben der Außenleiter – früher und heute",
-> elektro.net DE 2020 Heft 3 — [PDF](https://www.elektro.net/media/file/8xnHcwWKUU/7190b4b5/DE_2020_3_PP5.pdf)
-
 ---
 
 ## 1. Übersicht: Epochen der Aderfarben
@@ -218,3 +215,18 @@ Heute ist einfarbig Grün **nicht mehr als PE definiert**. Nur Grün-Gelb gilt.
 6. **Erweiterungen in Bestandsanlagen:** Im bestehenden Teil darf mit den
    alten Farben erweitert werden; neu erstellte Anlagenteile brauchen die
    neuen Farben.
+
+---
+
+## Quellen
+
+- Werner Hörmann: [„Aderfarben der Außenleiter – früher und heute"](https://www.elektro.net/media/file/8xnHcwWKUU/7190b4b5/DE_2020_3_PP5.pdf), elektro.net DE 2020 Heft 3
+- Böhm Kabel: [Aderkennzeichnung nach DIN VDE 0293-308](https://www.boehm-kabel.de/fileadmin/user_upload/Downloads/Dokumente_und_Hinweise/bK_Aderkennzeichnung.pdf)
+- DIN Media: [DIN VDE 0293-308:2003-01](https://www.dinmedia.de/en/standard/din-vde-0293-308/51128367)
+
+*Hinweis: Die Kernquelle (Werner Hörmann, elektro.net) deckt die BRD-
+Entwicklung und die kritischen Verwechslungsgefahren (Grau war PEN) gut
+ab. Die DDR-TGL-Angaben (Abschnitt 4) sowie einzelne frühe Jahreszahlen
+(1930/1939/1958) sind über Web-Quellen schwerer unabhängig zu
+verifizieren als die BRD/EU-Normenhistorie ab 1965 — bei Bedarf gegen
+Originaldokumente gegenprüfen.*

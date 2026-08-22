@@ -11,14 +11,6 @@ beiden Klemmen. Eine separate Drahtbrücke wird dafür nicht benötigt.
 Klassische Nullung, lokal an der Steckdose nachgebaut, obwohl das
 Kabel eigentlich dreiadrig ist.
 
-> **Quellen:** Wikipedia [Nullung](https://de.wikipedia.org/wiki/Nullung),
-> [TN-Netz](https://de.wikipedia.org/wiki/TN-Netz) — für den
-> allgemeinen Hintergrund zu klassischer Nullung. **Die hier
-> beschriebene Verdrahtungsvariante selbst ist Praxis-/Felderfahrung
-> und in keiner der beiden Quellen dokumentiert** — es handelt sich
-> um eine im Feld beobachtete Verdrahtungsgewohnheit, keine belegte
-> Norm oder Fachliteratur-Aussage.
-
 ---
 
 ## Was wird vorgefunden?
@@ -128,3 +120,18 @@ tatsächlich anliegt (oft: nichts).
    Dose individuell gesetzt wurde, sagt der Befund an einer Steckdose
    nichts über die Nachbardose aus — anders als bei der zentralen
    PEN-Schienen-Variante am Verteiler.
+
+---
+
+## Quellen
+
+- Wikipedia: [Nullung](https://de.wikipedia.org/wiki/Nullung)
+- Wikipedia: [TN-Netz](https://de.wikipedia.org/wiki/TN-Netz)
+
+*Hinweis: Die beiden Wikipedia-Quellen belegen nur den allgemeinen
+Hintergrund zur klassischen Nullung. **Die hier beschriebene
+Verdrahtungsvariante selbst (lange Aderabisolierung, ein und dieselbe
+Ader gleichzeitig in PE- und N-Klemme) ist Praxis-/Felderfahrung und in
+keiner der beiden Quellen dokumentiert** — eine im Feld beobachtete
+Verdrahtungsgewohnheit, keine belegte Norm- oder
+Fachliteratur-Aussage.*

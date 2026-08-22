@@ -307,3 +307,18 @@ gleichen Kabelkanal → massive Störeinkopplung durch HF-Ableitströme.
 > **Faustregel:** Analoge Niederfrequenz → einseitig. Digitale Signale,
 > Feldbus, FU-Motorkabel → beidseitig mit 360°-Auflage. Verdrillte Leiter
 > immer verwenden wenn H-Feld die Hauptstörquelle ist.
+
+---
+
+## Quellen
+
+- Deutsche Gesellschaft für EMV-Technologie e.V.: [Erdung von Kabelschirmen](https://www.demvt.de/publish/viewfull.cfm?objectID=ba9a79ef_e081_515d_743bd049d75d4b30)
+- Cotronic: [EMV-gerechte Verkabelung – Abschirmung, Erdung und Layout im Überblick](https://www.cotronic.de/blog/emv-gerechte-verkabelung-abschirmung-erdung-und-layout/)
+- Voltimum: [Beidseitig Erden – Normungstext NEU](https://www.voltimum.at/content/beidseitig-erden-normungstext-neu)
+
+*Hinweis: Die konkrete Schirmstrategie (einseitig/beidseitig, Schirmtyp)
+hängt stark vom Einzelfall ab (Signalart, Frequenz, Leitungslänge,
+Störumgebung) — die Tabellen oben sind Praxis-Faustregeln, keine
+verbindliche Vorschrift für jede Anwendung. Bei EMV-kritischen Anlagen
+zusätzlich DIN EN 50174-2 (aktuelle Ausgabe) und ggf. eine EMV-Messung
+heranziehen.*

@@ -121,3 +121,16 @@ Trafo ─── L1 ─────────────────── Las
 | Erdeelektrode Kunde | nein | nein | nein | ja | nein |
 | 1. Fehler sicher | nein | ja | ja | ja | ja |
 | Betrieb bei 1. Fehler | nein | nein | nein | nein | **ja** |
+
+---
+
+## Quellen
+
+- DKE: [Erläuterungen zum Konzept von DIN VDE 0100-410](https://www.dke.de/resource/blob/1955610/b837e9e658e5469b891a03bdcc36b3df/konzept-din-vde-0100-410-pdf-data.pdf)
+- Wikipedia: [TT-System](https://de.wikipedia.org/wiki/TT-System)
+- WEKA: [DIN VDE 0100-410: Schutz gegen elektrischen Schlag](https://www.weka.de/elektrosicherheit/din-vde-0100-410-schutz-gegen-elektrischen-schlag/)
+
+*Hinweis: Die maximal zulässigen Abschaltzeiten und genauen
+Schutzmaßnahmen-Anforderungen hängen zusätzlich von Stromkreisart und
+Berührungsspannung ab — für die konkrete Anlagenplanung die
+Originalnorm bzw. eine Elektrofachkraft heranziehen.*

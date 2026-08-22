@@ -95,3 +95,17 @@ Nach Abschluss der Arbeiten werden die Sicherheitsmaßnahmen in
 | Wiedereinschaltsicherung vergessen | Kollege schaltet ein |
 | Erdung/Kurzschluss nicht am Arbeitsort | Schutz nicht gegeben |
 | Nachbarfelder vergessen | Rückspeisung über Sammelschiene |
+
+---
+
+## Quellen
+
+- TÜV NORD: [DIN VDE 0105-100 – Übersicht](https://www.tuev-nord.de/de/wissen/wissen-kompakt/din-vde-0105-100/)
+- elektro.net: [Prüfung nach DIN VDE 0105-100 – Zielstellung](https://www.elektro.net/praxisprobleme/pruefung-din-vde-0105-100/)
+- ASI Akademie für Sicherheit: [5 Sicherheitsregeln in der Elektrotechnik (DIN VDE 0105)](https://www.asi-seminare.de/blog/5-sicherheitsregeln-in-der-elektrotechnik-din-vde-0105/)
+
+*Hinweis: Die 5 Sicherheitsregeln gelten unverändert seit Jahrzehnten als
+Kern der DIN VDE 0105-100 — Detailanforderungen (z. B. zu Prüfmitteln oder
+Qualifikation der Elektrofachkraft) können sich zwischen Normausgaben
+ändern; bei sicherheitskritischen Fragen die aktuelle Normausgabe bzw.
+die betriebliche Arbeitsanweisung heranziehen.*

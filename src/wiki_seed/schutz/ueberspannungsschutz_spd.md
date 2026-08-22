@@ -106,3 +106,17 @@ SPD Typ 2 sollte U_p ≤ 1,5 kV haben, um Kategorie-II-Geräte zu schützen.
 | Neubau Wohngebäude | Empfohlen (Typ 2) | VDE 0100-443 |
 | Empfindliche Geräte (IT, Medizin) | Empfohlen (Typ 3) | — |
 | Altbau ohne Änderung | Kein Nachrüstzwang | — |
+
+---
+
+## Quellen
+
+- elektro.net: [DIN VDE 0100-443 und -534 Überspannungsschutz](https://www.elektro.net/105823/ueberspannungsschutz-ist-nun-pflicht/)
+- DEHN: [FAQ-Liste zur DIN VDE 0100-443 und DIN VDE 0100-534](https://www.dehn-international.com/sites/default/files/media/files/FAQ-DIN-VDE-0100-443-534-DS273-DE_1.pdf)
+- WEKA: [DIN VDE 0100-443: Worauf Sie jetzt achten müssen](https://www.weka.de/elektrosicherheit/din-vde-0100-443/)
+
+*Hinweis: Ob im Einzelfall SPD-Pflicht besteht (z. B. bei „wesentlichen
+Änderungen" einer Bestandsanlage), hängt von der genauen
+Risikobeurteilung nach VDE 0100-443 ab — die Tabelle oben ist eine
+Praxis-Orientierung, keine Rechtsberatung. Bei Unsicherheit die aktuelle
+Normausgabe bzw. eine Elektrofachkraft konsultieren.*

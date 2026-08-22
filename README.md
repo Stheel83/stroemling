@@ -1,6 +1,6 @@
 # Strömling Design
 
-Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771, erhebt aber keinen Anspruch auf zertifizierte Normkonformität.
+Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771/EN ISO 7200 (Schriftfeld ist wahlweise im klassischen DIN-6771-Stil oder frei nach EN ISO 7200 im Normblatt-Editor gestaltbar), erhebt aber keinen Anspruch auf zertifizierte Normkonformität.
 
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
 **Letzter Release:** v0.666 (Jul 2026) — siehe Download unten  
@@ -86,7 +86,7 @@ Projekte werden als eigenständige Ordner gespeichert:
 | Design Rule Check (doppelte BMK, offene Pins, fehlende Verbindungen u.a.) | ✅ |
 | Fehlersuchmodus (Strompfad-Verfolgung, seitenübergreifend) | ✅ |
 | Geräte (Schütz/Relais: BMK-Vererbung, Kontaktspiegel, Gerätekasten) | ✅ |
-| Normblatt DIN 6771 (Rahmen + visueller Vorlagen-Editor) | ✅ |
+| Normblatt DIN 6771 / EN ISO 7200 (Rahmen + visueller Vorlagen-Editor, beide Stile wählbar) | ✅ |
 | Makros / Schaltplan-Vorlagen (inkl. Schnellpalette) | ✅ |
 | Inbetriebnahme-Modus (Prüflisten, Messwerte, PDF-Protokoll) | ✅ |
 | Erfahrungs-Wiki (projektübergreifend, Bundle-Import, F1-Kontexthilfe) | ✅ |

@@ -2,7 +2,7 @@
 
 **Projekt:** Strömling Design · Open-Source E-CAD für Elektrotechnik  
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
-**Normen:** DIN EN 81346 · DIN 6771
+**Normen:** DIN EN 81346 · DIN 6771/EN ISO 7200 (Schriftfeld, beide Stile wählbar)
 
 ---
 
@@ -84,7 +84,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/symbolgroessen_audit.md` | Symbolgrößen-Audit gegen EPLAN-Referenzmaße (Bounding-Box-Korrektur, familienweise) | 🔄 Messphase |
 | `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas | ✅ |
 | `konzept/features/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen | ✅ |
-| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Seitenkennzeichnung DIN 6771, NKZ-04 Default-Anlage/Ort | 🔄 NKZ-01 offen (DIN EN 81346 alt vs. IEC 81346 neu) |
+| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Schriftfeld DIN 6771/EN ISO 7200 (beide Stile wählbar), NKZ-04 Default-Anlage/Ort | 🔄 NKZ-01 offen (DIN EN 81346 alt vs. IEC 81346 neu) |
 | `konzept/features/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung | ✅ |
 | `konzept/features/11_symboleditor.md` | Symbole visuell erstellen und bearbeiten | ✅ |
 | `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen (IP/IK/VDE/IEC) | ✅ |

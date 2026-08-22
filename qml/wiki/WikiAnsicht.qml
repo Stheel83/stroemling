@@ -170,7 +170,7 @@ Item {
             }
             Text {
                 anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
-                text:           qsTr("🤖 Wiki-Inhalte entstehen u. a. mit Unterstützung von KI (Claude Code) — redaktionell geprüft.")
+                text:           qsTr("🤖 Wiki-Inhalte entstehen u. a. mit Unterstützung von KI (Claude Code) — redaktionell geprüft, können aber dennoch Fehler enthalten.")
                 font.pixelSize: 10
                 color:          root.theme.textMuted
             }

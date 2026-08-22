@@ -4,11 +4,6 @@ Eine Kurzübersicht, wann die klassische Nullung (TN-C-System) in
 verschiedenen Ländern für Neuanlagen verboten wurde — und wie der
 Bestandsschutz seither gehandhabt wird.
 
-> **Quellen:**
-> - Wikipedia: [Nullung](https://de.wikipedia.org/wiki/Nullung)
-> - Wikipedia: [TN-Netz](https://de.wikipedia.org/wiki/TN-Netz)
-> - Wikipedia: [Schutzmaßnahme (Elektrotechnik)](https://de.wikipedia.org/wiki/Schutzma%C3%9Fnahme_(Elektrotechnik))
-
 ---
 
 ## Verbot für Neuanlagen nach Land/Region
@@ -97,3 +92,21 @@ ein eigenes Normensystem (TGL – Technische Güte- und Lieferbedingungen).
 5. **Kurzschlussstrommessung:** Schleifenimpedanz messen → Abschaltbedingung überprüfen
 6. **Dokumentation:** Datum des Befunds und Zustand protokollieren
 7. **Eigentümer informieren:** Handlungsempfehlung + Priorität (Bad/Küche zuerst)
+
+---
+
+## Quellen
+
+- Wikipedia: [Nullung](https://de.wikipedia.org/wiki/Nullung)
+- Wikipedia: [TN-Netz](https://de.wikipedia.org/wiki/TN-Netz)
+- Wikipedia: [Schutzmaßnahme (Elektrotechnik)](https://de.wikipedia.org/wiki/Schutzma%C3%9Fnahme_(Elektrotechnik))
+- elektro.net: [Klassische Nullung im Anlagenbestand](https://www.elektro.net/praxisprobleme/klassische-nullung-im-anlagenbestand/)
+- Elektropraktiker: [Erweiterung von Steckdosenstromkreisen mit klassischer Nullung](https://www.elektropraktiker.de/fachartikel/detail/erweiterung-von-steckdosenstromkreisen-mit-klassischer-nullung)
+- Singer Fössl Rechtsanwälte: [Haftung bei fehlendem FI-Schalter – Adaptierungs- und Erhaltungspflichten im Baurecht](https://www.sfr.at/blog-baurecht/haftung-bei-fehlendem-fi-schalter-zugleich-ein-ueberblick-ueber-adaptierungs-und-erhaltungspflichten-im-baurecht/) (österreichische ETV-Nachrüstpflicht bei Neuvermietung)
+
+*Hinweis: Die DDR-Zeitlinie (TGL 10488, „ca. 1976–1980") sowie die
+genauen DDR-Übergangsjahre in der Tabelle sind schwerer über
+Web-Quellen zu verifizieren als die BRD-/CH-/AT-Fakten — bei Bedarf
+gegen Originaldokumente aus DDR-Normensammlungen gegenprüfen. Aktuelle
+Rechtsgrundlagen (z. B. ETV-Fassung, DIN VDE 0100-410-Ausgabe) vor
+sicherheitsrelevanten Entscheidungen auf dem neuesten Stand prüfen.*

@@ -6,11 +6,6 @@ in Deutschland bis 1973 (BRD) für Neuanlagen zulässig war. Trotz des
 Verbots für Neuanlagen ist sie in Millionen von Altbestandsanlagen
 noch aktiv – mit erheblichen Sicherheitsrisiken.
 
-> **Quellen:**
-> - Wikipedia: [Nullung](https://de.wikipedia.org/wiki/Nullung)
-> - Wikipedia: [TN-Netz](https://de.wikipedia.org/wiki/TN-Netz)
-> - Wikipedia: [Schutzmaßnahme (Elektrotechnik)](https://de.wikipedia.org/wiki/Schutzma%C3%9Fnahme_(Elektrotechnik))
-
 ---
 
 ## Was ist die klassische Nullung?
@@ -128,3 +123,18 @@ Ordnungsgemäß errichtete Anlagen dürfen in ihrem ursprünglichen Zustand
 In Deutschland gibt es **keine gesetzliche Nachrüstpflicht** für
 Bestandsanlagen — aber eine klare Empfehlung für Räume mit Badewanne/Dusche
 (DIN VDE 0100-700) und eine moralische Verantwortung des Eigentümers.
+
+---
+
+## Quellen
+
+- Wikipedia: [Nullung](https://de.wikipedia.org/wiki/Nullung)
+- Wikipedia: [TN-Netz](https://de.wikipedia.org/wiki/TN-Netz)
+- Wikipedia: [Schutzmaßnahme (Elektrotechnik)](https://de.wikipedia.org/wiki/Schutzma%C3%9Fnahme_(Elektrotechnik))
+- elektro.net: [Klassische Nullung im Anlagenbestand](https://www.elektro.net/praxisprobleme/klassische-nullung-im-anlagenbestand/)
+- Elektropraktiker: [Bestandsschutz und Anpassung elektrischer Anlagen](https://www.elektropraktiker.de/fachartikel/detail/bestandsschutz-und-anpassung-elektrischer-anlagen-1)
+
+*Hinweis: Die DDR-spezifischen Details (TGL-Bezeichnung, Aluminium-PEN-
+Verbreitung) stammen aus Felderfahrung und sind schwerer über
+Web-Quellen zu verifizieren als die BRD/VDE-Fakten — bei Bedarf gegen
+Originaldokumente aus DDR-Normensammlungen gegenprüfen.*

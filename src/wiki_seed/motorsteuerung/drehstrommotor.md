@@ -302,3 +302,16 @@ W2–U2–V2 verbunden        U1–W2, V1–U2, W1–V2 verbunden
 6. **Leerlaufstrom messen:** ca. 30–60 % des Nennstroms (je nach Motor)
 7. **Thermorelay / FU-Schutz einstellen:** I_N vom Typenschild eingeben
 8. **Lagertemperatur nach 1h Betrieb prüfen:** max. 70–80°C (Handprüfung: kurz anfassbar)
+
+---
+
+## Quellen
+
+- DKE Normendatenbank: [DIN EN 60034-30-1 (VDE 0530-30-1):2014-12](https://www.dke.de/de/normen-standards/dokument?id=7049254&type=dke%7Cdokument)
+- elektro.net: [Wirkungsgrad-Klassifizierung](https://www.elektro.net/94709/wirkungsgrad-klassifizierung/)
+- ElekRechner: [Elektromotoren-Grundlagen: Typenschild lesen, Anlaufarten & IE-Effizienzklassen](https://www.elekrechner.com/ratgeber/grundlagen/elektromotoren-grundlagen)
+
+*Hinweis: Die IE3-Pflicht ab 0,75 kW seit Juli 2021 sowie Bestandsschutz für
+ältere IE2-Motoren beziehen sich auf die EU-Ökodesign-Verordnung 2019/1781 in
+Verbindung mit DIN EN 60034-30-1 — bei neuen Grenzwerten/Ausnahmen die
+jeweils aktuelle Verordnungsfassung prüfen.*

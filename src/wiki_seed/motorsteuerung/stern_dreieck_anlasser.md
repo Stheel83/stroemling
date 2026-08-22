@@ -99,3 +99,16 @@ Das Thermorelay schützt im **Δ-Betrieb** (Dauerbetrieb). Einstellung:
 - Thermorelay nach KΔ (nur Dreieck-Zweig): I_Einstell = **I_N × 0,58**
 
 Üblich: Thermorelay im Hauptstromkreis, Einstellung auf Motor-Nennstrom.
+
+---
+
+## Quellen
+
+- Wikipedia: [Stern-Dreieck-Anlaufschaltung](https://de.wikipedia.org/wiki/Stern-Dreieck-Anlaufschaltung)
+- druckluft-verzeichnis.de: [Wie funktioniert der Stern-Dreieck-Anlauf? Einfach erklärt](https://druckluft-verzeichnis.de/blog/wie-funktioniert-der-stern-dreieck-anlauf/)
+- DKE Normendatenbank: [E DIN EN IEC 60947-4-1 (VDE 0660-102):2023-02](https://www.dke.de/de/normen-standards/dokument?id=7176852&type=dke%7Cdokument)
+
+*Hinweis: Der Umschaltzeitpunkt (Faustregel 3–8 s) ist ein Praxisrichtwert
+und hängt stark von Motorleistung und Lastträgheitsmoment ab — bei
+Grenzfällen (schwere Lasten, häufiges Schalten) eine Auslegung nach
+Motorhersteller-Angaben statt der Faustregel vornehmen.*

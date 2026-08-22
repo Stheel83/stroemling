@@ -106,3 +106,16 @@ Bei Umrichter-Betrieb:
 - Den **internen Motorschutz des Umrichters** aktivieren (I²t-Auslöser)
 - Oder PTC-Temperaturfühler im Motor + externer Auslöser
 - Kein Bimetall-Thermorelay im Umrichterausgang!
+
+---
+
+## Quellen
+
+- DKE Normendatenbank: [E DIN EN IEC 60947-4-1 (VDE 0660-102):2023-02](https://www.dke.de/de/normen-standards/dokument?id=7176852&type=dke%7Cdokument)
+- Wikipedia: [Motorschutz (Elektrotechnik)](https://de.wikipedia.org/wiki/Motorschutz_(Elektrotechnik))
+- Schrack Technik: [Schütze, Überlastrelais & Motorschutzschalter](https://www.schrack.at/know-how-cip/verteilereinbau-ls-fi-ueberspannungsableiter-d0-und-nh/schuetze-thermische-ueberlastrelais-und-motorschutzschalter)
+
+*Hinweis: Die genannten Leistungs-/Stromgrenzen (z. B. „MSS bis ~15 kW",
+„Thermorelay ab ~7,5 kW") sind Praxis-Richtwerte, keine Normvorgabe —
+Herstellerbaureihen unterscheiden sich, im Zweifel Datenblatt des
+konkreten Geräts prüfen.*

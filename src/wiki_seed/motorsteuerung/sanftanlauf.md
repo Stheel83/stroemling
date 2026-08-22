@@ -160,3 +160,16 @@ Moderne Sanftanlasser ersetzen das externe Thermorelay:
 | Motor wird im Anlauf heiß | Anlaufzeit zu lang | Rampe verkürzen oder Motor für häufige Anlaufzyklen prüfen |
 | Abschaltung bei Anlauf | I_max-Grenze zu niedrig | Strombegrenzung erhöhen |
 | Druckstoß bei Pumpe | Auslaufzeit nicht parametriert | t_stop einstellen |
+
+---
+
+## Quellen
+
+- Wikipedia: [Sanftanlauf](https://de.wikipedia.org/wiki/Sanftanlauf)
+- e-hack.de: [Sanftanlaufgerät – Definition, Prinzip und Funktionsweise](https://www.e-hack.de/sanftanlaufgeraet-definition-und-funktionsweise/)
+- Eaton: [Handbuch DS7 Softstarter](https://www.eaton.com/content/dam/eaton/technicaldocumentation/mn/MN03901001Z_DE.pdf)
+
+*Hinweis: Einstellwerte (Anlaufspannung, Rampenzeiten, Strombegrenzung)
+sind Praxis-Richtwerte — die konkreten Parametergrenzen und
+Werkseinstellungen unterscheiden sich je Sanftanlasser-Hersteller/-Baureihe,
+Herstellerhandbuch vor der Inbetriebnahme prüfen.*

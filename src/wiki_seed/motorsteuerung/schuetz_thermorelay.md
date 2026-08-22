@@ -99,3 +99,15 @@ Nach Auslösung des Thermorelays (Überlastfall):
 
 **Automatisches Rückstellen** (Auto-Reset) vermeiden bei unbeaufsichtigten
 Anlagen: Motor würde nach Abkühlung automatisch wiederanlaufen → Unfallgefahr.
+
+---
+
+## Quellen
+
+- DKE Normendatenbank: [E DIN EN IEC 60947-4-1 (VDE 0660-102):2023-02](https://www.dke.de/de/normen-standards/dokument?id=7176852&type=dke%7Cdokument)
+- Schrack Technik: [Schütze, Überlastrelais & Motorschutzschalter](https://www.schrack.at/know-how-cip/verteilereinbau-ls-fi-ueberspannungsableiter-d0-und-nh/schuetze-thermische-ueberlastrelais-und-motorschutzschalter)
+
+*Hinweis: Die Schützgrößen-Tabelle (Siemens 3RT2xxx) ist ein
+Herstellerbeispiel zur Größenordnungs-Orientierung, keine allgemeingültige
+Auswahltabelle — die tatsächliche Schützgröße richtet sich nach
+Motorleistung, Schaltkategorie (AC-3/AC-4) und Hersteller-Datenblatt.*

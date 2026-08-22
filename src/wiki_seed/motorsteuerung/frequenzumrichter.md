@@ -276,3 +276,17 @@ in der Regel vernachlässigbar.
 | Motorparameter nicht eingegeben | Schlechtes Anlaufverhalten, Überhitzung | Typenschild-Daten eingeben |
 | Taktfrequenz zu hoch, Leitung zu lang | Überspannungsspitzen am Motor | Motordrossel oder dU/dt-Filter |
 | Kein Bremswiderstand bei großer Masse | Überspannung-Abschaltung beim Bremsen | Bremswiderstand berechnen und einbauen |
+
+---
+
+## Quellen
+
+- Wikipedia: [Frequenzumrichter](https://de.wikipedia.org/wiki/Frequenzumrichter)
+- ESCO Antriebstechnik: [Was ist ein Frequenzumrichter und wie funktioniert er?](https://esco-antriebstechnik.de/was-ist-ein-frequenzumrichter/)
+- DS Werk: [Frequenzumrichter: Grundlagen, Auswahl & Parametrierung](https://dswerk.de/frequenzumrichter-grundlagen-praxis/)
+
+*Hinweis: Konkrete EMV-Filterklassen, Motordrossel-Grenzwerte und
+Lagerstrom-Gegenmaßnahmen hängen vom jeweiligen FU-/Motorhersteller ab —
+die Tabellenwerte oben sind Praxis-Richtwerte, keine Herstellervorgabe.
+Für die konkrete Anlage immer die FU- und Motor-Dokumentation sowie
+DIN EN 61800-3 (aktuelle Ausgabe) heranziehen.*

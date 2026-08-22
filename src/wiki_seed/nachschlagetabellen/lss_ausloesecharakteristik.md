@@ -98,3 +98,16 @@ Für Selektivität (vorgelagerte Sicherung löst nicht aus, nur der fehlernahe L
 | Typ D in Wohngebäude | Zu träge — mangelnder Personenschutz |
 | Zu hoher Nennstrom | Leitung unzureichend geschützt |
 | Leitungsimpedanz ignoriert | Typ B löst am Leitungsende nicht sicher aus |
+
+---
+
+## Quellen
+
+- ABB: [Auslöse-Charakteristiken für Sicherungsautomaten im Vergleich](https://library.e.abb.com/public/a273e99608575e0ec125761100343ab8/2CDC400002D0103.pdf)
+- ElekRechner: [LS-Schalter Auslösekennlinien](https://www.elekrechner.com/tabellen/leitungsschutz-kennlinien)
+- tgb-automation.de: [Leitungsschutzschalter im Überblick — Charakteristik B/C/D](https://tgb-automation.de/komponenten/leitungsschutzschalter/)
+
+*Hinweis: Die Selektivitätsregel „1 : 1,6" ist eine Faustregel — echte
+Selektivität zwischen zwei LSS ist nur über die
+Hersteller-Selektivitätstabellen (Strombegrenzungsklasse, Kennlinien)
+nachweisbar, nicht allein über das Nennstromverhältnis.*

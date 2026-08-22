@@ -75,3 +75,17 @@ widersteht 5 Joule Stoßenergie.
 | M       | Geprüft während Bewegung (z. B. Motor) |
 | S       | Geprüft im Stillstand |
 | W       | Witterungsbeständig |
+
+---
+
+## Quellen
+
+- Wikipedia: [Schutzart](https://de.wikipedia.org/wiki/Schutzart)
+- OSRAM: [Technischer Anwendungsleitfaden – Schutzarten (IP-Codes) nach DIN EN 60529](https://www.osram.de/media/resource/HIRES/342329/technischer-anwendungsleitfaden---schutzarten-ip-codes-nach-din-en-60529-d.pdf)
+- ElekRechner: [IP-Schutzarten erklärt](https://www.elekrechner.com/ratgeber/grundlagen/ip-schutzarten)
+
+*Hinweis: Die „Häufige IP-Stufen"-Anwendungstabelle ist eine
+Praxis-Orientierung, keine normative Mindestvorgabe — die tatsächlich
+erforderliche IP-Stufe ergibt sich aus der jeweiligen Errichtungsnorm
+(z. B. DIN VDE 0100-737 für Feuchträume) und den Umgebungsbedingungen
+vor Ort.*

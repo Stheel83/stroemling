@@ -203,3 +203,17 @@ Kanal, Innentemperatur 40 °C. Zulässiger LS-Schalter?
 Ohne Berücksichtigung der Bündelung und Innentemperatur hätte man fälschlich
 einen 16-A- oder sogar 20-A-Automaten gewählt — die Ader wäre thermisch
 überlastet, ohne dass der LS-Schalter auslöst.
+
+---
+
+## Quellen
+
+- DKE Normendatenbank: [DIN VDE 0298-4 (VDE 0298-4):2023-06](https://www.dke.de/de/normen-standards/dokument?id=7161768&type=dke%7Cdokument)
+- elektro.net: [Empfohlene Werte für die Strombelastbarkeit von Kabeln und Leitungen](https://www.elektro.net/123986/empfohlene-werte-fuer-die-strombelastbarkeit-von-kabeln-und-leitungen/)
+- ElekRechner: [DIN VDE 0298-4 erklärt: Strombelastbarkeit, Verlegearten & Korrekturfaktoren](https://www.elekrechner.com/ratgeber/vde-normen/din-vde-0298)
+
+*Hinweis: Die Einzeladern-Tabelle (H05V-K/H07V-K) wendet die
+VDE-0298-4-Verlegearten sinngemäß auf die Schaltschrank-Praxis an
+(„eng gebündelt im Kanal" ≈ Verlegeart B2) — bei konkreten
+Aderleitungs-Fabrikaten immer zuerst das Hersteller-Datenblatt prüfen,
+das kann von diesem Richtwert abweichen.*

@@ -103,3 +103,16 @@ Wiki-Artikel „RCD-Typen – Welcher FI-Schutzschalter wofür?".
 > **Hinweis:** Diese Werte sind eine Orientierungshilfe, kein zertifizierter
 > Normwert. Bei sicherheitsrelevanten Anlagen immer einen Fachplaner
 > hinzuziehen.
+
+---
+
+## Quellen
+
+- DKE: [FAQ-Liste zu DIN VDE 0100-722 (VDE 0100-722):2019-06](https://www.dke.de/resource/blob/2245432/a4948f97c5acd6f3e44362220e93591b/erlaeuterungen-als-pdf-download-data.pdf)
+- Voltimum: [DIN VDE 0100-722: Normenkonforme Installation von EV-Ladestationen](https://www.voltimum.de/news/siemens/din-vde-0100-722-normenkonforme)
+- ElekRechner: [DIN VDE 0100-722: E-Fahrzeug-Ladestationen](https://www.elekrechner.com/ratgeber/vde-normen/din-vde-0100-722)
+
+*Hinweis: Die Rechenbeispiele nehmen 20 m Leitungslänge, Verlegeart B2 und
+keine Häufung an — bei abweichender Länge, Verlegeart oder Häufung
+(mehrere Wallboxen im selben Kabelkanal) müssen Spannungsfall und
+Thermik neu berechnet werden, siehe auch Wiki-Artikel „RCD-Typen".*

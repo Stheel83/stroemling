@@ -43,3 +43,15 @@ mechanische Stoßeinwirkung (Schlag, Fall, Vandalismus).
 IK- und IP-Schutzgrade sind unabhängig voneinander.
 Ein Gehäuse kann IP65 IK07 oder IP20 IK10 sein.
 Beide Angaben zusammen beschreiben den vollständigen Umgebungsschutz.
+
+---
+
+## Quellen
+
+- Wikipedia: [IK-Stoßfestigkeitsgrad](https://de.wikipedia.org/wiki/IK-Sto%C3%9Ffestigkeitsgrad)
+- Rittal Whitepaper: [IK-Code: Schlagschutz nach der Norm IEC 62262](https://www.rittal.com/imf/none/5_5201/Rittal_Whitepaper_IK-Code_Schlagschutz_nach_der_Norm_IEC__5_5201/)
+- VDE Verlag: [DIN EN 62262 (VDE 0470-100):2022-02](https://www.vde-verlag.de/p/normen/din-en-62262-vde-0470-100-2022-02/0400502-DE-PR)
+
+*Hinweis: Die „Praxisempfehlungen"-Tabelle ist eine Einordnungshilfe,
+keine normative Vorgabe — die tatsächlich geforderte IK-Stufe ergibt sich
+aus der jeweiligen Anwendungsnorm bzw. Auftraggeber-Spezifikation.*

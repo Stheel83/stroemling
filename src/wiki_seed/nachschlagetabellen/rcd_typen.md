@@ -104,3 +104,17 @@ Erkennt zusätzlich zu Typ A:
 
 > Personenschutz erfordert **≤ 30 mA**. Höhere Stufen dienen der
 > Selektivität oder dem Brandschutz, nicht dem direkten Personenschutz.
+
+---
+
+## Quellen
+
+- ABB: [Fehlerstrom-Schutzeinrichtungen (RCDs) – Anwendungshandbuch](https://library.e.abb.com/public/7ea9a33027454dc1b82b156099e9d402/2CDC420027B0101_Rev_D_FI_DE_Anwendungshandbuch_042021_72dpi.pdf)
+- MFM Elektrotechnik: [FI-Schutzschalter Typen | A, B, F, EV erklärt](https://mfm.energy/elektrotechnik-wissen/fi-schutzschalter-typen/)
+
+*Hinweis: Die Produktnormen sind mittlerweile DIN EN 61008-1 (VDE 0664-10,
+RCCB ohne Überstromschutz), DIN EN 61009-1 (VDE 0664-20, RCBO mit
+Überstromschutz) und DIN EN 62423 (VDE 0664-40, speziell Typ F/B) — bei
+Wallbox-Planung zusätzlich Wiki-Artikel „Wallbox / E-Auto-Ladepunkt" und
+DIN VDE 0100-722 (aktuelle Ausgabe) beachten, da dort die konkrete
+RCD-Pflicht geregelt ist.*

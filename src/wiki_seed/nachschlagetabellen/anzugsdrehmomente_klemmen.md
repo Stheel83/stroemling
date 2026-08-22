@@ -65,3 +65,14 @@ Besondere Maßnahmen:
 - Zug- und Biegebeanspruchung des Leiters nach dem Anschließen vermeiden
 - Bei Klemmen mit Anzugsmarkierung (Farbpunkt kippt) kein Werkzeug nötig
 - Mehrfach belegbare Klemmen: jede Belegung separat und vollständig anziehen
+
+---
+
+## Quellen
+
+- DKE Normendatenbank: [DIN EN 60999-1 (VDE 0609-1):2000-12](https://www.dke.de/de/normen-standards/dokument?id=3014223&type=dke%7Cdokument)
+- Spiegel Elektrotechnik: [Anzugsdrehmomente für Klemmstellen](https://spiegel-elektrotechnik.de/images/aktuelles/2014-2020/AnzugsdrehmomentefuerKlemmstellen.pdf)
+
+*Hinweis: Die Tabellenwerte sind Norm-Richtwerte für Standard-
+Schraubklemmen — Herstellerangaben auf Klemme/Datenblatt haben immer
+Vorrang, insbesondere bei speziellen Klemmentypen oder Materialien.*

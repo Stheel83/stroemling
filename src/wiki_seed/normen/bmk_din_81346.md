@@ -106,3 +106,16 @@ Laufende Nummern folgen direkt auf den Kennbuchstaben:
 | `Q1` ohne Präfix im Schaltplan | `-Q1` mit Präfix |
 | `=` und `+` vertauscht | `=` = Anlage, `+` = Ort |
 | Kennbuchstabe erfunden | Nur normierte Buchstaben aus DIN EN 81346-2 |
+
+---
+
+## Quellen
+
+- DIN Media (Beuth): [DIN EN IEC 81346-2:2020-10](https://www.dinmedia.de/en/standard/din-en-iec-81346-2/320735342)
+- DKE Normendatenbank: [DIN EN IEC 81346-2:2020-10](https://www.dke.de/de/normen-standards/dokument?id=7140661&type=dke%7Cdokument)
+- KSV Koblenz: [Wie funktioniert die Kennzeichnung von Betriebsmitteln nach DIN EN 81346?](https://www.ksv-koblenz.de/blog/wie-funktioniert-die-kennzeichnung-von-betriebsmitteln-nach-din-en-81346/)
+
+*Hinweis: Die Kennbuchstaben-Tabellen oben sind ein Praxisauszug, nicht die
+vollständige Klassenliste der Norm — bei seltenen oder ungewöhnlichen
+Betriebsmitteln im Zweifel die Originalnorm (DIN EN IEC 81346-2)
+konsultieren.*

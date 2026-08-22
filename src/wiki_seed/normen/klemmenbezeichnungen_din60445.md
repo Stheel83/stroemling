@@ -110,3 +110,18 @@ Sonderklemmen nach Funktion:
 | PE          | Schutzleiterklemme (grün-gelb) |
 | N           | Neutralleiterklemme (blau) |
 | L           | Phasenklemme / Sammelschiene |
+
+---
+
+## Quellen
+
+- DKE Normendatenbank: [DIN EN 60445 (VDE 0197):2018-02](https://www.dke.de/de/normen-standards/dokument?id=7102116&type=dke%7Cdokument)
+- Elektropraktiker: [Anschlusskennzeichnung bei Maschinen- und Anlagentechnik: DIN EN 60445 (VDE 0197) 2018-02](https://www.elektropraktiker.de/nachrichten/nachricht/anschlusskennzeichnung-bei-maschinen-und-anlagentechnik-din-en-60445-vde-0197-2018-02?p=all)
+- elektro.net: [Kennzeichnung von Anschlüssen elektrischer Betriebsmittel](https://www.elektro.net/123351/kennzeichnung-von-anschluessen-elektrischer-betriebsmittel/)
+
+*Hinweis: Seit Februar 2023 liegt mit DIN EN IEC 60445 (VDE 0197):2023-02 eine
+neuere Ausgabe vor (u. a. verbindliche statt empfohlene Aderfarben, neuer
+Abschnitt zu Schutzleiterklemmen bei mehreren Einspeisungen) — die hier
+gezeigten Klemmenbezeichnungen selbst sind davon nicht betroffen. Schütz-,
+Motor- und Thermorelay-Klemmenbezeichnungen sind Herstellerkonvention nach
+DIN EN 60445, keine erschöpfende Normtabelle.*

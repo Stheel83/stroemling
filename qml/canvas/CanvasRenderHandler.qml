@@ -1472,6 +1472,16 @@ QtObject {
         ctx.lineCap = "square"
         ctx.globalAlpha = 1.0
 
+        // OPT-DRAG-NETZ-DEFER-01-Nachtrag: während eines aktiven Drags bleibt
+        // der Netz-Cache absichtlich eingefroren (s. onGeaendert-Guard in
+        // SchaltplanCanvas.qml) — Segmente an einem gerade gezogenen Element
+        // würden sonst als stehengebliebene, falsche Linie an der alten
+        // Position hängen, während das Element schon an der neuen gezeichnet
+        // wird. Sauberer: diese Segmente während des Drags gar nicht zeichnen,
+        // statt eine falsche Linie zu zeigen — nach dem Loslassen sofort
+        // wieder korrekt (netzCacheInvalidieren()).
+        var _dragAktiv = cv.amVerschieben || cv.aktiverGriff >= 0
+
         for (var ni = 0; ni < netze.length; ni++) {
             var net = netze[ni]
             var segs = net.segmente
@@ -1481,6 +1491,9 @@ QtObject {
             for (var si = 0; si < segs.length; si++) {
                 var seg = segs[si]
                 if (seg.logisch) continue   // logische QV-Brücke nicht zeichnen
+
+                if (_dragAktiv && (cv.auswahl.indexOf(seg.elIdxA) >= 0 || cv.auswahl.indexOf(seg.elIdxB) >= 0))
+                    continue
 
                 // Viewport-Culling analog zu maleElement() — Puffer 200px für
                 // Kreuzungslücken-Beschriftung/Aderzahl-Label, die über die

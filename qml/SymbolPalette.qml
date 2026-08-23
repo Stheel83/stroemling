@@ -52,6 +52,14 @@ Rectangle {
     property string _hoverName:    ""
     property real   _hoverGlobalY: 0
 
+    // Verzögertes Schließen: verhindert Flackern beim Wechsel der Maus
+    // von der Zeile über die schmale Lücke zum Popup (Punkt 4)
+    Timer {
+        id: vorschauSchliessTimer
+        interval: 200
+        onTriggered: root._hoverCode = ""
+    }
+
     // Symbolliste aus der DB (für aktive Norm)
     property var alleSymbole: []
     // Eigene (nicht-eingebaute) Symbole aus symbol_definition
@@ -782,11 +790,12 @@ Rectangle {
                 id: szHover; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton
                 onEntered: {
                     if (!sym) return
+                    vorschauSchliessTimer.stop()
                     root._hoverCode    = sym.code
                     root._hoverName    = sym.name
                     root._hoverGlobalY = szHover.mapToItem(null, 0, szHover.height / 2).y
                 }
-                onExited: root._hoverCode = ""
+                onExited: vorschauSchliessTimer.restart()
             }
         }
 
@@ -816,6 +825,14 @@ Rectangle {
             border.color: root.theme.accent
             border.width: 1
             radius: 5
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled:  true
+            acceptedButtons: Qt.NoButton
+            onEntered: vorschauSchliessTimer.stop()
+            onExited:  vorschauSchliessTimer.restart()
         }
 
         ColumnLayout {

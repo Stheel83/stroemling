@@ -38,6 +38,14 @@ Item {
     property real   _hoverKastenBreite: 100
     property real   _hoverKastenHoehe:  100
 
+    // Verzögertes Schließen: verhindert Flackern beim Wechsel der Maus
+    // von der Kachel über die schmale Lücke zum Popup
+    Timer {
+        id: vorschauSchliessTimer
+        interval: 200
+        onTriggered: root._hoverId = -1
+    }
+
     Popup {
         id: vorschauPopup
         parent:      Overlay.overlay
@@ -58,6 +66,14 @@ Item {
             border.color: root.theme.accent
             border.width: 1
             radius: 5
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled:  true
+            acceptedButtons: Qt.NoButton
+            onEntered: vorschauSchliessTimer.stop()
+            onExited:  vorschauSchliessTimer.restart()
         }
 
         ColumnLayout {
@@ -195,6 +211,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
 
                         onEntered: {
+                            vorschauSchliessTimer.stop()
                             root._hoverElems          = db.makroElementeVorschau(modelData.id)
                             root._hoverId             = modelData.id
                             root._hoverName           = modelData.name
@@ -205,9 +222,10 @@ Item {
                             root._hoverGlobalY        = kachel.mapToItem(null, 0, kachel.height / 2).y
                             vorschauCanvas.requestPaint()
                         }
-                        onExited: root._hoverId = -1
+                        onExited: vorschauSchliessTimer.restart()
 
                         onClicked: {
+                            vorschauSchliessTimer.stop()
                             root._hoverId = -1
                             root.makroEinfuegenAngefordert(modelData.id, modelData.name)
                         }

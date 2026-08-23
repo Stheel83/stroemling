@@ -669,6 +669,7 @@ MouseArea {
             if (canvas.aktiverGriff >= 0) {
                 em.undoCheckpointFromSnapshot(canvas.schnapshotVorMove)
                 canvas.aktiverGriff = -1
+                canvas.netzCacheInvalidieren()
                 if (canvas.ausgewaehlt >= 0 && canvas.ausgewaehlt < em.anzahl) {
                     var rEl = em.element(canvas.ausgewaehlt)
                     var vpR = toViewport(mouse.x, mouse.y)
@@ -688,6 +689,7 @@ MouseArea {
                 em.undoCheckpointFromSnapshot(canvas.schnapshotVorMove)
                 canvas.amVerschieben = false
                 canvas.axisLock      = ""
+                canvas.netzCacheInvalidieren()
                 canvas.grafikSpeichernJetzt()
             }
             canvas.verschiebenErlaubt = false

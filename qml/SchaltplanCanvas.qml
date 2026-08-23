@@ -479,11 +479,23 @@ Item {
         Connections {
             target: elementeModel
             function onGeaendert() {
-                root._cachedNetze = null
-                root._cachedKabelSchnitte = {}
-                root._cachedKreuzungsLuecken = null
-                root._cachedAdpList          = null
-                root._cachedRoutingFarben     = null
+                // OPT-DRAG-NETZ-DEFER-01: während eines aktiven Verschieben-/
+                // Griff-Drags feuert geaendert() bei JEDER Mausbewegung — die
+                // Netz-/Verbindungslinien-Caches hier trotzdem jedes Mal zu
+                // invalidieren macht die volle Neuberechnung (Union-Find +
+                // Kreuzungslücken + Bänderung) zum Flaschenhals des Drags
+                // (real gemessen: ~150-220ms von ~250-300ms Frame-Zeit).
+                // Während des Drags bleiben Netzfarben/Verbindungslinien daher
+                // auf dem letzten Stand (bei einem schnellen Zug ohnehin nicht
+                // ablesbar) — root.netzCacheInvalidieren() wird stattdessen
+                // einmal beim Loslassen aufgerufen (CanvasInteraktionArea.qml).
+                if (!root.amVerschieben && root.aktiverGriff < 0 && !root.labelDragAktiv) {
+                    root._cachedNetze = null
+                    root._cachedKabelSchnitte = {}
+                    root._cachedKreuzungsLuecken = null
+                    root._cachedAdpList          = null
+                    root._cachedRoutingFarben     = null
+                }
                 drawCanvas.requestPaint()
             }
         }
@@ -926,6 +938,19 @@ Item {
     // Ansicht
     // --------------------------------------------------------
     function repaintAll() { gridCanvas.requestPaint(); drawCanvas.requestPaint() }
+
+    // OPT-DRAG-NETZ-DEFER-01: einmalige Netz-/Verbindungslinien-Cache-
+    // Invalidierung beim Loslassen eines Verschieben-/Griff-Drags (s.
+    // elementeModel.onGeaendert oben, das während des Drags absichtlich
+    // NICHT invalidiert).
+    function netzCacheInvalidieren() {
+        root._cachedNetze            = null
+        root._cachedKabelSchnitte    = {}
+        root._cachedKreuzungsLuecken = null
+        root._cachedAdpList          = null
+        root._cachedRoutingFarben    = null
+        drawCanvas.requestPaint()
+    }
 
     function zoomAnpassen(factor)     { navigationHandler.zoomAnpassen(factor) }
     function ansichtZuruecksetzen()   { navigationHandler.ansichtZuruecksetzen() }

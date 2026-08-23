@@ -284,6 +284,14 @@ void ElementeModel::invalidateSnapshotCache()
     m_snapshotCache.clear();
 }
 
+void ElementeModel::patchSnapshotEntry(int idx)
+{
+    if (!m_snapshotDirty && idx >= 0 && idx < m_snapshotCache.size())
+        m_snapshotCache[idx] = m_elemente[static_cast<size_t>(idx)].toVariantMap();
+    else
+        invalidateSnapshotCache();
+}
+
 QVariantList ElementeModel::snapshot() const
 {
     if (!m_snapshotDirty)
@@ -347,7 +355,7 @@ void ElementeModel::eigenschaftSetzen(int idx, const QString &key, const QVarian
 {
     if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) return;
     applyField(m_elemente[idx], key, value);
-    invalidateSnapshotCache();
+    patchSnapshotEntry(idx);
     emit geaendert();
 }
 
@@ -357,7 +365,7 @@ void ElementeModel::elementAktualisieren(int idx, const QVariantMap &felder)
     GrafikElement &el = m_elemente[idx];
     for (auto it = felder.constBegin(); it != felder.constEnd(); ++it)
         applyField(el, it.key(), it.value());
-    invalidateSnapshotCache();
+    patchSnapshotEntry(idx);
     emit geaendert();
 }
 
@@ -372,8 +380,8 @@ void ElementeModel::elementeAktualisieren(const QVariantList &updates)
             if (it.key() == QLatin1String("idx")) continue;
             applyField(el, it.key(), it.value());
         }
+        patchSnapshotEntry(idx);
     }
-    invalidateSnapshotCache();
     emit geaendert();
 }
 

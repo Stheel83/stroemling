@@ -1481,6 +1481,18 @@ QtObject {
             for (var si = 0; si < segs.length; si++) {
                 var seg = segs[si]
                 if (seg.logisch) continue   // logische QV-Brücke nicht zeichnen
+
+                // Viewport-Culling analog zu maleElement() — Puffer 200px für
+                // Kreuzungslücken-Beschriftung/Aderzahl-Label, die über die
+                // reine Segment-Linie hinausragen können.
+                var _svx1 = seg.x1 * cv.zoom + cv.worldX
+                var _svy1 = seg.y1 * cv.zoom + cv.worldY
+                var _svx2 = seg.x2 * cv.zoom + cv.worldX
+                var _svy2 = seg.y2 * cv.zoom + cv.worldY
+                if (Math.max(_svx1, _svx2) + 200 < 0        || Math.min(_svx1, _svx2) - 200 > cv._drawCanvas.width  ||
+                    Math.max(_svy1, _svy2) + 200 < 0        || Math.min(_svy1, _svy2) - 200 > cv._drawCanvas.height)
+                    continue
+
                 var sAdps = segAdps[si]
 
                 // Fehlersuchmodus: Segment ausblenden wenn nicht im aktiven Pfad

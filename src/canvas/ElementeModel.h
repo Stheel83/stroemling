@@ -89,6 +89,11 @@ signals:
 private:
     static std::vector<GrafikElement> parseVariantList(const QVariantList &liste);
     void invalidateSnapshotCache();
+    // Patcht einen einzelnen Snapshot-Cache-Eintrag in place statt den ganzen
+    // Cache zu verwerfen (OPT-SNAPSHOT-PATCH-01) — nur sicher, wenn der Cache
+    // gerade frisch ist (m_elemente-Größe/Reihenfolge unverändert seit dem
+    // letzten snapshot()); sonst Fallback auf volle Invalidierung.
+    void patchSnapshotEntry(int idx);
 
     std::vector<GrafikElement>              m_elemente;
     std::vector<std::vector<GrafikElement>> m_undoStack;

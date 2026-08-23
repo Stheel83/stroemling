@@ -1118,7 +1118,11 @@ QtObject {
     // Sammelt alle Aderdefinitionspunkte im Projekt (für Aderfarben-Zuordnung
     // zu Netzsegmenten). Gemeinsam genutzt von maleAutoVerbindungen und
     // berechneRoutingSymbolFarben.
+    // OPT-VERBRENDER-CACHE-01: gecacht in cv._cachedAdpList (zwei Aufrufer pro
+    // Repaint: berechneRoutingSymbolFarben() + maleAutoVerbindungen()),
+    // invalidiert zusammen mit _cachedNetze bei elementeModel.geaendert.
     function _sammleAderdefinitionspunkte() {
+        if (cv._cachedAdpList !== null) return cv._cachedAdpList
         var adpList = []
         var els = cv.elementeModel.snapshot()
         for (var eli = 0; eli < els.length; eli++) {
@@ -1129,6 +1133,7 @@ QtObject {
                                ed: adpEl.extraDaten || {} })
             }
         }
+        cv._cachedAdpList = adpList
         return adpList
     }
 
@@ -1409,7 +1414,11 @@ QtObject {
     // { elIdx: {s1, s2, ziel} } (je ein Bänderungs-Deskriptor, s.
     // _bandOderEinfach()) für Treffpunkt/Treffpunkt_L zurück – einmal pro
     // Frame vor der Elemente-Schleife berechnet.
+    // OPT-VERBRENDER-CACHE-01: gecacht in cv._cachedRoutingFarben, invalidiert
+    // zusammen mit _cachedNetze — sonst lief die Bänderungsberechnung pro
+    // Netz bei jedem Repaint neu, auch beim reinen Schwenken/Zoomen.
     function berechneRoutingSymbolFarben(netze) {
+        if (cv._cachedRoutingFarben !== null) return cv._cachedRoutingFarben
         var out = {}
         if (netze.length === 0) return out
         var adpList = _sammleAderdefinitionspunkte()
@@ -1443,6 +1452,7 @@ QtObject {
                 }
             }
         }
+        cv._cachedRoutingFarben = out
         return out
     }
 

@@ -233,6 +233,13 @@ Item {
     // OPT-KABEL-GEO-01: Netz-Geometrie-Cache (invalidiert bei elementeModel.geaendert)
     property var _cachedNetze:        null   // autoNetzeBerechnen()-Ergebnis
     property var _cachedKabelSchnitte: ({})  // elId → schnitte[]
+    // OPT-VERBRENDER-CACHE-01: von maleAutoVerbindungen() pro Repaint aus
+    // _cachedNetze abgeleitete Geometrie — sonst wurden Kreuzungslücken
+    // (O(h×v)-Doppelschleife) und die Aderdefinitionspunkt-Liste bei JEDEM
+    // Repaint neu berechnet, auch beim reinen Schwenken/Zoomen ohne Modelländerung.
+    property var _cachedKreuzungsLuecken: null   // {segKey → [x, …]}
+    property var _cachedAdpList:          null   // [{cx, cy, ed}, …]
+    property var _cachedRoutingFarben:    null   // berechneRoutingSymbolFarben()-Ergebnis
 
     // --------------------------------------------------------
     // Text-Werkzeug: Inline-Editor
@@ -474,6 +481,9 @@ Item {
             function onGeaendert() {
                 root._cachedNetze = null
                 root._cachedKabelSchnitte = {}
+                root._cachedKreuzungsLuecken = null
+                root._cachedAdpList          = null
+                root._cachedRoutingFarben     = null
                 drawCanvas.requestPaint()
             }
         }

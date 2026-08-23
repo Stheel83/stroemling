@@ -477,7 +477,12 @@ QtObject {
     // Gibt für jedes H-Segment (Schlüssel "ni-si") eine sortierte Liste von
     // World-X-Werten zurück, an denen ein V-Segment aus einem anderen Netz kreuzt.
     // Nur strenge Kreuzungen (kein Endpunkt am Schnittpunkt).
+    // OPT-VERBRENDER-CACHE-01: gecacht in cv._cachedKreuzungsLuecken, invalidiert
+    // zusammen mit _cachedNetze bei elementeModel.geaendert (nicht bei jedem
+    // Repaint neu — die O(h×v)-Doppelschleife unten kostet sonst auch beim
+    // reinen Schwenken/Zoomen ohne Modelländerung).
     function _kreuzungsLuecken(netze) {
+        if (cv._cachedKreuzungsLuecken !== null) return cv._cachedKreuzungsLuecken
         var hSegs = []
         var vSegs = []
         for (var ni = 0; ni < netze.length; ni++) {
@@ -513,6 +518,7 @@ QtObject {
         }
         for (var k in result)
             result[k].sort(function(a, b) { return a - b })
+        cv._cachedKreuzungsLuecken = result
         return result
     }
 

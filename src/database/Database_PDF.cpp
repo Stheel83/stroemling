@@ -2602,9 +2602,14 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
         // Normblatt + Infostreifen in absoluten Koordinaten (kein Translate aktiv)
-        if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool())
+        // Infostreifen nur wenn das Normblatt auf dieser Seite tatsächlich NICHT
+        // gezeichnet wird (auch im vollCanvas-Modus, wo es unabhängig von
+        // normblattAnzeigen unterdrückt wird - sonst fehlt sonst bei "Ganzes
+        // Canvas" sowohl Normblatt als auch Infostreifen, INFOSTREIFEN-VOLLCANVAS-01).
+        bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
+        if (normblattGezeichnet)
             pdfNormblattRendern(painter, nb, pxPerMm);
-        if (mitInfostreifen && !nb.value("normblattAnzeigen").toBool())
+        if (mitInfostreifen && !normblattGezeichnet)
             pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
         pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
     }
@@ -2660,9 +2665,13 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
     painter.restore();
 
-    if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool())
+    // Infostreifen nur wenn das Normblatt auf dieser Seite tatsächlich NICHT
+    // gezeichnet wird (auch im vollCanvas-Modus, wo es unabhängig von
+    // normblattAnzeigen unterdrückt wird, s. canvasPdfExportieren).
+    bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
+    if (normblattGezeichnet)
         pdfNormblattRendern(painter, nb, pxPerMm);
-    if (mitInfostreifen && !nb.value("normblattAnzeigen").toBool())
+    if (mitInfostreifen && !normblattGezeichnet)
         pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
     pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
 

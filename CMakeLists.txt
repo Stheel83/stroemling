@@ -249,6 +249,9 @@ qt_add_qml_module(stroemling_app
         qml/wiki/WikiFormatierungsToolbar.qml
         qml/wiki/WikiBildGalerie.qml
         qml/wiki/WikiBundleDialog.qml
+        qml/wiki/WikiBildEinfuegenPopup.qml
+        qml/wiki/WikiImportModePopup.qml
+        qml/wiki/WikiVollbildPopup.qml
         qml/einstellungen/EinstellungenAnsicht.qml
         qml/einstellungen/EinDatenbankpfadeBlock.qml
         qml/einstellungen/EinDatensicherungBlock.qml

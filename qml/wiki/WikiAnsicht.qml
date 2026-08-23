@@ -1016,100 +1016,12 @@ Item {
     }
     }
 
-    // ── Bild-Einfügen-Popup ───────────────────────────────────
-    Popup {
-        id:           bildEinfuegenPopup
-        anchors.centerIn: parent
-        width:        Math.min(root.width * 0.6, 620)
-        height:       160
-        modal:        true
-        padding:      12
-        closePolicy:  Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-        background: Rectangle {
-            color:        root.theme.surface
-            radius:       6
-            border.color: root.theme.border
-            border.width: 1
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            spacing:      8
-
-            Text {
-                text:           qsTr("Bild wählen – wird an Cursorposition eingefügt:")
-                font.pixelSize: 11
-                color:          root.theme.textMuted
-            }
-
-            Text {
-                visible:          root._bilder.length === 0
-                Layout.fillWidth: true
-                text:             qsTr("Noch keine Bilder – erst in der Galerie unten zum Artikel hinzufügen.")
-                font.pixelSize:   11
-                color:            root.theme.textMuted
-                wrapMode:         Text.Wrap
-            }
-
-            ListView {
-                Layout.fillWidth:  true
-                Layout.fillHeight: true
-                orientation:       ListView.Horizontal
-                spacing:           8
-                clip:              true
-                model:             root._bilder
-                visible:           root._bilder.length > 0
-
-                delegate: Item {
-                    width:  96
-                    height: ListView.view.height
-
-                    Rectangle {
-                        id:     thumbPickRect
-                        width:  88; height: 88; radius: 4
-                        color:  root.theme.border
-                        clip:   true
-                        anchors.horizontalCenter: parent.horizontalCenter
-
-                        Image {
-                            anchors.fill: parent
-                            source:       modelData.tempPfad ? "file://" + modelData.tempPfad : ""
-                            fillMode:     Image.PreserveAspectCrop
-                            smooth:       true
-                            asynchronous: true
-                        }
-
-                        Rectangle {
-                            anchors.fill:  parent
-                            radius:        4
-                            color:         pickHover.hovered ? root.theme.accent + "44" : "transparent"
-                            border.color:  pickHover.hovered ? root.theme.accent : "transparent"
-                            border.width:  2
-                        }
-                    }
-
-                    Text {
-                        anchors { top: thumbPickRect.bottom; topMargin: 4; horizontalCenter: parent.horizontalCenter }
-                        width:          88
-                        text:           modelData.beschreibung || modelData.dateiname || ""
-                        font.pixelSize: 9
-                        color:          root.theme.textMuted
-                        elide:          Text.ElideRight
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    HoverHandler { id: pickHover }
-                    TapHandler {
-                        onTapped: {
-                            var descr = modelData.beschreibung || modelData.dateiname || ""
-                            formatierungsToolbar._fmtEinfuegen("![" + descr + "](wiki://bild/" + modelData.id + ")")
-                            bildEinfuegenPopup.close()
-                        }
-                    }
-                }
-            }
-        }
+    // ── Bild-Einfügen-Popup (REFACTOR-QML-04: ausgelagert) ────
+    WikiBildEinfuegenPopup {
+        id:      bildEinfuegenPopup
+        panel:   root
+        theme:   root.theme
+        toolbar: formatierungsToolbar
     }
 
     // ── Wiki Export FileDialog ────────────────────────────────
@@ -1136,98 +1048,11 @@ Item {
         }
     }
 
-    // ── Import-Modus-Popup ────────────────────────────────────
-    Popup {
-        id:           importModePopup
-        anchors.centerIn: parent
-        width:        340
-        height:       160
-        modal:        true
-        padding:      0
-        closePolicy:  Popup.CloseOnEscape
-
-        background: Rectangle {
-            color:        root.theme.surface
-            radius:       6
-            border.color: root.theme.border
-            border.width: 1
-        }
-
-        ColumnLayout {
-            anchors { fill: parent; margins: 20 }
-            spacing: 16
-
-            Text {
-                Layout.fillWidth: true
-                text:           qsTr("Wie soll importiert werden?")
-                font.pixelSize: 14
-                font.weight:    Font.Medium
-                color:          root.theme.textPrimary
-                wrapMode:       Text.Wrap
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Rectangle {
-                    Layout.fillWidth: true; height: 32; radius: 3
-                    color: mergeHover.hovered ? root.theme.accent : root.theme.border
-                    Text {
-                        anchors.centerIn: parent
-                        text:           qsTr("Zusammenführen")
-                        font.pixelSize: 11
-                        color:          root.theme.textPrimary
-                    }
-                    HoverHandler { id: mergeHover }
-                    TapHandler {
-                        onTapped: {
-                            importModePopup.close()
-                            const ok = db.wikiImportJson(root._importPfad, true)
-                            root._kategorienLaden()
-                            meldungManager.zeigen(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
-                        }
-                    }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true; height: 32; radius: 3
-                    color: replaceHover.hovered ? "#c0392b" : root.theme.border
-                    Text {
-                        anchors.centerIn: parent
-                        text:           qsTr("Ersetzen")
-                        font.pixelSize: 11
-                        color:          root.theme.textPrimary
-                    }
-                    HoverHandler { id: replaceHover }
-                    TapHandler {
-                        onTapped: {
-                            importModePopup.close()
-                            const ok = db.wikiImportJson(root._importPfad, false)
-                            root._kategorienLaden()
-                            root._artIdx     = -1
-                            root._aktArtikel = ({})
-                            root._bilder     = []
-                            meldungManager.zeigen(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: 70; height: 32; radius: 3
-                    color: abbrImportHover.hovered ? root.theme.hover : "transparent"
-                    border.color: root.theme.border
-                    Text {
-                        anchors.centerIn: parent
-                        text:           qsTr("Abbrechen")
-                        font.pixelSize: 11
-                        color:          root.theme.textMuted
-                    }
-                    HoverHandler { id: abbrImportHover }
-                    TapHandler { onTapped: importModePopup.close() }
-                }
-            }
-        }
+    // ── Import-Modus-Popup (REFACTOR-QML-04: ausgelagert) ─────
+    WikiImportModePopup {
+        id:    importModePopup
+        panel: root
+        theme: root.theme
     }
 
     // ── Bild-Import FileDialog ────────────────────────────────
@@ -1241,87 +1066,10 @@ Item {
         }
     }
 
-    // ── Vollbild-Popup ────────────────────────────────────────
-    // Echtes Vollbild über das gesamte Fenster (Overlay.overlay statt
-    // begrenztem Karten-Popup) + Zoom/Pan, damit auch dichte Infografiken
-    // (z.B. Charakter-Übersichtsblätter) auf kleinen Bildschirmen lesbar
-    // bleiben. Mausrad zoomt, gezogen wird mit der Maus, Doppelklick wechselt
-    // zwischen "einpassen" und 2,5×-Zoom.
-    Popup {
-        id:           vollbildPopup
-        parent:       Overlay.overlay
-        x:            0
-        y:            0
-        width:        parent ? parent.width  : 0
-        height:       parent ? parent.height : 0
-        modal:        true
-        closePolicy:  Popup.CloseOnEscape
-        padding:      0
-
-        property real _zoom: 1.0
-
-        onOpened: vollbildPopup._zoom = 1.0
-
-        background: Rectangle { color: "#000000" }
-
-        Flickable {
-            id:    vollbildFlick
-            anchors.fill: parent
-            anchors.bottomMargin: 40
-            clip:  true
-            boundsBehavior: Flickable.StopAtBounds
-            contentWidth:  vollbildImg.width  * vollbildPopup._zoom
-            contentHeight: vollbildImg.height * vollbildPopup._zoom
-
-            Image {
-                id:               vollbildImg
-                transformOrigin:  Item.TopLeft
-                width:            vollbildFlick.width
-                height:           vollbildFlick.height
-                scale:            vollbildPopup._zoom
-                source:           root._vollbildPfad
-                fillMode:         Image.PreserveAspectFit
-                smooth:           true
-                asynchronous:     true
-
-                TapHandler {
-                    onDoubleTapped: vollbildPopup._zoom = (vollbildPopup._zoom > 1.0 ? 1.0 : 2.5)
-                }
-            }
-
-            WheelHandler {
-                onWheel: (event) => {
-                    const faktor = event.angleDelta.y > 0 ? 1.2 : (1 / 1.2)
-                    vollbildPopup._zoom = Math.max(1.0, Math.min(6.0, vollbildPopup._zoom * faktor))
-                }
-            }
-        }
-
-        // Unterleiste: Beschriftung + Zoom-Hinweis + Schließen-Button
-        RowLayout {
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 8 }
-            spacing: 8
-            Text {
-                Layout.fillWidth: true
-                text:           root._vollbildBeschr + qsTr("  ·  Mausrad: Zoom · Ziehen: Verschieben · Doppelklick: Zoom an/aus")
-                font.pixelSize: 11
-                color:          "#cccccc"
-                elide:          Text.ElideRight
-            }
-            Rectangle {
-                width: 70; height: 24; radius: 3
-                color: closeHover.hovered ? "#33ffffff" : "transparent"
-                border.color: "#666666"
-                Text {
-                    anchors.centerIn: parent
-                    text:           qsTr("✕ Schließen")
-                    font.pixelSize: 10
-                    color:          "#eeeeee"
-                }
-                HoverHandler { id: closeHover }
-                TapHandler   { onTapped: vollbildPopup.close() }
-            }
-        }
+    // ── Vollbild-Popup (REFACTOR-QML-04: ausgelagert) ─────────
+    WikiVollbildPopup {
+        id:    vollbildPopup
+        panel: root
     }
 
     DebugLabel { panelName: qsTr("Wiki-Ansicht"); visible: root.debug }

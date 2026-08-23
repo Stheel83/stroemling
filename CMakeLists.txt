@@ -37,6 +37,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Geraetekasten.cpp
     src/database/Database_Steckverbinder.cpp
     src/database/Database_Kontakt.cpp
+    src/database/Database_Betriebsmittel.cpp
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
     src/database/Database.h
@@ -502,6 +503,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Geraetekasten.cpp
     src/database/Database_Steckverbinder.cpp
     src/database/Database_Kontakt.cpp
+    src/database/Database_Betriebsmittel.cpp
     src/database/Database.h
 )
 

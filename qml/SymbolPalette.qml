@@ -50,6 +50,7 @@ Rectangle {
     // Hover-Großvorschau (Punkt 4)
     property string _hoverCode:    ""
     property string _hoverName:    ""
+    property real   _hoverGlobalX: 0
     property real   _hoverGlobalY: 0
 
     // Verzögertes Schließen: verhindert Flackern beim Wechsel der Maus
@@ -793,6 +794,7 @@ Rectangle {
                     vorschauSchliessTimer.stop()
                     root._hoverCode    = sym.code
                     root._hoverName    = sym.name
+                    root._hoverGlobalX = szHover.mapToItem(null, szHover.width, 0).x
                     root._hoverGlobalY = szHover.mapToItem(null, 0, szHover.height / 2).y
                 }
                 onExited: vorschauSchliessTimer.restart()
@@ -804,7 +806,9 @@ Rectangle {
 
     // ── Hover-Großvorschau ─────────────────────────────────────
     // Analog zum Muster in MakroPalette.qml: Popup rechts neben der Palette,
-    // vertikal an der gehoverten Zeile ausgerichtet.
+    // vertikal an der gehoverten Zeile ausgerichtet. X-Position folgt dem
+    // echten rechten Rand der gehoverten Zeile (nicht root.width) — sonst
+    // überdeckt das Popup je nach Palettenbreite die Zeilenliste selbst.
     Popup {
         id: vorschauGross
         parent:      Overlay.overlay
@@ -814,7 +818,8 @@ Rectangle {
         width:       160
         padding:     8
 
-        x: root.mapToItem(null, root.width + 6, 0).x
+        x: Math.max(8, Math.min(root._hoverGlobalX + 6,
+                                (parent ? parent.width : 800) - width - 8))
         y: Math.max(8, Math.min(root._hoverGlobalY - height / 2,
                                 (parent ? parent.height : 600) - height - 8))
 

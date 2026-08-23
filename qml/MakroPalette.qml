@@ -30,6 +30,7 @@ Item {
 
     // ── Vorschau-Popup ────────────────────────────────────────
     property int  _hoverId:    -1
+    property real _hoverGlobalX: 0
     property real _hoverGlobalY: 0
     property var  _hoverElems:  []
     property string _hoverName: ""
@@ -55,7 +56,8 @@ Item {
         width:       220
         padding:     10
 
-        x: root.mapToItem(null, root.width + 6, 0).x
+        x: Math.max(8, Math.min(root._hoverGlobalX + 6,
+                                (parent ? parent.width : 800) - width - 8))
         y: Math.max(8, Math.min(root._hoverGlobalY - height / 2,
                                 (parent ? parent.height : 600) - height - 8))
 
@@ -219,6 +221,7 @@ Item {
                             root._hoverAnz            = modelData.elementAnzahl
                             root._hoverKastenBreite   = modelData.kastenBreite || 100
                             root._hoverKastenHoehe    = modelData.kastenHoehe  || 100
+                            root._hoverGlobalX        = kachel.mapToItem(null, kachel.width, 0).x
                             root._hoverGlobalY        = kachel.mapToItem(null, 0, kachel.height / 2).y
                             vorschauCanvas.requestPaint()
                         }

@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Database_CsvHelfer.h"
 #include <cmath>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -368,24 +369,16 @@ QVariantList Database::spsIOListe(int projektId)
 bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
 {
     QVariantList kanaele = spsIOListe(projektId);
-    QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
-    QFile file(localPfad);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "spsIOListeCsvSpeichern: Datei nicht schreibbar:" << localPfad;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "spsIOListeCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "\"Adresse\";\"System\";\"Typ\";\"Variable / Tag\";\"Kommentar\";"
            "\"Einheit\";\"Bereich Min\";\"Bereich Max\";"
            "\"Alarm LL\";\"Alarm LO\";\"Alarm HI\";\"Alarm HH\";"
            "\"Protokoll\";\"Element-ID\"\n";
 
-    auto csv = [](const QVariant &v) -> QString {
-        if (v.isNull()) return QString();
-        return v.toString().replace('"', QLatin1String("\"\""));
-    };
+    auto csv = CsvHelfer::escapeImmer;
 
     for (const QVariant &kv : kanaele) {
         QVariantMap k = kv.toMap();
@@ -405,7 +398,7 @@ bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
         out << '"' << csv(k["grafik_element_id"]) << "\"\n";
     }
     file.close();
-    qCInfo(lcDb) << "SPS/PLS I/O-Liste exportiert:" << localPfad << "(" << kanaele.size() << "Kanäle)";
+    qCInfo(lcDb) << "SPS/PLS I/O-Liste exportiert:" << file.fileName() << "(" << kanaele.size() << "Kanäle)";
     return true;
 }
 

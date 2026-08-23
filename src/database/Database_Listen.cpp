@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Database_CsvHelfer.h"
 #include <cmath>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -1128,25 +1129,13 @@ QVariantList Database::klemmenplan(int projektId)
 // ============================================================
 bool Database::klemmenplanCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "klemmenplanCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "klemmenplanCsvSpeichern"))
         return false;
-    }
-
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";  // UTF-8 BOM für Excel
     out << "Leiste;Nr.;Bauteil;Typ;Querschnitt;Farbe;Potenzial;Ort\n";
 
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
 
     for (const QVariant &v : klemmenplan(projektId)) {
         const QVariantMap row = v.toMap();
@@ -1168,22 +1157,12 @@ bool Database::klemmenplanCsvSpeichern(int projektId, const QString &pfad)
 // ============================================================
 bool Database::stuecklisteCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "stuecklisteCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "stuecklisteCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "BMK;Typ;Freitext 1;Freitext 2;Seite;==Anlage;++Ort;=Anlage;+Ort\n";
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
     for (const QVariant &v : stueckliste(projektId)) {
         const QVariantMap row = v.toMap();
         out << csvQ(row[QStringLiteral("bmk")].toString())       << u';'
@@ -1312,22 +1291,12 @@ QVariantList Database::bestellliste(int projektId)
 // ============================================================
 bool Database::bestellisteCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "bestellisteCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "bestellisteCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "Bezeichnung;Hersteller;Artikelnummer;Bestellnummer;Lieferant;Menge;Einheit;Einzelpreis EUR;Summe EUR\n";
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
     for (const QVariant &v : bestellliste(projektId)) {
         const QVariantMap row = v.toMap();
         const double preis = row[QStringLiteral("preisEur")].toDouble();
@@ -1350,22 +1319,12 @@ bool Database::bestellisteCsvSpeichern(int projektId, const QString &pfad)
 // ============================================================
 bool Database::querverweislisteCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "querverweislisteCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "querverweislisteCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "Signalname;Richtung;Seite;Zielseite\n";
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
     for (const QVariant &v : querverweisListe(projektId)) {
         const QVariantMap row = v.toMap();
         out << csvQ(row[QStringLiteral("signalname")].toString()) << u';'
@@ -1381,22 +1340,12 @@ bool Database::querverweislisteCsvSpeichern(int projektId, const QString &pfad)
 // ============================================================
 bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "aderlisteCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "aderlisteCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "Adernummer;Aderfarbe;Querschnitt mm2;Laenge m;Seite;==Anlage;++Ort;=Anlage;+Ort\n";
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
     for (const QVariant &v : aderliste(projektId)) {
         const QVariantMap row = v.toMap();
         QString af  = row[QStringLiteral("aderfarbe")].toString();
@@ -1421,22 +1370,12 @@ bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
 // ============================================================
 bool Database::kabellisteCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "kabellisteCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "kabellisteCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "Kabel-BMK;Kabeltyp;Von-Ort;Nach-Ort;Ader-Nr;Farbe;Bezeichnung;Seite;Netz\n";
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
     for (const QVariant &kv : kabelListeAufgeschluesselt(projektId)) {
         const QVariantMap k = kv.toMap();
         const QString bmk     = k[QStringLiteral("bezeichnung")].toString();

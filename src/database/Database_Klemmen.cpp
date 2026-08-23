@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Database_CsvHelfer.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -713,27 +714,15 @@ QVariantList Database::klemmlistenauszug(int projektId)
 // ============================================================
 bool Database::klemmlistenauszugCsvSpeichern(int projektId, const QString &pfad)
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "klemmlistenauszugCsvSpeichern: kann nicht \xc3\xb6" "ffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "klemmlistenauszugCsvSpeichern"))
         return false;
-    }
-
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "Leiste;Nr.;Von-Anschl.;Von-Verbindung;Von-Signaltyp;Von-Seite;Von-Aderfarbe;Von-Adernr;"
            "Nach-Anschl.;Nach-Verbindung;Nach-Signaltyp;Nach-Seite;Nach-Aderfarbe;Nach-Adernr;"
            "Querschnitt;Farbe\n";
 
-    auto csvQ = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto csvQ = CsvHelfer::escapeBedarf;
     // Bifarb-Ader (farbe2) als "GN/YE" in dieselbe Zelle wie farbe – erhält
     // die bestehende Spaltenanzahl fuer externe CSV-Auswertung.
     auto aderFarbeText = [](const QVariantMap &r, const QString &fKey, const QString &f2Key) -> QString {

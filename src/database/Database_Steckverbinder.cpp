@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Database_CsvHelfer.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -105,22 +106,12 @@ QVariantList Database::steckverbinderListe(int projektId) const
 // ── steckverbinderlisteCsvSpeichern ─────────────────────────────────────────
 bool Database::steckverbinderlisteCsvSpeichern(int projektId, const QString &pfad) const
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "steckverbinderlisteCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "steckverbinderlisteCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "BMK;Bezeichnung;Bauteil/Typ;Hersteller;Artikelnr.;Polzahl;IP gesteckt;IP getrennt;Kodierung;Verriegelung;Geschirmt;Anlage;Ort;Seite\n";
-    auto q = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto q = CsvHelfer::escapeBedarf;
     for (const QVariant &v : steckverbinderListe(projektId)) {
         const QVariantMap row = v.toMap();
         out << q(row["bmk"].toString())          << u';'
@@ -330,22 +321,12 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
 // ── steckverbinderBelegungsplanCsvSpeichern ──────────────────────────────────
 bool Database::steckverbinderBelegungsplanCsvSpeichern(int projektId, const QString &pfad) const
 {
-    QString localPath = QUrl(pfad).toLocalFile();
-    if (localPath.isEmpty()) localPath = pfad;
-    QFile file(localPath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "steckverbinderBelegungsplanCsvSpeichern: kann nicht öffnen:" << localPath;
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "steckverbinderBelegungsplanCsvSpeichern"))
         return false;
-    }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << "\xEF\xBB\xBF";
     out << "GK-BMK;Typ;Symbol-BMK;Pin;Signal;Aderfarbe;Querschnitt mm²;Seite\n";
-    auto q = [](const QString &s) -> QString {
-        if (s.contains(u';') || s.contains(u'"') || s.contains(u'\n'))
-            return u'"' + QString(s).replace(u'"', QLatin1String("\"\"")) + u'"';
-        return s;
-    };
+    auto q = CsvHelfer::escapeBedarf;
     QString currentGkBmk;
     for (const QVariant &v : steckverbinderBelegungsplan(projektId)) {
         const QVariantMap row = v.toMap();

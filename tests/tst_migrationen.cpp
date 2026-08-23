@@ -224,6 +224,43 @@ private slots:
                  qPrintable("Karteileichen in `symbol` ohne symbol_definition (Platzieren schlägt fehl): "
                             + verwaistListe.join(", ")));
     }
+
+    void test_09_symbolPinPrimitivDuplikate()
+    {
+        // SCHEMA-VERSION-BUMP-TEST-01: INSERT OR IGNORE auf symbol_pin/
+        // symbol_primitiv (autoincrement-PK, keine natuerliche Eindeutigkeit)
+        // hat bereits dreimal (v97, v119->123, v127/SEED-DUPLIKAT-01) Zeilen
+        // lautlos verdoppelt, wenn eine Migration ein Symbol trifft, das im
+        // Zielprojekt schon lokal existierte (INSERT OR IGNORE greift dort
+        // nicht, DELETE+INSERT-Migrationen fuer bereits vorhandene IDs legen
+        // dann Duplikate an). Prueft direkt auf die fehlende natuerliche
+        // Eindeutigkeit statt gegen symbole.sql zu parsen.
+        QSqlQuery q(QSqlDatabase::database());
+
+        QVERIFY(q.exec("SELECT symbol_id, reihenfolge, COUNT(*) AS anzahl "
+                        "FROM symbol_primitiv GROUP BY symbol_id, reihenfolge HAVING COUNT(*) > 1"));
+        QStringList primitivDuplikate;
+        while (q.next())
+            primitivDuplikate << QString("%1 (reihenfolge=%2, %3x)")
+                                      .arg(q.value(0).toString())
+                                      .arg(q.value(1).toInt())
+                                      .arg(q.value(2).toInt());
+        QVERIFY2(primitivDuplikate.isEmpty(),
+                 qPrintable("Duplikate in symbol_primitiv (symbol_id, reihenfolge): "
+                            + primitivDuplikate.join(", ")));
+
+        QVERIFY(q.exec("SELECT symbol_id, name, COUNT(*) AS anzahl "
+                        "FROM symbol_pin GROUP BY symbol_id, name HAVING COUNT(*) > 1"));
+        QStringList pinDuplikate;
+        while (q.next())
+            pinDuplikate << QString("%1 (name=%2, %3x)")
+                                .arg(q.value(0).toString())
+                                .arg(q.value(1).toString())
+                                .arg(q.value(2).toInt());
+        QVERIFY2(pinDuplikate.isEmpty(),
+                 qPrintable("Duplikate in symbol_pin (symbol_id, name): "
+                            + pinDuplikate.join(", ")));
+    }
 };
 
 QTEST_GUILESS_MAIN(TstMigrationen)

@@ -266,6 +266,7 @@ Item {
                     // ── Rack-Liste (links) ────────────────────────
                     ColumnLayout {
                         Layout.preferredWidth: 200
+                        Layout.maximumWidth: 200
                         Layout.fillHeight: true
                         spacing: 0
 
@@ -559,6 +560,7 @@ Item {
             // ── Tab 1: Kanäle / Adressen ──────────────────────────
             Item {
                 ColumnLayout {
+                    id: kanaeleSpalte
                     anchors.fill: parent
                     spacing: 0
 
@@ -585,7 +587,7 @@ Item {
                             }
                             Item { Layout.fillWidth: true }
                             Label {
-                                text: _gefiltert.length + " " + qsTr("Kanäle")
+                                text: kanaeleSpalte._gefiltert.length + " " + qsTr("Kanäle")
                                 color: root.theme.textMuted
                                 font.pixelSize: 11
                             }
@@ -641,7 +643,7 @@ Item {
                         id: kanalListView
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        model: parent._gefiltert
+                        model: kanaeleSpalte._gefiltert
                         clip: true
 
                         delegate: Rectangle {

@@ -193,7 +193,7 @@ static const QLatin1String _spsKanalSelectBase(
     "sk.pls_alarm_ll, sk.pls_alarm_lo, sk.pls_alarm_hi, sk.pls_alarm_hh, "
     "sk.pls_hart_adresse, sk.pls_protokoll, "
     "sr.id AS rack_id, sr.rack_nr, sr.system_typ, sb.slot, "
-    "ge.extra_daten AS element_extra_daten, se.name AS seite_name "
+    "ge.extra_daten AS element_extra_daten, se.bezeichnung AS seite_name "
     "FROM sps_kanal sk "
     "LEFT JOIN sps_baugruppe  sb ON sb.id = sk.baugruppe_id "
     "LEFT JOIN sps_rack       sr ON sr.id = sb.rack_id "

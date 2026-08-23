@@ -242,8 +242,9 @@ ApplicationWindow {
     Settings {
         id: panelBreiten
         category: "panels"
-        property int sidebarBreite:    200
-        property int seitenBaumBreite: 280
+        property int sidebarBreite:      200
+        property int seitenBaumBreite:   280
+        property int symbolPaletteBreite: 130
     }
 
     Settings {
@@ -938,7 +939,7 @@ ApplicationWindow {
 
                     SymbolPalette {
                         id:                    symbolPalette
-                        Layout.preferredWidth: 130
+                        Layout.preferredWidth: panelBreiten.symbolPaletteBreite
                         Layout.fillHeight:     true
                         theme:                 appTheme
                         debug:                 root.debugModeAktiv
@@ -967,13 +968,39 @@ ApplicationWindow {
                             root.symbolEditorVorlageId = quellId
                             root.aktiveAnsicht         = "symbol_editor"
                         }
+
+                        onWidthChanged: if (width >= 90) panelBreiten.symbolPaletteBreite = width
                     }
 
-                    //\u2500\u2500 Arbeitsbereich: ein oder zwei CanvasPanels \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+                    // Drag-Handle SymbolPalette \u2194 Canvas
                     Rectangle {
-                        width:             1
+                        id:                symbolPaletteGriff
+                        width:             4
                         Layout.fillHeight: true
-                        color:             appTheme.border
+                        color:             symbolPaletteMa.pressed || symbolPaletteMa.containsMouse
+                                           ? appTheme.accent : appTheme.border
+
+                        MouseArea {
+                            id:          symbolPaletteMa
+                            anchors.fill: parent
+                            cursorShape: Qt.SizeHorCursor
+                            hoverEnabled: true
+
+                            property real _startSceneX: 0
+                            property real _startW:      0
+
+                            onPressed: (mouse) => {
+                                _startSceneX = mapToItem(null, mouse.x, mouse.y).x
+                                _startW      = symbolPalette.Layout.preferredWidth
+                            }
+                            onPositionChanged: (mouse) => {
+                                if (!pressed) return
+                                var sceneX = mapToItem(null, mouse.x, mouse.y).x
+                                var newW   = Math.max(90, Math.min(400, _startW + sceneX - _startSceneX))
+                                symbolPalette.Layout.preferredWidth = newW
+                                panelBreiten.symbolPaletteBreite    = newW
+                            }
+                        }
                     }
 
                     SplitView {

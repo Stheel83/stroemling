@@ -31,7 +31,7 @@ public:
     // freie Versionsnummer erhöht und alleMigrationen() auf den neuen Baseline-
     // Eintrag zurückgesetzt.
     static const int BASELINE_VERSION        = 56;
-    static const int CURRENT_SCHEMA_VERSION  = 128;
+    static const int CURRENT_SCHEMA_VERSION  = 129;
     static const int WIKI_SCHEMA_VERSION     = 15;
     static const int BIBLIOTHEK_SCHEMA_VERSION = 6;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
@@ -732,6 +732,7 @@ public:
                                                         int adressByteStart,
                                                         const QString &kommentar);
     Q_INVOKABLE bool         spsBaugruppeLoeschen(int id);
+    Q_INVOKABLE bool         spsBaugruppeBetriebsmittelSetzen(int baugruppeId, int betriebsmittelId);
 
     // Kanal (einzelner I/O-Punkt / SPS-Variable / PLS-Messpunkt)
     // Gibt [{id, adresse, adress_typ, byte_nr, bit_nr, datentyp, variablenname, kommentar,

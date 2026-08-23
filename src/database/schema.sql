@@ -491,7 +491,8 @@ CREATE TABLE sps_baugruppe (
     kanaele           INTEGER NOT NULL DEFAULT 8,
     datentyp_standard TEXT    NOT NULL DEFAULT 'BOOL',
     adress_byte_start INTEGER NOT NULL DEFAULT 0,
-    kommentar         TEXT
+    kommentar         TEXT,
+    betriebsmittel_id INTEGER REFERENCES betriebsmittel(id)
 );
 
 CREATE TABLE sps_kanal (

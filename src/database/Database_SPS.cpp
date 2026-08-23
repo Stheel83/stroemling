@@ -87,9 +87,11 @@ QVariantList Database::spsBaugruppeListe(int rackId)
 {
     QVariantList result;
     QSqlQuery q(m_db);
-    q.prepare("SELECT id, rack_id, slot, typ, bezeichnung, artikel_nr, kanaele, "
-              "datentyp_standard, adress_byte_start, kommentar "
-              "FROM sps_baugruppe WHERE rack_id = :rid ORDER BY slot");
+    q.prepare("SELECT b.id, b.rack_id, b.slot, b.typ, b.bezeichnung, b.artikel_nr, b.kanaele, "
+              "b.datentyp_standard, b.adress_byte_start, b.kommentar, b.betriebsmittel_id, "
+              "bm.betriebsmittel_kz "
+              "FROM sps_baugruppe b LEFT JOIN betriebsmittel bm ON bm.id = b.betriebsmittel_id "
+              "WHERE b.rack_id = :rid ORDER BY b.slot");
     q.bindValue(":rid", rackId);
     if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeListe:" << q.lastError().text(); return result; }
     while (q.next()) {
@@ -104,6 +106,8 @@ QVariantList Database::spsBaugruppeListe(int rackId)
         m["datentyp_standard"] = q.value(7).toString();
         m["adress_byte_start"] = q.value(8).toInt();
         m["kommentar"]         = q.value(9).toString();
+        m["betriebsmittel_id"] = q.value(10).isNull() ? 0 : q.value(10).toInt();
+        m["betriebsmittel_kz"] = q.value(11).toString();
         result.append(m);
     }
     return result;
@@ -144,6 +148,16 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
     q.bindValue(":kom",  kommentar);
     q.bindValue(":id",   id);
     if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeAktualisieren:" << q.lastError().text(); return false; }
+    return true;
+}
+
+bool Database::spsBaugruppeBetriebsmittelSetzen(int baugruppeId, int betriebsmittelId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE sps_baugruppe SET betriebsmittel_id=:bid WHERE id=:id");
+    q.bindValue(":bid", betriebsmittelId > 0 ? QVariant(betriebsmittelId) : QVariant(QMetaType::fromType<int>()));
+    q.bindValue(":id",  baugruppeId);
+    if (!q.exec()) { qCWarning(lcDb) << "spsBaugruppeBetriebsmittelSetzen:" << q.lastError().text(); return false; }
     return true;
 }
 

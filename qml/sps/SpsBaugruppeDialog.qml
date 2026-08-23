@@ -8,9 +8,12 @@ Dialog {
 
     property var theme
     property int rackId: -1
+    property int projektId: -1
 
     property bool _istNeu: true
     property int  _editId: -1
+    property int  _betriebsmittelId: 0
+    property string _betriebsmittelKz: ""
 
     signal gespeichert(int newId)
     signal fehler(string meldung)
@@ -72,6 +75,92 @@ Dialog {
             contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
+
+        Label {
+            text: qsTr("Platzierung")
+            color: root.theme.textPrimary
+            visible: !root._istNeu
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            visible: !root._istNeu
+            spacing: 6
+
+            Text {
+                Layout.fillWidth: true
+                text: root._betriebsmittelId > 0
+                      ? qsTr("verknüpft mit %1").arg(root._betriebsmittelKz)
+                      : qsTr("nicht platziert")
+                color: root._betriebsmittelId > 0 ? root.theme.textPrimary : root.theme.textMuted
+                elide: Text.ElideRight
+            }
+            Button {
+                text: root._betriebsmittelId > 0 ? qsTr("Ändern…") : qsTr("Verknüpfen…")
+                onClicked: verknuepfenPopup.open()
+            }
+            Button {
+                text: qsTr("Entfernen")
+                visible: root._betriebsmittelId > 0
+                onClicked: {
+                    db.spsBaugruppeBetriebsmittelSetzen(root._editId, 0)
+                    root._betriebsmittelId = 0
+                    root._betriebsmittelKz = ""
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: verknuepfenPopup
+        parent: Overlay.overlay
+        modal: true
+        anchors.centerIn: parent
+        width: 280
+        height: 320
+        padding: 8
+
+        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 5 }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 6
+
+            Text {
+                text: qsTr("Betriebsmittel wählen")
+                color: root.theme.textPrimary
+                font.pixelSize: 13; font.weight: Font.Medium
+            }
+
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: verknuepfenPopup.visible ? db.betriebsmittelListe(root.projektId) : []
+                delegate: Rectangle {
+                    width: ListView.view.width
+                    height: 30
+                    color: bmMa.containsMouse ? root.theme.hover : "transparent"
+                    Text {
+                        anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                        verticalAlignment: Text.AlignVCenter
+                        color: root.theme.textPrimary
+                        text: (modelData.kz || "") + "  " + (modelData.bezeichnung || "")
+                        elide: Text.ElideRight
+                    }
+                    MouseArea {
+                        id: bmMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            db.spsBaugruppeBetriebsmittelSetzen(root._editId, modelData.id)
+                            root._betriebsmittelId = modelData.id
+                            root._betriebsmittelKz = modelData.kz || ""
+                            verknuepfenPopup.close()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     function oeffnenNeu() {
@@ -79,6 +168,7 @@ Dialog {
         bgSlotSpin.value = 0; bgTypCombo.currentIndex = 2
         bgBezField.text = ""; bgArtNrField.text = ""
         bgKanaeleSpin.value = 8; bgStartbyteSpin.value = 0
+        _betriebsmittelId = 0; _betriebsmittelKz = ""
         open()
     }
 
@@ -90,6 +180,8 @@ Dialog {
         bgArtNrField.text = bg.artikel_nr
         bgKanaeleSpin.value = bg.kanaele
         bgStartbyteSpin.value = bg.adress_byte_start
+        _betriebsmittelId = bg.betriebsmittel_id || 0
+        _betriebsmittelKz = bg.betriebsmittel_kz || ""
         open()
     }
 

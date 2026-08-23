@@ -100,17 +100,12 @@ Column {
                             }
                         }
 
-                        // Trennlinie zwischen Anschlussbelegung und generischer Liste
-                        Rectangle {
-                            width: parent.width - 8; height: 1
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            color: root.theme.border
-                            visible: kontaktPicker._hatAnschluesse
-                        }
-
-                        // ── Generische Symbolliste (immer sichtbar) ───
+                        // ── Generische Relais-Fallback-Liste ──────────
+                        // Nur wenn das Bauteil keine eigenen bauteil_kontakt-
+                        // Einträge hat (sonst nur verwirrender Ballast, z.B.
+                        // bei einer SPS-Karte mit eigenem Kanal-Katalog).
                         Repeater {
-                            model: [
+                            model: kontaktPicker._hatAnschluesse ? [] : [
                                 { id: "schliesser",  name: qsTr("Schließer (NO)") },
                                 { id: "oeffner",     name: qsTr("Öffner (NC)") },
                                 { id: "wechsler",    name: qsTr("Wechsler") },

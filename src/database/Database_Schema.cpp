@@ -2111,6 +2111,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DELETE FROM symbol WHERE code='kfz_zuendschloss')",
             R"(DELETE FROM symbol_definition WHERE id='kfz_zuendschloss')",
         }},
+        { 129, "SPS-KANAL-BETRIEBSMITTEL-01: sps_baugruppe.betriebsmittel_id fuer Verknuepfung mit platzierter Kartenintanz (Hardware-Tab weiss dadurch, welche Karte wo/mit welcher BMK platziert ist).", {
+            R"(ALTER TABLE sps_baugruppe ADD COLUMN betriebsmittel_id INTEGER REFERENCES betriebsmittel(id))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

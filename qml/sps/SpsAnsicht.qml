@@ -142,6 +142,7 @@ Item {
         id: bgDialog
         theme: root.theme
         rackId: root._ausgewaehlterRackId
+        projektId: root.projektId
         onGespeichert: function(newId) {
             if (newId > 0) root._ausgewaehlterBaugruppeId = newId
             _ladeBaugruppen()
@@ -440,6 +441,7 @@ Item {
                                 Label { text: qsTr("Bezeichnung"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
                                 Label { text: qsTr("Kanäle"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 55 }
                                 Label { text: qsTr("Startbyte"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
+                                Label { text: qsTr("Platziert"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 60 }
                                 Item { Layout.preferredWidth: 54 }
                             }
                         }
@@ -492,6 +494,12 @@ Item {
                                         color: root.theme.textMuted
                                         Layout.preferredWidth: 70
                                         horizontalAlignment: Text.AlignRight
+                                    }
+                                    Label {
+                                        text: modelData.betriebsmittel_id > 0 ? modelData.betriebsmittel_kz : "–"
+                                        color: modelData.betriebsmittel_id > 0 ? root.theme.textPrimary : root.theme.textMuted
+                                        Layout.preferredWidth: 60
+                                        elide: Text.ElideRight
                                     }
                                     RoundButton {
                                         text: "⚡"

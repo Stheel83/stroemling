@@ -66,14 +66,14 @@ Item {
             border.color: root.theme.accent
             border.width: 1
             radius: 5
-        }
 
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled:  true
-            acceptedButtons: Qt.NoButton
-            onEntered: vorschauSchliessTimer.stop()
-            onExited:  vorschauSchliessTimer.restart()
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled:  true
+                acceptedButtons: Qt.NoButton
+                onEntered: vorschauSchliessTimer.stop()
+                onExited:  vorschauSchliessTimer.restart()
+            }
         }
 
         ColumnLayout {

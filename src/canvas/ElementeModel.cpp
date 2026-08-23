@@ -361,6 +361,22 @@ void ElementeModel::elementAktualisieren(int idx, const QVariantMap &felder)
     emit geaendert();
 }
 
+void ElementeModel::elementeAktualisieren(const QVariantList &updates)
+{
+    for (const QVariant &v : updates) {
+        const QVariantMap felder = v.toMap();
+        const int idx = felder.value(QStringLiteral("idx"), -1).toInt();
+        if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) continue;
+        GrafikElement &el = m_elemente[idx];
+        for (auto it = felder.constBegin(); it != felder.constEnd(); ++it) {
+            if (it.key() == QLatin1String("idx")) continue;
+            applyField(el, it.key(), it.value());
+        }
+    }
+    invalidateSnapshotCache();
+    emit geaendert();
+}
+
 // ── Undo / Redo ──────────────────────────────────────────────────────────────
 
 void ElementeModel::undoCheckpoint()

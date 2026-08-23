@@ -252,22 +252,26 @@ MouseArea {
                     dwX = sn.x - snapOffX - sp0.x1; dwY = sn.y - snapOffY - sp0.y1
                 }
 
+                // Nur die ausgewählten Elemente patchen statt die ganze Seite
+                // neu zu bauen (OPT-DRAG-BATCH-01) — bei vielen Elementen pro
+                // Seite sonst O(Seitengröße) statt O(Auswahlgröße) pro Mausbewegung.
                 var selArr   = canvas.auswahl.slice()
                 var startArr = canvas.verschiebenStartPos
-                var neu = em.snapshot().map(function(el, i) {
-                    var si = selArr.indexOf(i)
-                    if (si < 0) return el
-                    var upd2 = {}; for (var k in el) upd2[k] = el[k]
-                    var sp = startArr ? startArr[si]
-                                      : { x1: canvas.verschiebenStartX1, y1: canvas.verschiebenStartY1,
-                                          x2: canvas.verschiebenStartX2, y2: canvas.verschiebenStartY2 }
-                    upd2.x1 = sp.x1 + dwX; upd2.y1 = sp.y1 + dwY
-                    upd2.x2 = sp.x2 + dwX; upd2.y2 = sp.y2 + dwY
-                    if (el.typ === "polygonlinie" && sp.punkte)
+                var updates = []
+                for (var si = 0; si < selArr.length; si++) {
+                    var idx = selArr[si]
+                    var elS = em.element(idx)
+                    var sp  = startArr ? startArr[si]
+                                       : { x1: canvas.verschiebenStartX1, y1: canvas.verschiebenStartY1,
+                                           x2: canvas.verschiebenStartX2, y2: canvas.verschiebenStartY2 }
+                    var upd2 = { idx: idx,
+                                 x1: sp.x1 + dwX, y1: sp.y1 + dwY,
+                                 x2: sp.x2 + dwX, y2: sp.y2 + dwY }
+                    if (elS.typ === "polygonlinie" && sp.punkte)
                         upd2.punkte = sp.punkte.map(function(p) { return { x: p.x + dwX, y: p.y + dwY } })
-                    return upd2
-                })
-                em.fromVariantList(neu)
+                    updates.push(upd2)
+                }
+                em.elementeAktualisieren(updates)
                 canvas.auswahl = selArr
                 canvas.neuZeichnen()
             }

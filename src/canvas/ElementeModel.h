@@ -58,6 +58,10 @@ public:
 
     Q_INVOKABLE void eigenschaftSetzen(int idx, const QString &key, const QVariant &value);
     Q_INVOKABLE void elementAktualisieren(int idx, const QVariantMap &felder);
+    // Wie elementAktualisieren(), aber für mehrere Elemente in einem Rutsch
+    // (ein geaendert()/Repaint statt N) — für Live-Drags (Verschieben) mit
+    // Mehrfachauswahl. updates: Liste von Feldmaps, je mit Pflichtschlüssel "idx".
+    Q_INVOKABLE void elementeAktualisieren(const QVariantList &updates);
 
     // ── Gruppen ───────────────────────────────────────────────
     Q_INVOKABLE int          gruppeErstellen(const QVariantList &indizes);

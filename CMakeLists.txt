@@ -158,6 +158,17 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaGeraetekastenAnsicht.qml
         qml/ba/BaMakroBibliothek.qml
 
+        qml/sb/SbSeiteLoeschenDialog.qml
+        qml/sb/SbAnlageOrtLoeschenDialog.qml
+        qml/sb/SbAnlageDialog.qml
+        qml/sb/SbOrtDialog.qml
+        qml/sb/SbSeiteDialog.qml
+        qml/sb/SbAnlageBearbeitenDialog.qml
+        qml/sb/SbOrtBearbeitenDialog.qml
+        qml/sb/SbSeiteBearbeitenDialog.qml
+        qml/sb/SbSeiteVerschiebenDialog.qml
+        qml/sb/SbOrtVerschiebenDialog.qml
+
         qml/la/LaCsvLeiste.qml
         qml/la/LaSpaltenHeader.qml
         qml/la/LaTabStueckliste.qml

@@ -986,13 +986,11 @@ static bool pdfSegmentFuerPunkt(double cx, double cy,
     }
     return false;
 }
-
-// Einzelnes grafik_element rendern
-static void pdfElementRendern(QPainter &p, const QVariantMap &el,
-                               double C, double pxPerMm, const QSqlDatabase &db,
-                               const QVector<PdfLeitungsSegment> *leitungsSegs = nullptr)
+// pdfElementRendern() Typ-Handler (REFACTOR-CPP-02: aus pdfElementRendern() extrahiert)
+static void pdfElementLinieRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
 {
-    QString typ = el.value("typ").toString();
     double x1 = el.value("x1").toDouble() * C;
     double y1 = el.value("y1").toDouble() * C;
     double x2 = el.value("x2").toDouble() * C;
@@ -1003,12 +1001,25 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
     QPen pen = pdfPen(el, strichBr);
 
-    if (typ == "linie") {
         p.setPen(pen);
         p.setBrush(Qt::NoBrush);
         p.drawLine(QLineF(x1, y1, x2, y2));
+}
 
-    } else if (typ == "polygonlinie") {
+static void pdfElementPolygonlinieRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         QVariantList pts = el.value("punkte").toList();
         if (pts.size() < 2) return;
         QVector<QPointF> poly;
@@ -1019,8 +1030,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         p.setPen(pen);
         p.setBrush(Qt::NoBrush);
         p.drawPolyline(poly.data(), poly.size());
+}
 
-    } else if (typ == "rechteck") {
+static void pdfElementRechteckRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         p.setPen(pen);
         double er = el.value("eckenRadius", 0.0).toDouble() * pxPerMm;
         bool fu   = el.value("fuell").toBool();
@@ -1035,8 +1060,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             p.drawRoundedRect(QRectF(x1, y1, sw, sh), er, er);
         else
             p.drawRect(QRectF(x1, y1, sw, sh));
+}
 
-    } else if (typ == "kreis") {
+static void pdfElementKreisRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         double dx = x2 - x1, dy = y2 - y1;
         double r  = qSqrt(dx*dx + dy*dy);
         if (r < 0.5) return;
@@ -1050,8 +1089,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             p.setBrush(Qt::NoBrush);
         }
         p.drawEllipse(QPointF(x1, y1), r, r);
+}
 
-    } else if (typ == "text") {
+static void pdfElementTextRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         QString inhalt = el.value("textInhalt").toString();
         if (inhalt.isEmpty()) return;
         QVariantMap edTxt = el.value("extraDaten").toMap();
@@ -1086,8 +1139,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             p.drawText(QRectF(0, i * lineH, qMax(qAbs(sw), 200.0), fsDev * 1.5),
                        qa | Qt::AlignTop, lines[i]);
         p.restore();
+}
 
-    } else if (typ == "bild") {
+static void pdfElementBildRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         QVariant bildVar = el.value("bildDaten");
         if (!bildVar.isValid()) return;
         QString dataUrl = bildVar.toString();
@@ -1122,8 +1189,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             p.drawImage(QRectF(-bw/2, -bh/2, bw, bh), img);
         }
         p.restore();
+}
 
-    } else if (typ == "notiz") {
+static void pdfElementNotizRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         double rx = qMin(x1,x2), ry = qMin(y1,y2);
         double rw = qAbs(sw),    rh = qAbs(sh);
         if (rw < 2 || rh < 2) return;
@@ -1156,8 +1237,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         double pad = qMax(4.0, fsDev * 0.35);
         p.drawText(QRectF(rx + pad, ry + pad, rw - 2*pad, rh - 2*pad),
                    Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, text);
+}
 
-    } else if (typ == "kabellinie") {
+static void pdfElementKabellinieRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         // Gestrichelte orange Linie
         QPen kPen;
         kPen.setColor(pdfFarbe(el.value("strichFarbe").toString(), QColor(224,112,0)));
@@ -1249,8 +1344,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                 }
             }
         }
+}
 
-    } else if (typ == "geraetekasten") {
+static void pdfElementGeraetekastenRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         double rx = qMin(x1,x2), ry = qMin(y1,y2);
         double rw = qAbs(sw),    rh = qAbs(sh);
         double er = 4.0 * 0.25 * pxPerMm;
@@ -1284,8 +1393,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             p.setFont(f); p.setPen(pen.color());
             p.drawText(QRectF(rx+pad, ty, rw-2*pad, fsDev2*1.4), Qt::AlignLeft|Qt::AlignTop, descr);
         }
+}
 
-    } else if (typ == "strukturkasten") {
+static void pdfElementStrukturkastenRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         double rx = qMin(x1,x2), ry = qMin(y1,y2);
         double rw = qAbs(sw),    rh = qAbs(sh);
         double skEr = el.value("eckenRadius", 0.0).toDouble() * pxPerMm;
@@ -1322,8 +1445,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             p.drawText(QRectF(rx + off, ry + off, rw - 2*off, fsDev*1.4),
                        Qt::AlignLeft | Qt::AlignTop, bez);
         }
+}
 
-    } else if (typ == "makrokasten") {
+static void pdfElementMakrokastenRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         double rx = qMin(x1,x2), ry = qMin(y1,y2);
         double rw = qAbs(sw),    rh = qAbs(sh);
         double mkEr = el.value("eckenRadius", 0.0).toDouble() * pxPerMm;
@@ -1341,8 +1478,22 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
         if (mkEr > 0.5) p.drawRoundedRect(QRectF(rx, ry, rw, rh), mkEr, mkEr);
         else            p.drawRect(QRectF(rx, ry, rw, rh));
         p.setBrush(Qt::NoBrush);
+}
 
-    } else if (typ == "symbol") {
+static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
         double absSw = qAbs(sw), absSh = qAbs(sh);
         if (absSw < 0.5 || absSh < 0.5) return;
         double symX = qMin(x1, x2);
@@ -1747,7 +1898,26 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
             }
             paDone:;
         }
-    }
+}
+
+// Einzelnes grafik_element rendern (Dispatcher, s. Typ-Handler oben)
+static void pdfElementRendern(QPainter &p, const QVariantMap &el,
+                               double C, double pxPerMm, const QSqlDatabase &db,
+                               const QVector<PdfLeitungsSegment> *leitungsSegs = nullptr)
+{
+    QString typ = el.value("typ").toString();
+    if (typ == "linie") pdfElementLinieRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "polygonlinie") pdfElementPolygonlinieRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "rechteck") pdfElementRechteckRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "kreis") pdfElementKreisRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "text") pdfElementTextRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "bild") pdfElementBildRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "notiz") pdfElementNotizRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "kabellinie") pdfElementKabellinieRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "geraetekasten") pdfElementGeraetekastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "strukturkasten") pdfElementStrukturkastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "makrokasten") pdfElementMakrokastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "symbol") pdfElementSymbolRendern(p, el, C, pxPerMm, db, leitungsSegs);
 }
 
 // Aderbezeichnungen an Kabellinie-Schnittpunkten rendern

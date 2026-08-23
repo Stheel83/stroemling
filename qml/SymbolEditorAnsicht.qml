@@ -268,20 +268,6 @@ Item {
         _kopierModus   = false
     }
 
-    function kopiereInZwischenablage(text) {
-        klipboardHelper.text = text
-        klipboardHelper.selectAll()
-        klipboardHelper.copy()
-    }
-
-    // SYM-KOPIE-VON-01/-EXPORT-01: liefert direkt einsetzbares SQL statt
-    // roher INSERTs, die Claude von Hand in eine Migration umbauen müsste.
-    // Logik in SeSqlExport.qml ausgelagert (REFACTOR-QML-05) — reine
-    // Funktion ohne Root-Canvas-Kopplung. Dünner Delegations-Wrapper hier,
-    // damit die externe API (editor.sqlAlsText(...) aus SeEditorHeader.qml)
-    // unverändert bleibt.
-    function sqlAlsText(symbolId) { return sqlExport.sqlAlsText(symbolId) }
-
     // ── Snap-to-Grid (0.5-mm-Raster) ──────────────────────────────
     // Snap auf 0.5mm: breiteMm * 2 Schritte in X, hoeheMm * 2 Schritte in Y
     function snapX(v) { return Math.round(v * root.breiteMm * 2) / (root.breiteMm * 2) }
@@ -551,9 +537,6 @@ Item {
             root.loeschenSymbolName = ""
         }
     }
-
-    TextEdit { id: klipboardHelper; visible: false; width: 0; height: 0 }
-    SeSqlExport { id: sqlExport }
 
     // ── Hauptlayout ────────────────────────────────────────────────
     RowLayout {

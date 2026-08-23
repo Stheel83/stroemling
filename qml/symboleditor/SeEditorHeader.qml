@@ -260,37 +260,6 @@ Rectangle {
                 ToolTip.text: qsTr("Aktives Symbol als neue bearbeitbare Kopie anlegen")
             }
 
-            // Overflow-Menü — SE-HEADER-ZWEIZEILIG-01: SQL-Export ist ein
-            // Werkzeug für Nutzer ohne Kopie-Marken-Workflow (§6.4/6.5) und
-            // tritt dafür optisch zurück, bleibt aber erreichbar.
-            Rectangle {
-                id: overflowBtn
-                visible: editor.editSymbolId !== ""
-                implicitWidth: 28; implicitHeight: 28
-                radius: 4
-                color: overflowHover.hovered || sqlMenu.visible ? editor.theme.hover : editor.theme.inputBg
-                border.color: editor.theme.border
-
-                Text { anchors.centerIn: parent; text: "⋮"; font.pixelSize: 16; color: editor.theme.textSecondary }
-                HoverHandler { id: overflowHover }
-                TapHandler { onTapped: sqlMenu.open() }
-                ToolTip.visible: overflowHover.hovered && !sqlMenu.visible; ToolTip.delay: 600
-                ToolTip.text: qsTr("Weitere Aktionen")
-
-                Menu {
-                    id: sqlMenu
-                    y: parent.height + 2
-                    MenuItem {
-                        text: qsTr("SQL-Block kopieren")
-                        onTriggered: {
-                            var sql = editor.sqlAlsText(editor.editSymbolId)
-                            editor.kopiereInZwischenablage(sql)
-                            meldungManager.zeigen(qsTr("SQL-Block in Zwischenablage kopiert"), false)
-                        }
-                    }
-                }
-            }
-
             Button {
                 text: qsTr("Abbrechen")
                 implicitHeight: 28; implicitWidth: 90

@@ -171,6 +171,11 @@ qt_add_qml_module(stroemling_app
         qml/sb/SbSeiteBearbeitenDialog.qml
         qml/sb/SbSeiteVerschiebenDialog.qml
         qml/sb/SbOrtVerschiebenDialog.qml
+        qml/sb/SbBauteileKlemmenleisten.qml
+        qml/sb/SbBauteileGeraete.qml
+        qml/sb/SbBauteileKabel.qml
+        qml/sb/SbBauteileGeraetekaesten.qml
+        qml/sb/SbBauteileBibliothek.qml
 
         qml/la/LaCsvLeiste.qml
         qml/la/LaSpaltenHeader.qml

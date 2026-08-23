@@ -54,6 +54,19 @@ Item {
         if (_katIdx >= _kategorien.length) _katIdx = _kategorien.length - 1
     }
 
+    function _kategorieLoeschen(kat) {
+        if (db.wikiKategorieLoeschen(kat.id)) {
+            meldungManager.zeigen(qsTr("Kategorie „%1“ gelöscht").arg(kat.name), true)
+            root._katIdx     = -1
+            root._artikel    = []
+            root._artIdx     = -1
+            root._aktArtikel = ({})
+            root._kategorienLaden()
+        } else {
+            meldungManager.zeigen(qsTr("„%1“ enthält noch Artikel – erst leeren, dann löschen").arg(kat.name), false)
+        }
+    }
+
     function _artikelLaden(katId) {
         _artikel = db.wikiArtikelFuerKategorie(katId)
         _artIdx = -1
@@ -366,12 +379,25 @@ Item {
 
                         Text {
                             id: katNameText
-                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter; right: parent.right; rightMargin: 8 }
+                            anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter; right: parent.right; rightMargin: 30 }
                             text:           modelData.name
                             font.pixelSize: 12
                             color:          root._katIdx === index ? root.theme.accent : root.theme.textPrimary
                             elide:          Text.ElideRight
                             visible:        !katDeleg._editModus
+                        }
+
+                        Rectangle {
+                            anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
+                            width: 20; height: 20; radius: 3
+                            visible: katDelegHover.hovered && !katDeleg._editModus
+                            color: katDelHover.hovered ? root.theme.hover : "transparent"
+                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: root.theme.textMuted }
+                            ToolTip.visible: katDelHover.hovered
+                            ToolTip.text:    qsTr("Kategorie löschen")
+                            ToolTip.delay:   700
+                            HoverHandler { id: katDelHover }
+                            TapHandler { onTapped: root._kategorieLoeschen(modelData) }
                         }
 
                         TextField {

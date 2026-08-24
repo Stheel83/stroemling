@@ -1442,8 +1442,13 @@ static void pdfElementStrukturkastenRendern(QPainter &p, const QVariantMap &el,
         QString bez = ed.value("bezeichnung").toString();
         if (!bez.isEmpty()) {
             QFont fb = f; fb.setBold(false); p.setFont(fb);
-            p.drawText(QRectF(rx + off, ry + off, rw - 2*off, fsDev*1.4),
-                       Qt::AlignLeft | Qt::AlignTop, bez);
+            QStringList bezLines = bez.split('\n');
+            double bezTy = ry + off;
+            for (const QString &bezLine : bezLines) {
+                p.drawText(QRectF(rx + off, bezTy, rw - 2*off, fsDev*1.4),
+                           Qt::AlignLeft | Qt::AlignTop, bezLine);
+                bezTy += fsDev * 1.3;
+            }
         }
 }
 

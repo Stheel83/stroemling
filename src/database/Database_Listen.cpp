@@ -219,10 +219,17 @@ QHash<int, QVector<StrukturkastenBox>> strukturkaestenNachSeiteLaden(QSqlDatabas
     while (q.next()) {
         StrukturkastenBox b;
         int seiteId = q.value(0).toInt();
-        b.x1 = q.value(1).toDouble();
-        b.y1 = q.value(2).toDouble();
-        b.x2 = q.value(3).toDouble();
-        b.y2 = q.value(4).toDouble();
+        // x1/y1/x2/y2 sind wie bei jedem grafik_element die rohen Zeichenkoordinaten
+        // (können je nach Ziehrichtung x1>x2/y1>y2 sein, s. Canvas-/PDF-Renderer, die
+        // deshalb überall min/max normalisieren) - hier ebenso normalisieren, sonst
+        // schlägt der Punkt-in-Box-Test unten für "falsch herum" gezogene Kästen immer
+        // fehl (GK-SK-ORT-BOX-01).
+        double rawX1 = q.value(1).toDouble(), rawY1 = q.value(2).toDouble();
+        double rawX2 = q.value(3).toDouble(), rawY2 = q.value(4).toDouble();
+        b.x1 = qMin(rawX1, rawX2);
+        b.x2 = qMax(rawX1, rawX2);
+        b.y1 = qMin(rawY1, rawY2);
+        b.y2 = qMax(rawY1, rawY2);
         b.flaeche = (b.x2 - b.x1) * (b.y2 - b.y1);
         b.extraDaten = q.value(5).toString();
         result[seiteId].append(b);
@@ -482,11 +489,11 @@ QVariantList Database::aderliste(int projektId)
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
                   AND sk.typ = 'strukturkasten'
-                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
-                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
-                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
-                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
-                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                  AND (ge.x1 + ge.x2) / 2.0 >= MIN(sk.x1, sk.x2)
+                  AND (ge.x1 + ge.x2) / 2.0 <= MAX(sk.x1, sk.x2)
+                  AND (ge.y1 + ge.y2) / 2.0 >= MIN(sk.y1, sk.y2)
+                  AND (ge.y1 + ge.y2) / 2.0 <= MAX(sk.y1, sk.y2)
+                ORDER BY ABS((sk.x2 - sk.x1) * (sk.y2 - sk.y1)) ASC
                 LIMIT 1) AS sk_extra,
                ge.seite_id,
                (ge.x1 + ge.x2) / 2.0,

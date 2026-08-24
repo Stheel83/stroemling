@@ -82,11 +82,11 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
              FROM grafik_element sk
              WHERE sk.seite_id = grp.seite_id
                AND sk.typ = 'strukturkasten'
-               AND (grp.x1 + grp.x2) / 2.0 >= sk.x1
-               AND (grp.x1 + grp.x2) / 2.0 <= sk.x2
-               AND (grp.y1 + grp.y2) / 2.0 >= sk.y1
-               AND (grp.y1 + grp.y2) / 2.0 <= sk.y2
-             ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+               AND (grp.x1 + grp.x2) / 2.0 >= MIN(sk.x1, sk.x2)
+               AND (grp.x1 + grp.x2) / 2.0 <= MAX(sk.x1, sk.x2)
+               AND (grp.y1 + grp.y2) / 2.0 >= MIN(sk.y1, sk.y2)
+               AND (grp.y1 + grp.y2) / 2.0 <= MAX(sk.y1, sk.y2)
+             ORDER BY ABS((sk.x2 - sk.x1) * (sk.y2 - sk.y1)) ASC
              LIMIT 1)                                         AS sk_extra
         FROM grp
         JOIN seite   s ON grp.seite_id  = s.id

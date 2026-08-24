@@ -41,11 +41,11 @@ QVariantList Database::steckverbinderListe(int projektId) const
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
                   AND sk.typ = 'strukturkasten'
-                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
-                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
-                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
-                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
-                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                  AND (ge.x1 + ge.x2) / 2.0 >= MIN(sk.x1, sk.x2)
+                  AND (ge.x1 + ge.x2) / 2.0 <= MAX(sk.x1, sk.x2)
+                  AND (ge.y1 + ge.y2) / 2.0 >= MIN(sk.y1, sk.y2)
+                  AND (ge.y1 + ge.y2) / 2.0 <= MAX(sk.y1, sk.y2)
+                ORDER BY ABS((sk.x2 - sk.x1) * (sk.y2 - sk.y1)) ASC
                 LIMIT 1) AS sk_extra,
                ge.seite_id,
                (ge.x1 + ge.x2) / 2.0,
@@ -171,11 +171,11 @@ QVariantList Database::steckverbinderBelegungsplan(int projektId) const
              FROM grafik_element sk
              WHERE sk.seite_id = gk.seite_id
                AND sk.typ = 'strukturkasten'
-               AND (gk.x1 + gk.x2) / 2.0 >= sk.x1
-               AND (gk.x1 + gk.x2) / 2.0 <= sk.x2
-               AND (gk.y1 + gk.y2) / 2.0 >= sk.y1
-               AND (gk.y1 + gk.y2) / 2.0 <= sk.y2
-             ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+               AND (gk.x1 + gk.x2) / 2.0 >= MIN(sk.x1, sk.x2)
+               AND (gk.x1 + gk.x2) / 2.0 <= MAX(sk.x1, sk.x2)
+               AND (gk.y1 + gk.y2) / 2.0 >= MIN(sk.y1, sk.y2)
+               AND (gk.y1 + gk.y2) / 2.0 <= MAX(sk.y1, sk.y2)
+             ORDER BY ABS((sk.x2 - sk.x1) * (sk.y2 - sk.y1)) ASC
              LIMIT 1) AS sk_extra
         FROM grafik_element gk
         JOIN seite  s  ON s.id  = gk.seite_id

@@ -1425,29 +1425,48 @@ static void pdfElementStrukturkastenRendern(QPainter &p, const QVariantMap &el,
         if (skEr > 0.5) p.drawRoundedRect(QRectF(rx, ry, rw, rh), skEr, skEr);
         else            p.drawRect(QRectF(rx, ry, rw, rh));
         p.setBrush(Qt::NoBrush);
+        // Text-Layout 1:1 nach CanvasRenderHandler.qml::_renderStrukturkasten()
+        // gespiegelt: linksbündig, Anlage/Ort-Label (fett) über der
+        // Bezeichnung (kleiner, 0.85×) gestapelt, beide per bmkOffsetX/Y
+        // verschiebbar. Vorher stand das Label hier rechtsbündig ohne
+        // bmkOffset-Unterstützung - wich vom Canvas-Bild ab (GK-SK-ORT-KEY-01
+        // Nachtrag).
         QVariantMap ed  = el.value("extraDaten").toMap();
         double schrift  = ed.value("schriftgroesse", 2.5).toDouble();
         double fsDev    = schrift * pxPerMm;
-        double off      = 4.0 * 0.25 * pxPerMm;
-        QFont f; f.setFamily("sans-serif"); f.setPixelSize(qMax(1,qRound(fsDev))); f.setBold(true);
-        p.setFont(f); p.setPen(pen.color());
+        double fsDevB   = schrift * 0.85 * pxPerMm;
+        double pad      = 5.0 * 0.25 * pxPerMm;
+        double skOx     = ed.value("bmkOffsetX", 0.0).toDouble() * C;
+        double skOy     = ed.value("bmkOffsetY", 0.0).toDouble() * C;
+        double textX    = rx + pad + skOx;
+        double textY    = ry + pad + skOy;
+        double textW    = rw - 2*pad;
+
         QString lbl;
         if (!ed.value("skAnlageUO").toString().isEmpty()) lbl += "==" + ed.value("skAnlageUO").toString() + " ";
         if (!ed.value("skOrtUO").toString().isEmpty())    lbl += "++" + ed.value("skOrtUO").toString() + " ";
         if (!ed.value("skAnlage").toString().isEmpty())   lbl += "="  + ed.value("skAnlage").toString() + " ";
         if (!ed.value("skOrt").toString().isEmpty())      lbl += "+"  + ed.value("skOrt").toString();
-        if (!lbl.isEmpty())
-            p.drawText(QRectF(rx, ry + off, rw - off, fsDev*1.4),
-                       Qt::AlignRight | Qt::AlignTop, lbl.trimmed());
+        lbl = lbl.trimmed();
+        if (!lbl.isEmpty()) {
+            QFont f; f.setFamily("sans-serif"); f.setPixelSize(qMax(1, qRound(fsDev))); f.setBold(true);
+            p.setFont(f); p.setPen(pen.color());
+            QStringList lblLines = lbl.split('\n');
+            for (const QString &lblLine : lblLines) {
+                p.drawText(QRectF(textX, textY, textW, fsDev*1.4),
+                           Qt::AlignLeft | Qt::AlignTop, lblLine);
+                textY += fsDev * 1.3;
+            }
+        }
         QString bez = ed.value("bezeichnung").toString();
         if (!bez.isEmpty()) {
-            QFont fb = f; fb.setBold(false); p.setFont(fb);
+            QFont fb; fb.setFamily("sans-serif"); fb.setPixelSize(qMax(1, qRound(fsDevB)));
+            p.setFont(fb); p.setPen(pen.color());
             QStringList bezLines = bez.split('\n');
-            double bezTy = ry + off;
             for (const QString &bezLine : bezLines) {
-                p.drawText(QRectF(rx + off, bezTy, rw - 2*off, fsDev*1.4),
+                p.drawText(QRectF(textX, textY, textW, fsDevB*1.4),
                            Qt::AlignLeft | Qt::AlignTop, bezLine);
-                bezTy += fsDev * 1.3;
+                textY += fsDevB * 1.3;
             }
         }
 }

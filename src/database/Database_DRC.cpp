@@ -38,11 +38,11 @@ QVariantList Database::drcDoppelteBmk(int projektId)
                 FROM grafik_element sk
                 WHERE sk.seite_id = ge.seite_id
                   AND sk.typ = 'strukturkasten'
-                  AND (ge.x1 + ge.x2) / 2.0 >= sk.x1
-                  AND (ge.x1 + ge.x2) / 2.0 <= sk.x2
-                  AND (ge.y1 + ge.y2) / 2.0 >= sk.y1
-                  AND (ge.y1 + ge.y2) / 2.0 <= sk.y2
-                ORDER BY (sk.x2 - sk.x1) * (sk.y2 - sk.y1) ASC
+                  AND (ge.x1 + ge.x2) / 2.0 >= MIN(sk.x1, sk.x2)
+                  AND (ge.x1 + ge.x2) / 2.0 <= MAX(sk.x1, sk.x2)
+                  AND (ge.y1 + ge.y2) / 2.0 >= MIN(sk.y1, sk.y2)
+                  AND (ge.y1 + ge.y2) / 2.0 <= MAX(sk.y1, sk.y2)
+                ORDER BY ABS((sk.x2 - sk.x1) * (sk.y2 - sk.y1)) ASC
                 LIMIT 1) AS sk_extra
         FROM betriebsmittel b
         JOIN grafik_element ge ON ge.id = COALESCE(

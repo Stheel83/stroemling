@@ -1432,10 +1432,10 @@ static void pdfElementStrukturkastenRendern(QPainter &p, const QVariantMap &el,
         QFont f; f.setFamily("sans-serif"); f.setPixelSize(qMax(1,qRound(fsDev))); f.setBold(true);
         p.setFont(f); p.setPen(pen.color());
         QString lbl;
-        if (!ed.value("anlageUO").toString().isEmpty()) lbl += "==" + ed.value("anlageUO").toString() + " ";
-        if (!ed.value("ortUO").toString().isEmpty())    lbl += "++" + ed.value("ortUO").toString() + " ";
-        if (!ed.value("anlage").toString().isEmpty())   lbl += "="  + ed.value("anlage").toString() + " ";
-        if (!ed.value("ort").toString().isEmpty())      lbl += "+"  + ed.value("ort").toString();
+        if (!ed.value("skAnlageUO").toString().isEmpty()) lbl += "==" + ed.value("skAnlageUO").toString() + " ";
+        if (!ed.value("skOrtUO").toString().isEmpty())    lbl += "++" + ed.value("skOrtUO").toString() + " ";
+        if (!ed.value("skAnlage").toString().isEmpty())   lbl += "="  + ed.value("skAnlage").toString() + " ";
+        if (!ed.value("skOrt").toString().isEmpty())      lbl += "+"  + ed.value("skOrt").toString();
         if (!lbl.isEmpty())
             p.drawText(QRectF(rx, ry + off, rw - off, fsDev*1.4),
                        Qt::AlignRight | Qt::AlignTop, lbl.trimmed());

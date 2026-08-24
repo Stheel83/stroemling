@@ -564,10 +564,14 @@ void Database::strukturkastenOverrideAnwenden(const QString &skExtraDaten,
     QJsonDocument doc = QJsonDocument::fromJson(skExtraDaten.toUtf8(), &err);
     if (err.error || !doc.isObject()) return;
     QJsonObject obj = doc.object();
-    QString skAnlageUO = obj[QStringLiteral("anlageUO")].toString();
-    QString skOrtUO    = obj[QStringLiteral("ortUO")].toString();
-    QString skAnlage   = obj[QStringLiteral("anlage")].toString();
-    QString skOrt      = obj[QStringLiteral("ort")].toString();
+    // Schlüssel sind "sk"-präfixiert (skAnlage/skOrt/skAnlageUO/skOrtUO), s.
+    // EpStrukturkastenSection.qml::skApplyOrt() - ohne Präfix (bis Aug 2026,
+    // GK-SK-ORT-KEY-01) griff diese Funktion nie, die Überschreibung wurde
+    // überall stillschweigend ignoriert.
+    QString skAnlageUO = obj[QStringLiteral("skAnlageUO")].toString();
+    QString skOrtUO    = obj[QStringLiteral("skOrtUO")].toString();
+    QString skAnlage   = obj[QStringLiteral("skAnlage")].toString();
+    QString skOrt      = obj[QStringLiteral("skOrt")].toString();
     if (!skAnlageUO.isEmpty()) anlageUO = skAnlageUO;
     if (!skOrtUO.isEmpty())    ortUO    = skOrtUO;
     if (!skAnlage.isEmpty())   anlageKz = skAnlage;

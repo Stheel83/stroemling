@@ -162,34 +162,34 @@ Rectangle {
                 var gkBmkGA = (gk.extraDaten || {}).bmk || ""
                 bmk = (gkBmkGA ? gkBmkGA + ":" : ":") + ank
                 var skGA = strukturkastenFuer(gk)
-                anlageUO = (skGA && skGA.anlageUO) ? skGA.anlageUO : (nd ? nd.anlageUO || "" : "")
-                anlage   = skGA && skGA.anlage ? skGA.anlage : (nd ? nd.anlageKuerzel || "" : "")
-                ortUO    = (skGA && skGA.ortUO) ? skGA.ortUO : (nd ? nd.ortUO || "" : "")
-                ort      = skGA && skGA.ort    ? skGA.ort    : (nd ? nd.ortKuerzel    || "" : "")
+                anlageUO = (skGA && skGA.skAnlageUO) ? skGA.skAnlageUO : (nd ? nd.anlageUO || "" : "")
+                anlage   = skGA && skGA.skAnlage ? skGA.skAnlage : (nd ? nd.anlageKuerzel || "" : "")
+                ortUO    = (skGA && skGA.skOrtUO) ? skGA.skOrtUO : (nd ? nd.ortUO || "" : "")
+                ort      = skGA && skGA.skOrt    ? skGA.skOrt    : (nd ? nd.ortKuerzel    || "" : "")
             } else {
                 if (SK.istVerbHelper(sid)) return ""
                 bmk = (el.extraDaten || {}).bmk || ""
                 if (!bmk) return ""
                 var sk = strukturkastenFuer(el)
-                anlageUO = (sk && sk.anlageUO) ? sk.anlageUO : (nd ? nd.anlageUO || "" : "")
-                anlage   = sk && sk.anlage ? sk.anlage : (nd ? nd.anlageKuerzel || "" : "")
-                ortUO    = (sk && sk.ortUO) ? sk.ortUO : (nd ? nd.ortUO || "" : "")
-                ort      = sk && sk.ort    ? sk.ort    : (nd ? nd.ortKuerzel    || "" : "")
+                anlageUO = (sk && sk.skAnlageUO) ? sk.skAnlageUO : (nd ? nd.anlageUO || "" : "")
+                anlage   = sk && sk.skAnlage ? sk.skAnlage : (nd ? nd.anlageKuerzel || "" : "")
+                ortUO    = (sk && sk.skOrtUO) ? sk.skOrtUO : (nd ? nd.ortUO || "" : "")
+                ort      = sk && sk.skOrt    ? sk.skOrt    : (nd ? nd.ortKuerzel    || "" : "")
             }
         } else if (el.typ === "geraetekasten") {
             bmk = (el.extraDaten || {}).bmk || ""
             if (!bmk) return ""
             var sk2 = strukturkastenFuer(el)
-            anlageUO = (sk2 && sk2.anlageUO) ? sk2.anlageUO : (nd ? nd.anlageUO || "" : "")
-            anlage   = sk2 && sk2.anlage ? sk2.anlage : (nd ? nd.anlageKuerzel || "" : "")
-            ortUO    = (sk2 && sk2.ortUO) ? sk2.ortUO : (nd ? nd.ortUO || "" : "")
-            ort      = sk2 && sk2.ort    ? sk2.ort    : (nd ? nd.ortKuerzel    || "" : "")
+            anlageUO = (sk2 && sk2.skAnlageUO) ? sk2.skAnlageUO : (nd ? nd.anlageUO || "" : "")
+            anlage   = sk2 && sk2.skAnlage ? sk2.skAnlage : (nd ? nd.anlageKuerzel || "" : "")
+            ortUO    = (sk2 && sk2.skOrtUO) ? sk2.skOrtUO : (nd ? nd.ortUO || "" : "")
+            ort      = sk2 && sk2.skOrt    ? sk2.skOrt    : (nd ? nd.ortKuerzel    || "" : "")
         } else if (el.typ === "strukturkasten") {
             var ed = el.extraDaten || {}
-            anlageUO = ed.anlageUO || (nd ? nd.anlageUO || "" : "")
-            anlage   = ed.anlage   || (nd ? nd.anlageKuerzel || "" : "")
-            ortUO    = ed.ortUO    || (nd ? nd.ortUO || "" : "")
-            ort      = ed.ort      || (nd ? nd.ortKuerzel    || "" : "")
+            anlageUO = ed.skAnlageUO || (nd ? nd.anlageUO || "" : "")
+            anlage   = ed.skAnlage   || (nd ? nd.anlageKuerzel || "" : "")
+            ortUO    = ed.skOrtUO    || (nd ? nd.ortUO || "" : "")
+            ort      = ed.skOrt      || (nd ? nd.ortKuerzel    || "" : "")
         } else {
             return ""
         }

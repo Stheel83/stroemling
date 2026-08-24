@@ -1478,6 +1478,86 @@ static void pdfElementMakrokastenRendern(QPainter &p, const QVariantMap &el,
         if (mkEr > 0.5) p.drawRoundedRect(QRectF(rx, ry, rw, rh), mkEr, mkEr);
         else            p.drawRect(QRectF(rx, ry, rw, rh));
         p.setBrush(Qt::NoBrush);
+
+        QVariantMap ed = el.value("extraDaten").toMap();
+        QString name = ed.value("name").toString();
+        if (name.isEmpty()) name = QStringLiteral("Makro");
+        bool saved  = ed.value("makroId", 0).toInt() > 0;
+        double fsMm  = 2.2;
+        double fsDev = fsMm * pxPerMm;
+        double off   = 4.0 * 0.25 * pxPerMm;
+        double mkOx  = ed.value("bmkOffsetX", 0.0).toDouble() * C;
+        double mkOy  = ed.value("bmkOffsetY", 0.0).toDouble() * C;
+        QFont mf; mf.setFamily("sans-serif"); mf.setPixelSize(qMax(1, qRound(fsDev)));
+        p.setFont(mf); p.setPen(mkPen.color());
+        QString prefix = saved ? QStringLiteral("✓ ") : QStringLiteral("⬜ ");
+        QStringList lines = name.split('\n');
+        double centerX = rx + rw/2.0 + mkOx;
+        double ty = ry + off + mkOy;
+        for (int li = 0; li < lines.size(); ++li) {
+            QString line = (li == 0 ? prefix : QStringLiteral("  ")) + lines.at(li);
+            p.drawText(QRectF(centerX - rw*1.5, ty, rw*3.0, fsDev*1.4),
+                       Qt::AlignHCenter | Qt::AlignTop, line);
+            ty += fsDev * 1.3;
+        }
+}
+
+static void pdfElementSchirmRendern(QPainter &p, const QVariantMap &el,
+                                     double C, double pxPerMm, const QSqlDatabase &db,
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+{
+    double x1 = el.value("x1").toDouble() * C;
+    double y1 = el.value("y1").toDouble() * C;
+    double x2 = el.value("x2").toDouble() * C;
+    double y2 = el.value("y2").toDouble() * C;
+    double sw  = x2 - x1;
+    double sh  = y2 - y1;
+
+    double strichBr = qMax(0.3, el.value("strichBreite", 0.35).toDouble() * pxPerMm);
+    QPen pen = pdfPen(el, strichBr);
+
+        double rx = qMin(x1,x2), ry = qMin(y1,y2);
+        double rw = qAbs(sw),    rh = qAbs(sh);
+        if (rw < 2 || rh < 2) return;
+        // Kapsel-/Stadium-Form (analog CanvasRenderHandler.qml stadiumPfad()):
+        // volle Rundung mit Radius = halbe kleinere Kantenlänge ergibt exakt
+        // dieselbe Form wie die dortigen zwei Halbkreise + Geraden.
+        double r = qMin(rw, rh) / 2.0;
+        p.setPen(pen);
+        if (el.value("fuell").toBool()) {
+            QColor fc = pdfFarbe(el.value("fuellFarbe").toString());
+            fc.setAlphaF(el.value("fuellOpazitaet", 0.3).toDouble());
+            p.setBrush(fc);
+        } else {
+            p.setBrush(Qt::NoBrush);
+        }
+        p.drawRoundedRect(QRectF(rx, ry, rw, rh), r, r, Qt::AbsoluteSize);
+        p.setBrush(Qt::NoBrush);
+
+        QVariantMap ed = el.value("extraDaten").toMap();
+        QString seite  = ed.value("anschlussSeite", QStringLiteral("links")).toString();
+        double cx = rx + rw/2.0, cy = ry + rh/2.0;
+        double px = cx, py = cy;
+        if      (seite == QLatin1String("links"))  px = rx;
+        else if (seite == QLatin1String("rechts")) px = rx + rw;
+        else if (seite == QLatin1String("oben"))   py = ry;
+        else if (seite == QLatin1String("unten"))  py = ry + rh;
+
+        // Anschlusspunkt
+        double dotR = 4.0 * 0.25 * pxPerMm;
+        p.setPen(Qt::NoPen);
+        p.setBrush(pen.color());
+        p.drawEllipse(QPointF(px, py), dotR, dotR);
+        p.setBrush(Qt::NoBrush);
+
+        QString bez = ed.value("bezeichnung").toString();
+        if (!bez.isEmpty()) {
+            double fsDev = 2.5 * pxPerMm;
+            QFont f; f.setFamily("sans-serif"); f.setPixelSize(qMax(1, qRound(fsDev)));
+            p.setFont(f); p.setPen(pen.color());
+            p.drawText(QRectF(rx, cy - fsDev*0.7, rw, fsDev*1.4),
+                       Qt::AlignHCenter | Qt::AlignVCenter, bez);
+        }
 }
 
 static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
@@ -1917,6 +1997,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     else if (typ == "geraetekasten") pdfElementGeraetekastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "strukturkasten") pdfElementStrukturkastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "makrokasten") pdfElementMakrokastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "schirm") pdfElementSchirmRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "symbol") pdfElementSymbolRendern(p, el, C, pxPerMm, db, leitungsSegs);
 }
 

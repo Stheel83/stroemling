@@ -754,7 +754,6 @@ QtObject {
             // Rahmen
             var nRahmF = (el.extraDaten && el.extraDaten.rahmFarbe) ? el.extraDaten.rahmFarbe : (el.strichFarbe || "#cccc22")
             ctx.strokeStyle = gewaehlt ? "#f0a030" : (vorschau ? "#4a9eff" : nRahmF)
-            ctx.lineWidth   = 1.5
             ctx.setLineDash([])
             ctx.strokeRect(nRx, nRy, nRw, nRh)
             // Text mit automatischem Zeilenumbruch

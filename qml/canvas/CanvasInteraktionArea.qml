@@ -736,7 +736,7 @@ MouseArea {
         } else if (elR.typ === "notiz") {
             elR.strichFarbe = "#cccc22"; elR.fuell = true
             elR.fuellFarbe  = "#1a1a00"; elR.fuellOpazitaet = 0.9
-            elR.strichBreite = 3.0; elR.textInhalt = "Notiz"
+            elR.textInhalt = "Notiz"
             elR.extraDaten  = { schriftgroesse: canvas.stilVorlage.schriftgroesse || 3.5 }
         }
         canvas.aktionAusfuehren(em.snapshot().concat([elR]))

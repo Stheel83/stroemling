@@ -119,12 +119,12 @@ Item {
 
         Item {
             width: parent.width
-            height: (panel.el && panel.el.typ !== "text" && panel.el.typ !== "notiz" && panel.el.typ !== "bild") ? strichCol.implicitHeight : 0
+            height: (panel.el && panel.el.typ !== "text" && panel.el.typ !== "bild") ? strichCol.implicitHeight : 0
             visible: height > 0; clip: true
             Column {
                 id: strichCol
                 width: parent.width; spacing: 0
-                FeldLabel { text: qsTr("Strichstärke") }
+                FeldLabel { text: panel.el && panel.el.typ === "notiz" ? qsTr("Rahmenstärke") : qsTr("Strichstärke") }
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 4

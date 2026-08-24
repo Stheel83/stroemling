@@ -234,7 +234,13 @@ Item {
                         background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.sidebar }
                     }
                     onCurrentIndexChanged: root.gkRefreshOrte()
-                    onActivated: { gkOrteCombo.currentIndex = 0; root.gkApplyOrt() }
+                    // Kein root.gkApplyOrt() hier: nur der Ort wird persistiert (ort_id),
+                    // die Anlage ist reine UI-Filterung der Ort-Liste. Ein sofortiger
+                    // Schreib+Reload-Zyklus beim bloßen Anlage-Wechsel würde ort_id auf
+                    // -1 setzen und die gerade getroffene Anlage-Auswahl beim Rücksync
+                    // (gkSetFromOrtId) sofort wieder auf "(keine)" zurückspringen lassen
+                    // (GK-SK-ORT-RESET-01).
+                    onActivated: gkOrteCombo.currentIndex = 0
                 }
             }
         }

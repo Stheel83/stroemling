@@ -288,7 +288,13 @@ Item {
             ToolTip.visible: hovered; ToolTip.delay: 600
             ToolTip.text: qsTr("Neue Anlagen und Orte werden im Seitenbaum angelegt (+ Anlage / + Ort)")
             onCurrentIndexChanged: root.bmRefreshOrte()
-            onActivated: { bmOrteCombo.currentIndex = 0; root.bmApplyOrt() }
+            // Kein root.bmApplyOrt() hier: nur der Ort wird persistiert (ortId),
+            // die Anlage ist reine UI-Filterung der Ort-Liste. Ein sofortiger
+            // Schreib+Reload-Zyklus beim bloßen Anlage-Wechsel würde ortId auf
+            // -1 setzen und die gerade getroffene Anlage-Auswahl beim Rücksync
+            // (bmSetFromOrtId) sofort wieder auf "(keine)" zurückspringen lassen
+            // (GK-SK-ORT-RESET-01, dasselbe latente Muster).
+            onActivated: bmOrteCombo.currentIndex = 0
             delegate: ItemDelegate {
                 required property var model
                 text: model.label

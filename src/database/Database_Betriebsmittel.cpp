@@ -324,12 +324,34 @@ bool Database::grafikElementExtraMergeSetzen(int elementId, const QVariantMap& u
 
     for (auto it = updates.cbegin(); it != updates.cend(); ++it) {
         const QVariant& v = it.value();
-        if (!v.isValid() || v.isNull())
+        if (!v.isValid() || v.isNull()) {
             ed[it.key()] = QJsonValue::Null;
-        else if (v.typeId() == QMetaType::Int || v.typeId() == QMetaType::LongLong)
-            ed[it.key()] = v.toLongLong();
-        else
+            continue;
+        }
+        switch (v.typeId()) {
+        case QMetaType::Bool:
+            ed[it.key()] = v.toBool();
+            break;
+        // JS-Zahlenliterale aus QML (z.B. { ort_id: newOrtId }) kommen beim
+        // QML→C++-Marshalling i.d.R. als QMetaType::Double an, nicht als
+        // Int/LongLong (JS kennt nur einen Zahlentyp). Ohne diese Fälle
+        // landete z.B. ort_id als String "42" statt Zahl 42 im JSON -
+        // spätere strikte "==="-Vergleiche in QML (z.B. gkSetFromOrtId())
+        // gegen echte Zahlen schlugen dadurch immer fehl (GK-SK-ORT-TYP-01).
+        case QMetaType::Int:
+        case QMetaType::UInt:
+        case QMetaType::LongLong:
+        case QMetaType::ULongLong:
+        case QMetaType::Short:
+        case QMetaType::UShort:
+        case QMetaType::Double:
+        case QMetaType::Float:
+            ed[it.key()] = v.toDouble();
+            break;
+        default:
             ed[it.key()] = v.toString();
+            break;
+        }
     }
 
     QSqlQuery wr(m_db);

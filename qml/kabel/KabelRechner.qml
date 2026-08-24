@@ -10,7 +10,7 @@ Item {
     property var  theme
     property bool debug: false
 
-    property string modus:    "schnell"   // "schnell" | "genau"
+    property string modus:    "genau"     // "schnell" | "genau"
     property string material: "cu"        // "cu" | "al"
 
     readonly property bool    istGenau: modus === "genau"

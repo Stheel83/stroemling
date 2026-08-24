@@ -24,6 +24,12 @@ Item {
         }
     }
 
+    // ── Dialog – Neues Bauteil (in aktiver Kategorie) ─────────
+    BaBauteilNeuDialog {
+        id: dlgBauteilNeu
+        theme: root.theme
+    }
+
     // ── Dialog – Bauteil bearbeiten ──────────────────────────
     Dialog {
         id: dlgBauteilBearbeiten
@@ -301,6 +307,19 @@ Item {
                         : qsTr("Alle Bauteile")
                     font.pixelSize: 15; font.weight: Font.Medium; color: theme.textPrimary
                     Layout.fillWidth: true
+                }
+                Button {
+                    visible: !bauteilModel.nurKlemmen && !bauteilModel.nurKabel
+                             && !bauteilModel.nurSteckverbinder && !bauteilModel.nurKonfkabel
+                             && !bauteilModel.nurKontakt
+                    text: qsTr("+ Neu"); implicitHeight: 30
+                    contentItem: Text { text: parent.text; color: theme.accent; font.pixelSize: 12;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : theme.inputBg; radius: 4; border.color: theme.accent }
+                    onClicked: {
+                        dlgBauteilNeu.kategorieId = bauteilModel.aktiveKategorieId
+                        dlgBauteilNeu.open()
+                    }
                 }
             }
         }

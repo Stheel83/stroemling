@@ -174,14 +174,13 @@ Item {
 
                     Item { width: 6 }
 
-                    // BM / Kabel / Felder Toggle
+                    // BM / Kabel Toggle
                     RowLayout {
                         spacing: 2
                         Repeater {
                             model: [
                                 { key: "bm",     label: qsTr("BM")     },
-                                { key: "kabel",  label: qsTr("Kabel")  },
-                                { key: "felder", label: qsTr("Felder") }
+                                { key: "kabel",  label: qsTr("Kabel")  }
                             ]
                             delegate: Rectangle {
                                 implicitWidth: 46; implicitHeight: 24; radius: 4
@@ -229,6 +228,21 @@ Item {
                     }
 
                     Item { Layout.fillWidth: true }
+
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 24
+                        contentItem: Text { text: "⚙"; font.pixelSize: 13;
+                            color: root._kategorie === "felder" ? theme.accent : theme.textSecondary;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle {
+                            color: root._kategorie === "felder" ? theme.activeItem
+                                   : (parent.hovered ? theme.hover : "transparent")
+                            radius: 4
+                        }
+                        onClicked: root._kategorie = (root._kategorie === "felder" ? "bm" : "felder")
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Messfeld-Vorlagen verwalten")
+                    }
 
                     Button {
                         flat: true; implicitWidth: 86; implicitHeight: 24

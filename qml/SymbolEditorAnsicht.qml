@@ -50,6 +50,12 @@ Item {
     property real   _seZoom: 1.0
     property real   _sePanX: 0.0
     property real   _sePanY: 0.0
+    // Vorschau-Drehung (SYMBOL-TEXT-LESBAR-01-Folge): rein visuelle Kontrolle im
+    // Editor, ob Primitive/Text bei allen 4 Symbol-Rotationen + Spiegelungen noch
+    // in die Box passen - ändert NICHT die gespeicherten Daten, nur die Anzeige.
+    property int    _sePreviewRotation:  0       // 0 | 90 | 180 | 270
+    property bool   _sePreviewSpiegelX:  false
+    property bool   _sePreviewSpiegelY:  false
 
     property var    primitive:          []   // array of QVariantMap
     property var    pins:               []   // array of {name, x, y, offenX, offenY, signaltyp, kontext}
@@ -119,6 +125,9 @@ Item {
         ausgewaehltPrimIdx = -1
         ausgewaehltPinIdx  = -1
         werkzeugPunkte     = []
+        _sePreviewRotation = 0
+        _sePreviewSpiegelX = false
+        _sePreviewSpiegelY = false
 
         if (editSymbolId === "" && vorlageId !== "") {
             // Vorlage laden – Geometrie kopieren, Symbol-ID bleibt leer (wird beim Speichern neu vergeben)
@@ -696,8 +705,23 @@ Item {
                             ctx.setLineDash([])
 
                             // ── Primitive ─────────────────────────────
+                            // Vorschau-Drehung (SYMBOL-TEXT-LESBAR-01-Folge): translate/rotate/
+                            // scale/translate(-dw/2,-dh/2), identisch zum Muster in
+                            // CanvasRenderHandler.qml::_renderSymbol() - kollabiert bei
+                            // Rotation 0°/keine Spiegelung zur Identität (translate(dx,dy)),
+                            // daher hier immer angewendet statt bedingt verzweigt.
                             ctx.lineCap  = "round"
                             ctx.lineJoin = "round"
+                            var _pvRad = root._sePreviewRotation * Math.PI / 180
+                            var _pvAktiv = root._sePreviewRotation !== 0 ||
+                                           root._sePreviewSpiegelX || root._sePreviewSpiegelY
+
+                            ctx.save()
+                            ctx.translate(dx + dw/2, dy + dh/2)
+                            if (_pvRad !== 0) ctx.rotate(_pvRad)
+                            if (root._sePreviewSpiegelX) ctx.scale(-1, 1)
+                            if (root._sePreviewSpiegelY) ctx.scale(1, -1)
+                            ctx.translate(-dw/2, -dh/2)
 
                             for (var pi = 0; pi < root.primitive.length; pi++) {
                                 var p = root.primitive[pi]
@@ -711,21 +735,29 @@ Item {
                                 else if (la === "Strich-Punkt") ctx.setLineDash([8, 4, 2, 4])
                                 else                       ctx.setLineDash([])
 
-                                zeichneCanvas.zeichnePrimitiv(ctx, p, dx, dy, dw, dh)
+                                // dx/dy=0: Ursprung liegt bereits durch obiges translate() an
+                                // der (ggf. gedrehten/gespiegelten) Box-Ecke.
+                                zeichneCanvas.zeichnePrimitiv(ctx, p, 0, 0, dw, dh)
                                 ctx.setLineDash([])
+                            }
+                            ctx.restore()
 
-                                // Griffe + Koordinaten-Label bei Auswahl (Nutzerwunsch:
-                                // X1/Y1/X2/Y2 direkt am Primitiv statt nur im Eigenschaften-Panel)
-                                if (isSel) {
+                            // Griffe + Koordinaten-Label bei Auswahl nur in Basis-Orientierung
+                            // (Nutzerwunsch: X1/Y1/X2/Y2 direkt am Primitiv) - bei aktiver
+                            // Vorschau-Drehung würde die unrotierte n2sx/n2sy-Position nicht
+                            // mehr zur gezeichneten (gedrehten) Primitiv-Position passen.
+                            if (!_pvAktiv && root.ausgewaehltPrimIdx >= 0) {
+                                var pSel = root.primitive[root.ausgewaehltPrimIdx]
+                                if (pSel) {
                                     ctx.strokeStyle = "#00e5a0"
                                     // Bei rotierten Rechtecken zeigen die Griffe die tatsächliche
                                     // (gedrehte) Bildschirmposition der Ecken, sonst würden sie
                                     // sichtbar neben dem gezeichneten Rechteck schweben.
-                                    var g1x = n2sx(p.x1 || 0), g1y = n2sy(p.y1 || 0)
-                                    var g2x = n2sx(p.x2 || 0), g2y = n2sy(p.y2 || 0)
-                                    if (p.rotation && (p.typ === "rechteck" || p.typ === "rechteck_gefuellt")) {
-                                        var gcx = n2sx(((p.x1||0)+(p.x2||0))/2), gcy = n2sy(((p.y1||0)+(p.y2||0))/2)
-                                        var grad = p.rotation * Math.PI / 180
+                                    var g1x = n2sx(pSel.x1 || 0), g1y = n2sy(pSel.y1 || 0)
+                                    var g2x = n2sx(pSel.x2 || 0), g2y = n2sy(pSel.y2 || 0)
+                                    if (pSel.rotation && (pSel.typ === "rechteck" || pSel.typ === "rechteck_gefuellt")) {
+                                        var gcx = n2sx(((pSel.x1||0)+(pSel.x2||0))/2), gcy = n2sy(((pSel.y1||0)+(pSel.y2||0))/2)
+                                        var grad = pSel.rotation * Math.PI / 180
                                         var gcos = Math.cos(grad), gsin = Math.sin(grad)
                                         var d1x = g1x - gcx, d1y = g1y - gcy
                                         var d2x = g2x - gcx, d2y = g2y - gcy
@@ -734,13 +766,36 @@ Item {
                                     }
                                     zeichneCanvas.zeichneGriff(ctx, g1x, g1y)
                                     zeichneCanvas.zeichneKoordLabel(ctx, g1x, g1y,
-                                        "X1", "Y1", root.normToMmX(p.x1 || 0), root.normToMmY(p.y1 || 0))
-                                    if (p.typ === "linie" || p.typ === "rechteck" || p.typ === "rechteck_gefuellt") {
+                                        "X1", "Y1", root.normToMmX(pSel.x1 || 0), root.normToMmY(pSel.y1 || 0))
+                                    if (pSel.typ === "linie" || pSel.typ === "rechteck" || pSel.typ === "rechteck_gefuellt") {
                                         zeichneCanvas.zeichneGriff(ctx, g2x, g2y)
                                         zeichneCanvas.zeichneKoordLabel(ctx, g2x, g2y,
-                                            "X2", "Y2", root.normToMmX(p.x2 || 0), root.normToMmY(p.y2 || 0))
+                                            "X2", "Y2", root.normToMmX(pSel.x2 || 0), root.normToMmY(pSel.y2 || 0))
                                     }
                                 }
+                            }
+
+                            // ── "Lesbar halten"-Text-Primitive (SYMBOL-TEXT-LESBAR-01) ──
+                            // Werden in zeichnePrimitiv() übersprungen (s.dort) und hier separat
+                            // aufrecht an der transformierten Ankerposition gezeichnet - exakt
+                            // dieselbe Formel wie in CanvasRenderHandler.qml::_renderSymbol().
+                            for (var lti = 0; lti < root.primitive.length; lti++) {
+                                var ltp = root.primitive[lti]
+                                if (ltp.typ !== "text" || !ltp.lesbar_halten) continue
+                                var ox = (ltp.x1||0)*dw - dw/2
+                                var oy = (ltp.y1||0)*dh - dh/2
+                                if (root._sePreviewSpiegelX) ox = -ox
+                                if (root._sePreviewSpiegelY) oy = -oy
+                                var tx = ox*Math.cos(_pvRad) - oy*Math.sin(_pvRad)
+                                var ty = ox*Math.sin(_pvRad) + oy*Math.cos(_pvRad)
+                                ctx.save()
+                                ctx.fillStyle = (lti === root.ausgewaehltPrimIdx) ? "#00e5a0" : "#0b5394"
+                                ctx.font = ((ltp.schrift_fett ? "bold " : "") +
+                                            Math.round((ltp.schrift_relativ||0.15)*dw) + "px sans-serif")
+                                ctx.textAlign    = ltp.text_align    || "center"
+                                ctx.textBaseline = ltp.text_baseline || "middle"
+                                ctx.fillText(ltp.text_inhalt||"?", dx+dw/2+tx, dy+dh/2+ty)
+                                ctx.restore()
                             }
 
                             // ── Vorschau-Linie (aktuelles Werkzeug) ───
@@ -901,6 +956,9 @@ Item {
                                 break
                             }
                             case "text":
+                                // SYMBOL-TEXT-LESBAR-01: wird stattdessen in einem separaten
+                                // aufrechten Pass gezeichnet, s. onPaint.
+                                if (p.lesbar_halten) break
                                 ctx.save()
                                 ctx.fillStyle = ctx.strokeStyle
                                 ctx.font = ((p.schrift_fett ? "bold " : "") +
@@ -1160,6 +1218,76 @@ Item {
                             root._seZoom = newZoom
                             zeichneCanvas.requestPaint()
                             event.accepted = true
+                        }
+                    }
+
+                    // Vorschau-Drehung (SYMBOL-TEXT-LESBAR-01-Folge, oben links): rein
+                    // visuelle Kontrolle, ob Primitive/Text bei allen 4 Symbol-Rotationen +
+                    // Spiegelungen noch in die Box passen - ändert keine gespeicherten Daten.
+                    Row {
+                        anchors { top: parent.top; left: parent.left; topMargin: 4; leftMargin: 6 }
+                        spacing: 3
+
+                        Text {
+                            text: qsTr("Vorschau:")
+                            color: root.theme.textMuted; font.pixelSize: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            rightPadding: 3
+                        }
+
+                        Repeater {
+                            model: [0, 90, 180, 270]
+                            Button {
+                                required property int modelData
+                                text: modelData + "°"
+                                flat: true; checkable: true; implicitWidth: 32; implicitHeight: 24
+                                checked: root._sePreviewRotation === modelData
+                                ToolTip.text: qsTr("Symbol in der Vorschau um %1° drehen").arg(modelData)
+                                ToolTip.visible: hovered; ToolTip.delay: 500
+                                onClicked: {
+                                    root._sePreviewRotation = modelData
+                                    zeichneCanvas.requestPaint()
+                                }
+                                contentItem: Text {
+                                    text: parent.text; font.pixelSize: 10
+                                    color: parent.checked ? root.theme.accent : root.theme.textMuted
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                }
+                                background: Rectangle {
+                                    color: parent.checked ? root.theme.hover : "transparent"
+                                    radius: 4; border.color: root.theme.border
+                                }
+                            }
+                        }
+                        Button {
+                            text: "⇋"; flat: true; checkable: true; implicitWidth: 26; implicitHeight: 24
+                            checked: root._sePreviewSpiegelX
+                            ToolTip.text: qsTr("Vorschau horizontal spiegeln"); ToolTip.visible: hovered; ToolTip.delay: 500
+                            onClicked: { root._sePreviewSpiegelX = checked; zeichneCanvas.requestPaint() }
+                            contentItem: Text {
+                                text: parent.text; font.pixelSize: 12
+                                color: parent.checked ? root.theme.accent : root.theme.textMuted
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: parent.checked ? root.theme.hover : "transparent"
+                                radius: 4; border.color: root.theme.border
+                            }
+                        }
+                        Button {
+                            text: "⇅"; flat: true; checkable: true; implicitWidth: 26; implicitHeight: 24
+                            checked: root._sePreviewSpiegelY
+                            ToolTip.text: qsTr("Vorschau vertikal spiegeln"); ToolTip.visible: hovered; ToolTip.delay: 500
+                            onClicked: { root._sePreviewSpiegelY = checked; zeichneCanvas.requestPaint() }
+                            contentItem: Text {
+                                text: parent.text; font.pixelSize: 12
+                                color: parent.checked ? root.theme.accent : root.theme.textMuted
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: parent.checked ? root.theme.hover : "transparent"
+                                radius: 4; border.color: root.theme.border
+                            }
                         }
                     }
 

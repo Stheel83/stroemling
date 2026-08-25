@@ -177,6 +177,9 @@ static void pdfPrimitivRendern(QPainter &p, const QVariantMap &pr,
                   qRound(qpStart * 16), qRound(qpSpan * 16));
 
     } else if (typ == "text") {
+        // SYMBOL-TEXT-LESBAR-01: wird stattdessen separat aufrecht in
+        // pdfSymbolRendern() gezeichnet - 1:1 Analogie zum QML-Pendant.
+        if (pr.value("lesbar_halten").toBool()) return;
         double tx     = pr.value("x1").toDouble() * w;
         double ty     = pr.value("y1").toDouble() * h;
         double fs     = pr.value("schrift_relativ").toDouble() * h;
@@ -236,7 +239,7 @@ static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
     QSqlQuery q(db);
     q.prepare(R"(SELECT typ,x1,y1,x2,y2,x3,y3,radius,winkel_von,winkel_bis,
                         bogen_gegen_uhrzeiger,text_inhalt,schrift_relativ,schrift_fett,
-                        text_align,text_baseline,linienart,rotation
+                        text_align,text_baseline,linienart,rotation,lesbar_halten
                  FROM symbol_primitiv WHERE symbol_id=:sid ORDER BY reihenfolge)");
     q.bindValue(":sid", symbolId);
     if (!q.exec()) return;
@@ -262,6 +265,7 @@ static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
         m["text_baseline"]          = q.value(15).toString();
         m["linienart"]              = q.value(16).toString();
         m["rotation"]               = q.value(17).toDouble();
+        m["lesbar_halten"]          = q.value(18).toInt() != 0;
         prims.append(m);
     }
     if (prims.isEmpty()) return;
@@ -277,6 +281,50 @@ static void pdfSymbolRendern(QPainter &p, const QString &symbolId,
         pdfPrimitivRendern(p, pr, sw, sh, pen);
 
     p.restore();
+
+    // SYMBOL-TEXT-LESBAR-01: Text-Primitive mit lesbar_halten=true wurden oben
+    // im rotierten/gespiegelten Block übersprungen (pdfPrimitivRendern) und
+    // werden hier separat aufrecht an der transformierten Ankerposition
+    // gezeichnet - 1:1 Analogie zum QML-Pendant in
+    // CanvasRenderHandler.qml::_renderSymbol().
+    double rotRad = rotation * M_PI / 180.0;
+    for (const QVariantMap &pr : prims) {
+        if (pr.value("typ").toString() != QLatin1String("text") || !pr.value("lesbar_halten").toBool())
+            continue;
+        QString inhalt = pr.value("text_inhalt").toString();
+        if (inhalt.isEmpty()) continue;
+
+        double ox = pr.value("x1").toDouble() * sw - sw / 2.0;
+        double oy = pr.value("y1").toDouble() * sh - sh / 2.0;
+        if (spiegelX) ox = -ox;
+        if (spiegelY) oy = -oy;
+        double tx = ox * std::cos(rotRad) - oy * std::sin(rotRad);
+        double ty = ox * std::sin(rotRad) + oy * std::cos(rotRad);
+
+        double fs     = pr.value("schrift_relativ").toDouble() * sh;
+        bool   bold   = pr.value("schrift_fett").toBool();
+        QString align    = pr.value("text_align").toString();
+        QString baseline = pr.value("text_baseline").toString();
+
+        QFont font;
+        font.setFamily(QStringLiteral("sans-serif"));
+        font.setPixelSize(qMax(1, qRound(fs)));
+        font.setBold(bold);
+        p.save();
+        p.setFont(font);
+        p.setPen(pen);
+        Qt::Alignment qa = Qt::AlignLeft;
+        if (align == "center") qa = Qt::AlignHCenter;
+        else if (align == "right") qa = Qt::AlignRight;
+        double rectW = sw, rectH = qMax(fs * 2, 4.0);
+        double bx = 0.0, by = 0.0;
+        if (align == "center") bx -= sw / 2;
+        if (baseline == "middle")       by -= fs * 0.5;
+        else if (baseline == "bottom")  by -= fs;
+        p.drawText(QRectF(x + sw / 2.0 + tx + bx, y + sh / 2.0 + ty + by, rectW, rectH),
+                   qa | Qt::AlignTop, inhalt);
+        p.restore();
+    }
 }
 
 // bmk_seite eines Symboltyps ('auto' oder 'vertikal', s. symbol_definition,

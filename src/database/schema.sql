@@ -229,7 +229,8 @@ CREATE TABLE symbol_primitiv (
     text_align            TEXT    DEFAULT 'center',
     text_baseline         TEXT    DEFAULT 'middle',
     linienart             TEXT    DEFAULT 'solid',
-    rotation              REAL    NOT NULL DEFAULT 0
+    rotation              REAL    NOT NULL DEFAULT 0,
+    lesbar_halten         INTEGER DEFAULT 0
 );
 
 CREATE TABLE symbol_pin (

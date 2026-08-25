@@ -32,7 +32,7 @@ QVariantList SymbolDefinitionModel::primitiveFuerSymbol(const QString &symbolId)
                x1, y1, x2, y2, x3, y3,
                radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
                text_inhalt, schrift_relativ, schrift_fett,
-               text_align, text_baseline, linienart, rotation
+               text_align, text_baseline, linienart, rotation, lesbar_halten
         FROM symbol_primitiv
         WHERE symbol_id = :sym
         ORDER BY reihenfolge
@@ -63,6 +63,7 @@ QVariantList SymbolDefinitionModel::primitiveFuerSymbol(const QString &symbolId)
         m["text_baseline"]         = q.value(16).toString();
         m["linienart"]             = q.value(17).toString();
         m["rotation"]              = q.value(18).toDouble();
+        m["lesbar_halten"]         = q.value(19).toInt() != 0;
         result.append(m);
     }
     m_primitivCache.insert(symbolId, result);
@@ -367,13 +368,13 @@ int SymbolDefinitionModel::primitivHinzufuegen(const QString &symbolId, const QV
              x1, y1, x2, y2, x3, y3,
              radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger,
              text_inhalt, schrift_relativ, schrift_fett,
-             text_align, text_baseline, linienart, rotation)
+             text_align, text_baseline, linienart, rotation, lesbar_halten)
         VALUES
             (:sym, :reihe, :typ,
              :x1, :y1, :x2, :y2, :x3, :y3,
              :rad, :wvon, :wbis, :ccw,
              :ti, :sr, :sf,
-             :ta, :tb, :la, :rot)
+             :ta, :tb, :la, :rot, :lh)
     )");
     q.bindValue(":sym",   symbolId);
     q.bindValue(":reihe", daten.value("reihenfolge", 0));
@@ -395,6 +396,7 @@ int SymbolDefinitionModel::primitivHinzufuegen(const QString &symbolId, const QV
     q.bindValue(":tb",    daten.value("text_baseline", "middle"));
     q.bindValue(":la",    daten.value("linienart", "solid"));
     q.bindValue(":rot",   daten.value("rotation", 0.0));
+    q.bindValue(":lh",    daten.value("lesbar_halten", false).toBool() ? 1 : 0);
     if (!q.exec()) {
         qCWarning(lcModel) << "primitivHinzufuegen:" << q.lastError().text();
         return -1;

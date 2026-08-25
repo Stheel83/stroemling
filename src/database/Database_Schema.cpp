@@ -2114,6 +2114,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 129, "SPS-KANAL-BETRIEBSMITTEL-01: sps_baugruppe.betriebsmittel_id fuer Verknuepfung mit platzierter Kartenintanz (Hardware-Tab weiss dadurch, welche Karte wo/mit welcher BMK platziert ist).", {
             R"(ALTER TABLE sps_baugruppe ADD COLUMN betriebsmittel_id INTEGER REFERENCES betriebsmittel(id))",
         }},
+        { 130, "SYMBOL-TEXT-LESBAR-01: symbol_primitiv.lesbar_halten (INTEGER, Default 0) - Text-Primitiv wird beim Zeichnen NICHT mitrotiert/mitgespiegelt, sondern bleibt immer aufrecht lesbar (analog zu Pin-Beschriftungen).", {
+            R"(ALTER TABLE symbol_primitiv ADD COLUMN lesbar_halten INTEGER DEFAULT 0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

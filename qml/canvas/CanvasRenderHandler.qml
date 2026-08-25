@@ -1679,6 +1679,10 @@ QtObject {
                     break
                 case "text":
                     if (cv.bewegungAktiv) break
+                    // SYMBOL-TEXT-LESBAR-01: wird NICHT hier (mitrotiert/mitgespiegelt)
+                    // gezeichnet, sondern separat aufrecht in _renderSymbol() nach dem
+                    // ctx.restore() - analog zu Pin-Beschriftungen.
+                    if (p.lesbar_halten) break
                     ctx.save()
                     ctx.fillStyle    = ctx.strokeStyle
                     ctx.font         = (p.schrift_fett ? "bold " : "") +
@@ -1737,6 +1741,34 @@ QtObject {
             else
                 drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
             ctx.restore()
+
+            // SYMBOL-TEXT-LESBAR-01: Text-Primitive mit lesbar_halten=true werden
+            // NICHT im oben rotierten/gespiegelten ctx-Block gezeichnet (drawByPrimitiv
+            // überspringt sie dort), sondern hier separat aufrecht an der transformierten
+            // Ankerposition - dieselbe Transformationskette wie oben (translate→rotate→
+            // scale→translate(-w/2,-h/2)), nur ohne die Rotation/Spiegelung auf den Text
+            // selbst anzuwenden. Analog zum Muster bei Pin-Beschriftungen weiter unten.
+            if (!cv.bewegungAktiv) {
+                var _ltPrims = symbolDefinitionModel.primitiveFuerSymbol(el.symbolId || "")
+                for (var _lti = 0; _lti < _ltPrims.length; _lti++) {
+                    var _ltP = _ltPrims[_lti]
+                    if (_ltP.typ !== "text" || !_ltP.lesbar_halten) continue
+                    var _ltOx = _ltP.x1 * Math.abs(sw) - Math.abs(sw) / 2
+                    var _ltOy = _ltP.y1 * Math.abs(sh) - Math.abs(sh) / 2
+                    if (el.spiegelX) _ltOx = -_ltOx
+                    if (el.spiegelY) _ltOy = -_ltOy
+                    var _ltTx = _ltOx * Math.cos(rot) - _ltOy * Math.sin(rot)
+                    var _ltTy = _ltOx * Math.sin(rot) + _ltOy * Math.cos(rot)
+                    ctx.save()
+                    ctx.fillStyle    = ctx.strokeStyle
+                    ctx.font         = (_ltP.schrift_fett ? "bold " : "") +
+                                        Math.round(_ltP.schrift_relativ * Math.abs(sh)) + "px sans-serif"
+                    ctx.textAlign    = _ltP.text_align    || "center"
+                    ctx.textBaseline = _ltP.text_baseline || "middle"
+                    ctx.fillText(_ltP.text_inhalt, scx + _ltTx, scy + _ltTy)
+                    ctx.restore()
+                }
+            }
 
             // Pin-Marker zeichnen (immer sichtbar, selektiert = hervorgehoben)
             if (!vorschau) {

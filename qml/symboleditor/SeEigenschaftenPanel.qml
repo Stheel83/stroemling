@@ -152,6 +152,37 @@ Rectangle {
             }
         }
 
+        // Lesbar halten (SYMBOL-TEXT-LESBAR-01, nur bei Text-Primitiv): Text wird
+        // beim Rotieren/Spiegeln des platzierten Symbols NICHT mitgedreht, bleibt
+        // also immer aufrecht lesbar - analog zu Pin-Beschriftungen.
+        RowLayout {
+            Layout.fillWidth: true; spacing: 6
+            visible: editor.ausgewaehltPrimIdx >= 0 &&
+                     editor.primitive[editor.ausgewaehltPrimIdx] &&
+                     editor.primitive[editor.ausgewaehltPrimIdx].typ === "text"
+            CheckBox {
+                id: cbLesbarHalten
+                checked: {
+                    var idxL = editor.ausgewaehltPrimIdx; if (idxL < 0) return false
+                    var pl = editor.primitive[idxL]; return pl ? !!pl.lesbar_halten : false
+                }
+                onToggled: {
+                    var idxL2 = editor.ausgewaehltPrimIdx; if (idxL2 < 0) return
+                    var arrL  = editor.primitive.slice()
+                    var pmL   = Object.assign({}, arrL[idxL2])
+                    pmL.lesbar_halten = checked
+                    arrL[idxL2] = pmL
+                    editor.primitive = arrL
+                    editor.repaintAll()
+                }
+            }
+            Text {
+                text: qsTr("Lesbar halten (nicht mitdrehen)")
+                font.pixelSize: 11; color: editor.theme.textMuted
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+        }
+
         // Linienart
         ColumnLayout {
             Layout.fillWidth: true; spacing: 4

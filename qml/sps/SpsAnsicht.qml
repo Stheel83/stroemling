@@ -468,6 +468,15 @@ Item {
 
                                 HoverHandler { id: bgHover }
 
+                                // Muss vor dem RowLayout stehen (SPS-KANAL-LOESCHEN-01):
+                                // eine MouseArea NACH den Buttons läge im Stapel obendrauf
+                                // und würde deren Klicks abfangen, bevor der Button sie sieht.
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: root._ausgewaehlterBaugruppeId = bgDelegate.modelData.id
+                                    onDoubleClicked: bgDialog.oeffnenEdit(bgDelegate.modelData)
+                                }
+
                                 RowLayout {
                                     anchors.fill: parent
                                     anchors.leftMargin: 8
@@ -535,12 +544,6 @@ Item {
                                             }
                                         }
                                     }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: root._ausgewaehlterBaugruppeId = bgDelegate.modelData.id
-                                    onDoubleClicked: bgDialog.oeffnenEdit(bgDelegate.modelData)
                                 }
                             }
 
@@ -658,6 +661,15 @@ Item {
 
                             HoverHandler { id: kanalHover }
 
+                            // Muss vor dem RowLayout stehen (SPS-KANAL-LOESCHEN-01):
+                            // eine MouseArea NACH den Buttons läge im Stapel obendrauf
+                            // und würde deren Klicks abfangen, bevor der Button sie sieht.
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: root._ausgewaehlterKanalId = kanalDelegate.modelData.id
+                                onDoubleClicked: kanalDialog.oeffnenEdit(kanalDelegate.modelData)
+                            }
+
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 8
@@ -738,12 +750,6 @@ Item {
                                         }
                                     }
                                 }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root._ausgewaehlterKanalId = kanalDelegate.modelData.id
-                                onDoubleClicked: kanalDialog.oeffnenEdit(kanalDelegate.modelData)
                             }
                         }
 

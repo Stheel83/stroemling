@@ -172,6 +172,18 @@ UI-Konsistenz-Korrekturen – nicht nur für neue Features.
 - Datenbankdatei liegt in `~/.local/share/Stroemling_Design/stroemling.db` (R3 erledigt, PATH-01 normalisiert)
 - `SCHEMA_VERSION`-Konstante entfällt – Versionierung über `schema_migration`-Tabelle
 
+**Versionierungs-Vertrag (verbindlich, R11/R12 in `26_release_migration.md`):**
+- Migrationen werden **nie gelöscht, umnummeriert oder rückwirkend verändert** –
+  eine einmal committete Migrationsnummer bleibt für immer gültig. Jede
+  jemals mit einer offiziellen Version gespeicherte Projektdatei muss von
+  jeder späteren Strömling-Version noch geöffnet werden können.
+- Ausnahme: ein bewusster **Squash** vor dem allerersten Release (keine
+  Produktivnutzer, keine Altdaten) – danach gilt der Vertrag uneingeschränkt.
+- `checkAndApplySchema()` verweigert das Öffnen einer Datei, deren
+  `schema_migration`-Version **höher** ist als die höchste in dieser Binary
+  bekannte Migration (Downgrade-Schutz, R11) – kein stillschweigendes
+  Weiterarbeiten mit unbekanntem Schema.
+
 ### QML-Dateien: Pflichtregistrierung in CMakeLists.txt
 Jede neue `.qml`-Datei – egal ob in `qml/`, `qml/components/` oder `qml/ep/` – **muss sofort**
 in `CMakeLists.txt` unter `QML_FILES` eingetragen werden. Fehlt der Eintrag, kann

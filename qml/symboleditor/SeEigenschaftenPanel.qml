@@ -135,7 +135,7 @@ Rectangle {
                      editor.primitive[editor.ausgewaehltPrimIdx].typ === "text"
             Text { text: qsTr("Inhalt:"); font.pixelSize: 11; color: editor.theme.textMuted }
             TextField {
-                Layout.fillWidth: true; implicitHeight: 24; font.pixelSize: 11
+                Layout.fillWidth: true; implicitHeight: 40; font.pixelSize: 16
                 text: {
                     var idx4 = editor.ausgewaehltPrimIdx; if (idx4 < 0) return ""
                     var px = editor.primitive[idx4]; return px ? (px.text_inhalt || "") : ""

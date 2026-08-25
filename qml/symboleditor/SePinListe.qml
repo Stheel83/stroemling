@@ -56,7 +56,7 @@ Rectangle {
             }
             Text {
                 text: qsTr("Kn.-Gr.")
-                width: 48; font.pixelSize: 10; color: root.editor.theme.textMuted
+                width: 60; font.pixelSize: 10; color: root.editor.theme.textMuted
                 ToolTip.visible: knGrHeaderHover.hovered
                 ToolTip.delay: 400
                 ToolTip.text: qsTr("Knoten-Gruppe: Pins mit unterschiedlicher Zahl gelten in der Netzberechnung als getrennte Anschlüsse desselben Symbols (z.B. bei Widerstand/Kondensator/Spule nötig, damit beide Pole nicht intern kurzgeschlossen erscheinen). Gleiche Zahl (Default 0) = Pins gelten als intern verbunden, wie bei Klemme/Schalter.")
@@ -283,7 +283,7 @@ Rectangle {
                     }
 
                     TextField {
-                        width: 40; height: 30; font.pixelSize: 11
+                        width: 60; height: 30; font.pixelSize: 14
                         text: (parent.parent.myPin.knotenGruppe !== undefined ? parent.parent.myPin.knotenGruppe : 0).toString()
                         validator: IntValidator { bottom: 0; top: 9 }
                         horizontalAlignment: Text.AlignHCenter

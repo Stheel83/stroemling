@@ -2207,6 +2207,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 135, "SPS-BMK-UNTEN-01: neue bmk_seite-Option 'unten' (dritte Option neben auto/vertikal) fuer Symbole, deren Pins bei 0 Grad an der Oberkante sitzen (sps_di_*/sps_ai_*) - dort wuerde 'auto' (BMK oben) direkt auf der Zuleitung landen. sps_di_einpolig/sps_di_zweipolig/sps_ai_einpolig/sps_ai_zweipolig auf 'unten' umgestellt (Rendering-Support in CanvasRenderHandler.qml + Database_PDF.cpp).", {
             R"(UPDATE symbol_definition SET bmk_seite='unten' WHERE id IN ('sps_di_einpolig','sps_di_zweipolig','sps_ai_einpolig','sps_ai_zweipolig'))",
         }},
+        { 136, "SPS-BEMERKUNG-OBEN-01: neue bmk_seite-Option 'oben' (vierte Option) fuer Symbole, deren Pins bei 0 Grad an der Unterkante sitzen (sps_do_*/sps_ao_*) - BMK landete bereits korrekt oben ('auto'), aber die Freitext-Zeilen (u.a. der per SPS-KANAL-KOMMENTAR-SYNC-01 automatisch befuellte Kanal-Kommentar) gingen im 'auto'-Fall immer nach unten und damit auf die Zuleitung. sps_do_einpolig/sps_do_zweipolig/sps_ao_einpolig/sps_ao_zweipolig auf 'oben' umgestellt (Rendering-Support in CanvasRenderHandler.qml + Database_PDF.cpp).", {
+            R"(UPDATE symbol_definition SET bmk_seite='oben' WHERE id IN ('sps_do_einpolig','sps_do_zweipolig','sps_ao_einpolig','sps_ao_zweipolig'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

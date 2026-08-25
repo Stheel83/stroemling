@@ -1929,6 +1929,13 @@ QtObject {
                         // (z.B. sps_di_*/sps_ai_*) - dort würde "auto" (BMK oben) direkt auf der
                         // Zuleitung landen. Wirkt nur, wenn nicht "senkrecht" positioniert wird.
                         var unten = !senkrecht && _bmkSeite === "unten"
+                        // SPS-BEMERKUNG-OBEN-01: vierte bmk_seite-Option "oben" für Symbole
+                        // mit Pins an der Unterkante bei 0° (z.B. sps_do_*/sps_ao_*) - dort
+                        // landet BMK zwar schon oben (auto), aber die Freitext-Zeilen gingen
+                        // im "auto"-Fall immer nach UNTEN und damit auf die Zuleitung. Bei
+                        // "oben" wandern BMK+Freitext gemeinsam nach oben (Spiegelbild von
+                        // "unten").
+                        var oben = !senkrecht && !unten && _bmkSeite === "oben"
                         var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * cv.zoom
                         var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : (unten ? 14 : -14)) * cv.zoom
                         var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
@@ -1968,6 +1975,22 @@ QtObject {
                             for (var fu = 0; fu < ftZeilen.length; fu++) {
                                 ctx.fillText(ftZeilen[fu], bkCxU, ftYu)
                                 ftYu += ftFs * 1.25
+                            }
+                        } else if (oben) {
+                            var bkCxO = (vx1 + vx2) / 2 + bmkOx
+                            var bkByO = Math.min(vy1, vy2) + bmkOy
+                            if (bmkStr !== "") {
+                                ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                ctx.textBaseline = "bottom"
+                                ctx.fillText(bmkStr, bkCxO, bkByO)
+                            }
+                            ctx.font      = ftFs + "px sans-serif"
+                            ctx.fillStyle = ftClr
+                            ctx.textBaseline = "bottom"
+                            var ftYo = bkByO - bmkFs - 2 * cv.zoom
+                            for (var fo = 0; fo < ftZeilen.length; fo++) {
+                                ctx.fillText(ftZeilen[fo], bkCxO, ftYo)
+                                ftYo -= ftFs * 1.25
                             }
                         } else {
                             var bkCx = (vx1 + vx2) / 2 + bmkOx

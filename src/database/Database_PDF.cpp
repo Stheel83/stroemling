@@ -464,6 +464,10 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
     // SPS-BMK-UNTEN-01: dritte bmk_seite-Option (1:1 Analogie zu
     // CanvasRenderHandler.qml) für Symbole mit Pins an der Oberkante bei 0°.
     bool unten = !senkrecht && (bmkSeite == QLatin1String("unten"));
+    // SPS-BEMERKUNG-OBEN-01: vierte bmk_seite-Option (1:1 Analogie zu
+    // CanvasRenderHandler.qml) für Symbole mit Pins an der Unterkante bei 0°
+    // - BMK+Freitext wandern gemeinsam nach oben (Spiegelbild von "unten").
+    bool oben = !senkrecht && !unten && (bmkSeite == QLatin1String("oben"));
 
     double bmkOx = ed.value("bmkOffsetX", 0.0).toDouble() * C;
     double bmkOy = ed.value("bmkOffsetY", unten ? 14.0 : -14.0).toDouble() * C;
@@ -499,6 +503,21 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
             p.drawText(QRectF(bkCxU - BIG, ftYu, 2 * BIG, BIG),
                        Qt::AlignHCenter | Qt::AlignTop, line);
             ftYu += ftFsDev * 1.25;
+        }
+    } else if (oben) {
+        double bkCxO = (vx1 + vx2) / 2.0 + bmkOx;
+        double bkByO = vy1 + bmkOy;
+        if (!bmk.isEmpty()) {
+            p.setFont(fontBmk);
+            p.drawText(QRectF(bkCxO - BIG, bkByO - BIG, 2 * BIG, BIG),
+                       Qt::AlignHCenter | Qt::AlignBottom, bmk);
+        }
+        p.setFont(fontFt);
+        double ftYo = bkByO - fsDev - 2.0 * C;
+        for (const QString &line : ftZeilen) {
+            p.drawText(QRectF(bkCxO - BIG, ftYo - BIG, 2 * BIG, BIG),
+                       Qt::AlignHCenter | Qt::AlignBottom, line);
+            ftYo -= ftFsDev * 1.25;
         }
     } else {
         double bkCx = (vx1 + vx2) / 2.0 + bmkOx;

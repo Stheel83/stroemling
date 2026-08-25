@@ -422,8 +422,8 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
 {
     QSqlQuery q;
     q.prepare(R"(
-        INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe)
-        VALUES (:sym, :name, :x, :y, :ox, :oy, :sig, :ctx, :kg)
+        INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle)
+        VALUES (:sym, :name, :x, :y, :ox, :oy, :sig, :ctx, :kg, :rolle)
     )");
     q.bindValue(":sym",  symbolId);
     q.bindValue(":name", daten.value("name", ""));
@@ -434,6 +434,9 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
     q.bindValue(":sig",  daten.value("signaltyp", "neutral"));
     q.bindValue(":ctx",  daten.value("kontext", ""));
     q.bindValue(":kg",   daten.value("knotenGruppe", 0));
+    // NETZTEIL-ROLLE-01: bisher nur per Migration/symbole.sql setzbar, jetzt
+    // auch über den Rolle-Dropdown im Symboleditor (SePinListe.qml).
+    q.bindValue(":rolle", daten.value("rolle", ""));
     if (!q.exec()) {
         qCWarning(lcModel) << "pinHinzufuegen:" << q.lastError().text();
         return -1;

@@ -47,6 +47,14 @@ Rectangle {
             Text { text: qsTr("Richtung"); width: 96; font.pixelSize: 10; color: root.editor.theme.textMuted }
             Text { text: qsTr("Signaltyp"); width: 95; font.pixelSize: 10; color: root.editor.theme.textMuted }
             Text {
+                text: qsTr("Rolle")
+                width: 78; font.pixelSize: 10; color: root.editor.theme.textMuted
+                ToolTip.visible: rolleHeaderHover.hovered
+                ToolTip.delay: 400
+                ToolTip.text: qsTr("Pin-Rolle (NETZTEIL-ROLLE-01): überschreibt für genau diesen Pin die Symbol-Rolle. \"Quelle\" macht den Signaltyp dieses Pins zu einer festen Netz-Quelle (z.B. Ausgangspin eines SPS-Kanals) – ohne diese Überschreibung hat der gewählte Signaltyp keine Wirkung auf die Netzberechnung.")
+                HoverHandler { id: rolleHeaderHover }
+            }
+            Text {
                 text: qsTr("Kn.-Gr.")
                 width: 48; font.pixelSize: 10; color: root.editor.theme.textMuted
                 ToolTip.visible: knGrHeaderHover.hovered
@@ -234,6 +242,38 @@ Rectangle {
                             width: sigCombo.width
                             highlighted: sigCombo.highlightedIndex === index
                             contentItem: Text { text: sigCombo.labelFuer(modelData); font.pixelSize: 10;
+                                                 color: root.editor.theme.textPrimary; leftPadding: 6;
+                                                 verticalAlignment: Text.AlignVCenter }
+                        }
+                        background: Rectangle { color: root.editor.theme.inputBg; border.color: root.editor.theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: root.editor.theme.textPrimary; font.pixelSize: 10;
+                                            leftPadding: 6; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                    }
+
+                    ComboBox {
+                        id: rolleCombo
+                        width: 78; height: 30
+                        model: ["", "quelle", "verbraucher"]
+                        font.pixelSize: 10
+                        function labelFuer(key) {
+                            if (key === "quelle") return qsTr("Quelle")
+                            if (key === "verbraucher") return qsTr("Verbr.")
+                            return qsTr("Erben")
+                        }
+                        displayText: labelFuer(currentText)
+                        currentIndex: {
+                            var r = parent.parent.myPin.rolle || ""
+                            var i3 = model.indexOf(r); return i3 >= 0 ? i3 : 0
+                        }
+                        onActivated: function(idx) {
+                            var arr = root.editor.pins.slice()
+                            var p   = Object.assign({}, arr[parent.parent.myIdx])
+                            p.rolle = model[idx]; arr[parent.parent.myIdx] = p; root.editor.pins = arr
+                        }
+                        delegate: ItemDelegate {
+                            width: rolleCombo.width
+                            highlighted: rolleCombo.highlightedIndex === index
+                            contentItem: Text { text: rolleCombo.labelFuer(modelData); font.pixelSize: 10;
                                                  color: root.editor.theme.textPrimary; leftPadding: 6;
                                                  verticalAlignment: Text.AlignVCenter }
                         }

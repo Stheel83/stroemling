@@ -916,10 +916,11 @@ private:
                                                            const QString &symbolKey,
                                                            int projektId);
 
-    // SPS-KANAL-KOMMENTAR-SYNC-01: Kanal-Kommentar in die "Bemerkung"-Freitext-
-    // zeile (extra_daten.freitext2) des verknüpften grafik_element übernehmen,
-    // damit der Kommentar nur an einer Stelle (Kanal) gepflegt werden muss.
-    void _spsKanalKommentarInsElementUebernehmen(int kanalId);
+    // SPS-KANAL-KOMMENTAR-SYNC-01 + SPS-KANAL-TAG-SYNC-01: Kanal-Variablenname
+    // (Tag) und -Kommentar in die Freitext-Zeilen (extra_daten.freitext1/2)
+    // des verknüpften grafik_element übernehmen, damit beide nur an einer
+    // Stelle (Kanal) gepflegt werden müssen.
+    void _spsKanalFelderInsElementUebernehmen(int kanalId);
 
     QSqlDatabase m_db;
     QSqlDatabase m_wikiDb;

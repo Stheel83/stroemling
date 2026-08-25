@@ -86,9 +86,12 @@ Column {
                 var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
                 return ed[ftKey + "Sichtbar"] !== false
             }
-            readonly property bool   ftAusKanal: ftKey === "freitext2" && root._kanalVerknuepft
-            readonly property string ftLabel:    ftKey === "freitext1" ? "Typ / Bezeichnung"
-                                                  : (ftAusKanal ? "Bemerkung (aus SPS/PLS-Kanal)" : "Bemerkung")
+            readonly property bool   ftAusKanal: (ftKey === "freitext1" || ftKey === "freitext2")
+                                                  && root._kanalVerknuepft
+            readonly property string ftLabel: {
+                if (ftKey === "freitext1") return ftAusKanal ? "Tag/Variable (aus SPS/PLS-Kanal)" : "Typ / Bezeichnung"
+                return ftAusKanal ? "Bemerkung (aus SPS/PLS-Kanal)" : "Bemerkung"
+            }
             readonly property string ftWert: {
                 var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
                 return ed[ftKey] || ""
@@ -157,7 +160,7 @@ Column {
                         opacity: ftZeileRoot.ftSichtbar ? 1.0 : 0.45
                         ToolTip.visible: ftZeileRoot.ftAusKanal && kanalHint.containsMouse
                         ToolTip.delay:   400
-                        ToolTip.text:    qsTr("Wird aus dem Kommentar des verknüpften SPS/PLS-Kanals übernommen – dort bearbeiten (Kanal-Auswahl bzw. Tab „Kanäle/Adressen“).")
+                        ToolTip.text:    qsTr("Wird aus dem verknüpften SPS/PLS-Kanal übernommen (Tag/Variablenname bzw. Kommentar) – dort bearbeiten (Kanal-Auswahl bzw. Tab „Kanäle/Adressen“).")
                         MouseArea {
                             id: kanalHint; anchors.fill: parent; hoverEnabled: true
                             enabled: ftZeileRoot.ftAusKanal

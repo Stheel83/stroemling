@@ -33,6 +33,24 @@ Item {
     readonly property bool hatKanal: (kanalInfo.id || 0) > 0
     readonly property bool istPls:   hatKanal && (kanalInfo.system_typ || "SPS") === "PLS"
 
+    // SPS-KANAL-ZUWEISEN-LEER-01: als "model:"-Bindung ausgewertet wurde diese
+    // Liste nur einmal beim Erzeugen der Komponente berechnet und danach nie
+    // wieder aktualisiert (kein QML-Property hängt von den DB-Zeilen ab) - neu
+    // angelegte Kanäle aus einer ganz anderen Ansicht (SpsAnsicht.qml) blieben
+    // im Zuweisen-Popup dauerhaft unsichtbar. Wird jetzt zusätzlich in
+    // Dialog.onOpened frisch neu berechnet.
+    function _freieKanaeleErmitteln() {
+        if (!panel.canvas || (panel.canvas.projektId || -1) < 0) return []
+        var alle      = db.spsKanalListe(panel.canvas.projektId)
+        var aktElemId = panel.el ? (panel.el.id || 0) : 0
+        var ergebnis  = []
+        for (var i = 0; i < alle.length; i++) {
+            var eid = alle[i].grafik_element_id
+            if (!eid || eid === aktElemId) ergebnis.push(alle[i])
+        }
+        return ergebnis
+    }
+
     function richtungText(typ) {
         if (typ === "E") return "Eingang"
         if (typ === "A") return "Ausgang"
@@ -271,6 +289,7 @@ Item {
 
         onOpened: {
             dlgKanalWaehlen.gewaehltId = root.kanalInfo.id || 0
+            kanalListe.model = root._freieKanaeleErmitteln()
         }
 
         standardButtons: Dialog.Ok | Dialog.Cancel
@@ -300,17 +319,7 @@ Item {
                 height: Math.min(contentHeight, 220)
                 clip: true
 
-                model: {
-                    if (!panel.canvas || (panel.canvas.projektId || -1) < 0) return []
-                    var alle      = db.spsKanalListe(panel.canvas.projektId)
-                    var aktElemId = panel.el ? (panel.el.id || 0) : 0
-                    var ergebnis  = []
-                    for (var i = 0; i < alle.length; i++) {
-                        var eid = alle[i].grafik_element_id
-                        if (!eid || eid === aktElemId) ergebnis.push(alle[i])
-                    }
-                    return ergebnis
-                }
+                model: root._freieKanaeleErmitteln()
 
                 ScrollBar.vertical: ScrollBar {}
 

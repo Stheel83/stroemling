@@ -2174,6 +2174,28 @@ bool Database::checkAndApplySchema()
         }
     }
 
+    // Downgrade-Schutz: Die Datei wurde mit einer neueren Strömling-Version gespeichert
+    // als diese Binary kennt. Migrationen sind rein additiv (ADD COLUMN, CREATE TABLE) -
+    // stillschweigendes Weiterarbeiten mit einem unbekannten Schema kann zu inkonsistenten
+    // Daten fuehren, deshalb hier hart abbrechen statt weiterzumachen.
+    {
+        int hoechsteBekannteVersion = BASELINE_VERSION;
+        for (const SchemaMigration &mig : alleMigrationen())
+            if (mig.version > hoechsteBekannteVersion)
+                hoechsteBekannteVersion = mig.version;
+
+        if (currentVersion > hoechsteBekannteVersion) {
+            qCWarning(lcDb) << "Datenbank-Version" << currentVersion
+                             << "ist neuer als die bekannte Version" << hoechsteBekannteVersion;
+            emit dbFehler(QString(
+                "Diese Datei wurde mit einer neueren Strömling-Version gespeichert "
+                "(Schema v%1, diese Programmversion kennt bis v%2). Bitte Strömling "
+                "aktualisieren, bevor diese Datei geöffnet wird.")
+                .arg(currentVersion).arg(hoechsteBekannteVersion));
+            return false;
+        }
+    }
+
     // Backup erstellen wenn Migrationen ausstehen
     {
         const auto &migrationen = alleMigrationen();

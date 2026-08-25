@@ -261,6 +261,29 @@ private slots:
                  qPrintable("Duplikate in symbol_pin (symbol_id, name): "
                             + pinDuplikate.join(", ")));
     }
+
+    void test_10_downgradeSchutz()
+    {
+        // Schutz gegen das Oeffnen einer Projektdatei, die mit einer neueren
+        // Strömling-Version gespeichert wurde als diese Binary kennt: Migrationen
+        // sind additiv (ADD COLUMN, CREATE TABLE), stillschweigendes Weiterarbeiten
+        // mit unbekanntem Schema kann Daten inkonsistent machen. checkAndApplySchema()
+        // muss das erkennen und das Oeffnen verweigern statt einfach durchzulaufen.
+        // Muss der letzte Test sein - manipuliert die geteilte Test-Datenbank
+        // dauerhaft (cleanupTestCase loescht die Datei danach ohnehin).
+        {
+            QSqlQuery q(QSqlDatabase::database());
+            QVERIFY(q.exec(
+                "INSERT INTO schema_migration (version, beschreibung) "
+                "VALUES (999999, 'Test: simulierte zukuenftige Version')"));
+        }
+
+        m_db->closeProjekt();
+        QVERIFY2(!m_db->openProjekt(m_tmpPfad),
+                 "openProjekt() haette wegen zu hoher Schema-Version fehlschlagen muessen");
+        QVERIFY2(!m_db->isOpen(),
+                 "Datenbank sollte nach verweigertem Downgrade-Oeffnen geschlossen sein");
+    }
 };
 
 QTEST_GUILESS_MAIN(TstMigrationen)

@@ -2194,6 +2194,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE grafik_element SET symbol_id='sps_ai_einpolig' WHERE symbol_id='analoger_eingang_single_v02')",
             R"(DELETE FROM symbol_definition WHERE id='analoger_eingang_single_v02' AND ist_builtin=0)",
         }},
+        { 133, "SYM-KOPIE-STRESSTEST-02-NACHTRAG-01: 'led'/'ventil' wurden in Migration 111 per INSERT OR IGNORE aus lokalen Stresstest-Kopien in den Built-in-Katalog uebernommen - da im Projekt Stresstest selbst aber schon eine lokale Zeile mit exakt dieser ID existierte, griff INSERT OR IGNORE dort nicht und liess ist_builtin=0 stehen (Karteileiche, inhaltlich 1:1 identisch mit dem Built-in, 0 Platzierungen). Entfernt die verwaisten lokalen Zeilen.", {
+            R"(DELETE FROM symbol_definition WHERE id='led' AND ist_builtin=0)",
+            R"(DELETE FROM symbol_definition WHERE id='ventil' AND ist_builtin=0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

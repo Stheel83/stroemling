@@ -750,10 +750,13 @@ Item {
                                 if (!isSel && (p.typ === "text" || p.typ === "kreis_offen" ||
                                                p.typ === "kreis_gefuellt" || p.typ === "bogen")) {
                                     ctx.save()
-                                    ctx.fillStyle = "#0b5394aa"
+                                    ctx.fillStyle   = "#ff8800"
+                                    ctx.strokeStyle = "#3a1f00"
+                                    ctx.lineWidth   = 1.2
                                     ctx.beginPath()
-                                    ctx.arc((p.x1||0)*dw, (p.y1||0)*dh, 3, 0, 2*Math.PI)
+                                    ctx.arc((p.x1||0)*dw, (p.y1||0)*dh, 5, 0, 2*Math.PI)
                                     ctx.fill()
+                                    ctx.stroke()
                                     ctx.restore()
                                 }
                             }

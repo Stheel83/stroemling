@@ -323,6 +323,26 @@ Item {
             if (aktId > 0 && aktId !== dlgKanalWaehlen.gewaehltId)
                 db.spsKanalElementEntfernen(aktId)
             db.spsKanalElementZuweisen(dlgKanalWaehlen.gewaehltId, freshEl.id)
+
+            // Nutzerwunsch: BMK automatisch aus Rack/Slot/Kanal vorbelegen,
+            // aber nur wenn noch keins gesetzt ist (nie einen vorhandenen
+            // BMK überschreiben).
+            var bisherigesBmk = (freshEl.extraDaten && freshEl.extraDaten.bmk) || ""
+            if (bisherigesBmk.trim() === "") {
+                var gewaehltesKanal = null
+                var modellListe = kanalListe.model || []
+                for (var k = 0; k < modellListe.length; k++) {
+                    if (modellListe[k].id === dlgKanalWaehlen.gewaehltId) { gewaehltesKanal = modellListe[k]; break }
+                }
+                if (gewaehltesKanal) {
+                    var bmkVorschlag = "-R" + (gewaehltesKanal.rack_nr || 0)
+                                      + "-S" + (gewaehltesKanal.slot || 0)
+                                      + "-K" + ((gewaehltesKanal.kanal_nr || 0) + 1)
+                    db.grafikElementExtraMergeSetzen(freshEl.id, { bmk: bmkVorschlag })
+                }
+            }
+
+            panel.canvas.seiteNeuLaden()
             root._refresh++
             panel.canvas.spsKonfliktAktualisieren()
         }

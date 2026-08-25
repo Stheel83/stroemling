@@ -592,7 +592,7 @@ Item {
                             Label { text: qsTr("Filter:"); color: root.theme.textMuted }
                             ComboBox {
                                 model: ["alle","E (Eingang)","A (Ausgang)","M (Merker)","T (Zeitglied)","Z (Zähler)",
-                                        "DI","DO","AI","AO","PLS-AI","PLS-AO"]
+                                        "DI","DO","AI","AO","PLS (Eingang)","PLS (Ausgang)"]
                                 Layout.preferredWidth: 140
                                 onActivated: root._kanalFilter = model[currentIndex]
                                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
@@ -652,8 +652,8 @@ Item {
                         if (f === "Z (Zähler)")    return root._kanaele.filter(function(k) { return k.adress_typ === "Z" })
                         if (f === "DI" || f === "DO" || f === "AI" || f === "AO")
                             return root._kanaele.filter(function(k) { return root._kanalTyp(k) === f })
-                        if (f === "PLS-AI")       return root._kanaele.filter(function(k) { return k.system_typ === "PLS" && k.adress_typ === "E" })
-                        if (f === "PLS-AO")       return root._kanaele.filter(function(k) { return k.system_typ === "PLS" && k.adress_typ === "A" })
+                        if (f === "PLS (Eingang)") return root._kanaele.filter(function(k) { return k.system_typ === "PLS" && k.adress_typ === "E" })
+                        if (f === "PLS (Ausgang)") return root._kanaele.filter(function(k) { return k.system_typ === "PLS" && k.adress_typ === "A" })
                         return root._kanaele
                     }
 

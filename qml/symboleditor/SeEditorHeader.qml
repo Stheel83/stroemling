@@ -149,18 +149,18 @@ Rectangle {
             Text {
                 text: qsTr("BMK:"); color: editor.theme.textMuted; font.pixelSize: 11
                 ToolTip.visible: bmkHover.containsMouse; ToolTip.delay: 400
-                ToolTip.text: qsTr("Position des BMK/Freitext-Labels bei Rotation 0°/180°.\nAuto: Label oben (für Grundausrichtung horizontal).\nSeitlich: Label links (für Grundausrichtung vertikal, wie Spule/Kontakte).")
+                ToolTip.text: qsTr("Position des BMK/Freitext-Labels bei Rotation 0°/180°.\nAuto: Label oben (für Grundausrichtung horizontal).\nSeitlich: Label links (für Grundausrichtung vertikal, wie Spule/Kontakte).\nUnten: Label unten (wenn Pins bei 0° an der Oberkante sitzen, z.B. SPS-Eingänge).")
                 MouseArea { id: bmkHover; anchors.fill: parent; hoverEnabled: true }
             }
             ComboBox {
                 id: bmkSeiteCombo
-                model: ["auto", "vertikal"]
+                model: ["auto", "vertikal", "unten"]
                 currentIndex: Math.max(0, model.indexOf(editor.bmkSeiteText))
                 onCurrentIndexChanged: editor.bmkSeiteText = model[currentIndex]
                 implicitWidth: 100; implicitHeight: 28; font.pixelSize: 12
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
                 contentItem: Text {
-                    text: bmkSeiteCombo.currentIndex === 1 ? qsTr("Seitlich") : qsTr("Auto")
+                    text: bmkSeiteCombo.currentIndex === 1 ? qsTr("Seitlich") : (bmkSeiteCombo.currentIndex === 2 ? qsTr("Unten") : qsTr("Auto"))
                     color: editor.theme.textPrimary; font.pixelSize: 12
                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
                 }

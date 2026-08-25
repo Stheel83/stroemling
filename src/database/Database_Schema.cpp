@@ -2204,6 +2204,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE grafik_element SET symbol_id='taster_nc' WHERE symbol_id='kopie_von_taster_nc')",
             R"(DELETE FROM symbol_definition WHERE id='kopie_von_taster_nc' AND ist_builtin=0)",
         }},
+        { 135, "SPS-BMK-UNTEN-01: neue bmk_seite-Option 'unten' (dritte Option neben auto/vertikal) fuer Symbole, deren Pins bei 0 Grad an der Oberkante sitzen (sps_di_*/sps_ai_*) - dort wuerde 'auto' (BMK oben) direkt auf der Zuleitung landen. sps_di_einpolig/sps_di_zweipolig/sps_ai_einpolig/sps_ai_zweipolig auf 'unten' umgestellt (Rendering-Support in CanvasRenderHandler.qml + Database_PDF.cpp).", {
+            R"(UPDATE symbol_definition SET bmk_seite='unten' WHERE id IN ('sps_di_einpolig','sps_di_zweipolig','sps_ai_einpolig','sps_ai_zweipolig'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

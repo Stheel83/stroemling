@@ -1918,16 +1918,21 @@ QtObject {
                                        ? bmkEd.schriftgroesse : 2.5)
                         var bmkFs   = Math.max(5, Math.round(schrift * cv.mmToPx * cv.zoom))
                         var ftFs    = Math.max(4, Math.round(schrift * 0.85 * cv.mmToPx * cv.zoom))
-                        var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * cv.zoom
-                        var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * cv.zoom
-                        var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
-                        var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
                         var symRot    = ((el.rotation || 0) % 360 + 360) % 360
                         var _symInfo  = symbolDefinitionModel.symbolInfo(el.symbolId || "")
                         var _bmkSeite = (_symInfo && _symInfo.bmkSeite) ? _symInfo.bmkSeite : "auto"
                         var senkrecht = _bmkSeite === "vertikal"
                                         ? (symRot === 0 || symRot === 180)
                                         : (symRot === 90 || symRot === 270)
+                        // SPS-BMK-UNTEN-01: "unten" ist eine dritte bmk_seite-Option (neben
+                        // auto/vertikal) für Symbole, deren Pins bei 0° an der Oberkante sitzen
+                        // (z.B. sps_di_*/sps_ai_*) - dort würde "auto" (BMK oben) direkt auf der
+                        // Zuleitung landen. Wirkt nur, wenn nicht "senkrecht" positioniert wird.
+                        var unten = !senkrecht && _bmkSeite === "unten"
+                        var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * cv.zoom
+                        var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : (unten ? 14 : -14)) * cv.zoom
+                        var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
+                        var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
                         ctx.save()
                         ctx.globalAlpha = 1.0
                         ctx.textAlign   = senkrecht ? "right" : "center"
@@ -1947,6 +1952,22 @@ QtObject {
                             for (var fi = 0; fi < ftZeilen.length; fi++) {
                                 ctx.fillText(ftZeilen[fi], bkAx, ftOff)
                                 ftOff += ftFs * 1.25
+                            }
+                        } else if (unten) {
+                            var bkCxU = (vx1 + vx2) / 2 + bmkOx
+                            var bkBy  = Math.max(vy1, vy2) + bmkOy
+                            if (bmkStr !== "") {
+                                ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                ctx.textBaseline = "top"
+                                ctx.fillText(bmkStr, bkCxU, bkBy)
+                            }
+                            ctx.font      = ftFs + "px sans-serif"
+                            ctx.fillStyle = ftClr
+                            ctx.textBaseline = "top"
+                            var ftYu = bkBy + bmkFs + 2 * cv.zoom
+                            for (var fu = 0; fu < ftZeilen.length; fu++) {
+                                ctx.fillText(ftZeilen[fu], bkCxU, ftYu)
+                                ftYu += ftFs * 1.25
                             }
                         } else {
                             var bkCx = (vx1 + vx2) / 2 + bmkOx

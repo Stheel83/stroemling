@@ -268,6 +268,25 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
                 bmHfOldElId[q.value(0).toInt()] = q.value(1).toInt();
         }
     }
+
+    // SPS/PLS-Kanal-Zuweisung vor dem DELETE sichern (SPS-KANAL-RESAVE-01):
+    // kanalId → alter grafik_element.id. sps_kanal.grafik_element_id hat
+    // ON DELETE SET NULL - ohne dieses Nachziehen loescht das DELETE unten
+    // JEDE bestehende Kanal-Zuweisung auf der Seite bei jedem Speichervorgang,
+    // nicht nur bei einer inhaltlichen Aenderung.
+    QMap<int, int> spsKanalOldElId;
+    {
+        QSqlQuery q;
+        q.prepare("SELECT sk.id, sk.grafik_element_id "
+                  "FROM sps_kanal sk "
+                  "JOIN grafik_element ge ON ge.id = sk.grafik_element_id "
+                  "WHERE ge.seite_id = :sid");
+        q.bindValue(":sid", seiteId);
+        if (q.exec()) {
+            while (q.next())
+                spsKanalOldElId[q.value(0).toInt()] = q.value(1).toInt();
+        }
+    }
     // Alter grafik_element.id → Neue ID (wird im INSERT-Loop befüllt)
     QMap<int, int> oldElIdToNewId;
 
@@ -480,6 +499,19 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
         qHf.bindValue(":bmid", it.key());
         if (!qHf.exec())
             qCWarning(lcDb) << "grafikSpeichern hf relink:" << qHf.lastError().text();
+    }
+
+    // SPS/PLS-Kanal-Zuweisung wiederherstellen (SPS-KANAL-RESAVE-01):
+    // grafik_element_id auf neue IDs umschreiben
+    for (auto it = spsKanalOldElId.constBegin(); it != spsKanalOldElId.constEnd(); ++it) {
+        int newElId = oldElIdToNewId.value(it.value(), -1);
+        if (newElId <= 0) continue;
+        QSqlQuery qSps;
+        qSps.prepare("UPDATE sps_kanal SET grafik_element_id = :eid WHERE id = :kid");
+        qSps.bindValue(":eid", newElId);
+        qSps.bindValue(":kid", it.key());
+        if (!qSps.exec())
+            qCWarning(lcDb) << "grafikSpeichern sps_kanal relink:" << qSps.lastError().text();
     }
 
     if (!m_db.commit()) {

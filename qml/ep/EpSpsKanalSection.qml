@@ -413,20 +413,32 @@ Item {
                         anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                         spacing: 8
                         Text {
+                            text: root._kanalTyp(modelData) || "–"
+                            font.pixelSize: 10; font.bold: true
+                            color: {
+                                switch (root._kanalTyp(modelData)) {
+                                case "DI": case "AI": return "#4caf50"
+                                case "DO": case "AO": return "#f44336"
+                                default: return root.theme.textMuted
+                                }
+                            }
+                            width: 26; elide: Text.ElideRight
+                        }
+                        Text {
                             text: modelData.adresse || "?"
                             font.pixelSize: 11; font.bold: true; color: root.theme.accent
-                            width: 82; elide: Text.ElideRight
+                            width: 74; elide: Text.ElideRight
                         }
                         Text {
                             text: modelData.variablenname || "–"
                             font.pixelSize: 11; color: root.theme.textSecondary
-                            width: 110; elide: Text.ElideRight
+                            width: 100; elide: Text.ElideRight
                         }
                         Text {
                             text: modelData.kommentar || ""
                             font.pixelSize: 10; color: root.theme.textMuted
                             elide: Text.ElideRight
-                            width: kanalListe.width - 8 - 82 - 110 - 32
+                            width: kanalListe.width - 8 - 26 - 74 - 100 - 32
                         }
                     }
                     MouseArea {

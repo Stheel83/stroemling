@@ -25,6 +25,16 @@ Item {
     property string _kanalFilter: "alle"
     property var _pendingAutoAnlegenBg: null
 
+    // SPS-KANAL-FILTER-ERWEITERT-01: 1:1 aus EpSpsKanalSection.qml::_kanalTyp()
+    // übernommen - löst DIO/AIO-Baugruppen anhand der Adress-Richtung in
+    // DI/DO bzw. AI/AO auf, statt sie unter ihrem Baugruppen-Rohtyp zu verstecken.
+    function _kanalTyp(kanal) {
+        var bgTyp = (kanal.baugruppe_typ || "").toUpperCase()
+        if (bgTyp === "DIO") return kanal.adress_typ === "A" ? "DO" : "DI"
+        if (bgTyp === "AIO") return kanal.adress_typ === "A" ? "AO" : "AI"
+        return bgTyp
+    }
+
     function _ladeRacks() {
         if (root.projektId < 0) { _racks = []; return }
         _racks = db.spsRackListe(root.projektId)
@@ -581,7 +591,8 @@ Item {
 
                             Label { text: qsTr("Filter:"); color: root.theme.textMuted }
                             ComboBox {
-                                model: ["alle","E (Eingang)","A (Ausgang)","M (Merker)","PLS-AI","PLS-AO"]
+                                model: ["alle","E (Eingang)","A (Ausgang)","M (Merker)","T (Zeitglied)","Z (Zähler)",
+                                        "DI","DO","AI","AO","PLS-AI","PLS-AO"]
                                 Layout.preferredWidth: 140
                                 onActivated: root._kanalFilter = model[currentIndex]
                                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
@@ -637,6 +648,10 @@ Item {
                         if (f === "E (Eingang)") return root._kanaele.filter(function(k) { return k.adress_typ === "E" })
                         if (f === "A (Ausgang)")  return root._kanaele.filter(function(k) { return k.adress_typ === "A" })
                         if (f === "M (Merker)")   return root._kanaele.filter(function(k) { return k.adress_typ === "M" })
+                        if (f === "T (Zeitglied)") return root._kanaele.filter(function(k) { return k.adress_typ === "T" })
+                        if (f === "Z (Zähler)")    return root._kanaele.filter(function(k) { return k.adress_typ === "Z" })
+                        if (f === "DI" || f === "DO" || f === "AI" || f === "AO")
+                            return root._kanaele.filter(function(k) { return root._kanalTyp(k) === f })
                         if (f === "PLS-AI")       return root._kanaele.filter(function(k) { return k.system_typ === "PLS" && k.adress_typ === "E" })
                         if (f === "PLS-AO")       return root._kanaele.filter(function(k) { return k.system_typ === "PLS" && k.adress_typ === "A" })
                         return root._kanaele

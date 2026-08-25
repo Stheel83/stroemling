@@ -2214,6 +2214,38 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_pin SET rolle='quelle' WHERE symbol_id IN ('sps_di_einpolig','sps_di_zweipolig','sps_do_einpolig','sps_do_zweipolig','sps_ai_einpolig','sps_ai_zweipolig','sps_ao_einpolig','sps_ao_zweipolig') AND name='P1')",
             R"(UPDATE symbol_pin SET rolle='quelle', knoten_gruppe=1 WHERE symbol_id IN ('sps_di_zweipolig','sps_do_zweipolig','sps_ai_zweipolig','sps_ao_zweipolig') AND name='P2')",
         }},
+        { 138, "SYM-KOPIE-VON-01 (Projekt Goerke): 3 Aenderungen aus lokalen Kopien uebernommen - (1) Haupt-Textlabel der 8 SPS-Feldsymbole von deutscher Abkuerzung auf internationale IEC-Kurzform umbenannt (AA->AO, AE->AI, DA->DO, DE->DI). (2) ventil-Pin A2 Signaltyp power->n. (3) neues eigenstaendiges Symbol 'analoges_ventil' (Regelventil, abgeleitet von ventil, A1=input_analog/A2=dc_minus statt beide power, eigene Knoten-Gruppe, neues Text-Primitiv 'M' fuer Motorantrieb).", {
+            R"(UPDATE symbol_primitiv SET text_inhalt='AO' WHERE symbol_id IN ('sps_ao_einpolig','sps_ao_zweipolig') AND text_inhalt='AA')",
+            R"(UPDATE symbol_primitiv SET text_inhalt='AI' WHERE symbol_id IN ('sps_ai_einpolig','sps_ai_zweipolig') AND text_inhalt='AE')",
+            R"(UPDATE symbol_primitiv SET text_inhalt='DO' WHERE symbol_id IN ('sps_do_einpolig','sps_do_zweipolig') AND text_inhalt='DA')",
+            R"(UPDATE symbol_primitiv SET text_inhalt='DI' WHERE symbol_id IN ('sps_di_einpolig','sps_di_zweipolig') AND text_inhalt='DE')",
+            R"(UPDATE symbol_pin SET signaltyp='n' WHERE symbol_id='ventil' AND name='A2')",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('analoges_ventil', 'Regelventil', 'antriebe', 'IEC', 2))",
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('analoges_ventil', 'Regelventil', 'Antriebe', 16, 12, 'verbraucher', 1, 'vertikal'))",
+            R"(UPDATE symbol_definition SET ist_builtin=1 WHERE id='analoges_ventil')",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='analoges_ventil')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('analoges_ventil','A1',0.25,0.0,0.0,-1.0,'input_analog',0), ('analoges_ventil','A2',0.25,1.0,0.0,1.0,'dc_minus',1))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='analoges_ventil')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('analoges_ventil',0,'linie',0.25,0.0,0.25,0.333333333333333,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',1,'linie',0.25,0.666666666666667,0.25,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',2,'rechteck',0.0,0.333333333333333,0.5,0.666666666666667,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',3,'linie',0.5,0.5,0.59375,0.5,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',4,'linie',0.6875,0.208333333333333,0.8125,0.5,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',5,'linie',0.71875,0.5,0.8125,0.5,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',6,'linie',0.8125,0.5,0.6875,0.791666666666667,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',7,'linie',0.8125,0.5,0.9375,0.208333333333333,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',8,'linie',0.9375,0.208333333333333,0.6875,0.208333333333333,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',9,'linie',0.8125,0.5,0.9375,0.791666666666667,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',10,'linie',0.6875,0.791666666666667,0.9375,0.791666666666667,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0), ('analoges_ventil',11,'text',0.25,0.5,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'M',0.2,0,'center','middle','solid',0.0,1))",
+        }},
+        { 139, "SYM-KOPIE-VON-01 Aufraeumen (Projekt Goerke): die 9 lokalen Kopien, deren Aenderungen mit Migration 138 in die Built-ins uebernommen wurden (8 SPS-Feldsymbol-Kopien + kopie_von_ventil), werden entfernt. Platzierte Instanzen werden zuerst auf die echte Built-in-ID umgehaengt, danach die lokale symbol_definition-Zeile geloescht (symbol_pin/symbol_primitiv folgen per ON DELETE CASCADE). Wirkt global, betrifft aber praktisch nur Goerke, da diese Werkstatt-IDs sonst nirgends vorkommen.", {
+            R"(UPDATE grafik_element SET symbol_id='sps_ao_einpolig' WHERE symbol_id='kopie_von_analoger_ausgang_1_polig')",
+            R"(UPDATE grafik_element SET symbol_id='sps_ao_zweipolig' WHERE symbol_id='kopie_von_analoger_ausgang_2_polig_mit_versorgung')",
+            R"(UPDATE grafik_element SET symbol_id='sps_ai_einpolig' WHERE symbol_id='kopie_von_analoger_eingang_1_polig')",
+            R"(UPDATE grafik_element SET symbol_id='sps_ai_zweipolig' WHERE symbol_id='kopie_von_analoger_eingang_2_polig_mit_versorgung')",
+            R"(UPDATE grafik_element SET symbol_id='sps_do_einpolig' WHERE symbol_id='kopie_von_digitaler_ausgang_1_polig')",
+            R"(UPDATE grafik_element SET symbol_id='sps_do_zweipolig' WHERE symbol_id='kopie_von_digitaler_ausgang_2_polig_mit_versorgung')",
+            R"(UPDATE grafik_element SET symbol_id='sps_di_einpolig' WHERE symbol_id='kopie_von_digitaler_eingang_1_polig')",
+            R"(UPDATE grafik_element SET symbol_id='sps_di_zweipolig' WHERE symbol_id='kopie_von_digitaler_eingang_2_polig_mit_versorgung')",
+            R"(UPDATE grafik_element SET symbol_id='ventil' WHERE symbol_id='kopie_von_ventil')",
+            R"(DELETE FROM symbol_definition WHERE ist_builtin=0 AND id IN (
+                'kopie_von_analoger_ausgang_1_polig','kopie_von_analoger_ausgang_2_polig_mit_versorgung',
+                'kopie_von_analoger_eingang_1_polig','kopie_von_analoger_eingang_2_polig_mit_versorgung',
+                'kopie_von_digitaler_ausgang_1_polig','kopie_von_digitaler_ausgang_2_polig_mit_versorgung',
+                'kopie_von_digitaler_eingang_1_polig','kopie_von_digitaler_eingang_2_polig_mit_versorgung',
+                'kopie_von_ventil'
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -2656,6 +2688,7 @@ bool Database::seedSymbolKatalog()
         { "trafo",           "Transformator",           "antriebe",       "IEC,ANSI", 4 },
         { "netzteil",        "Netzteil",                "antriebe",       "IEC,ANSI", 4 },
         { "ventil",          "Ventil",                  "antriebe",       "IEC,ANSI", 2 },
+        { "analoges_ventil", "Regelventil",             "antriebe",       "IEC",      2 },
         // Passive Bauelemente
         { "widerstand_iec",  "Widerstand",              "passive",        "IEC",      2 },
         { "heizelement",     "Heizelement",             "passive",        "IEC",      2 },

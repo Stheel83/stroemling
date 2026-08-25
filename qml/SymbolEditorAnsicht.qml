@@ -791,7 +791,7 @@ Item {
                                 ctx.save()
                                 ctx.fillStyle = (lti === root.ausgewaehltPrimIdx) ? "#00e5a0" : "#0b5394"
                                 ctx.font = ((ltp.schrift_fett ? "bold " : "") +
-                                            Math.round((ltp.schrift_relativ||0.15)*dw) + "px sans-serif")
+                                            Math.round((ltp.schrift_relativ||0.15)*dh) + "px sans-serif")
                                 ctx.textAlign    = ltp.text_align    || "center"
                                 ctx.textBaseline = ltp.text_baseline || "middle"
                                 ctx.fillText(ltp.text_inhalt||"?", dx+dw/2+tx, dy+dh/2+ty)
@@ -962,7 +962,7 @@ Item {
                                 ctx.save()
                                 ctx.fillStyle = ctx.strokeStyle
                                 ctx.font = ((p.schrift_fett ? "bold " : "") +
-                                            Math.round((p.schrift_relativ||0.15)*dw) + "px sans-serif")
+                                            Math.round((p.schrift_relativ||0.15)*dh) + "px sans-serif")
                                 ctx.textAlign    = p.text_align    || "center"
                                 ctx.textBaseline = p.text_baseline || "middle"
                                 if (p.rotation) {

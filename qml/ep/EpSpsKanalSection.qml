@@ -335,10 +335,17 @@ Item {
                     if (modellListe[k].id === dlgKanalWaehlen.gewaehltId) { gewaehltesKanal = modellListe[k]; break }
                 }
                 if (gewaehltesKanal) {
-                    var bmkVorschlag = "-R" + (gewaehltesKanal.rack_nr || 0)
-                                      + "-S" + (gewaehltesKanal.slot || 0)
-                                      + "-K" + ((gewaehltesKanal.kanal_nr || 0) + 1)
-                    db.grafikElementExtraMergeSetzen(freshEl.id, { bmk: bmkVorschlag })
+                    // PLS: Rack/Slot/Kanal (kein systemtyp-eigenes Adressformat
+                    // mit Aussagekraft) - SPS: die tatsächliche SPS-Adresse
+                    // (E0.0/A1.3/EW64 ...), die für SPS-Technik die relevante
+                    // Kennung ist, nicht Rack/Slot/Kanal.
+                    var bmkVorschlag = (gewaehltesKanal.system_typ || "SPS") === "PLS"
+                        ? "-R" + (gewaehltesKanal.rack_nr || 0)
+                          + "-S" + (gewaehltesKanal.slot || 0)
+                          + "-K" + ((gewaehltesKanal.kanal_nr || 0) + 1)
+                        : "-" + (gewaehltesKanal.adresse || "")
+                    if (bmkVorschlag !== "-")
+                        db.grafikElementExtraMergeSetzen(freshEl.id, { bmk: bmkVorschlag })
                 }
             }
 

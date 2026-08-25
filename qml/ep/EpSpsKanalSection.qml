@@ -296,10 +296,33 @@ Item {
 
         onAccepted: {
             if (!panel.el || dlgKanalWaehlen.gewaehltId <= 0) return
+
+            // SPS-KANAL-ZUWEISEN-ID0-01: ein frisch platziertes, noch nicht
+            // gespeichertes Element hat hier id=0 (DB vergibt die echte ID erst
+            // beim Speichern) - die Zuweisung würde am Fremdschlüssel scheitern.
+            // Etabliertes Muster (analog EpMakrokastenSection.qml): jetzt
+            // speichern, neu laden, Element über Position wiederfinden (Index/
+            // ID sind nach dem Reload nicht mehr verlässlich dieselben).
+            var savedTyp      = panel.el.typ
+            var savedSymbolId = panel.el.symbolId
+            var savedX1       = panel.el.x1, savedY1 = panel.el.y1
+            panel.canvas.grafikSpeichernJetzt()
+            panel.canvas.elementeModel.laden(panel.canvas.seiteId)
+            var reloaded = panel.canvas.elementeModel.snapshot()
+            var freshEl  = null
+            for (var i = 0; i < reloaded.length; i++) {
+                var r = reloaded[i]
+                if (r.typ === savedTyp && r.symbolId === savedSymbolId
+                        && Math.abs(r.x1 - savedX1) < 0.01 && Math.abs(r.y1 - savedY1) < 0.01) {
+                    freshEl = r; break
+                }
+            }
+            if (!freshEl || (freshEl.id || 0) <= 0) return
+
             var aktId = root.kanalInfo.id || 0
             if (aktId > 0 && aktId !== dlgKanalWaehlen.gewaehltId)
                 db.spsKanalElementEntfernen(aktId)
-            db.spsKanalElementZuweisen(dlgKanalWaehlen.gewaehltId, panel.el.id)
+            db.spsKanalElementZuweisen(dlgKanalWaehlen.gewaehltId, freshEl.id)
             root._refresh++
             panel.canvas.spsKonfliktAktualisieren()
         }

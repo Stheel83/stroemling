@@ -739,6 +739,23 @@ Item {
                                 // der (ggf. gedrehten/gespiegelten) Box-Ecke.
                                 zeichneCanvas.zeichnePrimitiv(ctx, p, 0, 0, dw, dh)
                                 ctx.setLineDash([])
+
+                                // Immer sichtbarer Anfasspunkt-Hinweis (Nutzerwunsch): Linien/
+                                // Rechtecke lassen sich überall auf der gezeichneten Kontur
+                                // treffen, Text/Kreis/Bogen aber nur über ihren einzelnen
+                                // Ankerpunkt (x1,y1) - der ist ohne Markierung schwer zu finden,
+                                // v.a. bei Text (Anker je nach text_align/-baseline nicht immer
+                                // unter dem sichtbaren Zeichen). Nur wenn NICHT ausgewählt
+                                // gezeichnet, sonst überdeckt vom größeren Auswahl-Griff unten.
+                                if (!isSel && (p.typ === "text" || p.typ === "kreis_offen" ||
+                                               p.typ === "kreis_gefuellt" || p.typ === "bogen")) {
+                                    ctx.save()
+                                    ctx.fillStyle = "#0b5394aa"
+                                    ctx.beginPath()
+                                    ctx.arc((p.x1||0)*dw, (p.y1||0)*dh, 3, 0, 2*Math.PI)
+                                    ctx.fill()
+                                    ctx.restore()
+                                }
                             }
                             ctx.restore()
 

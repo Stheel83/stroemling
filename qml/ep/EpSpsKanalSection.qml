@@ -316,7 +316,12 @@ Item {
             ListView {
                 id: kanalListe
                 Layout.fillWidth: true
-                height: Math.min(contentHeight, 220)
+                // Fixe Höhe statt Math.min(contentHeight, 220) (SPS-KANAL-ZUWEISEN-LEER-01
+                // Teil 2): das Popup berechnet seine Größe direkt beim Öffnen, bevor
+                // onOpened das Modell neu befüllt - contentHeight war zu dem Zeitpunkt noch
+                // 0 (letzter Stand vor dem Neu-Befüllen), das Popup blieb dauerhaft auf
+                // Höhe 0 für die Liste hängen, obwohl das Modell danach korrekt gefüllt war.
+                height: 220
                 clip: true
 
                 model: root._freieKanaeleErmitteln()

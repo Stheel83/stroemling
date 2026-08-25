@@ -458,81 +458,117 @@ static void pdfBeschriftungRendern(QPainter &p, const QVariantMap &el,
 
     int rot = ((el.value("rotation").toInt() % 360) + 360) % 360;
     QString bmkSeite = pdfBmkSeite(sid, db);
-    bool senkrecht = (bmkSeite == QLatin1String("vertikal"))
-                     ? (rot == 0 || rot == 180)
-                     : (rot == 90 || rot == 270);
-    // SPS-BMK-UNTEN-01: dritte bmk_seite-Option (1:1 Analogie zu
-    // CanvasRenderHandler.qml) für Symbole mit Pins an der Oberkante bei 0°.
-    bool unten = !senkrecht && (bmkSeite == QLatin1String("unten"));
-    // SPS-BEMERKUNG-OBEN-01: vierte bmk_seite-Option (1:1 Analogie zu
-    // CanvasRenderHandler.qml) für Symbole mit Pins an der Unterkante bei 0°
-    // - BMK+Freitext wandern gemeinsam nach oben (Spiegelbild von "unten").
-    bool oben = !senkrecht && !unten && (bmkSeite == QLatin1String("oben"));
-
-    double bmkOx = ed.value("bmkOffsetX", 0.0).toDouble() * C;
-    double bmkOy = ed.value("bmkOffsetY", unten ? 14.0 : -14.0).toDouble() * C;
 
     const double BIG = 1000.0; // großzügige Ausricht-Box, kein hartes Clipping bei üblichen Textlängen
 
-    if (senkrecht) {
-        double bkAx = vx1 + bmkOy;
-        double bkCy = (vy1 + vy2) / 2.0 + bmkOx;
-        if (!bmk.isEmpty()) {
-            p.setFont(fontBmk);
-            p.drawText(QRectF(bkAx - BIG, bkCy - BIG, BIG, BIG),
-                       Qt::AlignRight | Qt::AlignBottom, bmk);
-        }
-        p.setFont(fontFt);
-        double ftOff = bkCy + 2.0 * C;
-        for (const QString &line : ftZeilen) {
-            p.drawText(QRectF(bkAx - BIG, ftOff, BIG, BIG),
-                       Qt::AlignRight | Qt::AlignTop, line);
-            ftOff += ftFsDev * 1.25;
-        }
-    } else if (unten) {
-        double bkCxU = (vx1 + vx2) / 2.0 + bmkOx;
-        double bkBy  = vy2 + bmkOy;
-        if (!bmk.isEmpty()) {
-            p.setFont(fontBmk);
-            p.drawText(QRectF(bkCxU - BIG, bkBy, 2 * BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignTop, bmk);
-        }
-        p.setFont(fontFt);
-        double ftYu = bkBy + fsDev + 2.0 * C;
-        for (const QString &line : ftZeilen) {
-            p.drawText(QRectF(bkCxU - BIG, ftYu, 2 * BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignTop, line);
-            ftYu += ftFsDev * 1.25;
-        }
-    } else if (oben) {
-        double bkCxO = (vx1 + vx2) / 2.0 + bmkOx;
-        double bkByO = vy1 + bmkOy;
-        if (!bmk.isEmpty()) {
-            p.setFont(fontBmk);
-            p.drawText(QRectF(bkCxO - BIG, bkByO - BIG, 2 * BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignBottom, bmk);
-        }
-        p.setFont(fontFt);
-        double ftYo = bkByO - fsDev - 2.0 * C;
-        for (const QString &line : ftZeilen) {
-            p.drawText(QRectF(bkCxO - BIG, ftYo - BIG, 2 * BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignBottom, line);
-            ftYo -= ftFsDev * 1.25;
+    if (bmkSeite == QLatin1String("unten") || bmkSeite == QLatin1String("oben")) {
+        // PIN-SEITE-ROTATION-01 (Aug 2026, 1:1 Analogie zu CanvasRenderHandler.qml):
+        // Start-Kante (oben: "unten", unten: "oben"), durch spiegelY (vertikaler
+        // Flip) und die 90°-Rotation weitergedreht (Zyklus unten->links->oben->
+        // rechts je +90°). Label landet immer auf der gegenüberliegenden Kante.
+        bool spiegelY = el.value("spiegelY").toBool();
+        QString startKante = (bmkSeite == QLatin1String("oben"))
+            ? (spiegelY ? QStringLiteral("oben") : QStringLiteral("unten"))
+            : (spiegelY ? QStringLiteral("unten") : QStringLiteral("oben"));
+        static const QStringList kantenZyklus = { "unten", "links", "oben", "rechts" };
+        int startIdx = kantenZyklus.indexOf(startKante);
+        QString pinKante = kantenZyklus.at((startIdx + (rot / 90)) % 4);
+        static const QHash<QString, QString> gegenteil = {
+            {"oben", "unten"}, {"unten", "oben"}, {"links", "rechts"}, {"rechts", "links"}
+        };
+        QString platz = gegenteil.value(pinKante);
+
+        double bmkOx = ed.value("bmkOffsetX", 0.0).toDouble() * C;
+        double bmkOy = ed.value("bmkOffsetY",
+                                 (platz == QLatin1String("unten") || platz == QLatin1String("rechts"))
+                                 ? 14.0 : -14.0).toDouble() * C;
+
+        if (platz == QLatin1String("links") || platz == QLatin1String("rechts")) {
+            bool istLinks = platz == QLatin1String("links");
+            double bkAxLR = (istLinks ? vx1 : vx2) + bmkOy;
+            double bkCyLR = (vy1 + vy2) / 2.0 + bmkOx;
+            auto ausrichtung = istLinks ? Qt::AlignRight : Qt::AlignLeft;
+            if (!bmk.isEmpty()) {
+                p.setFont(fontBmk);
+                p.drawText(QRectF(bkAxLR - BIG, bkCyLR - BIG, 2 * BIG, BIG),
+                           ausrichtung | Qt::AlignBottom, bmk);
+            }
+            p.setFont(fontFt);
+            double ftOffLR = bkCyLR + 2.0 * C;
+            for (const QString &line : ftZeilen) {
+                p.drawText(QRectF(bkAxLR - BIG, ftOffLR, 2 * BIG, BIG),
+                           ausrichtung | Qt::AlignTop, line);
+                ftOffLR += ftFsDev * 1.25;
+            }
+        } else if (platz == QLatin1String("unten")) {
+            double bkCxU = (vx1 + vx2) / 2.0 + bmkOx;
+            double bkBy  = vy2 + bmkOy;
+            if (!bmk.isEmpty()) {
+                p.setFont(fontBmk);
+                p.drawText(QRectF(bkCxU - BIG, bkBy, 2 * BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignTop, bmk);
+            }
+            p.setFont(fontFt);
+            double ftYu = bkBy + fsDev + 2.0 * C;
+            for (const QString &line : ftZeilen) {
+                p.drawText(QRectF(bkCxU - BIG, ftYu, 2 * BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignTop, line);
+                ftYu += ftFsDev * 1.25;
+            }
+        } else {
+            double bkCxO = (vx1 + vx2) / 2.0 + bmkOx;
+            double bkByO = vy1 + bmkOy;
+            if (!bmk.isEmpty()) {
+                p.setFont(fontBmk);
+                p.drawText(QRectF(bkCxO - BIG, bkByO - BIG, 2 * BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignBottom, bmk);
+            }
+            p.setFont(fontFt);
+            double ftYo = bkByO - fsDev - 2.0 * C;
+            for (const QString &line : ftZeilen) {
+                p.drawText(QRectF(bkCxO - BIG, ftYo - BIG, 2 * BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignBottom, line);
+                ftYo -= ftFsDev * 1.25;
+            }
         }
     } else {
-        double bkCx = (vx1 + vx2) / 2.0 + bmkOx;
-        double bkTy = vy1 + bmkOy;
-        if (!bmk.isEmpty()) {
-            p.setFont(fontBmk);
-            p.drawText(QRectF(bkCx - BIG, bkTy - BIG, 2 * BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignBottom, bmk);
-        }
-        p.setFont(fontFt);
-        double ftY = vy2 + 3.0 * C;
-        for (const QString &line : ftZeilen) {
-            p.drawText(QRectF(bkCx - BIG, ftY, 2 * BIG, BIG),
-                       Qt::AlignHCenter | Qt::AlignTop, line);
-            ftY += ftFsDev * 1.25;
+        // Bestehende Logik für "auto"/"vertikal" - unverändert.
+        bool senkrecht = (bmkSeite == QLatin1String("vertikal"))
+                         ? (rot == 0 || rot == 180)
+                         : (rot == 90 || rot == 270);
+        double bmkOx = ed.value("bmkOffsetX", 0.0).toDouble() * C;
+        double bmkOy = ed.value("bmkOffsetY", -14.0).toDouble() * C;
+
+        if (senkrecht) {
+            double bkAx = vx1 + bmkOy;
+            double bkCy = (vy1 + vy2) / 2.0 + bmkOx;
+            if (!bmk.isEmpty()) {
+                p.setFont(fontBmk);
+                p.drawText(QRectF(bkAx - BIG, bkCy - BIG, BIG, BIG),
+                           Qt::AlignRight | Qt::AlignBottom, bmk);
+            }
+            p.setFont(fontFt);
+            double ftOff = bkCy + 2.0 * C;
+            for (const QString &line : ftZeilen) {
+                p.drawText(QRectF(bkAx - BIG, ftOff, BIG, BIG),
+                           Qt::AlignRight | Qt::AlignTop, line);
+                ftOff += ftFsDev * 1.25;
+            }
+        } else {
+            double bkCx = (vx1 + vx2) / 2.0 + bmkOx;
+            double bkTy = vy1 + bmkOy;
+            if (!bmk.isEmpty()) {
+                p.setFont(fontBmk);
+                p.drawText(QRectF(bkCx - BIG, bkTy - BIG, 2 * BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignBottom, bmk);
+            }
+            p.setFont(fontFt);
+            double ftY = vy2 + 3.0 * C;
+            for (const QString &line : ftZeilen) {
+                p.drawText(QRectF(bkCx - BIG, ftY, 2 * BIG, BIG),
+                           Qt::AlignHCenter | Qt::AlignTop, line);
+                ftY += ftFsDev * 1.25;
+            }
         }
     }
     p.restore();

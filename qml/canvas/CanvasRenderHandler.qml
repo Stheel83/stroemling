@@ -1921,92 +1921,127 @@ QtObject {
                         var symRot    = ((el.rotation || 0) % 360 + 360) % 360
                         var _symInfo  = symbolDefinitionModel.symbolInfo(el.symbolId || "")
                         var _bmkSeite = (_symInfo && _symInfo.bmkSeite) ? _symInfo.bmkSeite : "auto"
-                        var senkrecht = _bmkSeite === "vertikal"
-                                        ? (symRot === 0 || symRot === 180)
-                                        : (symRot === 90 || symRot === 270)
-                        // SPS-BMK-UNTEN-01: "unten" ist eine dritte bmk_seite-Option (neben
-                        // auto/vertikal) für Symbole, deren Pins bei 0° an der Oberkante sitzen
-                        // (z.B. sps_di_*/sps_ai_*) - dort würde "auto" (BMK oben) direkt auf der
-                        // Zuleitung landen. Wirkt nur, wenn nicht "senkrecht" positioniert wird.
-                        var unten = !senkrecht && _bmkSeite === "unten"
-                        // SPS-BEMERKUNG-OBEN-01: vierte bmk_seite-Option "oben" für Symbole
-                        // mit Pins an der Unterkante bei 0° (z.B. sps_do_*/sps_ao_*) - dort
-                        // landet BMK zwar schon oben (auto), aber die Freitext-Zeilen gingen
-                        // im "auto"-Fall immer nach UNTEN und damit auf die Zuleitung. Bei
-                        // "oben" wandern BMK+Freitext gemeinsam nach oben (Spiegelbild von
-                        // "unten").
-                        var oben = !senkrecht && !unten && _bmkSeite === "oben"
-                        var bmkOx   = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * cv.zoom
-                        var bmkOy   = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : (unten ? 14 : -14)) * cv.zoom
                         var bmkClr  = gewaehlt ? "#f0a030" : (el.strichFarbe || "#4a9eff")
                         var ftClr   = gewaehlt ? "#f0a030" : "#8ab4d4"
                         ctx.save()
                         ctx.globalAlpha = 1.0
-                        ctx.textAlign   = senkrecht ? "right" : "center"
                         ctx.fillStyle   = bmkClr
-                        if (senkrecht) {
-                            var bkAx = Math.min(vx1, vx2) + bmkOy
-                            var bkCy = (vy1 + vy2) / 2 + bmkOx
-                            if (bmkStr !== "") {
-                                ctx.font         = "bold " + bmkFs + "px sans-serif"
-                                ctx.textBaseline = "bottom"
-                                ctx.fillText(bmkStr, bkAx, bkCy)
-                            }
-                            ctx.font      = ftFs + "px sans-serif"
-                            ctx.fillStyle = ftClr
-                            ctx.textBaseline = "top"
-                            var ftOff = bkCy + 2 * cv.zoom
-                            for (var fi = 0; fi < ftZeilen.length; fi++) {
-                                ctx.fillText(ftZeilen[fi], bkAx, ftOff)
-                                ftOff += ftFs * 1.25
-                            }
-                        } else if (unten) {
-                            var bkCxU = (vx1 + vx2) / 2 + bmkOx
-                            var bkBy  = Math.max(vy1, vy2) + bmkOy
-                            if (bmkStr !== "") {
-                                ctx.font         = "bold " + bmkFs + "px sans-serif"
+
+                        if (_bmkSeite === "unten" || _bmkSeite === "oben") {
+                            // PIN-SEITE-ROTATION-01 (Aug 2026): "unten"/"oben" beschreiben nur
+                            // die Pin-Kante bei rotation=0/kein Spiegel - vorher wurde diese
+                            // Kante bei Rotation/Spiegelung nicht mitgedreht (SPS-BMK-UNTEN-01/
+                            // SPS-BEMERKUNG-OBEN-01 behandelten nur den 0°-Fall), wodurch BMK/
+                            // Freitext bei z.B. 90°+gespiegelt auf derselben Seite wie die Pins
+                            // landen konnten. Jetzt: Start-Kante (oben: "unten", unten: "oben"),
+                            // durch spiegelY (vertikaler Flip) und anschließend durch die
+                            // 90°-Rotation weitergedreht (Zyklus unten→links→oben→rechts je
+                            // +90°, passend zu pinWeltPos()/CW-Rotation). Label landet immer auf
+                            // der GEGENÜBERLIEGENDEN Kante.
+                            var startKante = _bmkSeite === "oben"
+                                ? (el.spiegelY ? "oben" : "unten")
+                                : (el.spiegelY ? "unten" : "oben")
+                            var kantenZyklus = ["unten", "links", "oben", "rechts"]
+                            var pinKante = kantenZyklus[(kantenZyklus.indexOf(startKante) + Math.round(symRot / 90)) % 4]
+                            var gegenteil = { oben: "unten", unten: "oben", links: "rechts", rechts: "links" }
+                            var platz = gegenteil[pinKante]
+
+                            var bmkOx = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0) * cv.zoom
+                            var bmkOy = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY
+                                         : ((platz === "unten" || platz === "rechts") ? 14 : -14)) * cv.zoom
+
+                            if (platz === "links" || platz === "rechts") {
+                                ctx.textAlign = platz === "links" ? "right" : "left"
+                                var bkAxLR = (platz === "links" ? Math.min(vx1, vx2) : Math.max(vx1, vx2)) + bmkOy
+                                var bkCyLR = (vy1 + vy2) / 2 + bmkOx
+                                if (bmkStr !== "") {
+                                    ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                    ctx.textBaseline = "bottom"
+                                    ctx.fillText(bmkStr, bkAxLR, bkCyLR)
+                                }
+                                ctx.font      = ftFs + "px sans-serif"
+                                ctx.fillStyle = ftClr
                                 ctx.textBaseline = "top"
-                                ctx.fillText(bmkStr, bkCxU, bkBy)
-                            }
-                            ctx.font      = ftFs + "px sans-serif"
-                            ctx.fillStyle = ftClr
-                            ctx.textBaseline = "top"
-                            var ftYu = bkBy + bmkFs + 2 * cv.zoom
-                            for (var fu = 0; fu < ftZeilen.length; fu++) {
-                                ctx.fillText(ftZeilen[fu], bkCxU, ftYu)
-                                ftYu += ftFs * 1.25
-                            }
-                        } else if (oben) {
-                            var bkCxO = (vx1 + vx2) / 2 + bmkOx
-                            var bkByO = Math.min(vy1, vy2) + bmkOy
-                            if (bmkStr !== "") {
-                                ctx.font         = "bold " + bmkFs + "px sans-serif"
-                                ctx.textBaseline = "bottom"
-                                ctx.fillText(bmkStr, bkCxO, bkByO)
-                            }
-                            ctx.font      = ftFs + "px sans-serif"
-                            ctx.fillStyle = ftClr
-                            ctx.textBaseline = "bottom"
-                            var ftYo = bkByO - bmkFs - 2 * cv.zoom
-                            for (var fo = 0; fo < ftZeilen.length; fo++) {
-                                ctx.fillText(ftZeilen[fo], bkCxO, ftYo)
-                                ftYo -= ftFs * 1.25
+                                var ftOffLR = bkCyLR + 2 * cv.zoom
+                                for (var flr = 0; flr < ftZeilen.length; flr++) {
+                                    ctx.fillText(ftZeilen[flr], bkAxLR, ftOffLR)
+                                    ftOffLR += ftFs * 1.25
+                                }
+                            } else {
+                                ctx.textAlign = "center"
+                                var bkCxTB = (vx1 + vx2) / 2 + bmkOx
+                                if (platz === "unten") {
+                                    var bkByU = Math.max(vy1, vy2) + bmkOy
+                                    if (bmkStr !== "") {
+                                        ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                        ctx.textBaseline = "top"
+                                        ctx.fillText(bmkStr, bkCxTB, bkByU)
+                                    }
+                                    ctx.font      = ftFs + "px sans-serif"
+                                    ctx.fillStyle = ftClr
+                                    ctx.textBaseline = "top"
+                                    var ftYU = bkByU + bmkFs + 2 * cv.zoom
+                                    for (var futb = 0; futb < ftZeilen.length; futb++) {
+                                        ctx.fillText(ftZeilen[futb], bkCxTB, ftYU)
+                                        ftYU += ftFs * 1.25
+                                    }
+                                } else {
+                                    var bkByO = Math.min(vy1, vy2) + bmkOy
+                                    if (bmkStr !== "") {
+                                        ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                        ctx.textBaseline = "bottom"
+                                        ctx.fillText(bmkStr, bkCxTB, bkByO)
+                                    }
+                                    ctx.font      = ftFs + "px sans-serif"
+                                    ctx.fillStyle = ftClr
+                                    ctx.textBaseline = "bottom"
+                                    var ftYO = bkByO - bmkFs - 2 * cv.zoom
+                                    for (var fotb = 0; fotb < ftZeilen.length; fotb++) {
+                                        ctx.fillText(ftZeilen[fotb], bkCxTB, ftYO)
+                                        ftYO -= ftFs * 1.25
+                                    }
+                                }
                             }
                         } else {
-                            var bkCx = (vx1 + vx2) / 2 + bmkOx
-                            var bkTy = Math.min(vy1, vy2) + bmkOy
-                            if (bmkStr !== "") {
-                                ctx.font         = "bold " + bmkFs + "px sans-serif"
-                                ctx.textBaseline = "bottom"
-                                ctx.fillText(bmkStr, bkCx, bkTy)
-                            }
-                            ctx.font      = ftFs + "px sans-serif"
-                            ctx.fillStyle = ftClr
-                            ctx.textBaseline = "top"
-                            var ftY = Math.max(vy1, vy2) + 3 * cv.zoom
-                            for (var fj = 0; fj < ftZeilen.length; fj++) {
-                                ctx.fillText(ftZeilen[fj], bkCx, ftY)
-                                ftY += ftFs * 1.25
+                            // Bestehende Logik für "auto"/"vertikal" - unverändert.
+                            var senkrecht = _bmkSeite === "vertikal"
+                                            ? (symRot === 0 || symRot === 180)
+                                            : (symRot === 90 || symRot === 270)
+                            var bmkOxAV = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0) * cv.zoom
+                            var bmkOyAV = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * cv.zoom
+                            ctx.textAlign = senkrecht ? "right" : "center"
+                            if (senkrecht) {
+                                var bkAx = Math.min(vx1, vx2) + bmkOyAV
+                                var bkCy = (vy1 + vy2) / 2 + bmkOxAV
+                                if (bmkStr !== "") {
+                                    ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                    ctx.textBaseline = "bottom"
+                                    ctx.fillText(bmkStr, bkAx, bkCy)
+                                }
+                                ctx.font      = ftFs + "px sans-serif"
+                                ctx.fillStyle = ftClr
+                                ctx.textBaseline = "top"
+                                var ftOff = bkCy + 2 * cv.zoom
+                                for (var fi = 0; fi < ftZeilen.length; fi++) {
+                                    ctx.fillText(ftZeilen[fi], bkAx, ftOff)
+                                    ftOff += ftFs * 1.25
+                                }
+                            } else {
+                                var bkCx = (vx1 + vx2) / 2 + bmkOxAV
+                                var bkTy = Math.min(vy1, vy2) + bmkOyAV
+                                if (bmkStr !== "") {
+                                    ctx.font         = "bold " + bmkFs + "px sans-serif"
+                                    ctx.textBaseline = "bottom"
+                                    ctx.fillText(bmkStr, bkCx, bkTy)
+                                }
+                                ctx.font      = ftFs + "px sans-serif"
+                                ctx.fillStyle = ftClr
+                                ctx.textBaseline = "top"
+                                var ftY = Math.max(vy1, vy2) + 3 * cv.zoom
+                                for (var fj = 0; fj < ftZeilen.length; fj++) {
+                                    ctx.fillText(ftZeilen[fj], bkCx, ftY)
+                                    ftY += ftFs * 1.25
+                                }
                             }
                         }
                         ctx.restore()

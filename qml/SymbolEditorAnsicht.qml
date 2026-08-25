@@ -154,7 +154,8 @@ Item {
                     offenY:    vp.offenY !== undefined ? vp.offenY : (vp.offen ? vp.offen.y : 0),
                     signaltyp: vp.signaltyp || "neutral",
                     kontext:   vp.kontext   || "",
-                    knotenGruppe: vp.knotenGruppe !== undefined ? vp.knotenGruppe : 0
+                    knotenGruppe: vp.knotenGruppe !== undefined ? vp.knotenGruppe : 0,
+                    rolle:     vp.rolle || ""
                 })
             }
             primitive = vPrims.slice()
@@ -196,7 +197,8 @@ Item {
                     offenY:    p.offenY !== undefined ? p.offenY : (p.offen ? p.offen.y : 0),
                     signaltyp: p.signaltyp || "neutral",
                     kontext:   p.kontext   || "",
-                    knotenGruppe: p.knotenGruppe !== undefined ? p.knotenGruppe : 0
+                    knotenGruppe: p.knotenGruppe !== undefined ? p.knotenGruppe : 0,
+                    rolle:     p.rolle || ""
                 })
             }
             primitive = prims.slice()

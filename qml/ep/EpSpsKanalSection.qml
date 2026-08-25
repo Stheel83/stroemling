@@ -39,13 +39,37 @@ Item {
     // angelegte Kanäle aus einer ganz anderen Ansicht (SpsAnsicht.qml) blieben
     // im Zuweisen-Popup dauerhaft unsichtbar. Wird jetzt zusätzlich in
     // Dialog.onOpened frisch neu berechnet.
+    // SPS-KANAL-TYP-FILTER-01: erwarteten I/O-Typ (DI/DO/AI/AO) aus der
+    // Symbol-ID ableiten - zweites "_"-getrenntes Segment
+    // ("sps_do_einpolig" -> "DO", "sps_ai_4" -> "AI", "pls_ao_4" -> "AO").
+    function _erwarteterKanalTyp(symbolId) {
+        var teile = (symbolId || "").split("_")
+        return (teile[1] || "").toUpperCase()
+    }
+
+    // Tatsächlicher I/O-Typ eines Kanals aus dem Baugruppen-Typ - bei
+    // gemischten DIO/AIO-Baugruppen zusätzlich nach Richtung (adress_typ
+    // 'E'=Eingang/'A'=Ausgang) aufgeschlüsselt, da eine einzelne Kanalzeile
+    // dort nur eine Richtung vertritt.
+    function _kanalTyp(kanal) {
+        var bgTyp = (kanal.baugruppe_typ || "").toUpperCase()
+        if (bgTyp === "DIO") return kanal.adress_typ === "A" ? "DO" : "DI"
+        if (bgTyp === "AIO") return kanal.adress_typ === "A" ? "AO" : "AI"
+        return bgTyp
+    }
+
     function _freieKanaeleErmitteln() {
         if (!panel.canvas || (panel.canvas.projektId || -1) < 0) return []
         var alle      = db.spsKanalListe(panel.canvas.projektId)
         var aktElemId = panel.el ? (panel.el.id || 0) : 0
+        // Nur bei eindeutig typisierten Symbolen (DI/DO/AI/AO) einschränken -
+        // Nutzerwunsch: ein AO-Symbol darf sich keinen DI-Kanal zuweisen lassen.
+        var erwarteterTyp = _erwarteterKanalTyp(panel.el ? panel.el.symbolId : "")
+        var typEingrenzen = ["DI", "DO", "AI", "AO"].indexOf(erwarteterTyp) >= 0
         var ergebnis  = []
         for (var i = 0; i < alle.length; i++) {
             var eid = alle[i].grafik_element_id
+            if (typEingrenzen && _kanalTyp(alle[i]) !== erwarteterTyp) continue
             if (!eid || eid === aktElemId) ergebnis.push(alle[i])
         }
         return ergebnis

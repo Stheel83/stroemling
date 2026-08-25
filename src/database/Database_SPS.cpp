@@ -193,7 +193,8 @@ static const QLatin1String _spsKanalSelectBase(
     "sk.pls_alarm_ll, sk.pls_alarm_lo, sk.pls_alarm_hi, sk.pls_alarm_hh, "
     "sk.pls_hart_adresse, sk.pls_protokoll, "
     "sr.id AS rack_id, sr.rack_nr, sr.system_typ, sb.slot, "
-    "ge.extra_daten AS element_extra_daten, se.bezeichnung AS seite_name "
+    "ge.extra_daten AS element_extra_daten, se.bezeichnung AS seite_name, "
+    "sb.typ AS baugruppe_typ "
     "FROM sps_kanal sk "
     "LEFT JOIN sps_baugruppe  sb ON sb.id = sk.baugruppe_id "
     "LEFT JOIN sps_rack       sr ON sr.id = sb.rack_id "
@@ -229,6 +230,7 @@ static QVariantMap _spsKanalRow(QSqlQuery &q)
     m["slot"]                   = q.value(23).isNull() ? QVariant() : q.value(23).toInt();
     m["element_extra_daten"]    = q.value(24).isNull() ? QVariant() : q.value(24).toString();
     m["seite_name"]             = q.value(25).isNull() ? QVariant() : q.value(25).toString();
+    m["baugruppe_typ"]          = q.value(26).isNull() ? QVariant() : q.value(26).toString();
     // Formatierte Adresse berechnen
     int rackNr  = q.value(21).isNull() ? 0 : q.value(21).toInt();
     int slot    = q.value(23).isNull() ? 0 : q.value(23).toInt();

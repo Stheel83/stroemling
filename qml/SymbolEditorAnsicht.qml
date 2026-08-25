@@ -1260,12 +1260,12 @@ Item {
                             }
                         }
                         Button {
-                            text: "⇋"; flat: true; checkable: true; implicitWidth: 26; implicitHeight: 24
+                            text: qsTr("↔ H"); flat: true; checkable: true; implicitWidth: 42; implicitHeight: 24
                             checked: root._sePreviewSpiegelX
                             ToolTip.text: qsTr("Vorschau horizontal spiegeln"); ToolTip.visible: hovered; ToolTip.delay: 500
                             onClicked: { root._sePreviewSpiegelX = checked; zeichneCanvas.requestPaint() }
                             contentItem: Text {
-                                text: parent.text; font.pixelSize: 12
+                                text: parent.text; font.pixelSize: 10
                                 color: parent.checked ? root.theme.accent : root.theme.textMuted
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                             }
@@ -1275,12 +1275,12 @@ Item {
                             }
                         }
                         Button {
-                            text: "⇅"; flat: true; checkable: true; implicitWidth: 26; implicitHeight: 24
+                            text: qsTr("↕ V"); flat: true; checkable: true; implicitWidth: 42; implicitHeight: 24
                             checked: root._sePreviewSpiegelY
                             ToolTip.text: qsTr("Vorschau vertikal spiegeln"); ToolTip.visible: hovered; ToolTip.delay: 500
                             onClicked: { root._sePreviewSpiegelY = checked; zeichneCanvas.requestPaint() }
                             contentItem: Text {
-                                text: parent.text; font.pixelSize: 12
+                                text: parent.text; font.pixelSize: 10
                                 color: parent.checked ? root.theme.accent : root.theme.textMuted
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                             }

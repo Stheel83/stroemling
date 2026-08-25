@@ -312,6 +312,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/kabeljau_uebersicht.png
         qml/assets/krizzo_uebersicht.png
         qml/assets/hilfe_kontakt.png
+        qml/assets/aals_ob.png
 )
 
 qt_add_resources(stroemling_app "database_seeds"

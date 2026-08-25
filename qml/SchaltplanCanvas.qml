@@ -788,7 +788,34 @@ Item {
             var netze = netzHandler.autoNetzeBerechnen()
             db.verbindungenSynchronisieren(root.seiteId, root.projektId, netze)
             root.verbindungAnnotationenNeuLaden()
+            root._konfliktNeuentstehungPruefen(netze)
         }
+    }
+
+    // AALS-OB-01: reagiert nur auf NEU entstandene Potenzialkonflikte (nicht auf
+    // bereits bestehende), ausgelöst beim Loslassen der Maus (grafikSpeichernJetzt()
+    // läuft nach jeder Drag-/Resize-/Lösch-Interaktion). _bekannteKonfliktNetze ist
+    // null direkt nach einem Seitenwechsel (onSeiteIdChanged) — der erste Check
+    // danach legt nur die Baseline an, ohne zu feuern (verhindert Fehlalarm bei
+    // einer Seite, die schon mit bestehendem Konflikt geöffnet wird).
+    property var _bekannteKonfliktNetze: null
+    signal verbindungKonfliktNeu()
+    function _konfliktNeuentstehungPruefen(netze) {
+        var aktuell = {}
+        for (var i = 0; i < netze.length; i++) {
+            if (netze[i].signaltyp !== "konflikt") continue
+            var k = netze[i].netKey || netze[i].legacyNetKey
+            if (k) aktuell[k] = true
+        }
+        if (root._bekannteKonfliktNetze !== null) {
+            for (var key in aktuell) {
+                if (!root._bekannteKonfliktNetze[key]) {
+                    root.verbindungKonfliktNeu()
+                    break
+                }
+            }
+        }
+        root._bekannteKonfliktNetze = aktuell
     }
 
     function verdrahtungswegeAktualisieren()              { verdrahtungsHandler.verdrahtungswegeAktualisieren() }
@@ -980,6 +1007,7 @@ Item {
     }
 
     onSeiteIdChanged: {
+        root._bekannteKonfliktNetze = null
         if (root.fehlersuchModus) {
             root.fehlersuchPfadIds          = {}
             root.fehlersuchStartId          = -1

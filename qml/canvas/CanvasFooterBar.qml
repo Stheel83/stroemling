@@ -101,6 +101,8 @@ Rectangle {
             }
         }
 
+        Item { id: aalsObAnker; Layout.preferredWidth: 1; Layout.fillHeight: true }
+
         Item { Layout.fillWidth: true }
 
         Rectangle {
@@ -151,6 +153,42 @@ Rectangle {
             text: canvas.axisLock === "x" ? "⟷ X-Achse gesperrt"
                                            : "↕ Y-Achse gesperrt"
             color: AppTheme.accent; font.pixelSize: 10
+        }
+    }
+
+    // AALS-OB-01: eigenständiges Popup-Bild, taucht auf, wenn beim Loslassen der
+    // Maus ein NEU entstandener Potenzialkonflikt erkannt wird (Signal aus
+    // SchaltplanCanvas::verbindungKonfliktNeu()). Bewusst kein Sprüche-Pool/
+    // Timing-Manager wie bei Rosi Röhrenaal (48_rosi_roehrenaal.md) — reine
+    // visuelle Reaktion, kein aktionsgebundenes Verhalten der eigentlichen
+    // Rosi-Instanz (die bleibt unangetastet).
+    Image {
+        id: aalsObBild
+        source: "qrc:/assets/aals_ob.png"
+        fillMode: Image.PreserveAspectFit
+        width: 120; height: 150
+        smooth: true
+        x: aalsObAnker.x - width / 2
+        y: root.height
+        opacity: 0
+        visible: opacity > 0
+        z: 1000
+        Behavior on y       { NumberAnimation { duration: 260; easing.type: Easing.OutBack } }
+        Behavior on opacity { NumberAnimation { duration: 220 } }
+    }
+
+    Timer {
+        id: aalsObVersteckenTimer
+        interval: 2600
+        onTriggered: { aalsObBild.opacity = 0; aalsObBild.y = root.height }
+    }
+
+    Connections {
+        target: canvas
+        function onVerbindungKonfliktNeu() {
+            aalsObBild.y = -aalsObBild.height + 18
+            aalsObBild.opacity = 1
+            aalsObVersteckenTimer.restart()
         }
     }
 

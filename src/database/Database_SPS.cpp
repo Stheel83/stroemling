@@ -328,7 +328,19 @@ bool Database::spsKanalAktualisieren(int id, const QVariantMap &felder)
         q.bindValue(QStringLiteral(":") + it.key(), it.value());
     q.bindValue(":id", id);
     if (!q.exec()) { qCWarning(lcDb) << "spsKanalAktualisieren:" << q.lastError().text(); return false; }
+    if (felder.contains("kommentar")) _spsKanalKommentarInsElementUebernehmen(id);
     return true;
+}
+
+void Database::_spsKanalKommentarInsElementUebernehmen(int kanalId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("SELECT grafik_element_id, kommentar FROM sps_kanal WHERE id=:id");
+    q.bindValue(":id", kanalId);
+    if (!q.exec() || !q.next()) return;
+    int elementId = q.value(0).toInt();
+    if (elementId <= 0) return;
+    grafikElementExtraMergeSetzen(elementId, {{"freitext2", q.value(1).toString()}});
 }
 
 bool Database::spsKanalLoeschen(int id)
@@ -356,6 +368,7 @@ bool Database::spsKanalElementZuweisen(int kanalId, int elementId)
     q.bindValue(":eid", elementId);
     q.bindValue(":id",  kanalId);
     if (!q.exec()) { qCWarning(lcDb) << "spsKanalElementZuweisen:" << q.lastError().text(); return false; }
+    _spsKanalKommentarInsElementUebernehmen(kanalId);
     return true;
 }
 

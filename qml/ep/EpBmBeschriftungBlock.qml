@@ -20,6 +20,13 @@ Column {
         var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
         return ed.kontaktspiegelSichtbar !== false
     }
+    // SPS-KANAL-KOMMENTAR-SYNC-01: "Bemerkung" (freitext2) wird bei
+    // verknüpftem SPS/PLS-Kanal automatisch aus dessen Kommentar befüllt
+    // (Database::_spsKanalKommentarInsElementUebernehmen) und ist dann hier
+    // nur noch lesbar, damit der Kommentar nicht an zwei Stellen gepflegt wird.
+    readonly property bool _kanalVerknuepft:
+        panel.el && (panel.el.id || 0) > 0
+        && (db.spsKanalFuerElement(panel.el.id).id || 0) > 0
     function ksToggleSichtbar() {
         var ed = panel.el && panel.el.extraDaten
                  ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
@@ -79,7 +86,9 @@ Column {
                 var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
                 return ed[ftKey + "Sichtbar"] !== false
             }
-            readonly property string ftLabel:    ftKey === "freitext1" ? "Typ / Bezeichnung" : "Bemerkung"
+            readonly property bool   ftAusKanal: ftKey === "freitext2" && root._kanalVerknuepft
+            readonly property string ftLabel:    ftKey === "freitext1" ? "Typ / Bezeichnung"
+                                                  : (ftAusKanal ? "Bemerkung (aus SPS/PLS-Kanal)" : "Bemerkung")
             readonly property string ftWert: {
                 var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
                 return ed[ftKey] || ""
@@ -143,21 +152,32 @@ Column {
                     Rectangle {
                         width: parent.width - 26 - 22 - 22 - 3 * 4
                         height: 26; radius: 3
-                        color: root.theme.inputBg
+                        color: ftZeileRoot.ftAusKanal ? root.theme.surface : root.theme.inputBg
                         border.color: ftEdit.activeFocus ? root.theme.accent : root.theme.border
                         opacity: ftZeileRoot.ftSichtbar ? 1.0 : 0.45
+                        ToolTip.visible: ftZeileRoot.ftAusKanal && kanalHint.containsMouse
+                        ToolTip.delay:   400
+                        ToolTip.text:    qsTr("Wird aus dem Kommentar des verknüpften SPS/PLS-Kanals übernommen – dort bearbeiten (Kanal-Auswahl bzw. Tab „Kanäle/Adressen“).")
+                        MouseArea {
+                            id: kanalHint; anchors.fill: parent; hoverEnabled: true
+                            enabled: ftZeileRoot.ftAusKanal
+                        }
                         TextInput {
                             id: ftEdit
                             anchors { fill: parent; margins: 5 }
-                            color: root.theme.textSecondary; font.pixelSize: 11
+                            color: ftZeileRoot.ftAusKanal ? root.theme.textMuted : root.theme.textSecondary
+                            font.pixelSize: 11
+                            font.italic: ftZeileRoot.ftAusKanal
                             verticalAlignment: TextInput.AlignVCenter
+                            readOnly: ftZeileRoot.ftAusKanal
+                            selectByMouse: !ftZeileRoot.ftAusKanal
                             text: ftZeileRoot.ftWert
                             Binding on text {
                                 when:    !ftEdit.activeFocus
                                 value:   ftZeileRoot.ftWert
                                 delayed: true
                             }
-                            onEditingFinished: ftZeileRoot.setWert(text.trim())
+                            onEditingFinished: if (!ftZeileRoot.ftAusKanal) ftZeileRoot.setWert(text.trim())
                             Keys.onEscapePressed: focus = false
                         }
                     }

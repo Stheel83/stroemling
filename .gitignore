@@ -16,6 +16,9 @@ Programmversionen/
 *.swo
 *.env
 .qtcreator/
+# Reale Projekt-Fixtures fuer Migrationstests (echte Kundendaten, nie committen;
+# Konvention siehe konzept/architektur/26_release_migration.md §12)
+tests/fixtures/
 konzept
 konzept/
 Website/

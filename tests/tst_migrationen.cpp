@@ -284,6 +284,53 @@ private slots:
         QVERIFY2(!m_db->isOpen(),
                  "Datenbank sollte nach verweigertem Downgrade-Oeffnen geschlossen sein");
     }
+
+    void test_11_realeProjektMigration()
+    {
+        // Testet die volle Migrationskette gegen eine echte, alte Projektdatei
+        // statt nur den synthetischen createProjekt()-Zyklus (Baseline-Pfad) -
+        // deckt reale Datenkonstellationen ab, die eine leere Baseline nicht hat.
+        //
+        // Die Fixture ist bewusst NICHT Teil des Repos (echte Kundendaten,
+        // siehe .gitignore) - lokal ablegen unter:
+        //   tests/fixtures/reales_projekt_v85.db
+        // z.B. eine Kopie aus einem echten Pre-Migrations-Backup
+        // (~/Stroemling_Projekte/<Projekt>/backups/stroemling_v*.db, per
+        // VACUUM INTO erzeugt, daher ein sauberes Einzeldatei-Snapshot ohne
+        // WAL-Anhang). Fehlt die Datei (andere Mitwirkende, CI), ueberspringt
+        // sich der Test selbst statt fehlzuschlagen.
+        const QString fixture = QStringLiteral(TEST_FIXTURES_DIR "/reales_projekt_v85.db");
+        if (!QFile::exists(fixture))
+            QSKIP("Keine reale Projekt-Fixture vorhanden (tests/fixtures/reales_projekt_v85.db) - "
+                  "siehe Kommentar in diesem Test, lokal aus einem echten Projekt-Backup ablegen.");
+
+        const QString kopie = QDir::tempPath() + "/stroemling_test_real_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".db";
+        QVERIFY2(QFile::copy(fixture, kopie),
+                 "Fixture konnte nicht ins Temp-Verzeichnis kopiert werden");
+
+        QVERIFY2(m_db->openProjekt(kopie),
+                 "openProjekt() auf realer Alt-Fixture (v85) schlug fehl - Migrationskette gebrochen?");
+        QVERIFY(m_db->isOpen());
+
+        QVariantMap info = m_db->datenbankInfos();
+        int version = info.value("schemaVersion").toInt();
+        QVERIFY2(version >= 129,
+                 qPrintable(QString("Reale Fixture nach Migration auf zu niedriger Version: %1")
+                            .arg(version)));
+
+        // Bonus-Absicherung: dieselbe Duplikat-Klasse wie test_09, aber gegen
+        // echte historisch gewachsene Daten statt einer frischen Baseline.
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("SELECT symbol_id, reihenfolge, COUNT(*) FROM symbol_primitiv "
+                        "GROUP BY symbol_id, reihenfolge HAVING COUNT(*) > 1"));
+        QVERIFY2(!q.next(), "Duplikate in symbol_primitiv nach Migration der realen Fixture");
+
+        m_db->closeProjekt();
+        QFile::remove(kopie);
+        QFile::remove(kopie + "-wal");
+        QFile::remove(kopie + "-shm");
+    }
 };
 
 QTEST_GUILESS_MAIN(TstMigrationen)

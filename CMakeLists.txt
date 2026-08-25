@@ -657,6 +657,13 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
 
 target_include_directories(stroemling_test PRIVATE src)
 
+# Lokaler Ordner fuer reale Projekt-Fixtures (echte Kundendaten, siehe
+# tests/fixtures/README.md) - nie committet, Test ueberspringt sich selbst
+# wenn die Datei fehlt (z.B. bei anderen Mitwirkenden oder in CI).
+target_compile_definitions(stroemling_test PRIVATE
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+)
+
 target_link_libraries(stroemling_test PRIVATE
     Qt6::Test
     Qt6::Core

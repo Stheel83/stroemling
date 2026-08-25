@@ -2117,6 +2117,65 @@ static QList<SchemaMigration> alleMigrationen()
         { 130, "SYMBOL-TEXT-LESBAR-01: symbol_primitiv.lesbar_halten (INTEGER, Default 0) - Text-Primitiv wird beim Zeichnen NICHT mitrotiert/mitgespiegelt, sondern bleibt immer aufrecht lesbar (analog zu Pin-Beschriftungen).", {
             R"(ALTER TABLE symbol_primitiv ADD COLUMN lesbar_halten INTEGER DEFAULT 0)",
         }},
+        { 131, "SYM-SPS-EINKANAL-01: 8 neue SPS/PLS-Einzelkanal-Feldsymbole (Projekt Stresstest) - Digitaler/Analoger Ein-/Ausgang je 1-polig (nur Signal) und 2-polig (Signal + Versorgungsanschluss dc_plus/dc_minus), bewusst zwei eigenstaendige Varianten statt Draft/Final. Kategorie SPS/PLS: sps_do_einpolig/sps_do_zweipolig, sps_di_einpolig/sps_di_zweipolig, sps_ao_einpolig/sps_ao_zweipolig, sps_ai_einpolig/sps_ai_zweipolig.", {
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_do_zweipolig', 'Digitaler Ausgang (2-polig, mit Versorgung)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_do_zweipolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_do_zweipolig','P1',0.25,1.0,0.0,1.0,'output_digital'), ('sps_do_zweipolig','P2',0.75,1.0,0.0,1.0,'dc_minus'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_do_zweipolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_do_zweipolig',0,'rechteck',0.0,0.0,1.0,0.875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_do_zweipolig',1,'text',0.5,0.375,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'DA',0.35,1,'center','middle','solid',0.0,1), ('sps_do_zweipolig',2,'linie',0.25,0.875,0.25,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_do_zweipolig',3,'linie',0.75,0.875,0.75,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_do_zweipolig',4,'linie',0.71875,0.6875,0.78125,0.6875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_do_zweipolig',5,'text',0.25,0.6875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'OUT',0.15,0,'center','middle','solid',0.0,1))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_do_einpolig', 'Digitaler Ausgang (1-polig)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_do_einpolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_do_einpolig','P1',0.25,1.0,0.0,1.0,'output_digital'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_do_einpolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_do_einpolig',0,'rechteck',0.0,0.0,1.0,0.875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_do_einpolig',1,'text',0.5,0.375,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'DA',0.35,1,'center','middle','solid',0.0,1), ('sps_do_einpolig',2,'linie',0.25,0.875,0.25,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_do_einpolig',3,'text',0.25,0.6875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'OUT',0.15,0,'center','middle','solid',0.0,1))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_di_zweipolig', 'Digitaler Eingang (2-polig, mit Versorgung)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_di_zweipolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_di_zweipolig','P1',0.25,0.0,0.0,-1.0,'input_digital'), ('sps_di_zweipolig','P2',0.75,0.0,0.0,-1.0,'dc_plus'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_di_zweipolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_di_zweipolig',0,'rechteck',0.0,0.125,1.0,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_di_zweipolig',1,'text',0.5,0.625,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'DE',0.35,1,'center','middle','solid',0.0,1), ('sps_di_zweipolig',2,'linie',0.25,0.0,0.25,0.125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_di_zweipolig',3,'linie',0.75,0.0,0.75,0.125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_di_zweipolig',4,'linie',0.71875,0.3125,0.78125,0.3125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_di_zweipolig',5,'text',0.25,0.3125,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'IN',0.15,0,'center','middle','solid',0.0,1), ('sps_di_zweipolig',6,'linie',0.75,0.25,0.75,0.375,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_di_einpolig', 'Digitaler Eingang (1-polig)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_di_einpolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_di_einpolig','P1',0.25,0.0,0.0,-1.0,'input_digital'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_di_einpolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_di_einpolig',0,'rechteck',0.0,0.125,1.0,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_di_einpolig',1,'text',0.5,0.625,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'DE',0.35,1,'center','middle','solid',0.0,1), ('sps_di_einpolig',2,'linie',0.25,0.0,0.25,0.125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_di_einpolig',3,'text',0.25,0.3125,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'IN',0.15,0,'center','middle','solid',0.0,1))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_ao_zweipolig', 'Analoger Ausgang (2-polig, mit Versorgung)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_ao_zweipolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_ao_zweipolig','P1',0.25,1.0,0.0,1.0,'output_analog'), ('sps_ao_zweipolig','P2',0.75,1.0,0.0,1.0,'dc_minus'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_ao_zweipolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_ao_zweipolig',0,'rechteck',0.0,0.0,1.0,0.875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ao_zweipolig',1,'text',0.5,0.375,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'AA',0.35,1,'center','middle','solid',0.0,1), ('sps_ao_zweipolig',2,'linie',0.25,0.875,0.25,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ao_zweipolig',3,'linie',0.75,0.875,0.75,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ao_zweipolig',4,'linie',0.71875,0.6875,0.78125,0.6875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ao_zweipolig',5,'text',0.25,0.6875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'OUT',0.15,0,'center','middle','solid',0.0,1))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_ao_einpolig', 'Analoger Ausgang (1-polig)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_ao_einpolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_ao_einpolig','P1',0.25,1.0,0.0,1.0,'output_analog'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_ao_einpolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_ao_einpolig',0,'rechteck',0.0,0.0,1.0,0.875,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ao_einpolig',1,'text',0.5,0.375,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'AA',0.35,1,'center','middle','solid',0.0,1), ('sps_ao_einpolig',2,'linie',0.25,0.875,0.25,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ao_einpolig',3,'text',0.25,0.6875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'OUT',0.15,0,'center','middle','solid',0.0,1))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_ai_zweipolig', 'Analoger Eingang (2-polig, mit Versorgung)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_ai_zweipolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_ai_zweipolig','P1',0.25,0.0,0.0,-1.0,'input_analog'), ('sps_ai_zweipolig','P2',0.75,0.0,0.0,-1.0,'dc_plus'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_ai_zweipolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_ai_zweipolig',0,'rechteck',0.0,0.125,1.0,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ai_zweipolig',1,'text',0.5,0.625,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'AE',0.35,1,'center','middle','solid',0.0,1), ('sps_ai_zweipolig',2,'linie',0.25,0.0,0.25,0.125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ai_zweipolig',3,'linie',0.75,0.0,0.75,0.125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ai_zweipolig',4,'linie',0.71875,0.3125,0.78125,0.3125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ai_zweipolig',5,'text',0.25,0.3125,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'IN',0.15,0,'center','middle','solid',0.0,1), ('sps_ai_zweipolig',6,'linie',0.75,0.25,0.75,0.375,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0))",
+
+            R"(INSERT OR IGNORE INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin) VALUES ('sps_ai_einpolig', 'Analoger Eingang (1-polig)', 'SPS/PLS', 16, 8, 'durchleiter', 1))",
+            R"(DELETE FROM symbol_pin WHERE symbol_id='sps_ai_einpolig')",
+            R"(INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALUES ('sps_ai_einpolig','P1',0.25,0.0,0.0,-1.0,'input_analog'))",
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='sps_ai_einpolig')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES ('sps_ai_einpolig',0,'rechteck',0.0,0.125,1.0,1.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ai_einpolig',1,'text',0.5,0.625,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'AE',0.35,1,'center','middle','solid',0.0,1), ('sps_ai_einpolig',2,'linie',0.25,0.0,0.25,0.125,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0), ('sps_ai_einpolig',3,'text',0.25,0.3125,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'IN',0.15,0,'center','middle','solid',0.0,1))",
+
+            // ── Legacy-symbol-Tabelle (Paletten-Kategorieliste) ──
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_do_zweipolig', 'Digitaler Ausgang (2-polig, mit Versorgung)', 'sps_pls', 'IEC,ANSI', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_do_einpolig', 'Digitaler Ausgang (1-polig)', 'sps_pls', 'IEC,ANSI', 1))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_di_zweipolig', 'Digitaler Eingang (2-polig, mit Versorgung)', 'sps_pls', 'IEC,ANSI', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_di_einpolig', 'Digitaler Eingang (1-polig)', 'sps_pls', 'IEC,ANSI', 1))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_ao_zweipolig', 'Analoger Ausgang (2-polig, mit Versorgung)', 'sps_pls', 'IEC,ANSI', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_ao_einpolig', 'Analoger Ausgang (1-polig)', 'sps_pls', 'IEC,ANSI', 1))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_ai_zweipolig', 'Analoger Eingang (2-polig, mit Versorgung)', 'sps_pls', 'IEC,ANSI', 2))",
+            R"(INSERT OR IGNORE INTO symbol (code, name, kategorie_pfad, norm, anschluesse) VALUES ('sps_ai_einpolig', 'Analoger Eingang (1-polig)', 'sps_pls', 'IEC,ANSI', 1))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -2585,6 +2644,15 @@ bool Database::seedSymbolKatalog()
         { "sps_cpu",   "CPU-Baugruppe",            "sps_pls", "IEC,ANSI", 2  },
         { "pls_ai_8",  "PLS AI-Baugruppe 8-Kanal", "sps_pls", "IEC,ANSI", 8  },
         { "pls_ao_4",  "PLS AO-Baugruppe 4-Kanal", "sps_pls", "IEC,ANSI", 4  },
+        // SPS/PLS-Einzelkanal-Feldsymbole (SYM-SPS-EINKANAL-01, Schema v131)
+        { "sps_do_zweipolig", "Digitaler Ausgang (2-polig, mit Versorgung)", "sps_pls", "IEC,ANSI", 2 },
+        { "sps_do_einpolig",  "Digitaler Ausgang (1-polig)",                 "sps_pls", "IEC,ANSI", 1 },
+        { "sps_di_zweipolig", "Digitaler Eingang (2-polig, mit Versorgung)", "sps_pls", "IEC,ANSI", 2 },
+        { "sps_di_einpolig",  "Digitaler Eingang (1-polig)",                 "sps_pls", "IEC,ANSI", 1 },
+        { "sps_ao_zweipolig", "Analoger Ausgang (2-polig, mit Versorgung)",  "sps_pls", "IEC,ANSI", 2 },
+        { "sps_ao_einpolig",  "Analoger Ausgang (1-polig)",                  "sps_pls", "IEC,ANSI", 1 },
+        { "sps_ai_zweipolig", "Analoger Eingang (2-polig, mit Versorgung)",  "sps_pls", "IEC,ANSI", 2 },
+        { "sps_ai_einpolig",  "Analoger Eingang (1-polig)",                  "sps_pls", "IEC,ANSI", 1 },
         // KFZ-Elektrik
         { "kfz_sicherung",    "Flachstecksicherung",       "kfz", "IEC,ANSI", 2 },
         { "kfz_relais_4",     "KFZ-Relais 4-polig",        "kfz", "IEC,ANSI", 4 },

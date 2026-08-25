@@ -2210,6 +2210,10 @@ static QList<SchemaMigration> alleMigrationen()
         { 136, "SPS-BEMERKUNG-OBEN-01: neue bmk_seite-Option 'oben' (vierte Option) fuer Symbole, deren Pins bei 0 Grad an der Unterkante sitzen (sps_do_*/sps_ao_*) - BMK landete bereits korrekt oben ('auto'), aber die Freitext-Zeilen (u.a. der per SPS-KANAL-KOMMENTAR-SYNC-01 automatisch befuellte Kanal-Kommentar) gingen im 'auto'-Fall immer nach unten und damit auf die Zuleitung. sps_do_einpolig/sps_do_zweipolig/sps_ao_einpolig/sps_ao_zweipolig auf 'oben' umgestellt (Rendering-Support in CanvasRenderHandler.qml + Database_PDF.cpp).", {
             R"(UPDATE symbol_definition SET bmk_seite='oben' WHERE id IN ('sps_do_einpolig','sps_do_zweipolig','sps_ao_einpolig','sps_ao_zweipolig'))",
         }},
+        { 137, "PIN-ROLLE-SPS-FELD-01: die 8 SPS-Einzelkanal-Feldsymbole (SYM-SPS-EINKANAL-01) bekommen ihre Pins als rolle='quelle' - Funktionspin (input_digital/output_digital/input_analog/output_analog) und, bei den zweipoligen Varianten, das Versorgungspin (dc_plus/dc_minus, eigene Knoten-Gruppe 1) - analog zur DC-Seite von 'netzteil'. Bisher hatten alle Pins rolle='' (erben von Symbol-Rolle 'durchleiter'), jede Kanal-Leitung zeigte daher 'unversorgt'.", {
+            R"(UPDATE symbol_pin SET rolle='quelle' WHERE symbol_id IN ('sps_di_einpolig','sps_di_zweipolig','sps_do_einpolig','sps_do_zweipolig','sps_ai_einpolig','sps_ai_zweipolig','sps_ao_einpolig','sps_ao_zweipolig') AND name='P1')",
+            R"(UPDATE symbol_pin SET rolle='quelle', knoten_gruppe=1 WHERE symbol_id IN ('sps_di_zweipolig','sps_do_zweipolig','sps_ai_zweipolig','sps_ao_zweipolig') AND name='P2')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

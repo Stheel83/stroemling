@@ -3423,3 +3423,20 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES('sps_ai_einpolig', 1, 'text', 0.5, 0.625, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 360.0, 0, 'AE', 0.35, 1, 'center', 'middle', 'solid', 0.0, 1);
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES('sps_ai_einpolig', 2, 'linie', 0.25, 0.0, 0.25, 0.125, 0.0, 0.0, 0.0, 0.0, 360.0, 0, NULL, 0.15, 0, 'center', 'middle', 'solid', 0.0, 0);
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES('sps_ai_einpolig', 3, 'text', 0.25, 0.3125, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 360.0, 0, 'IN', 0.15, 0, 'center', 'middle', 'solid', 0.0, 1);
+
+-- PIN-ROLLE-SPS-FELD-01 (Aug 2026): alle 8 SPS-Einzelkanal-Feldsymbole
+-- (SYM-SPS-EINKANAL-01) bekommen ihre Pins als 'quelle' - Funktionspin
+-- (input_digital/output_digital/input_analog/output_analog) UND, bei den
+-- zweipoligen Varianten, das Versorgungspin (dc_plus/dc_minus) - analog zur
+-- DC-Seite von 'netzteil'. Beide Pins liefern etwas, das das SPS-Modul
+-- selbst bereitstellt (Signal bzw. Referenzpotenzial), keines wird von
+-- außen gespeist wie netzteil-L/N. Versorgungspin bekommt eine eigene
+-- Knoten-Gruppe (1), damit er nicht als intern verbunden mit dem
+-- Funktionspin (Gruppe 0) gilt.
+UPDATE symbol_pin SET rolle = 'quelle' WHERE symbol_id IN (
+    'sps_di_einpolig','sps_di_zweipolig','sps_do_einpolig','sps_do_zweipolig',
+    'sps_ai_einpolig','sps_ai_zweipolig','sps_ao_einpolig','sps_ao_zweipolig'
+) AND name = 'P1';
+UPDATE symbol_pin SET rolle = 'quelle', knoten_gruppe = 1 WHERE symbol_id IN (
+    'sps_di_zweipolig','sps_do_zweipolig','sps_ai_zweipolig','sps_ao_zweipolig'
+) AND name = 'P2';

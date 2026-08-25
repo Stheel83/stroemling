@@ -2198,6 +2198,12 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DELETE FROM symbol_definition WHERE id='led' AND ist_builtin=0)",
             R"(DELETE FROM symbol_definition WHERE id='ventil' AND ist_builtin=0)",
         }},
+        { 134, "SYM-KOPIE-VON-01 zehnter Sync-Durchlauf (Projekt Goerke): taster_nc nach Nutzer-Kopie 'kopie_von_taster_nc' ueberarbeitet - Schaltarm, Kontaktsegment und Unterbrechungsstrich von der linken auf die rechte Seite gespiegelt, Pin-Zuleitungen und der senkrechte Balken links unveraendert. Platzierte Instanzen der Kopie werden auf taster_nc umgehaengt, die lokale Kopie wird entfernt.", {
+            R"(DELETE FROM symbol_primitiv WHERE symbol_id='taster_nc')",
+            R"(INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation) VALUES ('taster_nc',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('taster_nc',1,'linie',0.75,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('taster_nc',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('taster_nc',3,'linie',0.5,0.3125,0.75,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('taster_nc',4,'linie',0.60875,0.5,0.125,0.5,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0), ('taster_nc',5,'linie',0.125,0.375,0.125,0.625,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0))",
+            R"(UPDATE grafik_element SET symbol_id='taster_nc' WHERE symbol_id='kopie_von_taster_nc')",
+            R"(DELETE FROM symbol_definition WHERE id='kopie_von_taster_nc' AND ist_builtin=0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

@@ -76,7 +76,7 @@ ScrollView {
         if (idx >= 0) cbTyp.currentIndex = idx
 
         for (var i = 0; i < farbCombo.count; ++i) {
-            if (farbCombo.model.get(i) && farbCombo.model.get(i).farbId === k.gehaeuseFarbeId) {
+            if (farbModel.data(farbModel.index(i, 0), 0x101) === k.gehaeuseFarbeId) {
                 farbCombo.currentIndex = i
                 break
             }

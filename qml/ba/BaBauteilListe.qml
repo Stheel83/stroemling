@@ -418,12 +418,12 @@ Item {
                     width: bauteilListe.width; height: 38
                     property bool isSelected: panel.selectedBauteilId === model.bauteilId
                     color: isSelected ? theme.activeItemAlt
-                           : (bHover.containsMouse ? theme.hover
+                           : (bMa.containsMouse ? theme.hover
                            : (index % 2 === 0 ? theme.tableEven : theme.tableOdd))
 
-                    HoverHandler { id: bHover }
                     MouseArea {
-                        anchors.fill: parent; z: -1
+                        id: bMa
+                        anchors.fill: parent; z: -1; hoverEnabled: true
                         onClicked: {
                             panel.selectedBauteilId          = model.bauteilId
                             panel.selectedBauteilBezeichnung = model.bezeichnung
@@ -495,7 +495,7 @@ Item {
                         Item { Layout.fillWidth: true }
 
                         Row {
-                            spacing: 4; visible: bHover.containsMouse
+                            spacing: 4; visible: bMa.containsMouse
                             Button {
                                 visible: model.istKlemme; width: 24; height: 24; flat: true
                                 contentItem: Text { text: "⚙"; color: theme.accent; font.pixelSize: 13;

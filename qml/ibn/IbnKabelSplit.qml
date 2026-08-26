@@ -126,7 +126,7 @@ SplitView {
                 Text {
                     text: {
                         var fl = kabelListe._gelistet
-                        if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return ""
+                        if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return ""
                         return fl[panel.kabelAusgewaehlterIndex].bezeichnung || qsTr("(kein Name)")
                     }
                     font.pixelSize: 15; font.bold: true; color: theme.accent
@@ -136,7 +136,7 @@ SplitView {
                 Text {
                     text: {
                         var fl = kabelListe._gelistet
-                        if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return ""
+                        if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return ""
                         var k = fl[panel.kabelAusgewaehlterIndex]
                         var parts = []
                         if (k.kabeltyp) parts.push(k.kabeltyp)
@@ -149,7 +149,7 @@ SplitView {
                 Text {
                     text: {
                         var fl = kabelListe._gelistet
-                        if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return ""
+                        if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return ""
                         var k = fl[panel.kabelAusgewaehlterIndex]
                         if (!k.vonOrt && !k.nachOrt) return ""
                         return (k.vonOrt || "?") + "  →  " + (k.nachOrt || "?")
@@ -300,7 +300,7 @@ SplitView {
                     ToolTip.text: qsTr("Status, Notiz, Prüfer und Datum speichern")
                     onClicked: {
                         var fl = kabelListe._gelistet
-                        if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return
+                        if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return
                         var k = fl[panel.kabelAusgewaehlterIndex]
                         var stKey = cmbKabelStatus.model[cmbKabelStatus.currentIndex].key
                         db.ibnKabelSpeichern(panel.projektId, k.kabelId,
@@ -336,7 +336,7 @@ SplitView {
                             ToolTip.text: qsTr("Status direkt auf '%1' setzen (nur Status, ohne Prüfer/Datum)").arg(modelData.label)
                             onClicked: {
                                 var fl = kabelListe._gelistet
-                                if (!fl || panel.kabelAusgewaehlterIndex >= fl.length) return
+                                if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return
                                 var k = fl[panel.kabelAusgewaehlterIndex]
                                 db.ibnKabelStatusSetzen(k.kabelId, modelData.key)
                                 panel.kabelLaden()

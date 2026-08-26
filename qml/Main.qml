@@ -303,19 +303,19 @@ ApplicationWindow {
 
     Shortcut {
         sequence:    "Ctrl+Shift+Alt+D"
-        context:     Shortcut.ApplicationShortcut
+        context:     Qt.ApplicationShortcut
         onActivated: root.debugModeAktiv = !root.debugModeAktiv
     }
 
     Shortcut {
         sequence:    "Ctrl+P"
-        context:     Shortcut.ApplicationShortcut
+        context:     Qt.ApplicationShortcut
         onActivated: root.suchPanelOffen = !root.suchPanelOffen
     }
 
     Shortcut {
         sequence:    "Ctrl+Shift+P"
-        context:     Shortcut.ApplicationShortcut
+        context:     Qt.ApplicationShortcut
         enabled:     root.aktivProjektId >= 0
         onActivated: pdfExportDialog.open()
     }
@@ -2126,13 +2126,13 @@ ApplicationWindow {
     Shortcut { sequence: "N"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.abbruch();c.aktivesWerkzeug="notiz"} } }
     Shortcut { sequence: "S"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv&&c.paletteSymbolId!==""){c.abbruch();c.aktivesWerkzeug="symbol"} } }
     Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
-    Shortcut { sequence: "Ctrl+M"; context: Shortcut.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
-    Shortcut { sequence: "Ctrl+J"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: root.suchPanelOffen = !root.suchPanelOffen }
-    Shortcut { sequence: "Ctrl+F"; context: Shortcut.ApplicationShortcut; enabled: root.aktivProjektId >= 0 && root.aktiveAnsicht === "fehlersuche"; onActivated: fehlersuchAnsicht.suchfeldOeffnen() }
+    Shortcut { sequence: "Ctrl+M"; context: Qt.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
+    Shortcut { sequence: "Ctrl+J"; context: Qt.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: root.suchPanelOffen = !root.suchPanelOffen }
+    Shortcut { sequence: "Ctrl+F"; context: Qt.ApplicationShortcut; enabled: root.aktivProjektId >= 0 && root.aktiveAnsicht === "fehlersuche"; onActivated: fehlersuchAnsicht.suchfeldOeffnen() }
     // GIT-01: Explizites Speichern + Auto-Commit
     Shortcut {
         sequence: "Ctrl+S"
-        context:  Shortcut.ApplicationShortcut
+        context:  Qt.ApplicationShortcut
         enabled:  db.projektOffen
         onActivated: {
             var c = root.aktiverCanvas
@@ -2183,7 +2183,7 @@ ApplicationWindow {
     // Seitennavigation
     Shortcut {
         sequence: "PgUp"
-        context:  Shortcut.ApplicationShortcut
+        context:  Qt.ApplicationShortcut
         onActivated: {
             if (root.aktiveAnsicht !== "seiten" || root.aktivProjektId < 0 || root.aktivSeiteId < 0) return
             var seiten = db.alleSeitenFlach(root.aktivProjektId)
@@ -2199,7 +2199,7 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "PgDown"
-        context:  Shortcut.ApplicationShortcut
+        context:  Qt.ApplicationShortcut
         onActivated: {
             if (root.aktiveAnsicht !== "seiten" || root.aktivProjektId < 0 || root.aktivSeiteId < 0) return
             var seiten = db.alleSeitenFlach(root.aktivProjektId)
@@ -2216,7 +2216,7 @@ ApplicationWindow {
 
     // F1: Wiki-Artikel zur aktuellen Ansicht, sonst Shortcut-Übersicht
     Shortcut {
-        sequence: "F1"; context: Shortcut.ApplicationShortcut
+        sequence: "F1"; context: Qt.ApplicationShortcut
         onActivated: {
             var titel = root.f1KontextArtikel[root.aktiveAnsicht]
             if (titel && wikiAnsicht.oeffneArtikelNachTitel(titel))
@@ -2225,7 +2225,7 @@ ApplicationWindow {
                 shortcutUebersicht.visible = !shortcutUebersicht.visible
         }
     }
-    Shortcut { sequence: "Ctrl+P"; context: Shortcut.ApplicationShortcut; onActivated: root.aktiveAnsicht = "projekte" }
+    Shortcut { sequence: "Ctrl+P"; context: Qt.ApplicationShortcut; onActivated: root.aktiveAnsicht = "projekte" }
 
     // ── Datenbank-Fehler-Dialog ───────────────────────────────────
     Dialog {

@@ -50,7 +50,7 @@ Item {
                 Text {
                     text:            "Tastaturkuerzel"
                     font.pixelSize:  15
-                    font.weight:     Font.SemiBold
+                    font.weight:     Font.DemiBold
                     color:           root.theme.textPrimary
                     width:           parent.width - parent.leftPadding - parent.rightPadding - 32
                 }
@@ -194,7 +194,7 @@ Item {
                 }
             }
             Text {
-                text:           parent.parent.parent.aktion
+                text:           parent.parent.aktion
                 font.pixelSize: 11
                 color:          root.theme.textMuted
             }

@@ -76,6 +76,12 @@ QtObject {
     // KLEMME-NET-01-Gruppierung — Ebene = Anschlussbezeichnung-Präfix vor dem
     // ".", z.B. "1" für "1.1"/"1.2", oder "PE"). Wird analog zum
     // Querverweis-Partner-Cache beim Seitenwechsel aufgebaut.
+    //
+    // Nachtrag: label zeigt bewusst nur die Anschlussbezeichnung der
+    // Gegenstelle (+ Blattnummer bei Fremdseite), NICHT die volle Leiste:Nr.
+    // — die ist innerhalb einer Ebenen-Gruppe immer identisch mit der schon
+    // angezeigten eigenen BMK (dieselbe Klemme) und sprengte im PDF-Pendant
+    // (pdfKlemmenAnschlussPartner) die feste Textbox (Nutzer-Screenshot).
     function klemmeAnschlussPartnerCacheAktualisieren() {
         if (cv.seiteId < 0 || cv.projektId < 0) { cv._klemmeAnschlussPartnerMap = {}; return }
         var alle = db.klemmenAnschlussAlleSeiten(cv.projektId)
@@ -107,19 +113,11 @@ QtObject {
                 var p2 = grp[gi]
                 if (p2.seiteId === cv.seiteId && Math.abs(p2.x1 - el.x1) < 0.5
                         && Math.abs(p2.y1 - el.y1) < 0.5) continue // sich selbst
-                var rawBmk = p2.bmk || ""
-                var bezP   = p2.anschlussBezeichnung || ""
-                var baseBmk = (bezP !== "" && rawBmk.endsWith(":" + bezP))
-                              ? rawBmk.slice(0, rawBmk.length - bezP.length - 1) : rawBmk
-                var colIdx = baseBmk.lastIndexOf(":")
-                var leiste = colIdx >= 0 ? baseBmk.slice(0, colIdx) : baseBmk
-                var nr     = colIdx >= 0 ? baseBmk.slice(colIdx + 1) : ""
-                var kennung = leiste ? (nr ? leiste + ":" + nr : leiste) : bezP
-                var seiteLabel = p2.seiteId === cv.seiteId
-                                  ? "dieser Seite"
-                                  : ("Seite " + p2.blattnummer + (p2.seitenBezeichnung ? " " + p2.seitenBezeichnung : ""))
+                var bezP  = p2.anschlussBezeichnung || ""
+                var label = bezP || "?"
+                if (p2.seiteId !== cv.seiteId) label += " Bl." + p2.blattnummer
                 partner.push({
-                    label:   kennung + " auf " + seiteLabel,
+                    label:   label,
                     seiteId: p2.seiteId, x1: p2.x1, y1: p2.y1
                 })
             }

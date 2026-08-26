@@ -1773,8 +1773,16 @@ static QString pdfQuerverweisPartner(const QSqlDatabase &db, const QString &sign
 // interaktive Canvas-Tooltip (KLEMMENANSCHLUSS-PARTNER-01). Eine .strl-Datei
 // enthält immer genau ein Projekt (siehe schema.sql CREATE TABLE projekt),
 // daher genügt die Suche über die ganze Datenbankverbindung ohne zusätzlichen
-// projekt_id-Scope. Anschlussbezeichnung wird hier erneut übergeben statt aus
-// der DB neu gelesen, da der Aufrufer sie ohnehin schon geparst hat.
+// projekt_id-Scope.
+//
+// KLEMMENANSCHLUSS-PARTNER-01-Nachtrag: das Label zeigt bewusst NUR die
+// Anschlussbezeichnung der Gegenstelle (+ Blattnummer bei Fremdseite), NICHT
+// die volle Leiste:Nr.-Kennung. Diese ist innerhalb einer Ebenen-Gruppe per
+// Konstruktion immer identisch mit der bereits eine Zeile darüber
+// angezeigten eigenen BMK (beide Anschlüsse gehören zur selben Klemme) —
+// sie zu wiederholen brachte keine neue Information, sondern nur unnötig
+// langen Text, der die feste 20mm-Textbox sprengte und in die Nachbarspalte
+// lief (vom Nutzer per PDF-Screenshot gemeldet).
 static QStringList pdfKlemmenAnschlussPartner(const QSqlDatabase &db, int klemmeId,
                                                const QString &ebene, int seiteId,
                                                double x1, double y1)
@@ -1783,8 +1791,7 @@ static QStringList pdfKlemmenAnschlussPartner(const QSqlDatabase &db, int klemme
     if (klemmeId <= 0 || ebene.isEmpty()) return result;
     QSqlQuery q(db);
     q.prepare(R"(
-        SELECT ge.seite_id, s.blattnummer, COALESCE(s.bezeichnung, ''),
-               json_extract(ge.extra_daten,'$.bmk'),
+        SELECT ge.seite_id, s.blattnummer,
                json_extract(ge.extra_daten,'$.anschlussBezeichnung'),
                ge.x1, ge.y1
         FROM grafik_element ge
@@ -1795,29 +1802,18 @@ static QStringList pdfKlemmenAnschlussPartner(const QSqlDatabase &db, int klemme
     q.bindValue(":kid", klemmeId);
     if (!q.exec()) return result;
     while (q.next()) {
-        QString pBez = q.value(4).toString();
+        QString pBez = q.value(2).toString();
         QString pEbene = (pBez == QLatin1String("PE") || !pBez.contains(QLatin1Char('.')))
                           ? pBez : pBez.section(QLatin1Char('.'), 0, 0);
         if (pEbene != ebene) continue;
         int    pSeite = q.value(0).toInt();
-        double px = q.value(5).toDouble(), py = q.value(6).toDouble();
+        double px = q.value(3).toDouble(), py = q.value(4).toDouble();
         // Sich selbst überspringen (gleiche Seite + praktisch gleiche Position)
         if (pSeite == seiteId && qAbs(px - x1) < 0.5 && qAbs(py - y1) < 0.5) continue;
 
-        QString rawBmk  = q.value(3).toString();
-        QString baseBmk = (!pBez.isEmpty() && rawBmk.endsWith(QLatin1Char(':') + pBez))
-                           ? rawBmk.left(rawBmk.length() - pBez.length() - 1) : rawBmk;
-        int     col     = baseBmk.lastIndexOf(QLatin1Char(':'));
-        QString leiste  = col >= 0 ? baseBmk.left(col) : baseBmk;
-        QString nr      = col >= 0 ? baseBmk.mid(col + 1) : QString();
-        QString kennung = leiste.isEmpty() ? pBez
-                          : (nr.isEmpty() ? leiste : leiste + QLatin1Char(':') + nr);
-        QString seiteLabel = (pSeite == seiteId)
-                              ? QStringLiteral("dieser Seite")
-                              : (QStringLiteral("Seite ") + q.value(1).toString()
-                                 + (q.value(2).toString().isEmpty()
-                                    ? QString() : QLatin1Char(' ') + q.value(2).toString()));
-        result << (kennung + QStringLiteral(" auf ") + seiteLabel);
+        QString label = pBez.isEmpty() ? QStringLiteral("?") : pBez;
+        if (pSeite != seiteId) label += QStringLiteral(" Bl.") + q.value(1).toString();
+        result << label;
     }
     return result;
 }

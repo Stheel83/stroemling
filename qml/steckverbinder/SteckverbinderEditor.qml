@@ -670,7 +670,7 @@ ScrollView {
 
                     delegate: Rectangle {
                         width: ktPickerList.width; height: 42
-                        color: ktItemHover.containsMouse ? root.theme.hover : "transparent"
+                        color: ktItemHover.hovered ? root.theme.hover : "transparent"
                         HoverHandler { id: ktItemHover }
 
                         Column {

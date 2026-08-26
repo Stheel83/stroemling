@@ -109,7 +109,7 @@ Item {
                 }
                 Rectangle {
                     width: 22; height: 22; radius: 3
-                    color: reloadHover.containsMouse ? root.theme.hover : "transparent"
+                    color: reloadHover.hovered ? root.theme.hover : "transparent"
                     HoverHandler { id: reloadHover }
                     Text { anchors.centerIn: parent; text: "⟳"; font.pixelSize: 14; color: root.theme.accent }
                     MouseArea {
@@ -238,14 +238,14 @@ Item {
                                     Rectangle {
                                         visible: !instDelegate.hatBauteil && instHover.containsMouse
                                         width: 80; height: 20; radius: 3
-                                        color: vknHover.containsMouse ? root.theme.accent : "transparent"
-                                        border.color: vknHover.containsMouse ? root.theme.accent : root.theme.border
+                                        color: vknHover.hovered ? root.theme.accent : "transparent"
+                                        border.color: vknHover.hovered ? root.theme.accent : root.theme.border
                                         HoverHandler { id: vknHover }
                                         Text {
                                             anchors.centerIn: parent
                                             text: qsTr("+ Verknüpfen")
                                             font.pixelSize: 10
-                                            color: vknHover.containsMouse ? "white" : root.theme.textMuted
+                                            color: vknHover.hovered ? "white" : root.theme.textMuted
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -255,13 +255,13 @@ Item {
                                     // Sprung-Button
                                     Rectangle {
                                         width: 22; height: 22; radius: 3
-                                        color: sprungHover.containsMouse ? root.theme.accent : "transparent"
-                                        border.color: sprungHover.containsMouse ? root.theme.accent : root.theme.border
+                                        color: sprungHover.hovered ? root.theme.accent : "transparent"
+                                        border.color: sprungHover.hovered ? root.theme.accent : root.theme.border
                                         HoverHandler { id: sprungHover }
                                         Text {
                                             anchors.centerIn: parent; text: "→"
                                             font.pixelSize: 11
-                                            color: sprungHover.containsMouse ? "white" : root.theme.accent
+                                            color: sprungHover.hovered ? "white" : root.theme.accent
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -299,14 +299,14 @@ Item {
                                     Rectangle {
                                         visible: instDelegate.svTyp && instDelegate.svTyp.id > 0
                                         width: 96; height: 18; radius: 3
-                                        color: kpHover.containsMouse ? root.theme.accent : "transparent"
-                                        border.color: kpHover.containsMouse ? root.theme.accent : root.theme.border
+                                        color: kpHover.hovered ? root.theme.accent : "transparent"
+                                        border.color: kpHover.hovered ? root.theme.accent : root.theme.border
                                         HoverHandler { id: kpHover }
                                         Text {
                                             anchors.centerIn: parent
                                             text: qsTr("Kontakt platzieren")
                                             font.pixelSize: 9
-                                            color: kpHover.containsMouse ? "white" : root.theme.textMuted
+                                            color: kpHover.hovered ? "white" : root.theme.textMuted
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -349,12 +349,12 @@ Item {
                                     // "× Aufheben"
                                     Rectangle {
                                         width: 18; height: 18; radius: 3
-                                        color: aufhebHover.containsMouse ? "#3a1111" : "transparent"
+                                        color: aufhebHover.hovered ? "#3a1111" : "transparent"
                                         HoverHandler { id: aufhebHover }
                                         Text {
                                             anchors.centerIn: parent; text: "×"
                                             font.pixelSize: 12
-                                            color: aufhebHover.containsMouse ? "#ff6666" : root.theme.textMuted
+                                            color: aufhebHover.hovered ? "#ff6666" : root.theme.textMuted
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -400,12 +400,12 @@ Item {
                                     Rectangle {
                                         visible: partnerRow.partnerObj !== null
                                         width: 22; height: 18; radius: 3
-                                        color: partnerSprungHover.containsMouse ? root.theme.accent : "transparent"
-                                        border.color: partnerSprungHover.containsMouse ? root.theme.accent : root.theme.border
+                                        color: partnerSprungHover.hovered ? root.theme.accent : "transparent"
+                                        border.color: partnerSprungHover.hovered ? root.theme.accent : root.theme.border
                                         HoverHandler { id: partnerSprungHover }
                                         Text {
                                             anchors.centerIn: parent; text: "→"; font.pixelSize: 10
-                                            color: partnerSprungHover.containsMouse ? "white" : root.theme.accent
+                                            color: partnerSprungHover.hovered ? "white" : root.theme.accent
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -430,11 +430,11 @@ Item {
                                     Rectangle {
                                         visible: partnerRow.partnerObj !== null
                                         width: 18; height: 18; radius: 3
-                                        color: partnerAufhebHover.containsMouse ? "#3a1111" : "transparent"
+                                        color: partnerAufhebHover.hovered ? "#3a1111" : "transparent"
                                         HoverHandler { id: partnerAufhebHover }
                                         Text {
                                             anchors.centerIn: parent; text: "×"; font.pixelSize: 12
-                                            color: partnerAufhebHover.containsMouse ? "#ff6666" : root.theme.textMuted
+                                            color: partnerAufhebHover.hovered ? "#ff6666" : root.theme.textMuted
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor

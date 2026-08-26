@@ -75,7 +75,7 @@ Item {
                 }
                 Rectangle {
                     width: 96; height: 24; radius: 3
-                    color: bzVerknHover.containsMouse ? root.theme.hover : root.theme.inputBg
+                    color: bzVerknHover.hovered ? root.theme.hover : root.theme.inputBg
                     border.color: root.theme.border
                     HoverHandler { id: bzVerknHover }
                     Text {
@@ -183,7 +183,7 @@ Item {
 
                     delegate: Rectangle {
                         width: bzPickerList.width; height: 42
-                        color: bzItemHover.containsMouse ? root.theme.hover : "transparent"
+                        color: bzItemHover.hovered ? root.theme.hover : "transparent"
                         HoverHandler { id: bzItemHover }
 
                         Column {

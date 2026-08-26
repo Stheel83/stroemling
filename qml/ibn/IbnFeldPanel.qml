@@ -165,7 +165,7 @@ Item {
                                 width: parent.width; height: 34
                                 color: root._selKat === modelData.toString()
                                        ? root.theme.activeItemAlt
-                                       : (katHover.containsMouse ? root.theme.hover : "transparent")
+                                       : (katHover.hovered ? root.theme.hover : "transparent")
 
                                 HoverHandler { id: katHover }
 
@@ -220,7 +220,7 @@ Item {
 
                         Rectangle {
                             width: parent.width; height: 22; radius: 4
-                            color: neuKatHover.containsMouse
+                            color: neuKatHover.hovered
                                    ? root.theme.hover : root.theme.inputBg
                             border.color: root.theme.border
                             HoverHandler { id: neuKatHover }
@@ -251,13 +251,13 @@ Item {
                         Rectangle {
                             visible: root._neuKatSichtbar
                             width: parent.width; height: 22; radius: 3
-                            color: anlHover.containsMouse ? root.theme.accent : root.theme.inputBg
+                            color: anlHover.hovered ? root.theme.accent : root.theme.inputBg
                             border.color: root.theme.accent
                             HoverHandler { id: anlHover }
                             Text {
                                 anchors.centerIn: parent; text: qsTr("Anlegen")
                                 font.pixelSize: 10
-                                color: anlHover.containsMouse ? "white" : root.theme.textPrimary
+                                color: anlHover.hovered ? "white" : root.theme.textPrimary
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -343,7 +343,7 @@ Item {
                         opacity: dragHandle.drag.active ? 0.75 : 1.0
                         color: root._editId === modelData.id
                                ? root.theme.activeItemAlt
-                               : (reiheHover.containsMouse ? root.theme.hover : "transparent")
+                               : (reiheHover.hovered ? root.theme.hover : "transparent")
 
                         property real _savedY: 0
 
@@ -657,7 +657,7 @@ Item {
 
                         Rectangle {
                             width: 76; height: 24; radius: 3
-                            color: abbHover.containsMouse ? root.theme.hover : root.theme.inputBg
+                            color: abbHover.hovered ? root.theme.hover : root.theme.inputBg
                             border.color: root.theme.border
                             HoverHandler { id: abbHover }
                             Text {
@@ -672,14 +672,14 @@ Item {
 
                         Rectangle {
                             width: 88; height: 24; radius: 3
-                            color: speichHover.containsMouse ? root.theme.accent : root.theme.inputBg
+                            color: speichHover.hovered ? root.theme.accent : root.theme.inputBg
                             border.color: root.theme.accent
                             HoverHandler { id: speichHover }
                             Text {
                                 anchors.centerIn: parent
                                 text: root._editId >= 0 ? qsTr("Aktualisieren") : qsTr("Anlegen")
                                 font.pixelSize: 10
-                                color: speichHover.containsMouse ? "white" : root.theme.textPrimary
+                                color: speichHover.hovered ? "white" : root.theme.textPrimary
                             }
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -710,7 +710,7 @@ Item {
                         leftMargin: 12; rightMargin: 12; topMargin: 6
                     }
                     height: 24; radius: 4
-                    color: addHover.containsMouse ? root.theme.hover : root.theme.inputBg
+                    color: addHover.hovered ? root.theme.hover : root.theme.inputBg
                     border.color: root.theme.border
                     HoverHandler { id: addHover }
                     Text {

@@ -345,7 +345,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true; height: 36
             color: panel.aktiveSpezialAnsicht === "klemmenreihen"
-                   ? theme.hover : (krHover.containsMouse ? theme.hover : "transparent")
+                   ? theme.hover : (krHover.hovered ? theme.hover : "transparent")
             HoverHandler { id: krHover }
             RowLayout {
                 anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
@@ -366,7 +366,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true; height: 36
             color: panel.aktiveSpezialAnsicht === "geraetekaesten"
-                   ? theme.hover : (gkHover.containsMouse ? theme.hover : "transparent")
+                   ? theme.hover : (gkHover.hovered ? theme.hover : "transparent")
             HoverHandler { id: gkHover }
             RowLayout {
                 anchors { fill: parent; leftMargin: 16; rightMargin: 8 }

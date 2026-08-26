@@ -52,7 +52,7 @@ SplitView {
                 width: bmListe.width; height: 42
                 color: panel.ausgewaehlterIndex === index
                        ? theme.activeItemAlt
-                       : (bmHover.containsMouse ? theme.hover : "transparent")
+                       : (bmHover.hovered ? theme.hover : "transparent")
                 HoverHandler { id: bmHover }
                 RowLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 8 }

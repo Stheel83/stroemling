@@ -188,7 +188,7 @@ Rectangle {
                                 property int outerIdx: parent.parent.parent.myIdx
                                 color: (outerPin.offenX===modelData.ox && outerPin.offenY===modelData.oy)
                                        ? root.editor.theme.accent
-                                       : (dirHover.containsMouse ? root.editor.theme.badge : "transparent")
+                                       : (dirHover.hovered ? root.editor.theme.badge : "transparent")
                                 Text {
                                     anchors.centerIn: parent; text: modelData.l; font.pixelSize: 13
                                     color: (parent.outerPin.offenX===modelData.ox && parent.outerPin.offenY===modelData.oy) ? "white" : root.editor.theme.textPrimary
@@ -302,7 +302,7 @@ Rectangle {
 
                     Rectangle {
                         width: 22; height: 30; radius: 3
-                        color: delHover.containsMouse ? "#3a1a1a" : "transparent"
+                        color: delHover.hovered ? "#3a1a1a" : "transparent"
                         Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 12; color: "#ff4444" }
                         HoverHandler { id: delHover }
                         TapHandler {

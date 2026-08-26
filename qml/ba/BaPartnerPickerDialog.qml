@@ -88,7 +88,7 @@ Popup {
 
             delegate: Rectangle {
                 width: partnerPickerList.width; height: 42
-                color: partnerItemHover.containsMouse ? root.theme.hover : "transparent"
+                color: partnerItemHover.hovered ? root.theme.hover : "transparent"
                 HoverHandler { id: partnerItemHover }
 
                 Column {

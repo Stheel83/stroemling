@@ -51,7 +51,7 @@ SplitView {
                 width: kabelListe.width; height: 48
                 color: panel.kabelAusgewaehlterIndex === index
                        ? theme.activeItemAlt
-                       : (kabelHover.containsMouse ? theme.hover : "transparent")
+                       : (kabelHover.hovered ? theme.hover : "transparent")
                 HoverHandler { id: kabelHover }
                 RowLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 8 }

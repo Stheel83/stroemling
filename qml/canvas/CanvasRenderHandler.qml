@@ -1379,12 +1379,37 @@ QtObject {
         }
     }
 
+    // Winkel: transparenter Durchlaufpunkt (§2.2), keine Bänderung nötig (immer
+    // genau ein Netzsegment durch beide Arme). Beide Primitiv-Linien als EIN
+    // Pfad statt zweier getrennter stroke()-Aufrufe (wie drawByPrimitiv() es
+    // täte) — Canvas fügt am gemeinsamen Punkt automatisch einen sauberen
+    // Miter-Join ein, kein RoundCap-Workaround nötig. lineCap "square" wie bei
+    // normalen Leitungssegmenten (maleAutoVerbindungen()), damit der Übergang
+    // zur anschließenden Leitung nahtlos wirkt statt als runder "Blob"
+    // (LEITUNG-ZOOM-BREITE-01-Nachtrag, Aug 2026 — bei kleinem Zoom sonst
+    // unverhältnismäßig dick, da die RoundCap-Überstände nicht mit der
+    // Symbolgröße mitschrumpfen). Koordinaten aus symbole.sql (0,0)→(0,1)→(1,1).
+    function _maleWinkel(ctx, w, h) {
+        ctx.lineCap = "square"
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.lineTo(0, h)
+        ctx.lineTo(w, h)
+        ctx.stroke()
+    }
+
     // Zeichnet die drei Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln
     // (statt über drawByPrimitiv), weil der Ziel-Arm gebändert sein kann –
     // Koordinaten aus symbole.sql (lokale, unrotierte Symbolkoordinaten 0..1,
     // Rotation/Spiegelung ist über den ctx-Transform des Aufrufers bereits aktiv).
+    // lineCap "square" (LEITUNG-ZOOM-BREITE-01-Nachtrag, Aug 2026) statt des von
+    // maleElement() ererbten "round" — sonst wirken die Arm-Enden am Übergang
+    // zur anschließenden Leitung bei kleinem Zoom als dicker Blob statt als
+    // nahtlose Fortsetzung. _maleGebaenderteLinie() selbst setzt lineCap nicht,
+    // übernimmt also diesen Wert für alle fünf/vier Arm-Segmente.
     function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
         if (!armInfo) return
+        ctx.lineCap = "square"
         function P(nx, ny) { return { x: nx * w, y: ny * h } }
         // S1-Pin liegt bei beiden Symboltypen lokal auf (0, 0.5) – als
         // Referenz für die Seitenzuordnung der Bänderung (s. _maleGebaenderteLinie).
@@ -1738,6 +1763,8 @@ QtObject {
             var _steBuFarbe = _steBuOk ? { 1: "#00e5a0" } : undefined
             if ((el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") && rc.armInfo)
                 _maleTreffpunktArme(ctx, el.symbolId, Math.abs(sw), Math.abs(sh), rc.armInfo)
+            else if (el.symbolId === "winkel")
+                _maleWinkel(ctx, Math.abs(sw), Math.abs(sh))
             else
                 drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
             ctx.restore()

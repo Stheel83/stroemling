@@ -2131,7 +2131,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                     // alle drei um Mittelpunkt zentriert
                     double totalH = (!kaAnz.isEmpty() ? anzFsDev * 1.2 : 0.0)
                                   + (kaBmkVis ? bmkFsDev * 1.2 : 0.0)
-                                  + (kaPartVis ? partFsDev * 1.2 : 0.0);
+                                  + (kaPartVis ? partFsDev * 1.8 : 0.0);
                     double curY   = kaCyO - totalH / 2.0;
                     Qt::Alignment ha = pinRechts ? Qt::AlignRight : Qt::AlignLeft;
 
@@ -2151,8 +2151,8 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                     }
                     if (kaPartVis) {
                         p.setFont(fPart); p.setPen(colPart);
-                        QRectF r = pinRechts ? QRectF(kaX - tw, curY, tw, partFsDev * 1.2)
-                                             : QRectF(kaX, curY, tw, partFsDev * 1.2);
+                        QRectF r = pinRechts ? QRectF(kaX - tw, curY, tw, partFsDev * 1.8)
+                                             : QRectF(kaX, curY, tw, partFsDev * 1.8);
                         p.drawText(r, ha | Qt::AlignVCenter, kaPartnerText);
                     }
                 } else {
@@ -2178,7 +2178,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                         }
                         if (kaPartVis) {
                             p.setFont(fPart); p.setPen(colPart);
-                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.2),
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.8),
                                        Qt::AlignHCenter | Qt::AlignTop, kaPartnerText);
                         }
                     } else {
@@ -2197,9 +2197,9 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                                        Qt::AlignHCenter | Qt::AlignTop, kaBmk);
                         }
                         if (kaPartVis) {
-                            curY -= partFsDev * 1.2;
+                            curY -= partFsDev * 1.8;
                             p.setFont(fPart); p.setPen(colPart);
-                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.2),
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.8),
                                        Qt::AlignHCenter | Qt::AlignTop, kaPartnerText);
                         }
                     }
@@ -2253,7 +2253,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                     }
                     if (!qPartner.isEmpty()) {
                         p.setFont(fQp); p.setPen(colQp);
-                        double h = qFsSDev * 1.2;
+                        double h = qFsSDev * 1.8;
                         p.drawText(QRectF(qX - qtw, qCy, qtw, h), Qt::AlignRight | Qt::AlignTop,
                                    QStringLiteral("→ ") + qPartner);
                     }
@@ -2269,7 +2269,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                     }
                     if (!qPartner.isEmpty()) {
                         p.setFont(fQp); p.setPen(colQp);
-                        double h      = qFsSDev * 1.2;
+                        double h      = qFsSDev * 1.8;
                         double bottom = qY - qFsDev - 1.0;
                         p.drawText(QRectF(qCx - qtw/2, bottom - h, qtw, h),
                                    Qt::AlignHCenter | Qt::AlignBottom,

@@ -272,7 +272,7 @@ Item {
 
                         Connections {
                             target: root
-                            function on_selElemsChanged() { vorschauCanvas.requestPaint() }
+                            function on_SelElemsChanged() { vorschauCanvas.requestPaint() }
                         }
 
                         onPaint: {

@@ -114,7 +114,7 @@ Rectangle {
             }
             MouseArea {
                 id: versionMa; anchors.fill: parent; hoverEnabled: true
-                cursorShape: _aktiv ? Qt.PointingHandCursor : Qt.ArrowCursor
+                cursorShape: parent._aktiv ? Qt.PointingHandCursor : Qt.ArrowCursor
                 enabled: parent._aktiv
                 onClicked: {
                     canvas.grafikSpeichernJetzt()

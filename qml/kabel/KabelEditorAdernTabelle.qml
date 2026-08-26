@@ -94,15 +94,14 @@ Item {
                         }
                     }
                     MouseArea {
-                        anchors.fill: parent
+                        id: alleMa
+                        anchors.fill: parent; hoverEnabled: true
                         onClicked: root._alleToggle()
                         cursorShape: Qt.PointingHandCursor
                     }
-                    ToolTip.visible: hoverEnabled && containsMouse
+                    ToolTip.visible: alleMa.containsMouse
                     ToolTip.delay: 500
                     ToolTip.text: qsTr("Alle auswählen / abwählen")
-                    property bool containsMouse: false
-                    HoverHandler { onHoveredChanged: parent.containsMouse = hovered }
                 }
 
                 Text { text: qsTr("Nr.");             color: root.theme.borderLight; font.pixelSize: 11; font.weight: Font.Medium; Layout.preferredWidth: 30 }

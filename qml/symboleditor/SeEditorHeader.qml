@@ -93,9 +93,9 @@ Rectangle {
             Text {
                 text: qsTr("⊞ 4mm")
                 color: editor.theme.accent; font.pixelSize: 10
-                ToolTip.visible: hovered; ToolTip.delay: 400
+                ToolTip.visible: rasterHover.containsMouse; ToolTip.delay: 400
                 ToolTip.text: qsTr("Raster: große Punkte = 4mm-Raster · Pin-Abstände als Vielfaches von 4mm wählen")
-                MouseArea { anchors.fill: parent; hoverEnabled: true }
+                MouseArea { id: rasterHover; anchors.fill: parent; hoverEnabled: true }
             }
 
             Text {

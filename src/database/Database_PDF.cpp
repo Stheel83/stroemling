@@ -18,6 +18,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
+#include <QRegularExpression>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QColor>
@@ -1934,15 +1935,53 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                                 ? kaBmkRaw.left(kaBmkRaw.length() - kaAnz.length() - 1)
                                 : kaBmkRaw;
 
-            // bmkSichtbar: false → nur Klemmen-Nr (ohne Leisten-Präfix)
+            // bmkSichtbar: false → nur Klemmen-Nr (ohne Leisten-Präfix).
+            // Granulare BMK-Sichtbarkeit (Leiste/Anlage/Ort/Gerät): 1:1-Port
+            // aus CanvasRenderHandler.qml — vorher berücksichtigte der PDF-
+            // Export nur bmkSichtbar, anlageAnzeigen/ortAnzeigen/
+            // geraetAnzeigen wurden ignoriert und Anlage/Ort erschienen im
+            // PDF immer, selbst wenn auf dem Canvas ausgeblendet
+            // (KLEMME-PDF-ANLAGE-ORT-01).
             QString kaBmk;
             bool kaBmkVis = false;
             {
                 int col = kaBmkBase.lastIndexOf(QLatin1Char(':'));
                 if (col >= 0) {
-                    bool vis = kaed.value("bmkSichtbar", QVariant(true)).toBool();
-                    kaBmk    = (vis ? kaBmkBase.left(col + 1) : QString())
-                               + kaBmkBase.mid(col + 1);
+                    QString kaBmkStrip = kaBmkBase.left(col + 1);
+                    QString kaBmkNr    = kaBmkBase.mid(col + 1);
+                    QString kaBmkPrefix;
+                    if (kaed.value("bmkSichtbar", QVariant(true)).toBool()) {
+                        bool kaAnlAn = kaed.value("anlageAnzeigen", QVariant(true)).toBool();
+                        bool kaOrtAn = kaed.value("ortAnzeigen",    QVariant(true)).toBool();
+                        bool kaGkAn  = kaed.value("geraetAnzeigen", QVariant(true)).toBool();
+                        if (kaAnlAn && kaOrtAn && kaGkAn) {
+                            kaBmkPrefix = kaBmkStrip;
+                        } else {
+                            QString kaS = kaBmkStrip.endsWith(QLatin1Char(':'))
+                                          ? kaBmkStrip.left(kaBmkStrip.length() - 1)
+                                          : kaBmkStrip;
+                            static const QRegularExpression reTok(
+                                QStringLiteral("(==\\w+|\\+\\+\\w+|=\\w+|\\+\\w+|-\\w+)"));
+                            QStringList kaTok;
+                            QRegularExpressionMatchIterator kaIt = reTok.globalMatch(kaS);
+                            while (kaIt.hasNext()) kaTok << kaIt.next().captured(1);
+                            if (kaTok.isEmpty()) kaTok << kaS;
+                            int kaLM = -1;
+                            for (int kaI = kaTok.size() - 1; kaI >= 0; kaI--) {
+                                if (kaTok[kaI].startsWith(QLatin1Char('-'))) { kaLM = kaI; break; }
+                            }
+                            QString kaR;
+                            for (int kaJ = 0; kaJ < kaTok.size(); kaJ++) {
+                                const QString &kaT = kaTok[kaJ];
+                                QChar kaTC = kaT.at(0);
+                                if      (kaTC == QLatin1Char('=')) { if (kaAnlAn) kaR += kaT; }
+                                else if (kaTC == QLatin1Char('+')) { if (kaOrtAn) kaR += kaT; }
+                                else if (kaTC == QLatin1Char('-')) { if (kaJ == kaLM || kaGkAn) kaR += kaT; }
+                            }
+                            kaBmkPrefix = kaR + QLatin1Char(':');
+                        }
+                    }
+                    kaBmk    = kaBmkPrefix + kaBmkNr;
                     kaBmkVis = !kaBmk.isEmpty();
                 } else {
                     kaBmk    = kaBmkBase;

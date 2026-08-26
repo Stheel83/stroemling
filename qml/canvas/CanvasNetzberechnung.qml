@@ -262,10 +262,29 @@ QtObject {
             // abweichende Kante (z.B. "n") stillschweigend ignoriert – kein
             // Konflikt sichtbar, obwohl zwei unterschiedliche Potenziale im
             // selben Netz liegen.
+            //
+            // KLEMME-UNVERSORGT-01-Nachtrag: aus demselben Grund (Klemmen-
+            // Brücken sind der C++-BFS unsichtbar) zerfällt ein über eine
+            // Klemme durchgeleitetes Netz für die BFS in zwei getrennte
+            // Teilgraphen – der quellseitige wird korrekt gefärbt, der
+            // andere (ohne für die BFS sichtbare Quelle) explizit als
+            // "unversorgt" markiert, obwohl das GESAMTE (erst hier in QML
+            // über die Klemmen-Brücke verschmolzene) Netz sehr wohl versorgt
+            // ist. Die alte Bedingung `net.signaltyp !== "konflikt"` hat eine
+            // "unversorgt"-Kante bedingungslos über einen bereits im Netz
+            // gefundenen ECHTEN Signaltyp drübergeschrieben, je nachdem in
+            // welcher (von der Draht-Lane-Position abhängigen, nicht
+            // topologischen) Reihenfolge die Kanten verarbeitet wurden –
+            // anders als der Echtwert-Zweig direkt darunter, der einen
+            // bereits gefundenen Wert nie überschreibt. Fix: "unversorgt"
+            // darf nur greifen, solange im Netz noch gar nichts Besseres
+            // gefunden wurde (net.signaltyp === "neutral"), genau wie beim
+            // Echtwert-Zweig – ein einmal gefundener echter Signaltyp
+            // gewinnt jetzt unabhängig von der Verarbeitungsreihenfolge.
             if (v.signaltyp === "konflikt") {
                 net.signaltyp = "konflikt"
             } else if (v.signaltyp === "unversorgt") {
-                if (net.signaltyp !== "konflikt") net.signaltyp = "unversorgt"
+                if (net.signaltyp === "neutral") net.signaltyp = "unversorgt"
             } else if (v.signaltyp !== "neutral") {
                 if (net.signaltyp === "neutral" || net.signaltyp === "unversorgt") net.signaltyp = v.signaltyp
                 else if (net.signaltyp !== "konflikt" && net.signaltyp !== v.signaltyp) net.signaltyp = "konflikt"

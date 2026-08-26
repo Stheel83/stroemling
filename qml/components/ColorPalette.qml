@@ -7,10 +7,17 @@ import QtQuick.Controls
 // Verwendung:
 //   ColorPalette {
 //       model: panel.farbpalette
-//       value: panel.s("strichFarbe", theme.accent)
-//       theme: theme
+//       value: panel.s("strichFarbe", root.theme.accent)
+//       theme: root.theme
 //       onColorSelected: function(c) { canvas.eigenschaftAktualisieren("strichFarbe", c) }
 //   }
+//
+// Wichtig: theme MUSS als root.theme (des aufrufenden Files) qualifiziert
+// werden, auch innerhalb desselben ColorPalette{}-Blocks. Ein bares "theme"
+// referenziert sonst die eigene Property dieser Komponente (required
+// property theme, Zeile unten) statt der äußeren – bei "theme: theme"
+// entsteht so eine zirkuläre, dauerhaft undefined bleibende Bindung
+// (SETTINGS-ORG-01-Nachtrag, Aug 2026, s. 18_debugging.md §5).
 Item {
     id: root
 

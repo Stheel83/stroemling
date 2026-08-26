@@ -79,7 +79,7 @@ Item {
                 FeldLabel { text: qsTr("Füllfarbe") }
                 ColorPalette {
                     model: panel.farbpalette
-                    value: panel.s("fuellFarbe", theme.activeItemAlt)
+                    value: panel.s("fuellFarbe", root.theme.activeItemAlt)
                     theme: root.theme
                     onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
                 }

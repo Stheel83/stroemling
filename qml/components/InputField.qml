@@ -7,7 +7,7 @@ import QtQuick
 //   InputField {
 //       label:  qsTr("BMK")
 //       value:  panel.s("bmk", "")
-//       theme:  theme
+//       theme:  root.theme
 //       onCommit: function(t) { canvas.eigenschaftAktualisieren("bmk", t) }
 //   }
 Item {

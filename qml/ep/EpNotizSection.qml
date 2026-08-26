@@ -84,7 +84,7 @@ Item {
         ColorPalette {
             model:   panel.farbpalette
             value:   panel.s("fuellFarbe", "#1a1a00")
-            theme:   theme
+            theme:   root.theme
             onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("fuellFarbe", c) }
         }
         Item { height: 6 }
@@ -96,7 +96,7 @@ Item {
         ColorPalette {
             model:   panel.farbpalette
             value:   (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.rahmFarbe || "") : ""
-            theme:   theme
+            theme:   root.theme
             onColorSelected: function(c) {
                 var ed = JSON.parse(JSON.stringify(panel.el ? (panel.el.extraDaten || {}) : {}))
                 ed.rahmFarbe = c

@@ -111,8 +111,8 @@ Item {
             visible: !panel.el || panel.el.typ !== "bild"
             height:  visible ? implicitHeight : 0
             model:   panel.farbpalette
-            value:   panel.s("strichFarbe", theme.accent)
-            theme:   theme
+            value:   panel.s("strichFarbe", root.theme.accent)
+            theme:   root.theme
             onColorSelected: function(c) { panel.canvas.eigenschaftAktualisieren("strichFarbe", c) }
         }
         Item { visible: !panel.el || panel.el.typ !== "bild"; height: visible ? 8 : 0 }

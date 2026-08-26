@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <QPdfWriter>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QFont>
 #include <QFontMetricsF>
@@ -772,16 +773,22 @@ static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, dou
 // drawLine()-Aufrufe (nicht ein QPainterPath) - Qt-Line-Joins greifen nur
 // innerhalb eines Path, sonst bleibt am gemeinsamen Punkt eine keilförmige
 // Lücke sichtbar (analog Winkel-Symbol, s. pdfElementRendern).
+// capStyle (LEITUNG-ZOOM-BREITE-01-Nachtrag, Aug 2026): Default RoundCap wie
+// bisher für normale Leitungssegmente (Aufrufer weiter unten in dieser
+// Datei) – Treffpunkt-Arme übergeben stattdessen SquareCap, damit der
+// Übergang zur anschließenden Leitung nahtlos wirkt statt als runder "Blob"
+// (1:1 zum QML-Fix in _maleTreffpunktArme(), das dort lineCap="square"
+// setzt statt das ererbte "round" von maleElement() zu behalten).
 static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
                                      const PdfLeitungsSegment &s, double refX, double refY,
-                                     double pxPerMm)
+                                     double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap)
 {
     if (!s.gebaendert) {
         if (s.farbe2.isValid()) {
             pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
             return;
         }
-        p.setPen(QPen(s.color, s.lw, Qt::SolidLine, Qt::RoundCap));
+        p.setPen(QPen(s.color, s.lw, Qt::SolidLine, capStyle));
         p.drawLine(QLineF(ax, ay, bx, by));
         return;
     }
@@ -790,9 +797,9 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     if (len < 1e-6) return;
 
     if (!s.zweifarbig) {
-        p.setPen(QPen(s.farbeA, s.lw, Qt::SolidLine, Qt::RoundCap));
+        p.setPen(QPen(s.farbeA, s.lw, Qt::SolidLine, capStyle));
         p.drawLine(QLineF(ax, ay, bx, by));
-        p.setPen(QPen(Qt::white, qMax(0.3, 1.0 * 0.25 * pxPerMm), Qt::SolidLine, Qt::RoundCap));
+        p.setPen(QPen(Qt::white, qMax(0.3, 1.0 * 0.25 * pxPerMm), Qt::SolidLine, capStyle));
         p.drawLine(QLineF(ax, ay, bx, by));
         return;
     }
@@ -804,10 +811,32 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     QColor farbeNeg = flip ? s.farbeB : s.farbeA;
     QColor farbePos = flip ? s.farbeA : s.farbeB;
 
-    p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, Qt::RoundCap));
+    p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, capStyle));
     p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
-    p.setPen(QPen(farbePos, basis, Qt::SolidLine, Qt::RoundCap));
+    p.setPen(QPen(farbePos, basis, Qt::SolidLine, capStyle));
     p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
+}
+
+// Winkel: transparenter Durchlaufpunkt (§2.2), keine Bänderung nötig (immer
+// genau ein Netzsegment durch beide Arme). Beide Primitiv-Linien als EIN
+// QPainterPath statt zweier getrennter drawLine()-Aufrufe (wie
+// pdfSymbolRendern()/pdfPrimitivRendern() es täte) – Qt fügt am gemeinsamen
+// Punkt automatisch einen sauberen Miter-Join ein, kein RoundCap-Workaround
+// nötig. SquareCap wie bei normalen Leitungssegmenten, damit der Übergang
+// zur anschließenden Leitung nahtlos wirkt statt als runder "Blob"
+// (LEITUNG-ZOOM-BREITE-01-Nachtrag, Aug 2026, 1:1-Analogie zur QML-
+// Funktion _maleWinkel() in CanvasRenderHandler.qml). Koordinaten aus
+// symbole.sql (0,0)→(0,1)→(1,1), w/h bereits lokale Symbol-Pixel.
+static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
+{
+    QPen winkelPen = pen;
+    winkelPen.setCapStyle(Qt::SquareCap);
+    p.setPen(winkelPen);
+    QPainterPath path;
+    path.moveTo(0.0, 0.0);
+    path.lineTo(0.0, h);
+    path.lineTo(w, h);
+    p.drawPath(path);
 }
 
 // Zeichnet die Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln (statt
@@ -828,9 +857,9 @@ static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, doubl
     auto L = [&](QPointF a, QPointF b, const PdfLeitungsSegment *seg) {
         if (seg) {
             pdfMaleGebaenderteLinie(p, a.x(), a.y(), b.x(), b.y(), *seg,
-                                    s1RefLocal.x(), s1RefLocal.y(), pxPerMm);
+                                    s1RefLocal.x(), s1RefLocal.y(), pxPerMm, Qt::SquareCap);
         } else {
-            p.setPen(QPen(QColor("#4a9eff"), lwBasis, Qt::SolidLine, Qt::FlatCap));
+            p.setPen(QPen(QColor("#4a9eff"), lwBasis, Qt::SolidLine, Qt::SquareCap));
             p.drawLine(QLineF(a, b));
         }
     };
@@ -1764,12 +1793,26 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
             }
         }
 
+        // Winkel: eigener Zeichenpfad (pdfMaleWinkel, SquareCap + ein
+        // zusammenhängender QPainterPath statt zweier RoundCap-drawLine()-
+        // Aufrufe über pdfSymbolRendern) – LEITUNG-ZOOM-BREITE-01-Nachtrag,
+        // Aug 2026, 1:1-Analogie zum QML-Fix in CanvasRenderHandler.qml
+        // _renderSymbol()/_maleWinkel().
+        if (leitungsSegs && sid == "winkel") {
+            p.save();
+            p.translate(symX + absSw / 2, symY + absSh / 2);
+            if (el.value("rotation").toInt() != 0) p.rotate(el.value("rotation").toInt());
+            if (el.value("spiegelX").toBool()) p.scale(-1.0, 1.0);
+            if (el.value("spiegelY").toBool()) p.scale(1.0, -1.0);
+            p.translate(-absSw / 2, -absSh / 2);
+            pdfMaleWinkel(p, absSw, absSh, symPen);
+            p.restore();
         // Treffpunkt/Treffpunkt_L: eigener 3-Arm-Zeichenpfad (S1/S2/Ziel), da
         // der Ziel-Arm gebändert sein kann (VERBINDUNGSFARBE-03/04-Port,
         // 1:1-Analogie zu CanvasRenderHandler.qml maleElement/
         // _maleTreffpunktArme()) – ersetzt den generischen Einzel-QPen-Pfad
         // über pdfSymbolRendern für diese beiden Typen.
-        if (leitungsSegs && (sid == "treffpunkt" || sid == "treffpunkt_l")) {
+        } else if (leitungsSegs && (sid == "treffpunkt" || sid == "treffpunkt_l")) {
             double rx1 = el.value("x1").toDouble(), ry1 = el.value("y1").toDouble();
             double rx2 = el.value("x2").toDouble(), ry2 = el.value("y2").toDouble();
             double rot = el.value("rotation").toDouble();

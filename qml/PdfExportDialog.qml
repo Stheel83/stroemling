@@ -415,32 +415,6 @@ Dialog {
             }
         }
 
-        // Eigentlicher Export-Aufruf, ausgelagert damit die Überschreiben-
-        // Bestätigung dazwischengeschaltet werden kann.
-        function _pdfSchreiben(pfad) {
-            var nb   = cbNormblatt.checked
-            var info = cbInfostreifen.checked
-            var ok = false
-            if (rbAlleVoll.checked)
-                ok = db.canvasPdfExportieren(root.projektId, pfad, false, true, info)
-            else if (rbVoll.checked)
-                ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true, info)
-            else if (rbAlle.checked)
-                ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false, info)
-            else
-                ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false, info)
-
-            if (ok) {
-                var seiten = (rbAlle.checked || rbAlleVoll.checked)
-                    ? seitenModel.rowCount() : 1
-                achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": seiten })
-                meldungManager.zeigen(qsTr("PDF gespeichert."), true)
-                root.accept()
-            } else {
-                statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")
-            }
-        }
-
         // ── Überschreiben-Bestätigung ──────────────────────────────────
         Dialog {
             id:      ueberschreibenDialog
@@ -496,6 +470,35 @@ Dialog {
                     }
                 }
             }
+        }
+    }
+
+    // Eigentlicher Export-Aufruf, ausgelagert damit die Überschreiben-
+    // Bestätigung dazwischengeschaltet werden kann. Muss direkt auf root
+    // liegen (nicht in contentItem verschachtelt) – wird sowohl aus dem
+    // contentItem-Baum (Speichern-Button) als auch aus dem gleichrangigen
+    // ueberschreibenDialog heraus als root._pdfSchreiben(...) aufgerufen.
+    function _pdfSchreiben(pfad) {
+        var nb   = cbNormblatt.checked
+        var info = cbInfostreifen.checked
+        var ok = false
+        if (rbAlleVoll.checked)
+            ok = db.canvasPdfExportieren(root.projektId, pfad, false, true, info)
+        else if (rbVoll.checked)
+            ok = db.canvasSeiteExportieren(root.seiteId, pfad, false, true, info)
+        else if (rbAlle.checked)
+            ok = db.canvasPdfExportieren(root.projektId, pfad, nb, false, info)
+        else
+            ok = db.canvasSeiteExportieren(root.seiteId, pfad, nb, false, info)
+
+        if (ok) {
+            var seiten = (rbAlle.checked || rbAlleVoll.checked)
+                ? seitenModel.rowCount() : 1
+            achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": seiten })
+            meldungManager.zeigen(qsTr("PDF gespeichert."), true)
+            root.accept()
+        } else {
+            statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")
         }
     }
 

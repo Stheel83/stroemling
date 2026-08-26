@@ -357,15 +357,19 @@ QtObject {
         // gebändert) statt einer einzelnen Farbe – wird unten über rc.armInfo
         // an _renderSymbol()/_maleTreffpunktArme() weitergereicht.
         var _armInfo = null
-        // _breiteFuerAnzahl() liefert bereits eine fertige Bildschirm-Pixelbreite
-        // (überall sonst, z.B. _maleGebaenderteLinie, unskaliert als ctx.lineWidth
-        // benutzt) - keine mm-Angabe wie strichBreite, darf unten NICHT nochmal mit
-        // mmToPx*zoom skaliert werden.
-        var _sbIstFertigePixelbreite = false
+        // _breiteFuerAnzahl() liefert seit dem LEITUNG-ZOOM-BREITE-01-Nachtrag
+        // einen zoom-unabhängigen mm-Wert (wie strichBreite) — sb wird unten
+        // ganz normal über den regulären mmToPx*zoom-Pfad skaliert, kein
+        // Sonderfall mehr nötig. Wichtig für winkel: dessen sb kommt aus
+        // cv._cachedRoutingFarben, das nur bei Modelländerungen invalidiert
+        // wird, nicht beim Zoomen — wäre sb hier schon eine fertige
+        // Pixelbreite, würde sie nach dem Zoomen auf dem alten Stand
+        // einfrieren, während normale Leitungssegmente (nie gecacht) sofort
+        // aktuell blieben.
         if (routingFarben && el.typ === "symbol") {
             if (el.symbolId === "winkel") {
                 var _rf = routingFarben[idx]
-                if (_rf) { sf = _rf.farbe; sb = _rf.breite; _sbIstFertigePixelbreite = true }
+                if (_rf) { sf = _rf.farbe; sb = _rf.breite }
             } else if (el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") {
                 _armInfo = routingFarben[idx] || null
             }
@@ -399,7 +403,7 @@ QtObject {
         // bleibt die Linie bei höherem Zoom (Symbole wachsen, Strich nicht) unsichtbar
         // dünn. Auswahl-Hervorhebung (+0.5) bewusst als fixer Bildschirm-Pixel-Zuschlag,
         // nicht mitskaliert.
-        var lwBasis = _sbIstFertigePixelbreite ? sb : sb * cv.mmToPx * cv.zoom
+        var lwBasis = sb * cv.mmToPx * cv.zoom
         var lw = Math.max(0.5, gewaehlt ? lwBasis + 0.5 : lwBasis)
         if (vorschau)           { ctx.setLineDash([5,4]);              ctx.lineCap = "butt"  }
         else if (sa==="gestrichelt") { ctx.setLineDash([lw*5,lw*3]);   ctx.lineCap = "butt"  }
@@ -1141,18 +1145,33 @@ QtObject {
     // Ziel-Bänderung (dort ersetzt "Aderanzahl" die Anzahl verschmolzener Arme).
     //
     // LEITUNG-ZOOM-BREITE-01 (Aug 2026): Basis jetzt mm statt fixer
-    // Bildschirm-Pixel, mit derselben mmToPx*zoom-Skalierung + 0.5px-Mindestwert
-    // wie strichBreite bei Symbolen (maleElement() oben) — vorher blieben
-    // Leitungen bei jedem Zoom exakt gleich breit, während Symbol-Linien mit dem
-    // Zoom mitwuchsen (sichtbarer werdender Stärke-Unterschied beim Reinzoomen).
-    // mm-Basis so gewählt, dass sich bei Zoom 1 exakt dieselben Pixelwerte wie
-    // vorher ergeben (alte px-Werte / mmToPx): 1 Ader 1.5px→0.375mm, 3 Adern
-    // 4.5px→1.125mm.
+    // Bildschirm-Pixel, wie strichBreite bei Symbolen (maleElement() oben) —
+    // vorher blieben Leitungen bei jedem Zoom exakt gleich breit, während
+    // Symbol-Linien mit dem Zoom mitwuchsen (sichtbarer werdender
+    // Stärke-Unterschied beim Reinzoomen). mm-Basis so gewählt, dass sich bei
+    // Zoom 1 exakt dieselben Pixelwerte wie vorher ergeben (alte px-Werte /
+    // mmToPx): 1 Ader 1.5px→0.375mm, 3 Adern 4.5px→1.125mm.
+    //
+    // Nachtrag: liefert bewusst NUR den mm-Wert, OHNE mmToPx*zoom-Skalierung
+    // und OHNE 0.5px-Mindestwert (beides zoom-/pixel-abhängig) — vorher
+    // wurde hier bereits die fertige Pixelbreite berechnet, die dann für
+    // winkel/treffpunkt in cv._cachedRoutingFarben landete (OPT-VERBRENDER-
+    // CACHE-01). Der Cache wird nur bei Modelländerungen invalidiert, nicht
+    // beim Zoomen (bewusst, sonst liefe die teure Bänderungsberechnung bei
+    // jedem Zoom-Schritt neu) — die gecachte Pixelbreite fror dadurch auf
+    // dem Zoomstand beim letzten Cache-Aufbau ein, während normale
+    // Leitungssegmente (nie gecacht, jeden Frame frisch berechnet) sofort
+    // aktuell blieben: sichtbar unterschiedliche Strichstärken zwischen
+    // winkel/treffpunkt und den automatischen Verbindungen nach dem Zoomen.
+    // Fix: Pixel-Umrechnung + Mindestwert erst beim tatsächlichen Zeichnen
+    // in _maleGebaenderteLinie() (Leitungen UND Treffpunkt-Arme) bzw. direkt
+    // in maleElement() (winkel) – beide nutzen dafür den aktuellen cv.zoom,
+    // unabhängig davon ob der Rest des Werts aus dem Cache kam.
     function _breiteFuerAnzahl(anz, signaltyp) {
         var bMm = anz <= 3 ? anz * 0.375 : 1.125
         if (signaltyp === "konflikt")   bMm = bMm * 2
         if (signaltyp === "unversorgt") bMm = bMm * 1.5
-        return Math.max(0.5, bMm * cv.mmToPx * cv.zoom)
+        return bMm
     }
 
     // Farbe + Linienbreite für ein Netzsegment. Aderfarbe überschreibt die
@@ -1323,14 +1342,25 @@ QtObject {
         if (!band) return
         ctx.setLineDash([])
         var modus = band.modus || "einzel"
+        // band.breite ist seit dem LEITUNG-ZOOM-BREITE-01-Nachtrag ein
+        // zoom-unabhängiger mm-Wert (s. _breiteFuerAnzahl()) — Pixel-
+        // Umrechnung + Mindestwert bewusst erst hier, beim tatsächlichen
+        // Zeichnen, statt schon in _breiteFuerAnzahl(): für winkel/treffpunkt
+        // kommt band aus dem über Modelländerungen (nicht über Zoom)
+        // invalidierten cv._cachedRoutingFarben — wäre die Pixelbreite schon
+        // dort eingefroren, bliebe sie nach dem Zoomen auf dem alten Stand,
+        // während normale Leitungssegmente (nie gecacht) sofort aktuell
+        // wären. Ein einziger Umrechnungspunkt hier stellt sicher, dass
+        // beide Pfade denselben, aktuellen cv.zoom verwenden.
+        var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
         if (modus === "bifarb") {
             // Bifarb-Ader (aderfarbe2): längs alternierendes Strich-Band statt
             // Parallel-Offset (das wäre mit der Treffpunkt-Bänderung "verschieden"
             // optisch verwechselbar, siehe Feldkommentar an _bandOderEinfach()).
-            var dashLen = Math.max(2, band.breite * 3)
+            var dashLen = Math.max(2, breitePx * 3)
             ctx.lineCap = "butt"
             ctx.strokeStyle = band.farben[0]
-            ctx.lineWidth   = band.breite
+            ctx.lineWidth   = breitePx
             ctx.setLineDash([dashLen, dashLen])
             ctx.lineDashOffset = 0
             ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
@@ -1342,7 +1372,7 @@ QtObject {
         }
         if (modus !== "gleich" && modus !== "verschieden") {
             ctx.strokeStyle = band.farbe
-            ctx.lineWidth   = band.breite
+            ctx.lineWidth   = breitePx
             ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
             return
         }
@@ -1350,11 +1380,11 @@ QtObject {
         var len = Math.sqrt(dx*dx + dy*dy)
         if (len < 1e-6) return
         var px = -dy / len, py = dx / len   // Einheits-Senkrechte
-        var basis = band.breite / 2         // Breite je Einzel-Ader-Band
+        var basis = breitePx / 2            // Breite je Einzel-Ader-Band
 
         if (modus === "gleich") {
             ctx.strokeStyle = band.farben[0]
-            ctx.lineWidth   = band.breite
+            ctx.lineWidth   = breitePx
             ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
             ctx.strokeStyle = cv.hintergrundFarbe
             ctx.lineWidth   = 1.0

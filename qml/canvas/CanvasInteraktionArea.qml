@@ -169,6 +169,15 @@ MouseArea {
                         if (hLeiste) hParts.push("Leiste    " + hLeiste)
                         if (hNr)     hParts.push("Klemme    Nr. " + hNr)
                         if (hBez)    hParts.push("Anschluss " + hBez)
+                        // Gegenstelle(n) derselben Klemme/Ebene (KLEMMENANSCHLUSS-
+                        // PARTNER-01): macht die sonst unsichtbare Verbindung zu
+                        // einem einzeln platzierten zweiten Anschluss greifbar.
+                        var hPartner = canvas._klemmeAnschlussPartnerMap
+                                       ? canvas._klemmeAnschlussPartnerMap[hIdx] : undefined
+                        if (hPartner && hPartner.length > 0) {
+                            for (var hpi = 0; hpi < hPartner.length; hpi++)
+                                hParts.push("↔ " + hPartner[hpi].label)
+                        }
                         if (hed.geist === true) hParts.push("⚠ Platzhalter – echten Anschluss direkt darauf setzen")
                         root.tooltipText = hParts.join("\n")
                         kaTooltip.x = mouse.x + 14

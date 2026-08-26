@@ -173,37 +173,49 @@ bool Database::klemmeAnschlussIstPlatziert(int klemmeId, const QString &anschlus
 }
 
 // Alle klemme_anschluss-Platzierungen im Projekt über alle Seiten.
-// Gibt [{seiteId, klemmeId, anschlussBezeichnung}] zurück.
+// Gibt [{elementId, seiteId, blattnummer, seitenBezeichnung, klemmeId,
+//        anschlussBezeichnung, bmk, x1, y1}] zurück. blattnummer/
+// seitenBezeichnung/bmk/x1/y1 wurden für KLEMMENANSCHLUSS-PARTNER-01
+// (Aug 2026, Canvas-Tooltip "Verbunden mit ...") ergänzt — bestehende
+// Aufrufer (KLEMME-NET-01-Cross-Page-Import) lesen nur die drei
+// ursprünglichen Felder und bleiben unverändert funktionsfähig.
 QVariantList Database::klemmenAnschlussAlleSeiten(int projektId) const
 {
     QVariantList result;
     QSqlQuery q(m_db);
-    // Hinweis: projektId als Integer direkt einbetten, da QSQLITE benannte
-    // Parameter in IN-Subqueries nicht unterstützt.
-    const QString sql = QString(
-        "SELECT ge.seite_id,"
-        " CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER),"
-        " json_extract(ge.extra_daten,'$.anschlussBezeichnung')"
-        " FROM grafik_element ge"
-        " WHERE ge.symbol_id = 'klemme_anschluss'"
-        "  AND ge.seite_id IN (SELECT s.id FROM seite s"
-        "    JOIN ort o ON o.id = s.ort_id"
-        "    JOIN anlage a ON a.id = o.anlage_id"
-        "    WHERE a.projekt_id = %1)"
-        "  AND json_extract(ge.extra_daten,'$.klemmeId') IS NOT NULL"
-        "  AND json_extract(ge.extra_daten,'$.klemmeId') != 'null'"
-    ).arg(projektId);
-    if (!q.exec(sql)) {
+    q.prepare(R"(
+        SELECT ge.id, ge.seite_id, s.blattnummer, COALESCE(s.bezeichnung, ''),
+               CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER),
+               json_extract(ge.extra_daten,'$.anschlussBezeichnung'),
+               json_extract(ge.extra_daten,'$.bmk'),
+               ge.x1, ge.y1
+        FROM grafik_element ge
+        JOIN seite  s ON s.id  = ge.seite_id
+        JOIN ort    o ON o.id  = s.ort_id
+        JOIN anlage a ON a.id  = o.anlage_id
+        WHERE a.projekt_id = :pid
+          AND ge.symbol_id  = 'klemme_anschluss'
+          AND json_extract(ge.extra_daten,'$.klemmeId') IS NOT NULL
+          AND json_extract(ge.extra_daten,'$.klemmeId') != 'null'
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
         qCWarning(lcDb) << "klemmenAnschlussAlleSeiten:" << q.lastError().text();
         return result;
     }
     while (q.next()) {
-        int kid = q.value(1).toInt();
+        int kid = q.value(4).toInt();
         if (kid <= 0) continue;
         QVariantMap row;
-        row[QStringLiteral("seiteId")]              = q.value(0).toInt();
-        row[QStringLiteral("klemmeId")]             = kid;
-        row[QStringLiteral("anschlussBezeichnung")] = q.value(2).toString();
+        row[QStringLiteral("elementId")]             = q.value(0).toInt();
+        row[QStringLiteral("seiteId")]                = q.value(1).toInt();
+        row[QStringLiteral("blattnummer")]            = q.value(2).toString();
+        row[QStringLiteral("seitenBezeichnung")]      = q.value(3).toString();
+        row[QStringLiteral("klemmeId")]               = kid;
+        row[QStringLiteral("anschlussBezeichnung")]   = q.value(5).toString();
+        row[QStringLiteral("bmk")]                    = q.value(6).toString();
+        row[QStringLiteral("x1")]                     = q.value(7).toDouble();
+        row[QStringLiteral("y1")]                     = q.value(8).toDouble();
         result.append(row);
     }
     return result;

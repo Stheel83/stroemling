@@ -351,6 +351,7 @@ qt_add_resources(stroemling_app "wiki_seed_res"
         src/wiki_seed/bedienhinweise/pdf_export.md
         src/wiki_seed/bedienhinweise/bauteilbibliothek.md
         src/wiki_seed/bedienhinweise/klemmen_editor.md
+        src/wiki_seed/bedienhinweise/klemmenanschluss_platzierung.md
         src/wiki_seed/bedienhinweise/kabel_editor.md
         src/wiki_seed/bedienhinweise/normblatt_editor.md
         src/wiki_seed/bedienhinweise/einstellungen.md
@@ -543,6 +544,7 @@ qt_add_resources(stroemling_test "wiki_seed_res_test"
         src/wiki_seed/bedienhinweise/pdf_export.md
         src/wiki_seed/bedienhinweise/bauteilbibliothek.md
         src/wiki_seed/bedienhinweise/klemmen_editor.md
+        src/wiki_seed/bedienhinweise/klemmenanschluss_platzierung.md
         src/wiki_seed/bedienhinweise/kabel_editor.md
         src/wiki_seed/bedienhinweise/normblatt_editor.md
         src/wiki_seed/bedienhinweise/einstellungen.md

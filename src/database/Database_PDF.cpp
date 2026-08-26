@@ -1735,9 +1735,65 @@ static void pdfElementSchirmRendern(QPainter &p, const QVariantMap &el,
         }
 }
 
+// Sucht Gegenstellen desselben Klemmenanschlusses (gleiche klemmeId + Ebene,
+// KLEMME-NET-01-Gruppierung) an anderen Positionen/Seiten des Projekts, damit
+// der PDF-Export dieselbe "Verbunden mit ..."-Information zeigen kann wie der
+// interaktive Canvas-Tooltip (KLEMMENANSCHLUSS-PARTNER-01). Eine .strl-Datei
+// enthält immer genau ein Projekt (siehe schema.sql CREATE TABLE projekt),
+// daher genügt die Suche über die ganze Datenbankverbindung ohne zusätzlichen
+// projekt_id-Scope. Anschlussbezeichnung wird hier erneut übergeben statt aus
+// der DB neu gelesen, da der Aufrufer sie ohnehin schon geparst hat.
+static QStringList pdfKlemmenAnschlussPartner(const QSqlDatabase &db, int klemmeId,
+                                               const QString &ebene, int seiteId,
+                                               double x1, double y1)
+{
+    QStringList result;
+    if (klemmeId <= 0 || ebene.isEmpty()) return result;
+    QSqlQuery q(db);
+    q.prepare(R"(
+        SELECT ge.seite_id, s.blattnummer, COALESCE(s.bezeichnung, ''),
+               json_extract(ge.extra_daten,'$.bmk'),
+               json_extract(ge.extra_daten,'$.anschlussBezeichnung'),
+               ge.x1, ge.y1
+        FROM grafik_element ge
+        JOIN seite s ON s.id = ge.seite_id
+        WHERE ge.symbol_id = 'klemme_anschluss'
+          AND CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER) = :kid
+    )");
+    q.bindValue(":kid", klemmeId);
+    if (!q.exec()) return result;
+    while (q.next()) {
+        QString pBez = q.value(4).toString();
+        QString pEbene = (pBez == QLatin1String("PE") || !pBez.contains(QLatin1Char('.')))
+                          ? pBez : pBez.section(QLatin1Char('.'), 0, 0);
+        if (pEbene != ebene) continue;
+        int    pSeite = q.value(0).toInt();
+        double px = q.value(5).toDouble(), py = q.value(6).toDouble();
+        // Sich selbst überspringen (gleiche Seite + praktisch gleiche Position)
+        if (pSeite == seiteId && qAbs(px - x1) < 0.5 && qAbs(py - y1) < 0.5) continue;
+
+        QString rawBmk  = q.value(3).toString();
+        QString baseBmk = (!pBez.isEmpty() && rawBmk.endsWith(QLatin1Char(':') + pBez))
+                           ? rawBmk.left(rawBmk.length() - pBez.length() - 1) : rawBmk;
+        int     col     = baseBmk.lastIndexOf(QLatin1Char(':'));
+        QString leiste  = col >= 0 ? baseBmk.left(col) : baseBmk;
+        QString nr      = col >= 0 ? baseBmk.mid(col + 1) : QString();
+        QString kennung = leiste.isEmpty() ? pBez
+                          : (nr.isEmpty() ? leiste : leiste + QLatin1Char(':') + nr);
+        QString seiteLabel = (pSeite == seiteId)
+                              ? QStringLiteral("dieser Seite")
+                              : (QStringLiteral("Seite ") + q.value(1).toString()
+                                 + (q.value(2).toString().isEmpty()
+                                    ? QString() : QLatin1Char(' ') + q.value(2).toString()));
+        result << (kennung + QStringLiteral(" auf ") + seiteLabel);
+    }
+    return result;
+}
+
 static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                                      double C, double pxPerMm, const QSqlDatabase &db,
-                                     const QVector<PdfLeitungsSegment> *leitungsSegs)
+                                     const QVector<PdfLeitungsSegment> *leitungsSegs,
+                                     int seiteId)
 {
     double x1 = el.value("x1").toDouble() * C;
     double y1 = el.value("y1").toDouble() * C;
@@ -1990,9 +2046,28 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 }
             }
 
-            if (!kaAnz.isEmpty() || kaBmkVis) {
-                double anzFsDev = 1.5 * pxPerMm;
-                double bmkFsDev = 2.2 * pxPerMm;
+            // Gegenstelle(n) desselben Klemmenanschlusses (KLEMMENANSCHLUSS-
+            // PARTNER-01, Aug 2026): PDF-Pendant zum interaktiven Canvas-
+            // Tooltip/Highlight (KLEMME-HL-01) — im statischen PDF gibt es
+            // keinen Klick/Hover, daher wird die Info als zusätzliche,
+            // dezente Textzeile direkt am Symbol gerendert.
+            QString kaPartnerText;
+            {
+                QString kaEbene = (kaAnz == QLatin1String("PE") || !kaAnz.contains(QLatin1Char('.')))
+                                   ? kaAnz : kaAnz.section(QLatin1Char('.'), 0, 0);
+                int kaKlemmeId = kaed.value("klemmeId").toInt();
+                QStringList kaPartnerListe = pdfKlemmenAnschlussPartner(
+                    db, kaKlemmeId, kaEbene, seiteId,
+                    el.value("x1").toDouble(), el.value("y1").toDouble());
+                if (!kaPartnerListe.isEmpty())
+                    kaPartnerText = QStringLiteral("↔ ") + kaPartnerListe.join(QStringLiteral(", "));
+            }
+            bool kaPartVis = !kaPartnerText.isEmpty();
+
+            if (!kaAnz.isEmpty() || kaBmkVis || kaPartVis) {
+                double anzFsDev  = 1.5 * pxPerMm;
+                double bmkFsDev  = 2.2 * pxPerMm;
+                double partFsDev = 1.6 * pxPerMm;
 
                 double kaOx = kaed.value("bmkOffsetX", 0.0).toDouble() * C;
                 double kaOy = kaed.value("bmkOffsetY", 0.0).toDouble() * C;
@@ -2006,9 +2081,12 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 fAnz.setPixelSize(qMax(1, qRound(anzFsDev))); fAnz.setBold(true);
                 QFont fBmk; fBmk.setFamily(QStringLiteral("sans-serif"));
                 fBmk.setPixelSize(qMax(1, qRound(bmkFsDev))); fBmk.setBold(true);
+                QFont fPart; fPart.setFamily(QStringLiteral("sans-serif"));
+                fPart.setPixelSize(qMax(1, qRound(partFsDev))); fPart.setBold(false);
 
                 QColor colAnz(0x33, 0xbb, 0x66);
                 QColor colBmk(0x44, 0x88, 0xcc);
+                QColor colPart(0x7a, 0xaa, 0xcc);
                 double tw = 20.0 * pxPerMm;
 
                 p.save();
@@ -2021,9 +2099,11 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                                      : qMax(x1, x2) + gapDev + kaOy;
                     double kaCyO   = kaCy + kaOx;
 
-                    // Bezeichnung oben, BMK darunter, beide um Mittelpunkt zentriert
+                    // Bezeichnung oben, BMK darunter, Gegenstelle zuunterst,
+                    // alle drei um Mittelpunkt zentriert
                     double totalH = (!kaAnz.isEmpty() ? anzFsDev * 1.2 : 0.0)
-                                  + (kaBmkVis ? bmkFsDev * 1.2 : 0.0);
+                                  + (kaBmkVis ? bmkFsDev * 1.2 : 0.0)
+                                  + (kaPartVis ? partFsDev * 1.2 : 0.0);
                     double curY   = kaCyO - totalH / 2.0;
                     Qt::Alignment ha = pinRechts ? Qt::AlignRight : Qt::AlignLeft;
 
@@ -2039,6 +2119,13 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                         QRectF r = pinRechts ? QRectF(kaX - tw, curY, tw, bmkFsDev * 1.2)
                                              : QRectF(kaX, curY, tw, bmkFsDev * 1.2);
                         p.drawText(r, ha | Qt::AlignVCenter, kaBmk);
+                        curY += bmkFsDev * 1.2;
+                    }
+                    if (kaPartVis) {
+                        p.setFont(fPart); p.setPen(colPart);
+                        QRectF r = pinRechts ? QRectF(kaX - tw, curY, tw, partFsDev * 1.2)
+                                             : QRectF(kaX, curY, tw, partFsDev * 1.2);
+                        p.drawText(r, ha | Qt::AlignVCenter, kaPartnerText);
                     }
                 } else {
                     // 0°: Pin oben → Text unten | 180°: Pin unten → Text oben
@@ -2047,7 +2134,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                     double kaCxO  = kaCx + kaOx;
 
                     if (!pinUnten) {
-                        // Text wächst nach unten (anz näher am Symbol)
+                        // Text wächst nach unten (anz näher am Symbol, Gegenstelle zuunterst)
                         double curY = qMax(y1, y2) + gapDev + kaOy;
                         if (!kaAnz.isEmpty()) {
                             p.setFont(fAnz); p.setPen(colAnz);
@@ -2059,9 +2146,15 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                             p.setFont(fBmk); p.setPen(colBmk);
                             p.drawText(QRectF(kaCxO - tw/2, curY, tw, bmkFsDev * 1.2),
                                        Qt::AlignHCenter | Qt::AlignTop, kaBmk);
+                            curY += bmkFsDev * 1.2;
+                        }
+                        if (kaPartVis) {
+                            p.setFont(fPart); p.setPen(colPart);
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, kaPartnerText);
                         }
                     } else {
-                        // Text wächst nach oben (anz näher am Symbol)
+                        // Text wächst nach oben (anz näher am Symbol, Gegenstelle zuoberst)
                         double curY = qMin(y1, y2) - gapDev + kaOy;
                         if (!kaAnz.isEmpty()) {
                             curY -= anzFsDev * 1.2;
@@ -2074,6 +2167,12 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                             p.setFont(fBmk); p.setPen(colBmk);
                             p.drawText(QRectF(kaCxO - tw/2, curY, tw, bmkFsDev * 1.2),
                                        Qt::AlignHCenter | Qt::AlignTop, kaBmk);
+                        }
+                        if (kaPartVis) {
+                            curY -= partFsDev * 1.2;
+                            p.setFont(fPart); p.setPen(colPart);
+                            p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.2),
+                                       Qt::AlignHCenter | Qt::AlignTop, kaPartnerText);
                         }
                     }
                 }
@@ -2210,7 +2309,8 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
 // Einzelnes grafik_element rendern (Dispatcher, s. Typ-Handler oben)
 static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                                double C, double pxPerMm, const QSqlDatabase &db,
-                               const QVector<PdfLeitungsSegment> *leitungsSegs = nullptr)
+                               const QVector<PdfLeitungsSegment> *leitungsSegs = nullptr,
+                               int seiteId = -1)
 {
     QString typ = el.value("typ").toString();
     if (typ == "linie") pdfElementLinieRendern(p, el, C, pxPerMm, db, leitungsSegs);
@@ -2225,7 +2325,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     else if (typ == "strukturkasten") pdfElementStrukturkastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "makrokasten") pdfElementMakrokastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "schirm") pdfElementSchirmRendern(p, el, C, pxPerMm, db, leitungsSegs);
-    else if (typ == "symbol") pdfElementSymbolRendern(p, el, C, pxPerMm, db, leitungsSegs);
+    else if (typ == "symbol") pdfElementSymbolRendern(p, el, C, pxPerMm, db, leitungsSegs, seiteId);
 }
 
 // Aderbezeichnungen an Kabellinie-Schnittpunkten rendern
@@ -2904,7 +3004,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         QVariantList elemente = grafikLaden(seiteId);
         QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
         for (const QVariant &ev : elemente)
-            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs);
+            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId);
         pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
         pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
@@ -2968,7 +3068,7 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     QVariantList elemente = grafikLaden(seiteId);
     QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
     for (const QVariant &ev : elemente)
-        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs);
+        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId);
     pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
     pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
     painter.restore();

@@ -118,6 +118,11 @@
           "datei": "bedienhinweise/klemmen_editor.md"
         },
         {
+          "titel": "Klemmenanschlüsse – warum getrennt platziert?",
+          "tags": "klemme anschluss getrennt gegenstelle tooltip highlight pdf hilfslinie",
+          "datei": "bedienhinweise/klemmenanschluss_platzierung.md"
+        },
+        {
           "titel": "Kabel-Typ anlegen und bearbeiten",
           "tags": "kabel editor ader farbe querschnitt iec60757",
           "datei": "bedienhinweise/kabel_editor.md"

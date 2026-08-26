@@ -206,6 +206,9 @@ Item {
     property string axisLock:            ""     // "" | "x" | "y" — Shift+Drag-Constraint
     // Querverweis-Navigation: Index (elementIdx) → Blattnummer der Gegenseite
     property var  _querverweisPartnerMap: ({})
+    // Klemmenanschluss-Gegenstelle(n) für den Hover-Tooltip (KLEMMENANSCHLUSS-
+    // PARTNER-01): Index (elementIdx) → [{label, seiteId, x1, y1}, ...]
+    property var  _klemmeAnschlussPartnerMap: ({})
     // Kabellinien: kabelId → Gesamtzahl aller Linien dieses Kabels (seitenübergreifend)
     property var  _kabelLinienCache: ({})
     // HF-Referenz: betriebsmittelId → {hauptElementId, blattnummer, seiteId}
@@ -1056,6 +1059,8 @@ Item {
             root.revisionKennung   = root.normblattDaten ? (root.normblattDaten.revisionKennung || "") : ""
             // Querverweis-Partner-Cache aufbauen
             cacheHandler.querverweisPartnerCacheAktualisieren()
+            // Klemmenanschluss-Partner-Cache aufbauen (Hover-Tooltip)
+            cacheHandler.klemmeAnschlussPartnerCacheAktualisieren()
             // Kabellinien-Anzahl-Cache aufbauen
             root.kabelLinienCacheAktualisieren()
             // HF-Referenz-Map aufbauen

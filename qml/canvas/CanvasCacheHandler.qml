@@ -70,6 +70,64 @@ QtObject {
         cv._querverweisPartnerMap = map
     }
 
+    // Baut den Partner-Cache für den Klemmenanschluss-Hover-Tooltip
+    // (KLEMMENANSCHLUSS-PARTNER-01): elementIdx (aktuelle Seite) → Liste der
+    // anderen Platzierungen derselben Klemme+Ebene (elektrisch verbunden,
+    // KLEMME-NET-01-Gruppierung — Ebene = Anschlussbezeichnung-Präfix vor dem
+    // ".", z.B. "1" für "1.1"/"1.2", oder "PE"). Wird analog zum
+    // Querverweis-Partner-Cache beim Seitenwechsel aufgebaut.
+    function klemmeAnschlussPartnerCacheAktualisieren() {
+        if (cv.seiteId < 0 || cv.projektId < 0) { cv._klemmeAnschlussPartnerMap = {}; return }
+        var alle = db.klemmenAnschlussAlleSeiten(cv.projektId)
+        var ebeneVon = function(bez) {
+            return (bez === "PE" || bez.indexOf(".") < 0) ? bez : bez.split(".")[0]
+        }
+        var gruppen = {}
+        for (var i = 0; i < alle.length; i++) {
+            var p = alle[i]
+            var eb = ebeneVon(p.anschlussBezeichnung || "")
+            if (!eb) continue
+            var key = p.klemmeId + ":" + eb
+            if (!gruppen[key]) gruppen[key] = []
+            gruppen[key].push(p)
+        }
+        var map = {}
+        var els = cv.elementeModel.snapshot()
+        for (var ei = 0; ei < els.length; ei++) {
+            var el = els[ei]
+            if (el.typ !== "symbol" || el.symbolId !== "klemme_anschluss") continue
+            var ed = el.extraDaten || {}
+            var kId = ed.klemmeId
+            if (kId === undefined || kId === null) continue
+            var eEb = ebeneVon(ed.anschlussBezeichnung || "")
+            if (!eEb) continue
+            var grp = gruppen[kId + ":" + eEb] || []
+            var partner = []
+            for (var gi = 0; gi < grp.length; gi++) {
+                var p2 = grp[gi]
+                if (p2.seiteId === cv.seiteId && Math.abs(p2.x1 - el.x1) < 0.5
+                        && Math.abs(p2.y1 - el.y1) < 0.5) continue // sich selbst
+                var rawBmk = p2.bmk || ""
+                var bezP   = p2.anschlussBezeichnung || ""
+                var baseBmk = (bezP !== "" && rawBmk.endsWith(":" + bezP))
+                              ? rawBmk.slice(0, rawBmk.length - bezP.length - 1) : rawBmk
+                var colIdx = baseBmk.lastIndexOf(":")
+                var leiste = colIdx >= 0 ? baseBmk.slice(0, colIdx) : baseBmk
+                var nr     = colIdx >= 0 ? baseBmk.slice(colIdx + 1) : ""
+                var kennung = leiste ? (nr ? leiste + ":" + nr : leiste) : bezP
+                var seiteLabel = p2.seiteId === cv.seiteId
+                                  ? "dieser Seite"
+                                  : ("Seite " + p2.blattnummer + (p2.seitenBezeichnung ? " " + p2.seitenBezeichnung : ""))
+                partner.push({
+                    label:   kennung + " auf " + seiteLabel,
+                    seiteId: p2.seiteId, x1: p2.x1, y1: p2.y1
+                })
+            }
+            if (partner.length > 0) map[ei] = partner
+        }
+        cv._klemmeAnschlussPartnerMap = map
+    }
+
     function kabelLinienCacheAktualisieren() {
         var map = {}
         var _klEls = cv.elementeModel.snapshot()

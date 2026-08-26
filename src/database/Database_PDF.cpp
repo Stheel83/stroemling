@@ -1735,6 +1735,38 @@ static void pdfElementSchirmRendern(QPainter &p, const QVariantMap &el,
         }
 }
 
+// Sucht die Gegenstelle eines Querverweis-Symbols anhand des Signalnamens –
+// 1:1-Port von querverweisPartnerCacheAktualisieren() in
+// CanvasCacheHandler.qml (QUERVERWEIS-PDF-LABEL-01, Aug 2026): reine
+// Signalname-Gleichheit, KEIN Abgleich von suchmodus/Anlage/Ort (genau wie
+// im QML-Original), und nur die erste gefundene Übereinstimmung – nicht
+// alle. Eine .strl-Datei enthält immer genau ein Projekt, kein
+// projekt_id-Scope nötig (siehe pdfKlemmenAnschlussPartner unten).
+static QString pdfQuerverweisPartner(const QSqlDatabase &db, const QString &signalname,
+                                      int seiteId, double x1, double y1)
+{
+    if (signalname.isEmpty()) return QString();
+    QSqlQuery q(db);
+    q.prepare(R"(
+        SELECT ge.seite_id, s.blattnummer, COALESCE(s.bezeichnung, ''), ge.x1, ge.y1
+        FROM grafik_element ge
+        JOIN seite s ON s.id = ge.seite_id
+        WHERE ge.symbol_id = 'querverweis'
+          AND json_extract(ge.extra_daten,'$.signalname') = :sn
+    )");
+    q.bindValue(":sn", signalname);
+    if (!q.exec()) return QString();
+    while (q.next()) {
+        int    pSeite = q.value(0).toInt();
+        double px = q.value(3).toDouble(), py = q.value(4).toDouble();
+        if (pSeite == seiteId && qAbs(px - x1) < 0.5 && qAbs(py - y1) < 0.5) continue; // sich selbst
+        QString blatt = q.value(1).toString();
+        QString bez   = q.value(2).toString();
+        return blatt + (bez.isEmpty() ? QString() : QLatin1Char(' ') + bez);
+    }
+    return QString();
+}
+
 // Sucht Gegenstellen desselben Klemmenanschlusses (gleiche klemmeId + Ebene,
 // KLEMME-NET-01-Gruppierung) an anderen Positionen/Seiten des Projekts, damit
 // der PDF-Export dieselbe "Verbunden mit ..."-Information zeigen kann wie der
@@ -2174,6 +2206,78 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                             p.drawText(QRectF(kaCxO - tw/2, curY, tw, partFsDev * 1.2),
                                        Qt::AlignHCenter | Qt::AlignTop, kaPartnerText);
                         }
+                    }
+                }
+                p.restore();
+            }
+        }
+
+        // ── querverweis: Signalname + Gegenstelle ("→ Seite") ──
+        // Bisher im PDF komplett gefehlt (kNoLabel oben blendet die generische
+        // BMK-Beschriftung bewusst aus, da querverweis kein bmk- sondern ein
+        // signalname-Feld nutzt, aber nie ein eigener Ersatzblock nachgezogen
+        // wurde) – 1:1-Port der Text-Positionierung aus
+        // CanvasRenderHandler.qml (Abschnitt "querverweis"),
+        // QUERVERWEIS-PDF-LABEL-01 (Aug 2026).
+        if (sid == QStringLiteral("querverweis")) {
+            QVariantMap qed = el.value("extraDaten").toMap();
+            QString qSn = qed.value("signalname").toString();
+            QString qPartner = pdfQuerverweisPartner(db, qSn, seiteId,
+                                                       el.value("x1").toDouble(), el.value("y1").toDouble());
+
+            if (!qSn.isEmpty() || !qPartner.isEmpty()) {
+                double qFsDev  = 2.0 * pxPerMm;
+                double qFsSDev = 1.6 * pxPerMm;
+
+                int  qRot  = ((el.value("rotation").toInt() % 360) + 360) % 360;
+                bool qSenk = (qRot == 90 || qRot == 270);
+                double qCx = (x1 + x2) / 2.0;
+                double qCy = (y1 + y2) / 2.0;
+
+                QFont fSn; fSn.setFamily(QStringLiteral("sans-serif"));
+                fSn.setPixelSize(qMax(1, qRound(qFsDev))); fSn.setBold(true);
+                QFont fQp; fQp.setFamily(QStringLiteral("sans-serif"));
+                fQp.setPixelSize(qMax(1, qRound(qFsSDev))); fQp.setBold(false);
+
+                QColor colSn(0xc0, 0xd8, 0xf0);
+                QColor colQp(0x7a, 0xaa, 0xcc);
+                double qtw = 40.0 * pxPerMm;
+
+                p.save();
+                if (qSenk) {
+                    // 90°/270°: Text linksbündig vom Symbol, Signalname oben
+                    // + Gegenstelle darunter um Mittelpunkt zentriert
+                    double gapDev = 1.0 * pxPerMm;
+                    double qX     = qMin(x1, x2) - gapDev;
+                    if (!qSn.isEmpty()) {
+                        p.setFont(fSn); p.setPen(colSn);
+                        double h   = qFsDev * 1.2;
+                        double top = qPartner.isEmpty() ? (qCy - h / 2.0) : (qCy - h);
+                        p.drawText(QRectF(qX - qtw, top, qtw, h), Qt::AlignRight | Qt::AlignTop, qSn);
+                    }
+                    if (!qPartner.isEmpty()) {
+                        p.setFont(fQp); p.setPen(colQp);
+                        double h = qFsSDev * 1.2;
+                        p.drawText(QRectF(qX - qtw, qCy, qtw, h), Qt::AlignRight | Qt::AlignTop,
+                                   QStringLiteral("→ ") + qPartner);
+                    }
+                } else {
+                    // 0°/180°: Text über dem Symbol, Gegenstelle über dem Signalnamen
+                    double gapDev = 0.75 * pxPerMm;
+                    double qY     = qMin(y1, y2) - gapDev;
+                    if (!qSn.isEmpty()) {
+                        p.setFont(fSn); p.setPen(colSn);
+                        double h = qFsDev * 1.2;
+                        p.drawText(QRectF(qCx - qtw/2, qY - h, qtw, h),
+                                   Qt::AlignHCenter | Qt::AlignBottom, qSn);
+                    }
+                    if (!qPartner.isEmpty()) {
+                        p.setFont(fQp); p.setPen(colQp);
+                        double h      = qFsSDev * 1.2;
+                        double bottom = qY - qFsDev - 1.0;
+                        p.drawText(QRectF(qCx - qtw/2, bottom - h, qtw, h),
+                                   Qt::AlignHCenter | Qt::AlignBottom,
+                                   QStringLiteral("→ ") + qPartner);
                     }
                 }
                 p.restore();

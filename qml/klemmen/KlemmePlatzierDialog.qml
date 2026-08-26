@@ -38,116 +38,123 @@ Dialog {
         color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6
     }
 
-    contentItem: ColumnLayout {
-        spacing: 12
-
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
-
-        // Bauteil-Info
-        Text {
-            text: root.bauteilBezeichnung
-            color: theme.accent; font.pixelSize: 12
-            visible: root.bauteilBezeichnung !== ""
-        }
-
-        // Anschluss auswählen
-        Text { text: qsTr("Anschluss"); color: theme.textMuted; font.pixelSize: 11 }
-        ComboBox {
-            id: anschlussCombo
-            Layout.fillWidth: true
-            model: klemmeModel.anschluesse
-            textRole: "bezeichnung"
-
-            delegate: ItemDelegate {
-                width: anschlussCombo.width
-                contentItem: RowLayout {
-                    spacing: 8
-                    Text { text: modelData.bezeichnung; color: theme.textPrimary;   font.pixelSize: 12; Layout.preferredWidth: 60 }
-                    Text { text: qsTr("Seite %1").arg(modelData.seite);   color: theme.textMuted; font.pixelSize: 11 }
-                    Text { text: qsTr("Ebene %1").arg(modelData.ebene);   color: theme.textMuted; font.pixelSize: 11 }
-                }
-                background: Rectangle {
-                    color: parent.highlighted ? theme.activeItem : "transparent"
-                }
-            }
-            contentItem: Text {
-                text: anschlussCombo.currentIndex >= 0
-                      ? (klemmeModel.anschluesse[anschlussCombo.currentIndex]
-                         ? klemmeModel.anschluesse[anschlussCombo.currentIndex].bezeichnung
-                         : "")
-                      : ""
-                color: theme.textPrimary; font.pixelSize: 12
-                leftPadding: 8
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-        }
-
-        // Modus
-        Text { text: qsTr("Platziermodus"); color: theme.textMuted; font.pixelSize: 11 }
-        ButtonGroup { id: modusGruppe }
+    contentItem: Item {
+        implicitWidth:  innerLayout.implicitWidth
+        implicitHeight: innerLayout.implicitHeight
 
         ColumnLayout {
-            spacing: 4
-            RowLayout {
-                RadioButton {
-                    id: rbSkizze
-                    text: qsTr("Skizze (freie Platzierung)")
-                    checked: true
-                    ButtonGroup.group: modusGruppe
-                    contentItem: Text {
-                        text: parent.text; color: theme.textPrimary; font.pixelSize: 12
-                        leftPadding: parent.indicator.width + 6
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-            }
-            RowLayout {
-                RadioButton {
-                    id: rbVerknuepft
-                    text: qsTr("Verknüpft (aus Klemmenreihe)")
-                    enabled: false
-                    ButtonGroup.group: modusGruppe
-                    contentItem: Text {
-                        text: parent.text; color: theme.textSubtle; font.pixelSize: 12
-                        leftPadding: parent.indicator.width + 6
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-            }
+            id: innerLayout
+            anchors.fill: parent
+            spacing: 12
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border }
+
+            // Bauteil-Info
             Text {
-                text: qsTr("→ Platzierung über den Klemmenreihen-Editor")
-                color: theme.textSubtle; font.pixelSize: 10; leftPadding: 26
+                text: root.bauteilBezeichnung
+                color: theme.accent; font.pixelSize: 12
+                visible: root.bauteilBezeichnung !== ""
             }
-        }
 
-        Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
+            // Anschluss auswählen
+            Text { text: qsTr("Anschluss"); color: theme.textMuted; font.pixelSize: 11 }
+            ComboBox {
+                id: anschlussCombo
+                Layout.fillWidth: true
+                model: klemmeModel.anschluesse
+                textRole: "bezeichnung"
 
-        RowLayout {
-            Layout.fillWidth: true; spacing: 8
-            Item { Layout.fillWidth: true }
-            Button {
-                text: qsTr("Abbrechen"); flat: true; implicitHeight: 32
-                contentItem: Text { text: parent.text; color: theme.textMuted; font.pixelSize: 13;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
-                onClicked: root.reject()
-            }
-            Button {
-                text: qsTr("Platzieren"); implicitWidth: 100; implicitHeight: 32
-                enabled: anschlussCombo.currentIndex >= 0 && klemmeModel.anschluesse.length > 0
-                contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle {
-                    color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
-                    radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                delegate: ItemDelegate {
+                    width: anschlussCombo.width
+                    contentItem: RowLayout {
+                        spacing: 8
+                        Text { text: modelData.bezeichnung; color: theme.textPrimary;   font.pixelSize: 12; Layout.preferredWidth: 60 }
+                        Text { text: qsTr("Seite %1").arg(modelData.seite);   color: theme.textMuted; font.pixelSize: 11 }
+                        Text { text: qsTr("Ebene %1").arg(modelData.ebene);   color: theme.textMuted; font.pixelSize: 11 }
+                    }
+                    background: Rectangle {
+                        color: parent.highlighted ? theme.activeItem : "transparent"
+                    }
                 }
-                onClicked: {
-                    var list = klemmeModel.anschluesse
-                    if (anschlussCombo.currentIndex >= 0 && anschlussCombo.currentIndex < list.length)
-                        root.gewaehltAnschluss = list[anschlussCombo.currentIndex].bezeichnung
-                    root.gewaehltModus = rbSkizze.checked ? "skizze" : "verknuepft"
-                    root.accept()
+                contentItem: Text {
+                    text: anschlussCombo.currentIndex >= 0
+                          ? (klemmeModel.anschluesse[anschlussCombo.currentIndex]
+                             ? klemmeModel.anschluesse[anschlussCombo.currentIndex].bezeichnung
+                             : "")
+                          : ""
+                    color: theme.textPrimary; font.pixelSize: 12
+                    leftPadding: 8
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
+            }
+
+            // Modus
+            Text { text: qsTr("Platziermodus"); color: theme.textMuted; font.pixelSize: 11 }
+            ButtonGroup { id: modusGruppe }
+
+            ColumnLayout {
+                spacing: 4
+                RowLayout {
+                    RadioButton {
+                        id: rbSkizze
+                        text: qsTr("Skizze (freie Platzierung)")
+                        checked: true
+                        ButtonGroup.group: modusGruppe
+                        contentItem: Text {
+                            text: parent.text; color: theme.textPrimary; font.pixelSize: 12
+                            leftPadding: parent.indicator.width + 6
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+                RowLayout {
+                    RadioButton {
+                        id: rbVerknuepft
+                        text: qsTr("Verknüpft (aus Klemmenreihe)")
+                        enabled: false
+                        ButtonGroup.group: modusGruppe
+                        contentItem: Text {
+                            text: parent.text; color: theme.textSubtle; font.pixelSize: 12
+                            leftPadding: parent.indicator.width + 6
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+                Text {
+                    text: qsTr("→ Platzierung über den Klemmenreihen-Editor")
+                    color: theme.textSubtle; font.pixelSize: 10; leftPadding: 26
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: qsTr("Abbrechen"); flat: true; implicitHeight: 32
+                    contentItem: Text { text: parent.text; color: theme.textMuted; font.pixelSize: 13;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                    onClicked: root.reject()
+                }
+                Button {
+                    text: qsTr("Platzieren"); implicitWidth: 100; implicitHeight: 32
+                    enabled: anschlussCombo.currentIndex >= 0 && klemmeModel.anschluesse.length > 0
+                    contentItem: Text { text: parent.text; color: theme.textPrimary; font.pixelSize: 13;
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? theme.accent : theme.inputBg) : theme.inputBg
+                        radius: 4; border.color: parent.enabled ? theme.accent : theme.border
+                    }
+                    onClicked: {
+                        var list = klemmeModel.anschluesse
+                        if (anschlussCombo.currentIndex >= 0 && anschlussCombo.currentIndex < list.length)
+                            root.gewaehltAnschluss = list[anschlussCombo.currentIndex].bezeichnung
+                        root.gewaehltModus = rbSkizze.checked ? "skizze" : "verknuepft"
+                        root.accept()
+                    }
                 }
             }
         }

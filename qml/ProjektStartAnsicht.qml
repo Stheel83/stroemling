@@ -446,10 +446,9 @@ Item {
                             height: 1; color: root.theme.divider
                         }
 
-                        HoverHandler { id: itemHover }
-
                         MouseArea {
-                            anchors.fill: parent
+                            id: itemMa
+                            anchors.fill: parent; hoverEnabled: true
                             cursorShape: projektItem.fehlt ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                             onClicked: {
                                 if (projektItem.fehlt || projektItem.istOffen) return
@@ -459,7 +458,7 @@ Item {
 
                         // "In neuer Instanz öffnen" – nach itemMa, liegt darüber
                         Rectangle {
-                            visible: itemHover.hovered && !projektItem.fehlt
+                            visible: itemMa.containsMouse && !projektItem.fehlt
                             width: 24; height: 24; radius: 4
                             anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                             color: niMa.containsMouse ? root.theme.accent : root.theme.inputBg

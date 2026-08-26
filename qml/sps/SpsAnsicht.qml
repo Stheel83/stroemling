@@ -341,9 +341,7 @@ Item {
                                        ? Qt.rgba(root.theme.accent.r ?? 0.2,
                                                   root.theme.accent.g ?? 0.6,
                                                   root.theme.accent.b ?? 1.0, 0.15)
-                                       : (rackHover.containsMouse ? root.theme.hover : root.theme.surface)
-
-                                HoverHandler { id: rackHover }
+                                       : (rackMa.containsMouse ? root.theme.hover : root.theme.surface)
 
                                 ColumnLayout {
                                     anchors { left: parent.left; right: parent.right; leftMargin: 10; rightMargin: 4 }
@@ -368,7 +366,8 @@ Item {
                                 }
 
                                 MouseArea {
-                                    anchors.fill: parent
+                                    id: rackMa
+                                    anchors.fill: parent; hoverEnabled: true
                                     onClicked: root._waehleRack(rackDelegate.modelData)
                                     onDoubleClicked: rackDialog.oeffnenEdit(rackDelegate.modelData)
                                 }
@@ -378,7 +377,7 @@ Item {
                                     text: "✕"
                                     width: 22; height: 22
                                     font.pixelSize: 11
-                                    visible: rackHover.containsMouse
+                                    visible: rackMa.containsMouse
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Rack löschen (alle Baugruppen + Kanäle)")
                                     onClicked: {
@@ -474,15 +473,14 @@ Item {
                                 height: 40
                                 color: modelData.id === root._ausgewaehlterBaugruppeId
                                        ? Qt.rgba(0.2, 0.6, 1.0, 0.10)
-                                       : (bgHover.containsMouse ? root.theme.hover : (index % 2 ? root.theme.surface : root.theme.surfaceDeep))
-
-                                HoverHandler { id: bgHover }
+                                       : (bgMa.containsMouse ? root.theme.hover : (index % 2 ? root.theme.surface : root.theme.surfaceDeep))
 
                                 // Muss vor dem RowLayout stehen (SPS-KANAL-LOESCHEN-01):
                                 // eine MouseArea NACH den Buttons läge im Stapel obendrauf
                                 // und würde deren Klicks abfangen, bevor der Button sie sieht.
                                 MouseArea {
-                                    anchors.fill: parent
+                                    id: bgMa
+                                    anchors.fill: parent; hoverEnabled: true
                                     onClicked: root._ausgewaehlterBaugruppeId = bgDelegate.modelData.id
                                     onDoubleClicked: bgDialog.oeffnenEdit(bgDelegate.modelData)
                                 }
@@ -525,7 +523,7 @@ Item {
                                         text: "⚡"
                                         width: 22; height: 22
                                         font.pixelSize: 11
-                                        visible: bgHover.containsMouse
+                                        visible: bgMa.containsMouse
                                         ToolTip.visible: hovered
                                         ToolTip.text: qsTr("Kanäle automatisch anlegen")
                                         onClicked: {
@@ -543,7 +541,7 @@ Item {
                                         text: "✕"
                                         width: 22; height: 22
                                         font.pixelSize: 11
-                                        visible: bgHover.containsMouse
+                                        visible: bgMa.containsMouse
                                         ToolTip.visible: hovered
                                         ToolTip.text: qsTr("Baugruppe löschen")
                                         onClicked: {
@@ -672,15 +670,14 @@ Item {
                             height: 38
                             color: modelData.id === root._ausgewaehlterKanalId
                                    ? Qt.rgba(0.2, 0.6, 1.0, 0.12)
-                                   : (kanalHover.containsMouse ? root.theme.hover : (index % 2 ? root.theme.surface : root.theme.surfaceDeep))
-
-                            HoverHandler { id: kanalHover }
+                                   : (kanalMa.containsMouse ? root.theme.hover : (index % 2 ? root.theme.surface : root.theme.surfaceDeep))
 
                             // Muss vor dem RowLayout stehen (SPS-KANAL-LOESCHEN-01):
                             // eine MouseArea NACH den Buttons läge im Stapel obendrauf
                             // und würde deren Klicks abfangen, bevor der Button sie sieht.
                             MouseArea {
-                                anchors.fill: parent
+                                id: kanalMa
+                                anchors.fill: parent; hoverEnabled: true
                                 onClicked: root._ausgewaehlterKanalId = kanalDelegate.modelData.id
                                 onDoubleClicked: kanalDialog.oeffnenEdit(kanalDelegate.modelData)
                             }
@@ -754,7 +751,7 @@ Item {
                                     text: "✕"
                                     width: 22; height: 22
                                     font.pixelSize: 11
-                                    visible: kanalHover.containsMouse
+                                    visible: kanalMa.containsMouse
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Kanal löschen")
                                     onClicked: {

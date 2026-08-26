@@ -175,6 +175,7 @@ static void datenpfadNormalisieren()
     if (QFile::exists(altConf) && !QFile::exists(neuConf))
         QFile::copy(altConf, neuConf);
 }
+
 #endif // Q_OS_LINUX
 
 int main(int argc, char *argv[])
@@ -208,6 +209,17 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName("Stroemling_Design");
     app.setApplicationDisplayName("Strömling Design");
+    // Nur organizationDomain setzen, NICHT organizationName: Qt.labs.settings
+    // (QML Settings{}) verlangt eines von beidem, sonst schlägt die
+    // Initialisierung fehl (AccessError, SETTINGS-ORG-01) und Theme/
+    // Fun-Modus/Panel-Breiten werden nie persistiert. organizationName
+    // würde zusätzlich QStandardPaths::AppLocalDataLocation verändern
+    // (Unterordner Stroemling_Design/Stroemling_Design/ statt der
+    // etablierten flachen ~/.local/share/Stroemling_Design/) und damit
+    // Projekt-DB/Wiki/Makros/Bibliothek für Bestandsnutzer verwaisen
+    // lassen — organizationDomain wirkt sich unter Linux auf keinen der
+    // beiden Pfade aus (nur relevant für QSettings/QStandardPaths auf macOS).
+    app.setOrganizationDomain("stheelke.de");
     app.setWindowIcon(QIcon(":/assets/stroemling_icon.png"));
 
     // Gespeicherte Sprache laden (gesetzt vom QML-Sprachpicker)

@@ -339,10 +339,10 @@ Item {
                                     Text {
                                         text: qsTr("Anderes…")
                                         font.pixelSize: 10; color: root.theme.accent
-                                        font.underline: andHover.containsMouse
-                                        HoverHandler { id: andHover }
+                                        font.underline: andMa.containsMouse
                                         MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            id: andMa
+                                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                             onClicked: svPicker.oeffnen(gkd.id)
                                         }
                                     }
@@ -419,10 +419,10 @@ Item {
                                     Text {
                                         text: partnerRow.partnerObj !== null ? qsTr("Ändern") : qsTr("Partner verknüpfen")
                                         font.pixelSize: 10; color: root.theme.accent
-                                        font.underline: partnerLinkHover.containsMouse
-                                        HoverHandler { id: partnerLinkHover }
+                                        font.underline: partnerLinkMa.containsMouse
                                         MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            id: partnerLinkMa
+                                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                             onClicked: partnerPicker.oeffnen(gkd.id)
                                         }
                                     }

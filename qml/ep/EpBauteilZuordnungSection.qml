@@ -122,15 +122,15 @@ Item {
 
                 Rectangle {
                     width: 20; height: 20; radius: 3
-                    color: bzEntfHover.containsMouse ? "#2a1515" : "transparent"
-                    border.color: bzEntfHover.containsMouse ? "#cc4444" : "transparent"
-                    HoverHandler { id: bzEntfHover }
+                    color: bzEntfMa.containsMouse ? "#2a1515" : "transparent"
+                    border.color: bzEntfMa.containsMouse ? "#cc4444" : "transparent"
                     Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; color: "#cc4444" }
                     MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        id: bzEntfMa
+                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: root.extraEntfernen("bauteil_id")
                     }
-                    ToolTip.visible: bzEntfHover.containsMouse
+                    ToolTip.visible: bzEntfMa.containsMouse
                     ToolTip.text: qsTr("Verknüpfung entfernen")
                     ToolTip.delay: 500
                 }

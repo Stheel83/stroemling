@@ -111,6 +111,18 @@ verbunden mit geeigneter Bimetall-Pressklemme oder Quetschverbinder.
 
 ---
 
+## Ersatzquerschnitt berechnen
+
+Willst du bei Punkt 4 der Checkliste einen Alu-Bestand auf Kupfer
+umrüsten und brauchst den passenden Ersatzquerschnitt: der eingebaute
+**Kabelrechner** (Sidebar „⚡ Kabelrechner") hat einen Material-Toggle
+**Cu/Al** und rechnet mit den unterschiedlichen Leitfähigkeiten
+(γ Cu ≈ 56, γ Al ≈ 36 m/Ω·mm²) — direkt vergleichbar, welcher Kupfer-
+Querschnitt denselben Spannungsfall/dieselbe Belastbarkeit wie der
+vorhandene Alu-Leiter liefert.
+
+---
+
 ## Quellen
 
 - Elektrodenpotenziale (Aluminium −1,66 V, Kupfer +0,34 V) aus der

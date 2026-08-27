@@ -79,6 +79,24 @@ nach VDE 0298-4 des tatsächlich verbauten Querschnitts in mm², siehe
 
 ---
 
+## Vorsicht bei Litze: Formel gilt nur für massiven Runddraht
+
+Die Formel und die Spalte „Durchmesser" oben gelten laut ASTM B258
+ausdrücklich für **massiven, eindrähtigen Runddraht** (solid round wire).
+Praktisch alle in der Tabelle genannten Anwendungsfälle (Arduino-
+Jumperkabel, USB-Leitung, Servo-/Steuerleitung) sind aber **Litzen**
+(mehrdrähtig, flexibel) — deren Außendurchmesser der Kupferadern ist wegen
+der Luft zwischen den Einzeldrähten **größer** als der rechnerische
+Volldraht-Durchmesser gleicher AWG-Zahl, bei gleichbleibender **Fläche**
+(und damit gleichbleibendem mm²-Normquerschnitt). Für die Umrechnung
+AWG → mm² (das eigentliche Ziel dieser Tabelle) ändert sich dadurch
+nichts — nur wer aus der Durchmesser-Spalte auf die passende
+Aderendhülsen- oder Steckverbinder-Bohrung schließen will, sollte den
+tatsächlichen Litzendurchmesser nachmessen statt der Tabelle blind zu
+vertrauen.
+
+---
+
 ## Rechenbeispiel
 
 **Aufgabe:** Ein US-Datenblatt gibt für ein Steckernetzteil-Kabel „18 AWG" an.

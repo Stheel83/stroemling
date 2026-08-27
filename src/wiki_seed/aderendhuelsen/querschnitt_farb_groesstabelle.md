@@ -93,6 +93,20 @@ Farbgebung identisch mit Einzel-Hülsen, Bezeichnung z. B. „2×1,5 schwarz".
 
 ---
 
+## Bezug zum Klemmen-Bauteil-Editor in Strömling
+
+Beim Anlegen eines Klemmentyps in der Bauteilbibliothek lässt sich je
+Anschlussart (**Starr**, **Flexibel**, **AEH blank**, **AEH isoliert**) ein
+zulässiger Querschnittsbereich (min/max mm²) hinterlegen — genau die
+Unterscheidung „blank vs. Kragen", die oben unter „Häufige Fehler" als
+Fallstrick genannt ist (Kragen kann in manchen Schraubklemmen der Klasse 1
+den Durchgang versperren). Das ist reine Dokumentation der Klemmen-
+Spezifikation, keine aktive Prüfung gegen tatsächlich verwendete Adern —
+die Farbtabelle oben bleibt die Referenz beim Griff zur passenden Hülse
+vor Ort.
+
+---
+
 ## Quellen
 
 - DIN 46228-4 – Aderendhülsen für Leiter aus Kupfer, Teil 4: Isolierte

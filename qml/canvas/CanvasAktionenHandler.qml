@@ -675,6 +675,7 @@ QtObject {
         var s = (slot === undefined) ? 0 : slot
         if (s === 0) {
             cv.zwischenablage = inhalt
+            cv.zwischenablageAusgeschnitten = false // KLEMME-AUSSCHNEIDEN-01: normales Kopieren, Original bleibt bestehen
             // COPY-CROSS-01: Slot 0 zusätzlich auf die System-Zwischenablage
             // spiegeln, damit eine ANDERE Prozessinstanz (anderes Projekt)
             // einfügen kann. Slots 1-4 bleiben bewusst rein lokal/in-memory.
@@ -686,6 +687,9 @@ QtObject {
             var neu = cv.zwischenablagen.slice()
             neu[s] = inhalt
             cv.zwischenablagen = neu
+            var neuA = cv.zwischenablagenAusgeschnitten.slice()
+            neuA[s] = false
+            cv.zwischenablagenAusgeschnitten = neuA
         }
     }
 
@@ -699,6 +703,12 @@ QtObject {
         if (!quelle || quelle.length === 0 || cv.seiteId < 0) return
         cv.duplizierVorlage   = quelle
         cv.duplizierMitDialog = false
+        // KLEMME-AUSSCHNEIDEN-01: kam dieser Slot-Inhalt aus Ausschneiden (nicht
+        // Kopieren), darf ein verknüpfter Klemmenanschluss beim Platzieren seine
+        // reale Verknüpfung behalten (echtes Verschieben, Original existiert
+        // nicht mehr) statt zum Geist zu werden – s. _duplizierAnzahlPlatzieren().
+        cv._duplizierAusSchnitt  = (s === 0) ? cv.zwischenablageAusgeschnitten : cv.zwischenablagenAusgeschnitten[s]
+        cv._duplizierSchnittSlot = s
         cv.aktivesWerkzeug    = "duplizieren"
         _duplizierVorschauAktualisieren(cv.letzteMausWeltX, cv.letzteMausWeltY)
     }
@@ -723,6 +733,11 @@ QtObject {
             : payload.elemente
         cv.duplizierVorlage            = quelle
         cv.duplizierMitDialog          = false
+        // KLEMME-AUSSCHNEIDEN-01: Cross-Prozess-Einfügen ist nie ein Ausschneiden
+        // (die Quellinstanz weiß davon nichts) – verknüpfte Klemmenanschlüsse
+        // müssen hier immer zum Geist entkoppelt werden.
+        cv._duplizierAusSchnitt        = false
+        cv._duplizierSchnittSlot       = -1
         cv._nachEinfuegenMakroAnbieten = fremdesProjekt
         cv.aktivesWerkzeug             = "duplizieren"
         _duplizierVorschauAktualisieren(cv.letzteMausWeltX, cv.letzteMausWeltY)
@@ -730,6 +745,10 @@ QtObject {
 
     function duplizieren() {
         if (cv.auswahl.length === 0 || cv.seiteId < 0) return
+        // KLEMME-AUSSCHNEIDEN-01: Duplizieren einer bestehenden Auswahl lässt
+        // das Original stehen – nie als Ausschneiden-Platzierung behandeln.
+        cv._duplizierAusSchnitt  = false
+        cv._duplizierSchnittSlot = -1
         cv.duplizierVorlage = cv.auswahl.map(function(i) {
             var el   = cv.elementeModel.element(i)
             var copy = Object.assign({}, el)
@@ -741,9 +760,22 @@ QtObject {
         _duplizierVorschauAktualisieren(cv.letzteMausWeltX, cv.letzteMausWeltY)
     }
 
-    function ausschneiden() {
+    function ausschneiden(slot) {
         if (cv.auswahl.length === 0) return
-        kopieren()
+        var s = (slot === undefined) ? 0 : slot
+        kopieren(s)
+        // KLEMME-AUSSCHNEIDEN-01: erst NACH kopieren() setzen, da kopieren()
+        // das Flag für einen normalen Kopiervorgang auf false zurücksetzt.
+        // Original wird direkt im Anschluss gelöscht – ein verknüpfter
+        // Klemmenanschluss darf beim Einfügen daher seine reale Verknüpfung
+        // behalten (Original existiert nicht mehr, keine Kollisionsgefahr).
+        if (s === 0) {
+            cv.zwischenablageAusgeschnitten = true
+        } else {
+            var neuA = cv.zwischenablagenAusgeschnitten.slice()
+            neuA[s] = true
+            cv.zwischenablagenAusgeschnitten = neuA
+        }
         loeschen()
     }
 
@@ -815,6 +847,17 @@ QtObject {
         var elsRoh = cv.duplizierVorlage
         if (!elsRoh || n < 1) { abbruch(); return }
 
+        // KLEMME-AUSSCHNEIDEN-01: kam die Vorlage aus Ausschneiden (nicht
+        // Kopieren/Duplizieren), existiert das Original nicht mehr – ein
+        // verknüpfter Klemmenanschluss darf dann seine reale Verknüpfung
+        // behalten (echtes Verschieben, ggf. seitenübergreifend), statt zum
+        // Geist entkoppelt zu werden. Zusätzliche Absicherung gegen
+        // Zwischenzeit-Kollisionen (z.B. dieselbe Klemme wurde nach dem
+        // Ausschneiden, aber vor dem Einfügen anderweitig real platziert):
+        // db.klemmeAnschlussIstPlatziert() prüft den aktuellen DB-Stand pro
+        // Element frisch, nicht nur einmal pauschal fürs ganze Slot-Flag.
+        var ausSchnitt = cv._duplizierAusSchnitt === true
+
         // KLEMME-DUP-01: verknüpfte Klemmenanschlüsse (Modus A) sind reale
         // Bauteil-Anschlüsse und lassen sich nicht als Zweitexemplar verknüpfen
         // – jede Kopie trüge denselben klemmeId+anschlussBezeichnung wie das
@@ -827,8 +870,11 @@ QtObject {
         var anzahlGeister = 0
         for (var b = 0; b < elsRoh.length; b++) {
             var elQ = elsRoh[b]
-            if (elQ.typ === "symbol" && elQ.symbolId === "klemme_anschluss"
-                && elQ.extraDaten && elQ.extraDaten.platziermodus === "verknuepft") {
+            var istVerknuepfterKlemmenanschluss = elQ.typ === "symbol" && elQ.symbolId === "klemme_anschluss"
+                && elQ.extraDaten && elQ.extraDaten.platziermodus === "verknuepft"
+            var behaeltEchteVerknuepfung = istVerknuepfterKlemmenanschluss && ausSchnitt
+                && !db.klemmeAnschlussIstPlatziert(elQ.extraDaten.klemmeId, elQ.extraDaten.anschlussBezeichnung)
+            if (istVerknuepfterKlemmenanschluss && !behaeltEchteVerknuepfung) {
                 var edGeist = Object.assign({}, elQ.extraDaten)
                 delete edGeist.klemmeId
                 delete edGeist.bauteilKlemmeId
@@ -854,6 +900,24 @@ QtObject {
             )
         }
         if (els.length === 0) { abbruch(); return }
+
+        // KLEMME-AUSSCHNEIDEN-01: Schnitt-Flag ist nach diesem einen
+        // Einfügevorgang verbraucht – ein weiteres Ctrl+V desselben Slots
+        // (Original ist ja jetzt hier platziert) muss wieder normal zum
+        // Geist entkoppeln, sonst entstünde beim zweiten Einfügen doch ein
+        // echtes Duplikat.
+        if (ausSchnitt) {
+            cv._duplizierAusSchnitt = false
+            var schnittSlot = cv._duplizierSchnittSlot
+            if (schnittSlot === 0) {
+                cv.zwischenablageAusgeschnitten = false
+            } else if (schnittSlot > 0) {
+                var neuA2 = cv.zwischenablagenAusgeschnitten.slice()
+                neuA2[schnittSlot] = false
+                cv.zwischenablagenAusgeschnitten = neuA2
+            }
+            cv._duplizierSchnittSlot = -1
+        }
 
         var neueEl = []
         for (var c = 1; c <= n; c++) {

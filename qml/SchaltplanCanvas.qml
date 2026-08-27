@@ -225,6 +225,15 @@ Item {
     // Zwischenablage (Slot 0 = Ctrl+C/V, Slots 1-4 = Ctrl+Shift+1-4 / Ctrl+1-4)
     property var  zwischenablage:      []
     property var  zwischenablagen:     [[], [], [], [], []]
+    // KLEMME-AUSSCHNEIDEN-01: markiert je Slot, ob der Inhalt per Ausschneiden
+    // (nicht Kopieren) befüllt wurde – s. _duplizierAnzahlPlatzieren() für die
+    // Auswirkung auf verknüpfte Klemmenanschlüsse.
+    property bool zwischenablageAusgeschnitten:  false
+    property var  zwischenablagenAusgeschnitten: [false, false, false, false, false]
+    // Für den aktuell laufenden Einfügevorgang: wird in einfuegen() gesetzt,
+    // in _duplizierAnzahlPlatzieren() ausgewertet und danach zurückgesetzt.
+    property bool _duplizierAusSchnitt:    false
+    property int  _duplizierSchnittSlot:   -1
 
     // Verbindungsauswahl: angeklickte Auto-Verbindung (null = keine)
     // { netKey, verbindungId, bezeichnung, signaltyp, segmente, adps, x1,y1,x2,y2 }
@@ -909,7 +918,7 @@ Item {
     function kopieren(slot)                          { aktionenHandler.kopieren(slot) }
     function einfuegen(slot)                         { aktionenHandler.einfuegen(slot) }
     function duplizieren()                           { aktionenHandler.duplizieren() }
-    function ausschneiden()                          { aktionenHandler.ausschneiden() }
+    function ausschneiden(slot)                       { aktionenHandler.ausschneiden(slot) }
     function crossProjektMakroErstellen()            { aktionenHandler.crossProjektMakroErstellen() }
     function auswahlFuerElement(idx)                 { return aktionenHandler.auswahlFuerElement(idx) }
     function gruppeErstellen()                       { aktionenHandler.gruppeErstellen() }

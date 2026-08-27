@@ -2159,7 +2159,7 @@ ApplicationWindow {
     // Auswahl / Bearbeiten
     Shortcut { sequence: "Ctrl+A"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.alleAuswaehlen() } }
     Shortcut { sequence: "Ctrl+C"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.kopieren(0) } }
-    Shortcut { sequence: "Ctrl+X"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv){c.kopieren(0);c.loeschen()} } }
+    Shortcut { sequence: "Ctrl+X"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.ausschneiden(0) } }
     Shortcut { sequence: "Ctrl+V"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.einfuegen(0) } }
     Shortcut { sequence: "Ctrl+D";       onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.duplizieren() } }
     Shortcut { sequence: "Ctrl+G";       onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.gruppeErstellen() } }

@@ -93,6 +93,24 @@ Praxis".
 
 ---
 
+## 5. So markierst du das in Strömling
+
+`fe` ist ein eigener, wählbarer Signaltyp — kein Sonderfall, den du dir
+behelfsweise über PE oder einen Freitext zusammenbauen musst:
+
+- **Geräteanschluss** (im Gerätekasten): Anschluss auswählen → EP-Abschnitt
+  „ANSCHLUSSTECHNIK" → Feld „Signaltyp" → Button **FE** anklicken
+- **Potenzial-Symbol** (freistehender Signalname): genauso ein eigener
+  „FE"-Button im EP
+- Farbe im Canvas/PDF: `#4caf7d` (helles Grün, deutlich von PE-Grün-Gelb
+  und vom „normalen" Grün unterscheidbar) — eine Verbindung übernimmt die
+  Farbe automatisch von ihren Endpunkten, kein manuelles Einstellen nötig
+- Der DRC prüft **nicht**, ob FE fälschlich als PE-Ersatz verwendet wurde
+  (keine Norm-Konformitätsprüfung dieser Art vorgesehen) — die
+  Praxis-Warnung aus §3 bleibt Sache der eigenen Planung
+
+---
+
 ## Quellen
 
 - DIN VDE 0100-540 (VDE 0100-540):2024-06 — Erdungsanlagen und Schutzleiter

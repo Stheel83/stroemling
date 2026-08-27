@@ -97,6 +97,20 @@ Einbaubohrung und Material → Artikel „Maßtabellen M und PG".
 
 ---
 
+## Welchen Querschnitt brauche ich überhaupt?
+
+Diese Übersicht beantwortet „welcher Außendurchmesser passt zu welcher
+Verschraubung" — nicht „welcher Querschnitt reicht für meine Last".
+Dafür bringt Strömling einen eigenen **Kabelrechner** mit (Sidebar-Eintrag
+„⚡ Kabelrechner", projektunabhängig nutzbar): Schnellberechnung nach
+Daumenregel oder Genauberechnung nach Spannungsfall/Thermik/
+Abschaltbedingung, inkl. Vergleich Kupfer/Aluminium. Den Kabeltyp selbst
+trägst du beim Anlegen eines Kabels als Freitext ins Feld „Kabeltyp" ein
+(z. B. „NYM-J") — kein vordefinierter Katalog mit Durchmesser-Bezug, die
+Werte oben bleiben zum Nachschlagen von Hand.
+
+---
+
 ## Quellen
 
 - Kabelvertrieb Hesselmann GmbH: [Mantelleitungen NYM-J/-O nach VDE 0250-204](https://www.hesselmann.de/data-download/produktinfo/he-nym.pdf)

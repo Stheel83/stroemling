@@ -121,6 +121,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/projekt/32_mitwirkende.md` | Mitwirkende, Danksagungen, Entstehungsgeschichte | ✅ |
 | `konzept/projekt/34_stromlinge.md` | Strömlinge-Charakter-System: 13+ Figuren, Verwendung in App | 🔄 STR-09 Bilder offen |
 | `konzept/projekt/49_vermarktung_lizenzierung.md` | Vermarktung: Duallizenzierung, Auftragsarbeit (Makros/Symbole) — einfaches Nutzungsrecht als Standard, exklusiv nur bei kundenspezifischen Vorlagen, Code/Website/Programm-Anpassungen, Arbeitgeber-Klärung, Gewerbe/Freiberufler-Anmeldung, Zeitrahmen | 📋 Konzept |
+| `konzept/projekt/release_checkliste.md` | Release-Checkliste (GitHub-Actions-Workflow ab v0.667): Doppel-Push origin+github, GLIBC-Vorbehalt AppImage, manuelle Tests, Codeberg/GitHub-Release, Website-Deploy | ✅ |
 
 ---
 

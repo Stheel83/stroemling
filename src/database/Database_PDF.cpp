@@ -8,6 +8,7 @@
 #include <QImage>
 #include <QSet>
 #include <QHash>
+#include <QPair>
 #include <QUrl>
 #include <QDateTime>
 #include <QJsonDocument>
@@ -927,6 +928,31 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         }
     }
 
+    // KABEL-ADERFARBE-01: Fallback-Aderfarbe aus der Kabel-Aderzuordnung
+    // (kabel_ader.farbe/.farbe2) für Verbindungen ohne eigenen
+    // Aderdefinitionspunkt – verbindungId → {farbe, farbe2}. Ein
+    // verbindung_id-Wert ist projektweit eindeutig (eine .strl-Datei = ein
+    // Projekt), daher genügt eine ungefilterte Abfrage ohne Seiten-/
+    // Projekt-Join – nur verbindungIds, die tatsächlich auf dieser Seite
+    // vorkommen (raw[].verbId unten), werden je nachgeschlagen.
+    QHash<int, QPair<QString, QString>> kabelFarben;
+    {
+        QSqlQuery kq(db);
+        kq.prepare(R"(
+            SELECT verbindung_id, farbe, farbe2
+            FROM kabel_ader
+            WHERE verbindung_id IS NOT NULL AND verbindung_id > 0
+              AND farbe IS NOT NULL AND farbe != ''
+        )");
+        if (kq.exec()) {
+            while (kq.next()) {
+                int vid = kq.value(0).toInt();
+                if (!kabelFarben.contains(vid))
+                    kabelFarben[vid] = { kq.value(1).toString(), kq.value(2).toString() };
+            }
+        }
+    }
+
     // Rohe Leitungssegmente (noch ohne Farbe) – Farbauflösung erfolgt erst
     // nach der Winkel-/Querverweis-Propagation weiter unten.
     struct RawSeg { double x1, y1, x2, y2; int verbId; QString signaltyp; };
@@ -1031,6 +1057,14 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         if (raw[i].signaltyp != QLatin1String("konflikt")) {
             if (direktFarbe[i].isValid())              clr = direktFarbe[i];
             else if (gruppenFarbe.contains(find(i)))    clr = gruppenFarbe[find(i)];
+            else if (kabelFarben.contains(raw[i].verbId)) {
+                // KABEL-ADERFARBE-01: kein Aderdefinitionspunkt getroffen –
+                // Fallback auf die Kabel-Aderfarbe derselben Verbindung.
+                const auto &kf = kabelFarben[raw[i].verbId];
+                clr = pdfAderFarbeZuCanvas(kf.first);
+                if (!kf.second.isEmpty())
+                    clr2 = pdfAderFarbeZuCanvas(kf.second);
+            }
             if (direktFarbe2[i].isValid())              clr2 = direktFarbe2[i];
             else if (gruppenFarbe2.contains(find(i)))    clr2 = gruppenFarbe2[find(i)];
         }

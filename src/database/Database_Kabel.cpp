@@ -443,6 +443,40 @@ QVariantList Database::kabelAderListeMitVerbindung(int projektId)
 }
 
 // ============================================================
+// kabelAderFarben
+// Gibt für jede Kabel-Ader mit zugeordneter Verbindung und gesetzter Farbe
+// {verbindungId, farbe, farbe2} zurück – Fallback-Farbquelle für Verbindungen
+// ohne eigenen Aderdefinitionspunkt (s. CanvasRenderHandler.qml
+// _segmentFarbeUndBreite(), Priorität: Aderdefinition > Kabel-Aderfarbe >
+// Signaltyp-Farbe).
+// ============================================================
+QVariantList Database::kabelAderFarben(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT ka.verbindung_id, ka.farbe, ka.farbe2
+        FROM kabel_ader ka
+        JOIN kabel k ON k.id = ka.kabel_id AND k.projekt_id = :pid
+        WHERE ka.verbindung_id IS NOT NULL AND ka.verbindung_id > 0
+          AND ka.farbe IS NOT NULL AND ka.farbe != ''
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "kabelAderFarben:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap a;
+        a[QStringLiteral("verbindungId")] = q.value(0).toInt();
+        a[QStringLiteral("farbe")]        = q.value(1).toString();
+        a[QStringLiteral("farbe2")]       = q.value(2).toString();
+        result.append(a);
+    }
+    return result;
+}
+
+// ============================================================
 // kabelAderEndpunkteBerechnenUndSpeichern
 // Berechnet von_gerat_pin / nach_gerat_pin für alle kabel_adern des Projekts
 // rein aus der DB (ohne Canvas). Nutzt verbindung_segment-Endpunkte und

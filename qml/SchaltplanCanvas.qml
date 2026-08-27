@@ -242,6 +242,7 @@ Item {
     // Repaint neu berechnet, auch beim reinen Schwenken/Zoomen ohne Modelländerung.
     property var _cachedKreuzungsLuecken: null   // {segKey → [x, …]}
     property var _cachedAdpList:          null   // [{cx, cy, ed}, …]
+    property var _cachedKabelAderFarben:  null   // verbindungId → {farbe, farbe2} (Fallback ohne Aderdefinitionspunkt)
     property var _cachedRoutingFarben:    null   // berechneRoutingSymbolFarben()-Ergebnis
 
     // --------------------------------------------------------
@@ -497,6 +498,7 @@ Item {
                     root._cachedKabelSchnitte = {}
                     root._cachedKreuzungsLuecken = null
                     root._cachedAdpList          = null
+                    root._cachedKabelAderFarben  = null
                     root._cachedRoutingFarben     = null
                 }
                 drawCanvas.requestPaint()
@@ -978,6 +980,7 @@ Item {
         root._cachedKabelSchnitte    = {}
         root._cachedKreuzungsLuecken = null
         root._cachedAdpList          = null
+        root._cachedKabelAderFarben  = null
         root._cachedRoutingFarben    = null
         drawCanvas.requestPaint()
     }

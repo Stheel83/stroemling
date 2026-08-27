@@ -1140,6 +1140,25 @@ QtObject {
         return adpList
     }
 
+    // KABEL-ADERFARBE-01: Fallback-Aderfarbe aus der Kabel-Aderzuordnung
+    // (kabel_ader.farbe/.farbe2), für Verbindungen ohne eigenen
+    // Aderdefinitionspunkt — verbindungId → {farbe, farbe2}. Gecacht analog
+    // zu _sammleAderdefinitionspunkte(), gleiche Invalidierung.
+    function _sammleKabelAderFarben() {
+        if (cv._cachedKabelAderFarben !== null) return cv._cachedKabelAderFarben
+        var map = {}
+        if (cv.projektId >= 0) {
+            var liste = db.kabelAderFarben(cv.projektId)
+            for (var i = 0; i < liste.length; i++) {
+                var row = liste[i]
+                if (map[row.verbindungId] === undefined)
+                    map[row.verbindungId] = { farbe: row.farbe, farbe2: row.farbe2 }
+            }
+        }
+        cv._cachedKabelAderFarben = map
+        return map
+    }
+
     // Linienbreite aus Aderanzahl + Signaltyp-Zuschlägen (Konflikt/unversorgt).
     // Gemeinsam genutzt von _segmentFarbeUndBreite() und der Treffpunkt-
     // Ziel-Bänderung (dort ersetzt "Aderanzahl" die Anzahl verschmolzener Arme).
@@ -1178,6 +1197,11 @@ QtObject {
     // Signaltyp-Farbe – außer im Fehlersuchmodus, wo per Toggle
     // (fehlersuchZeigeAderfarbe) auf reine Kategorie-/Signaltyp-Ansicht
     // umgeschaltet werden kann (Default dort: Signaltyp).
+    //
+    // KABEL-ADERFARBE-01: Hat die Verbindung keinen eigenen
+    // Aderdefinitionspunkt, aber eine zugeordnete Kabel-Ader mit Farbe
+    // (kabel_ader.farbe/.farbe2), wird diese als Fallback verwendet –
+    // Priorität: Aderdefinition > Kabel-Aderfarbe > Signaltyp-Farbe.
     function _segmentFarbeUndBreite(net, sAdps) {
         var farbe = cv.geometrie.signaltypFarbe(net.signaltyp)
         var farbe2 = ""
@@ -1186,6 +1210,13 @@ QtObject {
             farbe = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
             if (sAdps[0].ed.aderfarbe2)
                 farbe2 = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe2)
+        } else if (zeigeAderfarbe && net.signaltyp !== "konflikt" && net.verbindungId > 0) {
+            var kaf = _sammleKabelAderFarben()[net.verbindungId]
+            if (kaf && kaf.farbe) {
+                farbe = cv.geometrie.aderFarbeZuCanvas(kaf.farbe)
+                if (kaf.farbe2)
+                    farbe2 = cv.geometrie.aderFarbeZuCanvas(kaf.farbe2)
+            }
         }
 
         var anz = Math.max(1, sAdps.length)

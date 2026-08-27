@@ -1140,19 +1140,59 @@ QtObject {
         return adpList
     }
 
-    // KABEL-ADERFARBE-01: Fallback-Aderfarbe aus der Kabel-Aderzuordnung
-    // (kabel_ader.farbe/.farbe2), für Verbindungen ohne eigenen
-    // Aderdefinitionspunkt — verbindungId → {farbe, farbe2}. Gecacht analog
-    // zu _sammleAderdefinitionspunkte(), gleiche Invalidierung.
+    // KABEL-ADERFARBE-01: Fallback-Aderfarbe aus der Kabel-Aderzuordnung für
+    // Verbindungen ohne eigenen Aderdefinitionspunkt — netKey/legacyNetKey →
+    // {farbe, farbe2}. Gecacht analog zu _sammleAderdefinitionspunkte(),
+    // gleiche Invalidierung.
+    //
+    // Aktualitätsprüfung während der Implementierung: Kabel-Aderfarben leben
+    // in der Praxis NICHT in der `kabel_ader`-DB-Tabelle (die bleibt beim
+    // normalen "Kabellinie zeichnen + Adern eintragen"-Workflow leer!),
+    // sondern direkt im `grafik_element.extra_daten` der Kabellinie selbst:
+    // `.adern` (Array {aderNr, farbe, farbe2, …}) + `.aderZuordnung`
+    // (aderKey/netKey/legacyNetKey → aderNr, `0` = "explizit keine Ader").
+    // Exakt dieselbe Datenquelle, die `maleKabelSchnitte()` schon für die
+    // kleinen Ader-Label an den Kreuzungspunkten nutzt (dort 1:1 kopiertes
+    // Muster: `_netLookup(aderZuordnung, [aderKey, netKey, legacyNetKey])`,
+    // Positions-Fallback `aderNr = si+1`, wenn keine explizite Zuordnung
+    // existiert).
     function _sammleKabelAderFarben() {
         if (cv._cachedKabelAderFarben !== null) return cv._cachedKabelAderFarben
         var map = {}
-        if (cv.projektId >= 0) {
-            var liste = db.kabelAderFarben(cv.projektId)
-            for (var i = 0; i < liste.length; i++) {
-                var row = liste[i]
-                if (map[row.verbindungId] === undefined)
-                    map[row.verbindungId] = { farbe: row.farbe, farbe2: row.farbe2 }
+        var netze = cv.netzberechnung.autoNetzeBerechnenCached()
+        if (netze.length > 0) {
+            var els = cv.elementeModel.snapshot()
+            for (var eli = 0; eli < els.length; eli++) {
+                var kl = els[eli]
+                if (kl.typ !== "kabellinie") continue
+                var ed = kl.extraDaten || {}
+                var adern = ed.adern || []
+                if (adern.length === 0) continue
+                var aderZuordnung = ed.aderZuordnung || null
+                var schnitte = cv.geometrie.kabelSchnittNetzeBerechnenCached(kl, netze)
+                for (var si = 0; si < schnitte.length; si++) {
+                    var sc = schnitte[si]
+                    var aderNr = si + 1
+                    var zug = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
+                    if (zug !== undefined) {
+                        if (zug === 0) continue   // explizit "keine Ader" – nicht einfärben
+                        aderNr = zug
+                    }
+                    var farbe = "", farbe2 = ""
+                    for (var ai = 0; ai < adern.length; ai++) {
+                        var ad = adern[ai]
+                        if ((ad.aderNr !== undefined ? ad.aderNr : (ai + 1)) === aderNr) {
+                            farbe = ad.farbe || ""
+                            farbe2 = ad.farbe2 || ""
+                            break
+                        }
+                    }
+                    if (!farbe) continue
+                    if (sc.netKey && map[sc.netKey] === undefined)
+                        map[sc.netKey] = { farbe: farbe, farbe2: farbe2 }
+                    if (sc.legacyNetKey && map[sc.legacyNetKey] === undefined)
+                        map[sc.legacyNetKey] = { farbe: farbe, farbe2: farbe2 }
+                }
             }
         }
         cv._cachedKabelAderFarben = map
@@ -1199,9 +1239,10 @@ QtObject {
     // umgeschaltet werden kann (Default dort: Signaltyp).
     //
     // KABEL-ADERFARBE-01: Hat die Verbindung keinen eigenen
-    // Aderdefinitionspunkt, aber eine zugeordnete Kabel-Ader mit Farbe
-    // (kabel_ader.farbe/.farbe2), wird diese als Fallback verwendet –
-    // Priorität: Aderdefinition > Kabel-Aderfarbe > Signaltyp-Farbe.
+    // Aderdefinitionspunkt, aber eine Kabellinie mit zugeordneter, farbiger
+    // Ader kreuzt sie (extra_daten.adern/.aderZuordnung, s.
+    // _sammleKabelAderFarben()), wird diese Ader-Farbe als Fallback
+    // verwendet – Priorität: Aderdefinition > Kabel-Aderfarbe > Signaltyp-Farbe.
     function _segmentFarbeUndBreite(net, sAdps) {
         var farbe = cv.geometrie.signaltypFarbe(net.signaltyp)
         var farbe2 = ""
@@ -1210,8 +1251,8 @@ QtObject {
             farbe = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
             if (sAdps[0].ed.aderfarbe2)
                 farbe2 = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe2)
-        } else if (zeigeAderfarbe && net.signaltyp !== "konflikt" && net.verbindungId > 0) {
-            var kaf = _sammleKabelAderFarben()[net.verbindungId]
+        } else if (zeigeAderfarbe && net.signaltyp !== "konflikt") {
+            var kaf = cv.netzberechnung._netLookup(_sammleKabelAderFarben(), [net.netKey, net.legacyNetKey])
             if (kaf && kaf.farbe) {
                 farbe = cv.geometrie.aderFarbeZuCanvas(kaf.farbe)
                 if (kaf.farbe2)

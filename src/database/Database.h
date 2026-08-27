@@ -591,10 +591,6 @@ public:
     // Gibt [{kabelId, aderNr, verbindungId, kabellinieGrafikElementId}] zurück.
     Q_INVOKABLE QVariantList kabelAderListeMitVerbindung(int projektId);
 
-    // Aderfarben aller Kabel-Adern eines Projekts, die einer Verbindung zugeordnet
-    // sind. Gibt [{verbindungId, farbe, farbe2}] zurück – Fallback-Datenquelle für
-    // die Canvas-Einfärbung von Verbindungen ohne eigenen Aderdefinitionspunkt.
-    Q_INVOKABLE QVariantList kabelAderFarben(int projektId);
 
     // Von/Nach-Gerät:Pin-Endpunkte für eine Liste kabel_adern speichern (Bulk-Update).
     // adern: [{kabelId, aderNr, von, nach}]

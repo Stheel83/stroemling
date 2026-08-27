@@ -242,7 +242,7 @@ Item {
     // Repaint neu berechnet, auch beim reinen Schwenken/Zoomen ohne Modelländerung.
     property var _cachedKreuzungsLuecken: null   // {segKey → [x, …]}
     property var _cachedAdpList:          null   // [{cx, cy, ed}, …]
-    property var _cachedKabelAderFarben:  null   // verbindungId → {farbe, farbe2} (Fallback ohne Aderdefinitionspunkt)
+    property var _cachedKabelAderFarben:  null   // netKey/legacyNetKey → {farbe, farbe2} (Fallback ohne Aderdefinitionspunkt, aus Kabellinien-Aderzuordnung)
     property var _cachedRoutingFarben:    null   // berechneRoutingSymbolFarben()-Ergebnis
 
     // --------------------------------------------------------

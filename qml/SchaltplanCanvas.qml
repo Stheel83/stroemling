@@ -290,7 +290,15 @@ Item {
             return amZeichnen
                 ? qsTr("Linie: Klick setzt Endpunkt · Esc bricht ab")
                 : qsTr("Linie: Klick setzt Startpunkt")
-        if (["rechteck","kreis","geraetekasten","strukturkasten","makrokasten","schirm"].indexOf(aktivesWerkzeug) >= 0)
+        if (aktivesWerkzeug === "rechteck")
+            return amZeichnen
+                ? qsTr("Rechteck: Klick setzt gegenüberliegende Ecke · Esc bricht ab")
+                : qsTr("Rechteck: Klick setzt erste Ecke")
+        if (aktivesWerkzeug === "kreis")
+            return amZeichnen
+                ? qsTr("Kreis: Klick setzt Radius · Esc bricht ab")
+                : qsTr("Kreis: Klick setzt Mittelpunkt")
+        if (["geraetekasten","strukturkasten","makrokasten","schirm"].indexOf(aktivesWerkzeug) >= 0)
             return qsTr("Klicken und ziehen zum Zeichnen")
         if (aktivesWerkzeug === "text" || aktivesWerkzeug === "notiz")
             return qsTr("Klick platziert das Element")

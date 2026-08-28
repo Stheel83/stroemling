@@ -192,7 +192,16 @@ QtObject {
             }
         })
 
-        cv.auswahl = selSnapshot
+        // FOKUS-AUSWAHL-REASSIGN-01: nur neu zuweisen wenn sich die Auswahl während der
+        // Schleife tatsächlich geändert hat. Eine Reassignment mit identischem Inhalt
+        // feuert trotzdem onAuswahlChanged (neue Array-Referenz) – und SchaltplanCanvas.qml
+        // holt sich dort per Qt.callLater(canvas.forceActiveFocus()) den Tastaturfokus vom
+        // Canvas zurück (gedacht gegen das EP-ScrollView, das beim Erscheinen synchron
+        // fokussiert). Bei jedem eigenschaftAktualisieren()-Aufruf (z.B. debounced Commit
+        // eines EP-Zahlenfelds) riss das so dem gerade editierten Feld mitten in der
+        // Eingabe den Fokus weg – die nächste Backspace-Taste landete dann beim globalen
+        // Lösch-Shortcut statt im Textfeld (BILD-WINKEL-AUSWAHL-FOKUS-01).
+        if (JSON.stringify(cv.auswahl) !== JSON.stringify(selSnapshot)) cv.auswahl = selSnapshot
         cv.grafikSpeichernJetzt()
 
         // Stilvorlagen nur bei Einzelauswahl übernehmen

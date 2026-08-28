@@ -1563,9 +1563,6 @@ static void pdfElementTextRendern(QPainter &p, const QVariantMap &el,
         p.setBrush(Qt::NoBrush);
 
         QString ausrichtung = el.value("textAusrichtung", "links").toString();
-        Qt::Alignment qa = Qt::AlignLeft;
-        if (ausrichtung == "mitte") qa = Qt::AlignHCenter;
-        else if (ausrichtung == "rechts") qa = Qt::AlignRight;
 
         // 1:1-Port von normTextRot() in CanvasRenderHandler.qml: erst auf [0,360)
         // normalisieren (Mehrfachauswahl-Drehung kann auch 180/270 liefern), dann
@@ -1577,9 +1574,24 @@ static void pdfElementTextRendern(QPainter &p, const QVariantMap &el,
         if (normRot == 90 || normRot == 270) p.rotate(-90);
         QStringList lines = inhalt.split('\n');
         double lineH = fsDev * 1.3;
-        for (int i = 0; i < lines.size(); i++)
-            p.drawText(QRectF(0, i * lineH, qMax(qAbs(sw), 200.0), fsDev * 1.5),
-                       qa | Qt::AlignTop, lines[i]);
+        // TEXT-WERKZEUG-PDF-BREITE-01: Das Text-Werkzeug bricht bewusst NICHT
+        // automatisch um (EP-Editor: TextEdit.NoWrap, Canvas: ctx.fillText() ohne
+        // maxWidth - 1:1-Port von CanvasRenderHandler.qml::_renderText()) - jede
+        // Zeile wird einzeln um den Ankerpunkt x=0 aus-/eingerückt, je nach
+        // Ausrichtung. Die alte feste Box (qMax(sw,200)) war oft schmaler als der
+        // tatsächliche Text und schnitt lange Zeilen am rechten Rand ab. Fix:
+        // Breite pro Zeile per QFontMetrics messen statt raten, Box exakt um den
+        // Ankerpunkt positionieren (mitte/rechts wie im Canvas je Zeile einzeln,
+        // nicht um eine gemeinsame Blockbreite).
+        QFontMetricsF fm(font);
+        for (int i = 0; i < lines.size(); i++) {
+            double lineW = fm.horizontalAdvance(lines[i]) + 4.0;
+            double lx = 0.0;
+            if      (ausrichtung == "mitte")  lx = -lineW / 2.0;
+            else if (ausrichtung == "rechts") lx = -lineW;
+            p.drawText(QRectF(lx, i * lineH, lineW, fsDev * 1.5),
+                       Qt::AlignLeft | Qt::AlignTop, lines[i]);
+        }
         p.restore();
 }
 

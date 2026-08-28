@@ -3300,7 +3300,7 @@ struct PdfBBox { double txCu, tyCu, bMm, hMm; };
 static PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,
                                const QSqlDatabase &db)
 {
-    const double randCu = 20.0; // 5 mm Rand
+    const double randCu = 60.0; // 15 mm Rand
     double bxMin =  1e9, byMin =  1e9;
     double bxMax = -1e9, byMax = -1e9;
 

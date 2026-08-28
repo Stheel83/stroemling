@@ -417,6 +417,21 @@ QtObject {
                     hy1 = paHCY - paHTextH / 2 - pad; hy2 = paHCY + paHTextH / 2 + pad
                 }
             } else {
+                // LABEL-DRAG-BMKSEITE-01: senkrecht wurde oben rein aus der Rotation
+                // berechnet - CanvasRenderHandler.qml::_renderSymbol() kehrt das aber
+                // für Symbole mit bmk_seite='vertikal' um (senkrecht bei 0°/180° statt
+                // 90°/270°, s. 03_canvas_zeichenfläche.md §7 "Textposition je
+                // Symbolausrichtung"). Diese Umkehrung war NICHT mehr nur bei `spule`
+                // gesetzt (wie die Konzeptdatei noch behauptete), sondern längst auch
+                // bei schliesser/oeffner/wechsler und ~25 weiteren Symbolen (Migration
+                // im Rahmen des Symbolgrößen-Audits) - ohne diese Korrektur suchte die
+                // Hit-Box bei diesen Symbolen an der falschen Seite, das Label war
+                // dadurch faktisch nie klickbar.
+                var _symInfoH = symbolDefinitionModel.symbolInfo(el.symbolId || "")
+                var _bmkSeiteH = (_symInfoH && _symInfoH.bmkSeite) ? _symInfoH.bmkSeite : "auto"
+                senkrecht = _bmkSeiteH === "vertikal"
+                            ? (symRot === 0 || symRot === 180)
+                            : (symRot === 90 || symRot === 270)
                 // LABEL-DRAG-FREITEXT-01: bisher wurde ein Label ohne BMK komplett
                 // übersprungen (kein Drag möglich), auch wenn Freitext-Zeilen sichtbar
                 // gerendert wurden (z.B. Nebenfunktions-Kontakte eines Kontaktspiegels

@@ -207,13 +207,30 @@ MouseArea {
                 if (ldSid === "potenzial" || ldSid === "geraeteanschluss") {
                     ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
                     ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
-                } else if (ldRot === 90 || ldRot === 270) {
-                    // Klemme/allgemeine Symbole: bei Rotation 90/270 sind X/Y-Achsen getauscht
-                    ldEd.bmkOffsetX = canvas.labelDragStartOx + ldy
-                    ldEd.bmkOffsetY = canvas.labelDragStartOy + ldx
                 } else {
-                    ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
-                    ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
+                    // LABEL-DRAG-BMKSEITE-02: Achsentausch wie im Renderer/Hit-Test
+                    // (LABEL-DRAG-BMKSEITE-01) bmk_seite-bewusst bestimmen, nicht nur
+                    // aus der Rotation - sonst läuft der Text bei Symbolen mit
+                    // bmk_seite='vertikal' (schliesser/oeffner/… bei 0°/180°) beim
+                    // Ziehen quer zur Maus, weil CanvasRenderHandler.qml::_renderSymbol()
+                    // dort bmkOffsetY als horizontale und bmkOffsetX als vertikale
+                    // Verschiebung interpretiert (senkrechter Textblock), der Drag hier
+                    // aber unverändert die "normale" Zuordnung schrieb. Klemme_anschluss
+                    // & alle anderen Symbole ohne bmk_seite='vertikal' verhalten sich
+                    // unverändert (bmkSeite fällt auf "auto" zurück → reiner
+                    // Rotations-Tausch wie vorher).
+                    var ldSymInfo   = symbolDefinitionModel.symbolInfo(ldSid)
+                    var ldBmkSeite  = (ldSymInfo && ldSymInfo.bmkSeite) ? ldSymInfo.bmkSeite : "auto"
+                    var ldSenkrecht = ldBmkSeite === "vertikal"
+                                      ? (ldRot === 0 || ldRot === 180)
+                                      : (ldRot === 90 || ldRot === 270)
+                    if (ldSenkrecht) {
+                        ldEd.bmkOffsetX = canvas.labelDragStartOx + ldy
+                        ldEd.bmkOffsetY = canvas.labelDragStartOy + ldx
+                    } else {
+                        ldEd.bmkOffsetX = canvas.labelDragStartOx + ldx
+                        ldEd.bmkOffsetY = canvas.labelDragStartOy + ldy
+                    }
                 }
                 em.eigenschaftSetzen(canvas.labelDragIdx, "extraDaten", ldEd)
                 canvas.neuZeichnen()

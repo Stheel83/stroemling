@@ -1831,16 +1831,25 @@ static void pdfElementGeraetekastenRendern(QPainter &p, const QVariantMap &el,
             ty += fsDev * 1.4;
         }
         if (!descr.isEmpty()) {
-            // BEZEICHNUNG-SHIFT-ENTER-PDF-01: descr kann eingebettete \n enthalten
-            // (BEZEICHNUNG-SHIFT-ENTER-01) - ein einzelner drawText() mit nur einer
-            // Zeile hoher Box hätte alles außer der ersten Zeile abgeschnitten.
-            // Zeilenweise wie pdfElementStrukturkastenRendern() weiter unten.
+            // BEZEICHNUNG-SHIFT-ENTER-PDF-01/-WRAP-01: descr kann eingebettete \n
+            // enthalten (BEZEICHNUNG-SHIFT-ENTER-01) und einzelne Zeilen können
+            // breiter als der Kasten sein (im Canvas-EP bricht TextEdit.WordWrap
+            // das optisch um, das ist aber kein echtes \n im gespeicherten Text).
+            // drawText() bricht ohne Qt::TextWordWrap nicht um und schneidet zu
+            // breite Zeilen am rechten Rand der Box ab. Höhe pro Absatz wird per
+            // boundingRect() gemessen statt geraten (fester Faktor reicht nicht,
+            // sobald ein Absatz mehrzeilig umbricht).
             QFont f; f.setFamily("sans-serif"); f.setPixelSize(qMax(1,qRound(fsDev2)));
             p.setFont(f); p.setPen(pen.color());
+            double descrBoxW = rw - 2*pad;
             const QStringList descrLines = descr.split('\n');
             for (const QString &descrLine : descrLines) {
-                p.drawText(QRectF(rx+pad, ty, rw-2*pad, fsDev2*1.4), Qt::AlignLeft|Qt::AlignTop, descrLine);
-                ty += fsDev2 * 1.3;
+                QRectF descrMeasure(rx+pad, ty, descrBoxW, 10000.0);
+                QRectF descrBound = p.boundingRect(descrMeasure, Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, descrLine);
+                double descrLineH = qMax(descrBound.height(), fsDev2 * 1.4);
+                p.drawText(QRectF(rx+pad, ty, descrBoxW, descrLineH),
+                           Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, descrLine);
+                ty += descrLineH;
             }
         }
 }
@@ -1910,13 +1919,20 @@ static void pdfElementStrukturkastenRendern(QPainter &p, const QVariantMap &el,
         }
         QString bez = ed.value("bezeichnung").toString();
         if (!bez.isEmpty()) {
+            // BEZEICHNUNG-SHIFT-ENTER-WRAP-01: dieselbe Wortumbruch-Korrektur wie
+            // bei pdfElementGeraetekastenRendern() oben - ohne Qt::TextWordWrap
+            // schneidet drawText() zu breite Zeilen am rechten Rand ab, Höhe pro
+            // Absatz wird per boundingRect() gemessen statt geraten.
             QFont fb; fb.setFamily("sans-serif"); fb.setPixelSize(qMax(1, qRound(fsDevB)));
             p.setFont(fb); p.setPen(pen.color());
             QStringList bezLines = bez.split('\n');
             for (const QString &bezLine : bezLines) {
-                p.drawText(QRectF(textX, textY, textW, fsDevB*1.4),
-                           Qt::AlignLeft | Qt::AlignTop, bezLine);
-                textY += fsDevB * 1.3;
+                QRectF bezMeasure(textX, textY, textW, 10000.0);
+                QRectF bezBound = p.boundingRect(bezMeasure, Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, bezLine);
+                double bezLineH = qMax(bezBound.height(), fsDevB * 1.4);
+                p.drawText(QRectF(textX, textY, textW, bezLineH),
+                           Qt::TextWordWrap | Qt::AlignLeft | Qt::AlignTop, bezLine);
+                textY += bezLineH;
             }
         }
 }

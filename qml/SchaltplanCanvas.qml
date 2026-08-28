@@ -277,6 +277,26 @@ Item {
     property bool amPolyZeichnen: false // Multi-Klick-Modus aktiv
     property var  polyCursorWelt: null  // aktueller Cursor für Live-Vorschausegment
 
+    // Werkzeugabhängiger Bedienhinweis im Canvas-Footer (FOOTER-HINWEIS-01) –
+    // zeigt während mehrstufiger Klick-Werkzeuge, wie sie beendet/abgebrochen
+    // werden, statt nur im Hover-Tooltip des Werkzeug-Buttons (dort während
+    // des eigentlichen Zeichnens nicht sichtbar).
+    readonly property string werkzeugHinweis: {
+        if (aktivesWerkzeug === "polygonlinie")
+            return polyPunkte.length > 0
+                ? qsTr("Polygonlinie: Klick fügt Punkt hinzu · Doppelklick beendet · Esc bricht ab")
+                : qsTr("Polygonlinie: Klick setzt ersten Punkt")
+        if (aktivesWerkzeug === "linie")
+            return amZeichnen
+                ? qsTr("Linie: Klick setzt Endpunkt · Esc bricht ab")
+                : qsTr("Linie: Klick setzt Startpunkt")
+        if (["rechteck","kreis","geraetekasten","strukturkasten","makrokasten","schirm"].indexOf(aktivesWerkzeug) >= 0)
+            return qsTr("Klicken und ziehen zum Zeichnen")
+        if (aktivesWerkzeug === "text" || aktivesWerkzeug === "notiz")
+            return qsTr("Klick platziert das Element")
+        return ""
+    }
+
     // Stilvorlage für neue Elemente
     property var stilVorlage: ({
         strichFarbe:    "#4a9eff",
@@ -670,7 +690,7 @@ Item {
     // Verhindert Ambiguität wenn zwei Canvas-Instanzen im Split-Modus sichtbar sind.
 
     function handleEscape() {
-        if (root.amZeichnen) {
+        if (root.amZeichnen || root.amPolyZeichnen) {
             root.abbruch()
         } else {
             root.auswahl      = []

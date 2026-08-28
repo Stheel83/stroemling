@@ -83,21 +83,28 @@ Item {
                         horizontalAlignment: TextInput.AlignRight
                         color: theme.textSecondary; font.pixelSize: 10
                         verticalAlignment: TextInput.AlignVCenter
-                        validator: DoubleValidator {
-                            bottom: 0; top: 359.9; decimals: 1
-                            notation: DoubleValidator.StandardNotation
-                        }
-                        text: panel.s("rotation", 0).toFixed(1)
+                        // Ganze Grad (BILD-WINKEL-PRAEZISION-01): rotation ist in ElementeModel/
+                        // Datenbank durchgängig ein int (GrafikElement::rotation, grafik_element.rotation
+                        // INTEGER) – Nachkommastellen wurden hier zuvor nur suggeriert, aber beim
+                        // Speichern immer verworfen. Feld entsprechend auf 0 Nachkommastellen begrenzt.
+                        validator: IntValidator { bottom: 0; top: 359 }
+                        text: panel.s("rotation", 0).toFixed(0)
                         Binding on text {
                             when:    !bildRotTf.activeFocus
-                            value:   panel.s("rotation", 0).toFixed(1)
+                            value:   panel.s("rotation", 0).toFixed(0)
                             delayed: true
                         }
-                        onEditingFinished: {
-                            var v = parseFloat(text)
+                        // BILD-WINKEL-FOKUS-01: Commit darf nicht am Fokusverlust hängen –
+                        // Klicks auf Preset-/Spiegeln-Buttons (MiniButton) fordern keinen
+                        // Tastaturfokus an, das Feld behält activeFocus dann unbegrenzt und
+                        // onEditingFinished feuert nie. onTextEdited committet stattdessen
+                        // sofort bei jeder Nutzereingabe (nicht bei programmatischen
+                        // Text-Änderungen durch die Binding oben).
+                        onTextEdited: {
+                            var v = parseInt(text, 10)
                             if (!isNaN(v)) panel.canvas.eigenschaftAktualisieren("rotation", ((v % 360) + 360) % 360)
                         }
-                        Keys.onEscapePressed: { text = panel.s("rotation", 0).toFixed(1); focus = false }
+                        Keys.onEscapePressed: { text = panel.s("rotation", 0).toFixed(0); focus = false }
                     }
                 }
                 Text { text: "°"; color: theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }

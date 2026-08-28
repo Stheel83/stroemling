@@ -103,6 +103,15 @@ Rectangle {
 
         Item { id: aalsObAnker; Layout.preferredWidth: 1; Layout.fillHeight: true }
 
+        Text {
+            visible: canvas.werkzeugHinweis !== ""
+            text: canvas.werkzeugHinweis
+            color: AppTheme.accent
+            font.pixelSize: 10
+            elide: Text.ElideRight
+            Layout.maximumWidth: 320
+        }
+
         Item { Layout.fillWidth: true }
 
         Rectangle {

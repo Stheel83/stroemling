@@ -617,8 +617,36 @@ MouseArea {
             canvas.polyCursorWelt = rPoly
             canvas.neuZeichnen()
 
+        } else if (canvas.aktivesWerkzeug === "linie") {
+            // Klick-Bewegen-Klick (wie Polygonlinie), statt Drag-to-draw:
+            // erster Klick setzt den Startpunkt, die Linie folgt danach der
+            // Maus (onPositionChanged), zweiter Klick setzt den Endpunkt.
+            var wLin = toWelt(mouse.x, mouse.y)
+            if (!canvas.amZeichnen) {
+                canvas.zeichenStartX = wLin.x; canvas.zeichenStartY = wLin.y
+                canvas.amZeichnen    = true
+                canvas.vorschau      = { typ: "linie", x1: wLin.x, y1: wLin.y, x2: wLin.x, y2: wLin.y }
+                canvas.neuZeichnen()
+            } else {
+                var elLin = Object.assign(
+                    { typ: "linie", x1: canvas.zeichenStartX, y1: canvas.zeichenStartY,
+                      x2: wLin.x, y2: wLin.y },
+                    canvas.stilVorlage)
+                // Beide Klicks auf denselben Punkt: Standard-Länge statt Nulllänge
+                if (Math.abs(elLin.x2-elLin.x1) <= 0.5 && Math.abs(elLin.y2-elLin.y1) <= 0.5) {
+                    elLin.x2 = elLin.x1 + canvas.gridPx * 2; elLin.y2 = elLin.y1
+                }
+                canvas.aktionAusfuehren(canvas.elementeModel.snapshot().concat([elLin]))
+                canvas.aktivesWerkzeug = "zeiger"
+                canvas.auswahl = [canvas.elementeModel.anzahl - 1]
+                canvas.vorschau = null; canvas.amZeichnen = false
+                canvas.neuZeichnen()
+                achievementManager.ereignis("element_platziert",
+                    { "typ": "linie", "elementeAufSeite": canvas.elementeModel.anzahl })
+            }
+
         } else {
-            // Zeichnen starten (linie, rechteck, kreis, geraetekasten, strukturkasten, …)
+            // Zeichnen starten (rechteck, kreis, geraetekasten, strukturkasten, …) – Drag-to-draw
             var wZ = toWelt(mouse.x, mouse.y)
             canvas.zeichenStartX = wZ.x; canvas.zeichenStartY = wZ.y
             canvas.amZeichnen    = true
@@ -705,7 +733,11 @@ MouseArea {
             return
         }
 
-        if (!canvas.amZeichnen) return
+        // "linie" wird jetzt per Klick-Bewegen-Klick in onPressed abgeschlossen,
+        // nicht per Drag-Release (s.o.) – hier nichts tun, sonst würde der erste
+        // Klick (press+release ohne Drag) die Linie sofort mit Standardlänge
+        // fertigstellen, bevor der zweite Klick kommt.
+        if (!canvas.amZeichnen || canvas.aktivesWerkzeug === "linie") return
         var wR = toWelt(mouse.x, mouse.y)
         var elR = Object.assign(
             { typ: canvas.aktivesWerkzeug,
@@ -715,8 +747,7 @@ MouseArea {
         // Bei Klick ohne Drag: Standard-Größe einsetzen
         if (Math.abs(elR.x2-elR.x1) <= 0.5 && Math.abs(elR.y2-elR.y1) <= 0.5) {
             var defS = canvas.gridPx * 2
-            if      (elR.typ === "linie")         { elR.x2 = elR.x1 + defS;       elR.y2 = elR.y1 }
-            else if (elR.typ === "rechteck")       { elR.x2 = elR.x1 + defS;       elR.y2 = elR.y1 + defS }
+            if      (elR.typ === "rechteck")       { elR.x2 = elR.x1 + defS;       elR.y2 = elR.y1 + defS }
             else if (elR.typ === "kreis")          { elR.x2 = elR.x1 + defS / 2;   elR.y2 = elR.y1 }
             else if (elR.typ === "geraetekasten")  { elR.x2 = elR.x1 + defS * 3;   elR.y2 = elR.y1 + defS * 2 }
             else if (elR.typ === "strukturkasten") { elR.x2 = elR.x1 + defS * 5;   elR.y2 = elR.y1 + defS * 4 }

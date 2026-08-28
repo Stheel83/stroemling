@@ -417,24 +417,67 @@ QtObject {
                     hy1 = paHCY - paHTextH / 2 - pad; hy2 = paHCY + paHTextH / 2 + pad
                 }
             } else {
+                // LABEL-DRAG-FREITEXT-01: bisher wurde ein Label ohne BMK komplett
+                // übersprungen (kein Drag möglich), auch wenn Freitext-Zeilen sichtbar
+                // gerendert wurden (z.B. Nebenfunktions-Kontakte eines Kontaktspiegels
+                // – die BMK zeigt nur die Hauptfunktion, der Kontakt selbst trägt nur
+                // seine Anschlusskennzeichnung als Freitext). Rendering-Bedingung
+                // (CanvasRenderHandler.qml::_renderSymbol, ~Zeile 2044) ist
+                // "bmkStr !== '' || ftZeilen.length > 0" – hier 1:1 nachgebildet,
+                // sonst bleiben genau diese Labels beim Wegklicken auf ewig unklickbar.
                 var bmkStr = bmkEd.bmk || ""
-                if (bmkStr === "") continue
+                var ftRhlgH = bmkEd.textReihenfolge || ["freitext1", "freitext2"]
+                var ftZeilenH = []
+                for (var fthi = 0; fthi < ftRhlgH.length; fthi++) {
+                    var ftkh = ftRhlgH[fthi]
+                    if (bmkEd[ftkh + "Sichtbar"] !== false && (bmkEd[ftkh] || "") !== "")
+                        ftZeilenH.push(bmkEd[ftkh])
+                }
+                if ((el.betriebsmittelId || 0) > 0 && bmkEd.kontaktspiegelSichtbar !== false) {
+                    var ksListeH = db.betriebsmittelMitglieder(el.betriebsmittelId)
+                    var ksIstHFH = false
+                    for (var kih = 0; kih < ksListeH.length; kih++) {
+                        if (ksListeH[kih].id === el.id && ksListeH[kih].istHauptfunktion) { ksIstHFH = true; break }
+                    }
+                    if (ksIstHFH) {
+                        for (var kjh = 0; kjh < ksListeH.length; kjh++) {
+                            if (ksListeH[kjh].istHauptfunktion) continue
+                            var kBezH = ksListeH[kjh].anschlusskennzeichnung || "–"
+                            ftZeilenH.push(kBezH + "   Bl." + ksListeH[kjh].blattnummer)
+                        }
+                    }
+                }
+                if (bmkStr === "" && ftZeilenH.length === 0) continue
                 var bmkOx = (bmkEd.bmkOffsetX !== undefined ? bmkEd.bmkOffsetX : 0)  * cv.zoom
                 var bmkOy = (bmkEd.bmkOffsetY !== undefined ? bmkEd.bmkOffsetY : -14) * cv.zoom
                 var schrift = bmkEd.schriftgroesse !== undefined ? bmkEd.schriftgroesse : 2.5
                 var bmkFs = Math.max(8, Math.round(schrift * cv.mmToPx * cv.zoom))
+                var ftFsH = Math.max(6, Math.round(schrift * 0.85 * cv.mmToPx * cv.zoom))
                 if (senkrecht) {
+                    // Freitext hängt hier direkt unter bkCy (unabhängig von bmkStr),
+                    // s. _renderSymbol: ftOff = bkCy + 2*zoom, wächst nach unten weiter.
                     var bkAx = Math.min(vx1, vx2) + bmkOy
                     var bkCy = (vy1 + vy2) / 2 + bmkOx
                     var hitW = Math.max(40, bmkFs * 4)
+                    var blockH = (bmkStr !== "" ? Math.max(14, bmkFs) : 0) + ftZeilenH.length * ftFsH * 1.25
                     hx1 = bkAx - hitW; hx2 = bkAx + pad
-                    hy1 = bkCy - Math.max(14, bmkFs) - pad; hy2 = bkCy + pad
+                    hy1 = bkCy - Math.max(14, bmkFs) - pad; hy2 = bkCy + blockH + pad
                 } else {
                     var bkCx = (vx1 + vx2) / 2 + bmkOx
-                    var bkTy = Math.min(vy1, vy2) + bmkOy
                     var hitW2 = Math.max(40, bmkFs * 3)
                     hx1 = bkCx - hitW2; hx2 = bkCx + hitW2
-                    hy1 = bkTy - Math.max(14, bmkFs) - pad; hy2 = bkTy + pad
+                    if (bmkStr !== "") {
+                        // Unverändert wie vorher: Box um die BMK-Position (über dem Symbol).
+                        var bkTy = Math.min(vy1, vy2) + bmkOy
+                        hy1 = bkTy - Math.max(14, bmkFs) - pad; hy2 = bkTy + pad
+                    } else {
+                        // Kein BMK, nur Freitext (z.B. Kontaktspiegel-Nebenfunktion ohne
+                        // eigenes BMK): der Freitext-Block hängt unabhängig vom
+                        // bmkOffset unter der Symbol-Bbox (_renderSymbol: ftY =
+                        // Math.max(vy1,vy2) + 3*zoom, folgt NICHT bmkOffsetY).
+                        var ftTopY = Math.max(vy1, vy2) + 3 * cv.zoom
+                        hy1 = ftTopY - pad; hy2 = ftTopY + ftZeilenH.length * ftFsH * 1.25 + pad
+                    }
                 }
             }
 

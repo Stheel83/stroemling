@@ -53,12 +53,24 @@ Item {
                     // BILD-WINKEL-FOKUS-01-Muster: Commit darf nicht am Fokusverlust
                     // hängen (Klicks auf die Spinner-Buttons oder andere EP-Elemente
                     // fordern keinen Tastaturfokus an, editingFinished feuert dann nie).
-                    // onTextEdited committet stattdessen sofort bei jeder Eingabe.
-                    onTextEdited: {
+                    // BILD-WINKEL-DEBOUNCE-01-Muster: trotzdem nicht bei JEDEM
+                    // Tastendruck sofort committen – das löst die volle
+                    // eigenschaftAktualisieren()-Pipeline (undoCheckpoint +
+                    // grafikSpeichernJetzt-DB-Rewrite) reentrant im Sekundentakt aus und
+                    // kann beim schnellen Löschen+Neutippen den Fokus mitten in der
+                    // Eingabe kosten (nachfolgende Backspace-Tasten lösen dann den
+                    // globalen Delete-Shortcut aus statt im Feld zu löschen). Commit
+                    // läuft daher entprellt (350 ms nach der letzten Eingabe),
+                    // onEditingFinished flusht sofort bei Enter/echtem Fokusverlust.
+                    function commitWert() {
                         var v = parseFloat(text)
                         if (!isNaN(v)) mfRoot.wertGeaendert(v)
                     }
-                    Keys.onEscapePressed: { text = mfRoot.wert.toFixed(1); focus = false }
+                    onTextEdited:      wertCommitTimer.restart()
+                    onEditingFinished: { wertCommitTimer.stop(); commitWert() }
+                    Keys.onEscapePressed: { wertCommitTimer.stop(); text = mfRoot.wert.toFixed(1); focus = false }
+
+                    Timer { id: wertCommitTimer; interval: 350; onTriggered: tf.commitWert() }
                 }
             }
 

@@ -73,9 +73,9 @@ Item {
             }
             Row {
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                spacing: 3
+                spacing: 2
                 Rectangle {
-                    width: 48; height: 22; radius: 3
+                    width: 40; height: 22; radius: 3
                     color: theme.inputBg; border.color: bildRotTf.activeFocus ? theme.accent : theme.border
                     TextInput {
                         id: bildRotTf
@@ -97,14 +97,51 @@ Item {
                         // BILD-WINKEL-FOKUS-01: Commit darf nicht am Fokusverlust hängen –
                         // Klicks auf Preset-/Spiegeln-Buttons (MiniButton) fordern keinen
                         // Tastaturfokus an, das Feld behält activeFocus dann unbegrenzt und
-                        // onEditingFinished feuert nie. onTextEdited committet stattdessen
-                        // sofort bei jeder Nutzereingabe (nicht bei programmatischen
-                        // Text-Änderungen durch die Binding oben).
-                        onTextEdited: {
+                        // onEditingFinished feuert nie.
+                        // BILD-WINKEL-DEBOUNCE-01 (direkter Nachtrag): ein sofortiger Commit bei
+                        // JEDEM Tastendruck (frühere Version dieses Fixes) hat beim schnellen
+                        // Löschen+Neutippen die volle eigenschaftAktualisieren()-Pipeline
+                        // (undoCheckpoint + grafikSpeichernJetzt-DB-Rewrite + auswahl-Reassign)
+                        // im Sekundentakt reentrant ausgelöst – dabei verlor das Feld sporadisch
+                        // den Fokus mitten in der Eingabe, wodurch nachfolgende Backspace-Tasten
+                        // nicht mehr vom TextInput konsumiert wurden, sondern den globalen
+                        // Backspace/Delete-Shortcut (Main.qml) auslösten und das Bild löschten.
+                        // Fix: Commit läuft jetzt entprellt (350 ms nach der letzten Eingabe),
+                        // onEditingFinished flusht sofort bei Enter/echtem Fokusverlust.
+                        function commitRotation() {
                             var v = parseInt(text, 10)
                             if (!isNaN(v)) panel.canvas.eigenschaftAktualisieren("rotation", ((v % 360) + 360) % 360)
                         }
-                        Keys.onEscapePressed: { text = panel.s("rotation", 0).toFixed(0); focus = false }
+                        onTextEdited:      rotCommitTimer.restart()
+                        onEditingFinished: { rotCommitTimer.stop(); commitRotation() }
+                        Keys.onEscapePressed: { rotCommitTimer.stop(); text = panel.s("rotation", 0).toFixed(0); focus = false }
+
+                        Timer { id: rotCommitTimer; interval: 350; onTriggered: bildRotTf.commitRotation() }
+                    }
+                }
+                Column {
+                    width: 14; height: 22
+                    Rectangle {
+                        width: 14; height: 11; radius: 2
+                        color: bwUpMa.containsMouse ? theme.hover : theme.inputBg
+                        border.color: theme.border
+                        Text { anchors.centerIn: parent; text: "▲"; font.pixelSize: 6; color: theme.borderLight }
+                        MouseArea {
+                            id: bwUpMa
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: panel.canvas.eigenschaftAktualisieren("rotation", (panel.s("rotation", 0) + 1) % 360)
+                        }
+                    }
+                    Rectangle {
+                        width: 14; height: 11; radius: 2
+                        color: bwDownMa.containsMouse ? theme.hover : theme.inputBg
+                        border.color: theme.border
+                        Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 6; color: theme.borderLight }
+                        MouseArea {
+                            id: bwDownMa
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: panel.canvas.eigenschaftAktualisieren("rotation", ((panel.s("rotation", 0) - 1) % 360 + 360) % 360)
+                        }
                     }
                 }
                 Text { text: "°"; color: theme.borderLight; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }

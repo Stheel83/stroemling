@@ -3309,16 +3309,42 @@ static PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,
         SELECT CASE WHEN x1<x2 THEN x1 ELSE x2 END,
                CASE WHEN y1<y2 THEN y1 ELSE y2 END,
                CASE WHEN x1>x2 THEN x1 ELSE x2 END,
-               CASE WHEN y1>y2 THEN y1 ELSE y2 END
+               CASE WHEN y1>y2 THEN y1 ELSE y2 END,
+               extra_daten
         FROM grafik_element WHERE seite_id = :sid
     )");
     bq.bindValue(":sid", seiteId);
     if (bq.exec()) {
         while (bq.next()) {
-            bxMin = qMin(bxMin, bq.value(0).toDouble());
-            byMin = qMin(byMin, bq.value(1).toDouble());
-            bxMax = qMax(bxMax, bq.value(2).toDouble());
-            byMax = qMax(byMax, bq.value(3).toDouble());
+            double ex1 = bq.value(0).toDouble(), ey1 = bq.value(1).toDouble();
+            double ex2 = bq.value(2).toDouble(), ey2 = bq.value(3).toDouble();
+            bxMin = qMin(bxMin, ex1); byMin = qMin(byMin, ey1);
+            bxMax = qMax(bxMax, ex2); byMax = qMax(byMax, ey2);
+
+            // PDF-RAND-BMK-01: manuell verschobene BMK-/Freitext-Labels
+            // (bmkOffsetX/Y in mm, s. LABEL-DRAG-BMKSEITE-01/-02) können weit
+            // außerhalb von x1..x2/y1..y2 liegen - ohne Berücksichtigung hier
+            // schneidet der vollCanvas-Export weit verschobene Labels ab.
+            // Bewusst grobe, großzügige Schätzung statt exakter Textmetrik
+            // (ob der Offset horizontal oder vertikal wirkt, hängt von
+            // Rotation/bmk_seite ab, hier nicht ohne Weiteres bekannt) -
+            // Offset-Betrag plus Textausdehnungs-Puffer auf allen vier
+            // Seiten gleich einrechnen statt die Richtung zu erraten.
+            QString exStr = bq.value(4).toString();
+            if (!exStr.isEmpty()) {
+                QJsonDocument exDoc = QJsonDocument::fromJson(exStr.toUtf8());
+                if (exDoc.isObject()) {
+                    QJsonObject exObj = exDoc.object();
+                    if (exObj.contains(QStringLiteral("bmkOffsetX")) || exObj.contains(QStringLiteral("bmkOffsetY"))) {
+                        double offXCu = qAbs(exObj.value(QStringLiteral("bmkOffsetX")).toDouble()) * 4.0;
+                        double offYCu = qAbs(exObj.value(QStringLiteral("bmkOffsetY")).toDouble()) * 4.0;
+                        const double textPufferCu = 120.0; // ~30 mm Textausdehnung
+                        double reichweite = offXCu + offYCu + textPufferCu;
+                        bxMin = qMin(bxMin, ex1 - reichweite); byMin = qMin(byMin, ey1 - reichweite);
+                        bxMax = qMax(bxMax, ex2 + reichweite); byMax = qMax(byMax, ey2 + reichweite);
+                    }
+                }
+            }
         }
     }
     QSqlQuery sq(db);

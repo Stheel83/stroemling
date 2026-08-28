@@ -107,7 +107,10 @@ Item {
         }
         Item { height: 6 }
 
-        // Bezeichnung: mehrzeilige Eingabe (Zeilenumbruch mit Enter)
+        // Bezeichnung: mehrzeilige Eingabe (BEZEICHNUNG-SHIFT-ENTER-01: Shift+Enter
+        // = neue Zeile, Enter allein committet + verlässt das Feld – dieselbe
+        // Konvention wie EpTextInhaltSection.qml/EpNotizSection.qml, dort TextEdit
+        // statt TextArea, da Keys.onReturnPressed so direkt verfügbar ist).
         Item {
             width: parent.width
             implicitHeight: gkBezLabel.height + gkBezRect.height
@@ -116,31 +119,40 @@ Item {
                 width: parent.width; height: 20
                 Text {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                    text: qsTr("Bezeichnung"); font.pixelSize: 10; color: root.theme.panelMid
+                    text: qsTr("Bezeichnung (Shift + Enter = neue Zeile)"); font.pixelSize: 10; color: root.theme.panelMid
                 }
             }
             Rectangle {
                 id: gkBezRect
                 anchors { top: gkBezLabel.bottom; horizontalCenter: parent.horizontalCenter }
                 width: parent.width - 16
-                height: Math.max(28, gkBezTa.implicitHeight + 8)
+                height: Math.max(28, gkBezTe.implicitHeight + 8)
                 radius: 3; color: root.theme.inputBg
-                border.color: gkBezTa.activeFocus ? root.theme.accent : root.theme.border
-                TextArea {
-                    id: gkBezTa
+                border.color: gkBezTe.activeFocus ? root.theme.accent : root.theme.border
+                TextEdit {
+                    id: gkBezTe
                     anchors { fill: parent; margins: 4 }
                     color: root.theme.textSecondary; font.pixelSize: 11
-                    wrapMode: TextArea.Wrap; background: null
-                    placeholderText: qsTr("Bezeichnung …")
-                    placeholderTextColor: root.theme.textMuted
+                    wrapMode: TextEdit.WordWrap
                     text: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bezeichnung || "") : ""
                     Binding on text {
-                        when: !gkBezTa.activeFocus
+                        when: !gkBezTe.activeFocus
                         value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bezeichnung || "") : ""
                         delayed: true
                     }
-                    onFocusChanged: if (!activeFocus) root.extraSetzen("bezeichnung", text)
-                    Keys.onEscapePressed: focus = false
+                    Keys.onReturnPressed: function(event) {
+                        if (event.modifiers & Qt.ShiftModifier) {
+                            event.accepted = false
+                        } else {
+                            root.extraSetzen("bezeichnung", text)
+                            focus = false; event.accepted = true
+                        }
+                    }
+                    Keys.onEscapePressed: {
+                        text = (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bezeichnung || "") : ""
+                        focus = false
+                    }
+                    onEditingFinished: root.extraSetzen("bezeichnung", text)
                 }
             }
         }

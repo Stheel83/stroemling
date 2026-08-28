@@ -1831,9 +1831,17 @@ static void pdfElementGeraetekastenRendern(QPainter &p, const QVariantMap &el,
             ty += fsDev * 1.4;
         }
         if (!descr.isEmpty()) {
+            // BEZEICHNUNG-SHIFT-ENTER-PDF-01: descr kann eingebettete \n enthalten
+            // (BEZEICHNUNG-SHIFT-ENTER-01) - ein einzelner drawText() mit nur einer
+            // Zeile hoher Box hätte alles außer der ersten Zeile abgeschnitten.
+            // Zeilenweise wie pdfElementStrukturkastenRendern() weiter unten.
             QFont f; f.setFamily("sans-serif"); f.setPixelSize(qMax(1,qRound(fsDev2)));
             p.setFont(f); p.setPen(pen.color());
-            p.drawText(QRectF(rx+pad, ty, rw-2*pad, fsDev2*1.4), Qt::AlignLeft|Qt::AlignTop, descr);
+            const QStringList descrLines = descr.split('\n');
+            for (const QString &descrLine : descrLines) {
+                p.drawText(QRectF(rx+pad, ty, rw-2*pad, fsDev2*1.4), Qt::AlignLeft|Qt::AlignTop, descrLine);
+                ty += fsDev2 * 1.3;
+            }
         }
 }
 

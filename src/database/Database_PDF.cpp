@@ -602,6 +602,18 @@ struct PdfLeitungsSegment {
     QColor  farbe2;
 };
 
+// PDF-ADERNUMMER-POOL-01/PDF-ADERBESCHRIFTUNG-POOL-01 (Aug 2026): Ader-Kreuzungslabel
+// ("1 BK") für eine Kabellinie — vorberechnet in pdfLeitungenSammeln() (das dort
+// bereits die korrekte, aderKey-/kabel_ader-gepoolte Adernummer ermittelt, s.
+// dort), damit pdfKabelAderBeschriftungRendern() nur noch zeichnet statt selbst
+// eine dritte, simplere (und bis dahin falsche) Kreuzungserkennung zu betreiben.
+struct PdfKabelAderLabel {
+    double  wx, wy;      // Weltposition des Kreuzungspunkts (Canvas-Einheiten)
+    double  nx, ny;      // Normalenvektor senkrecht zur Kabellinie ("nach oben")
+    QString label;       // fertiger Anzeigetext, z.B. "1  BK"
+    QColor  klColor;     // Farbe der Kabellinie selbst (strich_farbe), für Tick+Text
+};
+
 // Pin-Weltposition eines Symbols (Bbox + Rotation/Spiegel), Canvas-Einheiten.
 // 1:1-Port von pinWeltPos() in src/models/SymbolDefinitionModel.cpp – muss
 // synchron gehalten werden.
@@ -987,7 +999,8 @@ static QString pdfNaechsterStabilerPunkt(int elIdx, int vonIdx, const QString &p
 }
 
 static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
-                                                        const QSqlDatabase &db)
+                                                        const QSqlDatabase &db,
+                                                        QVector<PdfKabelAderLabel> *aderLabelsOut = nullptr)
 {
     QVector<PdfLeitungsSegment> segs;
 
@@ -1165,9 +1178,40 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         // Kabellinien der Seite laden und geometrisch mit raw[] schneiden —
         // 1:1-Port von kabelSchnittNetzeBerechnen()/maleKabelSchnitte() in
         // CanvasGeometrie.qml/CanvasRenderHandler.qml.
+        //
+        // PDF-ADERNUMMER-POOL-01 (Aug 2026): fehlte bisher komplett die
+        // mittlere Prioritätsstufe des Canvas-Pendants
+        // (CanvasNetzberechnung.qml::_aderNrFuerKreuzung(): explizite
+        // aderZuordnung > gepoolte kabel_ader-Tabelle > lokaler si+1-
+        // Fallback) — hier gab es nur "explizit" und den lokalen
+        // Fallback, jede Kabellinie zählte deshalb unabhängig wieder bei 1
+        // los, exakt der vor PROPAGATION-04/07 im Canvas behobene Bug, nur
+        // nie in den PDF-Export übernommen. gepooltJeKabel cacht die
+        // bereits über kabelAderProjektweitSynchronisieren() persistierten
+        // aderKey→Adernnummer-Zuordnungen je kabelId (eine Seite kann
+        // mehrere Kabel enthalten, daher pro kabelId einmal geladen).
+        QHash<int, QHash<QString, int>> gepooltJeKabel;
+        auto gepoolteAderNrn = [&](int kabelId) -> const QHash<QString, int> & {
+            auto it = gepooltJeKabel.find(kabelId);
+            if (it != gepooltJeKabel.end()) return it.value();
+            QHash<QString, int> map;
+            if (kabelId > 0) {
+                QSqlQuery gq(db);
+                gq.prepare(R"(
+                    SELECT ader_key, ader_nr FROM kabel_ader
+                    WHERE kabel_id = :kid AND ader_key IS NOT NULL AND ader_key != ''
+                )");
+                gq.bindValue(":kid", kabelId);
+                if (gq.exec()) {
+                    while (gq.next()) map.insert(gq.value(0).toString(), gq.value(1).toInt());
+                }
+            }
+            return gepooltJeKabel.insert(kabelId, map).value();
+        };
+
         QSqlQuery klq(db);
         klq.prepare(R"(
-            SELECT x1, y1, x2, y2, extra_daten FROM grafik_element
+            SELECT x1, y1, x2, y2, extra_daten, kabel_id, strich_farbe FROM grafik_element
             WHERE seite_id = :sid AND typ = 'kabellinie'
         )");
         klq.bindValue(":sid", seiteId);
@@ -1180,8 +1224,14 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
                 if (kLenW < 0.5) continue;
                 QJsonObject ed = QJsonDocument::fromJson(klq.value(4).toString().toUtf8()).object();
                 QJsonArray adern = ed.value(QStringLiteral("adern")).toArray();
+                QString klStrichFarbeStr = klq.value(6).toString();
+                QColor  klStrichFarbe = (!klStrichFarbeStr.isEmpty() && QColor(klStrichFarbeStr).isValid())
+                                       ? QColor(klStrichFarbeStr) : QColor(0xe0, 0x70, 0x00);
+                double klNx = -kDyW / kLenW, klNy = kDxW / kLenW;
+                if (klNy > 0.0) { klNx = -klNx; klNy = -klNy; }
                 if (adern.isEmpty()) continue;
                 QJsonObject aderZuordnung = ed.value(QStringLiteral("aderZuordnung")).toObject();
+                const QHash<QString, int> &gepoolt = gepoolteAderNrn(klq.value(5).toInt());
 
                 struct Schnitt { double t; int segIdx; };
                 QVector<Schnitt> schnitte;
@@ -1213,9 +1263,12 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
                     } else if (!raw[segIdx].potenzial.isEmpty() && aderZuordnung.contains(raw[segIdx].potenzial)) {
                         z = aderZuordnung.value(raw[segIdx].potenzial).toInt(-1); gefunden = true;
                     }
+                    if (gefunden && z == 0) continue; // explizit "keine Ader" - weder Farbe noch Label
                     if (gefunden) {
-                        if (z == 0) continue; // explizit "keine Ader"
                         if (z > 0) aderNr = z;
+                    } else {
+                        auto git = aderKey.isEmpty() ? gepoolt.constEnd() : gepoolt.constFind(aderKey);
+                        if (git != gepoolt.constEnd()) aderNr = git.value();
                     }
                     QString farbe, farbe2;
                     for (int ai = 0; ai < adern.size(); ai++) {
@@ -1227,6 +1280,18 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
                             farbe2 = ao.value(QStringLiteral("farbe2")).toString();
                             break;
                         }
+                    }
+                    // PDF-ADERBESCHRIFTUNG-POOL-01: Kreuzungslabel ("1  BK") mit
+                    // derselben Adernummer wie die Segmentfarbe unten - vorher
+                    // rechnete pdfKabelAderBeschriftungRendern() das Label separat
+                    // und einfacher (nur sci+1 pro Linie, nie gepoolt) aus, was zum
+                    // gemeldeten Auseinanderlaufen von Farbe und Beschriftung führte.
+                    if (aderLabelsOut) {
+                        double t = schnitte[si].t;
+                        QString label = QString::number(aderNr);
+                        if (!farbe.isEmpty()) label += QStringLiteral("  ") + farbe;
+                        aderLabelsOut->append({ kx1 + t * kDxW, ky1 + t * kDyW,
+                                                 klNx, klNy, label, klStrichFarbe });
                     }
                     if (farbe.isEmpty()) continue;
                     kabelSegFarbe[segIdx] = pdfAderFarbeZuCanvas(farbe);
@@ -1300,12 +1365,29 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         }
     }
 
+    // PDF-WINKEL-ADERFARBE-01 (Aug 2026): gruppenFarbe wurde bisher NUR aus
+    // direktFarbe (ADP-Treffer) gespeist — ein Segment, das seine Farbe nur
+    // über den Kabellinien-Fallback (kabelSegFarbe, normaler "Kabellinie
+    // zeichnen + Adern eintragen"-Workflow ohne Aderdefinitionspunkt) hat,
+    // gab diese Farbe dadurch nie an eine über winkel/querverweis
+    // verbundene Gruppe weiter — im Canvas (CanvasRenderHandler.qml::
+    // _segmentFarbeUndBreite()) läuft derselbe Kabellinien-Fallback bereits
+    // VOR der winkel-Gruppierung und wird dadurch automatisch mitvererbt.
+    // Zwei Durchgänge: zuerst direktFarbe (ADP hat Vorrang vor dem
+    // Kabellinien-Fallback, falls eine Gruppe beides enthält), erst danach
+    // Lücken aus kabelSegFarbe auffüllen.
     QHash<int, QColor> gruppenFarbe, gruppenFarbe2; // Wurzel → erste gefundene Aderfarbe/-farbe2
     for (int i = 0; i < n; i++) {
         if (direktFarbe[i].isValid() && !gruppenFarbe.contains(find(i)))
             gruppenFarbe[find(i)] = direktFarbe[i];
         if (direktFarbe2[i].isValid() && !gruppenFarbe2.contains(find(i)))
             gruppenFarbe2[find(i)] = direktFarbe2[i];
+    }
+    for (int i = 0; i < n; i++) {
+        if (kabelSegFarbe[i].isValid() && !gruppenFarbe.contains(find(i)))
+            gruppenFarbe[find(i)] = kabelSegFarbe[i];
+        if (kabelSegFarbe2[i].isValid() && !gruppenFarbe2.contains(find(i)))
+            gruppenFarbe2[find(i)] = kabelSegFarbe2[i];
     }
 
     QVector<QColor> endFarbe(n), endFarbe2(n);
@@ -2756,156 +2838,58 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
 }
 
 // Aderbezeichnungen an Kabellinie-Schnittpunkten rendern
-static void pdfKabelAderBeschriftungRendern(QPainter &p, int seiteId, double C, double pxPerMm,
-                                           const QSqlDatabase &db)
+// PDF-ADERBESCHRIFTUNG-POOL-01 (Aug 2026): reiner Renderer, keine eigene
+// Kreuzungserkennung mehr — die Labels (Weltposition, Normalenvektor, fertiger
+// Text, Linienfarbe) kommen jetzt vorberechnet aus pdfLeitungenSammeln(), das
+// dieselbe aderKey-/kabel_ader-gepoolte Adernummer wie die Segmentfärbung
+// verwendet. Vorher betrieb diese Funktion eine dritte, eigene (nur nach
+// verbindung_id dedupliziende, nie gepoolte) Kreuzungserkennung — dadurch lief
+// die angezeigte Nummer bei mehrseitigen/mehrlinigen Kabeln auseinander:
+// jede Linie zeigte unabhängig 1,2,3,… statt der kabelweit fortlaufenden
+// Nummer, wie sie die Segmentfarbe (kabelSegFarbe) längst korrekt nutzte.
+static void pdfKabelAderBeschriftungRendern(QPainter &p, double C, double pxPerMm,
+                                           const QVector<PdfKabelAderLabel> &labels)
 {
-    // Kabellinie-Elemente laden
-    QSqlQuery qk(db);
-    qk.prepare(R"(
-        SELECT x1, y1, x2, y2, extra_daten, strich_farbe
-        FROM grafik_element
-        WHERE seite_id = :sid AND typ = 'kabellinie'
-    )");
-    qk.bindValue(":sid", seiteId);
-    if (!qk.exec()) return;
+    if (labels.isEmpty()) return;
 
-    struct KabelEl {
-        double kx1, ky1, kx2, ky2;
-        QJsonObject aderZuordnung;
-        QJsonArray  adern;
-        QColor      klColor;
-    };
-    QVector<KabelEl> kabel;
-    while (qk.next()) {
-        KabelEl ke;
-        ke.kx1 = qk.value(0).toDouble();
-        ke.ky1 = qk.value(1).toDouble();
-        ke.kx2 = qk.value(2).toDouble();
-        ke.ky2 = qk.value(3).toDouble();
-        QString exStr = qk.value(4).toString();
-        if (!exStr.isEmpty()) {
-            QJsonDocument doc = QJsonDocument::fromJson(exStr.toUtf8());
-            if (doc.isObject()) {
-                QJsonObject obj = doc.object();
-                if (obj.contains(QStringLiteral("aderZuordnung")))
-                    ke.aderZuordnung = obj.value(QStringLiteral("aderZuordnung")).toObject();
-                if (obj.contains(QStringLiteral("adern")))
-                    ke.adern = obj.value(QStringLiteral("adern")).toArray();
-            }
+    double fsDev   = 1.8 * pxPerMm;
+    double tickLen = 0.5 * pxPerMm;
+    double lblOff  = tickLen + 0.4 * pxPerMm;
+
+    QFont f; f.setFamily(QStringLiteral("sans-serif"));
+    f.setPixelSize(qMax(1, qRound(fsDev)));
+
+    p.save();
+    p.setBrush(Qt::NoBrush);
+    p.setFont(f);
+
+    for (const PdfKabelAderLabel &lbl : labels) {
+        double vx = lbl.wx * C, vy = lbl.wy * C;
+
+        // Kurzer Querstrich
+        QPen tickPen(lbl.klColor, 0.4 * pxPerMm, Qt::SolidLine, Qt::FlatCap);
+        p.setPen(tickPen);
+        p.drawLine(QLineF(vx - lbl.nx * tickLen, vy - lbl.ny * tickLen,
+                          vx + lbl.nx * tickLen, vy + lbl.ny * tickLen));
+
+        // Label — achsenparallele Kabellinie: rechts neben dem Tick (wie QML)
+        p.setPen(lbl.klColor);
+        bool achsenParallel = (std::abs(lbl.nx) < 0.1 || std::abs(lbl.ny) < 0.1);
+        double lx, ly;
+        if (achsenParallel) {
+            lx = vx + lblOff;               // immer rechts
+            ly = vy + lbl.ny * lblOff;      // Offset senkrecht zur Linie
+        } else {
+            lx = vx + lbl.nx * lblOff;
+            ly = vy + lbl.ny * lblOff;
         }
-        QString sf = qk.value(5).toString();
-        ke.klColor = (!sf.isEmpty() && QColor(sf).isValid()) ? QColor(sf)
-                                                              : QColor(0xe0, 0x70, 0x00);
-        kabel.append(ke);
+        Qt::Alignment ha = Qt::AlignLeft;
+        double tw = 15.0 * pxPerMm;
+        // Rect mit textBaseline "bottom" (QML-Konvention: Text wächst nach oben von ly)
+        QRectF r(lx, ly - fsDev * 1.2, tw, fsDev * 1.2);
+        p.drawText(r, ha | Qt::AlignBottom, lbl.label);
     }
-    if (kabel.isEmpty()) return;
-
-    // Verbindungssegmente laden
-    struct VSeg { double x1, y1, x2, y2; int verbId; };
-    QVector<VSeg> vsegs;
-    QSqlQuery qv(db);
-    qv.prepare(R"(SELECT punkte, verbindung_id FROM verbindung_segment WHERE seite_id = :sid)");
-    qv.bindValue(":sid", seiteId);
-    if (!qv.exec()) return;
-    while (qv.next()) {
-        QJsonDocument doc = QJsonDocument::fromJson(qv.value(0).toString().toUtf8());
-        if (!doc.isArray()) continue;
-        QJsonArray arr = doc.array();
-        int vId = qv.value(1).toInt();
-        // Iterate consecutive point pairs
-        for (int i = 0; i < arr.size() - 1; ++i) {
-            QJsonObject a = arr[i].toObject();
-            QJsonObject b = arr[i+1].toObject();
-            vsegs.append({a["x"].toDouble(), a["y"].toDouble(),
-                          b["x"].toDouble(), b["y"].toDouble(), vId});
-        }
-    }
-
-    // Für jede Kabellinie: Schnittpunkte berechnen und Aderbezeichnungen rendern
-    for (const KabelEl &ke : kabel) {
-        double kdx = ke.kx2 - ke.kx1, kdy = ke.ky2 - ke.ky1;
-        double kLen = std::sqrt(kdx*kdx + kdy*kdy);
-        if (kLen < 0.5) continue;
-
-        // Schnitte pro verbindung_id (einer pro verbindung)
-        struct Schnitt { double t; int verbId; };
-        QVector<Schnitt> schnitte;
-        QSet<int> gesehen;
-
-        for (const VSeg &vs : vsegs) {
-            if (gesehen.contains(vs.verbId)) continue;
-            double dax = vs.x2 - vs.x1, day = vs.y2 - vs.y1;
-            double D = kdx * day - kdy * dax;
-            if (std::abs(D) < 0.001) continue;
-            double t = ((vs.x1 - ke.kx1) * day - (vs.y1 - ke.ky1) * dax) / D;
-            double s = ((vs.x1 - ke.kx1) * kdy - (vs.y1 - ke.ky1) * kdx) / D;
-            if (t >= -0.005 && t <= 1.005 && s >= -0.005 && s <= 1.005) {
-                schnitte.append({qBound(0.0, t, 1.0), vs.verbId});
-                gesehen.insert(vs.verbId);
-            }
-        }
-        if (schnitte.isEmpty()) continue;
-        std::sort(schnitte.begin(), schnitte.end(),
-                  [](const Schnitt &a, const Schnitt &b){ return a.t < b.t; });
-
-        // Normalvektor senkrecht zur Kabellinie, nach "oben" (kleinstes y)
-        double nx = -kdy/kLen, ny = kdx/kLen;
-        if (ny > 0.0) { nx = -nx; ny = -ny; }
-
-        double fsDev   = 1.8 * pxPerMm;
-        double tickLen = 0.5 * pxPerMm;
-        double lblOff  = tickLen + 0.4 * pxPerMm;
-
-        QFont f; f.setFamily(QStringLiteral("sans-serif"));
-        f.setPixelSize(qMax(1, qRound(fsDev)));
-
-        p.save();
-        p.setBrush(Qt::NoBrush);
-
-        for (int sci = 0; sci < schnitte.size(); ++sci) {
-            double t  = schnitte[sci].t;
-            double wx = ke.kx1 + t * kdx;
-            double wy = ke.ky1 + t * kdy;
-            double vx = wx * C, vy = wy * C;
-
-            // Aderfarbe + nummer aus adern-Array (sequenziell)
-            int aderNr = sci + 1;
-            QString farbe;
-            for (int ai = 0; ai < ke.adern.size(); ++ai) {
-                QJsonObject ad = ke.adern[ai].toObject();
-                int nr = ad.contains(QStringLiteral("aderNr")) ? ad[QStringLiteral("aderNr")].toInt() : (ai + 1);
-                if (nr == aderNr) { farbe = ad[QStringLiteral("farbe")].toString(); break; }
-            }
-
-            QString label = QString::number(aderNr);
-            if (!farbe.isEmpty()) label += QStringLiteral("  ") + farbe;
-
-            // Kurzer Querstrich
-            QPen tickPen(ke.klColor, 0.4 * pxPerMm, Qt::SolidLine, Qt::FlatCap);
-            p.setPen(tickPen);
-            p.drawLine(QLineF(vx - nx * tickLen, vy - ny * tickLen,
-                              vx + nx * tickLen, vy + ny * tickLen));
-
-            // Label — achsenparallele Kabellinie: rechts neben dem Tick (wie QML)
-            p.setFont(f);
-            p.setPen(ke.klColor);
-            bool achsenParallel = (std::abs(nx) < 0.1 || std::abs(ny) < 0.1);
-            double lx, ly;
-            if (achsenParallel) {
-                lx = vx + lblOff;           // immer rechts
-                ly = vy + ny * lblOff;      // Offset senkrecht zur Linie
-            } else {
-                lx = vx + nx * lblOff;
-                ly = vy + ny * lblOff;
-            }
-            Qt::Alignment ha = Qt::AlignLeft;
-            double tw = 15.0 * pxPerMm;
-            // Rect mit textBaseline "bottom" (QML-Konvention: Text wächst nach oben von ly)
-            QRectF r(lx, ly - fsDev * 1.2, tw, fsDev * 1.2);
-            p.drawText(r, ha | Qt::AlignBottom, label);
-        }
-        p.restore();
-    }
+    p.restore();
 }
 
 // Verbindungsleitungen aus verbindung_segment rendern (segs vorab per
@@ -3455,11 +3439,12 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         if (vollCanvas)
             painter.translate(-txCu * C, -tyCu * C);
         QVariantList elemente = grafikLaden(seiteId);
-        QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
+        QVector<PdfKabelAderLabel> aderLabels;
+        QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels);
         for (const QVariant &ev : elemente)
             pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId);
         pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
-        pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
+        pdfKabelAderBeschriftungRendern(painter, C, pxPerMm, aderLabels);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
         // Normblatt + Infostreifen in absoluten Koordinaten (kein Translate aktiv)
@@ -3519,11 +3504,12 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
     if (vollCanvas)
         painter.translate(-txCu * C, -tyCu * C);
     QVariantList elemente = grafikLaden(seiteId);
-    QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db);
+    QVector<PdfKabelAderLabel> aderLabels;
+    QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels);
     for (const QVariant &ev : elemente)
         pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId);
     pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
-    pdfKabelAderBeschriftungRendern(painter, seiteId, C, pxPerMm, m_db);
+    pdfKabelAderBeschriftungRendern(painter, C, pxPerMm, aderLabels);
     painter.restore();
 
     // Infostreifen nur wenn das Normblatt auf dieser Seite tatsächlich NICHT

@@ -37,6 +37,7 @@ struct BauteilEintrag {
     QString kabeltyp;
     QString hauptfunktionSymbolId;
     bool    fuerSeedVormerken;
+    bool    istSystem;
 };
 
 // ============================================================
@@ -106,7 +107,8 @@ public:
         IstKontaktRole,
         KabeltypRole,
         HauptfunktionSymbolIdRole,
-        FuerSeedVormerkenRole
+        FuerSeedVormerkenRole,
+        IstSystemRole
     };
 
     explicit BauteilListModel(QObject *parent = nullptr);

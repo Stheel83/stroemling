@@ -50,6 +50,7 @@ Item {
         property string altUrlHersteller: ""
         property string altUrlDatenblatt: ""
         property string altSymbolId: ""
+        property bool   altIstSystem:     false
         property var    _kontaktListe:    []
 
         background: Rectangle { color: theme.sidebar; border.color: theme.border; border.width: 1; radius: 6 }
@@ -74,6 +75,22 @@ Item {
             Text { text: dlgBauteilBearbeiten.title; font.pixelSize: 15; font.weight: Font.Medium;
                    color: theme.textPrimary; Layout.bottomMargin: 2 }
             Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.bottomMargin: 8 }
+
+            // BAUTEIL-IST-SYSTEM-01: Warnhinweis statt Sperre — Bearbeiten bleibt
+            // frei möglich, Änderungen wirken sich aber auf alle Projekte aus, die
+            // dieses mitgelieferte Bauteil bereits verwenden (lebende Referenz).
+            Rectangle {
+                visible: dlgBauteilBearbeiten.altIstSystem
+                Layout.fillWidth: true; Layout.bottomMargin: 8
+                implicitHeight: sysWarnText.implicitHeight + 12
+                radius: 4; color: "#3a2f10"; border.color: "#8a6a2d"
+                Text {
+                    id: sysWarnText
+                    anchors { fill: parent; margins: 6 }
+                    text: qsTr("🔒 Mitgeliefertes Bauteil — Änderungen wirken sich auf alle Projekte aus, die es bereits verwenden.")
+                    font.pixelSize: 11; color: "#ddaa5d"; wrapMode: Text.WordWrap
+                }
+            }
             ScrollView {
                 Layout.fillWidth: true
                 height: Math.min(editForm.implicitHeight + 16, 460)
@@ -466,6 +483,14 @@ Item {
                             }
                         }
 
+                        Text {
+                            text: "🔒"; visible: model.istSystem; font.pixelSize: 10
+                            ToolTip.visible: lockMa.containsMouse; ToolTip.delay: 400
+                            ToolTip.text: qsTr("Mitgeliefertes Bauteil")
+                            Layout.preferredWidth: 14
+                            MouseArea { id: lockMa; anchors.fill: parent; hoverEnabled: true }
+                        }
+                        Item { visible: !model.istSystem; Layout.preferredWidth: 14 }
                         Text { text: model.bezeichnung;   font.pixelSize: 13; color: theme.textSecondary; Layout.preferredWidth: 180; elide: Text.ElideRight }
                         Text { text: model.hersteller;    font.pixelSize: 13; color: theme.textMuted;      Layout.preferredWidth: 130; elide: Text.ElideRight }
                         Text { text: model.artikelnummer; font.pixelSize: 13; color: theme.textMuted;      Layout.preferredWidth: 110; elide: Text.ElideRight }
@@ -610,6 +635,7 @@ Item {
                                     dlgBauteilBearbeiten.altUrlHersteller = model.urlHersteller
                                     dlgBauteilBearbeiten.altUrlDatenblatt = model.urlDatenblatt
                                     dlgBauteilBearbeiten.altSymbolId      = model.hauptfunktionSymbolId || ""
+                                    dlgBauteilBearbeiten.altIstSystem     = model.istSystem
                                     dlgBauteilBearbeiten.open()
                                 }
                             }

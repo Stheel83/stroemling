@@ -210,7 +210,8 @@ void BauteilListModel::ladenIntern()
         "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN kt.id IS NOT NULL THEN 1 ELSE 0 END, "
-        "COALESCE(b.fuer_seed_vormerken,0) "
+        "COALESCE(b.fuer_seed_vormerken,0), "
+        "COALESCE(b.ist_system,0) "
         "FROM bibliothek.bauteil b "
         "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
         "LEFT JOIN bibliothek.bauteil_kabel  ka             ON ka.bauteil_id = b.id "
@@ -275,6 +276,7 @@ void BauteilListModel::ladenIntern()
         b.istKonfkabel            = q.value(18).toInt() != 0;
         b.istKontakt              = q.value(19).toInt() != 0;
         b.fuerSeedVormerken       = q.value(20).toInt() != 0;
+        b.istSystem               = q.value(21).toInt() != 0;
         m_bauteile.append(b);
     }
 
@@ -317,6 +319,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case KabeltypRole:              return b.kabeltyp;
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     case FuerSeedVormerkenRole:     return b.fuerSeedVormerken;
+    case IstSystemRole:             return b.istSystem;
     default:                        return {};
     }
 }
@@ -345,6 +348,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { KabeltypRole,              "kabeltyp"               },
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
         { FuerSeedVormerkenRole,     "fuerSeedVormerken"      },
+        { IstSystemRole,             "istSystem"              },
     };
 }
 
@@ -698,7 +702,8 @@ QVariantMap BauteilListModel::bauteilNachId(int id) const
     q.prepare("SELECT bezeichnung, COALESCE(hersteller,''), COALESCE(artikelnummer,''), "
               "COALESCE(lieferant,''), COALESCE(preis_eur,0), COALESCE(spannung_v,0), "
               "COALESCE(strom_a,0), COALESCE(leistung_w,0), COALESCE(bemerkung,''), "
-              "COALESCE(url_hersteller,''), COALESCE(url_datenblatt,'') "
+              "COALESCE(url_hersteller,''), COALESCE(url_datenblatt,''), "
+              "COALESCE(ist_system,0) "
               "FROM bibliothek.bauteil WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec() || !q.next()) return m;
@@ -713,6 +718,7 @@ QVariantMap BauteilListModel::bauteilNachId(int id) const
     m["bemerkung"]     = q.value(8).toString();
     m["urlHersteller"] = q.value(9).toString();
     m["urlDatenblatt"] = q.value(10).toString();
+    m["istSystem"]     = q.value(11).toInt() != 0;
     return m;
 }
 

@@ -293,6 +293,56 @@ bool Database::checkAndApplyBibliothekSchema()
         }
     }
 
+    // Schema v8: bauteil.ist_system (BAUTEIL-IST-SYSTEM-01, s.
+    // konzept/features/06_bauteilbibliothek.md §8.8) – markiert Bauteile, die
+    // aus dem mitgelieferten Seed stammen (seedStandardKlemmen()/
+    // seedNutzerBauteile() setzen die Spalte ab jetzt selbst beim INSERT).
+    // Grundlage für künftige sichere Korrekturen per gezieltem
+    // UPDATE ... WHERE ist_system=1 AND bezeichnung=..., ohne Gefahr, ein
+    // zufällig gleichnamiges echtes Nutzer-Bauteil zu treffen.
+    if (!q.exec("ALTER TABLE bauteil ADD COLUMN ist_system INTEGER NOT NULL DEFAULT 0")) {
+        if (!q.lastError().databaseText().toLower().contains("duplicate column")) {
+            qCWarning(lcDb) << "Bibliothek-Schema ALTER ist_system:" << q.lastError().text();
+            m_bibliothekDb.rollback();
+            return false;
+        }
+    }
+
+    // Einmaliges Backfill: bereits vor v8 vorhandene Seed-Bauteile nachträglich
+    // als ist_system=1 markieren (der INSERT-Guard in seedStandardKlemmen()/
+    // seedNutzerBauteile() prüft nur "bezeichnung existiert bereits" und
+    // überspringt sie deshalb sonst dauerhaft). Liste = alle Bezeichnungen,
+    // die zum Zeitpunkt dieser Migration im Seed stehen (6 Standard-Klemmen +
+    // bauteile_nutzer.sql) – bei künftigen Ergänzungen setzt der jeweilige
+    // Seed-Lauf ist_system schon selbst, kein neuer Backfill nötig.
+    {
+        static const QStringList seedBezeichnungen = {
+            QStringLiteral("Durchgangsklemme 2,5mm²"), QStringLiteral("Durchgangsklemme 4mm²"),
+            QStringLiteral("PE-Klemme 2,5mm²"), QStringLiteral("N-Klemme 2,5mm²"),
+            QStringLiteral("Doppelstockklemme 2,5mm²"), QStringLiteral("Trennklemme 2,5mm²"),
+            QStringLiteral("NYM-J 3x1,5"), QStringLiteral("NYM-J 5x1,5"),
+            QStringLiteral("LIYY 5x0,5"), QStringLiteral("LiYCY 4x0,25"),
+            QStringLiteral("Schütz 3RT2015-1AP01"), QStringLiteral("Hilfsrelais Finder 55.34"),
+            QStringLiteral("LS-Schalter B16"), QStringLiteral("FI-Schutzschalter 25A/30mA"),
+            QStringLiteral("Feinsicherung 5x20mm 2A"), QStringLiteral("Not-Halt-Taster"),
+            QStringLiteral("Taster grün (Ein)"), QStringLiteral("Taster rot (Aus)"),
+            QStringLiteral("Meldeleuchte rot 230V"), QStringLiteral("Drehstrommotor 0,55kW"),
+            QStringLiteral("Steuertrafo 230/24V 63VA"), QStringLiteral("Wago 2er"),
+            QStringLiteral("Wago 3er"), QStringLiteral("Wago 5er"),
+            QStringLiteral("Wago 1er Durchgangsverbinder"),
+        };
+        QSqlQuery qBackfill(m_bibliothekDb);
+        qBackfill.prepare("UPDATE bauteil SET ist_system = 1 WHERE bezeichnung = :bez");
+        for (const QString &bez : seedBezeichnungen) {
+            qBackfill.bindValue(":bez", bez);
+            if (!qBackfill.exec()) {
+                qCWarning(lcDb) << "Bibliothek-Schema ist_system-Backfill:" << bez << qBackfill.lastError().text();
+                m_bibliothekDb.rollback();
+                return false;
+            }
+        }
+    }
+
     // Farb-Definitionen (Gehäuse- und Aderfarben)
     struct Farbe { const char *hex; const char *bez; int sort; };
     static const QList<Farbe> farben = {

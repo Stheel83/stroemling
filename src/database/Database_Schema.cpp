@@ -2888,8 +2888,8 @@ bool Database::seedStandardKlemmen()
         if (qexist.exec() && qexist.next()) continue;
 
         QSqlQuery qb(m_bibliothekDb);
-        qb.prepare("INSERT INTO bauteil (bezeichnung, norm, bemerkung) "
-                   "VALUES (:bez, :norm, :bem)");
+        qb.prepare("INSERT INTO bauteil (bezeichnung, norm, bemerkung, ist_system) "
+                   "VALUES (:bez, :norm, :bem, 1)");
         qb.bindValue(":bez",  t.bez);
         qb.bindValue(":norm", QString("IEC 60947-7-1"));
         qb.bindValue(":bem",  QString("Standard-Klemme"));

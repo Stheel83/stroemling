@@ -281,6 +281,18 @@ bool Database::checkAndApplyBibliothekSchema()
         return false;
     }
 
+    // Schema v7: fuer_seed_vormerken (ONBOARDING-KETTEN-01) – reiner
+    // Entwicklungs-Merker (analog symbol_definition.markiert_loeschen), um beim
+    // Bauteil-Anlegen zu markieren, welche Bauteile noch in bauteile_nutzer.sql
+    // übernommen werden sollen. Rein informativ, löscht/exportiert nichts selbst.
+    if (!q.exec("ALTER TABLE bauteil ADD COLUMN fuer_seed_vormerken INTEGER NOT NULL DEFAULT 0")) {
+        if (!q.lastError().databaseText().toLower().contains("duplicate column")) {
+            qCWarning(lcDb) << "Bibliothek-Schema ALTER fuer_seed_vormerken:" << q.lastError().text();
+            m_bibliothekDb.rollback();
+            return false;
+        }
+    }
+
     // Farb-Definitionen (Gehäuse- und Aderfarben)
     struct Farbe { const char *hex; const char *bez; int sort; };
     static const QList<Farbe> farben = {

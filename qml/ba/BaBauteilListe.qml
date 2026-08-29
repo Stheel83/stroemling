@@ -420,6 +420,10 @@ Item {
                     color: isSelected ? theme.activeItemAlt
                            : (bMa.containsMouse ? theme.hover
                            : (index % 2 === 0 ? theme.tableEven : theme.tableOdd))
+                    // ONBOARDING-KETTEN-01: reiner Entwicklungs-Merker, kein Nutzer-Feature
+                    // (analog markiertLoeschen im Symboleditor) – bleibt auch ohne Hover sichtbar.
+                    border.width: model.fuerSeedVormerken ? 1 : 0
+                    border.color: "#4caf7d"
 
                     MouseArea {
                         id: bMa
@@ -493,6 +497,26 @@ Item {
                                font.pixelSize: 13; color: theme.textMuted; Layout.preferredWidth: 60; horizontalAlignment: Text.AlignRight }
 
                         Item { Layout.fillWidth: true }
+
+                        // ONBOARDING-KETTEN-01: "Für Bauteil-Seed vormerken" — reiner
+                        // Entwicklungs-Merker (analog markiertLoeschen im Symboleditor),
+                        // kein Nutzer-Feature. Bleibt bei aktiver Vormerkung auch ohne
+                        // Hover sichtbar, damit die Liste durchscrollbar bleibt.
+                        Button {
+                            width: 24; height: 24; flat: true
+                            visible: bMa.containsMouse || model.fuerSeedVormerken
+                            contentItem: Text {
+                                text: "🌱"; font.pixelSize: 13
+                                color: model.fuerSeedVormerken ? "#4caf7d" : theme.textMuted
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                            ToolTip.visible: hovered; ToolTip.delay: 400
+                            ToolTip.text: model.fuerSeedVormerken
+                                ? qsTr("Vormerkung für Bauteil-Seed aufheben")
+                                : qsTr("Für Bauteil-Seed vormerken (Entwicklungswerkzeug)")
+                            onClicked: bauteilModel.fuerSeedUmschalten(model.bauteilId)
+                        }
 
                         Row {
                             spacing: 4; visible: bMa.containsMouse

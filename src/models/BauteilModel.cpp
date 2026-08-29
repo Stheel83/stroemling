@@ -209,7 +209,8 @@ void BauteilListModel::ladenIntern()
         "COALESCE(b.hauptfunktion_symbol_id,''), "
         "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END, "
-        "CASE WHEN kt.id IS NOT NULL THEN 1 ELSE 0 END "
+        "CASE WHEN kt.id IS NOT NULL THEN 1 ELSE 0 END, "
+        "COALESCE(b.fuer_seed_vormerken,0) "
         "FROM bibliothek.bauteil b "
         "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
         "LEFT JOIN bibliothek.bauteil_kabel  ka             ON ka.bauteil_id = b.id "
@@ -273,6 +274,7 @@ void BauteilListModel::ladenIntern()
         b.istSteckverbinder       = q.value(17).toInt() != 0;
         b.istKonfkabel            = q.value(18).toInt() != 0;
         b.istKontakt              = q.value(19).toInt() != 0;
+        b.fuerSeedVormerken       = q.value(20).toInt() != 0;
         m_bauteile.append(b);
     }
 
@@ -314,6 +316,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case IstKontaktRole:            return b.istKontakt;
     case KabeltypRole:              return b.kabeltyp;
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
+    case FuerSeedVormerkenRole:     return b.fuerSeedVormerken;
     default:                        return {};
     }
 }
@@ -341,6 +344,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { IstKontaktRole,            "istKontakt"             },
         { KabeltypRole,              "kabeltyp"               },
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
+        { FuerSeedVormerkenRole,     "fuerSeedVormerken"      },
     };
 }
 
@@ -760,6 +764,42 @@ QVariantList BauteilListModel::bauteileWithSymbol() const
         m["bauteilId"]   = q.value(0).toInt();
         m["bezeichnung"] = q.value(1).toString();
         m["symbolId"]    = q.value(2).toString();
+        liste.append(m);
+    }
+    return liste;
+}
+
+bool BauteilListModel::fuerSeedUmschalten(int id)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE bibliothek.bauteil SET fuer_seed_vormerken = 1 - COALESCE(fuer_seed_vormerken,0) WHERE id = :id");
+    q.bindValue(":id", id);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "fuerSeedUmschalten Fehler:" << q.lastError().text();
+        return false;
+    }
+    laden(m_aktiveKategorieId);
+    return true;
+}
+
+QVariantList BauteilListModel::bauteileFuerSeed() const
+{
+    QSqlQuery q;
+    q.prepare("SELECT id, bezeichnung, hersteller, artikelnummer "
+              "FROM bibliothek.bauteil "
+              "WHERE fuer_seed_vormerken = 1 "
+              "ORDER BY bezeichnung COLLATE NOCASE");
+    QVariantList liste;
+    if (!q.exec()) {
+        qCWarning(lcModel) << "bauteileFuerSeed Fehler:" << q.lastError().text();
+        return liste;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["bauteilId"]      = q.value(0).toInt();
+        m["bezeichnung"]    = q.value(1).toString();
+        m["hersteller"]     = q.value(2).toString();
+        m["artikelnummer"]  = q.value(3).toString();
         liste.append(m);
     }
     return liste;

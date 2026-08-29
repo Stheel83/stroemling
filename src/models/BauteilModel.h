@@ -36,6 +36,7 @@ struct BauteilEintrag {
     bool    istKontakt;
     QString kabeltyp;
     QString hauptfunktionSymbolId;
+    bool    fuerSeedVormerken;
 };
 
 // ============================================================
@@ -104,7 +105,8 @@ public:
         IstKonfkabelRole,
         IstKontaktRole,
         KabeltypRole,
-        HauptfunktionSymbolIdRole
+        HauptfunktionSymbolIdRole,
+        FuerSeedVormerkenRole
     };
 
     explicit BauteilListModel(QObject *parent = nullptr);
@@ -152,6 +154,12 @@ public:
                                             const QString &hersteller, const QString &artikelnummer);
     Q_INVOKABLE bool symbolSpeichern(int id, const QString &symbolId);
     Q_INVOKABLE QVariantList bauteileWithSymbol() const;
+
+    // ONBOARDING-KETTEN-01: reiner Entwicklungs-Merker (analog Symboleditor
+    // markiertLoeschen), kein Nutzer-Feature. Markiert Bauteile, die noch in
+    // bauteile_nutzer.sql übernommen werden sollen.
+    Q_INVOKABLE bool fuerSeedUmschalten(int id);
+    Q_INVOKABLE QVariantList bauteileFuerSeed() const;
 
     Q_PROPERTY(int  aktiveKategorieId  READ aktiveKategorieId  NOTIFY aktiveKategorieIdChanged)
     Q_PROPERTY(bool nurKlemmen         READ nurKlemmen         NOTIFY aktiveKategorieIdChanged)

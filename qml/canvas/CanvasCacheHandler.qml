@@ -140,6 +140,26 @@ QtObject {
         cv._kabelLinienCache = map
     }
 
+    // KABEL-ADERFARBE-PROPAGATION-03: hält kabel_ader (seitenübergreifende
+    // Tabelle, genutzt von EpKabelLinienBlock.qml für "N Adr." pro Linie +
+    // "Freie Adern") bei jedem Speichern (grafikSpeichernJetzt()) mit den
+    // tatsächlichen Kreuzungen jeder Kabellinie auf DIESER Seite synchron —
+    // die live extra_daten-Quelle gilt nur seiten-lokal, kabel_ader ist der
+    // einzige Ort für eine seitenübergreifende Sicht (mehrseitige Kabel).
+    // netze wird von grafikSpeichernJetzt() bereits frisch berechnet
+    // übergeben, keine erneute Berechnung hier nötig.
+    function kabelAderSynchronisieren(netze) {
+        var els = cv.elementeModel.snapshot()
+        for (var i = 0; i < els.length; i++) {
+            var el = els[i]
+            if (!el || el.typ !== "kabellinie" || el.id <= 0) continue
+            var kabelId = (el.extraDaten && el.extraDaten.kabelId) || 0
+            if (kabelId <= 0) continue
+            var aktive = cv.geometrie.kabelAktiveAderZuordnungen(el, netze, false)
+            db.kabelAderLinieSynchronisieren(kabelId, el.id, aktive)
+        }
+    }
+
     // --------------------------------------------------------
     // Ader-Dialog-Orchestrierung
     // --------------------------------------------------------
@@ -188,14 +208,18 @@ QtObject {
         }
         var currentEl = freshEl || el
         var freshGeid = currentEl.id || 0
+        var freshEd   = currentEl.extraDaten || {}
 
-        var details  = db.kabelLinieDetails(freshGeid)
         var netze    = cv.netzberechnung.autoNetzeBerechnen()
         var schnitte = cv.geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
 
-        // Vollständige Aderliste aufbauen: DB-Einträge + fehlende aderNr als freie Platzhalter
-        var aderzahl = details.aderzahl || ed.aderzahl || 0
-        var rawAdern = details.adern || []
+        // KABEL-ADERFARBE-PROPAGATION-02: Aderliste kommt aus extra_daten.
+        // adern der Kabellinie selbst, NICHT mehr aus db.kabelLinieDetails()
+        // (liest die kabel_ader-Tabelle, die beim normalen "Bauteil-Kabel
+        // wählen"-Workflow leer bleibt bzw. veraltete Reste zeigt — dieselbe
+        // Erkenntnis wie bei KABEL-ADERFARBE-01 für die Canvas-Farbe).
+        var aderzahl = freshEd.aderzahl || 0
+        var rawAdern = freshEd.adern || []
         var aderMap  = {}
         for (var ai = 0; ai < rawAdern.length; ai++)
             aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
@@ -203,8 +227,8 @@ QtObject {
         for (var nr = 1; nr <= aderzahl; nr++)
             fullAdern.push(aderMap[nr] || { aderNr: nr, farbe: "", bezeichnung: "", verbindungId: 0, kabellinieGrafikElementId: 0 })
 
-        cv._dialogLayer.aderzuordnungOeffnen(kabelId, ed.bezeichnung || "", ed.kabeltyp || "",
-            aderzahl, fullAdern, schnitte, ed.aderZuordnung || {},
+        cv._dialogLayer.aderzuordnungOeffnen(kabelId, freshEd.bezeichnung || "", freshEd.kabeltyp || "",
+            aderzahl, fullAdern, schnitte, freshEd.aderZuordnung || {},
             freshGeid, _pinNummernFuerNetze(netze))
     }
 
@@ -212,6 +236,14 @@ QtObject {
     // ANDEREN Kreuzung derselben Kabellinie vergeben sind (eigenerAderKey
     // wird ausgenommen, damit die aktuell zugeordnete Ader selbst nicht
     // fälschlich als "belegt" gilt).
+    //
+    // KABEL-ADERFARBE-PROPAGATION-02: eine Kreuzung ohne expliziten
+    // aderZuordnung-Eintrag gilt NICHT als frei — sie hat implizit den
+    // Positions-Fallback (i-te Kreuzung → Ader i, wie überall sonst beim
+    // Rendern/den Ader-Labels, s. _sammleKabelAderFarben()/
+    // kabelKreuzungBeiPosition()). Ohne diesen Fallback hier hätte das
+    // Popup direkt nach einer frischen Bauteil-Kabel-Zuweisung (aderZuordnung
+    // noch komplett leer) fälschlich alle Adern als frei angeboten.
     function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey) {
         var belegt = {}
         for (var i = 0; i < schnitte.length; i++) {
@@ -219,7 +251,8 @@ QtObject {
             var key = sc.aderKey || sc.netKey || sc.legacyNetKey || ""
             if (key === eigenerAderKey) continue
             var zugeordnet = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-            if (zugeordnet !== undefined && zugeordnet !== 0) belegt[zugeordnet] = true
+            if (zugeordnet === undefined) zugeordnet = i + 1
+            if (zugeordnet !== 0) belegt[zugeordnet] = true
         }
         var frei = []
         for (var nr = 1; nr <= aderzahl; nr++)
@@ -250,9 +283,11 @@ QtObject {
         var freshGeid = currentEl.id || 0
         var freshEd   = currentEl.extraDaten || {}
 
-        var details  = db.kabelLinieDetails(freshGeid)
-        var aderzahl = details.aderzahl || freshEd.aderzahl || 0
-        var rawAdern = details.adern || []
+        // KABEL-ADERFARBE-PROPAGATION-02: s. aderzuordnungDialogOeffnen()
+        // oben — Aderliste aus extra_daten.adern statt der leeren/veralteten
+        // kabel_ader-Tabelle.
+        var aderzahl = freshEd.aderzahl || 0
+        var rawAdern = freshEd.adern || []
         var aderMap  = {}
         for (var ai = 0; ai < rawAdern.length; ai++) aderMap[rawAdern[ai].aderNr] = rawAdern[ai]
 

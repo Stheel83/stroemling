@@ -530,4 +530,57 @@ QtObject {
         if (elId > 0) cv._cachedKabelSchnitte[elId] = result
         return result
     }
+
+    // KABEL-ADERFARBE-PROPAGATION-02/03: Liefert für eine Kabellinie die
+    // Adern, die AKTUELL an einer echten Kreuzung hängen (nicht die
+    // statische Roster-Liste aus extra_daten.adern, die auch ohne jede
+    // Kreuzung unverändert bleibt). Pro Kreuzung wird die Ader über
+    // aderZuordnung (aderKey > netKey > legacyNetKey) mit Positions-
+    // Fallback (si+1) aufgelöst, "0" (explizit keine Ader) übersprungen,
+    // Duplikate (mehrere Kreuzungen → gleiche Ader) zusammengefasst.
+    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}, ...]
+    // zurück, sortiert nach aderNr. Gemeinsam genutzt von
+    // EpKabelAdernBlock.qml (Anzeige, mit gecachten Netzen/Schnitten) und
+    // CanvasCacheHandler.qml::kabelAderSynchronisieren() (Speichern, mit
+    // frisch berechneten Netzen) — bewusst nicht dupliziert, s. Lehre aus
+    // KABEL-ADERFARBE-PROPAGATION-01 (Renderer-Eigenart mehrfach kopiert).
+    function kabelAktiveAderZuordnungen(el, netze, verwendeCache) {
+        if (!el || el.typ !== "kabellinie") return []
+        var ed = el.extraDaten || {}
+        var roster = ed.adern || []
+        if (roster.length === 0) return []
+
+        var rosterMap = {}
+        for (var ri = 0; ri < roster.length; ri++) {
+            var nr = roster[ri].aderNr !== undefined ? roster[ri].aderNr : (ri + 1)
+            rosterMap[nr] = roster[ri]
+        }
+
+        var schnitte = verwendeCache ? kabelSchnittNetzeBerechnenCached(el, netze)
+                                      : kabelSchnittNetzeBerechnen(el, netze)
+        var aderZuordnung = ed.aderZuordnung || null
+
+        var gesehen = {}, out = []
+        for (var si = 0; si < schnitte.length; si++) {
+            var sc = schnitte[si]
+            var zug = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
+            var aderNr = si + 1
+            if (zug !== undefined) {
+                if (zug === 0) continue
+                aderNr = zug
+            }
+            if (gesehen[aderNr]) continue
+            gesehen[aderNr] = true
+            var roAder = rosterMap[aderNr] || {}
+            out.push({
+                aderNr:       aderNr,
+                farbe:        roAder.farbe || "",
+                farbe2:       roAder.farbe2 || "",
+                bezeichnung:  roAder.bezeichnung || "",
+                verbindungId: sc.verbindungId || 0
+            })
+        }
+        out.sort(function(a, b) { return a.aderNr - b.aderNr })
+        return out
+    }
 }

@@ -545,6 +545,22 @@ public:
                                        int verbindungId,
                                        int kabellinieGrafikElementId = 0);
 
+    // KABEL-ADERFARBE-PROPAGATION-03: hält kabel_ader für EINE Kabellinie
+    // synchron mit ihren tatsächlich aktuellen Kreuzungen (aufgerufen aus
+    // CanvasCacheHandler.qml::kabelAderSynchronisieren() bei jedem
+    // grafikSpeichernJetzt()). "aktive" = die von
+    // CanvasGeometrie.qml::kabelAktiveAderZuordnungen() berechneten,
+    // gerade wirklich zutreffenden Zuordnungen dieser Linie
+    // ([{aderNr, farbe, farbe2, bezeichnung, verbindungId}, ...]).
+    // Adern, die bisher dieser Linie zugeordnet waren, aber nicht mehr in
+    // "aktive" auftauchen (Linie verschoben, kreuzt nichts mehr), werden
+    // freigegeben (kabellinie_grafik_element_id/verbindung_id → NULL,
+    // Zeile bleibt für kabelFreieAderLaden() bestehen). kabel_ader ist
+    // kabelId+aderNr-eindeutig (nicht pro Linie) — ein Kabel kann nur an
+    // EINER Stelle je Ader tatsächlich angeschlossen sein.
+    Q_INVOKABLE bool kabelAderLinieSynchronisieren(int kabelId, int kabellinieGrafikElementId,
+                                                   const QVariantList &aktive);
+
     // Kabeldetails + Adern für das EigenschaftenPanel laden.
     // Sucht das Kabel über json_extract(extra_daten, '$.kabelId') des Grafikelements.
     // Gibt {id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, grafikElementId,

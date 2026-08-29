@@ -13,17 +13,27 @@ Column {
 
     property bool _expanded: true
 
-    readonly property int freshGeid: {
-        var kabelId = panel.el && panel.el.extraDaten
-                      ? (panel.el.extraDaten.kabelId || 0) : 0
-        if (kabelId <= 0) return 0
-        var linien = db.kabelAlleLinienLaden(kabelId + (panel._refresh * 0))
-        var mySeite = panel.canvas.seiteId
-        for (var li = 0; li < linien.length; li++) {
-            if (linien[li].seiteId === mySeite)
-                return linien[li].grafikElementId || 0
-        }
-        return 0
+    // KABEL-ADERFARBE-PROPAGATION-02: "Dieser Linie zugeordnet" zeigt NICHT
+    // die statische Ader-Roster-Liste des Kabeltyps (extra_daten.adern —
+    // die bleibt unverändert, auch wenn die Linie gar keine Verbindung mehr
+    // kreuzt), sondern nur die Adern, die AKTUELL an einer echten Kreuzung
+    // hängen — via der geteilten CanvasGeometrie.qml::
+    // kabelAktiveAderZuordnungen() (auch von CanvasCacheHandler.qml::
+    // kabelAderSynchronisieren() beim Speichern genutzt, s. dort).
+    //
+    // panel._refresh als Dummy-Abhängigkeit nötig (wie überall sonst in
+    // diesem EP-Panel, s. EigenschaftenPanel.qml::onGeaendert()) — die
+    // Netz-/Kreuzungsberechnung sind reine C++/JS-Aufrufe ohne eigenes
+    // QML-Property-Binding, ohne die Abhängigkeit würde sich die Liste
+    // nicht neu berechnen, wenn die Linie verschoben wird.
+    readonly property var zugewieseneAdern: {
+        // AOT-Fallstrick (s. EigenschaftenPanel.qml): "* 0" hält die
+        // panel._refresh-Abhängigkeit im kompilierten Binding, ohne den
+        // Zähler selbst zu verändern — ein reiner, nirgends genutzter
+        // Lese-Zugriff würde vom qmlcachegen sonst wegoptimiert.
+        if (panel._refresh * 0 !== 0 || !panel.el || panel.el.typ !== "kabellinie") return []
+        var netze = panel.canvas.netzberechnung.autoNetzeBerechnenCached()
+        return panel.canvas.geometrie.kabelAktiveAderZuordnungen(panel.el, netze, true)
     }
 
     // KABEL-ADERN header (toggle)
@@ -71,12 +81,7 @@ Column {
                 color: root.theme.textMuted; font.pixelSize: 10; font.italic: true
             }
             Repeater {
-                model: {
-                    var geid = root.freshGeid
-                    return geid > 0
-                           ? db.kabelAderFuerLinieLaden(geid + (panel._refresh * 0))
-                           : []
-                }
+                model: root.zugewieseneAdern
                 delegate: Rectangle {
                     width: parent ? parent.width - 16 : 0
                     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
@@ -110,12 +115,10 @@ Column {
                 width: parent.width - 16
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: {
-                    var geid = root.freshGeid
                     var kabelId = panel.el && panel.el.extraDaten
                                   ? (panel.el.extraDaten.kabelId || 0) : 0
                     if (kabelId <= 0) return false
-                    if (geid <= 0) return true
-                    return db.kabelAderFuerLinieLaden(geid + (panel._refresh * 0)).length === 0
+                    return root.zugewieseneAdern.length === 0
                 }
                 text: qsTr("Keine Adern zugeordnet.")
                 color: root.theme.textMuted; font.pixelSize: 10; font.italic: true

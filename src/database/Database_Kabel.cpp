@@ -112,6 +112,63 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
 }
 
 // ============================================================
+// kabelAderLinieSynchronisieren
+// KABEL-ADERFARBE-PROPAGATION-03: kabel_ader für EINE Kabellinie mit ihren
+// aktuell tatsächlichen Kreuzungen abgleichen. s. Database.h für Details.
+// ============================================================
+bool Database::kabelAderLinieSynchronisieren(int kabelId, int kabellinieGrafikElementId,
+                                             const QVariantList &aktive)
+{
+    if (kabelId <= 0 || kabellinieGrafikElementId <= 0) return false;
+
+    QSet<int> aktiveNrn;
+    for (const QVariant &v : aktive)
+        aktiveNrn.insert(v.toMap().value(QStringLiteral("aderNr")).toInt());
+
+    // Freigeben: Adern, die bisher dieser Linie zugeordnet waren, jetzt aber
+    // nicht mehr in "aktive" auftauchen (Linie verschoben/gekürzt, kreuzt
+    // diese Verbindung nicht mehr).
+    QSqlQuery sel(m_db);
+    sel.prepare(R"(
+        SELECT ader_nr FROM kabel_ader
+        WHERE kabel_id = :kid AND kabellinie_grafik_element_id = :geid
+    )");
+    sel.bindValue(":kid",  kabelId);
+    sel.bindValue(":geid", kabellinieGrafikElementId);
+    if (!sel.exec()) {
+        qCWarning(lcDb) << "kabelAderLinieSynchronisieren SELECT:" << sel.lastError().text();
+        return false;
+    }
+    QList<int> alteNrn;
+    while (sel.next()) alteNrn.append(sel.value(0).toInt());
+
+    for (int nr : alteNrn) {
+        if (aktiveNrn.contains(nr)) continue;
+        QSqlQuery upd(m_db);
+        upd.prepare(R"(
+            UPDATE kabel_ader SET verbindung_id = NULL, kabellinie_grafik_element_id = NULL
+            WHERE kabel_id = :kid AND ader_nr = :nr
+        )");
+        upd.bindValue(":kid", kabelId);
+        upd.bindValue(":nr",  nr);
+        if (!upd.exec())
+            qCWarning(lcDb) << "kabelAderLinieSynchronisieren Freigabe:" << upd.lastError().text();
+    }
+
+    // Aktive Zuordnungen schreiben (Update-oder-Insert wie kabelAderZuordnen()).
+    for (const QVariant &v : aktive) {
+        QVariantMap m = v.toMap();
+        kabelAderZuordnen(kabelId, m.value(QStringLiteral("aderNr")).toInt(),
+                           m.value(QStringLiteral("farbe")).toString(),
+                           m.value(QStringLiteral("farbe2")).toString(),
+                           m.value(QStringLiteral("bezeichnung")).toString(),
+                           m.value(QStringLiteral("verbindungId")).toInt(),
+                           kabellinieGrafikElementId);
+    }
+    return true;
+}
+
+// ============================================================
 // kabelLinieDetails
 // Lädt Kabelmetadaten + Adern für ein grafik_element.
 // ============================================================

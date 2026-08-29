@@ -831,6 +831,7 @@ Item {
             db.verbindungenSynchronisieren(root.seiteId, root.projektId, netze)
             root.verbindungAnnotationenNeuLaden()
             root._konfliktNeuentstehungPruefen(netze)
+            cacheHandler.kabelAderSynchronisieren(netze)
         }
     }
 

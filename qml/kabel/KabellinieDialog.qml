@@ -132,6 +132,12 @@ Dialog {
                             tfKabeltyp.text    = k.kabeltyp        || ""
                             tfAderzahl.text    = (k.aderzahl     || 0) > 0 ? k.aderzahl.toString()        : ""
                             tfQuerschnitt.text = (k.querschnittMm2 || 0) > 0 ? k.querschnittMm2.toString() : ""
+                            // KABEL-BAUTEIL-BMK-UEBERNAHME-01: Bauteil-Kabel-
+                            // Verknüpfung des erkannten bestehenden Kabels
+                            // übernehmen, sonst musste sie für jede weitere
+                            // Kabellinie desselben Kabels manuell neu gewählt
+                            // werden, obwohl das BMK identisch ist.
+                            root.bauteilKabelId = k.bauteilKabelId || 0
                         }
                         return
                     }

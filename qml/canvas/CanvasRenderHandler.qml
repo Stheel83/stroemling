@@ -1051,6 +1051,14 @@ QtObject {
         var klAdern       = (_rawAdn && _rawAdn.length > 0) ? _rawAdn : []
         var aderZuordnung = (el.extraDaten && el.extraDaten.aderZuordnung)
                             ? el.extraDaten.aderZuordnung : null
+        // KABEL-ADERFARBE-PROPAGATION-04: Vorrang vor dem rein lokalen
+        // Positions-Fallback hat die seitenübergreifend gepoolte
+        // kabel_ader-Tabelle (s. CanvasGeometrie.qml::
+        // kabelAderProKabelCached()/_aderNrFuerKreuzung()) — sonst würde
+        // dieses Label nach dem Speichern eine andere Nummer zeigen als die
+        // tatsächlich persistierte, konfliktfreie Zuordnung.
+        var kabelId = (el.extraDaten && el.extraDaten.kabelId) || 0
+        var gepoolt = cv.geometrie.kabelAderProKabelCached(kabelId)
         var klColor = el.strichFarbe || "#e07000"
 
         // Senkrechter Einheitsvektor zur Linie (Seite: visuell oben im Viewport)
@@ -1075,15 +1083,11 @@ QtObject {
             ctx.lineTo(vx + nx * kTickLen, vy + ny * kTickLen)
             ctx.stroke()
 
-            // Ader-Label: aderZuordnung (aderKey→aderNr, 0 = explizit leer) hat
-            // Vorrang, sonst positionsbasiert
-            var aderNr = sci + 1
-            var explizitLeer = false
-            var zugeordnet = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-            if (zugeordnet !== undefined) {
-                if (zugeordnet === 0) explizitLeer = true
-                else aderNr = zugeordnet
-            }
+            // Ader-Label: aderZuordnung (aderKey→aderNr, 0 = explizit leer) >
+            // seitenübergreifend gepoolte kabel_ader-Tabelle > positionsbasiert
+            var _ares = cv.netzberechnung._aderNrFuerKreuzung(aderZuordnung, sc, sci, gepoolt)
+            var aderNr = _ares.aderNr
+            var explizitLeer = _ares.istLeer
             var labelText = explizitLeer ? "–" : ("" + aderNr)
             // Farbe aus klAdern holen (Suche nach aderNr)
             if (!explizitLeer) {
@@ -1169,15 +1173,14 @@ QtObject {
                 var adern = ed.adern || []
                 if (adern.length === 0) continue
                 var aderZuordnung = ed.aderZuordnung || null
+                var kabelId3 = ed.kabelId || 0
+                var gepoolt3 = cv.geometrie.kabelAderProKabelCached(kabelId3)
                 var schnitte = cv.geometrie.kabelSchnittNetzeBerechnenCached(kl, netze)
                 for (var si = 0; si < schnitte.length; si++) {
                     var sc = schnitte[si]
-                    var aderNr = si + 1
-                    var zug = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-                    if (zug !== undefined) {
-                        if (zug === 0) continue   // explizit "keine Ader" – nicht einfärben
-                        aderNr = zug
-                    }
+                    var _cres = cv.netzberechnung._aderNrFuerKreuzung(aderZuordnung, sc, si, gepoolt3)
+                    if (_cres.istLeer) continue   // explizit "keine Ader" – nicht einfärben
+                    var aderNr = _cres.aderNr
                     var farbe = "", farbe2 = ""
                     for (var ai = 0; ai < adern.length; ai++) {
                         var ad = adern[ai]

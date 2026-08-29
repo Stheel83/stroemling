@@ -12,6 +12,9 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QSet>
+#include <QHash>
+#include <QPair>
+#include <QPointF>
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
@@ -169,6 +172,440 @@ bool Database::kabelAderLinieSynchronisieren(int kabelId, int kabellinieGrafikEl
 }
 
 // ============================================================
+// KABEL-ADERFARBE-PROPAGATION-04: seitenübergreifende Ader-Poolung.
+// Kreuzungs-Geometrie 1:1 an pdfLeitungenSammeln() (Database_PDF.cpp)
+// angelehnt — Stabiler-Punkt-Walk + Segment-Adjazenz aus
+// verbindung_segment/verbindung statt Live-QML-Netzgraph, da diese
+// Funktion auch für gerade nicht offene Seiten arbeiten muss. Damit
+// bereits DREI Kopien derselben Kern-Logik (QML: CanvasNetzberechnung.qml/
+// CanvasGeometrie.qml, PDF: Database_PDF.cpp, hier) — bewusste
+// Design-Entscheidung statt eines gemeinsamen Moduls, s. Konzeptdatei
+// 05_leitungen_kabel.md §6.5.3/§6.5.4 für die Abwägung. Muss bei
+// Änderungen an einer der drei Kopien mit den anderen zwei synchron
+// gehalten werden.
+// ============================================================
+namespace {
+
+struct KaSymElement {
+    QString     symbolId;
+    double      x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+    double      rotation = 0;
+    bool        spiegelX = false, spiegelY = false;
+    QJsonObject extraDaten;
+};
+
+const QSet<QString> &kaRoutingSymbolTypen()
+{
+    static const QSet<QString> s = { QStringLiteral("winkel"), QStringLiteral("treffpunkt"),
+                                      QStringLiteral("treffpunkt_l"), QStringLiteral("aderdefinition") };
+    return s;
+}
+
+// 1:1-Port von pinWeltPos() (SymbolDefinitionModel.cpp) / pdfPinWeltPos()
+// (Database_PDF.cpp) — muss synchron gehalten werden.
+QPointF kaPinWeltPos(double x1, double y1, double x2, double y2,
+                      double rotation, bool spiegelX, bool spiegelY,
+                      double pinX, double pinY)
+{
+    const double sw = x2 - x1, sh = y2 - y1;
+    const double scx = x1 + sw / 2.0, scy = y1 + sh / 2.0;
+    double cx = (pinX - 0.5) * std::abs(sw);
+    double cy = (pinY - 0.5) * std::abs(sh);
+    if (spiegelX) cx = -cx;
+    if (spiegelY) cy = -cy;
+    const double rot = rotation * M_PI / 180.0;
+    return { scx + cx * std::cos(rot) - cy * std::sin(rot),
+             scy + cx * std::sin(rot) + cy * std::cos(rot) };
+}
+
+// 1:1-Port von pdfStabilerPunktSchluessel().
+QString kaStabilerPunktSchluessel(int elIdx, const QString &pinName,
+                                   const QVector<KaSymElement> &els,
+                                   const QVector<KaSymElement> &geraetekaesten)
+{
+    if (elIdx < 0 || elIdx >= els.size()) return {};
+    const KaSymElement &el  = els[elIdx];
+    const QString      &sid = el.symbolId;
+
+    if (sid == QLatin1String("geraeteanschluss")) {
+        QString ank = el.extraDaten.value(QStringLiteral("anschlusskennzeichnung")).toString();
+        if (ank.isEmpty()) return {};
+        double cx = (el.x1 + el.x2) / 2.0, cy = (el.y1 + el.y2) / 2.0;
+        const KaSymElement *best = nullptr;
+        double bestA = std::numeric_limits<double>::infinity();
+        for (const KaSymElement &gk : geraetekaesten) {
+            double gx1 = std::min(gk.x1, gk.x2), gx2 = std::max(gk.x1, gk.x2);
+            double gy1 = std::min(gk.y1, gk.y2), gy2 = std::max(gk.y1, gk.y2);
+            if (cx >= gx1 && cx <= gx2 && cy >= gy1 && cy <= gy2) {
+                double a = (gx2 - gx1) * (gy2 - gy1);
+                if (a < bestA) { bestA = a; best = &gk; }
+            }
+        }
+        QString bmk = best ? best->extraDaten.value(QStringLiteral("bmk")).toString() : QString();
+        if (bmk.isEmpty()) return {};
+        return QStringLiteral("GA:") + bmk + ":" + ank;
+    }
+    if (sid == QLatin1String("klemme_anschluss")) {
+        QString bmk = el.extraDaten.value(QStringLiteral("bmk")).toString();
+        QString anz = el.extraDaten.value(QStringLiteral("anschlussBezeichnung")).toString();
+        if (bmk.isEmpty() || anz.isEmpty()) return {};
+        return QStringLiteral("KA:") + bmk + ":" + anz;
+    }
+    if (sid == QLatin1String("potenzial")) {
+        QString sig = el.extraDaten.value(QStringLiteral("signalname")).toString();
+        if (sig.isEmpty()) return {};
+        return QStringLiteral("POT:") + sig;
+    }
+    QString bmk2 = el.extraDaten.value(QStringLiteral("bmk")).toString();
+    if (bmk2.isEmpty() || pinName.isEmpty()) return {};
+    return QStringLiteral("SYM:") + bmk2 + ":" + pinName;
+}
+
+// 1:1-Port von pdfNaechsterStabilerPunkt().
+QString kaNaechsterStabilerPunkt(int elIdx, int vonIdx, const QString &pinName,
+                                  const QHash<int, QVector<QPair<int, QString>>> &adj,
+                                  const QVector<KaSymElement> &els,
+                                  const QVector<KaSymElement> &geraetekaesten,
+                                  int tiefe)
+{
+    if (tiefe <= 0 || elIdx < 0) return {};
+    QString stabil = kaStabilerPunktSchluessel(elIdx, pinName, els, geraetekaesten);
+    if (!stabil.isEmpty()) return stabil;
+    if (elIdx >= els.size() || !kaRoutingSymbolTypen().contains(els[elIdx].symbolId)) return {};
+    auto it = adj.find(elIdx);
+    if (it == adj.end()) return {};
+    for (const auto &nb : it.value()) {
+        if (nb.first != vonIdx)
+            return kaNaechsterStabilerPunkt(nb.first, elIdx, nb.second, adj, els, geraetekaesten, tiefe - 1);
+    }
+    return {};
+}
+
+struct KaRawSeg { double x1, y1, x2, y2; int verbindungId; QString potenzial; };
+
+// Alle für die Kreuzungs-/Ader-Schlüssel-Berechnung nötigen Daten EINER Seite.
+struct KaSeitenDaten {
+    QVector<KaRawSeg>     raw;
+    QVector<int>          segElA, segElB;
+    QVector<QString>      segPinA, segPinB;
+    QHash<int, QVector<QPair<int, QString>>> adj;
+    QVector<KaSymElement> els, geraetekaesten;
+    QHash<int, QString>   aderKeyCache;
+
+    QString aderKeyFuerSeg(int segIdx)
+    {
+        auto it = aderKeyCache.find(segIdx);
+        if (it != aderKeyCache.end()) return it.value();
+        QString seiteA = kaNaechsterStabilerPunkt(segElA[segIdx], segElB[segIdx], segPinA[segIdx],
+                                                    adj, els, geraetekaesten, 20);
+        QString seiteB = kaNaechsterStabilerPunkt(segElB[segIdx], segElA[segIdx], segPinB[segIdx],
+                                                    adj, els, geraetekaesten, 20);
+        QStringList teile;
+        if (!seiteA.isEmpty()) teile << seiteA;
+        if (!seiteB.isEmpty()) teile << seiteB;
+        teile.sort();
+        QString key = teile.join(QStringLiteral("|"));
+        aderKeyCache[segIdx] = key;
+        return key;
+    }
+};
+
+bool kaSeiteLaden(const QSqlDatabase &db, int seiteId, KaSeitenDaten &out)
+{
+    QSqlQuery q(db);
+    q.prepare(R"(
+        SELECT vs.punkte, vs.verbindung_id, v.potenzial
+        FROM verbindung_segment vs
+        JOIN verbindung v ON vs.verbindung_id = v.id
+        WHERE vs.seite_id = :sid
+    )");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec()) return false;
+    while (q.next()) {
+        QJsonDocument doc = QJsonDocument::fromJson(q.value(0).toString().toUtf8());
+        if (!doc.isArray() || doc.array().size() < 2) continue;
+        QJsonArray arr = doc.array();
+        out.raw.append({ arr[0].toObject()["x"].toDouble(), arr[0].toObject()["y"].toDouble(),
+                          arr[1].toObject()["x"].toDouble(), arr[1].toObject()["y"].toDouble(),
+                          q.value(1).toInt(), q.value(2).toString() });
+    }
+    const int n = out.raw.size();
+    if (n == 0) return true;
+
+    QSqlQuery eq(db);
+    eq.prepare(R"(SELECT symbol_id, x1, y1, x2, y2, rotation, spiegel_x, spiegel_y, extra_daten
+                  FROM grafik_element WHERE seite_id = :sid AND typ = 'symbol')");
+    eq.bindValue(":sid", seiteId);
+    if (eq.exec()) {
+        while (eq.next()) {
+            KaSymElement e;
+            e.symbolId = eq.value(0).toString();
+            e.x1 = eq.value(1).toDouble(); e.y1 = eq.value(2).toDouble();
+            e.x2 = eq.value(3).toDouble(); e.y2 = eq.value(4).toDouble();
+            e.rotation = eq.value(5).toDouble();
+            e.spiegelX = eq.value(6).toBool(); e.spiegelY = eq.value(7).toBool();
+            e.extraDaten = QJsonDocument::fromJson(eq.value(8).toString().toUtf8()).object();
+            out.els.append(e);
+        }
+    }
+    QSqlQuery gq(db);
+    gq.prepare(R"(SELECT x1, y1, x2, y2, extra_daten FROM grafik_element
+                  WHERE seite_id = :sid AND typ = 'geraetekasten')");
+    gq.bindValue(":sid", seiteId);
+    if (gq.exec()) {
+        while (gq.next()) {
+            KaSymElement gk;
+            gk.x1 = gq.value(0).toDouble(); gk.y1 = gq.value(1).toDouble();
+            gk.x2 = gq.value(2).toDouble(); gk.y2 = gq.value(3).toDouble();
+            gk.extraDaten = QJsonDocument::fromJson(gq.value(4).toString().toUtf8()).object();
+            out.geraetekaesten.append(gk);
+        }
+    }
+
+    QSet<QString> symbolIds;
+    for (const KaSymElement &e : out.els) symbolIds.insert(e.symbolId);
+    QHash<QString, QVector<QPair<QString, QPointF>>> pinDefs;
+    if (!symbolIds.isEmpty()) {
+        QStringList idList;
+        for (const QString &s : symbolIds) idList << QStringLiteral("'%1'").arg(s);
+        QSqlQuery pq(db);
+        pq.exec(QStringLiteral("SELECT symbol_id, name, x, y FROM symbol_pin WHERE symbol_id IN (%1)")
+                .arg(idList.join(',')));
+        while (pq.next())
+            pinDefs[pq.value(0).toString()].append({ pq.value(1).toString(),
+                QPointF(pq.value(2).toDouble(), pq.value(3).toDouble()) });
+    }
+
+    struct ElPin { int elIdx; QString pinName; QPointF pos; };
+    QVector<ElPin> elPins;
+    for (int ei = 0; ei < out.els.size(); ei++) {
+        const KaSymElement &e = out.els[ei];
+        for (const auto &pd : pinDefs.value(e.symbolId)) {
+            QPointF w = kaPinWeltPos(e.x1, e.y1, e.x2, e.y2, e.rotation, e.spiegelX, e.spiegelY,
+                                      pd.second.x(), pd.second.y());
+            elPins.append({ ei, pd.first, w });
+        }
+    }
+
+    const double PIN_TOL2 = 2.0;
+    auto matchPin = [&](double px, double py) -> QPair<int, QString> {
+        for (const ElPin &ep : elPins)
+            if (std::hypot(px - ep.pos.x(), py - ep.pos.y()) < PIN_TOL2)
+                return { ep.elIdx, ep.pinName };
+        return { -1, QString() };
+    };
+    out.segElA.resize(n); out.segElB.resize(n);
+    out.segPinA.resize(n); out.segPinB.resize(n);
+    for (int i = 0; i < n; i++) {
+        auto a = matchPin(out.raw[i].x1, out.raw[i].y1);
+        auto b = matchPin(out.raw[i].x2, out.raw[i].y2);
+        out.segElA[i] = a.first;  out.segPinA[i] = a.second;
+        out.segElB[i] = b.first;  out.segPinB[i] = b.second;
+    }
+    for (int i = 0; i < n; i++) {
+        if (out.segElA[i] >= 0 && out.segElB[i] >= 0) {
+            out.adj[out.segElA[i]].append({ out.segElB[i], out.segPinB[i] });
+            out.adj[out.segElB[i]].append({ out.segElA[i], out.segPinA[i] });
+        }
+    }
+    return true;
+}
+
+// Eine Kreuzung einer Kabellinie mit einer Verbindung dieser Seite.
+struct KaKreuzung {
+    double  t;
+    QString aderKey;
+    int     verbindungId;
+};
+
+// Kreuzungen EINER Kabellinie mit den Segmenten ihrer Seite, sortiert nach
+// Position entlang der Linie (t). 1:1-Port der Schnitt-Erkennung in
+// pdfLeitungenSammeln()/kabelSchnittNetzeBerechnen() (CanvasGeometrie.qml).
+QVector<KaKreuzung> kaKreuzungenBerechnen(double kx1, double ky1, double kx2, double ky2,
+                                           KaSeitenDaten &sd)
+{
+    QVector<KaKreuzung> result;
+    double kDxW = kx2 - kx1, kDyW = ky2 - ky1;
+    double kLenW = std::hypot(kDxW, kDyW);
+    if (kLenW < 0.5) return result;
+
+    QSet<QString> gesehen;
+    for (int i = 0; i < sd.raw.size(); i++) {
+        const QString &pot = sd.raw[i].potenzial;
+        if (!pot.isEmpty() && gesehen.contains(pot)) continue;
+        double dax = sd.raw[i].x2 - sd.raw[i].x1, day = sd.raw[i].y2 - sd.raw[i].y1;
+        double D = kDxW * day - kDyW * dax;
+        if (std::abs(D) < 0.001) continue;
+        double t = ((sd.raw[i].x1 - kx1) * day - (sd.raw[i].y1 - ky1) * dax) / D;
+        double s = ((sd.raw[i].x1 - kx1) * kDyW - (sd.raw[i].y1 - ky1) * kDxW) / D;
+        if (t >= -0.005 && t <= 1.005 && s >= -0.005 && s <= 1.005) {
+            result.append({ std::clamp(t, 0.0, 1.0), sd.aderKeyFuerSeg(i), sd.raw[i].verbindungId });
+            if (!pot.isEmpty()) gesehen.insert(pot);
+        }
+    }
+    std::sort(result.begin(), result.end(),
+              [](const KaKreuzung &a, const KaKreuzung &b) { return a.t < b.t; });
+    return result;
+}
+
+} // namespace
+
+bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
+{
+    if (kabelId <= 0) return false;
+
+    // Alle Kabellinien dieses Kabels über alle Seiten, in stabiler
+    // Reihenfolge (wie kabelAlleLinienLaden()) — bestimmt, welche Linie bei
+    // der Poolung zuerst die niedrigen Adernummern bekommt.
+    struct KlZeile {
+        int         geid = 0;
+        int         seiteId = 0;
+        double      x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        QJsonObject extraDaten;
+    };
+    QVector<KlZeile> linien;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT ge.id, ge.seite_id, ge.x1, ge.y1, ge.x2, ge.y2, ge.extra_daten
+            FROM grafik_element ge
+            WHERE ge.typ = 'kabellinie'
+              AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = :kid
+            ORDER BY ge.seite_id, ge.sortierung
+        )");
+        q.bindValue(":kid", kabelId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelAderProjektweitSynchronisieren SELECT Linien:" << q.lastError().text();
+            return false;
+        }
+        while (q.next()) {
+            KlZeile kl;
+            kl.geid    = q.value(0).toInt();
+            kl.seiteId = q.value(1).toInt();
+            kl.x1 = q.value(2).toDouble(); kl.y1 = q.value(3).toDouble();
+            kl.x2 = q.value(4).toDouble(); kl.y2 = q.value(5).toDouble();
+            kl.extraDaten = QJsonDocument::fromJson(q.value(6).toString().toUtf8()).object();
+            linien.append(kl);
+        }
+    }
+    if (linien.isEmpty()) return true;
+
+    // Roster (Adernummer → Farbe/Bezeichnung) — aus der ersten Linie, deren
+    // extra_daten.adern nicht leer ist (alle Linien desselben Kabels tragen
+    // denselben Roster, s. §6.4).
+    QJsonArray roster;
+    for (const KlZeile &kl : linien) {
+        QJsonArray a = kl.extraDaten.value(QStringLiteral("adern")).toArray();
+        if (!a.isEmpty()) { roster = a; break; }
+    }
+    if (roster.isEmpty()) return true;   // kein Kabeltyp zugewiesen, nichts zu tun
+    const int aderzahl = roster.size();
+
+    // Seiten-Daten nur einmal je Seite laden (mehrere Linien können auf
+    // derselben Seite liegen).
+    QHash<int, KaSeitenDaten> seiten;
+
+    // Kreuzungen aller Linien einsammeln, in Linien-Reihenfolge (s.o.), pro
+    // Linie nach Position entlang der Linie sortiert. Explizite
+    // aderZuordnung wird PRO LINIE (eigener aderKey-Namensraum) ausgewertet.
+    struct KaEintrag {
+        int     linienIdx;
+        int     verbindungId;
+        QString farbe, farbe2, bezeichnung;
+        int     explizitWert = -1;   // -1 = keine explizite Zuordnung, 0 = "keine Ader"
+    };
+    QVector<KaEintrag> alle;
+
+    for (int li = 0; li < linien.size(); li++) {
+        const KlZeile &kl = linien[li];
+        if (!seiten.contains(kl.seiteId)) {
+            KaSeitenDaten sd;
+            kaSeiteLaden(m_db, kl.seiteId, sd);
+            seiten.insert(kl.seiteId, sd);
+        }
+        KaSeitenDaten &sd = seiten[kl.seiteId];
+        QVector<KaKreuzung> schnitte = kaKreuzungenBerechnen(kl.x1, kl.y1, kl.x2, kl.y2, sd);
+        QJsonObject aderZuordnung = kl.extraDaten.value(QStringLiteral("aderZuordnung")).toObject();
+
+        for (const KaKreuzung &sc : schnitte) {
+            KaEintrag e;
+            e.linienIdx    = li;
+            e.verbindungId = sc.verbindungId;
+            if (!sc.aderKey.isEmpty() && aderZuordnung.contains(sc.aderKey))
+                e.explizitWert = aderZuordnung.value(sc.aderKey).toInt(-1);
+            alle.append(e);
+        }
+    }
+    if (alle.isEmpty()) return true;
+
+    QVector<bool> belegt(aderzahl + 1, false);   // Index 1..aderzahl
+    QVector<int>  aderNrJeEintrag(alle.size(), 0);   // 0 = noch offen, -1 = explizit "keine Ader"
+
+    // Pass 1: explizite Zuordnungen reservieren.
+    for (int i = 0; i < alle.size(); i++) {
+        int z = alle[i].explizitWert;
+        if (z < 0) continue;
+        if (z == 0) { aderNrJeEintrag[i] = -1; continue; }
+        if (z >= 1 && z <= aderzahl && !belegt[z]) {
+            aderNrJeEintrag[i] = z;
+            belegt[z] = true;
+        }
+        // Kollidierende explizite Zuordnung (z bereits belegt) fällt auf
+        // den Positions-Fallback in Pass 2 zurück statt verworfen zu werden.
+    }
+
+    // Pass 2: übrige Einträge bekommen fortlaufend die nächste über das
+    // GANZE Kabel noch freie Adernummer — genau das verhindert die doppelte
+    // Vergabe aus dem Bugreport (vorher: jede Linie zählte unabhängig bei 1
+    // neu los).
+    int naechsteFrei = 1;
+    for (int i = 0; i < alle.size(); i++) {
+        if (aderNrJeEintrag[i] != 0) continue;
+        while (naechsteFrei <= aderzahl && belegt[naechsteFrei]) naechsteFrei++;
+        if (naechsteFrei > aderzahl) break;   // keine Adern mehr frei
+        aderNrJeEintrag[i] = naechsteFrei;
+        belegt[naechsteFrei] = true;
+    }
+
+    // Farbe/Bezeichnung je vergebener Adernummer aus dem Roster auflösen.
+    for (int i = 0; i < alle.size(); i++) {
+        int nr = aderNrJeEintrag[i];
+        if (nr <= 0) continue;
+        for (int ai = 0; ai < roster.size(); ai++) {
+            QJsonObject ao = roster.at(ai).toObject();
+            int rn = ao.contains(QStringLiteral("aderNr")) ? ao.value(QStringLiteral("aderNr")).toInt()
+                                                             : (ai + 1);
+            if (rn == nr) {
+                alle[i].farbe       = ao.value(QStringLiteral("farbe")).toString();
+                alle[i].farbe2      = ao.value(QStringLiteral("farbe2")).toString();
+                alle[i].bezeichnung = ao.value(QStringLiteral("bezeichnung")).toString();
+                break;
+            }
+        }
+    }
+
+    // Pro Linie die "aktive"-Liste bauen und über die bestehende
+    // kabelAderLinieSynchronisieren() persistieren (Freigabe nicht mehr
+    // zutreffender Adern inklusive).
+    QVector<QVariantList> aktiveJeLinie(linien.size());
+    for (int i = 0; i < alle.size(); i++) {
+        int nr = aderNrJeEintrag[i];
+        if (nr <= 0) continue;
+        QVariantMap m;
+        m[QStringLiteral("aderNr")]       = nr;
+        m[QStringLiteral("farbe")]        = alle[i].farbe;
+        m[QStringLiteral("farbe2")]       = alle[i].farbe2;
+        m[QStringLiteral("bezeichnung")]  = alle[i].bezeichnung;
+        m[QStringLiteral("verbindungId")] = alle[i].verbindungId;
+        aktiveJeLinie[alle[i].linienIdx].append(m);
+    }
+    for (int li = 0; li < linien.size(); li++)
+        kabelAderLinieSynchronisieren(kabelId, linien[li].geid, aktiveJeLinie[li]);
+
+    return true;
+}
+
+// ============================================================
 // kabelLinieDetails
 // Lädt Kabelmetadaten + Adern für ein grafik_element.
 // ============================================================
@@ -238,7 +675,7 @@ QVariantList Database::kabelListe(int projektId)
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT id, bezeichnung, kabeltyp, aderzahl, querschnitt_mm2,
-               laenge_m, von_ort, nach_ort, grafik_element_id
+               laenge_m, von_ort, nach_ort, grafik_element_id, bauteil_kabel_id
         FROM kabel WHERE projekt_id = :pid ORDER BY bezeichnung
     )");
     q.bindValue(":pid", projektId);
@@ -257,6 +694,7 @@ QVariantList Database::kabelListe(int projektId)
         k[QStringLiteral("vonOrt")]         = q.value(6).toString();
         k[QStringLiteral("nachOrt")]        = q.value(7).toString();
         k[QStringLiteral("grafikElementId")]= q.value(8).toInt();
+        k[QStringLiteral("bauteilKabelId")] = q.value(9).toInt();
         result.append(k);
     }
     return result;
@@ -1062,6 +1500,39 @@ QVariantList Database::kabelFreieAderLaden(int kabelId)
         ader[QStringLiteral("farbe2")]      = q.value(2).toString();
         ader[QStringLiteral("bezeichnung")] = q.value(3).toString();
         ader[QStringLiteral("verbindungId")]= q.value(4).toInt();
+        result.append(ader);
+    }
+    return result;
+}
+
+// ============================================================
+// kabelAlleAderLaden
+// KABEL-ADERFARBE-PROPAGATION-04: alle kabel_ader-Zeilen eines Kabels,
+// zugeordnet und frei. s. Database.h für Details.
+// ============================================================
+QVariantList Database::kabelAlleAderLaden(int kabelId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id, kabellinie_grafik_element_id
+        FROM kabel_ader
+        WHERE kabel_id = :kid
+        ORDER BY ader_nr
+    )");
+    q.bindValue(":kid", kabelId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "kabelAlleAderLaden:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap ader;
+        ader[QStringLiteral("aderNr")]                    = q.value(0).toInt();
+        ader[QStringLiteral("farbe")]                     = q.value(1).toString();
+        ader[QStringLiteral("farbe2")]                    = q.value(2).toString();
+        ader[QStringLiteral("bezeichnung")]                = q.value(3).toString();
+        ader[QStringLiteral("verbindungId")]               = q.value(4).toInt();
+        ader[QStringLiteral("kabellinieGrafikElementId")]  = q.value(5).toInt();
         result.append(ader);
     }
     return result;

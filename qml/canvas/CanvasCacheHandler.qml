@@ -140,24 +140,34 @@ QtObject {
         cv._kabelLinienCache = map
     }
 
-    // KABEL-ADERFARBE-PROPAGATION-03: hält kabel_ader (seitenübergreifende
+    // KABEL-ADERFARBE-PROPAGATION-03/04: hält kabel_ader (seitenübergreifende
     // Tabelle, genutzt von EpKabelLinienBlock.qml für "N Adr." pro Linie +
-    // "Freie Adern") bei jedem Speichern (grafikSpeichernJetzt()) mit den
-    // tatsächlichen Kreuzungen jeder Kabellinie auf DIESER Seite synchron —
-    // die live extra_daten-Quelle gilt nur seiten-lokal, kabel_ader ist der
-    // einzige Ort für eine seitenübergreifende Sicht (mehrseitige Kabel).
-    // netze wird von grafikSpeichernJetzt() bereits frisch berechnet
-    // übergeben, keine erneute Berechnung hier nötig.
-    function kabelAderSynchronisieren(netze) {
+    // "Freie Adern") bei jedem Speichern (grafikSpeichernJetzt()) aktuell.
+    //
+    // PROPAGATION-04 (Aug 2026): NICHT mehr seiten-lokal berechnet und
+    // direkt persistiert — ein Kabel kann über mehrere Seiten verteilt
+    // gezeichnet sein (dieselbe kabelId, mehrere Kabellinien), und eine rein
+    // seiten-lokale Poolung hätte pro Linie unabhängig bei Ader 1 neu
+    // gezählt und dieselbe Adernummer an mehreren Stellen vergeben (Nutzer-
+    // Bugreport: zwei Kabellinien mit gleichem BMK, Adern doppelt vergeben).
+    // Stattdessen nur die auf DIESER Seite vorkommenden kabelId sammeln und
+    // je einmal db.kabelAderProjektweitSynchronisieren() aufrufen — die
+    // sammelt selbst ALLE Kabellinien dieser kabelId über alle Seiten
+    // (per SQL, nicht auf das Live-Elementmodell angewiesen) und poolt die
+    // Adernummern seitenübergreifend. netze wird hierfür nicht mehr
+    // gebraucht (die C++-Seite berechnet ihre Kreuzungen selbst aus den
+    // bereits persistierten verbindung/verbindung_segment-Tabellen).
+    function kabelAderSynchronisieren() {
         var els = cv.elementeModel.snapshot()
+        var kabelIds = {}
         for (var i = 0; i < els.length; i++) {
             var el = els[i]
-            if (!el || el.typ !== "kabellinie" || el.id <= 0) continue
+            if (!el || el.typ !== "kabellinie") continue
             var kabelId = (el.extraDaten && el.extraDaten.kabelId) || 0
-            if (kabelId <= 0) continue
-            var aktive = cv.geometrie.kabelAktiveAderZuordnungen(el, netze, false)
-            db.kabelAderLinieSynchronisieren(kabelId, el.id, aktive)
+            if (kabelId > 0) kabelIds[kabelId] = true
         }
+        for (var kid in kabelIds)
+            db.kabelAderProjektweitSynchronisieren(parseInt(kid))
     }
 
     // --------------------------------------------------------

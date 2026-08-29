@@ -561,6 +561,22 @@ public:
     Q_INVOKABLE bool kabelAderLinieSynchronisieren(int kabelId, int kabellinieGrafikElementId,
                                                    const QVariantList &aktive);
 
+    // KABEL-ADERFARBE-PROPAGATION-04: seitenübergreifende Ader-Poolung für
+    // EIN Kabel. Sammelt alle Kabellinie-Grafikelemente dieser kabelId über
+    // ALLE Seiten (nicht nur die gerade offene), berechnet pro Seite deren
+    // Kreuzungen mit den dort bereits persistierten Verbindungen
+    // (verbindung/verbindung_segment — 1:1 dieselbe Geometrie- und
+    // Stabiler-Punkt-Logik wie pdfLeitungenSammeln() in Database_PDF.cpp),
+    // löst explizite aderZuordnung-Einträge zuerst auf und vergibt für alle
+    // übrigen Kreuzungen fortlaufend die nächste über das GANZE Kabel noch
+    // freie Adernummer (statt pro Linie unabhängig bei 1 neu zu zählen —
+    // verhindert die doppelte Ader-Vergabe bei mehrseitigen Kabeln).
+    // Persistiert je Linie über die bestehende kabelAderLinieSynchronisieren().
+    // Aufgerufen aus CanvasCacheHandler.qml::kabelAderSynchronisieren() bei
+    // jedem grafikSpeichernJetzt(), für jede kabelId der gerade gespeicherten
+    // Seite.
+    Q_INVOKABLE bool kabelAderProjektweitSynchronisieren(int kabelId);
+
     // Kabeldetails + Adern für das EigenschaftenPanel laden.
     // Sucht das Kabel über json_extract(extra_daten, '$.kabelId') des Grafikelements.
     // Gibt {id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, grafikElementId,
@@ -576,13 +592,25 @@ public:
     // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}] zurück.
     Q_INVOKABLE QVariantList kabelFreieAderLaden(int kabelId);
 
+    // KABEL-ADERFARBE-PROPAGATION-04: alle kabel_ader-Zeilen eines Kabels,
+    // zugeordnet UND frei (anders als kabelFreieAderLaden/
+    // kabelAderFuerLinieLaden, die je nur eine Teilmenge liefern). Für den
+    // gecachten kabelId→verbindungId→Ader-Lookup, den Canvas-Rendering/
+    // EP-Anzeige als Vorrang vor dem lokalen Positions-Fallback nutzen.
+    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId,
+    //        kabellinieGrafikElementId}] zurück.
+    Q_INVOKABLE QVariantList kabelAlleAderLaden(int kabelId);
+
     // Adern einer Kabellinie (für KABEL-ADERN-Abschnitt im EP).
     // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}] zurück.
     Q_INVOKABLE QVariantList kabelAderFuerLinieLaden(int kabellinieGrafikElementId);
 
     // Alle Kabel eines Projekts für die Kabelliste.
     // Gibt [{id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, laengeM,
-    //        vonOrt, nachOrt, grafik_element_id}] zurück.
+    //        vonOrt, nachOrt, grafik_element_id, bauteilKabelId}] zurück.
+    // KABEL-BAUTEIL-BMK-UEBERNAHME-01: bauteilKabelId ergänzt, damit
+    // KabellinieDialog.qml beim BMK-Auto-Erkennen eines bestehenden Kabels
+    // auch dessen Bauteil-Kabel-Verknüpfung übernehmen kann.
     Q_INVOKABLE QVariantList kabelListe(int projektId);
 
     // Wie kabelListe, aber mit seiteId, blattnr, seiteBez, weltX, weltY der primären Kabellinie.

@@ -300,16 +300,27 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
         text: qsTr("Aderzuordnung …")
         implicitHeight: 28
-        enabled: (panel.el && panel.el.extraDaten && (panel.el.extraDaten.kabelId || 0) > 0)
+        // KABEL-UEBERARBEITUNG-01 (Aug 2026): vorübergehend deaktiviert —
+        // mehrere zusammenhängende Kabel-Bugs in Folge (Aderfarbe-
+        // Ausbreitung, veraltete Anzeige, Roster-vs-Kreuzung-Verwechslung,
+        // Freie-Adern-Filter im Kreuzungs-Popup) deuten auf ausei­nander­
+        // gedriftete Teilsysteme hin, die erst im Rahmen einer strukturierten
+        // Kabel-Überarbeitung wieder zusammengeführt werden, statt hier
+        // weiter Einzelsymptome zu flicken. s. konzept/features/
+        // 05_leitungen_kabel.md.
+        enabled: false
         contentItem: Text {
             text: parent.text
-            color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+            color: root.theme.textMuted
             font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         }
         background: Rectangle {
-            color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
-            radius: 3; border.color: parent.enabled ? root.theme.accent : root.theme.border
+            color: root.theme.inputBg
+            radius: 3; border.color: root.theme.border
         }
+        ToolTip.visible: hovered
+        ToolTip.delay: 400
+        ToolTip.text: qsTr("Vorübergehend deaktiviert — wird im Zuge einer Kabel-Überarbeitung neu aufgebaut")
         onClicked: panel.canvas.aderzuordnungDialogOeffnen(panel.el)
     }
     Item { height: 4 }

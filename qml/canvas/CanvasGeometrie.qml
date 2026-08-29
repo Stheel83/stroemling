@@ -372,6 +372,11 @@ QtObject {
             var klAdern       = (_rawAdn2 && _rawAdn2.length > 0) ? _rawAdn2 : []
             var aderZuordnung = (el.extraDaten && el.extraDaten.aderZuordnung)
                                 ? el.extraDaten.aderZuordnung : null
+            // KABEL-ADERFARBE-PROPAGATION-04: dieselbe Nummerierung wie
+            // maleKabelSchnitte() (sonst stimmt der Hit-Test nicht mehr mit
+            // dem tatsächlich gezeichneten Label überein).
+            var kabelId2 = (el.extraDaten && el.extraDaten.kabelId) || 0
+            var gepoolt2 = kabelAderProKabelCached(kabelId2)
 
             var nx = -kDyW/kLenW, ny = kDxW/kLenW
             if (ny > 0) { nx = -nx; ny = -ny }
@@ -383,13 +388,9 @@ QtObject {
                 var vx = wx * cv.zoom + cv.worldX
                 var vy = wy * cv.zoom + cv.worldY
 
-                var aderNr = sci + 1
-                var istLeer = false
-                var zugeordnet = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-                if (zugeordnet !== undefined) {
-                    if (zugeordnet === 0) istLeer = true
-                    else aderNr = zugeordnet
-                }
+                var _bres  = cv.netzberechnung._aderNrFuerKreuzung(aderZuordnung, sc, sci, gepoolt2)
+                var aderNr = _bres.aderNr
+                var istLeer = _bres.istLeer
                 var labelText = istLeer ? "–" : ("" + aderNr)
                 if (!istLeer) {
                     for (var ai = 0; ai < klAdern.length; ai++) {
@@ -531,19 +532,48 @@ QtObject {
         return result
     }
 
+    // KABEL-ADERFARBE-PROPAGATION-04: gecachte Sicht auf kabel_ader für EIN
+    // Kabel (verbindungId → {aderNr, farbe, farbe2, bezeichnung}) — die
+    // Tabelle wird bei jedem Speichern seitenübergreifend gepoolt
+    // (Database::kabelAderProjektweitSynchronisieren()) und ist damit die
+    // AUTORITATIVE, konfliktfreie Nummerierung. Als Vorrang vor dem rein
+    // lokalen Positions-Fallback (si+1) genutzt, damit Canvas-Farbe/
+    // Ader-Label/EP-Anzeige nach dem Speichern konsistent bleiben, statt
+    // dass jede Kabellinie unabhängig wieder bei 1 zu zählen anfängt (genau
+    // das war der Bugreport: zwei Linien mit gleichem BMK, Adern doppelt
+    // vergeben). Für eine brandneue, noch nie gespeicherte Kreuzung liefert
+    // die Tabelle naturgemäß noch nichts — dafür bleibt si+1 als vorläufige
+    // Vorschau bis zum nächsten Speichern.
+    function kabelAderProKabelCached(kabelId) {
+        if (kabelId <= 0) return {}
+        if (cv._cachedKabelAderProKabel[kabelId] !== undefined)
+            return cv._cachedKabelAderProKabel[kabelId]
+        var map = {}
+        var rows = db.kabelAlleAderLaden(kabelId)
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i]
+            if ((r.verbindungId || 0) <= 0) continue   // freie Ader, keiner Kreuzung zugeordnet
+            map[r.verbindungId] = { aderNr: r.aderNr, farbe: r.farbe || "", farbe2: r.farbe2 || "", bezeichnung: r.bezeichnung || "" }
+        }
+        cv._cachedKabelAderProKabel[kabelId] = map
+        return map
+    }
+
     // KABEL-ADERFARBE-PROPAGATION-02/03: Liefert für eine Kabellinie die
     // Adern, die AKTUELL an einer echten Kreuzung hängen (nicht die
     // statische Roster-Liste aus extra_daten.adern, die auch ohne jede
     // Kreuzung unverändert bleibt). Pro Kreuzung wird die Ader über
-    // aderZuordnung (aderKey > netKey > legacyNetKey) mit Positions-
-    // Fallback (si+1) aufgelöst, "0" (explizit keine Ader) übersprungen,
-    // Duplikate (mehrere Kreuzungen → gleiche Ader) zusammengefasst.
-    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}, ...]
-    // zurück, sortiert nach aderNr. Gemeinsam genutzt von
-    // EpKabelAdernBlock.qml (Anzeige, mit gecachten Netzen/Schnitten) und
-    // CanvasCacheHandler.qml::kabelAderSynchronisieren() (Speichern, mit
-    // frisch berechneten Netzen) — bewusst nicht dupliziert, s. Lehre aus
-    // KABEL-ADERFARBE-PROPAGATION-01 (Renderer-Eigenart mehrfach kopiert).
+    // aderZuordnung (aderKey > netKey > legacyNetKey) aufgelöst; ohne
+    // explizite Zuordnung zunächst über die seitenübergreifend gepoolte
+    // kabel_ader-Tabelle (PROPAGATION-04), erst danach über den rein
+    // lokalen Positions-Fallback (si+1). "0" (explizit keine Ader)
+    // übersprungen, Duplikate (mehrere Kreuzungen → gleiche Ader)
+    // zusammengefasst. Gibt [{aderNr, farbe, farbe2, bezeichnung,
+    // verbindungId}, ...] zurück, sortiert nach aderNr. Gemeinsam genutzt
+    // von EpKabelAdernBlock.qml (Anzeige, mit gecachten Netzen/Schnitten)
+    // und CanvasCacheHandler.qml (Speichern) — bewusst nicht dupliziert,
+    // s. Lehre aus KABEL-ADERFARBE-PROPAGATION-01 (Renderer-Eigenart
+    // mehrfach kopiert).
     function kabelAktiveAderZuordnungen(el, netze, verwendeCache) {
         if (!el || el.typ !== "kabellinie") return []
         var ed = el.extraDaten || {}
@@ -559,16 +589,15 @@ QtObject {
         var schnitte = verwendeCache ? kabelSchnittNetzeBerechnenCached(el, netze)
                                       : kabelSchnittNetzeBerechnen(el, netze)
         var aderZuordnung = ed.aderZuordnung || null
+        var kabelId = ed.kabelId || 0
+        var gepoolt = kabelAderProKabelCached(kabelId)
 
         var gesehen = {}, out = []
         for (var si = 0; si < schnitte.length; si++) {
             var sc = schnitte[si]
-            var zug = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-            var aderNr = si + 1
-            if (zug !== undefined) {
-                if (zug === 0) continue
-                aderNr = zug
-            }
+            var res = cv.netzberechnung._aderNrFuerKreuzung(aderZuordnung, sc, si, gepoolt)
+            if (res.istLeer) continue
+            var aderNr = res.aderNr
             if (gesehen[aderNr]) continue
             gesehen[aderNr] = true
             var roAder = rosterMap[aderNr] || {}

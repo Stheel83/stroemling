@@ -251,8 +251,14 @@ Item {
     // Repaint neu berechnet, auch beim reinen Schwenken/Zoomen ohne Modelländerung.
     property var _cachedKreuzungsLuecken: null   // {segKey → [x, …]}
     property var _cachedAdpList:          null   // [{cx, cy, ed}, …]
-    property var _cachedKabelAderFarben:  null   // netKey/legacyNetKey → {farbe, farbe2} (Fallback ohne Aderdefinitionspunkt, aus Kabellinien-Aderzuordnung)
+    property var _cachedKabelAderFarben:  null   // aderKey → {farbe, farbe2} (Fallback ohne Aderdefinitionspunkt, aus Kabellinien-Aderzuordnung; KABEL-ADERFARBE-PROPAGATION-01: lokaler, nicht netz-weiter Schlüssel)
     property var _cachedRoutingFarben:    null   // berechneRoutingSymbolFarben()-Ergebnis
+    // KABEL-ADERFARBE-PROPAGATION-04: kabelId → {verbindungId → {aderNr, farbe, farbe2, bezeichnung}}
+    // aus der seitenübergreifend gepoolten kabel_ader-Tabelle (s. Database::
+    // kabelAderProjektweitSynchronisieren()) — Vorrang vor dem rein lokalen
+    // Positions-Fallback (si+1), damit Canvas-Farbe/Ader-Label/EP-Anzeige nach
+    // dem Speichern konsistent dieselbe, konfliktfreie Nummerierung zeigen.
+    property var _cachedKabelAderProKabel: ({})
 
     // --------------------------------------------------------
     // Text-Werkzeug: Inline-Editor
@@ -537,6 +543,7 @@ Item {
                     root._cachedAdpList          = null
                     root._cachedKabelAderFarben  = null
                     root._cachedRoutingFarben     = null
+                    root._cachedKabelAderProKabel = {}
                 }
                 drawCanvas.requestPaint()
             }
@@ -831,7 +838,7 @@ Item {
             db.verbindungenSynchronisieren(root.seiteId, root.projektId, netze)
             root.verbindungAnnotationenNeuLaden()
             root._konfliktNeuentstehungPruefen(netze)
-            cacheHandler.kabelAderSynchronisieren(netze)
+            cacheHandler.kabelAderSynchronisieren()
         }
     }
 
@@ -1020,6 +1027,7 @@ Item {
         root._cachedAdpList          = null
         root._cachedKabelAderFarben  = null
         root._cachedRoutingFarben    = null
+        root._cachedKabelAderProKabel = {}
         drawCanvas.requestPaint()
     }
 

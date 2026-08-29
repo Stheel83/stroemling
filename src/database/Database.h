@@ -578,7 +578,8 @@ public:
     Q_INVOKABLE bool kabelAderProjektweitSynchronisieren(int kabelId);
 
     // Kabeldetails + Adern für das EigenschaftenPanel laden.
-    // Sucht das Kabel über json_extract(extra_daten, '$.kabelId') des Grafikelements.
+    // Sucht das Kabel über grafik_element.kabel_id (KABEL-UEBERARBEITUNG-01
+    // Punkt 3, vorher json_extract auf extra_daten).
     // Gibt {id, bezeichnung, kabeltyp, aderzahl, querschnittMm2, grafikElementId,
     //       vonOrt, nachOrt, bauteilKabelId,
     //       adern:[{aderNr, farbe, farbe2, bezeichnung, verbindungId, kabellinieGrafikElementId}]} zurück.

@@ -308,14 +308,14 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
              symbol_id, rotation, spiegel_x, spiegel_y,
              punkte, text_inhalt, text_ausrichtung, text_einpassen,
              bild_pfad, bild_mime, extra_daten, betriebsmittel_id,
-             gruppe_id)
+             gruppe_id, kabel_id)
         VALUES
             (:sid, :typ, :x1, :y1, :x2, :y2,
              :sf, :sb, :sa, :fu, :ff, :fo, :op, :er, :sort,
              :symid, :rot, :spx, :spy,
              :punkte, :textinhalt, :textausrichtung, :texteinpassen,
              :bildpfad, :bildmime, :extradaten, :bmid,
-             :gid)
+             :gid, :kid)
     )");
 
     for (int i = 0; i < elemente.size(); i++) {
@@ -440,6 +440,39 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             qIns.bindValue(":gid", gid);
         else
             qIns.bindValue(":gid", QVariant(QMetaType::fromType<int>()));
+
+        // KABEL-UEBERARBEITUNG-01 Punkt 3: kabel_id (nullable FK, nur für
+        // typ='kabellinie' gesetzt) direkt aus extraMap.kabelId — dieselbe
+        // Quelle, die extra_daten.kabelId weiter unten befüllt, hier aber
+        // als echte, indizierbare Spalte statt reiner JSON-Konvention.
+        // Kein Nachzieh-Schritt nötig (anders als kabel.grafik_element_id/
+        // kabel_ader.kabellinie_grafik_element_id, die eine sich ändernde
+        // grafik_element.id referenzieren) — die Quelle steht hier schon
+        // fest, bevor diese Zeile überhaupt eingefügt wird.
+        //
+        // Existenzprüfung: elementeFuerExportSanitisieren() (Database_
+        // Zwischenablage.cpp) lässt extraDaten.kabelId beim Cross-Projekt-
+        // Einfügen bewusst ungesäubert stehen (dokumentierte, bisher
+        // harmlose Lücke, da nur JSON). Mit einer echten FK-Spalte würde
+        // dieselbe Lücke bei aktivierten Foreign Keys das komplette
+        // grafikSpeichern() der Seite zum Scheitern bringen (Transaktion
+        // rollt bei einer einzigen ungültigen Referenz komplett zurück),
+        // statt weiterhin nur "kein Link" zu ergeben. Daher hier prüfen,
+        // ob die kabelId in DIESEM Projekt wirklich existiert, bevor sie
+        // gebunden wird — sonst NULL, wie es die bisherige Lücke ohnehin
+        // schon faktisch bedeutete.
+        int kabelIdCol = extraMap.value(QStringLiteral("kabelId"), 0).toInt();
+        if (kabelIdCol > 0) {
+            QSqlQuery qKabelCheck;
+            qKabelCheck.prepare("SELECT 1 FROM kabel WHERE id = :kid");
+            qKabelCheck.bindValue(":kid", kabelIdCol);
+            if (qKabelCheck.exec() && qKabelCheck.next())
+                qIns.bindValue(":kid", kabelIdCol);
+            else
+                qIns.bindValue(":kid", QVariant(QMetaType::fromType<int>()));
+        } else {
+            qIns.bindValue(":kid", QVariant(QMetaType::fromType<int>()));
+        }
 
         if (!qIns.exec()) {
             qCWarning(lcDb) << "grafikSpeichern insert:" << qIns.lastError().text();

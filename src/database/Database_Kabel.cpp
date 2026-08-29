@@ -470,7 +470,7 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
             SELECT ge.id, ge.seite_id, ge.x1, ge.y1, ge.x2, ge.y2, ge.extra_daten
             FROM grafik_element ge
             WHERE ge.typ = 'kabellinie'
-              AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = :kid
+              AND ge.kabel_id = :kid
             ORDER BY ge.seite_id, ge.sortierung
         )");
         q.bindValue(":kid", kabelId);
@@ -538,11 +538,43 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
     }
     if (alle.isEmpty()) return true;
 
+    // KABEL-UEBERARBEITUNG-01/PROPAGATION-06: dieselbe Verbindung kann von
+    // MEHREREN Kabellinien-Segmenten gekreuzt werden (z.B. der Kabeltrunk
+    // oberhalb UND unterhalb eines durchleitenden Symbols wie eines
+    // Schützes — elektrisch derselbe Punkt, nur auf zwei Linien-Abschnitte
+    // verteilt gezeichnet, s. §6.5.4-Screenshot "W321 → +1 Linie" zweimal).
+    // Ohne Deduplizierung hätte jede Linie unabhängig einen eigenen
+    // Pool-Slot für dieselbe Verbindung konsumiert (Nutzer-Bugreport: 6
+    // vergebene Adern für nur 3 tatsächliche Kreuzungspunkte, echte
+    // .backup-Prüfung zeigte identische verbindung_id-Tripel unter zwei
+    // verschiedenen kabellinie_grafik_element_id). Repräsentant = erstes
+    // Vorkommen in Linien-Reihenfolge; nur EIN Eintrag pro verbindungId
+    // (>0) nimmt an Pass 1/2 teil, das Ergebnis wird danach auf alle
+    // Duplikate übertragen. verbindungId<=0 (kein aufgelöstes Netz) wird
+    // nie zusammengefasst, jeder solche Eintrag bleibt sein eigener
+    // Repräsentant.
+    QHash<int, int> repIdxFuerVerbindung;   // verbindungId → Index in alle (Repräsentant)
+    QVector<int>    repIdx;                 // an Pass 1/2 teilnehmende Indizes
+    for (int i = 0; i < alle.size(); i++) {
+        int vid = alle[i].verbindungId;
+        if (vid <= 0) { repIdx.append(i); continue; }
+        auto it = repIdxFuerVerbindung.constFind(vid);
+        if (it == repIdxFuerVerbindung.constEnd()) {
+            repIdxFuerVerbindung.insert(vid, i);
+            repIdx.append(i);
+        } else if (alle[i].explizitWert >= 0 && alle[it.value()].explizitWert < 0) {
+            // Ein später gefundenes Duplikat hat eine explizite Zuordnung,
+            // der bisherige Repräsentant nicht — übernehmen.
+            alle[it.value()].explizitWert = alle[i].explizitWert;
+        }
+    }
+
     QVector<bool> belegt(aderzahl + 1, false);   // Index 1..aderzahl
     QVector<int>  aderNrJeEintrag(alle.size(), 0);   // 0 = noch offen, -1 = explizit "keine Ader"
 
-    // Pass 1: explizite Zuordnungen reservieren.
-    for (int i = 0; i < alle.size(); i++) {
+    // Pass 1: explizite Zuordnungen reservieren (nur Repräsentanten).
+    for (int ri = 0; ri < repIdx.size(); ri++) {
+        int i = repIdx[ri];
         int z = alle[i].explizitWert;
         if (z < 0) continue;
         if (z == 0) { aderNrJeEintrag[i] = -1; continue; }
@@ -554,17 +586,28 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
         // den Positions-Fallback in Pass 2 zurück statt verworfen zu werden.
     }
 
-    // Pass 2: übrige Einträge bekommen fortlaufend die nächste über das
-    // GANZE Kabel noch freie Adernummer — genau das verhindert die doppelte
-    // Vergabe aus dem Bugreport (vorher: jede Linie zählte unabhängig bei 1
-    // neu los).
+    // Pass 2: übrige Repräsentanten bekommen fortlaufend die nächste über
+    // das GANZE Kabel noch freie Adernummer — genau das verhindert die
+    // doppelte Vergabe aus dem Bugreport (vorher: jede Linie zählte
+    // unabhängig bei 1 neu los).
     int naechsteFrei = 1;
-    for (int i = 0; i < alle.size(); i++) {
+    for (int ri = 0; ri < repIdx.size(); ri++) {
+        int i = repIdx[ri];
         if (aderNrJeEintrag[i] != 0) continue;
         while (naechsteFrei <= aderzahl && belegt[naechsteFrei]) naechsteFrei++;
         if (naechsteFrei > aderzahl) break;   // keine Adern mehr frei
         aderNrJeEintrag[i] = naechsteFrei;
         belegt[naechsteFrei] = true;
+    }
+
+    // Ergebnis der Repräsentanten auf alle Duplikate derselben verbindungId
+    // übertragen, damit jede beteiligte Linie densel­ben Kreuzungspunkt mit
+    // derselben Adernummer zeigt.
+    for (int i = 0; i < alle.size(); i++) {
+        int vid = alle[i].verbindungId;
+        if (vid <= 0) continue;
+        int rIdx = repIdxFuerVerbindung.value(vid);
+        if (rIdx != i) aderNrJeEintrag[i] = aderNrJeEintrag[rIdx];
     }
 
     // Farbe/Bezeichnung je vergebener Adernummer aus dem Roster auflösen.
@@ -614,17 +657,15 @@ QVariantMap Database::kabelLinieDetails(int grafikElementId)
     QVariantMap result;
     if (grafikElementId <= 0) return result;
 
-    // Kabel über den kabelId-Eintrag im extra_daten-JSON des Grafikelements suchen.
+    // Kabel über die kabel_id-FK des Grafikelements suchen (KABEL-
+    // UEBERARBEITUNG-01 Punkt 3, vorher json_extract auf extra_daten).
     // Funktioniert auch für nicht-primäre Linien eines Kabels (M9).
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT k.id, k.bezeichnung, k.kabeltyp, k.aderzahl, k.querschnitt_mm2,
                k.grafik_element_id, k.bauteil_kabel_id, k.von_ort, k.nach_ort
         FROM kabel k
-        WHERE k.id = (
-            SELECT CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER)
-            FROM grafik_element ge WHERE ge.id = :geid
-        )
+        WHERE k.id = (SELECT ge.kabel_id FROM grafik_element ge WHERE ge.id = :geid)
         LIMIT 1
     )");
     q.bindValue(":geid", grafikElementId);
@@ -760,7 +801,7 @@ QVariantList Database::kabellinienMitPos(int kabelId) const
         FROM grafik_element ge
         JOIN seite s ON s.id = ge.seite_id
         WHERE ge.typ = 'kabellinie'
-          AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = :kid
+          AND ge.kabel_id = :kid
         ORDER BY s.blattnummer, ge.id
     )");
     q.bindValue(":kid", kabelId);
@@ -1454,7 +1495,7 @@ QVariantList Database::kabelAlleLinienLaden(int kabelId)
         JOIN seite s ON s.id = ge.seite_id
         LEFT JOIN kabel_ader ka ON ka.kabellinie_grafik_element_id = ge.id
         WHERE ge.typ = 'kabellinie'
-          AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = :kid
+          AND ge.kabel_id = :kid
         GROUP BY ge.id
         ORDER BY ge.seite_id, ge.sortierung
     )");

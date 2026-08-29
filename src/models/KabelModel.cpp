@@ -141,8 +141,7 @@ void KabelModel::aktualisiereKanvasBauteilKabel()
             '$.kabeltyp',       :typ,
             '$.aderzahl',       :anz,
             '$.querschnittMm2', :qs)
-        WHERE CAST(json_extract(extra_daten, '$.kabelId') AS INTEGER) IN
-              (SELECT id FROM kabel WHERE bauteil_kabel_id = :bkid)
+        WHERE kabel_id IN (SELECT id FROM kabel WHERE bauteil_kabel_id = :bkid)
     )");
     qe.bindValue(":typ",  typ);
     qe.bindValue(":anz",  anz);

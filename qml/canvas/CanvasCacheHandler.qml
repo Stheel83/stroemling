@@ -166,8 +166,16 @@ QtObject {
             var kabelId = (el.extraDaten && el.extraDaten.kabelId) || 0
             if (kabelId > 0) kabelIds[kabelId] = true
         }
-        for (var kid in kabelIds)
+        for (var kid in kabelIds) {
             db.kabelAderProjektweitSynchronisieren(parseInt(kid))
+            // KABEL-UEBERARBEITUNG-01/PROPAGATION-05: kabelAderProKabelCached()
+            // (CanvasGeometrie.qml) cached pro kabelId und wird sonst nur bei
+            // elementeModel.geaendert invalidiert — die Poolung oben schreibt
+            // aber per direktem SQL an dieser Signalkette vorbei. Ohne diese
+            // gezielte Invalidierung hätte das Kreuzungs-Popup direkt nach
+            // dem Speichern weiterhin den alten (Vor-Sync-)Stand gezeigt.
+            delete cv._cachedKabelAderProKabel[kid]
+        }
     }
 
     // --------------------------------------------------------
@@ -243,8 +251,8 @@ QtObject {
     }
 
     // Liefert die Ader-Nummern 1..aderzahl, die NICHT bereits an einer
-    // ANDEREN Kreuzung derselben Kabellinie vergeben sind (eigenerAderKey
-    // wird ausgenommen, damit die aktuell zugeordnete Ader selbst nicht
+    // ANDEREN Kreuzung vergeben sind (eigenerAderKey/eigenerVerbindungId
+    // werden ausgenommen, damit die aktuell zugeordnete Ader selbst nicht
     // fälschlich als "belegt" gilt).
     //
     // KABEL-ADERFARBE-PROPAGATION-02: eine Kreuzung ohne expliziten
@@ -254,7 +262,17 @@ QtObject {
     // kabelKreuzungBeiPosition()). Ohne diesen Fallback hier hätte das
     // Popup direkt nach einer frischen Bauteil-Kabel-Zuweisung (aderZuordnung
     // noch komplett leer) fälschlich alle Adern als frei angeboten.
-    function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey) {
+    //
+    // KABEL-UEBERARBEITUNG-01/PROPAGATION-05 (Aug 2026): zusätzlich zu den
+    // Kreuzungen DERSELBEN Kabellinie (lokal, s.o.) auch die seiten-
+    // übergreifend gepoolte kabel_ader-Tabelle (gepoolt, aus
+    // CanvasGeometrie.qml::kabelAderProKabelCached()) berücksichtigen —
+    // sonst bot das Popup weiterhin Adern an, die bereits einer ANDEREN
+    // Kabellinie desselben Kabels (ggf. auf einer anderen Seite) zugeordnet
+    // sind. Damit nutzt das Popup dieselbe Datengrundlage wie die
+    // Poolung beim Speichern, statt zwei divergierende Quellen zu haben
+    // (Bestandsaufnahme §6.5.5, Punkt 1).
+    function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey, gepoolt, eigenerVerbindungId) {
         var belegt = {}
         for (var i = 0; i < schnitte.length; i++) {
             var sc  = schnitte[i]
@@ -263,6 +281,12 @@ QtObject {
             var zugeordnet = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
             if (zugeordnet === undefined) zugeordnet = i + 1
             if (zugeordnet !== 0) belegt[zugeordnet] = true
+        }
+        if (gepoolt) {
+            for (var vid in gepoolt) {
+                if (parseInt(vid) === eigenerVerbindungId) continue
+                belegt[gepoolt[vid].aderNr] = true
+            }
         }
         var frei = []
         for (var nr = 1; nr <= aderzahl; nr++)
@@ -303,7 +327,9 @@ QtObject {
 
         var netze    = cv.netzberechnung.autoNetzeBerechnen()
         var schnitte = cv.geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
-        var freieNrn = _freieAdernFuerKreuzung(aderzahl, freshEd.aderZuordnung || {}, schnitte, treffer.aderKey)
+        var gepoolt  = cv.geometrie.kabelAderProKabelCached(kabelId)
+        var freieNrn = _freieAdernFuerKreuzung(aderzahl, freshEd.aderZuordnung || {}, schnitte, treffer.aderKey,
+                                                gepoolt, treffer.verbindungId)
 
         var freieAdern = []
         for (var fi = 0; fi < freieNrn.length; fi++) {

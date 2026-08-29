@@ -2246,6 +2246,14 @@ static QList<SchemaMigration> alleMigrationen()
                 'kopie_von_ventil'
             ))",
         }},
+
+        { 140, "KABEL-UEBERARBEITUNG-01 Punkt 3: grafik_element.kabel_id als echte FK-Spalte statt der bisherigen reinen JSON-Konvention (extra_daten.kabelId), um welche Kabellinie zu welchem Kabel gehoert - kein DB-Constraint, kein Index bisher, funktionierte nur weil alle Lesestellen dieselbe Konvention einhielten. Backfill aus dem bestehenden JSON-Feld fuer alle bereits gezeichneten Kabellinien, aber NUR fuer tatsaechlich existierende kabel.id (Database_Zwischenablage.cpp dokumentiert eine bekannte Luecke: Cross-Projekt-Einfuegen laesst extraDaten.kabelId unsaniert stehen, koennte also im Zielprojekt auf eine nicht existierende Zeile zeigen - mit FK-Constraint wuerde das den kompletten Migrations-Batch zum Scheitern bringen statt wie bisher nur eine wirkungslose JSON-Karteileiche zu sein). extra_daten.kabelId bleibt zusaetzlich bestehen (von QML weiterhin gelesen/geschrieben), die neue Spalte ist die aus C++ genutzte, indizierbare, FK-abgesicherte Quelle.", {
+            R"(ALTER TABLE grafik_element ADD COLUMN kabel_id INTEGER REFERENCES kabel(id) ON DELETE SET NULL)",
+            R"(UPDATE grafik_element SET kabel_id = CAST(json_extract(extra_daten, '$.kabelId') AS INTEGER)
+               WHERE typ = 'kabellinie'
+                 AND json_extract(extra_daten, '$.kabelId') IS NOT NULL
+                 AND CAST(json_extract(extra_daten, '$.kabelId') AS INTEGER) IN (SELECT id FROM kabel))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

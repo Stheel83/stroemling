@@ -789,8 +789,9 @@ QVariantList Database::drcSchirmOhneAnschluss(int projektId)
 // Kabel-Datensatz ohne jedes 'kabellinie'-Grafikelement — z.B. wenn
 // die gezeichnete Linie gelöscht wurde und die Wiederverwendung über
 // "bestehendes Kabel" im Kabellinie-Dialog nie stattfand. Gleicher
-// JOIN-Ansatz wie kabelAlleLinienLaden() (extra_daten.kabelId ist die
-// maßgebliche Verknüpfung, nicht kabel.grafik_element_id).
+// JOIN-Ansatz wie kabelAlleLinienLaden() (grafik_element.kabel_id ist die
+// maßgebliche Verknüpfung, nicht kabel.grafik_element_id — KABEL-
+// UEBERARBEITUNG-01 Punkt 3, vorher json_extract auf extra_daten).
 // ============================================================
 QVariantList Database::drcKabelOhneKabellinie(int projektId)
 {
@@ -802,8 +803,7 @@ QVariantList Database::drcKabelOhneKabellinie(int projektId)
         WHERE k.projekt_id = :pid
           AND NOT EXISTS (
               SELECT 1 FROM grafik_element ge
-              WHERE ge.typ = 'kabellinie'
-                AND CAST(json_extract(ge.extra_daten, '$.kabelId') AS INTEGER) = k.id
+              WHERE ge.typ = 'kabellinie' AND ge.kabel_id = k.id
           )
         ORDER BY k.bezeichnung
     )");

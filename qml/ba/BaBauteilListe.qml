@@ -543,9 +543,8 @@ Item {
                         // sonst käme wieder eine Spaltenverschiebung wie bei ZEILE-FLACKERN-
                         // benachbarten Funden zustande (Kopf- und Datenzeile müssen exakt
                         // dieselbe Breite reservieren).
-                        property bool _zeigeSymbolBadge: root._kontext === "alle" && !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
                         Rectangle {
-                            visible: _zeigeSymbolBadge
+                            visible: root._kontext === "alle" && !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
                             Layout.preferredWidth: 70; height: 20; radius: 3
                             color: "#1a2a4a"; border.color: "#2d5a8a"
                             Text {
@@ -556,7 +555,10 @@ Item {
                                 horizontalAlignment: Text.AlignHCenter
                             }
                         }
-                        Item { visible: root._kontext === "alle" && !_zeigeSymbolBadge; Layout.preferredWidth: 70 }
+                        Item {
+                            visible: root._kontext === "alle" && !(!model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== "")
+                            Layout.preferredWidth: 70
+                        }
 
                         Text {
                             text: "🔒"; visible: model.istSystem; font.pixelSize: 10

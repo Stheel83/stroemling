@@ -27,6 +27,29 @@ Column {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
+    // KABEL-UEBERARBEITUNG-01 Punkt 2: rundet eine extraSetzen()-Änderung an
+    // Bezeichnung/Kabeltyp/Aderzahl/Querschnitt/Von/Nach über
+    // db.kabelMetaAktualisieren() ab, das seit Punkt 2 zusätzlich ALLE
+    // Kabellinien-Segmente dieses Kabels über die kabel_id-FK nachzieht.
+    // Vorher schrieben Kabeltyp/Aderzahl/Querschnitt/Bezeichnung nur lokal
+    // in extraSetzen() — die kabel-Tabelle und andere Linien desselben
+    // Kabels bekamen die Änderung nie mit (Bestandsaufnahme-Punkt 2).
+    // Aufrufer ruft weiterhin selbst extraSetzen() für die lokale/live
+    // Aktualisierung auf, overrides enthält nur das gerade bearbeitete
+    // Feld, der Rest kommt aus dem aktuellen extraDaten-Stand.
+    function kabelMetaSpeichern(overrides) {
+        var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
+        var kabelId = ed.kabelId || 0
+        if (kabelId <= 0) return
+        var bez  = overrides.bezeichnung    !== undefined ? overrides.bezeichnung    : (ed.bezeichnung    || "")
+        var typ  = overrides.kabeltyp       !== undefined ? overrides.kabeltyp       : (ed.kabeltyp       || "")
+        var anz  = overrides.aderzahl       !== undefined ? overrides.aderzahl       : (ed.aderzahl       || 0)
+        var qs   = overrides.querschnittMm2 !== undefined ? overrides.querschnittMm2 : (ed.querschnittMm2 || 0)
+        var von  = overrides.vonOrt         !== undefined ? overrides.vonOrt         : (ed.vonOrt         || "")
+        var nach = overrides.nachOrt        !== undefined ? overrides.nachOrt        : (ed.nachOrt        || "")
+        db.kabelMetaAktualisieren(kabelId, bez, typ, anz, qs, von, nach)
+    }
+
     component Trennlinie: Rectangle {
         width: root.width - 16; height: 1; color: root.theme.border
         anchors.horizontalCenter: parent.horizontalCenter
@@ -93,7 +116,11 @@ Column {
         label: qsTr("Bezeichnung (BMK)")
         value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bezeichnung || "") : ""
         theme: root.theme
-        onCommit: function(t) { root.extraSetzen("bezeichnung", t.trim()) }
+        onCommit: function(t) {
+            var v = t.trim()
+            root.extraSetzen("bezeichnung", v)
+            root.kabelMetaSpeichern({ bezeichnung: v })
+        }
     }
     Item { height: 6 }
 
@@ -101,7 +128,11 @@ Column {
         label: qsTr("Kabeltyp")
         value: (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.kabeltyp || "") : ""
         theme: root.theme
-        onCommit: function(t) { root.extraSetzen("kabeltyp", t.trim()) }
+        onCommit: function(t) {
+            var v = t.trim()
+            root.extraSetzen("kabeltyp", v)
+            root.kabelMetaSpeichern({ kabeltyp: v })
+        }
     }
     Item { height: 6 }
 
@@ -132,7 +163,11 @@ Column {
                                  ? panel.el.extraDaten.aderzahl.toString() : ""
                         delayed: true
                     }
-                    onEditingFinished: root.extraSetzen("aderzahl", parseInt(text) || 0)
+                    onEditingFinished: {
+                        var v = parseInt(text) || 0
+                        root.extraSetzen("aderzahl", v)
+                        root.kabelMetaSpeichern({ aderzahl: v })
+                    }
                     Keys.onEscapePressed: focus = false
                 }
             }
@@ -158,8 +193,11 @@ Column {
                                  ? panel.el.extraDaten.querschnittMm2.toString() : ""
                         delayed: true
                     }
-                    onEditingFinished: root.extraSetzen("querschnittMm2",
-                                           parseFloat(text.replace(",", ".")) || 0.0)
+                    onEditingFinished: {
+                        var v = parseFloat(text.replace(",", ".")) || 0.0
+                        root.extraSetzen("querschnittMm2", v)
+                        root.kabelMetaSpeichern({ querschnittMm2: v })
+                    }
                     Keys.onEscapePressed: focus = false
                 }
             }
@@ -249,13 +287,9 @@ Column {
                         delayed: true
                     }
                     onEditingFinished: {
-                        root.extraSetzen("vonOrt", text.trim())
-                        var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
-                        var kabelId = ed.kabelId || 0
-                        if (kabelId > 0) db.kabelMetaAktualisieren(kabelId,
-                            ed.bezeichnung || "", ed.kabeltyp || "",
-                            ed.aderzahl || 0, ed.querschnittMm2 || 0,
-                            text.trim(), ed.nachOrt || "")
+                        var v = text.trim()
+                        root.extraSetzen("vonOrt", v)
+                        root.kabelMetaSpeichern({ vonOrt: v })
                     }
                     Keys.onEscapePressed: focus = false
                 }
@@ -280,13 +314,9 @@ Column {
                         delayed: true
                     }
                     onEditingFinished: {
-                        root.extraSetzen("nachOrt", text.trim())
-                        var ed = panel.el && panel.el.extraDaten ? panel.el.extraDaten : {}
-                        var kabelId = ed.kabelId || 0
-                        if (kabelId > 0) db.kabelMetaAktualisieren(kabelId,
-                            ed.bezeichnung || "", ed.kabeltyp || "",
-                            ed.aderzahl || 0, ed.querschnittMm2 || 0,
-                            ed.vonOrt || "", text.trim())
+                        var v = text.trim()
+                        root.extraSetzen("nachOrt", v)
+                        root.kabelMetaSpeichern({ nachOrt: v })
                     }
                     Keys.onEscapePressed: focus = false
                 }

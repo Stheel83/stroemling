@@ -919,6 +919,17 @@ QVariantList Database::kabelListeAufgeschluesselt(int projektId)
 // kabelMetaAktualisieren
 // Aktualisiert Bezeichnung, Typ, Aderzahl, Querschnitt eines
 // bestehenden Kabel-Datensatzes (z. B. nach EigenschaftenPanel-Änderung).
+//
+// KABEL-UEBERARBEITUNG-01 Punkt 2: die kabel-Tabelle ist der alleinige
+// Owner dieser Felder — rollt die neuen Werte deshalb zusätzlich auf ALLE
+// Kabellinien-Grafikelemente dieses Kabels aus (über die echte kabel_id-FK
+// aus Punkt 3), nicht nur auf die eine gerade im EigenschaftenPanel
+// bearbeitete Linie. Vorher konnten kabeltyp/aderzahl/querschnittMm2/
+// bezeichnung zwischen der kabel-Tabelle und den einzelnen
+// grafik_element.extra_daten auseinanderdriften (Bestandsaufnahme
+// §6.5.5, Punkt 2) — z. B. bekam eine über "bestehendes Kabel" verknüpfte
+// zweite Linie nie mit, wenn der Kabeltyp später an der ersten Linie
+// geändert wurde.
 // ============================================================
 bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
                                        const QString &kabeltyp, int aderzahl,
@@ -942,6 +953,29 @@ bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
         qCWarning(lcDb) << "kabelMetaAktualisieren:" << q.lastError().text();
         return false;
     }
+
+    QSqlQuery qLinien(m_db);
+    qLinien.prepare(R"(
+        UPDATE grafik_element
+        SET extra_daten = json_set(extra_daten,
+            '$.bezeichnung',    :bez,
+            '$.kabeltyp',       :typ,
+            '$.aderzahl',       :anz,
+            '$.querschnittMm2', :qs,
+            '$.vonOrt',         :von,
+            '$.nachOrt',        :nach)
+        WHERE kabel_id = :kid
+    )");
+    qLinien.bindValue(":bez",  bezeichnung);
+    qLinien.bindValue(":typ",  kabeltyp);
+    qLinien.bindValue(":anz",  aderzahl);
+    qLinien.bindValue(":qs",   querschnittMm2);
+    qLinien.bindValue(":von",  vonOrt);
+    qLinien.bindValue(":nach", nachOrt);
+    qLinien.bindValue(":kid",  kabelId);
+    if (!qLinien.exec())
+        qCWarning(lcDb) << "kabelMetaAktualisieren Linien-Sync:" << qLinien.lastError().text();
+
     return true;
 }
 
@@ -1406,11 +1440,21 @@ QVariantList Database::bauteilKabelListe()
 
 // ============================================================
 // kabelBauteilKabelSetzen
-// Weist einer Kabellinie ein Bauteil-Kabel zu (bauteilKabelId > 0)
-// oder hebt die Zuweisung auf (bauteilKabelId <= 0).
-// Bei Zuweisung werden kabeltyp/aderzahl/querschnitt_mm2 aus dem
-// Bauteil-Kabel übernommen (können manuell überschrieben werden).
-// Gibt die aktualisierten Metadaten zurück.
+// Weist einem Kabel (kabelId, nicht einer einzelnen Linie) ein
+// Bauteil-Kabel zu (bauteilKabelId > 0) oder hebt die Zuweisung auf
+// (bauteilKabelId <= 0). Bei Zuweisung werden kabeltyp/aderzahl/
+// querschnitt_mm2 aus dem Bauteil-Kabel übernommen (können manuell
+// überschrieben werden). Gibt die aktualisierten Metadaten zurück.
+//
+// KABEL-UEBERARBEITUNG-01 Punkt 2: der Ader-Roster (adern[], Farbe/
+// Bezeichnung je Adernummer) kommt ausschließlich aus der Kabeldefinition
+// hier — dieses Kabel ist also bereits der alleinige Owner. Der Roster
+// wird jetzt zusätzlich auf ALLE Kabellinien-Segmente dieses Kabels
+// ausgerollt (über die kabel_id-FK aus Punkt 3), nicht mehr nur auf die
+// eine Linie, die den Picker gerade geöffnet hat — vorher bekam eine über
+// "bestehendes Kabel" verknüpfte zweite Linie den Roster nur beim
+// eigenen Zeichnen mit, nie bei einer späteren Änderung an einer anderen
+// Linie desselben Kabels.
 // ============================================================
 QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
 {
@@ -1477,6 +1521,27 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
         }
     }
     result[QStringLiteral("adern")] = adern;
+
+    // Roster auf ALLE Kabellinien-Segmente dieses Kabels ausrollen (s.
+    // Funktionskommentar oben, Punkt 2).
+    {
+        QJsonArray adernArr;
+        for (const QVariant &av : adern)
+            adernArr.append(QJsonObject::fromVariantMap(av.toMap()));
+        QString adernJson = QString::fromUtf8(QJsonDocument(adernArr).toJson(QJsonDocument::Compact));
+
+        QSqlQuery qLinien(m_db);
+        qLinien.prepare(R"(
+            UPDATE grafik_element
+            SET extra_daten = json_set(extra_daten, '$.adern', json(:adern))
+            WHERE kabel_id = :kid
+        )");
+        qLinien.bindValue(":adern", adernJson);
+        qLinien.bindValue(":kid",   kabelId);
+        if (!qLinien.exec())
+            qCWarning(lcDb) << "kabelBauteilKabelSetzen Roster-Sync:" << qLinien.lastError().text();
+    }
+
     return result;
 }
 

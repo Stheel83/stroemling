@@ -695,6 +695,22 @@ QtObject {
 
     function loeschen() {
         if (cv.auswahl.length === 0) return
+        // KABEL-MEHRLINIEN-LOESCH-01 (Aug 2026): db.kabelLoeschen() löscht
+        // den GESAMTEN kabel-Datensatz + alle kabel_ader-Zeilen — richtig,
+        // wenn dies die letzte Kabellinie ist, aber katastrophal bei der
+        // seit §6.8 unterstützten verteilten Kabeldarstellung (mehrere
+        // Kabellinien pro Kabel): grafik_element.kabel_id hat ON DELETE SET
+        // NULL auf kabel(id), das Löschen des kabel-Datensatzes riss dadurch
+        // JEDE noch bestehende Schwesterlinie mit (kabel_id → NULL,
+        // kabel_ader komplett weg) — auch wenn nur EINE von mehreren Linien
+        // gelöscht wurde. IDs der in dieser Aktion gelöschten Elemente
+        // vorab sammeln, damit geprüft werden kann, ob noch eine
+        // Schwesterlinie übrig bleibt.
+        var geloeschteIds = {}
+        for (var gi = 0; gi < cv.auswahl.length; gi++) {
+            var ge = cv.elementeModel.element(cv.auswahl[gi])
+            if (ge && ge.id > 0) geloeschteIds[ge.id] = true
+        }
         // Kabel-Einträge für Kabellinien zuerst aufräumen
         for (var ki = 0; ki < cv.auswahl.length; ki++) {
             var delEl = cv.elementeModel.element(cv.auswahl[ki])
@@ -704,7 +720,20 @@ QtObject {
                     var kabelDetails = db.kabelLinieDetails(delEl.id)
                     delKabelId = kabelDetails && kabelDetails.id || 0
                 }
-                if (delKabelId > 0) db.kabelLoeschen(delKabelId)
+                if (delKabelId <= 0) continue
+                var alleLinien = db.kabelAlleLinienLaden(delKabelId)
+                var schwesterlinieUebrig = alleLinien.some(function(l) {
+                    return !geloeschteIds[l.grafikElementId]
+                })
+                // Nur löschen, wenn dies wirklich die letzte Kabellinie
+                // dieses Kabels ist. Andernfalls bleibt der kabel-
+                // Datensatz bestehen; die Ader-Zeile dieser Linie löst sich
+                // von selbst über kabel_ader.kabellinie_grafik_element_id
+                // (ON DELETE SET NULL), sobald ihr grafik_element unten
+                // wirklich verschwindet — die anschließende
+                // kabelAderProjektweitSynchronisieren() poolt die
+                // verbleibenden Linien danach neu.
+                if (!schwesterlinieUebrig) db.kabelLoeschen(delKabelId)
             }
         }
         // Von hinten löschen damit Indizes stabil bleiben

@@ -273,15 +273,26 @@ QtObject {
     // zugeordnet sind. Damit nutzt das Popup dieselbe Datengrundlage wie
     // die Poolung beim Speichern, statt zwei divergierende Quellen zu haben
     // (Bestandsaufnahme §6.5.5, Punkt 1).
+    //
+    // AKP-FREIE-ADERN-LOKAL-01 (Aug 2026): der lokale Kreuzungs-Loop rechnete
+    // für Kreuzungen ohne eigenen aderZuordnung-Eintrag bislang direkt mit
+    // dem reinen Positions-Fallback (i+1) — bei einer Linie, deren Adern
+    // kabelweit NICHT bei 1 beginnen (z.B. die vierte Linie eines Kabels,
+    // Adern 10/11), markierte das die falsche Nummer als belegt (hier: "1"
+    // statt "10") und ließ echte, weiter hinten liegende freie Adern
+    // dadurch potenziell unentdeckt, je nachdem wie sich die falschen
+    // Markierungen mit echten überschneiden. Nutzt jetzt denselben
+    // 3-stufigen Resolver wie überall sonst (explizit > gepoolt > lokaler
+    // Fallback, `_aderNrFuerKreuzung()`) statt einer eigenen, unvollständigen
+    // Kopie davon.
     function _freieAdernFuerKreuzung(aderzahl, aderZuordnung, schnitte, eigenerAderKey, gepoolt) {
         var belegt = {}
         for (var i = 0; i < schnitte.length; i++) {
             var sc  = schnitte[i]
             var key = sc.aderKey || sc.netKey || sc.legacyNetKey || ""
             if (key === eigenerAderKey) continue
-            var zugeordnet = cv.netzberechnung._netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
-            if (zugeordnet === undefined) zugeordnet = i + 1
-            if (zugeordnet !== 0) belegt[zugeordnet] = true
+            var res = cv.netzberechnung._aderNrFuerKreuzung(aderZuordnung, sc, i, gepoolt)
+            if (!res.istLeer) belegt[res.aderNr] = true
         }
         if (gepoolt) {
             for (var ak in gepoolt) {
@@ -328,6 +339,15 @@ QtObject {
 
         var netze    = cv.netzberechnung.autoNetzeBerechnen()
         var schnitte = cv.geometrie.kabelSchnittNetzeBerechnen(currentEl, netze)
+        // AKP-FREIE-ADERN-CACHE-01 (Aug 2026): Cache gezielt verwerfen statt
+        // wie sonst üblich zu vertrauen — dieses Popup ist der einzige Ort,
+        // an dem der Nutzer eine gerade eben (z.B. durch Bauteil-Tausch)
+        // freigewordene Ader sofort als wählbar sehen muss. Die üblichen
+        // Invalidierungspunkte (grafikSpeichernJetzt→kabelAderSynchronisieren,
+        // netzCacheInvalidieren) laufen zeitlich nicht zuverlässig VOR
+        // diesem Öffnen-Handler, ein veralteter Eintrag hätte sonst schon
+        // freie Adern fälschlich als belegt gezeigt (Nutzerbericht).
+        delete cv._cachedKabelAderProKabel[kabelId]
         var gepoolt  = cv.geometrie.kabelAderProKabelCached(kabelId)
         var freieNrn = _freieAdernFuerKreuzung(aderzahl, freshEd.aderZuordnung || {}, schnitte, treffer.aderKey, gepoolt)
 

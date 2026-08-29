@@ -435,16 +435,26 @@ Item {
                     width: bauteilListe.width; height: 38
                     property bool isSelected: panel.selectedBauteilId === model.bauteilId
                     color: isSelected ? theme.activeItemAlt
-                           : (bMa.containsMouse ? theme.hover
+                           : (rowHover.hovered ? theme.hover
                            : (index % 2 === 0 ? theme.tableEven : theme.tableOdd))
                     // ONBOARDING-KETTEN-01: reiner Entwicklungs-Merker, kein Nutzer-Feature
                     // (analog markiertLoeschen im Symboleditor) – bleibt auch ohne Hover sichtbar.
                     border.width: model.fuerSeedVormerken ? 1 : 0
                     border.color: "#4caf7d"
 
+                    // Eigener HoverHandler statt bMa.containsMouse für alle visuellen
+                    // Zustände (Zeilenfarbe, Aktions-Buttons einblenden) – ZEILE-FLACKERN-01:
+                    // eine MouseArea, die von Buttons/Icons darüber optisch überdeckt wird,
+                    // verliert dort containsMouse (Occlusion), was Row.visible/Farbe im
+                    // selben Frame kippen ließ → Button verschwindet → MouseArea bekommt
+                    // Hover zurück → Button erscheint wieder → Endlosschleife = Flackern.
+                    // HoverHandler ist nicht-exklusiv und bleibt auch unter Geschwister-
+                    // Items mit eigenem Hover stabil.
+                    HoverHandler { id: rowHover }
+
                     MouseArea {
                         id: bMa
-                        anchors.fill: parent; z: -1; hoverEnabled: true
+                        anchors.fill: parent; z: -1
                         onClicked: {
                             panel.selectedBauteilId          = model.bauteilId
                             panel.selectedBauteilBezeichnung = model.bezeichnung
@@ -529,7 +539,7 @@ Item {
                         // Hover sichtbar, damit die Liste durchscrollbar bleibt.
                         Button {
                             width: 24; height: 24; flat: true
-                            visible: bMa.containsMouse || model.fuerSeedVormerken
+                            visible: rowHover.hovered || model.fuerSeedVormerken
                             contentItem: Text {
                                 text: "🌱"; font.pixelSize: 13
                                 color: model.fuerSeedVormerken ? "#4caf7d" : theme.textMuted
@@ -544,7 +554,7 @@ Item {
                         }
 
                         Row {
-                            spacing: 4; visible: bMa.containsMouse
+                            spacing: 4; visible: rowHover.hovered
                             Button {
                                 visible: model.istKlemme; width: 24; height: 24; flat: true
                                 contentItem: Text { text: "⚙"; color: theme.accent; font.pixelSize: 13;

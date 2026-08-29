@@ -224,12 +224,1552 @@ SELECT bk.id, 4, '4', 0.25
 FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='LiYCY 4x0,25'
 AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
 
+-- ALU 3G2,5
+INSERT INTO bauteil (bezeichnung, hersteller, ist_system)
+SELECT 'ALU 3G2,5', 'DDR', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='ALU 3G2,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 0, 0, '', 'AL', ''
+FROM bauteil b WHERE b.bezeichnung='ALU 3G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 3G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BU', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 3G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'YE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 3G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- ALU 5G2,5
+INSERT INTO bauteil (bezeichnung, hersteller, ist_system)
+SELECT 'ALU 5G2,5', 'DDR', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='ALU 5G2,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 0, 0, '', 'AL', ''
+FROM bauteil b WHERE b.bezeichnung='ALU 5G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 5G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BN', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 5G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 5G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BU', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 5G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'YE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 5G2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- Steuerleitung 3G1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 3G1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 3G1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'H05VV5-F', 0, 0, 'grau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 3G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 3G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 3G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'YE', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 3G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- Steuerleitung 5G1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 5G1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 5G1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'H05VV5-F', 0, 0, 'grau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 5G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 5G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 5G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 5G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 5G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'YE', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 5G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- Steuerleitung 12G1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 12G1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 12G1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'H05VV5-F', 0, 0, 'grau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 6, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=6);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 7, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=7);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 8, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=8);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 9, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=9);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 10, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=10);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 11, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=11);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 12, 'GN', 'YE', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=12);
+
+-- Steuerleitung 25G1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 25G1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 25G1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'H05VV5-F', 0, 0, 'grau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 6, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=6);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 7, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=7);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 8, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=8);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 9, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=9);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 10, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=10);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 11, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=11);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 12, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=12);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 13, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=13);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 14, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=14);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 15, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=15);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 16, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=16);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 17, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=17);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 18, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=18);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 19, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=19);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 20, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=20);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 21, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=21);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 22, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=22);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 23, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=23);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 24, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=24);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 25, 'GN', 'YE', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 25G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=25);
+
+-- Steuerleitung 50G1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 50G1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 50G1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'H05VV5-F', 0, 0, 'grau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 6, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=6);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 7, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=7);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 8, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=8);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 9, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=9);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 10, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=10);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 11, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=11);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 12, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=12);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 13, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=13);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 14, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=14);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 15, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=15);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 16, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=16);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 17, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=17);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 18, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=18);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 19, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=19);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 20, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=20);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 21, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=21);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 22, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=22);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 23, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=23);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 24, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=24);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 25, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=25);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 26, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=26);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 27, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=27);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 28, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=28);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 29, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=29);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 30, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=30);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 31, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=31);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 32, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=32);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 33, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=33);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 34, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=34);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 35, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=35);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 36, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=36);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 37, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=37);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 38, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=38);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 39, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=39);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 40, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=40);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 41, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=41);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 42, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=42);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 43, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=43);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 44, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=44);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 45, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=45);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 46, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=46);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 47, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=47);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 48, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=48);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 49, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=49);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 50, 'GN', 'YE', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50G1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=50);
+
+-- Steuerleitung 2x1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 2x1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 2x1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 1, 0, 'blau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 2x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 2x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 2x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+-- Steuerleitung 4x1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 4x1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 4x1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 1, 0, 'blau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 4x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 4x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 4x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 4x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 4x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+-- Steuerleitung 12x1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 12x1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 12x1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 1, 0, 'blau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 6, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=6);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 7, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=7);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 8, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=8);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 9, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=9);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 10, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=10);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 11, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=11);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 12, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 12x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=12);
+
+-- Steuerleitung 24x1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 24x1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 24x1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 1, 0, 'blau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 6, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=6);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 7, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=7);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 8, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=8);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 9, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=9);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 10, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=10);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 11, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=11);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 12, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=12);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 13, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=13);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 14, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=14);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 15, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=15);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 16, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=16);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 17, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=17);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 18, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=18);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 19, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=19);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 20, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=20);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 21, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=21);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 22, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=22);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 23, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=23);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 24, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 24x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=24);
+
+-- Steuerleitung 50x1
+INSERT INTO bauteil (bezeichnung, ist_system)
+SELECT 'Steuerleitung 50x1', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Steuerleitung 50x1');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 1, 0, 'blau', '', ''
+FROM bauteil b WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 6, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=6);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 7, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=7);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 8, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=8);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 9, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=9);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 10, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=10);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 11, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=11);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 12, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=12);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 13, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=13);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 14, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=14);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 15, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=15);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 16, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=16);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 17, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=17);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 18, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=18);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 19, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=19);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 20, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=20);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 21, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=21);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 22, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=22);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 23, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=23);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 24, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=24);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 25, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=25);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 26, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=26);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 27, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=27);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 28, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=28);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 29, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=29);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 30, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=30);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 31, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=31);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 32, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=32);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 33, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=33);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 34, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=34);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 35, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=35);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 36, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=36);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 37, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=37);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 38, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=38);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 39, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=39);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 40, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=40);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 41, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=41);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 42, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=42);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 43, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=43);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 44, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=44);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 45, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=45);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 46, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=46);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 47, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=47);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 48, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=48);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 49, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=49);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 50, 'BK', 1.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='Steuerleitung 50x1'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=50);
+
+-- NYM-J 3x2,5
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYM-J 3x2,5', 'Installationskabel, grau, 3 Adern', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYM-J 3x2,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYM-J', 0, 0, 'grau', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYM-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BN', 'L', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BU', 'N', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'PE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- NYM-J 5x2,5
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYM-J 5x2,5', 'Installationskabel, grau, 5 Adern', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYM-J 5x2,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYM-J', 0, 0, 'grau', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYM-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BN', 'L1', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 'L2', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GY', 'L3', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 4, 'BU', 'N', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'PE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- NYM-J 3x1,5 alt BK
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYM-J 3x1,5 alt BK', 'Installationskabel, grau, 3 Adern', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYM-J 3x1,5 alt BK');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYM-J', 0, 0, 'grau', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYM-J 3x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 'L', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BU', 'N', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'PE', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- NYM-J 3x2,5 alt BK
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYM-J 3x2,5 alt BK', 'Installationskabel, grau, 3 Adern', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYM-J 3x2,5 alt BK');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYM-J', 0, 0, 'grau', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYM-J 3x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 'L', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BU', 'N', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'PE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 3x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- NYM-J 5x1,5 alt BK
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYM-J 5x1,5 alt BK', 'Installationskabel, grau, 5 Adern', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYM-J 5x1,5 alt BK');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYM-J', 0, 0, 'grau', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYM-J 5x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 'L1', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BN', 'L2', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 'L3', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 4, 'BU', 'N', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'PE', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x1,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- NYM-J 5x2,5 alt BK
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYM-J 5x2,5 alt BK', 'Installationskabel, grau, 5 Adern', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYM-J 5x2,5 alt BK');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYM-J', 0, 0, 'grau', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYM-J 5x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 'L1', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BN', 'L2', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'BK', 'L3', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 4, 'BU', 'N', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'PE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYM-J 5x2,5 alt BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- NYY-J 3x1,5
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYY-J 3x1,5', 'Erdkabel', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYY-J 3x1,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYY-J', 0, 0, 'schwarz', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYY-J 3x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BN', 'L', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 3x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BU', 'N', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 3x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'PE', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 3x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- NYY-J 5x1,5
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYY-J 5x1,5', 'Erdkabel', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYY-J 5x1,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYY-J', 0, 0, 'schwarz', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYY-J 5x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BN', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'GY', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BU', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, farbe2, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 'YE', 1.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x1,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- NYY-J 3x2,5
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYY-J 3x2,5', 'Erdkabel', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYY-J 3x2,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYY-J', 0, 0, 'schwarz', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYY-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 1, 'BN', 'L', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 2, 'BU', 'N', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, bezeichnung, querschnitt_mm2)
+SELECT bk.id, 3, 'GN', 'PE', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 3x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+-- NYY-J 5x2,5
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'NYY-J 5x2,5', 'Erdkabel', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='NYY-J 5x2,5');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, 'NYY-J', 0, 0, 'schwarz', 'Cu', 'PVC'
+FROM bauteil b WHERE b.bezeichnung='NYY-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BN', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'GY', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'BU', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 5, 'GN', 2.5
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='NYY-J 5x2,5'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=5);
+
+-- ALU 4G4
+INSERT INTO bauteil (bezeichnung, hersteller, ist_system)
+SELECT 'ALU 4G4', 'DDR', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='ALU 4G4');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 0, 0, '', 'AL', ''
+FROM bauteil b WHERE b.bezeichnung='ALU 4G4'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 4.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G4'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 4.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G4'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BU', 4.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G4'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'GN', 4.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G4'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+-- ALU 4G6
+INSERT INTO bauteil (bezeichnung, hersteller, ist_system)
+SELECT 'ALU 4G6', 'DDR', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='ALU 4G6');
+
+INSERT INTO bauteil_kabel (bauteil_id, kabeltyp, geschirmt, paarweise_verdrillt, aussenmantel_farbe, material_leiter, material_isolierung)
+SELECT b.id, '', 0, 0, '', 'AL', ''
+FROM bauteil b WHERE b.bezeichnung='ALU 4G6'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 1, 'BK', 6.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G6'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=1);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 2, 'BK', 6.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G6'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=2);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 3, 'BU', 6.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G6'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=3);
+
+INSERT INTO bauteil_kabel_ader (kabel_id, ader_nr, farbe, querschnitt_mm2)
+SELECT bk.id, 4, 'GN', 6.0
+FROM bauteil_kabel bk JOIN bauteil b ON b.id=bk.bauteil_id WHERE b.bezeichnung='ALU 4G6'
+AND NOT EXISTS (SELECT 1 FROM bauteil_kabel_ader WHERE kabel_id=bk.id AND ader_nr=4);
+
+
 
 -- ===========================================================================
 -- KLEMMEN  (eigene, über die 6 Standard-Klemmen hinaus)
 -- ===========================================================================
 
 -- Hier eigene Klemmen eintragen – Kopiervorlage siehe Header.
+
+-- Lüsterklemme 2,5mm² BK
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'Lüsterklemme 2,5mm² BK', 'Standard-Klemme', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Lüsterklemme 2,5mm² BK');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'IEC 60947-7-1', 'schraube', 1, 1, 1, 0, 0, 5.2, (SELECT id FROM farb_definition WHERE bezeichnung='Schwarz - DIN 72551 (sw)' LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Lüsterklemme 2,5mm² BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 2.5 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.25, 2.5
+   UNION ALL SELECT 'aenh_isoliert', 0.25, 1.5) q
+WHERE b.bezeichnung='Lüsterklemme 2,5mm² BK'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
+
+-- Lüsterklemme 2,5mm² BU
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'Lüsterklemme 2,5mm² BU', 'Standard-Klemme', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Lüsterklemme 2,5mm² BU');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'IEC 60947-7-1', 'schraube', 1, 1, 1, 0, 0, 5.2, (SELECT id FROM farb_definition WHERE bezeichnung='Blau - DIN 72551 (bl)' LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Lüsterklemme 2,5mm² BU'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 2.5 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.25, 2.5
+   UNION ALL SELECT 'aenh_isoliert', 0.25, 1.5) q
+WHERE b.bezeichnung='Lüsterklemme 2,5mm² BU'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
+
+-- Lüsterklemme 2,5mm² GNYE
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'Lüsterklemme 2,5mm² GNYE', 'Standard-Klemme', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Lüsterklemme 2,5mm² GNYE');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'IEC 60947-7-1', 'schraube', 1, 1, 1, 0, 0, 5.2, (SELECT id FROM farb_definition WHERE bezeichnung='Grün-Gelb – PE (normverpflichtend)' LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Lüsterklemme 2,5mm² GNYE'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 2.5 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.25, 2.5
+   UNION ALL SELECT 'aenh_isoliert', 0.25, 1.5) q
+WHERE b.bezeichnung='Lüsterklemme 2,5mm² GNYE'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
+
+-- Lüsterklemme 2,5mm² WH
+INSERT INTO bauteil (bezeichnung, bemerkung, ist_system)
+SELECT 'Lüsterklemme 2,5mm² WH', 'Standard-Klemme', 1
+WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Lüsterklemme 2,5mm² WH');
+
+INSERT INTO bauteil_klemme
+  (bauteil_id, norm, anschluss_typ, ebenen_anzahl, punkte_seite_a, punkte_seite_b, fuss_kontakt_pe, stegbruecke_faehig, breite_mm, gehaeuse_farbe_id)
+SELECT b.id, 'IEC 60947-7-1', 'schraube', 1, 1, 1, 0, 0, 5.2, (SELECT id FROM farb_definition WHERE bezeichnung='Weiss - DIN 72551 (ws)' LIMIT 1)
+FROM bauteil b WHERE b.bezeichnung='Lüsterklemme 2,5mm² WH'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme WHERE bauteil_id=b.id);
+
+INSERT INTO bauteil_klemme_querschnitt (klemme_id, adertyp, min_mm2, max_mm2)
+SELECT bk.id, q.t, q.mn, q.mx
+FROM bauteil_klemme bk JOIN bauteil b ON b.id=bk.bauteil_id,
+  (SELECT 'starr' t, 0.2 mn, 2.5 mx
+   UNION ALL SELECT 'flexibel', 0.2, 2.5
+   UNION ALL SELECT 'aenh_blank', 0.25, 2.5
+   UNION ALL SELECT 'aenh_isoliert', 0.25, 1.5) q
+WHERE b.bezeichnung='Lüsterklemme 2,5mm² WH'
+AND NOT EXISTS (SELECT 1 FROM bauteil_klemme_querschnitt WHERE klemme_id=bk.id);
 
 
 -- ===========================================================================

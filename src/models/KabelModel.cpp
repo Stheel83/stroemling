@@ -206,21 +206,6 @@ bool KabelModel::stammdatenSpeichern(const QVariantMap &daten)
     return true;
 }
 
-bool KabelModel::kabelLoeschen()
-{
-    if (m_kabelId < 0) return false;
-
-    QSqlQuery q;
-    q.prepare("DELETE FROM bibliothek.bauteil_kabel WHERE id = :id");
-    q.bindValue(":id", m_kabelId);
-    if (!q.exec()) {
-        qCWarning(lcModel) << "KabelModel::kabelLoeschen:" << q.lastError().text();
-        return false;
-    }
-    laden(m_bauteilId);
-    return true;
-}
-
 int KabelModel::aderAnlegen()
 {
     if (m_kabelId < 0) return -1;

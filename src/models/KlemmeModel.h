@@ -69,9 +69,6 @@ public:
     // Speichert alle Felder der aktuellen Klemme
     Q_INVOKABLE bool speichern(const QVariantMap &daten);
 
-    // Löscht den bauteil_klemme-Eintrag (inkl. Querschnitte + Brücken)
-    Q_INVOKABLE bool loeschen();
-
     // Querschnitte
     Q_INVOKABLE bool querschnittSetzen(const QString &adertyp, double min, double max);
     Q_INVOKABLE bool querschnittLoeschen(const QString &adertyp);

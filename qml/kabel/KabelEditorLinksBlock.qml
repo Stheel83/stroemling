@@ -103,7 +103,7 @@ ScrollView {
             NavTextField {
                 id: tfKabBez; Layout.fillWidth: true
                 tabTarget:     tfKabHer
-                backtabTarget: kabelModel.hatKabel ? tfMatIso : tfKabArt
+                backtabTarget: tfMatIso
                 background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                 color: root.theme.textPrimary; font.pixelSize: 12
             }
@@ -202,7 +202,7 @@ ScrollView {
                 Layout.fillWidth: true; spacing: 6
                 NavTextField {
                     id: tfKabUrlDat; Layout.fillWidth: true
-                    tabTarget: kabelModel.hatKabel ? tfKabeltyp : tfKabBez; backtabTarget: tfKabUrlHer
+                    tabTarget: tfKabeltyp; backtabTarget: tfKabUrlHer
                     placeholderText: "https://..."
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
@@ -222,42 +222,17 @@ ScrollView {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
-        // Kabel-Status
-        Rectangle {
-            Layout.fillWidth: true; height: 48; color: root.theme.surfaceDeep
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-                Text {
-                    text: kabelModel.hatKabel ? qsTr("Kabel-Daten vorhanden")
-                                              : qsTr("Noch keine Kabel-Daten")
-                    color: kabelModel.hatKabel ? root.theme.accent : root.theme.textMuted
-                    font.pixelSize: 13; Layout.fillWidth: true
-                }
-                Button {
-                    text: kabelModel.hatKabel ? qsTr("Entfernen") : qsTr("Anlegen")
-                    font.pixelSize: 11
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
-                                            radius: 4; border.color: root.theme.accent }
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 11;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    onClicked: {
-                        if (kabelModel.hatKabel) {
-                            kabelModel.kabelLoeschen()
-                        } else {
-                            kabelModel.laden(root.bauteilId)
-                            kabelModel.stammdatenSpeichern({ geschirmt: false, paarweise_verdrillt: false })
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-        // Kabel-Eigenschaften (nur wenn Kabel-Daten vorhanden)
+        // KABEL-EIGENSCHAFTEN (KABEL-STATUSBLOCK-01, Aug 2026: den früheren
+        // "Kabel-Daten vorhanden/Entfernen"-Umschalter entfernt — jeder Weg in
+        // diesen Editor legt die Kabel-Daten schon bei der Bauteil-Erstellung an
+        // (BaKategorieSidebar.qml "+"-Schnellanlage ruft stammdatenSpeichern()
+        // direkt nach dem Anlegen auf, der ⚙-Editor-Button in BaBauteilListe.qml
+        // erscheint nur bei bereits vorhandenen Kabel-Daten) — der Zustand
+        // "kein Kabel" war über die normale Navigation nie erreichbar. Löschen
+        // eines Kabel-Bauteils läuft komplett über das × in der Bauteilliste
+        // (bauteil_kabel/-_ader/-_paar hängen per ON DELETE CASCADE an bauteil).
         ColumnLayout {
             Layout.fillWidth: true; Layout.margins: 12; spacing: 8
-            visible: kabelModel.hatKabel
 
             Text { text: qsTr("Kabeltyp"); color: root.theme.textMuted; font.pixelSize: 11 }
             NavTextField {

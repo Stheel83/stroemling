@@ -110,7 +110,7 @@ ScrollView {
             NavTextField {
                 id: tfStamBez; Layout.fillWidth: true
                 tabTarget:     tfStamHer
-                backtabTarget: klemmeModel.hatKlemme ? tfBemerkung : tfStamArt
+                backtabTarget: tfBemerkung
                 background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                 color: root.theme.textPrimary; font.pixelSize: 12
             }
@@ -215,7 +215,7 @@ ScrollView {
                 Layout.fillWidth: true; spacing: 6
                 NavTextField {
                     id: tfStamUrlDat; Layout.fillWidth: true
-                    tabTarget: klemmeModel.hatKlemme ? tfBreite : tfStamBez; backtabTarget: tfStamUrlHer
+                    tabTarget: tfBreite; backtabTarget: tfStamUrlHer
                     placeholderText: "https://..."
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
@@ -234,36 +234,19 @@ ScrollView {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
-        // ── Klemme vorhanden / nicht vorhanden ────────────────────────────
-        Rectangle {
-            Layout.fillWidth: true; height: 48; color: root.theme.surfaceDeep
-            RowLayout {
-                anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-                Text {
-                    text: klemmeModel.hatKlemme ? qsTr("Klemme vorhanden") : qsTr("Noch keine Klemme")
-                    color: klemmeModel.hatKlemme ? root.theme.accent : root.theme.textMuted
-                    font.pixelSize: 13; Layout.fillWidth: true
-                }
-                Button {
-                    text: klemmeModel.hatKlemme ? qsTr("Klemme entfernen") : qsTr("Klemme anlegen")
-                    font.pixelSize: 11
-                    onClicked: {
-                        if (klemmeModel.hatKlemme) klemmeModel.loeschen()
-                        else klemmeModel.anlegen(root.bauteilId)
-                    }
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 11;
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                }
-            }
-        }
-
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-        // ── Klemme-Eigenschaften (nur wenn Klemme vorhanden) ─────────────
+        // ── KLEMME-EIGENSCHAFTEN (KABEL-STATUSBLOCK-01, Aug 2026: den
+        // früheren "Klemme vorhanden/entfernen"-Umschalter entfernt — jeder
+        // Weg in diesen Editor legt die Klemme-Daten schon bei der
+        // Bauteil-Erstellung an (BaKategorieSidebar.qml "+"-Schnellanlage
+        // ruft klemmeModel.anlegen() direkt nach dem Anlegen auf, der
+        // ⚙-Editor-Button in BaBauteilListe.qml erscheint nur bei bereits
+        // vorhandenen Klemme-Daten) — der Zustand "keine Klemme" war über die
+        // normale Navigation nie erreichbar. Löschen eines Klemmen-Bauteils
+        // läuft komplett über das × in der Bauteilliste — BauteilListModel::
+        // loeschen() räumt bauteil_klemme + Kind-Tabellen jetzt selbst auf
+        // (KLEMME-LOESCH-KASKADE-01, kein ON DELETE CASCADE im Schema). ────
         ColumnLayout {
             Layout.fillWidth: true; Layout.margins: 12; spacing: 8
-            visible: klemmeModel.hatKlemme
 
             Text { text: qsTr("Anschlusstyp"); color: root.theme.textMuted; font.pixelSize: 11 }
             ComboBox {

@@ -421,6 +421,36 @@ bool BauteilListModel::bearbeiten(int id, const QString &bezeichnung,
 
 bool BauteilListModel::loeschen(int id)
 {
+    // KLEMME-LOESCH-KASKADE-01 (Aug 2026): bauteil_klemme.bauteil_id hat -
+    // anders als bauteil_kabel/steckverbinder_typ/kontakt_typ/
+    // konfektioniertes_kabel - kein ON DELETE CASCADE im Schema (SQLite kann
+    // eine bestehende FK-Klausel nicht per ALTER TABLE nachziehen, das hätte
+    // eine riskante Tabellen-Neuanlage über den gemeinsamen Migrations-
+    // Codepfad gebraucht). Ohne dieses manuelle Aufräumen schlägt das DELETE
+    // unten bei jedem Klemmen-Bauteil mit "FOREIGN KEY constraint failed"
+    // fehl (lautlos, da nur geloggt) und das Bauteil bliebe stehen. Reihen-
+    // folge wie im früheren KlemmeModel::loeschen(): erst die Kind-Tabellen
+    // von bauteil_klemme, dann bauteil_klemme selbst.
+    {
+        QSqlQuery qk;
+        qk.prepare("SELECT id FROM bibliothek.bauteil_klemme WHERE bauteil_id = :id");
+        qk.bindValue(":id", id);
+        if (qk.exec() && qk.next()) {
+            const int klemmeId = qk.value(0).toInt();
+            QSqlQuery qd;
+            qd.prepare("DELETE FROM bibliothek.bauteil_klemme_eigenschaft WHERE klemme_id = :kid");
+            qd.bindValue(":kid", klemmeId); qd.exec();
+            qd.prepare("DELETE FROM bibliothek.bauteil_klemme_bruecke WHERE klemme_id = :kid");
+            qd.bindValue(":kid", klemmeId); qd.exec();
+            qd.prepare("DELETE FROM bibliothek.bauteil_klemme_querschnitt WHERE klemme_id = :kid");
+            qd.bindValue(":kid", klemmeId); qd.exec();
+            qd.prepare("DELETE FROM bibliothek.bauteil_klemme WHERE id = :kid");
+            qd.bindValue(":kid", klemmeId);
+            if (!qd.exec())
+                qCWarning(lcModel) << "Bauteil loeschen: bauteil_klemme-Kaskade Fehler:" << qd.lastError().text();
+        }
+    }
+
     QSqlQuery q;
     q.prepare("DELETE FROM bibliothek.bauteil WHERE id = :id");
     q.bindValue(":id", id);

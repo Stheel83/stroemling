@@ -186,31 +186,6 @@ bool KlemmeModel::speichern(const QVariantMap &daten)
     return true;
 }
 
-bool KlemmeModel::loeschen()
-{
-    if (m_klemmeId < 0) return false;
-
-    QSqlQuery q;
-    // Abhängige Daten zuerst löschen (kein CASCADE im Schema)
-    q.prepare("DELETE FROM bibliothek.bauteil_klemme_eigenschaft WHERE klemme_id = :id");
-    q.bindValue(":id", m_klemmeId); q.exec();
-
-    q.prepare("DELETE FROM bibliothek.bauteil_klemme_bruecke WHERE klemme_id = :id");
-    q.bindValue(":id", m_klemmeId); q.exec();
-
-    q.prepare("DELETE FROM bibliothek.bauteil_klemme_querschnitt WHERE klemme_id = :id");
-    q.bindValue(":id", m_klemmeId); q.exec();
-
-    q.prepare("DELETE FROM bibliothek.bauteil_klemme WHERE id = :id");
-    q.bindValue(":id", m_klemmeId);
-    if (!q.exec()) {
-        qCWarning(lcModel) << "KlemmeModel::loeschen:" << q.lastError().text();
-        return false;
-    }
-    laden(m_bauteilId);
-    return true;
-}
-
 void KlemmeModel::ladeQuerschnitte()
 {
     m_querschnitte.clear();

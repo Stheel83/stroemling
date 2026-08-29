@@ -38,9 +38,6 @@ public:
     //         aussenmantel_farbe, aussenmantel_mm, material_leiter, material_isolierung
     Q_INVOKABLE bool stammdatenSpeichern(const QVariantMap &daten);
 
-    // Kabel-Eintrag vollständig löschen (inkl. aller Adern und Paare via CASCADE).
-    Q_INVOKABLE bool kabelLoeschen();
-
     // Ader hinzufügen (ader_nr wird automatisch als MAX+1 vergeben).
     Q_INVOKABLE int  aderAnlegen();
 

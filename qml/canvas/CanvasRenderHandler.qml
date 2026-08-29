@@ -1684,8 +1684,22 @@ QtObject {
                 var kreuzX  = kreuzungsLuecken[segKey]
                 var isHSeg  = Math.abs(seg.y2 - seg.y1) < 0.5
                 if (isHSeg && kreuzX && kreuzX.length > 0) {
-                    // Gap-Breite: konstant 8 Pixel sichtbar, unabhängig von Zoom
-                    var luecke  = 4 / cv.zoom
+                    // KREUZUNGSLUECKE-ZOOM-01 (Aug 2026): Gap-Breite war bisher
+                    // konstant 8 Bildschirm-Pixel unabhängig vom Zoom (`4 /
+                    // cv.zoom`) — passend, solange Verbindungslinien ebenfalls
+                    // eine feste Pixelbreite hatten. Seit dem
+                    // LEITUNG-ZOOM-BREITE-01-Nachtrag skaliert die Linienbreite
+                    // selbst mm-basiert mit dem Zoom mit (`_maleGebaenderteLinie()`:
+                    // `breite(mm) * mmToPx * zoom`) — bei starkem Reinzoomen
+                    // wuchs eine mehradrige Leitung dadurch irgendwann über die
+                    // fest gebliebene 8px-Lücke hinaus und deckte sie wieder zu
+                    // (Nutzerbericht). Lücke jetzt ebenfalls mm-basiert (1,5mm
+                    // Halblücke, 3mm insgesamt — komfortabel größer als die
+                    // dickste vorkommende Leitung, 2,25mm bei
+                    // signaltyp="konflikt", s. _breiteFuerAnzahl()) und wächst
+                    // dadurch im selben Verhältnis wie die Linienbreite mit,
+                    // statt bei hohem Zoom von ihr überdeckt zu werden.
+                    var luecke  = 1.5 * cv.mmToPx
                     var hx1 = Math.min(seg.x1, seg.x2)
                     var hx2 = Math.max(seg.x1, seg.x2)
                     var hy  = (seg.y1 + seg.y2) / 2

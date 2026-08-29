@@ -634,13 +634,17 @@ MouseArea {
             canvas.polyCursorWelt = rPoly
             canvas.neuZeichnen()
 
-        } else if (["linie","rechteck","kreis"].indexOf(canvas.aktivesWerkzeug) >= 0) {
+        } else if (["linie","rechteck","kreis","kabellinie"].indexOf(canvas.aktivesWerkzeug) >= 0) {
             // Klick-Bewegen-Klick (wie Polygonlinie), statt Drag-to-draw: erster
             // Klick bestätigt Startpunkt/Mittelpunkt, die Form folgt danach der
             // Maus (onPositionChanged), zweiter Klick bestätigt Endpunkt/Radius.
             // Auf Nutzerwunsch von Rechteck/Kreis (ursprünglich nur Linie) auf
             // dieselbe Interaktion umgestellt, statt Punkt nur per Hover
-            // "anzudeuten" und erst Drag-Release zu bestätigen.
+            // "anzudeuten" und erst Drag-Release zu bestätigen. Kabellinie
+            // (KABEL-UEBERARBEITUNG-01 Punkt 4) folgte bis dahin als einzige
+            // "linienartige" Form noch dem alten Drag-to-draw-Muster (fiel in
+            // den generischen else-Zweig unten) — beim damaligen Umbau
+            // offenbar schlicht übersehen.
             var wKk  = toWelt(mouse.x, mouse.y)
             var typKk = canvas.aktivesWerkzeug
             if (!canvas.amZeichnen) {
@@ -656,17 +660,28 @@ MouseArea {
                 // Beide Klicks auf denselben Punkt: Standardgröße statt Nullgröße
                 if (Math.abs(elKk.x2-elKk.x1) <= 0.5 && Math.abs(elKk.y2-elKk.y1) <= 0.5) {
                     var defSKk = canvas.gridPx * 2
-                    if      (typKk === "linie")    { elKk.x2 = elKk.x1 + defSKk;     elKk.y2 = elKk.y1 }
-                    else if (typKk === "rechteck") { elKk.x2 = elKk.x1 + defSKk;     elKk.y2 = elKk.y1 + defSKk }
-                    else if (typKk === "kreis")    { elKk.x2 = elKk.x1 + defSKk / 2; elKk.y2 = elKk.y1 }
+                    if      (typKk === "linie")      { elKk.x2 = elKk.x1 + defSKk;     elKk.y2 = elKk.y1 }
+                    else if (typKk === "rechteck")   { elKk.x2 = elKk.x1 + defSKk;     elKk.y2 = elKk.y1 + defSKk }
+                    else if (typKk === "kreis")      { elKk.x2 = elKk.x1 + defSKk / 2; elKk.y2 = elKk.y1 }
+                    else if (typKk === "kabellinie") { elKk.x2 = elKk.x1 + defSKk;     elKk.y2 = elKk.y1 }
+                }
+                if (typKk === "kabellinie") {
+                    elKk.strichFarbe = "#e07000"
+                    elKk.extraDaten  = { bezeichnung: "", kabeltyp: "", aderzahl: 0, querschnittMm2: 0 }
                 }
                 canvas.aktionAusfuehren(canvas.elementeModel.snapshot().concat([elKk]))
                 canvas.aktivesWerkzeug = "zeiger"
-                canvas.auswahl = [canvas.elementeModel.anzahl - 1]
+                var newIdxKk = canvas.elementeModel.anzahl - 1
+                canvas.auswahl = [newIdxKk]
                 canvas.vorschau = null; canvas.amZeichnen = false
                 canvas.neuZeichnen()
-                achievementManager.ereignis("element_platziert",
-                    { "typ": typKk, "elementeAufSeite": canvas.elementeModel.anzahl })
+                if (typKk === "kabellinie") {
+                    achievementManager.ereignis("kabel_gezogen")
+                    canvas.kabellinieDialogFuerNeuOeffnen(newIdxKk)
+                } else {
+                    achievementManager.ereignis("element_platziert",
+                        { "typ": typKk, "elementeAufSeite": canvas.elementeModel.anzahl })
+                }
             }
 
         } else {
@@ -757,11 +772,12 @@ MouseArea {
             return
         }
 
-        // "linie"/"rechteck"/"kreis" werden jetzt per Klick-Bewegen-Klick in
-        // onPressed abgeschlossen, nicht per Drag-Release (s.o.) – hier nichts
-        // tun, sonst würde der erste Klick (press+release ohne Drag) die Form
-        // sofort mit Standardgröße fertigstellen, bevor der zweite Klick kommt.
-        if (!canvas.amZeichnen || ["linie","rechteck","kreis"].indexOf(canvas.aktivesWerkzeug) >= 0) return
+        // "linie"/"rechteck"/"kreis"/"kabellinie" werden jetzt per
+        // Klick-Bewegen-Klick in onPressed abgeschlossen, nicht per
+        // Drag-Release (s.o.) – hier nichts tun, sonst würde der erste Klick
+        // (press+release ohne Drag) die Form sofort mit Standardgröße
+        // fertigstellen, bevor der zweite Klick kommt.
+        if (!canvas.amZeichnen || ["linie","rechteck","kreis","kabellinie"].indexOf(canvas.aktivesWerkzeug) >= 0) return
         var wR = toWelt(mouse.x, mouse.y)
         var elR = Object.assign(
             { typ: canvas.aktivesWerkzeug,
@@ -786,9 +802,6 @@ MouseArea {
         } else if (elR.typ === "strukturkasten") {
             elR.strichFarbe = "#00aacc"; elR.strichArt = "gestrichelt"; elR.fuell = false
             elR.extraDaten  = { bezeichnung: "", anlage: "", ort: "", anlageUO: "", ortUO: "" }
-        } else if (elR.typ === "kabellinie") {
-            elR.strichFarbe = "#e07000"
-            elR.extraDaten  = { bezeichnung: "", kabeltyp: "", aderzahl: 0, querschnittMm2: 0 }
         } else if (elR.typ === "makrokasten") {
             elR.strichFarbe = "#aa44cc"; elR.strichArt = "gestrichelt"; elR.fuell = false
             elR.extraDaten  = { name: "", beschreibung: "", kategorie: "", makroId: 0 }
@@ -818,13 +831,8 @@ MouseArea {
         canvas.vorschau = null; canvas.amZeichnen = false
         canvas.verschiebenErlaubt = false
         canvas.neuZeichnen()
-        if (elR.typ === "kabellinie") {
-            achievementManager.ereignis("kabel_gezogen")
-            canvas.kabellinieDialogFuerNeuOeffnen(newIdx)
-        } else {
-            achievementManager.ereignis("element_platziert",
-                { "typ": elR.typ, "elementeAufSeite": em.anzahl })
-        }
+        achievementManager.ereignis("element_platziert",
+            { "typ": elR.typ, "elementeAufSeite": em.anzahl })
         if (elR.typ === "makrokasten") canvas.makrobenennDialogFuerNeuOeffnen(newIdx)
     }
 

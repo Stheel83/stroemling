@@ -172,6 +172,9 @@ INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp) VALU
 UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'motor' AND name = 'U';
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'motor' AND name = 'V';
 UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'motor' AND name = 'W';
+-- SYM-KOPIE-VON-03 (Aug 2026): M/3~-Textbeschriftung bleibt bei jeder Rotation
+-- aufrecht lesbar (SYMBOL-TEXT-LESBAR-01 war für 'motor' noch nicht nachgezogen).
+UPDATE symbol_primitiv SET lesbar_halten = 1 WHERE symbol_id = 'motor' AND reihenfolge IN (1, 2);
 UPDATE symbol_pin SET knoten_gruppe = 0 WHERE symbol_id = 'trafo' AND name = '1';
 UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'trafo' AND name = '2';
 UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'trafo' AND name = '3';
@@ -3463,3 +3466,78 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('analoges_ventil', 9, 'linie', 0.8125, 0.5, 0.9375, 0.791666666666667, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0, 0),
 ('analoges_ventil', 10, 'linie', 0.6875, 0.791666666666667, 0.9375, 0.791666666666667, 0.0, 0.0, 0.0, 0.0, 0.0, 0, NULL, 0.5, 0, 'center', 'middle', 'solid', 0.0, 0),
 ('analoges_ventil', 11, 'text', 0.25, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 360.0, 0, 'M', 0.2, 0, 'center', 'middle', 'solid', 0.0, 1);
+
+-- SYM-KOPIE-VON-03 (Aug 2026, Projekt Pokestroems Aquarium): 4 neue eigenstaendige
+-- Symbole aus Nutzer-Kopien, s. Migration 142 fuer Details.
+
+-- schliesser_3pol (Kopie von schliesser, Projekt Pokestroems Aquarium)
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('schliesser_3pol', 'Schließer 3pol', 'Kontakte', 24, 8, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('schliesser_3pol', '1', 0.16666666666666666, 0.0, 0.0, -1.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('schliesser_3pol', '2', 0.16666666666666666, 1.0, 0.0, 1.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('schliesser_3pol', '3', 0.5, 0.0, 0.0, -1.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('schliesser_3pol', '4', 0.5, 1.0, 0.0, 1.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('schliesser_3pol', '5', 0.8333333333333334, 0.0, 0.0, -1.0, 'neutral', 3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('schliesser_3pol', '6', 0.8333333333333334, 1.0, 0.0, 1.0, 'neutral', 3);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
+('schliesser_3pol',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('schliesser_3pol',1,'linie',0.4166666666666667,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('schliesser_3pol',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('schliesser_3pol',3,'linie',0.8333333333333334,0.0,0.8333333333333334,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('schliesser_3pol',4,'linie',0.8333333333333334,0.6875,0.8333333333333334,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('schliesser_3pol',5,'linie',0.16666666666666666,0.3125,0.16666666666666666,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('schliesser_3pol',6,'linie',0.16666666666666666,0.6875,0.16666666666666666,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('schliesser_3pol',7,'linie',0.16666666666666666,0.6875,0.08333333333333333,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('schliesser_3pol',8,'linie',0.8333333333333334,0.6875,0.75,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0);
+
+-- last_schliesser_3pol (Kopie von schliesser, Projekt Pokestroems Aquarium)
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('last_schliesser_3pol', 'Last Schließer 3pol', 'Kontakte', 24, 8, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('last_schliesser_3pol', '1', 0.16666666666666666, 0.0, 0.0, -1.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('last_schliesser_3pol', '2', 0.16666666666666666, 1.0, 0.0, 1.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('last_schliesser_3pol', '3', 0.5, 0.0, 0.0, -1.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('last_schliesser_3pol', '4', 0.5, 1.0, 0.0, 1.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('last_schliesser_3pol', '5', 0.8333333333333334, 0.0, 0.0, -1.0, 'neutral', 3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('last_schliesser_3pol', '6', 0.8333333333333334, 1.0, 0.0, 1.0, 'neutral', 3);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
+('last_schliesser_3pol',0,'linie',0.5,0.0,0.5,0.3125,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('last_schliesser_3pol',1,'linie',0.4166666666666667,0.25,0.5,0.6875,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('last_schliesser_3pol',2,'linie',0.5,0.6875,0.5,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('last_schliesser_3pol',3,'linie',0.8333333333333334,0.0,0.8333333333333334,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',4,'linie',0.8333333333333334,0.6875,0.8333333333333334,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',5,'linie',0.16666666666666666,0.3125,0.16666666666666666,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',6,'linie',0.16666666666666666,0.6875,0.16666666666666666,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',7,'linie',0.16666666666666666,0.6875,0.08333333333333333,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',8,'bogen',0.16666666666666666,0.25,0.0,0.0,0.0,0.0,0.020833333333333336,90.0,270.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',9,'bogen',0.8333333333333334,0.25,0.0,0.0,0.0,0.0,0.020833333333333336,90.0,270.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',10,'bogen',0.5,0.25,0.0,0.0,0.0,0.0,0.020833333333333336,90.0,270.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0),
+('last_schliesser_3pol',11,'linie',0.8333333333333334,0.6875,0.75,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','durchgehend',0.0,0);
+
+-- sicherung_3pol (Kopie von sicherung, Projekt Pokestroems Aquarium)
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('sicherung_3pol', 'Sicherung 3pol', 'Schutz', 24, 16, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('sicherung_3pol', '1', 0.16666666666666666, 0.0, 0.0, -1.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('sicherung_3pol', '2', 0.16666666666666666, 1.0, 0.0, 1.0, 'neutral', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('sicherung_3pol', '3', 0.5, 0.0, 0.0, -1.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('sicherung_3pol', '4', 0.5, 1.0, 0.0, 1.0, 'neutral', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('sicherung_3pol', '5', 0.8333333333333334, 0.0, 0.0, -1.0, 'neutral', 3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('sicherung_3pol', '6', 0.8333333333333334, 1.0, 0.0, 1.0, 'neutral', 3);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
+('sicherung_3pol',0,'linie',0.16666666666666666,0.0,0.16666666666666666,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('sicherung_3pol',1,'rechteck',0.25,0.25,0.08333333333333333,0.75,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('sicherung_3pol',2,'linie',0.5,0.0,0.5,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('sicherung_3pol',3,'linie',0.8333333333333334,1.0,0.8333333333333334,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('sicherung_3pol',4,'rechteck',0.4166666666666667,0.25,0.5833333333333334,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('sicherung_3pol',5,'rechteck',0.75,0.25,0.9166666666666666,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0);
+
+-- motor_mit_pe (Kopie von motor, Projekt Pokestroems Aquarium)
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('motor_mit_pe', 'Motor mit PE', 'Antriebe', 24, 24, 'verbraucher', 1, 'auto');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('motor_mit_pe', 'U', 0.16666666666666666, 0.0, 0.0, -1.0, 'power', 1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('motor_mit_pe', 'V', 0.5, 0.0, 0.0, -1.0, 'power', 2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('motor_mit_pe', 'W', 0.8333333333333334, 0.0, 0.0, -1.0, 'power', 3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('motor_mit_pe', 'PE', 1.0, 1.0, 1.0, 0.0, 'pe', 0);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
+('motor_mit_pe',0,'kreis_offen',0.5,0.625,0.0,0.0,0.0,0.0,0.375,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('motor_mit_pe',1,'text',0.5,0.5416666666666666,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,'M',0.2,1,'center','middle','solid',0.0,1),
+('motor_mit_pe',2,'text',0.5,0.75,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,'3~',0.14,0,'center','middle','solid',0.0,1),
+('motor_mit_pe',3,'linie',0.16666666666666666,0.4583333333333333,0.16666666666666666,0.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0),
+('motor_mit_pe',4,'linie',0.5,0.25,0.5,0.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0),
+('motor_mit_pe',5,'linie',0.8333333333333334,0.4583333333333333,0.8333333333333334,0.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0),
+('motor_mit_pe',6,'linie',0.5,1.0,1.0,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','gestrichelt',0.0,0);

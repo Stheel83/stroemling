@@ -397,7 +397,7 @@ Item {
 
                 // ── Kontextabhängige Fachspalten (BAUTEILLISTE-KONTEXTSPALTEN-01) ──
                 Text { visible: root._kontext === "klemme"; text: qsTr("Anschluss");  color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 90;  font.weight: Font.Medium }
-                Text { visible: root._kontext === "klemme"; text: qsTr("Ebenen");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
+                Text { visible: root._kontext === "klemme"; text: qsTr("Ebenen");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight; rightPadding: 12 }
                 Text { visible: root._kontext === "klemme"; text: qsTr("Gehäuse");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 110; font.weight: Font.Medium }
 
                 Text { visible: root._kontext === "kabel"; text: qsTr("Kabeltyp");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 120; font.weight: Font.Medium }
@@ -583,7 +583,7 @@ Item {
                             visible: root._kontext === "klemme"
                             text: model.ebenenAnzahl > 0 ? model.ebenenAnzahl : "–"
                             font.pixelSize: 11; color: theme.textMuted
-                            Layout.preferredWidth: 60; horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 60; horizontalAlignment: Text.AlignRight; rightPadding: 12
                         }
                         RowLayout {
                             visible: root._kontext === "klemme"

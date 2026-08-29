@@ -3,8 +3,15 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
 
-ScrollView {
+// SPEICHERN-FUSSBEREICH-01 (Aug 2026): root ist keine ScrollView mehr, sondern
+// ein ColumnLayout aus [scrollender Formularbereich, fester Speichern-Fuß] -
+// vorher scrollte der Speichern-Button mit den Feldern mit und war bei langen
+// Formularen erst nach Hochscrollen sichtbar. Gleiches Muster in
+// KabelEditorLinksBlock.qml, KlemmenEditorLinksBlock.qml,
+// SteckverbinderEditor.qml, KontaktEditor.qml.
+ColumnLayout {
     id: root
+    spacing: 0
 
     required property int    bauteilId
     required property string bauteilBezeichnung
@@ -14,10 +21,6 @@ ScrollView {
     property bool            debug: false
 
     signal bauteilGespeichert(int bauteilId, string bezeichnung)
-
-    contentWidth:  availableWidth
-    contentHeight: leftCol.implicitHeight
-    clip:          true
 
     property int  _konfkabelId:         -1
     property var  _kabelListe:          []
@@ -144,497 +147,508 @@ ScrollView {
     onBauteilHerstellerChanged:    if (bauteilId >= 0) tfStamHer.text = bauteilHersteller
     onBauteilArtikelnummerChanged: if (bauteilId >= 0) tfStamArt.text = bauteilArtikelnummer
 
-    ColumnLayout {
-        id:      leftCol
-        width:   parent.width
-        spacing: 0
-
-        // ── STAMMDATEN (Bauteil, allgemein) ────────────────────────────────
-        Rectangle {
-            Layout.fillWidth: true; height: 32; color: root.theme.surfaceDeep
-            Text {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                text: qsTr("STAMMDATEN"); font.pixelSize: 9; font.weight: Font.Medium; color: root.theme.textMuted
-            }
-        }
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+    ScrollView {
+        id: scrollArea
+        Layout.fillWidth:  true
+        Layout.fillHeight: true
+        contentWidth:  availableWidth
+        contentHeight: leftCol.implicitHeight
+        clip:          true
 
         ColumnLayout {
-            Layout.fillWidth: true; Layout.margins: 12; spacing: 8
+            id:      leftCol
+            width:   parent.width
+            spacing: 0
 
-            Text { text: qsTr("Bezeichnung"); color: root.theme.textMuted; font.pixelSize: 11 }
-            NavTextField {
-                id: tfStamBez; Layout.fillWidth: true
-                tabTarget:     tfStamHer
-                backtabTarget: tfStamUrlDat
-                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                color: root.theme.textPrimary; font.pixelSize: 12
+            // ── STAMMDATEN (Bauteil, allgemein) ────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true; height: 32; color: root.theme.surfaceDeep
+                Text {
+                    anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                    text: qsTr("STAMMDATEN"); font.pixelSize: 9; font.weight: Font.Medium; color: root.theme.textMuted
+                }
             }
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
 
-            GridLayout {
-                columns: 2; Layout.fillWidth: true; columnSpacing: 8; rowSpacing: 6
-                Text { text: qsTr("Hersteller");  color: root.theme.textMuted; font.pixelSize: 11 }
-                Text { text: qsTr("Artikel-Nr."); color: root.theme.textMuted; font.pixelSize: 11 }
-                NavTextField {
-                    id: tfStamHer; Layout.fillWidth: true
-                    tabTarget: tfStamArt; backtabTarget: tfStamBez
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
-                NavTextField {
-                    id: tfStamArt; Layout.fillWidth: true
-                    tabTarget: tfStamLief; backtabTarget: tfStamHer
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.margins: 12; spacing: 8
 
-                Text { text: qsTr("Lieferant");  color: root.theme.textMuted; font.pixelSize: 11 }
-                Text { text: qsTr("Preis (EUR)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                Text { text: qsTr("Bezeichnung"); color: root.theme.textMuted; font.pixelSize: 11 }
                 NavTextField {
-                    id: tfStamLief; Layout.fillWidth: true
-                    tabTarget: tfStamPreis; backtabTarget: tfStamArt
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
-                NavTextField {
-                    id: tfStamPreis; Layout.fillWidth: true
-                    tabTarget: tfStamU; backtabTarget: tfStamLief
-                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0.00"
+                    id: tfStamBez; Layout.fillWidth: true
+                    tabTarget:     tfStamHer
+                    backtabTarget: tfStamUrlDat
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                     color: root.theme.textPrimary; font.pixelSize: 12
                 }
 
-                Text { text: qsTr("Spannung (V)"); color: root.theme.textMuted; font.pixelSize: 11 }
-                Text { text: qsTr("Strom (A)");    color: root.theme.textMuted; font.pixelSize: 11 }
-                NavTextField {
-                    id: tfStamU; Layout.fillWidth: true
-                    tabTarget: tfStamI; backtabTarget: tfStamPreis
-                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                GridLayout {
+                    columns: 2; Layout.fillWidth: true; columnSpacing: 8; rowSpacing: 6
+                    Text { text: qsTr("Hersteller");  color: root.theme.textMuted; font.pixelSize: 11 }
+                    Text { text: qsTr("Artikel-Nr."); color: root.theme.textMuted; font.pixelSize: 11 }
+                    NavTextField {
+                        id: tfStamHer; Layout.fillWidth: true
+                        tabTarget: tfStamArt; backtabTarget: tfStamBez
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+                    NavTextField {
+                        id: tfStamArt; Layout.fillWidth: true
+                        tabTarget: tfStamLief; backtabTarget: tfStamHer
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+
+                    Text { text: qsTr("Lieferant");  color: root.theme.textMuted; font.pixelSize: 11 }
+                    Text { text: qsTr("Preis (EUR)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                    NavTextField {
+                        id: tfStamLief; Layout.fillWidth: true
+                        tabTarget: tfStamPreis; backtabTarget: tfStamArt
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+                    NavTextField {
+                        id: tfStamPreis; Layout.fillWidth: true
+                        tabTarget: tfStamU; backtabTarget: tfStamLief
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0.00"
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+
+                    Text { text: qsTr("Spannung (V)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                    Text { text: qsTr("Strom (A)");    color: root.theme.textMuted; font.pixelSize: 11 }
+                    NavTextField {
+                        id: tfStamU; Layout.fillWidth: true
+                        tabTarget: tfStamI; backtabTarget: tfStamPreis
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+                    NavTextField {
+                        id: tfStamI; Layout.fillWidth: true
+                        tabTarget: tfStamP; backtabTarget: tfStamU
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+
+                    Text { text: qsTr("Leistung (W)"); color: root.theme.textMuted; font.pixelSize: 11; Layout.columnSpan: 2 }
+                    NavTextField {
+                        id: tfStamP; Layout.fillWidth: true; Layout.columnSpan: 2
+                        tabTarget: tfStamBem; backtabTarget: tfStamI
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
+                    }
+                }
+
+                Text { text: qsTr("Bemerkung Bauteil"); color: root.theme.textMuted; font.pixelSize: 11 }
+                TextArea {
+                    id: tfStamBem
+                    Layout.fillWidth: true
+                    wrapMode:        Text.Wrap
+                    implicitHeight:  Math.max(36, contentHeight + topPadding + bottomPadding)
+                    color:           root.theme.textPrimary
+                    font.pixelSize:  12
+                    topPadding: 6; bottomPadding: 6; leftPadding: 8; rightPadding: 8
                     background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
-                NavTextField {
-                    id: tfStamI; Layout.fillWidth: true
-                    tabTarget: tfStamP; backtabTarget: tfStamU
-                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
+                    Keys.onTabPressed:     { event.accepted = true; tfStamUrlHer.forceActiveFocus() }
+                    Keys.onBacktabPressed: { event.accepted = true; tfStamP.forceActiveFocus() }
                 }
 
-                Text { text: qsTr("Leistung (W)"); color: root.theme.textMuted; font.pixelSize: 11; Layout.columnSpan: 2 }
-                NavTextField {
-                    id: tfStamP; Layout.fillWidth: true; Layout.columnSpan: 2
-                    tabTarget: tfStamBem; backtabTarget: tfStamI
-                    inputMethodHints: Qt.ImhFormattedNumbersOnly; placeholderText: "0"
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
-            }
-
-            Text { text: qsTr("Bemerkung Bauteil"); color: root.theme.textMuted; font.pixelSize: 11 }
-            TextArea {
-                id: tfStamBem
-                Layout.fillWidth: true
-                wrapMode:        Text.Wrap
-                implicitHeight:  Math.max(36, contentHeight + topPadding + bottomPadding)
-                color:           root.theme.textPrimary
-                font.pixelSize:  12
-                topPadding: 6; bottomPadding: 6; leftPadding: 8; rightPadding: 8
-                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                Keys.onTabPressed:     { event.accepted = true; tfStamUrlHer.forceActiveFocus() }
-                Keys.onBacktabPressed: { event.accepted = true; tfStamP.forceActiveFocus() }
-            }
-
-            Text { text: qsTr("Links"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
-            Text { text: qsTr("Hersteller-Website"); color: root.theme.textMuted; font.pixelSize: 11 }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                NavTextField {
-                    id: tfStamUrlHer; Layout.fillWidth: true
-                    tabTarget: tfStamUrlDat; backtabTarget: tfStamBem
-                    placeholderText: "https://..."
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
-                Button {
-                    implicitWidth: 60; implicitHeight: 28; enabled: tfStamUrlHer.text.trim().length > 0
-                    text: qsTr("Oeffnen")
-                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
-                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
-                                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
-                    onClicked: Qt.openUrlExternally(tfStamUrlHer.text.trim())
-                }
-            }
-            Text { text: qsTr("Datenblatt"); color: root.theme.textMuted; font.pixelSize: 11 }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                NavTextField {
-                    id: tfStamUrlDat; Layout.fillWidth: true
-                    tabTarget: tfStamBez; backtabTarget: tfStamUrlHer
-                    placeholderText: "https://..."
-                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                    color: root.theme.textPrimary; font.pixelSize: 12
-                }
-                Button {
-                    implicitWidth: 60; implicitHeight: 28; enabled: tfStamUrlDat.text.trim().length > 0
-                    text: qsTr("Oeffnen")
-                    contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
-                                        font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
-                                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
-                    onClicked: Qt.openUrlExternally(tfStamUrlDat.text.trim())
-                }
-            }
-        }
-
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-        // ── KONFEKTIONIERTES KABEL ──────────────────────────────────────────
-        Rectangle {
-            Layout.fillWidth: true; height: 32; color: root.theme.surfaceDeep
-            Text {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                text: qsTr("KONFEKTIONIERTES KABEL"); font.pixelSize: 9; font.weight: Font.Medium; color: root.theme.textMuted
-            }
-        }
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-        ColumnLayout {
-            Layout.fillWidth: true; Layout.margins: 12; spacing: 8
-
-            Text { text: qsTr("Kabeltyp (aus Bibliothek)"); color: root.theme.textMuted; font.pixelSize: 11 }
-            ComboBox {
-                id: cbKabeltyp
-                Layout.fillWidth: true; height: 28
-                model: {
-                    var m = [qsTr("— kein Kabeltyp —")]
-                    for (var i = 0; i < root._kabelListe.length; i++)
-                        m.push(root._kabelListe[i].bezeichnung || root._kabelListe[i].kabeltyp || ("ID " + root._kabelListe[i].bauteilId))
-                    return m
-                }
-                font.pixelSize: 12
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12
-                    leftPadding: 8; verticalAlignment: Text.AlignVCenter }
-                onActivated: root._ladeAdern()
-            }
-
-            Text { text: qsTr("Länge (m)"); color: root.theme.textMuted; font.pixelSize: 11 }
-            NavTextField {
-                id: tfLaenge; Layout.fillWidth: true
-                tabTarget: tfStamBez; backtabTarget: tfStamBez
-                inputMethodHints: Qt.ImhFormattedNumbersOnly
-                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                color: root.theme.textPrimary; font.pixelSize: 12
-            }
-
-            Text { text: qsTr("Stecker / Buchse – Ende A"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
-            ComboBox {
-                id: cbSteckerA
-                Layout.fillWidth: true; height: 28
-                model: {
-                    var m = [qsTr("— freies Ende —")]
-                    for (var i = 0; i < root._steckverbinderListe.length; i++)
-                        m.push(root._steckerLabel(root._steckverbinderListe[i]))
-                    return m
-                }
-                font.pixelSize: 12
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12
-                    leftPadding: 8; verticalAlignment: Text.AlignVCenter }
-                onActivated: root._ladePositionenA()
-            }
-
-            Text { text: qsTr("Stecker / Buchse – Ende B"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
-            ComboBox {
-                id: cbSteckerB
-                Layout.fillWidth: true; height: 28
-                model: {
-                    var m = [qsTr("— freies Ende —")]
-                    for (var i = 0; i < root._steckverbinderListe.length; i++)
-                        m.push(root._steckerLabel(root._steckverbinderListe[i]))
-                    return m
-                }
-                font.pixelSize: 12
-                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12
-                    leftPadding: 8; verticalAlignment: Text.AlignVCenter }
-                onActivated: root._ladePositionenB()
-            }
-        }
-
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-        // ── PIN-ZUORDNUNG (§9.3: welche Ader liegt auf welchem Pin) ─────────
-        Rectangle {
-            Layout.fillWidth: true; height: 32; color: root.theme.surfaceDeep
-            Text {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                text: qsTr("PIN-ZUORDNUNG"); font.pixelSize: 9; font.weight: Font.Medium; color: root.theme.textMuted
-            }
-        }
-        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
-
-        Text {
-            visible: root._konfkabelId <= 0
-            Layout.fillWidth: true; Layout.margins: 12
-            text: qsTr("Erst speichern, um Adern den Pins zuzuordnen.")
-            font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
-        }
-
-        // Seite A
-        ColumnLayout {
-            Layout.fillWidth: true; Layout.margins: 12; spacing: 6
-            visible: root._konfkabelId > 0 && cbSteckerA.currentIndex > 0
-
-            Text { text: qsTr("Seite A"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
-
-            Repeater {
-                model: root._pinZuordnungA
-                delegate: RowLayout {
+                Text { text: qsTr("Links"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+                Text { text: qsTr("Hersteller-Website"); color: root.theme.textMuted; font.pixelSize: 11 }
+                RowLayout {
                     Layout.fillWidth: true; spacing: 6
-                    property var zd: modelData
-                    Text {
-                        text: qsTr("Ader %1").arg(zd.aderNr)
-                        font.pixelSize: 11; color: root.theme.textPrimary; Layout.preferredWidth: 60
+                    NavTextField {
+                        id: tfStamUrlHer; Layout.fillWidth: true
+                        tabTarget: tfStamUrlDat; backtabTarget: tfStamBem
+                        placeholderText: "https://..."
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
                     }
-                    Text {
-                        text: (zd.aderFarbe || "–") + (zd.aderBezeichnung ? " · " + zd.aderBezeichnung : "")
-                              + (zd.aderQuerschnitt > 0 ? " · " + zd.aderQuerschnitt + " mm²" : "")
-                        font.pixelSize: 11; color: root.theme.textMuted; Layout.fillWidth: true; elide: Text.ElideRight
+                    Button {
+                        implicitWidth: 60; implicitHeight: 28; enabled: tfStamUrlHer.text.trim().length > 0
+                        text: qsTr("Oeffnen")
+                        contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
+                                            font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
+                                                radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                        onClicked: Qt.openUrlExternally(tfStamUrlHer.text.trim())
                     }
-                    Text {
-                        text: qsTr("→ Pos %1").arg(zd.pinNr)
-                        font.pixelSize: 11; color: root.theme.accent; Layout.preferredWidth: 70
+                }
+                Text { text: qsTr("Datenblatt"); color: root.theme.textMuted; font.pixelSize: 11 }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 6
+                    NavTextField {
+                        id: tfStamUrlDat; Layout.fillWidth: true
+                        tabTarget: tfStamBez; backtabTarget: tfStamUrlHer
+                        placeholderText: "https://..."
+                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        color: root.theme.textPrimary; font.pixelSize: 12
                     }
-                    Rectangle {
-                        width: 26; height: 22; radius: 3
-                        color: delMaA.containsMouse ? "#662222" : root.theme.inputBg
-                        border.color: root.theme.border
-                        Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 14
-                               color: delMaA.containsMouse ? "#ffffff" : root.theme.textMuted }
-                        MouseArea {
-                            id: delMaA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                db.konfkabelPinZuordnungLoeschen(zd.id)
-                                root._pinZuordnungA = db.konfkabelPinZuordnungLaden(root._konfkabelId, "A")
+                    Button {
+                        implicitWidth: 60; implicitHeight: 28; enabled: tfStamUrlDat.text.trim().length > 0
+                        text: qsTr("Oeffnen")
+                        contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.accent : root.theme.textMuted;
+                                            font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered && parent.enabled ? root.theme.hover : root.theme.inputBg;
+                                                radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                        onClicked: Qt.openUrlExternally(tfStamUrlDat.text.trim())
+                    }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            // ── KONFEKTIONIERTES KABEL ──────────────────────────────────────────
+            Rectangle {
+                Layout.fillWidth: true; height: 32; color: root.theme.surfaceDeep
+                Text {
+                    anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                    text: qsTr("KONFEKTIONIERTES KABEL"); font.pixelSize: 9; font.weight: Font.Medium; color: root.theme.textMuted
+                }
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.margins: 12; spacing: 8
+
+                Text { text: qsTr("Kabeltyp (aus Bibliothek)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                ComboBox {
+                    id: cbKabeltyp
+                    Layout.fillWidth: true; height: 28
+                    model: {
+                        var m = [qsTr("— kein Kabeltyp —")]
+                        for (var i = 0; i < root._kabelListe.length; i++)
+                            m.push(root._kabelListe[i].bezeichnung || root._kabelListe[i].kabeltyp || ("ID " + root._kabelListe[i].bauteilId))
+                        return m
+                    }
+                    font.pixelSize: 12
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: 8; verticalAlignment: Text.AlignVCenter }
+                    onActivated: root._ladeAdern()
+                }
+
+                Text { text: qsTr("Länge (m)"); color: root.theme.textMuted; font.pixelSize: 11 }
+                NavTextField {
+                    id: tfLaenge; Layout.fillWidth: true
+                    tabTarget: tfStamBez; backtabTarget: tfStamBez
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                }
+
+                Text { text: qsTr("Stecker / Buchse – Ende A"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+                ComboBox {
+                    id: cbSteckerA
+                    Layout.fillWidth: true; height: 28
+                    model: {
+                        var m = [qsTr("— freies Ende —")]
+                        for (var i = 0; i < root._steckverbinderListe.length; i++)
+                            m.push(root._steckerLabel(root._steckverbinderListe[i]))
+                        return m
+                    }
+                    font.pixelSize: 12
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: 8; verticalAlignment: Text.AlignVCenter }
+                    onActivated: root._ladePositionenA()
+                }
+
+                Text { text: qsTr("Stecker / Buchse – Ende B"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+                ComboBox {
+                    id: cbSteckerB
+                    Layout.fillWidth: true; height: 28
+                    model: {
+                        var m = [qsTr("— freies Ende —")]
+                        for (var i = 0; i < root._steckverbinderListe.length; i++)
+                            m.push(root._steckerLabel(root._steckverbinderListe[i]))
+                        return m
+                    }
+                    font.pixelSize: 12
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: 8; verticalAlignment: Text.AlignVCenter }
+                    onActivated: root._ladePositionenB()
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            // ── PIN-ZUORDNUNG (§9.3: welche Ader liegt auf welchem Pin) ─────────
+            Rectangle {
+                Layout.fillWidth: true; height: 32; color: root.theme.surfaceDeep
+                Text {
+                    anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                    text: qsTr("PIN-ZUORDNUNG"); font.pixelSize: 9; font.weight: Font.Medium; color: root.theme.textMuted
+                }
+            }
+            Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+
+            Text {
+                visible: root._konfkabelId <= 0
+                Layout.fillWidth: true; Layout.margins: 12
+                text: qsTr("Erst speichern, um Adern den Pins zuzuordnen.")
+                font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+            }
+
+            // Seite A
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.margins: 12; spacing: 6
+                visible: root._konfkabelId > 0 && cbSteckerA.currentIndex > 0
+
+                Text { text: qsTr("Seite A"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+
+                Repeater {
+                    model: root._pinZuordnungA
+                    delegate: RowLayout {
+                        Layout.fillWidth: true; spacing: 6
+                        property var zd: modelData
+                        Text {
+                            text: qsTr("Ader %1").arg(zd.aderNr)
+                            font.pixelSize: 11; color: root.theme.textPrimary; Layout.preferredWidth: 60
+                        }
+                        Text {
+                            text: (zd.aderFarbe || "–") + (zd.aderBezeichnung ? " · " + zd.aderBezeichnung : "")
+                                  + (zd.aderQuerschnitt > 0 ? " · " + zd.aderQuerschnitt + " mm²" : "")
+                            font.pixelSize: 11; color: root.theme.textMuted; Layout.fillWidth: true; elide: Text.ElideRight
+                        }
+                        Text {
+                            text: qsTr("→ Pos %1").arg(zd.pinNr)
+                            font.pixelSize: 11; color: root.theme.accent; Layout.preferredWidth: 70
+                        }
+                        Rectangle {
+                            width: 26; height: 22; radius: 3
+                            color: delMaA.containsMouse ? "#662222" : root.theme.inputBg
+                            border.color: root.theme.border
+                            Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 14
+                                   color: delMaA.containsMouse ? "#ffffff" : root.theme.textMuted }
+                            MouseArea {
+                                id: delMaA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    db.konfkabelPinZuordnungLoeschen(zd.id)
+                                    root._pinZuordnungA = db.konfkabelPinZuordnungLaden(root._konfkabelId, "A")
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            Text {
-                visible: root._pinZuordnungA.length === 0
-                text: qsTr("Noch keine Zuordnung.")
-                font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                ComboBox {
-                    id: cbAderA; Layout.preferredWidth: 150; height: 26
-                    model: {
-                        var m = []
-                        for (var i = 0; i < root._aderListeKabel.length; i++) {
-                            var a = root._aderListeKabel[i]
-                            m.push(qsTr("Ader %1 (%2)").arg(a.aderNr).arg(a.farbe || "–"))
-                        }
-                        return m
-                    }
-                    font.pixelSize: 11
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
-                        leftPadding: 6; verticalAlignment: Text.AlignVCenter }
+                Text {
+                    visible: root._pinZuordnungA.length === 0
+                    text: qsTr("Noch keine Zuordnung.")
+                    font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
                 }
-                ComboBox {
-                    id: cbPinA; Layout.preferredWidth: 150; height: 26
-                    model: {
-                        var m = []
-                        for (var i = 0; i < root._positionenA.length; i++) {
-                            var p = root._positionenA[i]
-                            m.push(qsTr("Pos %1 – %2").arg(p.positionNr).arg(p.bezeichnung))
-                        }
-                        return m
-                    }
-                    font.pixelSize: 11
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
-                        leftPadding: 6; verticalAlignment: Text.AlignVCenter }
-                }
-                Button {
-                    text: "+"; implicitWidth: 28; implicitHeight: 26
-                    enabled: root._aderListeKabel.length > 0 && root._positionenA.length > 0
-                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 14; font.bold: true
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
-                                            radius: 4; border.color: root.theme.border }
-                    onClicked: {
-                        var aderNr = root._aderListeKabel[cbAderA.currentIndex].aderNr
-                        var pinNr  = root._positionenA[cbPinA.currentIndex].positionNr
-                        db.konfkabelPinZuordnen(root._konfkabelId, "A", aderNr, pinNr)
-                        root._pinZuordnungA = db.konfkabelPinZuordnungLaden(root._konfkabelId, "A")
-                    }
-                }
-                Button {
-                    text: qsTr("⇥ Rest zuordnen"); implicitHeight: 26
-                    enabled: root._aderListeKabel.length > 0 && root._positionenA.length > 0
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Alle noch freien Adern den noch freien Positionen aufsteigend der Reihe nach zuordnen")
-                    ToolTip.delay: 400
-                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 11
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
-                                            radius: 4; border.color: root.theme.border }
-                    onClicked: root._automatischZuordnen("A")
-                }
-            }
-        }
 
-        // Seite B
-        ColumnLayout {
-            Layout.fillWidth: true; Layout.margins: 12; spacing: 6
-            visible: root._konfkabelId > 0 && cbSteckerB.currentIndex > 0
-
-            Text { text: qsTr("Seite B"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
-
-            Repeater {
-                model: root._pinZuordnungB
-                delegate: RowLayout {
+                RowLayout {
                     Layout.fillWidth: true; spacing: 6
-                    property var zd: modelData
-                    Text {
-                        text: qsTr("Ader %1").arg(zd.aderNr)
-                        font.pixelSize: 11; color: root.theme.textPrimary; Layout.preferredWidth: 60
+                    ComboBox {
+                        id: cbAderA; Layout.preferredWidth: 150; height: 26
+                        model: {
+                            var m = []
+                            for (var i = 0; i < root._aderListeKabel.length; i++) {
+                                var a = root._aderListeKabel[i]
+                                m.push(qsTr("Ader %1 (%2)").arg(a.aderNr).arg(a.farbe || "–"))
+                            }
+                            return m
+                        }
+                        font.pixelSize: 11
+                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
+                            leftPadding: 6; verticalAlignment: Text.AlignVCenter }
                     }
-                    Text {
-                        text: (zd.aderFarbe || "–") + (zd.aderBezeichnung ? " · " + zd.aderBezeichnung : "")
-                              + (zd.aderQuerschnitt > 0 ? " · " + zd.aderQuerschnitt + " mm²" : "")
-                        font.pixelSize: 11; color: root.theme.textMuted; Layout.fillWidth: true; elide: Text.ElideRight
+                    ComboBox {
+                        id: cbPinA; Layout.preferredWidth: 150; height: 26
+                        model: {
+                            var m = []
+                            for (var i = 0; i < root._positionenA.length; i++) {
+                                var p = root._positionenA[i]
+                                m.push(qsTr("Pos %1 – %2").arg(p.positionNr).arg(p.bezeichnung))
+                            }
+                            return m
+                        }
+                        font.pixelSize: 11
+                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
+                            leftPadding: 6; verticalAlignment: Text.AlignVCenter }
                     }
-                    Text {
-                        text: qsTr("→ Pos %1").arg(zd.pinNr)
-                        font.pixelSize: 11; color: root.theme.accent; Layout.preferredWidth: 70
+                    Button {
+                        text: "+"; implicitWidth: 28; implicitHeight: 26
+                        enabled: root._aderListeKabel.length > 0 && root._positionenA.length > 0
+                        contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 14; font.bold: true
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                                                radius: 4; border.color: root.theme.border }
+                        onClicked: {
+                            var aderNr = root._aderListeKabel[cbAderA.currentIndex].aderNr
+                            var pinNr  = root._positionenA[cbPinA.currentIndex].positionNr
+                            db.konfkabelPinZuordnen(root._konfkabelId, "A", aderNr, pinNr)
+                            root._pinZuordnungA = db.konfkabelPinZuordnungLaden(root._konfkabelId, "A")
+                        }
                     }
-                    Rectangle {
-                        width: 26; height: 22; radius: 3
-                        color: delMaB.containsMouse ? "#662222" : root.theme.inputBg
-                        border.color: root.theme.border
-                        Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 14
-                               color: delMaB.containsMouse ? "#ffffff" : root.theme.textMuted }
-                        MouseArea {
-                            id: delMaB; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                db.konfkabelPinZuordnungLoeschen(zd.id)
-                                root._pinZuordnungB = db.konfkabelPinZuordnungLaden(root._konfkabelId, "B")
+                    Button {
+                        text: qsTr("⇥ Rest zuordnen"); implicitHeight: 26
+                        enabled: root._aderListeKabel.length > 0 && root._positionenA.length > 0
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Alle noch freien Adern den noch freien Positionen aufsteigend der Reihe nach zuordnen")
+                        ToolTip.delay: 400
+                        contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                                                radius: 4; border.color: root.theme.border }
+                        onClicked: root._automatischZuordnen("A")
+                    }
+                }
+            }
+
+            // Seite B
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.margins: 12; spacing: 6
+                visible: root._konfkabelId > 0 && cbSteckerB.currentIndex > 0
+
+                Text { text: qsTr("Seite B"); color: root.theme.accent; font.pixelSize: 11; font.bold: true }
+
+                Repeater {
+                    model: root._pinZuordnungB
+                    delegate: RowLayout {
+                        Layout.fillWidth: true; spacing: 6
+                        property var zd: modelData
+                        Text {
+                            text: qsTr("Ader %1").arg(zd.aderNr)
+                            font.pixelSize: 11; color: root.theme.textPrimary; Layout.preferredWidth: 60
+                        }
+                        Text {
+                            text: (zd.aderFarbe || "–") + (zd.aderBezeichnung ? " · " + zd.aderBezeichnung : "")
+                                  + (zd.aderQuerschnitt > 0 ? " · " + zd.aderQuerschnitt + " mm²" : "")
+                            font.pixelSize: 11; color: root.theme.textMuted; Layout.fillWidth: true; elide: Text.ElideRight
+                        }
+                        Text {
+                            text: qsTr("→ Pos %1").arg(zd.pinNr)
+                            font.pixelSize: 11; color: root.theme.accent; Layout.preferredWidth: 70
+                        }
+                        Rectangle {
+                            width: 26; height: 22; radius: 3
+                            color: delMaB.containsMouse ? "#662222" : root.theme.inputBg
+                            border.color: root.theme.border
+                            Text { anchors.centerIn: parent; text: "×"; font.pixelSize: 14
+                                   color: delMaB.containsMouse ? "#ffffff" : root.theme.textMuted }
+                            MouseArea {
+                                id: delMaB; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    db.konfkabelPinZuordnungLoeschen(zd.id)
+                                    root._pinZuordnungB = db.konfkabelPinZuordnungLaden(root._konfkabelId, "B")
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            Text {
-                visible: root._pinZuordnungB.length === 0
-                text: qsTr("Noch keine Zuordnung.")
-                font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
-            }
+                Text {
+                    visible: root._pinZuordnungB.length === 0
+                    text: qsTr("Noch keine Zuordnung.")
+                    font.pixelSize: 11; color: root.theme.textMuted; font.italic: true
+                }
 
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                ComboBox {
-                    id: cbAderB; Layout.preferredWidth: 150; height: 26
-                    model: {
-                        var m = []
-                        for (var i = 0; i < root._aderListeKabel.length; i++) {
-                            var a = root._aderListeKabel[i]
-                            m.push(qsTr("Ader %1 (%2)").arg(a.aderNr).arg(a.farbe || "–"))
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 6
+                    ComboBox {
+                        id: cbAderB; Layout.preferredWidth: 150; height: 26
+                        model: {
+                            var m = []
+                            for (var i = 0; i < root._aderListeKabel.length; i++) {
+                                var a = root._aderListeKabel[i]
+                                m.push(qsTr("Ader %1 (%2)").arg(a.aderNr).arg(a.farbe || "–"))
+                            }
+                            return m
                         }
-                        return m
+                        font.pixelSize: 11
+                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
+                            leftPadding: 6; verticalAlignment: Text.AlignVCenter }
                     }
-                    font.pixelSize: 11
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
-                        leftPadding: 6; verticalAlignment: Text.AlignVCenter }
-                }
-                ComboBox {
-                    id: cbPinB; Layout.preferredWidth: 150; height: 26
-                    model: {
-                        var m = []
-                        for (var i = 0; i < root._positionenB.length; i++) {
-                            var p = root._positionenB[i]
-                            m.push(qsTr("Pos %1 – %2").arg(p.positionNr).arg(p.bezeichnung))
+                    ComboBox {
+                        id: cbPinB; Layout.preferredWidth: 150; height: 26
+                        model: {
+                            var m = []
+                            for (var i = 0; i < root._positionenB.length; i++) {
+                                var p = root._positionenB[i]
+                                m.push(qsTr("Pos %1 – %2").arg(p.positionNr).arg(p.bezeichnung))
+                            }
+                            return m
                         }
-                        return m
+                        font.pixelSize: 11
+                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                        contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
+                            leftPadding: 6; verticalAlignment: Text.AlignVCenter }
                     }
-                    font.pixelSize: 11
-                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                    contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 11
-                        leftPadding: 6; verticalAlignment: Text.AlignVCenter }
-                }
-                Button {
-                    text: "+"; implicitWidth: 28; implicitHeight: 26
-                    enabled: root._aderListeKabel.length > 0 && root._positionenB.length > 0
-                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 14; font.bold: true
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
-                                            radius: 4; border.color: root.theme.border }
-                    onClicked: {
-                        var aderNr = root._aderListeKabel[cbAderB.currentIndex].aderNr
-                        var pinNr  = root._positionenB[cbPinB.currentIndex].positionNr
-                        db.konfkabelPinZuordnen(root._konfkabelId, "B", aderNr, pinNr)
-                        root._pinZuordnungB = db.konfkabelPinZuordnungLaden(root._konfkabelId, "B")
+                    Button {
+                        text: "+"; implicitWidth: 28; implicitHeight: 26
+                        enabled: root._aderListeKabel.length > 0 && root._positionenB.length > 0
+                        contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 14; font.bold: true
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                                                radius: 4; border.color: root.theme.border }
+                        onClicked: {
+                            var aderNr = root._aderListeKabel[cbAderB.currentIndex].aderNr
+                            var pinNr  = root._positionenB[cbPinB.currentIndex].positionNr
+                            db.konfkabelPinZuordnen(root._konfkabelId, "B", aderNr, pinNr)
+                            root._pinZuordnungB = db.konfkabelPinZuordnungLaden(root._konfkabelId, "B")
+                        }
                     }
-                }
-                Button {
-                    text: qsTr("⇥ Rest zuordnen"); implicitHeight: 26
-                    enabled: root._aderListeKabel.length > 0 && root._positionenB.length > 0
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Alle noch freien Adern den noch freien Positionen aufsteigend der Reihe nach zuordnen")
-                    ToolTip.delay: 400
-                    contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 11
-                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
-                                            radius: 4; border.color: root.theme.border }
-                    onClicked: root._automatischZuordnen("B")
+                    Button {
+                        text: qsTr("⇥ Rest zuordnen"); implicitHeight: 26
+                        enabled: root._aderListeKabel.length > 0 && root._positionenB.length > 0
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Alle noch freien Adern den noch freien Positionen aufsteigend der Reihe nach zuordnen")
+                        ToolTip.delay: 400
+                        contentItem: Text { text: parent.text; color: root.theme.accent; font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg;
+                                                radius: 4; border.color: root.theme.border }
+                        onClicked: root._automatischZuordnen("B")
+                    }
                 }
             }
         }
+    }
 
-        RowLayout {
-            Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
-            Layout.topMargin: 8; Layout.bottomMargin: 12; spacing: 6
-            Button {
-                Layout.fillWidth: true; text: qsTr("Speichern")
-                contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
-                                        radius: 4; border.color: root.theme.accent }
-                onClicked: {
-                    bauteilModel.bearbeiten(root.bauteilId,
-                        tfStamBez.text.trim(), tfStamHer.text.trim(), tfStamArt.text.trim(),
-                        tfStamLief.text.trim(),
-                        parseFloat(tfStamPreis.text.replace(",",".")) || 0,
-                        parseFloat(tfStamU.text.replace(",","."))     || 0,
-                        parseFloat(tfStamI.text.replace(",","."))     || 0,
-                        parseFloat(tfStamP.text.replace(",","."))     || 0,
-                        tfStamBem.text.trim(),
-                        tfStamUrlHer.text.trim(), tfStamUrlDat.text.trim())
+    // ── Fester Speichern-Fuß (SPEICHERN-FUSSBEREICH-01) ─────────────────
+    Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border }
+    RowLayout {
+        Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12
+        Layout.topMargin: 8; Layout.bottomMargin: 12; spacing: 6
+        Button {
+            Layout.fillWidth: true; text: qsTr("Speichern")
+            contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12;
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg;
+                                    radius: 4; border.color: root.theme.accent }
+            onClicked: {
+                bauteilModel.bearbeiten(root.bauteilId,
+                    tfStamBez.text.trim(), tfStamHer.text.trim(), tfStamArt.text.trim(),
+                    tfStamLief.text.trim(),
+                    parseFloat(tfStamPreis.text.replace(",",".")) || 0,
+                    parseFloat(tfStamU.text.replace(",","."))     || 0,
+                    parseFloat(tfStamI.text.replace(",","."))     || 0,
+                    parseFloat(tfStamP.text.replace(",","."))     || 0,
+                    tfStamBem.text.trim(),
+                    tfStamUrlHer.text.trim(), tfStamUrlDat.text.trim())
 
-                    var kabelId  = cbKabeltyp.currentIndex > 0 ? root._kabelListe[cbKabeltyp.currentIndex - 1].id : -1
-                    var steckerA = cbSteckerA.currentIndex > 0 ? root._steckverbinderListe[cbSteckerA.currentIndex - 1].id : 0
-                    var steckerB = cbSteckerB.currentIndex > 0 ? root._steckverbinderListe[cbSteckerB.currentIndex - 1].id : 0
-                    var laenge   = parseFloat(tfLaenge.text.replace(",",".")) || 0
+                var kabelId  = cbKabeltyp.currentIndex > 0 ? root._kabelListe[cbKabeltyp.currentIndex - 1].id : -1
+                var steckerA = cbSteckerA.currentIndex > 0 ? root._steckverbinderListe[cbSteckerA.currentIndex - 1].id : 0
+                var steckerB = cbSteckerB.currentIndex > 0 ? root._steckverbinderListe[cbSteckerB.currentIndex - 1].id : 0
+                var laenge   = parseFloat(tfLaenge.text.replace(",",".")) || 0
 
-                    var newId = db.konfkabelSpeichern(root.bauteilId, kabelId, steckerA, steckerB, laenge)
-                    if (newId > 0) root._konfkabelId = newId
-                    root._ladeAdern()
-                    root._ladePositionenA()
-                    root._ladePositionenB()
-                    root._ladePinZuordnungen()
-                    bauteilModel.aktualisieren()
-                    root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
-                }
+                var newId = db.konfkabelSpeichern(root.bauteilId, kabelId, steckerA, steckerB, laenge)
+                if (newId > 0) root._konfkabelId = newId
+                root._ladeAdern()
+                root._ladePositionenA()
+                root._ladePositionenB()
+                root._ladePinZuordnungen()
+                bauteilModel.aktualisieren()
+                root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
             }
         }
     }

@@ -48,6 +48,27 @@ Item {
         "iec60757": ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
     })
 
+    // ADER-SCROLL-SPRUNG-01 (Aug 2026): kabelModel.adern ist eine flache
+    // QVariantList-Property (NOTIFY geladen) statt eines echten
+    // QAbstractListModel — jede Ader-Mutation (Feld bearbeiten, Farbe wählen,
+    // verschieben, löschen, Bulk-Aktionen) lädt serverseitig komplett neu
+    // (KabelModel::ladeAdern() + emit geladen()) und weist aderListe.model
+    // dadurch eine komplett neue Array-Referenz zu. QML erkennt das als
+    // Modell-Reset, zerstört alle Delegates neu und aderListe springt auf
+    // contentY=0 zurück — bei vielen Adern (z.B. 50G1) landet man nach jeder
+    // einzelnen Bearbeitung wieder ganz oben. Fix: contentY um jede Mutation
+    // herum sichern/wiederherstellen statt die Reload-Architektur anzufassen
+    // (echtes QAbstractListModel wäre der sauberere, aber deutlich größere
+    // Umbau – hier nicht gerechtfertigt).
+    function _mitScrollErhalt(fn) {
+        var y = aderListe.contentY
+        fn()
+        Qt.callLater(function() {
+            var maxY = Math.max(0, aderListe.contentHeight - aderListe.height)
+            aderListe.contentY = Math.min(y, maxY)
+        })
+    }
+
     function vorausfuellenFarben(normTyp) {
         var seq = root._normFarben[normTyp]
         var adern = kabelModel.adern
@@ -62,7 +83,7 @@ Item {
         // Ein Bulk-Aufruf (eine Transaktion, ein Tabellen-Reload) statt N
         // einzelner aderAktualisieren()-Aufrufe – sonst baut sich die Tabelle
         // (2 ComboBoxen je Zeile) bei jeder einzelnen Ader komplett neu auf.
-        kabelModel.adernFarbenVorausfuellen(eintraege)
+        root._mitScrollErhalt(function() { kabelModel.adernFarbenVorausfuellen(eintraege) })
     }
 
     DebugLabel { panelName: qsTr("Ader-Tabelle"); visible: root.debug }
@@ -194,11 +215,13 @@ Item {
                         font.pixelSize: 11; implicitHeight: 26
                         background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
                         color: root.theme.textPrimary
-                        onEditingFinished: kabelModel.aderAktualisieren(modelData.id, {
-                            "bezeichnung":     text,
-                            "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
-                            "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
-                            "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                        onEditingFinished: root._mitScrollErhalt(function() {
+                            kabelModel.aderAktualisieren(modelData.id, {
+                                "bezeichnung":     text,
+                                "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
+                                "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
+                                "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                            })
                         })
                     }
 
@@ -250,11 +273,13 @@ Item {
                                 "YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett","GY":"Grau",
                                 "WH":"Weiß","PK":"Rosa","CL":"Farblos"})[modelData] || ""
                         }
-                        onActivated: kabelModel.aderAktualisieren(modelData.id, {
-                            "bezeichnung":     tfAderBez.text,
-                            "farbe":           currentIndex > 0 ? model[currentIndex] : "",
-                            "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
-                            "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                        onActivated: root._mitScrollErhalt(function() {
+                            kabelModel.aderAktualisieren(modelData.id, {
+                                "bezeichnung":     tfAderBez.text,
+                                "farbe":           currentIndex > 0 ? model[currentIndex] : "",
+                                "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
+                                "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                            })
                         })
                     }
 
@@ -308,11 +333,13 @@ Item {
                         }
                         ToolTip.visible: hovered; ToolTip.delay: 500
                         ToolTip.text: qsTr("Zweite Farbe für Bifarb-Adern (z.B. PE grün-gelb, DIN-47100-Bifarben)")
-                        onActivated: kabelModel.aderAktualisieren(modelData.id, {
-                            "bezeichnung":     tfAderBez.text,
-                            "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
-                            "farbe2":          currentIndex > 0 ? model[currentIndex] : "",
-                            "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                        onActivated: root._mitScrollErhalt(function() {
+                            kabelModel.aderAktualisieren(modelData.id, {
+                                "bezeichnung":     tfAderBez.text,
+                                "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
+                                "farbe2":          currentIndex > 0 ? model[currentIndex] : "",
+                                "querschnitt_mm2": tfAderMm2.currentIndex >= 0 ? tfAderMm2.model[tfAderMm2.currentIndex] : 0
+                            })
                         })
                     }
 
@@ -349,11 +376,13 @@ Item {
                             ToolTip.text: qsTr("Ø %1 mm (Leiter, eindrähtig, rechnerisch – reale Außenmaße je nach Isolierung/Litzenzahl abweichend)")
                                 .arg((2 * Math.sqrt(modelData / Math.PI)).toFixed(2).replace('.', ','))
                         }
-                        onActivated: kabelModel.aderAktualisieren(modelData.id, {
-                            "bezeichnung":     tfAderBez.text,
-                            "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
-                            "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
-                            "querschnitt_mm2": currentIndex >= 0 ? model[currentIndex] : 0
+                        onActivated: root._mitScrollErhalt(function() {
+                            kabelModel.aderAktualisieren(modelData.id, {
+                                "bezeichnung":     tfAderBez.text,
+                                "farbe":           cbAderFarbe.currentIndex > 0 ? cbAderFarbe.model[cbAderFarbe.currentIndex] : "",
+                                "farbe2":          cbAderFarbe2.currentIndex > 0 ? cbAderFarbe2.model[cbAderFarbe2.currentIndex] : "",
+                                "querschnitt_mm2": currentIndex >= 0 ? model[currentIndex] : 0
+                            })
                         })
                     }
 
@@ -364,7 +393,7 @@ Item {
                             contentItem: Text { text: "↑"; color: root.theme.accent; font.pixelSize: 12;
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             background: Rectangle { color: parent.hovered ? root.theme.activeItemAlt : "transparent"; radius: 3 }
-                            onClicked: kabelModel.aderSchieben(modelData.id, -1)
+                            onClicked: root._mitScrollErhalt(function() { kabelModel.aderSchieben(modelData.id, -1) })
                             ToolTip.visible: hovered; ToolTip.delay: 500
                             ToolTip.text: qsTr("Ader nach oben verschieben")
                         }
@@ -373,7 +402,7 @@ Item {
                             contentItem: Text { text: "↓"; color: root.theme.accent; font.pixelSize: 12;
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             background: Rectangle { color: parent.hovered ? root.theme.activeItemAlt : "transparent"; radius: 3 }
-                            onClicked: kabelModel.aderSchieben(modelData.id, 1)
+                            onClicked: root._mitScrollErhalt(function() { kabelModel.aderSchieben(modelData.id, 1) })
                             ToolTip.visible: hovered; ToolTip.delay: 500
                             ToolTip.text: qsTr("Ader nach unten verschieben")
                         }
@@ -382,7 +411,7 @@ Item {
                             contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 16;
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             background: Rectangle { color: parent.hovered ? root.theme.activeItemAlt : "transparent"; radius: 3 }
-                            onClicked: kabelModel.aderLoeschen(modelData.id)
+                            onClicked: root._mitScrollErhalt(function() { kabelModel.aderLoeschen(modelData.id) })
                             ToolTip.visible: hovered; ToolTip.delay: 500
                             ToolTip.text: qsTr("Ader löschen")
                         }
@@ -572,7 +601,7 @@ Item {
                         if (cbBulkFarbe2.currentIndex > 0) daten["farbe2"]          = cbBulkFarbe2.model[cbBulkFarbe2.currentIndex]
                         if (bulkMm2.currentIndex      > 0) daten["querschnitt_mm2"] = bulkMm2.model[bulkMm2.currentIndex]
                         if (bulkBez.text.trim()     !== "") daten["bezeichnung"]   = bulkBez.text.trim()
-                        kabelModel.aderMehrfachAktualisieren(root._ausgewaehlt, daten)
+                        root._mitScrollErhalt(function() { kabelModel.aderMehrfachAktualisieren(root._ausgewaehlt, daten) })
                         cbBulkFarbe.currentIndex = 0; cbBulkFarbe2.currentIndex = 0; bulkMm2.currentIndex = 0; bulkBez.text = ""
                     }
                     ToolTip.visible: hovered; ToolTip.delay: 500
@@ -669,7 +698,14 @@ Item {
                         color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
                         radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border
                     }
-                    onClicked: kabelModel.aderAnlegen()
+                    onClicked: {
+                        // Anders als bei den übrigen Mutationen bewusst NICHT
+                        // _mitScrollErhalt(): eine neu angelegte Ader landet am
+                        // Ende der Liste, dorthin soll auch gescrollt werden
+                        // statt zur alten Position zurückzukehren.
+                        kabelModel.aderAnlegen()
+                        Qt.callLater(function() { aderListe.positionViewAtEnd() })
+                    }
                     ToolTip.visible: hovered; ToolTip.delay: 500
                     ToolTip.text: kabelModel.hatKabel
                                   ? qsTr("Neue Ader hinzufügen")

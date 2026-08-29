@@ -427,14 +427,15 @@ Item {
     function crossProjektEinfuegenDialogOeffnen()   { dialogLayer.crossProjektEinfuegenOeffnen() }
 
     // Aderzuordnungsdialog vorbereiten (drawCanvas-Zugriffe bleiben hier) und öffnen
+    //
+    // KABEL-UEBERARBEITUNG-01 (Aug 2026): vorübergehend deaktiviert — zweiter
+    // Aufrufpfad zum selben, im EP-Panel bereits deaktivierten "Aderzuordnung
+    // …"-Dialog (EpKabelStammdatenBlock.qml), beim ersten Deaktivieren
+    // übersehen. Öffnete bisher automatisch direkt nach dem Zeichnen einer
+    // neuen Kabellinie, sobald diese mindestens eine Verbindung kreuzt. s.
+    // konzept/features/05_leitungen_kabel.md §6.5.5 für den Gesamtkontext.
     function kabellinieNachSpeichernAderZuordnung(newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern, freshKlEl) {
-        var neueNetze = netzHandler.autoNetzeBerechnen()
-        var schnitte  = geometrieHandler.kabelSchnittNetzeBerechnen(freshKlEl, neueNetze)
-        if (schnitte.length > 0) {
-            dialogLayer.aderzuordnungOeffnen(
-                newKabelId, bezeichnung, kabeltyp, aderzahl, bkAdern,
-                schnitte, {}, freshKlEl.id || 0, cacheHandler._pinNummernFuerNetze(neueNetze))
-        }
+        return
     }
 
     // --------------------------------------------------------

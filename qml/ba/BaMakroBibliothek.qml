@@ -467,6 +467,7 @@ Item {
                                 root._geaendert = false
                                 root.laden()
                                 root.makroListeGeaendert()
+                                meldungManager.zeigen(qsTr("Makro gespeichert."), true)
                             }
                         }
                     }

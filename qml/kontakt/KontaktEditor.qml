@@ -382,6 +382,7 @@ ColumnLayout {
                     cbVerbindungstechnik.displayText)
 
                 bauteilModel.aktualisieren()
+                meldungManager.zeigen(qsTr("Kontakt gespeichert."), true)
                 root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
             }
         }

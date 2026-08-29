@@ -562,6 +562,7 @@ ColumnLayout {
                     tfStamUrlHer.text.trim(), tfStamUrlDat.text.trim())
                 if (klemmeModel.hatKlemme)
                     klemmeModel.speichern(root.klemmeMapSammeln())
+                meldungManager.zeigen(qsTr("Klemme gespeichert."), true)
                 root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
             }
         }

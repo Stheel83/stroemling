@@ -376,6 +376,7 @@ SplitView {
                                 panel.ausgewaehlterIndex = i; break
                             }
                         }
+                        meldungManager.zeigen(qsTr("Betriebsmittel-Eintrag gespeichert."), true)
                     }
                 }
 

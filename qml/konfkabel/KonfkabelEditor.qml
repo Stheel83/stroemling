@@ -652,6 +652,7 @@ ColumnLayout {
                 root._ladePositionenB()
                 root._ladePinZuordnungen()
                 bauteilModel.aktualisieren()
+                meldungManager.zeigen(qsTr("Konfektioniertes Kabel gespeichert."), true)
                 root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
             }
         }

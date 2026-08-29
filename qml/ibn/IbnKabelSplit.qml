@@ -314,6 +314,7 @@ SplitView {
                                 panel.kabelAusgewaehlterIndex = i; break
                             }
                         }
+                        meldungManager.zeigen(qsTr("Kabel-Eintrag gespeichert."), true)
                     }
                 }
 

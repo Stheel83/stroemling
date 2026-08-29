@@ -356,6 +356,7 @@ Item {
         symbollisteAktualisieren()
         aktiveListenId = sid
         editSymbolId   = sid
+        meldungManager.zeigen(qsTr("Symbol gespeichert."), true)
         root.gespeichert(sid)
     }
 

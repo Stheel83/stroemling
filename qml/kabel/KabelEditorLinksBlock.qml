@@ -487,6 +487,7 @@ ColumnLayout {
                 tfKabUrlHer.text.trim(), tfKabUrlDat.text.trim())
             if (kabelModel.hatKabel)
                 kabelModel.stammdatenSpeichern(root.kabelMapSammeln())
+            meldungManager.zeigen(qsTr("Kabel gespeichert."), true)
             root.bauteilGespeichert(root.bauteilId, tfKabBez.text.trim())
         }
     }

@@ -323,12 +323,14 @@ Item {
         for (var i = 0; i < _vorlagen.length; i++) {
             if (_vorlagen[i].id === vorherId) { _vorlIdx = i; break }
         }
+        meldungManager.zeigen(qsTr("Vorlagen-Einstellungen gespeichert."), true)
     }
 
     // ── Speichern ─────────────────────────────────────────────
     function _speichern() {
         if (!_vorlage) return
         db.normblattFelderSpeichern(_vorlage.id, _felder)
+        meldungManager.zeigen(qsTr("Vorlage gespeichert."), true)
         root.gespeichert(_vorlage.id)
     }
 

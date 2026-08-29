@@ -780,6 +780,7 @@ ColumnLayout {
                     root._positionenListe = db.steckverbinderPositionenLaden(root._svTypId)
                 }
                 bauteilModel.aktualisieren()
+                meldungManager.zeigen(qsTr("Steckverbinder gespeichert."), true)
                 root.bauteilGespeichert(root.bauteilId, tfStamBez.text.trim())
             }
         }

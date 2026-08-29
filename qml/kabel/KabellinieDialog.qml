@@ -6,6 +6,16 @@ import "../components"
 // ============================================================
 // KabellinieDialog – Kabeldaten nach dem Zeichnen einer
 // Kabeldefinitionslinie eingeben.
+//
+// KABELLINIE-DIALOG-SCHLANK-01 (Aug 2026): bewusst auf BMK +
+// Bibliothek-Verknüpfung reduziert. Kabeltyp/Aderzahl/Querschnitt/Von/
+// Nach lassen sich hier weiterhin über "Bestehendes Kabel zuordnen" oder
+// "Aus Bibliothek …" implizit mitübernehmen (root.kabeltyp/aderzahl/
+// querschnittMm2 werden dabei gesetzt), sind aber nicht mehr manuell
+// editierbar — Nutzerwunsch: diese Angaben trägt man bei Bedarf danach
+// im EigenschaftenPanel nach (EpKabelStammdatenBlock.qml deckt exakt
+// dieselben Felder ab), das erneute Eintippen direkt nach dem Zeichnen
+// war für den Normalfall unnötige Reibung.
 // ============================================================
 
 Dialog {
@@ -25,7 +35,10 @@ Dialog {
     // Elementindex im Canvas-Elemente-Array (gesetzt vor open())
     property int    elementIndex: -1
 
-    // Ausgabe – gelesen von Canvas nach accepted
+    // Ausgabe – gelesen von Canvas nach accepted. kabeltyp/aderzahl/
+    // querschnittMm2 kommen ausschließlich aus "Bestehendes Kabel
+    // zuordnen" oder "Aus Bibliothek …" (kein eigenes Eingabefeld mehr),
+    // vonOrt/nachOrt sind ausschließlich im EP nachpflegbar.
     property string bezeichnung:        ""
     property string kabeltyp:           ""
     property int    aderzahl:           0
@@ -48,6 +61,15 @@ Dialog {
         color:        theme.sidebar
         border.color: theme.border
         border.width: 1; radius: 6
+    }
+
+    function _uebernehmen() {
+        if (tfBezeichnung.text.trim() === "") return
+        root.bezeichnung        = tfBezeichnung.text.trim()
+        root.bestehendesKabelId = (root._kabelAuswahl > 0)
+                                 ? (root.vorhandeneKabel[root._kabelAuswahl - 1].id || 0)
+                                 : 0
+        root.accept()
     }
 
     contentItem: ColumnLayout {
@@ -81,9 +103,10 @@ Dialog {
                         if (index > 0) {
                             var k = root.vorhandeneKabel[index - 1]
                             tfBezeichnung.text  = k.bezeichnung || ""
-                            tfKabeltyp.text     = k.kabeltyp    || ""
-                            tfAderzahl.text     = (k.aderzahl  || 0) > 0 ? k.aderzahl.toString()  : ""
-                            tfQuerschnitt.text  = (k.querschnittMm2 || 0) > 0 ? k.querschnittMm2.toString() : ""
+                            root.kabeltyp       = k.kabeltyp    || ""
+                            root.aderzahl       = k.aderzahl    || 0
+                            root.querschnittMm2 = k.querschnittMm2 || 0.0
+                            root.bauteilKabelId = k.bauteilKabelId || 0
                         }
                     }
                     contentItem: Text {
@@ -120,7 +143,7 @@ Dialog {
                 border.color: root._kabelAuswahl > 0 ? theme.accent : theme.border
                 border.width: root._kabelAuswahl > 0 ? 2 : 1
             }
-            Keys.onReturnPressed: tfKabeltyp.forceActiveFocus()
+            Keys.onReturnPressed: root._uebernehmen()
             onTextChanged: {
                 var bmk = text.trim()
                 if (bmk === "") { root._kabelAuswahl = 0; return }
@@ -129,9 +152,9 @@ Dialog {
                         if (root._kabelAuswahl !== i + 1) {
                             root._kabelAuswahl = i + 1
                             var k = root.vorhandeneKabel[i]
-                            tfKabeltyp.text    = k.kabeltyp        || ""
-                            tfAderzahl.text    = (k.aderzahl     || 0) > 0 ? k.aderzahl.toString()        : ""
-                            tfQuerschnitt.text = (k.querschnittMm2 || 0) > 0 ? k.querschnittMm2.toString() : ""
+                            root.kabeltyp       = k.kabeltyp        || ""
+                            root.aderzahl       = k.aderzahl        || 0
+                            root.querschnittMm2 = k.querschnittMm2  || 0.0
                             // KABEL-BAUTEIL-BMK-UEBERNAHME-01: Bauteil-Kabel-
                             // Verknüpfung des erkannten bestehenden Kabels
                             // übernehmen, sonst musste sie für jede weitere
@@ -165,80 +188,6 @@ Dialog {
             }
         }
 
-        // Kabeltyp
-        Text { text: qsTr("Kabeltyp"); color: theme.textMuted; font.pixelSize: 11 }
-        TextField {
-            id: tfKabeltyp
-            Layout.fillWidth: true
-            placeholderText: qsTr("z. B. NYM-J 3x1,5")
-            color: theme.textPrimary
-            font.pixelSize: 13
-            background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-            Keys.onReturnPressed: tfAderzahl.forceActiveFocus()
-        }
-
-        RowLayout {
-            Layout.fillWidth: true; spacing: 12
-
-            ColumnLayout {
-                spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Aderzahl"); color: theme.textMuted; font.pixelSize: 11 }
-                TextField {
-                    id: tfAderzahl
-                    Layout.fillWidth: true
-                    placeholderText: "0"
-                    inputMethodHints: Qt.ImhDigitsOnly
-                    validator: IntValidator { bottom: 0; top: 999 }
-                    color: theme.textPrimary
-                    font.pixelSize: 13
-                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-                    Keys.onReturnPressed: tfQuerschnitt.forceActiveFocus()
-                }
-            }
-
-            ColumnLayout {
-                spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Querschnitt (mm²)"); color: theme.textMuted; font.pixelSize: 11 }
-                TextField {
-                    id: tfQuerschnitt
-                    Layout.fillWidth: true
-                    placeholderText: "0.0"
-                    inputMethodHints: Qt.ImhFormattedNumbersOnly
-                    validator: DoubleValidator { bottom: 0.0; decimals: 2 }
-                    color: theme.textPrimary
-                    font.pixelSize: 13
-                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-                }
-            }
-        }
-
-        // Von / Nach
-        RowLayout {
-            Layout.fillWidth: true; spacing: 12
-            ColumnLayout {
-                spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Von (Ort / Gerät)"); color: theme.textMuted; font.pixelSize: 11 }
-                TextField {
-                    id: tfVonOrt
-                    Layout.fillWidth: true
-                    placeholderText: qsTr("z. B. Schrank A")
-                    color: theme.textPrimary; font.pixelSize: 13
-                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-                }
-            }
-            ColumnLayout {
-                spacing: 4; Layout.fillWidth: true
-                Text { text: qsTr("Nach (Ort / Gerät)"); color: theme.textMuted; font.pixelSize: 11 }
-                TextField {
-                    id: tfNachOrt
-                    Layout.fillWidth: true
-                    placeholderText: qsTr("z. B. Motor M1")
-                    color: theme.textPrimary; font.pixelSize: 13
-                    background: Rectangle { color: theme.inputBg; radius: 4; border.color: theme.border }
-                }
-            }
-        }
-
         Rectangle { Layout.fillWidth: true; height: 1; color: theme.border; Layout.topMargin: 4 }
 
         RowLayout {
@@ -261,30 +210,14 @@ Dialog {
                     radius: 4
                     border.color: parent.enabled ? theme.accent : theme.border
                 }
-                onClicked: {
-                    root.bezeichnung        = tfBezeichnung.text.trim()
-                    root.kabeltyp           = tfKabeltyp.text.trim()
-                    root.aderzahl           = parseInt(tfAderzahl.text) || 0
-                    root.querschnittMm2     = parseFloat(tfQuerschnitt.text.replace(",", ".")) || 0.0
-                    root.vonOrt             = tfVonOrt.text.trim()
-                    root.nachOrt            = tfNachOrt.text.trim()
-                    root.bestehendesKabelId = (root._kabelAuswahl > 0)
-                                             ? (root.vorhandeneKabel[root._kabelAuswahl - 1].id || 0)
-                                             : 0
-                    root.accept()
-                }
+                onClicked: root._uebernehmen()
             }
         }
     }
 
     onOpened: {
-        root._kabelAuswahl  = 0
-        tfBezeichnung.text  = root.bezeichnung
-        tfKabeltyp.text     = root.kabeltyp
-        tfAderzahl.text     = root.aderzahl > 0 ? root.aderzahl.toString() : ""
-        tfQuerschnitt.text  = root.querschnittMm2 > 0 ? root.querschnittMm2.toString() : ""
-        tfVonOrt.text       = root.vonOrt
-        tfNachOrt.text      = root.nachOrt
+        root._kabelAuswahl = 0
+        tfBezeichnung.text = root.bezeichnung
         tfBezeichnung.forceActiveFocus()
     }
 
@@ -299,9 +232,9 @@ Dialog {
                 var liste = kabelPicker.kabelListe
                 for (var i = 0; i < liste.length; i++) {
                     if (liste[i].id === kabelPicker.ausgewaehltId) {
-                        if (liste[i].kabeltyp)           tfKabeltyp.text    = liste[i].kabeltyp
-                        if (liste[i].aderzahl > 0)       tfAderzahl.text    = liste[i].aderzahl.toString()
-                        if (liste[i].querschnittMm2 > 0) tfQuerschnitt.text = liste[i].querschnittMm2.toString()
+                        if (liste[i].kabeltyp)           root.kabeltyp       = liste[i].kabeltyp
+                        if (liste[i].aderzahl > 0)       root.aderzahl       = liste[i].aderzahl
+                        if (liste[i].querschnittMm2 > 0) root.querschnittMm2 = liste[i].querschnittMm2
                         break
                     }
                 }

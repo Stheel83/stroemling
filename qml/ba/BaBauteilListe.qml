@@ -384,6 +384,13 @@ Item {
                 anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
                 spacing: 0
                 Text { visible: root._kontext === "alle"; text: qsTr("Typ"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 70;  font.weight: Font.Medium }
+                Item { visible: root._kontext !== "alle"; Layout.preferredWidth: 70 }
+                // Symbol-Badge-Spalte (nur "alle") – muss in derselben Reihenfolge wie in
+                // der Datenzeile stehen (dort: Typ → Symbol-Badge → 🔒-Icon → Bezeichnung),
+                // sonst passt nur die Gesamtbreite, nicht aber wo Bezeichnung beginnt.
+                Text { visible: root._kontext === "alle"; text: qsTr("Symbol"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 70; font.weight: Font.Medium }
+                // Platz für die 🔒-Icon-Spalte in der Datenzeile (mitgeliefertes Bauteil)
+                Item { Layout.preferredWidth: 14 }
                 Text { text: qsTr("Bezeichnung");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 180; font.weight: Font.Medium }
                 Text { text: qsTr("Hersteller");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 130; font.weight: Font.Medium }
                 Text { text: qsTr("Artikel-Nr.");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 110; font.weight: Font.Medium }
@@ -530,9 +537,15 @@ Item {
                         // Symbol-Badge für generische Bauteile mit direktem Symbolverweis
                         // (z.B. einfache Geräte) – nur relevant in der ungefilterten Ansicht,
                         // da typisierte Bauteile (Klemme/Kabel/Steckverbinder) dieses Feld
-                        // praktisch nie gesetzt haben.
+                        // praktisch nie gesetzt haben. Kein eigener Spaltenkopf vorhanden
+                        // (auch schon vor BAUTEILLISTE-KONTEXTSPALTEN-01 so) – Badge und
+                        // Platzhalter reservieren deshalb nur innerhalb von "alle" Platz,
+                        // sonst käme wieder eine Spaltenverschiebung wie bei ZEILE-FLACKERN-
+                        // benachbarten Funden zustande (Kopf- und Datenzeile müssen exakt
+                        // dieselbe Breite reservieren).
+                        property bool _zeigeSymbolBadge: root._kontext === "alle" && !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
                         Rectangle {
-                            visible: root._kontext === "alle" && !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
+                            visible: _zeigeSymbolBadge
                             Layout.preferredWidth: 70; height: 20; radius: 3
                             color: "#1a2a4a"; border.color: "#2d5a8a"
                             Text {
@@ -543,7 +556,7 @@ Item {
                                 horizontalAlignment: Text.AlignHCenter
                             }
                         }
-                        Item { visible: root._kontext !== "alle" || model.istKlemme || model.istKabel || model.istSteckverbinder || (model.hauptfunktionSymbolId || "") === ""; Layout.preferredWidth: 70 }
+                        Item { visible: root._kontext === "alle" && !_zeigeSymbolBadge; Layout.preferredWidth: 70 }
 
                         Text {
                             text: "🔒"; visible: model.istSystem; font.pixelSize: 10

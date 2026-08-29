@@ -538,12 +538,20 @@ public:
     // Ader einem Kabel zuordnen: verbindung_id + ggf. Kabellinie-Grafikelement zu kabel_ader schreiben.
     // Legt eine neue kabel_ader-Zeile an oder aktualisiert eine bestehende.
     // kabellinieGrafikElementId = 0 → kabellinie_grafik_element_id bleibt unverändert / NULL.
+    // aderKey (KABEL-UEBERARBEITUNG-01/PROPAGATION-07): der lokale NETZ-02-
+    // Schlüssel des konkreten Kreuzungspunkts (nicht das ganze elektrische
+    // Netz) — auf jeder Kontaktseite liegt physisch eine andere Ader, auch
+    // wenn beide Seiten dieselbe verbindung_id (Potenzial) teilen. Optional
+    // mit Default "" für bestehende QML-Aufrufer (AderKreuzungPicker/
+    // AderzuordnungDialog, aktuell deaktiviert), die ihn (noch) nicht
+    // mitgeben.
     Q_INVOKABLE bool kabelAderZuordnen(int kabelId, int aderNr,
                                        const QString &farbe,
                                        const QString &farbe2,
                                        const QString &bezeichnung,
                                        int verbindungId,
-                                       int kabellinieGrafikElementId = 0);
+                                       int kabellinieGrafikElementId = 0,
+                                       const QString &aderKey = QString());
 
     // KABEL-ADERFARBE-PROPAGATION-03: hält kabel_ader für EINE Kabellinie
     // synchron mit ihren tatsächlich aktuellen Kreuzungen (aufgerufen aus
@@ -596,10 +604,11 @@ public:
     // KABEL-ADERFARBE-PROPAGATION-04: alle kabel_ader-Zeilen eines Kabels,
     // zugeordnet UND frei (anders als kabelFreieAderLaden/
     // kabelAderFuerLinieLaden, die je nur eine Teilmenge liefern). Für den
-    // gecachten kabelId→verbindungId→Ader-Lookup, den Canvas-Rendering/
-    // EP-Anzeige als Vorrang vor dem lokalen Positions-Fallback nutzen.
-    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId,
-    //        kabellinieGrafikElementId}] zurück.
+    // gecachten kabelId→aderKey→Ader-Lookup (PROPAGATION-07: lokaler
+    // Schlüssel statt verbindung_id, s. kabelAderZuordnen()), den Canvas-
+    // Rendering/EP-Anzeige als Vorrang vor dem lokalen Positions-Fallback
+    // nutzen. Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId,
+    //        kabellinieGrafikElementId, aderKey}] zurück.
     Q_INVOKABLE QVariantList kabelAlleAderLaden(int kabelId);
 
     // Adern einer Kabellinie (für KABEL-ADERN-Abschnitt im EP).

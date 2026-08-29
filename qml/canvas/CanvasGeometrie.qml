@@ -544,6 +544,15 @@ QtObject {
     // vergeben). Für eine brandneue, noch nie gespeicherte Kreuzung liefert
     // die Tabelle naturgemäß noch nichts — dafür bleibt si+1 als vorläufige
     // Vorschau bis zum nächsten Speichern.
+    // KABEL-UEBERARBEITUNG-01/PROPAGATION-07: gecachte Sicht auf kabel_ader,
+    // geschlüsselt über den LOKALEN NETZ-02-Ader-Schlüssel (aderKey), NICHT
+    // mehr über verbindung_id. Ein Kontakt leitet das Potenzial durch
+    // (Netzberechnung bleibt unverändert), aber auf jeder Kontaktseite liegt
+    // physisch eine ANDERE Ader — mit verbindung_id als Schlüssel hätten
+    // zwei unterschiedliche Adern, die zufällig dieselbe verbindung_id
+    // teilen, sich im JS-Objekt gegenseitig überschrieben (nur die zuletzt
+    // verarbeitete Zeile hätte gewonnen). s. Nutzer-Klarstellung: "auf jeder
+    // Kontakt Seite ist eine andere physische Ader".
     function kabelAderProKabelCached(kabelId) {
         if (kabelId <= 0) return {}
         if (cv._cachedKabelAderProKabel[kabelId] !== undefined)
@@ -552,8 +561,8 @@ QtObject {
         var rows = db.kabelAlleAderLaden(kabelId)
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i]
-            if ((r.verbindungId || 0) <= 0) continue   // freie Ader, keiner Kreuzung zugeordnet
-            map[r.verbindungId] = { aderNr: r.aderNr, farbe: r.farbe || "", farbe2: r.farbe2 || "", bezeichnung: r.bezeichnung || "" }
+            if (!r.aderKey) continue   // freie Ader (keiner Kreuzung zugeordnet) oder Alt-Zeile ohne aderKey
+            map[r.aderKey] = { aderNr: r.aderNr, farbe: r.farbe || "", farbe2: r.farbe2 || "", bezeichnung: r.bezeichnung || "" }
         }
         cv._cachedKabelAderProKabel[kabelId] = map
         return map

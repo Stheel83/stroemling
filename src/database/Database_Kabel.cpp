@@ -62,7 +62,8 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
                                  const QString &farbe2,
                                  const QString &bezeichnung,
                                  int verbindungId,
-                                 int kabellinieGrafikElementId)
+                                 int kabellinieGrafikElementId,
+                                 const QString &aderKey)
 {
     QSqlQuery q(m_db);
     q.prepare("SELECT id FROM kabel_ader WHERE kabel_id=:kid AND ader_nr=:nr");
@@ -77,7 +78,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
         QSqlQuery upd;
         upd.prepare(R"(
             UPDATE kabel_ader SET farbe=:f, farbe2=:f2, bezeichnung=:b, verbindung_id=:vid,
-                                  kabellinie_grafik_element_id=:lgeid
+                                  kabellinie_grafik_element_id=:lgeid, ader_key=:ak
             WHERE id=:id
         )");
         upd.bindValue(":f",     farbe.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : farbe);
@@ -86,6 +87,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
         upd.bindValue(":vid",   verbindungId > 0 ? verbindungId : QVariant(QMetaType(QMetaType::Int)));
         upd.bindValue(":lgeid", kabellinieGrafikElementId > 0
                                 ? kabellinieGrafikElementId : QVariant(QMetaType(QMetaType::Int)));
+        upd.bindValue(":ak",    aderKey.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : aderKey);
         upd.bindValue(":id",    existingId);
         if (!upd.exec()) {
             qCWarning(lcDb) << "kabelAderZuordnen UPDATE:" << upd.lastError().text();
@@ -95,8 +97,8 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
         QSqlQuery ins;
         ins.prepare(R"(
             INSERT INTO kabel_ader (kabel_id, ader_nr, farbe, farbe2, bezeichnung,
-                                   verbindung_id, kabellinie_grafik_element_id)
-            VALUES (:kid, :nr, :f, :f2, :b, :vid, :lgeid)
+                                   verbindung_id, kabellinie_grafik_element_id, ader_key)
+            VALUES (:kid, :nr, :f, :f2, :b, :vid, :lgeid, :ak)
         )");
         ins.bindValue(":kid",   kabelId);
         ins.bindValue(":nr",    aderNr);
@@ -106,6 +108,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
         ins.bindValue(":vid",   verbindungId > 0 ? verbindungId : QVariant(QMetaType(QMetaType::Int)));
         ins.bindValue(":lgeid", kabellinieGrafikElementId > 0
                                 ? kabellinieGrafikElementId : QVariant(QMetaType(QMetaType::Int)));
+        ins.bindValue(":ak",    aderKey.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : aderKey);
         if (!ins.exec()) {
             qCWarning(lcDb) << "kabelAderZuordnen INSERT:" << ins.lastError().text();
             return false;
@@ -166,7 +169,8 @@ bool Database::kabelAderLinieSynchronisieren(int kabelId, int kabellinieGrafikEl
                            m.value(QStringLiteral("farbe2")).toString(),
                            m.value(QStringLiteral("bezeichnung")).toString(),
                            m.value(QStringLiteral("verbindungId")).toInt(),
-                           kabellinieGrafikElementId);
+                           kabellinieGrafikElementId,
+                           m.value(QStringLiteral("aderKey")).toString());
     }
     return true;
 }
@@ -511,6 +515,7 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
     struct KaEintrag {
         int     linienIdx;
         int     verbindungId;
+        QString aderKey;
         QString farbe, farbe2, bezeichnung;
         int     explizitWert = -1;   // -1 = keine explizite Zuordnung, 0 = "keine Ader"
     };
@@ -531,6 +536,7 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
             KaEintrag e;
             e.linienIdx    = li;
             e.verbindungId = sc.verbindungId;
+            e.aderKey      = sc.aderKey;
             if (!sc.aderKey.isEmpty() && aderZuordnung.contains(sc.aderKey))
                 e.explizitWert = aderZuordnung.value(sc.aderKey).toInt(-1);
             alle.append(e);
@@ -538,29 +544,35 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
     }
     if (alle.isEmpty()) return true;
 
-    // KABEL-UEBERARBEITUNG-01/PROPAGATION-06: dieselbe Verbindung kann von
-    // MEHREREN Kabellinien-Segmenten gekreuzt werden (z.B. der Kabeltrunk
-    // oberhalb UND unterhalb eines durchleitenden Symbols wie eines
-    // Schützes — elektrisch derselbe Punkt, nur auf zwei Linien-Abschnitte
-    // verteilt gezeichnet, s. §6.5.4-Screenshot "W321 → +1 Linie" zweimal).
-    // Ohne Deduplizierung hätte jede Linie unabhängig einen eigenen
-    // Pool-Slot für dieselbe Verbindung konsumiert (Nutzer-Bugreport: 6
-    // vergebene Adern für nur 3 tatsächliche Kreuzungspunkte, echte
-    // .backup-Prüfung zeigte identische verbindung_id-Tripel unter zwei
-    // verschiedenen kabellinie_grafik_element_id). Repräsentant = erstes
-    // Vorkommen in Linien-Reihenfolge; nur EIN Eintrag pro verbindungId
-    // (>0) nimmt an Pass 1/2 teil, das Ergebnis wird danach auf alle
-    // Duplikate übertragen. verbindungId<=0 (kein aufgelöstes Netz) wird
-    // nie zusammengefasst, jeder solche Eintrag bleibt sein eigener
-    // Repräsentant.
-    QHash<int, int> repIdxFuerVerbindung;   // verbindungId → Index in alle (Repräsentant)
-    QVector<int>    repIdx;                 // an Pass 1/2 teilnehmende Indizes
+    // KABEL-UEBERARBEITUNG-01/PROPAGATION-07 (Aug 2026, Korrektur von
+    // PROPAGATION-06): dedupliziert über den LOKALEN Ader-Schlüssel
+    // (aderKey, NETZ-02 — nächster "stabiler" Punkt auf jeder Seite der
+    // Kreuzung, transparent nur durch reine Routing-Elemente wie Winkel/
+    // Treffpunkt, stoppt an jedem echten Symbol MIT BMK, explizit auch an
+    // Kontakten), NICHT mehr über die verbindung_id (elektrisches Netz).
+    // Nutzer-Klarstellung: ein Kontakt leitet das Potenzial zwar durch
+    // (Netzberechnung bleibt unverändert), aber auf jeder Kontaktseite
+    // liegt physisch eine ANDERE Ader — auch wenn beide Seiten zum
+    // selben Kabel (gleiches BMK) gehören. PROPAGATION-06 hatte
+    // fälschlich über verbindung_id dedupliziert (das ganze, ggf. über
+    // mehrere Kontakte transitiv verschmolzene Potenzial-Netz) und damit
+    // Adern über Kontakte hinweg zusammengelegt, die physisch getrennt
+    // sein müssen — exakt derselbe Fehler wie KABEL-ADERFARBE-
+    // PROPAGATION-01 (Canvas-Farbe), nur diesmal in der Ader-Vergabe
+    // selbst statt der Darstellung. Repräsentant = erstes Vorkommen in
+    // Linien-Reihenfolge; nur EIN Eintrag pro aderKey (nicht-leer) nimmt
+    // an Pass 1/2 teil, das Ergebnis wird danach auf alle Duplikate
+    // übertragen. Ein leerer aderKey (kein stabiler Punkt in
+    // erreichbarer Nähe gefunden) wird nie zusammengefasst, jeder solche
+    // Eintrag bleibt sein eigener Repräsentant.
+    QHash<QString, int> repIdxFuerAderKey;   // aderKey → Index in alle (Repräsentant)
+    QVector<int>        repIdx;              // an Pass 1/2 teilnehmende Indizes
     for (int i = 0; i < alle.size(); i++) {
-        int vid = alle[i].verbindungId;
-        if (vid <= 0) { repIdx.append(i); continue; }
-        auto it = repIdxFuerVerbindung.constFind(vid);
-        if (it == repIdxFuerVerbindung.constEnd()) {
-            repIdxFuerVerbindung.insert(vid, i);
+        const QString &ak = alle[i].aderKey;
+        if (ak.isEmpty()) { repIdx.append(i); continue; }
+        auto it = repIdxFuerAderKey.constFind(ak);
+        if (it == repIdxFuerAderKey.constEnd()) {
+            repIdxFuerAderKey.insert(ak, i);
             repIdx.append(i);
         } else if (alle[i].explizitWert >= 0 && alle[it.value()].explizitWert < 0) {
             // Ein später gefundenes Duplikat hat eine explizite Zuordnung,
@@ -600,13 +612,13 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
         belegt[naechsteFrei] = true;
     }
 
-    // Ergebnis der Repräsentanten auf alle Duplikate derselben verbindungId
-    // übertragen, damit jede beteiligte Linie densel­ben Kreuzungspunkt mit
+    // Ergebnis der Repräsentanten auf alle Duplikate desselben aderKey
+    // übertragen, damit jede beteiligte Linie denselben Kreuzungspunkt mit
     // derselben Adernummer zeigt.
     for (int i = 0; i < alle.size(); i++) {
-        int vid = alle[i].verbindungId;
-        if (vid <= 0) continue;
-        int rIdx = repIdxFuerVerbindung.value(vid);
+        const QString &ak = alle[i].aderKey;
+        if (ak.isEmpty()) continue;
+        int rIdx = repIdxFuerAderKey.value(ak);
         if (rIdx != i) aderNrJeEintrag[i] = aderNrJeEintrag[rIdx];
     }
 
@@ -640,6 +652,7 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
         m[QStringLiteral("farbe2")]       = alle[i].farbe2;
         m[QStringLiteral("bezeichnung")]  = alle[i].bezeichnung;
         m[QStringLiteral("verbindungId")] = alle[i].verbindungId;
+        m[QStringLiteral("aderKey")]      = alle[i].aderKey;
         aktiveJeLinie[alle[i].linienIdx].append(m);
     }
     for (int li = 0; li < linien.size(); li++)
@@ -1621,7 +1634,7 @@ QVariantList Database::kabelAlleAderLaden(int kabelId)
     QVariantList result;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id, kabellinie_grafik_element_id
+        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id, kabellinie_grafik_element_id, ader_key
         FROM kabel_ader
         WHERE kabel_id = :kid
         ORDER BY ader_nr
@@ -1639,6 +1652,7 @@ QVariantList Database::kabelAlleAderLaden(int kabelId)
         ader[QStringLiteral("bezeichnung")]                = q.value(3).toString();
         ader[QStringLiteral("verbindungId")]               = q.value(4).toInt();
         ader[QStringLiteral("kabellinieGrafikElementId")]  = q.value(5).toInt();
+        ader[QStringLiteral("aderKey")]                    = q.value(6).toString();
         result.append(ader);
     }
     return result;

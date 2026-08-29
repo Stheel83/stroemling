@@ -2254,6 +2254,10 @@ static QList<SchemaMigration> alleMigrationen()
                  AND json_extract(extra_daten, '$.kabelId') IS NOT NULL
                  AND CAST(json_extract(extra_daten, '$.kabelId') AS INTEGER) IN (SELECT id FROM kabel))",
         }},
+
+        { 141, "KABEL-UEBERARBEITUNG-01/PROPAGATION-07: kabel_ader.ader_key ergaenzt - Korrektur von PROPAGATION-06 (Migration davor bzw. Vorlaeufer-Fix), das faelschlich ueber verbindung_id (das ganze elektrische Netz) statt ueber den lokalen NETZ-02-Ader-Schluessel dedupliziert hatte. Ein Kontakt leitet das Potenzial durch (Netzberechnung bleibt unveraendert), aber auf jeder Kontaktseite liegt physisch eine ANDERE Ader - auch wenn beide Seiten dieselbe verbindung_id teilen. Ohne eigene Spalte fuer den lokalen Schluessel konnte die Canvas-Anzeige nicht mehr zuverlaessig zwischen zwei Adern unterscheiden, die zufaellig dieselbe verbindung_id haben. Keine Datenmigration noetig (leere Spalte wird beim naechsten Speichern ueber kabelAderProjektweitSynchronisieren() befuellt).", {
+            R"(ALTER TABLE kabel_ader ADD COLUMN ader_key TEXT)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

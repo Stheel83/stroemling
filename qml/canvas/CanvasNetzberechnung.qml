@@ -134,10 +134,10 @@ QtObject {
         return undefined
     }
 
-    // KABEL-ADERFARBE-PROPAGATION-04: Ader-Nummer EINER Kreuzung auflösen —
-    // Priorität explizite aderZuordnung (aderKey > netKey > legacyNetKey,
+    // KABEL-ADERFARBE-PROPAGATION-04/07: Ader-Nummer EINER Kreuzung auflösen
+    // — Priorität explizite aderZuordnung (aderKey > netKey > legacyNetKey,
     // "0" = explizit keine Ader) > seitenübergreifend gepoolte kabel_ader-
-    // Tabelle (gepoolt[sc.verbindungId], s. CanvasGeometrie.qml::
+    // Tabelle (gepoolt[sc.aderKey], s. CanvasGeometrie.qml::
     // kabelAderProKabelCached()) > rein lokaler Positions-Fallback (si+1).
     // Gemeinsam genutzt von maleKabelSchnitte()/kabelKreuzungBeiPosition()
     // (müssen wegen des Hit-Tests exakt dieselbe Geometrie/Nummerierung
@@ -147,8 +147,12 @@ QtObject {
         var zugeordnet = _netLookup(aderZuordnung, [sc.aderKey, sc.netKey, sc.legacyNetKey])
         if (zugeordnet !== undefined)
             return { aderNr: zugeordnet, istLeer: zugeordnet === 0 }
-        if (gepoolt && gepoolt[sc.verbindungId] !== undefined)
-            return { aderNr: gepoolt[sc.verbindungId].aderNr, istLeer: false }
+        // PROPAGATION-07: gepoolt ist über den lokalen aderKey geschlüsselt,
+        // nicht mehr über verbindungId (ganzes elektrisches Netz) — ein
+        // Kontakt leitet durch, aber jede Kontaktseite ist physisch eine
+        // andere Ader.
+        if (gepoolt && sc.aderKey && gepoolt[sc.aderKey] !== undefined)
+            return { aderNr: gepoolt[sc.aderKey].aderNr, istLeer: false }
         return { aderNr: si + 1, istLeer: false }
     }
 

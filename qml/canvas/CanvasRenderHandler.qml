@@ -1188,10 +1188,17 @@ QtObject {
                         }
                     }
                     if (!farbe) continue
-                    if (sc.netKey && map[sc.netKey] === undefined)
-                        map[sc.netKey] = { farbe: farbe, farbe2: farbe2 }
-                    if (sc.legacyNetKey && map[sc.legacyNetKey] === undefined)
-                        map[sc.legacyNetKey] = { farbe: farbe, farbe2: farbe2 }
+                    // KABEL-ADERFARBE-PROPAGATION-01: bewusst NUR unter dem
+                    // lokalen, positionsgebundenen aderKey gespeichert (NETZ-02-
+                    // Schlüssel des konkreten Kreuzungspunkts) — NICHT unter
+                    // netKey/legacyNetKey, da diese das ganze (ggf. über mehrere
+                    // Kontakte transitiv verschmolzene) Potenzial-Netz
+                    // identifizieren. Mit netKey als Fallback hätte die Ader-
+                    // farbe sich über Symbole wie Schließer/Öffner hinweg auf
+                    // den kompletten Netz-Ast ausgebreitet, nicht nur auf das
+                    // direkt an der Kabellinie anliegende Segment.
+                    if (sc.aderKey && map[sc.aderKey] === undefined)
+                        map[sc.aderKey] = { farbe: farbe, farbe2: farbe2 }
                 }
             }
         }
@@ -1243,7 +1250,15 @@ QtObject {
     // Ader kreuzt sie (extra_daten.adern/.aderZuordnung, s.
     // _sammleKabelAderFarben()), wird diese Ader-Farbe als Fallback
     // verwendet – Priorität: Aderdefinition > Kabel-Aderfarbe > Signaltyp-Farbe.
-    function _segmentFarbeUndBreite(net, sAdps) {
+    //
+    // KABEL-ADERFARBE-PROPAGATION-01: Der Kabel-Aderfarbe-Fallback wird über
+    // den lokalen NETZ-02-Schlüssel des jeweiligen Segments (seg/elemente)
+    // nachgeschlagen, NICHT über net.netKey/legacyNetKey (ganzes,
+    // möglicherweise über mehrere Kontakte transitiv verschmolzenes
+    // Potenzial-Netz) — sonst breitet sich die Farbe über Symbole hinweg
+    // beliebig weit im Netz aus, statt nur auf dem direkt an der Kabellinie
+    // anliegenden Segment sichtbar zu sein.
+    function _segmentFarbeUndBreite(net, sAdps, seg, elemente) {
         var farbe = cv.geometrie.signaltypFarbe(net.signaltyp)
         var farbe2 = ""
         var zeigeAderfarbe = !cv.fehlersuchModus || cv.fehlersuchZeigeAderfarbe
@@ -1251,8 +1266,9 @@ QtObject {
             farbe = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe)
             if (sAdps[0].ed.aderfarbe2)
                 farbe2 = cv.geometrie.aderFarbeZuCanvas(sAdps[0].ed.aderfarbe2)
-        } else if (zeigeAderfarbe && net.signaltyp !== "konflikt") {
-            var kaf = cv.netzberechnung._netLookup(_sammleKabelAderFarben(), [net.netKey, net.legacyNetKey])
+        } else if (zeigeAderfarbe && net.signaltyp !== "konflikt" && seg) {
+            var lokalerKey = cv.netzberechnung._lokalerAderSchluessel(seg, net, elemente)
+            var kaf = cv.netzberechnung._netLookup(_sammleKabelAderFarben(), [lokalerKey])
             if (kaf && kaf.farbe) {
                 farbe = cv.geometrie.aderFarbeZuCanvas(kaf.farbe)
                 if (kaf.farbe2)
@@ -1271,11 +1287,11 @@ QtObject {
     // _segmentFarbeUndBreite(), einheitlich in dieselbe Form gebracht
     // (`farbe`/`farben`/`breite`/`armAnzahl`), damit Aufrufer nicht zwischen
     // beiden Fällen unterscheiden müssen.
-    function _bandOderEinfach(net, segAdps, baender, si) {
+    function _bandOderEinfach(net, segAdps, baender, si, elemente) {
         if (si < 0)
             return { modus: "einzel", farbe: "#4a9eff", farben: ["#4a9eff"], breite: _breiteFuerAnzahl(1, ""), armAnzahl: 1 }
         if (baender[si] !== undefined) return baender[si]
-        var fb = _segmentFarbeUndBreite(net, segAdps[si] || [])
+        var fb = _segmentFarbeUndBreite(net, segAdps[si] || [], net.segmente[si], elemente)
         // Bifarb-Ader (aderfarbe2): eine einzelne Ader mit zweifarbiger Isolierung,
         // NICHT zu verwechseln mit der Treffpunkt-Bänderung ("gleich"/"verschieden"
         // oben) die zwei verschiedene Adern behandelt, die sich treffen.
@@ -1329,7 +1345,7 @@ QtObject {
     // Nur aktiv wenn Aderfarbe überhaupt angezeigt wird und kein Konflikt-Netz
     // (dieselben Guards wie _segmentFarbeUndBreite()) – sonst {} (kein Effekt,
     // Aufrufer fallen auf das bisherige Verhalten zurück).
-    function _treffpunktZielBaender(net, segAdps) {
+    function _treffpunktZielBaender(net, segAdps, elemente) {
         var zeigeAderfarbe = !cv.fehlersuchModus || cv.fehlersuchZeigeAderfarbe
         if (!zeigeAderfarbe || net.signaltyp === "konflikt") return {}
 
@@ -1364,8 +1380,8 @@ QtObject {
                 if (arme.s1 < 0 || arme.s2 < 0 || arme.ziel < 0) continue
                 if (out[arme.ziel] !== undefined) continue
 
-                var i1 = _bandOderEinfach(net, segAdps, out, arme.s1)
-                var i2 = _bandOderEinfach(net, segAdps, out, arme.s2)
+                var i1 = _bandOderEinfach(net, segAdps, out, arme.s1, elemente)
+                var i2 = _bandOderEinfach(net, segAdps, out, arme.s2, elemente)
                 var farben    = i1.farben.concat(i2.farben)
                 var armAnzahl = i1.armAnzahl + i2.armAnzahl
                 var modus     = armAnzahl >= 3 ? "mehrfach"
@@ -1548,12 +1564,13 @@ QtObject {
         var out = {}
         if (netze.length === 0) return out
         var adpList = _sammleAderdefinitionspunkte()
+        var elemente = cv.elementeModel.snapshot()
 
         for (var ni = 0; ni < netze.length; ni++) {
             var net = netze[ni]
             var segs = net.segmente
             var segAdps = cv.geometrie.adpFuerNetSegmente(segs, adpList)
-            var treffpunktBaender = _treffpunktZielBaender(net, segAdps)
+            var treffpunktBaender = _treffpunktZielBaender(net, segAdps, elemente)
 
             for (var si = 0; si < segs.length; si++) {
                 var seg = segs[si]
@@ -1566,13 +1583,13 @@ QtObject {
                     var esid = eEl ? (eEl.symbolId || "") : ""
                     if (!eEl || eEl.typ !== "symbol") continue
                     if (esid === "winkel") {
-                        out[eIdx] = _bandOderEinfach(net, segAdps, treffpunktBaender, si)
+                        out[eIdx] = _bandOderEinfach(net, segAdps, treffpunktBaender, si, elemente)
                     } else if (esid === "treffpunkt" || esid === "treffpunkt_l") {
                         var arme = _treffpunktArmSegmente(net, eIdx)
                         out[eIdx] = {
-                            s1:   _bandOderEinfach(net, segAdps, treffpunktBaender, arme.s1),
-                            s2:   _bandOderEinfach(net, segAdps, treffpunktBaender, arme.s2),
-                            ziel: _bandOderEinfach(net, segAdps, treffpunktBaender, arme.ziel)
+                            s1:   _bandOderEinfach(net, segAdps, treffpunktBaender, arme.s1, elemente),
+                            s2:   _bandOderEinfach(net, segAdps, treffpunktBaender, arme.s2, elemente),
+                            ziel: _bandOderEinfach(net, segAdps, treffpunktBaender, arme.ziel, elemente)
                         }
                     }
                 }
@@ -1593,6 +1610,7 @@ QtObject {
 
         // Alle Aderdefinitionspunkte sammeln
         var adpList = _sammleAderdefinitionspunkte()
+        var elemente = cv.elementeModel.snapshot()
 
         ctx.setLineDash([])
         ctx.lineCap = "square"
@@ -1612,7 +1630,7 @@ QtObject {
             var net = netze[ni]
             var segs = net.segmente
             var segAdps = cv.geometrie.adpFuerNetSegmente(segs, adpList)
-            var treffpunktBaender = _treffpunktZielBaender(net, segAdps)
+            var treffpunktBaender = _treffpunktZielBaender(net, segAdps, elemente)
 
             for (var si = 0; si < segs.length; si++) {
                 var seg = segs[si]
@@ -1649,7 +1667,7 @@ QtObject {
                 // Sonst normales Einzel-Ader-Segment wie bisher.
                 var _zielBand = treffpunktBaender[si]
                 var band = _zielBand || (function() {
-                    var fb = _segmentFarbeUndBreite(net, sAdps)
+                    var fb = _segmentFarbeUndBreite(net, sAdps, seg, elemente)
                     if (fb.farbe2)
                         return { modus: "bifarb", farbe: fb.farbe, farben: [fb.farbe, fb.farbe2], breite: fb.breite, armAnzahl: 1 }
                     return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }

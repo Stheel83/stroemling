@@ -39,6 +39,20 @@ struct BauteilEintrag {
     QString hauptfunktionSymbolId;
     bool    fuerSeedVormerken;
     bool    istSystem;
+    // BAUTEILLISTE-KONTEXTSPALTEN-01: je Kategorie zusätzliche Fachfelder,
+    // nur befüllt wenn der jeweilige istXXX-Flag gesetzt ist.
+    QString anschlussTyp;             // Klemme
+    int     ebenenAnzahl;             // Klemme
+    QString gehaeuseFarbeHex;         // Klemme
+    QString gehaeuseFarbeBezeichnung; // Klemme
+    int     aderAnzahl;               // Kabel
+    int     polzahl;                  // Steckverbinder
+    QString montageform;              // Steckverbinder
+    QString geschlecht;               // Kontakt
+    double  kontaktgroesse;           // Kontakt
+    QString verbindungstechnik;       // Kontakt
+    double  laengeM;                  // Konf. Kabel
+    QString konfkabelKabeltyp;        // Konf. Kabel (Kabeltyp des referenzierten bauteil_kabel)
 };
 
 // ============================================================
@@ -110,7 +124,19 @@ public:
         AussenmantelFarbeRole,
         HauptfunktionSymbolIdRole,
         FuerSeedVormerkenRole,
-        IstSystemRole
+        IstSystemRole,
+        AnschlussTypRole,
+        EbenenAnzahlRole,
+        GehaeuseFarbeHexRole,
+        GehaeuseFarbeBezeichnungRole,
+        AderAnzahlRole,
+        PolzahlRole,
+        MontageformRole,
+        GeschlechtRole,
+        KontaktgroesseRole,
+        VerbindungstechnikRole,
+        LaengeMRole,
+        KonfkabelKabeltypRole
     };
 
     explicit BauteilListModel(QObject *parent = nullptr);

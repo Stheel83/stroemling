@@ -8,6 +8,18 @@ Item {
     required property var panel
     required property var theme
 
+    // BAUTEILLISTE-KONTEXTSPALTEN-01: bestimmt, welcher Satz an Fachspalten
+    // in Kopf- und Datenzeile gezeigt wird. "alle" (kein Filter aktiv) zeigt
+    // weiterhin nur die generischen Spalten, da Zeilen dort gemischten Typs
+    // sind – Fachspalten wären dort größtenteils leer/uneinheitlich.
+    readonly property string _kontext:
+        bauteilModel.nurKlemmen        ? "klemme"
+      : bauteilModel.nurKabel          ? "kabel"
+      : bauteilModel.nurSteckverbinder ? "steckverbinder"
+      : bauteilModel.nurKontakt        ? "kontakt"
+      : bauteilModel.nurKonfkabel      ? "konfkabel"
+      : "alle"
+
     signal klemmenEditorAngefordert(int bauteilId, string bezeichnung)
     signal kabelEditorAngefordert(int bauteilId, string bezeichnung)
     signal steckverbinderEditorAngefordert(int bauteilId, string bezeichnung)
@@ -371,12 +383,30 @@ Item {
             RowLayout {
                 anchors { fill: parent; leftMargin: 16; rightMargin: 8 }
                 spacing: 0
-                Text { text: qsTr("Typ");            color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 70;  font.weight: Font.Medium }
+                Text { visible: root._kontext === "alle"; text: qsTr("Typ"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 70;  font.weight: Font.Medium }
                 Text { text: qsTr("Bezeichnung");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 180; font.weight: Font.Medium }
                 Text { text: qsTr("Hersteller");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 130; font.weight: Font.Medium }
                 Text { text: qsTr("Artikel-Nr.");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 110; font.weight: Font.Medium }
-                Text { text: qsTr("Kabeltyp");        color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 120; font.weight: Font.Medium }
-                Text { text: qsTr("Außenmantel");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 90;  font.weight: Font.Medium }
+
+                // ── Kontextabhängige Fachspalten (BAUTEILLISTE-KONTEXTSPALTEN-01) ──
+                Text { visible: root._kontext === "klemme"; text: qsTr("Anschluss");  color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 90;  font.weight: Font.Medium }
+                Text { visible: root._kontext === "klemme"; text: qsTr("Ebenen");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
+                Text { visible: root._kontext === "klemme"; text: qsTr("Gehäuse");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 110; font.weight: Font.Medium }
+
+                Text { visible: root._kontext === "kabel"; text: qsTr("Kabeltyp");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 120; font.weight: Font.Medium }
+                Text { visible: root._kontext === "kabel"; text: qsTr("Außenmantel");  color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 90;  font.weight: Font.Medium }
+                Text { visible: root._kontext === "kabel"; text: qsTr("Adern");        color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 50;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
+
+                Text { visible: root._kontext === "steckverbinder"; text: qsTr("Ausführung"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 130; font.weight: Font.Medium }
+                Text { visible: root._kontext === "steckverbinder"; text: qsTr("Pol");        color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 50;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
+
+                Text { visible: root._kontext === "kontakt"; text: qsTr("Geschlecht");         color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 70;  font.weight: Font.Medium }
+                Text { visible: root._kontext === "kontakt"; text: qsTr("Größe (mm²)");        color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 80;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
+                Text { visible: root._kontext === "kontakt"; text: qsTr("Verbindung");         color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 100; font.weight: Font.Medium }
+
+                Text { visible: root._kontext === "konfkabel"; text: qsTr("Kabeltyp"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 120; font.weight: Font.Medium }
+                Text { visible: root._kontext === "konfkabel"; text: qsTr("Länge (m)");color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 70;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
+
                 Text { text: qsTr("Preis (€)"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 80;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
                 Text { text: qsTr("U (V)");          color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
                 Text { text: qsTr("I (A)");          color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
@@ -468,6 +498,7 @@ Item {
                         spacing: 0
 
                         Rectangle {
+                            visible: root._kontext === "alle"
                             Layout.preferredWidth: 70; height: 20; radius: 3
                             color: model.istKlemme ? "#1a4a2a"
                                  : model.istKabel  ? "#1a3a4a"
@@ -494,6 +525,25 @@ Item {
                                      : "transparent"
                             }
                         }
+                        Item { visible: root._kontext !== "alle"; Layout.preferredWidth: 70 }
+
+                        // Symbol-Badge für generische Bauteile mit direktem Symbolverweis
+                        // (z.B. einfache Geräte) – nur relevant in der ungefilterten Ansicht,
+                        // da typisierte Bauteile (Klemme/Kabel/Steckverbinder) dieses Feld
+                        // praktisch nie gesetzt haben.
+                        Rectangle {
+                            visible: root._kontext === "alle" && !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
+                            Layout.preferredWidth: 70; height: 20; radius: 3
+                            color: "#1a2a4a"; border.color: "#2d5a8a"
+                            Text {
+                                anchors.centerIn: parent
+                                text: model.hauptfunktionSymbolId || ""
+                                font.pixelSize: 10; color: "#7db8e8"; elide: Text.ElideRight
+                                width: parent.width - 8
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                        }
+                        Item { visible: root._kontext !== "alle" || model.istKlemme || model.istKabel || model.istSteckverbinder || (model.hauptfunktionSymbolId || "") === ""; Layout.preferredWidth: 70 }
 
                         Text {
                             text: "🔒"; visible: model.istSystem; font.pixelSize: 10
@@ -506,33 +556,108 @@ Item {
                         Text { text: model.bezeichnung;   font.pixelSize: 13; color: theme.textSecondary; Layout.preferredWidth: 180; elide: Text.ElideRight }
                         Text { text: model.hersteller;    font.pixelSize: 13; color: theme.textMuted;      Layout.preferredWidth: 130; elide: Text.ElideRight }
                         Text { text: model.artikelnummer; font.pixelSize: 13; color: theme.textMuted;      Layout.preferredWidth: 110; elide: Text.ElideRight }
+                        // ── Kontextabhängige Fachspalten (BAUTEILLISTE-KONTEXTSPALTEN-01) ──
+                        // Klemme: Anschlusstyp, Ebenen, Gehäusefarbe (Swatch + Name)
                         Text {
-                            visible: model.istKabel && (model.kabeltyp || "") !== ""
-                            text: model.kabeltyp || ""
+                            visible: root._kontext === "klemme"
+                            text: model.anschlussTyp || "–"
+                            font.pixelSize: 11; color: theme.textSecondary
+                            Layout.preferredWidth: 90; elide: Text.ElideRight
+                        }
+                        Text {
+                            visible: root._kontext === "klemme"
+                            text: model.ebenenAnzahl > 0 ? model.ebenenAnzahl : "–"
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 60; horizontalAlignment: Text.AlignRight
+                        }
+                        RowLayout {
+                            visible: root._kontext === "klemme"
+                            Layout.preferredWidth: 110; spacing: 4
+                            Rectangle {
+                                visible: (model.gehaeuseFarbeHex || "") !== ""
+                                width: 10; height: 14; radius: 2
+                                color: model.gehaeuseFarbeHex || "transparent"
+                                border.color: theme.border; border.width: 1
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: model.gehaeuseFarbeBezeichnung || "–"
+                                font.pixelSize: 11; color: theme.textMuted; elide: Text.ElideRight
+                            }
+                        }
+
+                        // Kabel: Kabeltyp, Außenmantelfarbe, Adernzahl
+                        Text {
+                            visible: root._kontext === "kabel"
+                            text: model.kabeltyp || "–"
                             font.pixelSize: 11; color: theme.accent
                             Layout.preferredWidth: 120; elide: Text.ElideRight
                         }
-                        Item { visible: !model.istKabel || (model.kabeltyp || "") === ""; Layout.preferredWidth: 120 }
                         Text {
-                            visible: model.istKabel && (model.aussenmantelFarbe || "") !== ""
-                            text: model.aussenmantelFarbe || ""
+                            visible: root._kontext === "kabel"
+                            text: model.aussenmantelFarbe || "–"
                             font.pixelSize: 11; color: theme.textMuted
                             Layout.preferredWidth: 90; elide: Text.ElideRight
                         }
-                        Item { visible: !model.istKabel || (model.aussenmantelFarbe || "") === ""; Layout.preferredWidth: 90 }
-                        Rectangle {
-                            visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
-                            Layout.preferredWidth: 70; height: 20; radius: 3
-                            color: "#1a2a4a"; border.color: "#2d5a8a"
-                            Text {
-                                anchors.centerIn: parent
-                                text: model.hauptfunktionSymbolId || ""
-                                font.pixelSize: 10; color: "#7db8e8"; elide: Text.ElideRight
-                                width: parent.width - 8
-                                horizontalAlignment: Text.AlignHCenter
-                            }
+                        Text {
+                            visible: root._kontext === "kabel"
+                            text: model.aderAnzahl > 0 ? model.aderAnzahl : "–"
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight
                         }
-                        Item { visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") === ""; Layout.preferredWidth: 70 }
+
+                        // Steckverbinder: Ausführung (Geschlecht + Montage), Polzahl
+                        Text {
+                            visible: root._kontext === "steckverbinder"
+                            text: {
+                                var teile = (model.montageform || "").split("_")
+                                var montage    = teile[0] === "einbau" ? qsTr("Einbau") : teile[0] === "frei" ? qsTr("Frei") : ""
+                                var geschlecht = teile[1] === "stecker" ? qsTr("Stecker") : teile[1] === "buchse" ? qsTr("Buchse") : ""
+                                return (montage || geschlecht) ? [montage, geschlecht].filter(function(s){return s}).join(", ") : "–"
+                            }
+                            font.pixelSize: 11; color: theme.textSecondary
+                            Layout.preferredWidth: 130; elide: Text.ElideRight
+                        }
+                        Text {
+                            visible: root._kontext === "steckverbinder"
+                            text: model.polzahl > 0 ? model.polzahl : "–"
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 50; horizontalAlignment: Text.AlignRight
+                        }
+
+                        // Kontakt: Geschlecht, Kontaktgröße, Verbindungstechnik
+                        Text {
+                            visible: root._kontext === "kontakt"
+                            text: model.geschlecht === "stift" ? qsTr("Stift") : model.geschlecht === "buchse" ? qsTr("Buchse") : "–"
+                            font.pixelSize: 11; color: theme.textSecondary
+                            Layout.preferredWidth: 70; elide: Text.ElideRight
+                        }
+                        Text {
+                            visible: root._kontext === "kontakt"
+                            text: model.kontaktgroesse > 0 ? model.kontaktgroesse : "–"
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight
+                        }
+                        Text {
+                            visible: root._kontext === "kontakt"
+                            text: model.verbindungstechnik || "–"
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 100; elide: Text.ElideRight
+                        }
+
+                        // Konf. Kabel: referenzierter Kabeltyp, Länge
+                        Text {
+                            visible: root._kontext === "konfkabel"
+                            text: model.konfkabelKabeltyp || "–"
+                            font.pixelSize: 11; color: theme.accent
+                            Layout.preferredWidth: 120; elide: Text.ElideRight
+                        }
+                        Text {
+                            visible: root._kontext === "konfkabel"
+                            text: model.laengeM > 0 ? model.laengeM : "–"
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight
+                        }
 
                         Text { text: model.preisEur > 0 ? model.preisEur.toFixed(2) : "–";
                                font.pixelSize: 13; color: theme.textMuted; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }

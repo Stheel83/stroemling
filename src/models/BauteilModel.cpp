@@ -212,12 +212,24 @@ void BauteilListModel::ladenIntern()
         "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN kt.id IS NOT NULL THEN 1 ELSE 0 END, "
         "COALESCE(b.fuer_seed_vormerken,0), "
-        "COALESCE(b.ist_system,0) "
+        "COALESCE(b.ist_system,0), "
+        // BAUTEILLISTE-KONTEXTSPALTEN-01: Fachfelder je Kategorie, bewusst ans
+        // Ende angehängt statt zwischen bestehende Spalten einsortiert – neue
+        // Spalten mitten in der Liste verschieben alle nachfolgenden
+        // q.value(N)-Indizes und sind eine häufige Fehlerquelle.
+        "COALESCE(k.anschluss_typ,''), COALESCE(k.ebenen_anzahl,0), "
+        "COALESCE(fd.hex_wert,''), COALESCE(fd.bezeichnung,''), "
+        "(SELECT COUNT(*) FROM bibliothek.bauteil_kabel_ader WHERE kabel_id = ka.id), "
+        "COALESCE(sv.polzahl,0), COALESCE(sv.montageform,''), "
+        "COALESCE(kt.geschlecht,''), COALESCE(kt.kontaktgroesse,0), COALESCE(kt.verbindungstechnik,''), "
+        "COALESCE(kk.laenge_m,0), COALESCE(kkka.kabeltyp,'') "
         "FROM bibliothek.bauteil b "
         "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
+        "LEFT JOIN bibliothek.farb_definition fd            ON fd.id = k.gehaeuse_farbe_id "
         "LEFT JOIN bibliothek.bauteil_kabel  ka             ON ka.bauteil_id = b.id "
         "LEFT JOIN bibliothek.steckverbinder_typ sv         ON sv.bauteil_id = b.id "
         "LEFT JOIN bibliothek.konfektioniertes_kabel kk     ON kk.bauteil_id = b.id "
+        "LEFT JOIN bibliothek.bauteil_kabel kkka             ON kkka.id = kk.bauteil_kabel_id "
         "LEFT JOIN bibliothek.kontakt_typ kt                ON kt.bauteil_id = b.id ";
 
     QString where;
@@ -279,6 +291,18 @@ void BauteilListModel::ladenIntern()
         b.istKontakt              = q.value(20).toInt() != 0;
         b.fuerSeedVormerken       = q.value(21).toInt() != 0;
         b.istSystem               = q.value(22).toInt() != 0;
+        b.anschlussTyp             = q.value(23).toString();
+        b.ebenenAnzahl             = q.value(24).toInt();
+        b.gehaeuseFarbeHex         = q.value(25).toString();
+        b.gehaeuseFarbeBezeichnung = q.value(26).toString();
+        b.aderAnzahl               = q.value(27).toInt();
+        b.polzahl                  = q.value(28).toInt();
+        b.montageform              = q.value(29).toString();
+        b.geschlecht               = q.value(30).toString();
+        b.kontaktgroesse           = q.value(31).toDouble();
+        b.verbindungstechnik       = q.value(32).toString();
+        b.laengeM                  = q.value(33).toDouble();
+        b.konfkabelKabeltyp        = q.value(34).toString();
         m_bauteile.append(b);
     }
 
@@ -323,6 +347,18 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     case FuerSeedVormerkenRole:     return b.fuerSeedVormerken;
     case IstSystemRole:             return b.istSystem;
+    case AnschlussTypRole:             return b.anschlussTyp;
+    case EbenenAnzahlRole:             return b.ebenenAnzahl;
+    case GehaeuseFarbeHexRole:         return b.gehaeuseFarbeHex;
+    case GehaeuseFarbeBezeichnungRole: return b.gehaeuseFarbeBezeichnung;
+    case AderAnzahlRole:               return b.aderAnzahl;
+    case PolzahlRole:                  return b.polzahl;
+    case MontageformRole:              return b.montageform;
+    case GeschlechtRole:               return b.geschlecht;
+    case KontaktgroesseRole:           return b.kontaktgroesse;
+    case VerbindungstechnikRole:       return b.verbindungstechnik;
+    case LaengeMRole:                  return b.laengeM;
+    case KonfkabelKabeltypRole:        return b.konfkabelKabeltyp;
     default:                        return {};
     }
 }
@@ -353,6 +389,18 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
         { FuerSeedVormerkenRole,     "fuerSeedVormerken"      },
         { IstSystemRole,             "istSystem"              },
+        { AnschlussTypRole,             "anschlussTyp"             },
+        { EbenenAnzahlRole,             "ebenenAnzahl"             },
+        { GehaeuseFarbeHexRole,         "gehaeuseFarbeHex"         },
+        { GehaeuseFarbeBezeichnungRole, "gehaeuseFarbeBezeichnung" },
+        { AderAnzahlRole,               "aderAnzahl"               },
+        { PolzahlRole,                  "polzahl"                  },
+        { MontageformRole,              "montageform"              },
+        { GeschlechtRole,               "geschlecht"               },
+        { KontaktgroesseRole,           "kontaktgroesse"           },
+        { VerbindungstechnikRole,       "verbindungstechnik"       },
+        { LaengeMRole,                  "laengeM"                  },
+        { KonfkabelKabeltypRole,        "konfkabelKabeltyp"        },
     };
 }
 

@@ -88,6 +88,10 @@ ColumnLayout {
         contentWidth:  availableWidth
         contentHeight: leftCol.implicitHeight
         clip:          true
+        // SCROLL-ERKENNBAR-01 (Aug 2026): Scrollbar explizit statt Default
+        // erzwingen, damit bei langen Formularen sichtbar wird, dass
+        // oberhalb des festen Speichern-Fußes noch mehr Inhalt folgt.
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
         ColumnLayout {
             id:      leftCol

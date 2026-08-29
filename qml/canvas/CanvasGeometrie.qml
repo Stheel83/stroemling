@@ -562,7 +562,18 @@ QtObject {
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i]
             if (!r.aderKey) continue   // freie Ader (keiner Kreuzung zugeordnet) oder Alt-Zeile ohne aderKey
-            map[r.aderKey] = { aderNr: r.aderNr, farbe: r.farbe || "", farbe2: r.farbe2 || "", bezeichnung: r.bezeichnung || "" }
+            // KABEL-ADERKEY-DUPLIKAT-01 (Aug 2026): kabelAderProjektweitSynchronisieren()
+            // räumt verwaiste Duplikat-Zeilen (gleicher aderKey, aber
+            // kabellinie_grafik_element_id NULL) inzwischen selbst auf — als
+            // zusätzliche Absicherung gewinnt hier trotzdem nie eine
+            // unverlinkte Zeile gegen einen bereits vorhandenen verlinkten
+            // Eintrag desselben aderKey (sonst gewinnt sonst rein zufällig,
+            // wer laut ORDER BY ader_nr zuletzt verarbeitet wird — auch eine
+            // veraltete Leiche), unabhängig von der Verarbeitungsreihenfolge.
+            var bestehend = map[r.aderKey]
+            if (bestehend !== undefined && bestehend._verlinkt && !r.kabellinieGrafikElementId) continue
+            map[r.aderKey] = { aderNr: r.aderNr, farbe: r.farbe || "", farbe2: r.farbe2 || "", bezeichnung: r.bezeichnung || "",
+                                _verlinkt: !!r.kabellinieGrafikElementId }
         }
         cv._cachedKabelAderProKabel[kabelId] = map
         return map

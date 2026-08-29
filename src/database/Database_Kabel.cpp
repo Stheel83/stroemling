@@ -598,10 +598,57 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
         // den Positions-Fallback in Pass 2 zurück statt verworfen zu werden.
     }
 
-    // Pass 2: übrige Repräsentanten bekommen fortlaufend die nächste über
-    // das GANZE Kabel noch freie Adernummer — genau das verhindert die
-    // doppelte Vergabe aus dem Bugreport (vorher: jede Linie zählte
-    // unabhängig bei 1 neu los).
+    // Pass 1.5 (KABEL-ADERKEY-DUPLIKAT-01, Aug 2026): Reps ohne explizite
+    // Zuordnung bekommen bevorzugt die Adernummer, die für ihren aderKey
+    // bereits in kabel_ader persistiert ist — ohne das würde ein
+    // unveränderter Kreuzungspunkt bei JEDEM Resync über Pass 2 blind neu
+    // durchnummeriert (Reihenfolge in "alle" hängt u.a. von der
+    // Seiten-/Linien-Ladereihenfolge ab), während die alte Zeile unter der
+    // alten Nummer als verwaiste Leiche liegen bleibt — bestätigter Bug
+    // (W654: derselbe Kreuzungspunkt "SYM:-F1:2|SYM:-MO3642:U" bekam bei
+    // einem Resync 4 statt der vorherigen 7, die Leiche unter 7 blieb
+    // bestehen und hat wegen kabelAderProKabelCached()s "letzte Zeile nach
+    // ader_nr gewinnt" den Live-Lookup verfälscht — s. Konzeptdatei). Bei
+    // mehreren bestehenden Zeilen mit demselben aderKey (Altlast aus genau
+    // diesem Bug) gewinnt die aktuell verlinkte, sonst die kleinste Nummer.
+    QHash<QString, int> bestehendeNrFuerAderKey;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT ader_key, ader_nr
+            FROM kabel_ader
+            WHERE kabel_id = :kid AND ader_key IS NOT NULL AND ader_key != ''
+            ORDER BY (kabellinie_grafik_element_id IS NOT NULL) DESC, ader_nr ASC
+        )");
+        q.bindValue(":kid", kabelId);
+        if (q.exec()) {
+            while (q.next()) {
+                QString ak = q.value(0).toString();
+                if (!bestehendeNrFuerAderKey.contains(ak))
+                    bestehendeNrFuerAderKey.insert(ak, q.value(1).toInt());
+            }
+        } else {
+            qCWarning(lcDb) << "kabelAderProjektweitSynchronisieren SELECT bestehende Nrn:" << q.lastError().text();
+        }
+    }
+    for (int ri = 0; ri < repIdx.size(); ri++) {
+        int i = repIdx[ri];
+        if (aderNrJeEintrag[i] != 0) continue;
+        const QString &ak = alle[i].aderKey;
+        if (ak.isEmpty()) continue;
+        auto it = bestehendeNrFuerAderKey.constFind(ak);
+        if (it == bestehendeNrFuerAderKey.constEnd()) continue;
+        int z = it.value();
+        if (z >= 1 && z <= aderzahl && !belegt[z]) {
+            aderNrJeEintrag[i] = z;
+            belegt[z] = true;
+        }
+    }
+
+    // Pass 2: übrige Repräsentanten (wirklich neue aderKeys) bekommen
+    // fortlaufend die nächste über das GANZE Kabel noch freie Adernummer —
+    // genau das verhindert die doppelte Vergabe aus dem Bugreport (vorher:
+    // jede Linie zählte unabhängig bei 1 neu los).
     int naechsteFrei = 1;
     for (int ri = 0; ri < repIdx.size(); ri++) {
         int i = repIdx[ri];
@@ -657,6 +704,32 @@ bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
     }
     for (int li = 0; li < linien.size(); li++)
         kabelAderLinieSynchronisieren(kabelId, linien[li].geid, aktiveJeLinie[li]);
+
+    // Aufräumen (KABEL-ADERKEY-DUPLIKAT-01): verwaiste Zeilen, deren
+    // aderKey durch Pass 1.5 bereits einer noch verlinkten Zeile zugeordnet
+    // ist, sind jetzt reine, aktiv irreführende Duplikate (verfälschen den
+    // aderKey-Lookup in CanvasGeometrie.qml::kabelAderProKabelCached(), s.
+    // dort) — seit kabelFreieAderLaden() auf den Roster umgestellt ist
+    // (KABEL-LINIEN-KOMPAKT-01), dienen sie auch keinem anderen Zweck mehr.
+    // Genuin freigegebene Zeilen (aderKey nicht mehr auf irgendeiner
+    // aktuell verlinkten Zeile vertreten) bleiben unangetastet.
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            DELETE FROM kabel_ader
+            WHERE kabel_id = :kid
+              AND kabellinie_grafik_element_id IS NULL
+              AND ader_key IS NOT NULL AND ader_key != ''
+              AND ader_key IN (
+                  SELECT ader_key FROM kabel_ader
+                  WHERE kabel_id = :kid2 AND kabellinie_grafik_element_id IS NOT NULL
+              )
+        )");
+        q.bindValue(":kid", kabelId);
+        q.bindValue(":kid2", kabelId);
+        if (!q.exec())
+            qCWarning(lcDb) << "kabelAderProjektweitSynchronisieren Aufräumen:" << q.lastError().text();
+    }
 
     return true;
 }

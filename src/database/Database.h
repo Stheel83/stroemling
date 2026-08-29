@@ -575,11 +575,17 @@ public:
     // Kreuzungen mit den dort bereits persistierten Verbindungen
     // (verbindung/verbindung_segment — 1:1 dieselbe Geometrie- und
     // Stabiler-Punkt-Logik wie pdfLeitungenSammeln() in Database_PDF.cpp),
-    // löst explizite aderZuordnung-Einträge zuerst auf und vergibt für alle
-    // übrigen Kreuzungen fortlaufend die nächste über das GANZE Kabel noch
-    // freie Adernummer (statt pro Linie unabhängig bei 1 neu zu zählen —
-    // verhindert die doppelte Ader-Vergabe bei mehrseitigen Kabeln).
-    // Persistiert je Linie über die bestehende kabelAderLinieSynchronisieren().
+    // löst explizite aderZuordnung-Einträge zuerst auf, danach (KABEL-
+    // ADERKEY-DUPLIKAT-01) bereits für denselben aderKey persistierte
+    // Adernummern (Stabilität über mehrere Resyncs hinweg — sonst bekäme
+    // ein unveränderter Kreuzungspunkt bei jedem Resync eine neue Nummer,
+    // während die alte Zeile als Leiche liegen bleibt), und vergibt erst
+    // für wirklich neue Kreuzungen fortlaufend die nächste über das GANZE
+    // Kabel noch freie Adernummer (statt pro Linie unabhängig bei 1 neu zu
+    // zählen — verhindert die doppelte Ader-Vergabe bei mehrseitigen
+    // Kabeln). Persistiert je Linie über die bestehende
+    // kabelAderLinieSynchronisieren(), räumt danach verwaiste
+    // Duplikat-Zeilen auf (gleicher aderKey wie eine noch verlinkte Zeile).
     // Aufgerufen aus CanvasCacheHandler.qml::kabelAderSynchronisieren() bei
     // jedem grafikSpeichernJetzt(), für jede kabelId der gerade gespeicherten
     // Seite.

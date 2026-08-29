@@ -295,21 +295,28 @@ Item {
                                         font.pixelSize: 10; color: root.theme.textMuted
                                         elide: Text.ElideRight; Layout.maximumWidth: 80
                                     }
-                                    // "Kontakt platzieren" (nur wenn verknüpftes Bauteil ein Steckverbinder-Typ ist)
+                                    // "Kontakt platzieren" — bei verknüpftem Bauteil ohne
+                                    // Steckverbinder-Typ bleibt der Button sichtbar, aber
+                                    // deaktiviert mit erklärendem Tooltip (statt kommentarlos
+                                    // zu verschwinden, analog Klemme-ohne-Klemmenleiste).
                                     Rectangle {
-                                        visible: instDelegate.svTyp && instDelegate.svTyp.id > 0
                                         width: 96; height: 18; radius: 3
-                                        color: kpHover.hovered ? root.theme.accent : "transparent"
-                                        border.color: kpHover.hovered ? root.theme.accent : root.theme.border
-                                        HoverHandler { id: kpHover }
+                                        opacity: instDelegate.istSteckverbinder ? 1.0 : 0.4
+                                        color: (instDelegate.istSteckverbinder && kpMa.containsMouse) ? root.theme.accent : "transparent"
+                                        border.color: (instDelegate.istSteckverbinder && kpMa.containsMouse) ? root.theme.accent : root.theme.border
                                         Text {
                                             anchors.centerIn: parent
                                             text: qsTr("Kontakt platzieren")
                                             font.pixelSize: 9
-                                            color: kpHover.hovered ? "white" : root.theme.textMuted
+                                            color: kpMa.containsMouse ? "white" : root.theme.textMuted
                                         }
+                                        ToolTip.visible: kpMa.containsMouse && !instDelegate.istSteckverbinder
+                                        ToolTip.text:    qsTr("Verknüpftes Bauteil ist kein Steckverbinder-Typ — kein Kontakt platzierbar")
+                                        ToolTip.delay:   400
                                         MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            id: kpMa; anchors.fill: parent; hoverEnabled: true
+                                            cursorShape: instDelegate.istSteckverbinder ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                            enabled: instDelegate.istSteckverbinder
                                             onClicked: kontaktPlatzierDlg.oeffnen(gkd.id, instDelegate.svTyp.id, gkd.bmk || "")
                                         }
                                     }

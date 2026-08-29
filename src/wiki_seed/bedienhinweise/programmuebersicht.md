@@ -5,6 +5,28 @@ du über die **Seitenleiste links** wechselst. Einen eigenen „Schaltplan"-
 Eintrag gibt es dabei nicht – der Einstieg ins Zeichnen läuft über
 **Seiten** (den Seitenbaum mit den Projektseiten).
 
+## Bevor du zeichnest: Bauteil-Grundstock anlegen
+
+Strömling arbeitet hardwarenah – ein Symbol im Schaltplan verweist meist auf
+ein echtes Bauteil aus dem Bereich **🔧 Bauteile**, nicht umgekehrt. Manches
+lässt sich im Canvas erst verknüpfen, wenn das passende Bauteil vorher dort
+angelegt wurde:
+
+- Eine **Klemme** muss zuerst in einer **Klemmenleiste** stecken, bevor du
+  sie als „Verknüpft" platzieren kannst.
+- Ein **Kabel-Typ** (mit seinen Adern) sollte angelegt sein, sonst
+  funktioniert die automatische Ader-Einfärbung an Kreuzungen nicht.
+- Ein **Steckverbinder-Typ** braucht zuerst passende **Kontakt-Typen**,
+  bevor du ihn mit einem Gerätekasten verknüpfen und Kontakte platzieren
+  kannst.
+- Für **SPS/PLS** gilt dieselbe Reihenfolge: erst Rack, dann Baugruppe,
+  dann Kanal – erst danach lässt sich der Kanal einem Symbol zuweisen.
+
+Ein neues Projekt startet nicht bei null – ein kleiner Grundstock an
+Standardklemmen, Kabeltypen und Grundgeräten ist bereits vorhanden. Reicht
+das nicht, leg im Bereich „Bauteile" gezielt nach, **bevor** du im
+Schaltplan danach suchst.
+
 ## Arbeitsbereiche
 
 | Symbol | Bereich | Funktion |

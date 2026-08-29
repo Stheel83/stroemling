@@ -193,22 +193,30 @@ Column {
                                 elide: Text.ElideRight; Layout.fillWidth: true
                                 Layout.maximumWidth: 80
                             }
-                            // Kontakt-Picker öffnen
+                            // Kontakt-Picker öffnen — bei verknüpftem Bauteil ohne
+                            // Steckverbinder-Typ bleibt der Button sichtbar, aber
+                            // deaktiviert mit erklärendem Tooltip (statt kommentarlos
+                            // zu verschwinden, analog Klemme-ohne-Klemmenleiste).
                             Rectangle {
-                                visible: gkInstDelegate.istSteckverbinder
+                                visible: gkInstDelegate.gkd.bauteilId > 0
                                 implicitWidth: 20; Layout.minimumWidth: 0; height: 20; radius: 3
-                                color: svPlusMA.containsMouse ? root.theme.activeItemAlt : "transparent"
+                                opacity: gkInstDelegate.istSteckverbinder ? 1.0 : 0.4
+                                color: (gkInstDelegate.istSteckverbinder && svPlusMA.containsMouse)
+                                       ? root.theme.activeItemAlt : "transparent"
                                 Text {
                                     anchors.centerIn: parent
                                     text: "+"; font.pixelSize: 14; font.bold: true
                                     color: root.theme.accent
                                 }
                                 ToolTip.visible: svPlusMA.containsMouse
-                                ToolTip.text:    qsTr("Kontakt platzieren")
+                                ToolTip.text: gkInstDelegate.istSteckverbinder
+                                    ? qsTr("Kontakt platzieren")
+                                    : qsTr("Verknüpftes Bauteil ist kein Steckverbinder-Typ — kein Kontakt platzierbar")
                                 ToolTip.delay:   400
                                 MouseArea {
                                     id: svPlusMA; anchors.fill: parent; hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
+                                    cursorShape: gkInstDelegate.istSteckverbinder ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    enabled: gkInstDelegate.istSteckverbinder
                                     onClicked: { mouse.accepted = true; svPosPicker.open() }
                                 }
                             }

@@ -680,6 +680,7 @@ Item {
                                 contentItem: Text { text: "×"; color: "#aa4444"; font.pixelSize: 16;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
+                                ToolTip.visible: hovered; ToolTip.delay: 700; ToolTip.text: qsTr("Löschen")
                                 onClicked: bauteilModel.loeschen(model.bauteilId)
                             }
                         }

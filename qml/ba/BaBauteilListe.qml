@@ -375,6 +375,8 @@ Item {
                 Text { text: qsTr("Bezeichnung");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 180; font.weight: Font.Medium }
                 Text { text: qsTr("Hersteller");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 130; font.weight: Font.Medium }
                 Text { text: qsTr("Artikel-Nr.");    color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 110; font.weight: Font.Medium }
+                Text { text: qsTr("Kabeltyp");        color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 120; font.weight: Font.Medium }
+                Text { text: qsTr("Außenmantel");     color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 90;  font.weight: Font.Medium }
                 Text { text: qsTr("Preis (€)"); color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 80;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
                 Text { text: qsTr("U (V)");          color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
                 Text { text: qsTr("I (A)");          color: theme.borderLight; font.pixelSize: 11; Layout.preferredWidth: 60;  font.weight: Font.Medium; horizontalAlignment: Text.AlignRight }
@@ -510,6 +512,14 @@ Item {
                             font.pixelSize: 11; color: theme.accent
                             Layout.preferredWidth: 120; elide: Text.ElideRight
                         }
+                        Item { visible: !model.istKabel || (model.kabeltyp || "") === ""; Layout.preferredWidth: 120 }
+                        Text {
+                            visible: model.istKabel && (model.aussenmantelFarbe || "") !== ""
+                            text: model.aussenmantelFarbe || ""
+                            font.pixelSize: 11; color: theme.textMuted
+                            Layout.preferredWidth: 90; elide: Text.ElideRight
+                        }
+                        Item { visible: !model.istKabel || (model.aussenmantelFarbe || "") === ""; Layout.preferredWidth: 90 }
                         Rectangle {
                             visible: !model.istKlemme && !model.istKabel && !model.istSteckverbinder && (model.hauptfunktionSymbolId || "") !== ""
                             Layout.preferredWidth: 70; height: 20; radius: 3

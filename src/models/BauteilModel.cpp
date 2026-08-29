@@ -206,6 +206,7 @@ void BauteilListModel::ladenIntern()
         "CASE WHEN k.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN ka.id IS NOT NULL THEN 1 ELSE 0 END, "
         "COALESCE(ka.kabeltyp,''), "
+        "COALESCE(ka.aussenmantel_farbe,''), "
         "COALESCE(b.hauptfunktion_symbol_id,''), "
         "CASE WHEN sv.id IS NOT NULL THEN 1 ELSE 0 END, "
         "CASE WHEN kk.id IS NOT NULL THEN 1 ELSE 0 END, "
@@ -271,12 +272,13 @@ void BauteilListModel::ladenIntern()
         b.istKlemme               = q.value(13).toInt() != 0;
         b.istKabel                = q.value(14).toInt() != 0;
         b.kabeltyp                = q.value(15).toString();
-        b.hauptfunktionSymbolId   = q.value(16).toString();
-        b.istSteckverbinder       = q.value(17).toInt() != 0;
-        b.istKonfkabel            = q.value(18).toInt() != 0;
-        b.istKontakt              = q.value(19).toInt() != 0;
-        b.fuerSeedVormerken       = q.value(20).toInt() != 0;
-        b.istSystem               = q.value(21).toInt() != 0;
+        b.aussenmantelFarbe       = q.value(16).toString();
+        b.hauptfunktionSymbolId   = q.value(17).toString();
+        b.istSteckverbinder       = q.value(18).toInt() != 0;
+        b.istKonfkabel            = q.value(19).toInt() != 0;
+        b.istKontakt              = q.value(20).toInt() != 0;
+        b.fuerSeedVormerken       = q.value(21).toInt() != 0;
+        b.istSystem               = q.value(22).toInt() != 0;
         m_bauteile.append(b);
     }
 
@@ -317,6 +319,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case IstKonfkabelRole:          return b.istKonfkabel;
     case IstKontaktRole:            return b.istKontakt;
     case KabeltypRole:              return b.kabeltyp;
+    case AussenmantelFarbeRole:     return b.aussenmantelFarbe;
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     case FuerSeedVormerkenRole:     return b.fuerSeedVormerken;
     case IstSystemRole:             return b.istSystem;
@@ -346,6 +349,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { IstKonfkabelRole,          "istKonfkabel"           },
         { IstKontaktRole,            "istKontakt"             },
         { KabeltypRole,              "kabeltyp"               },
+        { AussenmantelFarbeRole,     "aussenmantelFarbe"      },
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
         { FuerSeedVormerkenRole,     "fuerSeedVormerken"      },
         { IstSystemRole,             "istSystem"              },

@@ -35,6 +35,7 @@ struct BauteilEintrag {
     bool    istKonfkabel;
     bool    istKontakt;
     QString kabeltyp;
+    QString aussenmantelFarbe;
     QString hauptfunktionSymbolId;
     bool    fuerSeedVormerken;
     bool    istSystem;
@@ -106,6 +107,7 @@ public:
         IstKonfkabelRole,
         IstKontaktRole,
         KabeltypRole,
+        AussenmantelFarbeRole,
         HauptfunktionSymbolIdRole,
         FuerSeedVormerkenRole,
         IstSystemRole

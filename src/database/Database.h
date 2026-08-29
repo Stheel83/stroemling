@@ -594,11 +594,15 @@ public:
     Q_INVOKABLE QVariantMap kabelLinieDetails(int grafikElementId);
 
     // Alle Kabellinie-Grafikelemente eines Kabels (für KABEL-LINIEN-Abschnitt im EP).
-    // Gibt [{grafikElementId, seiteId, seiteBezeichnung, aderAnzahl}] zurück.
+    // Gibt [{grafikElementId, seiteId, seiteBezeichnung, blattnummer, weltX, weltY,
+    //       aderVon, aderBis, aderAnzahl}] zurück, sortiert nach kleinster
+    // zugeordneter Adernnummer (aderVon).
     Q_INVOKABLE QVariantList kabelAlleLinienLaden(int kabelId);
 
-    // Alle Adern eines Kabels die keiner Kabellinie zugeordnet sind.
-    // Gibt [{aderNr, farbe, farbe2, bezeichnung, verbindungId}] zurück.
+    // Adern eines Kabels, die aktuell an KEINER Kabellinie wirklich anliegen
+    // (Roster minus tatsächlich zugeordnete Adern, s. Database_Kabel.cpp für
+    // Details/Korrekturhistorie). Für KABEL-ADERN-Abschnitt im EP.
+    // Gibt [{aderNr, farbe, farbe2, bezeichnung}] zurück.
     Q_INVOKABLE QVariantList kabelFreieAderLaden(int kabelId);
 
     // KABEL-ADERFARBE-PROPAGATION-04: alle kabel_ader-Zeilen eines Kabels,

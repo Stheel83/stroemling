@@ -26,6 +26,12 @@ Column {
         return 0
     }
 
+    function _aderLabel(m) {
+        if (!m.aderAnzahl) return qsTr("– keine Kreuzung –")
+        if (m.aderVon === m.aderBis) return qsTr("Ader %1").arg(m.aderVon)
+        return qsTr("Adern %1–%2").arg(m.aderVon).arg(m.aderBis)
+    }
+
     // KABEL-LINIEN header (toggle)
     Item {
         width: parent.width; height: 26
@@ -72,71 +78,80 @@ Column {
                            : []
                 }
                 delegate: Rectangle {
+                    id: klZeile
+                    readonly property bool istAktuell: root.freshGeid > 0
+                            && modelData.grafikElementId === root.freshGeid
                     width: parent ? parent.width - 16 : 0
                     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
-                    height: 32; radius: 3
-                    color: (root.freshGeid > 0 && modelData.grafikElementId === root.freshGeid)
-                           ? root.theme.activeItemAlt : root.theme.inputBg
-                    border.color: root.theme.border
-                    RowLayout {
-                        anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-                        spacing: 6
-                        Text {
-                            text: modelData.seiteBezeichnung || ("Seite " + modelData.seiteId)
-                            color: root.theme.textSecondary
-                            font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true
-                        }
-                        Text {
-                            text: modelData.aderAnzahl + " " + qsTr("Adr.")
-                            color: modelData.aderAnzahl > 0 ? root.theme.accent : root.theme.textMuted
-                            font.pixelSize: 10
-                        }
-                    }
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: { panel.canvas.querverweisNavigieren(modelData.seiteId); panel._refresh++ }
-                    }
-                }
-            }
+                    height: 24; radius: 2
+                    color: istAktuell ? root.theme.activeItemAlt
+                           : (klZeileMa.containsMouse ? root.theme.hover : "transparent")
 
-            // Freie Adern (nicht zugeordnet)
-            Item {
-                width: parent.width - 16
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: {
-                    var kabelId = panel.el && panel.el.extraDaten
-                                  ? (panel.el.extraDaten.kabelId || 0) : 0
-                    var freie = kabelId > 0
-                                ? db.kabelFreieAderLaden(kabelId + (panel._refresh * 0))
-                                : []
-                    return freie.length > 0 ? freiAderCol.implicitHeight : 0
-                }
-                clip: true
-                Column {
-                    id: freiAderCol
-                    width: parent.width; spacing: 2
-                    Text {
-                        width: parent.width
-                        text: qsTr("Freie Adern (nicht zugeordnet):")
-                        color: root.theme.textMuted; font.pixelSize: 10; font.italic: true
+                    MouseArea {
+                        id: klZeileMa
+                        anchors.fill: parent
+                        hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: panel.canvas.bmElementSprungAnfordern(
+                            modelData.seiteId,
+                            modelData.blattnummer,
+                            modelData.seiteBezeichnung,
+                            modelData.weltX,
+                            modelData.weltY)
                     }
-                    Repeater {
-                        model: {
-                            var kabelId = panel.el && panel.el.extraDaten
-                                          ? (panel.el.extraDaten.kabelId || 0) : 0
-                            return kabelId > 0
-                                   ? db.kabelFreieAderLaden(kabelId + (panel._refresh * 0))
-                                   : []
+
+                    Row {
+                        anchors { left: parent.left; right: parent.right
+                                  leftMargin: 4; rightMargin: 4
+                                  verticalCenter: parent.verticalCenter }
+                        spacing: 0
+
+                        Rectangle {
+                            width: 3; height: 14; radius: 1
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: klZeile.istAktuell ? root.theme.accent : "transparent"
                         }
-                        delegate: Text {
-                            width: parent ? parent.width : 0
-                            text: {
-                                var t = "Ader " + (modelData.aderNr || "?")
-                                if (modelData.farbe) t += "  " + modelData.farbe
-                                if (modelData.bezeichnung) t += "  " + modelData.bezeichnung
-                                return t
+
+                        Text {
+                            width: parent.width - 3 - 90 - 24
+                            leftPadding: 6
+                            height: klZeile.height
+                            verticalAlignment: Text.AlignVCenter
+                            text: root._aderLabel(modelData)
+                            font.pixelSize: 10
+                            color: modelData.aderAnzahl > 0 ? root.theme.textSecondary : root.theme.textMuted
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: 90
+                            height: klZeile.height
+                            verticalAlignment: Text.AlignVCenter
+                            text: modelData.seiteBezeichnung || ("Seite " + modelData.seiteId)
+                            font.pixelSize: 9
+                            color: root.theme.textMuted
+                            elide: Text.ElideRight
+                        }
+
+                        Rectangle {
+                            width: 20; height: 18; radius: 3
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: klSprungMa.containsMouse ? root.theme.accent : "transparent"
+                            border.color: klSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                            Text {
+                                anchors.centerIn: parent
+                                text: "→"; font.pixelSize: 10
+                                color: klSprungMa.containsMouse ? "#ffffff" : root.theme.accent
                             }
-                            color: root.theme.textMuted; font.pixelSize: 10; elide: Text.ElideRight
+                            MouseArea {
+                                id: klSprungMa; anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: panel.canvas.bmElementSprungAnfordern(
+                                    modelData.seiteId,
+                                    modelData.blattnummer,
+                                    modelData.seiteBezeichnung,
+                                    modelData.weltX,
+                                    modelData.weltY)
+                            }
                         }
                     }
                 }

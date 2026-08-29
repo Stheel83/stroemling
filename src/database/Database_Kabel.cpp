@@ -1561,13 +1561,20 @@ QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
 // ============================================================
 // kabelAlleLinienLaden
 // Alle Kabellinie-Grafikelemente eines Kabels (alle Seiten).
+//
+// KABEL-LINIEN-KOMPAKT-01 (Aug 2026): liefert jetzt zusätzlich Blattnummer +
+// Weltposition (für den echten Element-Sprung statt nur Seiten-Navigation,
+// s. EpKabelLinienBlock.qml) sowie den Adernbereich dieser Linie (für ein
+// Zeilen-Label, das Linien auch dann unterscheidet, wenn mehrere auf
+// derselben Seite liegen — Seitenname allein ist dafür nicht eindeutig).
 // ============================================================
 QVariantList Database::kabelAlleLinienLaden(int kabelId)
 {
     QVariantList result;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT ge.id, ge.seite_id, s.bezeichnung,
+        SELECT ge.id, ge.seite_id, s.bezeichnung, s.blattnummer, ge.x1, ge.y1,
+               MIN(ka.ader_nr) AS ader_von, MAX(ka.ader_nr) AS ader_bis,
                COUNT(ka.id) AS ader_anzahl
         FROM grafik_element ge
         JOIN seite s ON s.id = ge.seite_id
@@ -1575,7 +1582,7 @@ QVariantList Database::kabelAlleLinienLaden(int kabelId)
         WHERE ge.typ = 'kabellinie'
           AND ge.kabel_id = :kid
         GROUP BY ge.id
-        ORDER BY ge.seite_id, ge.sortierung
+        ORDER BY (ader_von IS NULL), ader_von, ge.seite_id, ge.sortierung
     )");
     q.bindValue(":kid", kabelId);
     if (!q.exec()) {
@@ -1587,7 +1594,12 @@ QVariantList Database::kabelAlleLinienLaden(int kabelId)
         m[QStringLiteral("grafikElementId")]   = q.value(0).toInt();
         m[QStringLiteral("seiteId")]           = q.value(1).toInt();
         m[QStringLiteral("seiteBezeichnung")]  = q.value(2).toString();
-        m[QStringLiteral("aderAnzahl")]        = q.value(3).toInt();
+        m[QStringLiteral("blattnummer")]       = q.value(3).toString();
+        m[QStringLiteral("weltX")]             = q.value(4).toDouble();
+        m[QStringLiteral("weltY")]             = q.value(5).toDouble();
+        m[QStringLiteral("aderVon")]           = q.value(6).isNull() ? 0 : q.value(6).toInt();
+        m[QStringLiteral("aderBis")]           = q.value(7).isNull() ? 0 : q.value(7).toInt();
+        m[QStringLiteral("aderAnzahl")]        = q.value(8).toInt();
         result.append(m);
     }
     return result;
@@ -1595,30 +1607,70 @@ QVariantList Database::kabelAlleLinienLaden(int kabelId)
 
 // ============================================================
 // kabelFreieAderLaden
-// Adern eines Kabels die keiner Kabellinie zugeordnet sind.
+// Adern eines Kabels, die aktuell an KEINER Kabellinie wirklich anliegen.
+//
+// KABEL-ADERFARBE-FREIEADERN-01 (Aug 2026, Korrektur): vorher wurden nur
+// kabel_ader-Zeilen mit kabellinie_grafik_element_id IS NULL gezählt — das
+// erfasst ausschließlich Adern, die einmal zugeordnet und dann wieder
+// freigegeben wurden. Adern, die NIE eine Kreuzung hatten (das ist der
+// Normalfall bei einem frisch angelegten Kabel mit mehr Adern als bisher
+// gezeichneten Linien), bekommen in kabelAderProjektweitSynchronisieren()
+// überhaupt keine kabel_ader-Zeile — sie fielen dadurch komplett aus der
+// "frei"-Liste heraus, obwohl sie es eindeutig sind. Fix: Ausgangspunkt ist
+// jetzt der vollständige Ader-Roster (extra_daten.adern einer beliebigen
+// Kabellinie, s. kabelAderProjektweitSynchronisieren) minus der Adern, die
+// laut kabel_ader tatsächlich irgendwo zugeordnet sind.
 // ============================================================
 QVariantList Database::kabelFreieAderLaden(int kabelId)
 {
     QVariantList result;
-    QSqlQuery q(m_db);
-    q.prepare(R"(
-        SELECT ader_nr, farbe, farbe2, bezeichnung, verbindung_id
-        FROM kabel_ader
-        WHERE kabel_id = :kid AND kabellinie_grafik_element_id IS NULL
-        ORDER BY ader_nr
-    )");
-    q.bindValue(":kid", kabelId);
-    if (!q.exec()) {
-        qCWarning(lcDb) << "kabelFreieAderLaden:" << q.lastError().text();
-        return result;
+    if (kabelId <= 0) return result;
+
+    QJsonArray roster;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT extra_daten FROM grafik_element
+            WHERE typ = 'kabellinie' AND kabel_id = :kid
+        )");
+        q.bindValue(":kid", kabelId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelFreieAderLaden SELECT Roster:" << q.lastError().text();
+            return result;
+        }
+        while (q.next()) {
+            QJsonArray a = QJsonDocument::fromJson(q.value(0).toString().toUtf8())
+                               .object().value(QStringLiteral("adern")).toArray();
+            if (!a.isEmpty()) { roster = a; break; }
+        }
     }
-    while (q.next()) {
+    if (roster.isEmpty()) return result;   // kein Kabeltyp zugewiesen
+
+    QSet<int> belegt;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT DISTINCT ader_nr FROM kabel_ader
+            WHERE kabel_id = :kid AND kabellinie_grafik_element_id IS NOT NULL
+        )");
+        q.bindValue(":kid", kabelId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "kabelFreieAderLaden SELECT belegt:" << q.lastError().text();
+            return result;
+        }
+        while (q.next()) belegt.insert(q.value(0).toInt());
+    }
+
+    for (int ai = 0; ai < roster.size(); ai++) {
+        QJsonObject ao = roster.at(ai).toObject();
+        int nr = ao.contains(QStringLiteral("aderNr")) ? ao.value(QStringLiteral("aderNr")).toInt()
+                                                          : (ai + 1);
+        if (belegt.contains(nr)) continue;
         QVariantMap ader;
-        ader[QStringLiteral("aderNr")]      = q.value(0).toInt();
-        ader[QStringLiteral("farbe")]       = q.value(1).toString();
-        ader[QStringLiteral("farbe2")]      = q.value(2).toString();
-        ader[QStringLiteral("bezeichnung")] = q.value(3).toString();
-        ader[QStringLiteral("verbindungId")]= q.value(4).toInt();
+        ader[QStringLiteral("aderNr")]      = nr;
+        ader[QStringLiteral("farbe")]       = ao.value(QStringLiteral("farbe")).toString();
+        ader[QStringLiteral("farbe2")]      = ao.value(QStringLiteral("farbe2")).toString();
+        ader[QStringLiteral("bezeichnung")] = ao.value(QStringLiteral("bezeichnung")).toString();
         result.append(ader);
     }
     return result;

@@ -36,6 +36,15 @@ Column {
         return panel.canvas.geometrie.kabelAktiveAderZuordnungen(panel.el, netze, true)
     }
 
+    // KABEL-LINIEN-KOMPAKT-01 (Aug 2026): Kabel-weite freie Adern, vorher im
+    // KABEL-LINIEN-Abschnitt versteckt — Nutzerwunsch, das direkt hier zu
+    // sehen wo man ohnehin auf die Adern dieser Linie schaut.
+    readonly property var freieAdern: {
+        var kabelId = panel.el && panel.el.extraDaten
+                      ? (panel.el.extraDaten.kabelId || 0) : 0
+        return kabelId > 0 ? db.kabelFreieAderLaden(kabelId + (panel._refresh * 0)) : []
+    }
+
     // KABEL-ADERN header (toggle)
     Item {
         width: parent.width; height: 26
@@ -122,6 +131,47 @@ Column {
                 }
                 text: qsTr("Keine Adern zugeordnet.")
                 color: root.theme.textMuted; font.pixelSize: 10; font.italic: true
+            }
+
+            Item { height: root.freieAdern.length > 0 ? 8 : 0 }
+
+            Text {
+                width: parent.width - 16
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: root.freieAdern.length > 0
+                text: qsTr("Frei (Kabel-weit, %1):").arg(root.freieAdern.length)
+                color: root.theme.textMuted; font.pixelSize: 10; font.italic: true
+            }
+            Repeater {
+                model: root.freieAdern
+                delegate: Rectangle {
+                    width: parent ? parent.width - 16 : 0
+                    anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+                    height: 24; radius: 3
+                    color: "transparent"
+                    border.color: root.theme.border
+                    RowLayout {
+                        anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
+                        spacing: 6
+                        Rectangle {
+                            width: 10; height: 10; radius: 5
+                            visible: (modelData.farbe || "") !== ""
+                            color: panel.canvas.iecFarbe(modelData.farbe || "")
+                            border.color: "#00000055"; border.width: 1
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Text {
+                            text: {
+                                var t = "Ader " + (modelData.aderNr || "?")
+                                if (modelData.farbe) t += "  " + modelData.farbe
+                                if (modelData.bezeichnung) t += "  " + modelData.bezeichnung
+                                return t
+                            }
+                            color: root.theme.textMuted
+                            font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true
+                        }
+                    }
+                }
             }
             Item { height: 8 }
         }

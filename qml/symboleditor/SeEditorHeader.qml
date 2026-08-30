@@ -305,9 +305,14 @@ Rectangle {
             }
 
             Button {
-                text: qsTr("Speichern")
-                visible: !editor.istBuiltin
-                implicitHeight: 28; implicitWidth: 90
+                // NKZ-05: Button war bei eingebauten Symbolen bisher komplett
+                // ausgeblendet (visible: !istBuiltin) - dadurch war editor.speichern()
+                // nie erreichbar, obwohl die Funktion selbst schon extra so gebaut ist,
+                // dass sie bei ist_builtin=1 wenigstens die Kennbuchstaben speichert.
+                // Jetzt immer sichtbar, Beschriftung macht bei eingebauten Symbolen
+                // klar, dass nur die Kennbuchstaben gespeichert werden.
+                text: editor.istBuiltin ? qsTr("Kennbuchstaben speichern") : qsTr("Speichern")
+                implicitHeight: 28; implicitWidth: editor.istBuiltin ? 150 : 90
                 onClicked: editor.speichern()
                 background: Rectangle {
                     color: parent.enabled ? (parent.hovered ? editor.theme.accent : editor.theme.inputBg) : editor.theme.inputBg

@@ -361,7 +361,7 @@ Item {
             symbolDefinitionModel.bmkKennbuchstabenSpeichern(editSymbolId, bmkKennbuchstaben)
 
         if (istBuiltin) {
-            meldungManager.zeigen(qsTr("Eingebaute Symbole können nicht verändert werden (Kennbuchstabe wurde übernommen). Für Geometrieänderungen «Als Vorlage kopieren» nutzen."), false)
+            meldungManager.zeigen(qsTr("Kennbuchstaben gespeichert. Geometrie eingebauter Symbole bleibt geschützt – dafür «Als Vorlage kopieren» nutzen."), true)
             return
         }
 

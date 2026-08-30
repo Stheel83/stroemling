@@ -2311,6 +2311,50 @@ static QList<SchemaMigration> alleMigrationen()
                WHERE bmk_kennbuchstabe IS NOT NULL AND TRIM(bmk_kennbuchstabe) != '')",
             R"(ALTER TABLE symbol_definition DROP COLUMN bmk_kennbuchstabe)",
         }},
+
+        { 145, "NKZ-05: BMK-Kennbuchstaben fuer 112 der 160 eingebauten Symbole nach DIN EN 81346 vorbelegt (auf Nutzerwunsch - 'du kennst ja die Normen', Diff-Tabelle vorab gezeigt und bestaetigt). WHERE NOT EXISTS pro Symbol, damit bereits vom Nutzer selbst gesetzte Werte (Spule K/Q, Ventil/Regelventil YA/YR, die drei Relais-Verzoegerungsvarianten K) unangetastet bleiben. Bewusst OHNE Vorschlag: Verbindungselemente (SK.istVerbHelper-Liste, ohnehin ausgeschlossen), Erdungssymbole (kein fortlaufendes BMK ueblich), generische Kontakte/Nebenfunktionen (schliesser/oeffner/wechsler/wischkontakt/verzoegerte Varianten - sollen vom Hauptgeraet erben statt selbst nummeriert zu werden, bimetall_nc ebenso), einzelne SPS/PLS-Kanalsymbole (repraesentieren einen Kanal, kein eigenes Betriebsmittel), wp_sgready und kfz_masse (keine klassischen BMK-Betriebsmittel). Domaenen-Symbole (Arduino/Caravan/KFZ/Waermepumpe) teils mit niedrigerer Konfidenz vorbelegt, da DIN 81346 dort nur bedingt passt - vom Nutzer im Nachgang korrigierbar. Verifiziert per manuellem sqlite3-Testlauf gegen eine .backup-Kopie der echten Pokestroems_Aquarium-Projektdatei (112 neue Zeilen, 9 bestehende Nutzer-Eintraege unveraendert, kein verwaister symbol_id-Verweis).", {
+            R"(INSERT INTO symbol_bmk_kennbuchstabe (symbol_id, kennbuchstabe, ist_standard)
+               SELECT v.column1, v.column2, 1
+               FROM (VALUES
+                   ('buchse','X'), ('klemme','X'), ('stecker','X'),
+                   ('motor_dc','M'), ('motor','M'), ('motor_mit_pe','M'), ('trafo','T'), ('netzteil','G'),
+                   ('anzugverzoegerte_spule_relais','K'), ('rueckfallverzoegerte_spule_relais','K'), ('thermo_spule_relais','K'),
+                   ('ard_mega','A'), ('ard_nano','A'), ('ard_uno','A'), ('ard_dht','B'), ('ard_hcsr04','B'), ('ard_pir','B'),
+                   ('caravan_solarpanel','G'), ('caravan_trennrelais','K'), ('caravan_ladebooster','U'),
+                   ('caravan_solarladeregler','U'), ('caravan_wechselrichter','U'), ('caravan_wasserpumpe','M'),
+                   ('caravan_anhaengerstecker_13','X'), ('caravan_landanschluss','X'), ('caravan_kuehlschrank','E'),
+                   ('ausschalter_einpolig_uebersicht','S'), ('ausschalter_zweipolig_uebersicht','S'),
+                   ('kreuzschalter','S'), ('kreuzschalter_einpolig_uebersicht','S'),
+                   ('serienschalter','S'), ('serienschalter_einpolig_uebersicht','S'),
+                   ('wechselschalter_einpolig_uebersicht','S'),
+                   ('schalter_allgemein_uebersicht','S'), ('schalter_kontrolleuchte_uebersicht','S'),
+                   ('taster_beleuchtet','S'), ('taster_mit_leuchte_uebersicht','S'), ('taster_uebersicht','S'),
+                   ('steckdose_cee16','X'), ('steckdose_feuchtraum','X'), ('steckdose_schuko','X'), ('steckdose_schalter','X'),
+                   ('bewegungsmelder','B'), ('daemmerungsschalter','B'), ('rauchmelder','B'),
+                   ('rollladenmotor','M'), ('zaehler','P'), ('zeitschalter_einpolig_uebersicht','K'), ('ueberspannungsschutz','F'),
+                   ('kfz_anlasser','M'), ('kfz_scheibenwischermotor','M'), ('kfz_batterie','G'), ('kfz_lichtmaschine','G'),
+                   ('kfz_blinkerrelais','K'), ('kfz_relais_4','K'), ('kfz_relais_5','K'),
+                   ('kfz_cdi','A'), ('kfz_steuergeraet','A'), ('kfz_sicherung','F'), ('kfz_sicherungskasten','F'),
+                   ('kfz_gluehkerze','E'), ('kfz_stecker_2','X'), ('kfz_stecker_3','X'), ('kfz_stecker_4','X'),
+                   ('kfz_kombiinstrument','P'), ('kfz_lambdasonde','B'), ('kfz_scheinwerfer','E'), ('kfz_zuendspule','T'),
+                   ('taster_no','S'), ('taster_nc','S'), ('druckschalter_taster','S'), ('handbetaetigter_schalter','S'),
+                   ('beruehrungsempfindlicher_schalter','S'), ('naeherungsempfindlicher_schalter','S'),
+                   ('not_halt','S'), ('zeitschaltuhr','K'),
+                   ('kondensator','C'), ('widerstand_iec','R'), ('diode','V'), ('led','V'), ('brueckengleichrichter','V'),
+                   ('heizelement','E'),
+                   ('sps_ai_4','A'), ('sps_ai_8','A'), ('sps_ao_4','A'), ('sps_cpu','A'),
+                   ('sps_di_16','A'), ('sps_di_8','A'), ('sps_do_16','A'), ('sps_do_8','A'), ('pls_ai_8','A'), ('pls_ao_4','A'),
+                   ('fi','F'), ('lss','F'), ('nh_sicherung','F'), ('sicherung','F'), ('sicherung_3pol','F'), ('sicherung_netzseitig','F'),
+                   ('sicherungslasttrennschalter','Q'), ('sicherungsschalter','Q'), ('sicherungstrennschalter','Q'),
+                   ('sensor_druck','B'), ('sensor_induktiv','B'), ('sensor_kapazitiv','B'), ('sensor_niveau','B'),
+                   ('sensor_optisch','B'), ('sensor_temp','B'), ('sensor_ultraschall','B'),
+                   ('hupe','H'), ('lampe','H'), ('summer','H'),
+                   ('wp_umwaelzpumpe','M'), ('wp_mischer','M'), ('wp_heizstab','E'), ('wp_regler','N')
+               ) AS v
+               WHERE NOT EXISTS (
+                   SELECT 1 FROM symbol_bmk_kennbuchstabe skb WHERE skb.symbol_id = v.column1
+               ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

@@ -185,9 +185,9 @@ Rectangle {
                     model: editor.bmkKennbuchstaben
                     delegate: Rectangle {
                         id: kbChip
-                        implicitHeight: 22
+                        implicitHeight: 28
                         implicitWidth: kbChipRow.implicitWidth + 12
-                        radius: 11
+                        radius: 14
                         color: modelData.istStandard ? editor.theme.accent : editor.theme.inputBg
                         border.color: modelData.istStandard ? editor.theme.accent : editor.theme.border
 
@@ -224,7 +224,7 @@ Rectangle {
                 }
                 TextField {
                     id: kbNeuFeld
-                    implicitWidth: 64; implicitHeight: 24
+                    implicitWidth: 64; implicitHeight: 28
                     font.pixelSize: 11
                     placeholderText: qsTr("Buchstabe")
                     placeholderTextColor: editor.theme.accent
@@ -242,7 +242,7 @@ Rectangle {
                 Rectangle {
                     id: kbAddBtn
                     function hinzufuegen() { editor.bmkBuchstabeHinzufuegen(kbNeuFeld.text); kbNeuFeld.text = ""; kbNeuFeld.forceActiveFocus() }
-                    implicitWidth: 24; implicitHeight: 24; radius: 4
+                    implicitWidth: 28; implicitHeight: 28; radius: 4
                     color: kbAddMa.containsMouse ? editor.theme.accent : editor.theme.inputBg
                     border.color: editor.theme.accent
                     Text {
@@ -340,7 +340,7 @@ Rectangle {
                 // Jetzt immer sichtbar, Beschriftung macht bei eingebauten Symbolen
                 // klar, dass nur die Kennbuchstaben gespeichert werden.
                 text: editor.istBuiltin ? qsTr("Kennbuchstaben speichern") : qsTr("Speichern")
-                implicitHeight: 28; implicitWidth: editor.istBuiltin ? 150 : 90
+                implicitHeight: 28; implicitWidth: editor.istBuiltin ? 190 : 90
                 onClicked: editor.speichern()
                 background: Rectangle {
                     color: parent.enabled ? (parent.hovered ? editor.theme.accent : editor.theme.inputBg) : editor.theme.inputBg

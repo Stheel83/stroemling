@@ -144,11 +144,11 @@ Rectangle {
         Rectangle { width: 32; height: 1; color: AppTheme.border; anchors.horizontalCenter: parent.horizontalCenter }
 
         // ── Logische Elemente (Schaltplan-/Verbindungssemantik) ─────────────
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "winkel";        tooltip: qsTr("Winkel (Verbindungsecke)") }
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt";    tooltip: qsTr("Treffpunkt T (Verbindungspunkt)") }
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt_l";  tooltip: qsTr("Treffpunkt L (Verbindungspunkt)") }
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "querverweis";   tooltip: qsTr("Querverweis →  (Verbindung über Grenzen hinweg)") }
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "aderdefinition"; tooltip: qsTr("Aderdefinition") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "winkel";        tooltip: qsTr("Winkel oder auch diagonal geschnittenes Quadrat, Abk. DGQ, gesprochen Digge Kuh") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt";    tooltip: qsTr("Hier treffen sich zwei und gehen in die selbe Richtung") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt_l";  tooltip: qsTr("Hier sind zwei andere die auch in die selbe Richtung wollen") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "querverweis";   tooltip: qsTr("Schafft Verbindung, über Grenzen hinweg") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "aderdefinition"; tooltip: qsTr("sagt dir was für ne Ader da ist") }
         // Kabeldefinitionslinie – Mini-Canvas statt Unicode-Zeichen
         Rectangle {
             id: kbBtn

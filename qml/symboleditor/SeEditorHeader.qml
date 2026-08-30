@@ -224,10 +224,14 @@ Rectangle {
                 }
                 TextField {
                     id: kbNeuFeld
-                    implicitWidth: 44; implicitHeight: 24
+                    implicitWidth: 92; implicitHeight: 24
                     font.pixelSize: 11
-                    placeholderText: qsTr("+ Buchst.")
-                    background: Rectangle { color: editor.theme.inputBg; radius: 4; border.color: editor.theme.border }
+                    placeholderText: qsTr("+ Buchstabe")
+                    placeholderTextColor: editor.theme.accent
+                    // Auffälliger Akzent-Rahmen statt des sonst üblichen unscheinbaren
+                    // theme.border - sonst wirkt das Feld bei leerer Kennbuchstaben-
+                    // Liste wie ein deaktiviertes/übersehbares Eingabefeld.
+                    background: Rectangle { color: editor.theme.inputBg; radius: 4; border.color: editor.theme.accent }
                     color: editor.theme.textPrimary
                     onAccepted: { editor.bmkBuchstabeHinzufuegen(text); text = "" }
                     Keys.onTabPressed: { editor.bmkBuchstabeHinzufuegen(text); text = ""; event.accepted = false }

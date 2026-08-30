@@ -13,9 +13,10 @@ Rectangle {
     color: AppTheme.surfaceDeep
     Rectangle { anchors.right: parent.right; height: parent.height; width: 1; color: AppTheme.border }
 
-    // Direktzugriff auf die drei meistgenutzten "Verbindungen"-Symbole aus der
-    // Symbolpalette (SYM-WKZLEISTE-VERBINDUNGEN-01) – erspart bei Winkel/Treffpunkt
-    // den Kategorie-Drill-Down für die erste Platzierung pro Sitzung. Zeichnet die
+    // Direktzugriff auf die meistgenutzten "Verbindungen"-Symbole aus der
+    // Symbolpalette (SYM-WKZLEISTE-VERBINDUNGEN-01) – erspart bei Winkel/Treffpunkt/
+    // Querverweis/Aderdefinition den Kategorie-Drill-Down für die erste Platzierung
+    // pro Sitzung. Zeichnet die
     // echte Symbolform (wie SymbolPalette.qml SymbolZeile-Vorschau), keine geratene
     // Unicode-Glyphe. Aktivierung repliziert exakt Main.qml onSymbolGewaehlt.
     component VerbindungWerkzeugButton: Rectangle {
@@ -68,6 +69,15 @@ Rectangle {
                         case "kreis_gefuellt":
                             ctx.save(); ctx.fillStyle = ctx.strokeStyle
                             ctx.beginPath(); ctx.arc(sx(p.x1), sy(p.y1), p.radius * scale, 0, 2 * Math.PI); ctx.fill()
+                            ctx.restore()
+                            break
+                        case "dreieck_gefuellt":
+                            ctx.save(); ctx.fillStyle = ctx.strokeStyle
+                            ctx.beginPath()
+                            ctx.moveTo(sx(p.x1), sy(p.y1))
+                            ctx.lineTo(sx(p.x2), sy(p.y2))
+                            ctx.lineTo(sx(p.x3), sy(p.y3))
+                            ctx.closePath(); ctx.fill()
                             ctx.restore()
                             break
                     }
@@ -134,9 +144,11 @@ Rectangle {
         Rectangle { width: 32; height: 1; color: AppTheme.border; anchors.horizontalCenter: parent.horizontalCenter }
 
         // ── Logische Elemente (Schaltplan-/Verbindungssemantik) ─────────────
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "winkel";       tooltip: qsTr("Winkel (Verbindungsecke)") }
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt";   tooltip: qsTr("Treffpunkt T (Verbindungspunkt)") }
-        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt_l"; tooltip: qsTr("Treffpunkt L (Verbindungspunkt)") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "winkel";        tooltip: qsTr("Winkel (Verbindungsecke)") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt";    tooltip: qsTr("Treffpunkt T (Verbindungspunkt)") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "treffpunkt_l";  tooltip: qsTr("Treffpunkt L (Verbindungspunkt)") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "querverweis";   tooltip: qsTr("Querverweis →  (Verbindung über Grenzen hinweg)") }
+        VerbindungWerkzeugButton { canvas: root.canvas; symbolId: "aderdefinition"; tooltip: qsTr("Aderdefinition") }
         // Kabeldefinitionslinie – Mini-Canvas statt Unicode-Zeichen
         Rectangle {
             id: kbBtn

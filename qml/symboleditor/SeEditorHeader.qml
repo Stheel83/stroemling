@@ -174,20 +174,64 @@ Rectangle {
             }
 
             Text {
-                text: qsTr("Kennbuchstabe:"); color: editor.theme.textMuted; font.pixelSize: 11
+                text: qsTr("Kennbuchstaben:"); color: editor.theme.textMuted; font.pixelSize: 11
                 ToolTip.visible: kbHover.containsMouse; ToolTip.delay: 400
-                ToolTip.text: qsTr("BMK-Kennbuchstabe nach DIN EN 81346 (z.B. \"M\" fuer Motor, \"F\" fuer Sicherung). Wird beim Platzieren dieses Symbols als Praefix fuer das automatische Platzhalter-BMK vorgeschlagen. Leer = kein Vorschlag. Wirkt auch bei eingebauten Symbolen (reine Klassifikations-Metadatur, keine Geometrie).")
+                ToolTip.text: qsTr("BMK-Kennbuchstaben nach DIN EN 81346 (z.B. \"M\" fuer Motor, \"K\"/\"Q\" fuer eine Spule die je nach Geraet Schuetz oder Leistungsschalter ist). Mehrere moeglich - der markierte (farbig) wird beim Platzieren automatisch vorbelegt, die uebrigen erscheinen als Umschalt-Chips im Eigenschaften-Panel. Klick auf einen Chip macht ihn zum Standard, × entfernt ihn. Keine Eintraege = kein Vorschlag. Wirkt auch bei eingebauten Symbolen (reine Klassifikations-Metadatur, keine Geometrie).")
                 MouseArea { id: kbHover; anchors.fill: parent; hoverEnabled: true }
             }
-            TextField {
-                id: kbFeld
-                text:              editor.bmkKennbuchstabeText
-                onEditingFinished: editor.bmkKennbuchstabeText = text
-                placeholderText:   qsTr("z.B. M")
-                implicitWidth: 60; implicitHeight: 28
-                font.pixelSize: 13
-                background: Rectangle { color: editor.theme.inputBg; radius: 4; border.color: editor.theme.border }
-                color: editor.theme.textPrimary
+            Row {
+                spacing: 4
+                Repeater {
+                    model: editor.bmkKennbuchstaben
+                    delegate: Rectangle {
+                        id: kbChip
+                        implicitHeight: 22
+                        implicitWidth: kbChipRow.implicitWidth + 12
+                        radius: 11
+                        color: modelData.istStandard ? editor.theme.accent : editor.theme.inputBg
+                        border.color: modelData.istStandard ? editor.theme.accent : editor.theme.border
+
+                        // Muss VOR dem RowLayout stehen, sonst blockiert sie den ×-Klick darunter.
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: editor.bmkStandardSetzen(index)
+                        }
+                        RowLayout {
+                            id: kbChipRow
+                            anchors.centerIn: parent
+                            spacing: 4
+                            Text {
+                                text: modelData.kennbuchstabe
+                                color: modelData.istStandard ? "white" : editor.theme.textPrimary
+                                font.pixelSize: 11; font.bold: modelData.istStandard
+                            }
+                            Text {
+                                text: "×"; font.pixelSize: 12
+                                color: modelData.istStandard ? "white" : editor.theme.textMuted
+                                MouseArea {
+                                    anchors.fill: parent; anchors.margins: -2
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: editor.bmkBuchstabeEntfernen(index)
+                                }
+                            }
+                        }
+                        ToolTip.visible: modelData.istStandard ? false : kbChipHover.containsMouse
+                        ToolTip.text: qsTr("Als Standard setzen")
+                        ToolTip.delay: 500
+                        MouseArea { id: kbChipHover; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
+                    }
+                }
+                TextField {
+                    id: kbNeuFeld
+                    implicitWidth: 44; implicitHeight: 24
+                    font.pixelSize: 11
+                    placeholderText: qsTr("+ Buchst.")
+                    background: Rectangle { color: editor.theme.inputBg; radius: 4; border.color: editor.theme.border }
+                    color: editor.theme.textPrimary
+                    onAccepted: { editor.bmkBuchstabeHinzufuegen(text); text = "" }
+                    Keys.onTabPressed: { editor.bmkBuchstabeHinzufuegen(text); text = ""; event.accepted = false }
+                }
             }
 
             Item { Layout.fillWidth: true }

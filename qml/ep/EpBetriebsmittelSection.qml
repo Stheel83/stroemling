@@ -27,6 +27,38 @@ Item {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
+    // NKZ-05: alle hinterlegten Kennbuchstaben des Symbols (z.B. K + Q für
+    // eine Spule) - Umschalt-Chips erscheinen nur ab 2 Einträgen.
+    readonly property var _bmkAlternativen: {
+        if (!panel.el || panel.el.typ !== "symbol") return []
+        var sid = panel.el.symbolId || ""
+        if (sid === "") return []
+        return symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(sid)
+    }
+    readonly property string _bmkAktuellerBuchstabe: {
+        var bmk = (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmk) ? panel.el.extraDaten.bmk : ""
+        var m = bmk.match(/^-([A-Za-zÄÖÜäöü]+)/)
+        return m ? m[1].toUpperCase() : ""
+    }
+    // Ersetzt nur den Buchstaben-Teil des BMK (Zahl/Rest bleibt erhalten,
+    // z.B. "-K3" -> "-Q3"), damit ein Umschalten nicht die laufende Nummer
+    // verliert. Ohne bestehenden BMK wird stattdessen eine neue Nummer
+    // vorgeschlagen (wie beim #-Button).
+    function bmkBuchstabeUmschalten(neuerBuchstabe) {
+        var bmk = (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmk) ? panel.el.extraDaten.bmk : ""
+        var m   = bmk.match(/^-[A-Za-zÄÖÜäöü]+(.*)$/)
+        var neu = m ? ("-" + neuerBuchstabe + m[1])
+                     : (panel.canvas.projektId >= 0 ? db.naechsteBmkNummer(panel.canvas.projektId, "-" + neuerBuchstabe) : "")
+        if (neu === "") return
+        root.extraSetzen("bmk", neu)
+        if (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig)
+            root.extraSetzen("bmkVorlaeufig", false)
+        if (root._istHf && root._bmId > 0) {
+            db.betriebsmittelKzSetzen(root._bmId, neu)
+            panel.canvas.seiteNeuLaden()
+        }
+    }
+
     component Trennlinie: Rectangle {
         width: root.width - 16; height: 1; color: root.theme.border
         anchors.horizontalCenter: parent.horizontalCenter
@@ -282,6 +314,45 @@ Item {
                         if (root._istHf && root._bmId > 0)
                             db.betriebsmittelKzSetzen(root._bmId, vorschlag)
                     }
+                }
+            }
+        }
+
+        // NKZ-05: Umschalt-Chips für Symbole mit mehreren möglichen
+        // Kennbuchstaben (z.B. Spule = K oder Q) - ein Klick ersetzt nur den
+        // Buchstaben, die laufende Nummer bleibt erhalten.
+        Row {
+            width: parent.width - 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4
+            topPadding: 3
+            visible: root._bmkAlternativen.length >= 2 && !root._istNf
+
+            Repeater {
+                model: root._bmkAlternativen
+                delegate: Rectangle {
+                    readonly property bool aktiv: modelData.kennbuchstabe === root._bmkAktuellerBuchstabe
+                    implicitHeight: 18
+                    implicitWidth: altTxt.implicitWidth + 12
+                    radius: 9
+                    color:        aktiv ? theme.accent : theme.inputBg
+                    border.color: aktiv ? theme.accent : theme.border
+                    Text {
+                        id: altTxt
+                        anchors.centerIn: parent
+                        text: modelData.kennbuchstabe
+                        font.pixelSize: 10; font.bold: aktiv
+                        color: aktiv ? "white" : theme.textSecondary
+                    }
+                    MouseArea {
+                        id: chipMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.bmkBuchstabeUmschalten(modelData.kennbuchstabe)
+                    }
+                    ToolTip.visible: !aktiv && chipMa.containsMouse
+                    ToolTip.text: qsTr("Buchstabe auf \"%1\" umstellen").arg(modelData.kennbuchstabe)
+                    ToolTip.delay: 500
                 }
             }
         }

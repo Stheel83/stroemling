@@ -2298,6 +2298,19 @@ static QList<SchemaMigration> alleMigrationen()
         { 143, "NKZ-05 (Konzept konzept/features/07_normkennzeichnung.md §7): symbol_definition.bmk_kennbuchstabe ergaenzt - Fallback-Kennbuchstabe (z.B. 'M' fuer Motor) fuer das automatische Platzhalter-BMK beim Platzieren freihaendig aus der Symbolpalette gezogener Symbole. Analog zu bauteil.bmk_vorlage (existiert bereits fuer den Bauteil-first/Geraetekasten-Weg), aber auf Symbol-Ebene fuer den Weg ohne Bauteil-Verknuepfung. Leere Spalte, keine Datenmigration noetig - Nutzer traegt die Kennbuchstaben selbst symbolweise ein (Symboleditor, Feld wirkt bewusst auch bei ist_builtin=1, da reine Klassifikations-Metadatur ohne Geometriebezug).", {
             R"(ALTER TABLE symbol_definition ADD COLUMN bmk_kennbuchstabe TEXT)",
         }},
+
+        { 144, "NKZ-05 Nachbesserung (Nutzer-Feedback direkt nach Migration 143): eine einzelne bmk_kennbuchstabe-Spalte kann nur EINEN Standard-Buchstaben pro Symbol abbilden, reicht aber nicht fuer Symbole die je nach Geraet unterschiedliche Buchstaben tragen (z.B. eine Spule kann Schuetz 'K' oder Leistungsschalter 'Q' sein) - ohne Mehrfachauswahl haette der Nutzer fuer jede Variante eine eigene Symbol-Kopie anlegen muessen, genau das wollte er vermeiden. Neue n:m-Tabelle symbol_bmk_kennbuchstabe ersetzt die Spalte. Bereits vom Nutzer in Migration 143 gesetzte Werte (z.B. 'M' an 'motor', direkt beim Live-Test vergeben) werden vor dem Spaltenverlust als ist_standard-Zeile uebernommen, kein Datenverlust.", {
+            R"(CREATE TABLE symbol_bmk_kennbuchstabe (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol_id     TEXT    NOT NULL REFERENCES symbol_definition(id) ON DELETE CASCADE,
+                kennbuchstabe TEXT    NOT NULL,
+                ist_standard  INTEGER NOT NULL DEFAULT 0
+            ))",
+            R"(INSERT INTO symbol_bmk_kennbuchstabe (symbol_id, kennbuchstabe, ist_standard)
+               SELECT id, TRIM(bmk_kennbuchstabe), 1 FROM symbol_definition
+               WHERE bmk_kennbuchstabe IS NOT NULL AND TRIM(bmk_kennbuchstabe) != '')",
+            R"(ALTER TABLE symbol_definition DROP COLUMN bmk_kennbuchstabe)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

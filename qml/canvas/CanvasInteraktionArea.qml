@@ -539,11 +539,13 @@ MouseArea {
             // ein echter betriebsmittel-Datensatz angelegt wird). Verbindungs-
             // helfer (SK.istVerbHelper) und bereits vorbelegte BMKs (z.B. aus dem
             // GERAETE-Kontaktworkflow, paletteExtraDaten.bmk) bleiben unberuehrt.
+            // Symbole mit mehreren moeglichen Kennbuchstaben (z.B. Spule = K
+            // oder Q) bekommen hier nur den als Standard markierten vorbelegt -
+            // die Alternativen erscheinen als Umschalt-Chips im EP.
             if (!SK.istVerbHelper(elSym.symbolId) && !elSym.extraDaten.bmk
                     && !(canvas.paletteExtraDaten && canvas.paletteExtraDaten.bauteilId)
                     && canvas.projektId >= 0) {
-                var _sinfo = symbolDefinitionModel.symbolInfo(elSym.symbolId)
-                var _praefix = (_sinfo && _sinfo.bmkKennbuchstabe) ? _sinfo.bmkKennbuchstabe.trim() : ""
+                var _praefix = symbolDefinitionModel.bmkKennbuchstabeStandard(elSym.symbolId).trim()
                 if (_praefix !== "" && !_praefix.startsWith("-")) _praefix = "-" + _praefix
                 if (_praefix !== "") {
                     elSym.extraDaten.bmk          = db.naechsteBmkNummer(canvas.projektId, _praefix)

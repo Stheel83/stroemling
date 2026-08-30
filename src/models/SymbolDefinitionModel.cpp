@@ -144,7 +144,7 @@ QString SymbolDefinitionModel::rolleForSymbol(const QString &symbolId) const
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm, COALESCE(bmk_kennbuchstabe,'') FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
@@ -157,7 +157,6 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
         m["bmkSeite"]     = q.value(6).toString();
         m["kopieVonId"]   = q.value(7).toString();
         m["pinSchriftMm"] = q.value(8).toDouble();
-        m["bmkKennbuchstabe"] = q.value(9).toString();
         return m;
     }
     return {};
@@ -354,17 +353,61 @@ bool SymbolDefinitionModel::markierungLoeschenSetzen(const QString &symbolId, bo
     return q.numRowsAffected() > 0;
 }
 
-bool SymbolDefinitionModel::bmkKennbuchstabeSetzen(const QString &symbolId, const QString &kennbuchstabe)
+QVariantList SymbolDefinitionModel::bmkKennbuchstabenFuerSymbol(const QString &symbolId) const
 {
+    QVariantList result;
     QSqlQuery q;
-    q.prepare("UPDATE symbol_definition SET bmk_kennbuchstabe = :k WHERE id = :id");
-    q.bindValue(":k",  kennbuchstabe.isEmpty() ? QVariant() : kennbuchstabe);
+    q.prepare("SELECT kennbuchstabe, ist_standard FROM symbol_bmk_kennbuchstabe "
+              "WHERE symbol_id = :id ORDER BY ist_standard DESC, kennbuchstabe COLLATE NOCASE");
     q.bindValue(":id", symbolId);
     if (!q.exec()) {
-        qCWarning(lcModel) << "bmkKennbuchstabeSetzen:" << q.lastError().text();
+        qCWarning(lcModel) << "bmkKennbuchstabenFuerSymbol:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        QVariantMap m;
+        m["kennbuchstabe"] = q.value(0).toString();
+        m["istStandard"]   = q.value(1).toInt() != 0;
+        result.append(m);
+    }
+    return result;
+}
+
+QString SymbolDefinitionModel::bmkKennbuchstabeStandard(const QString &symbolId) const
+{
+    QSqlQuery q;
+    q.prepare("SELECT kennbuchstabe FROM symbol_bmk_kennbuchstabe WHERE symbol_id = :id "
+              "ORDER BY ist_standard DESC, kennbuchstabe COLLATE NOCASE LIMIT 1");
+    q.bindValue(":id", symbolId);
+    if (q.exec() && q.next())
+        return q.value(0).toString();
+    return QString();
+}
+
+bool SymbolDefinitionModel::bmkKennbuchstabenSpeichern(const QString &symbolId, const QVariantList &eintraege)
+{
+    QSqlQuery del;
+    del.prepare("DELETE FROM symbol_bmk_kennbuchstabe WHERE symbol_id = :id");
+    del.bindValue(":id", symbolId);
+    if (!del.exec()) {
+        qCWarning(lcModel) << "bmkKennbuchstabenSpeichern (delete):" << del.lastError().text();
         return false;
     }
-    return q.numRowsAffected() > 0;
+
+    QSqlQuery ins;
+    ins.prepare("INSERT INTO symbol_bmk_kennbuchstabe (symbol_id, kennbuchstabe, ist_standard) "
+                "VALUES (:id, :k, :std)");
+    for (const QVariant &v : eintraege) {
+        const QVariantMap m = v.toMap();
+        const QString kb = m.value("kennbuchstabe").toString().trimmed();
+        if (kb.isEmpty()) continue;
+        ins.bindValue(":id",  symbolId);
+        ins.bindValue(":k",   kb);
+        ins.bindValue(":std", m.value("istStandard").toBool() ? 1 : 0);
+        if (!ins.exec())
+            qCWarning(lcModel) << "bmkKennbuchstabenSpeichern (insert):" << ins.lastError().text();
+    }
+    return true;
 }
 
 void SymbolDefinitionModel::cacheLeeren()

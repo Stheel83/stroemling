@@ -105,11 +105,21 @@ public:
     // selbst). SYM-LOESCH-MARKIERUNG-01.
     Q_INVOKABLE bool markierungLoeschenSetzen(const QString &symbolId, bool markiert);
 
-    // BMK-Kennbuchstaben-Vorschlag setzen (auch für ist_builtin=1 — reine
-    // Klassifikations-Metadatur ohne Geometriebezug, siehe NKZ-05 in
-    // konzept/features/07_normkennzeichnung.md §7). Leerer String löscht
-    // den Vorschlag wieder (kein automatisches Platzhalter-BMK).
-    Q_INVOKABLE bool bmkKennbuchstabeSetzen(const QString &symbolId, const QString &kennbuchstabe);
+    // NKZ-05: BMK-Kennbuchstaben eines Symbols (mehrere möglich — z.B. kann
+    // eine Spule je nach Gerät "K" oder "Q" sein), n:m-Tabelle
+    // symbol_bmk_kennbuchstabe. Rückgabe je Eintrag: {kennbuchstabe, istStandard},
+    // sortiert Standard zuerst, dann alphabetisch.
+    Q_INVOKABLE QVariantList bmkKennbuchstabenFuerSymbol(const QString &symbolId) const;
+    // Bequemlichkeit für den Platzier-Hook: liefert den als Standard markierten
+    // Kennbuchstaben (oder den alphabetisch ersten, falls keiner markiert ist),
+    // leeren String wenn keine Einträge vorhanden sind.
+    Q_INVOKABLE QString bmkKennbuchstabeStandard(const QString &symbolId) const;
+    // Ersetzt alle Kennbuchstaben-Einträge eines Symbols durch die übergebene
+    // Liste (DELETE+INSERT, analog primitivAlleLoeschen()+primitivHinzufuegen()).
+    // eintraege: [{kennbuchstabe, istStandard}]. Auch für ist_builtin=1 nutzbar —
+    // reine Klassifikations-Metadatur ohne Geometriebezug, siehe NKZ-05 in
+    // konzept/features/07_normkennzeichnung.md §7.
+    Q_INVOKABLE bool bmkKennbuchstabenSpeichern(const QString &symbolId, const QVariantList &eintraege);
 
     // Einzelnes Primitiv hinzufügen; gibt neue Zeilen-ID zurück (-1 bei Fehler).
     // daten: {typ, reihenfolge, x1, y1, x2, y2, x3, y3, radius,

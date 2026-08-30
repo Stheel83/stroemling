@@ -39,11 +39,38 @@ Item {
     // Grundausrichtung bei 0° bereits vertikal ist, z.B. Kontakte nach
     // SYMBOL-VERTIKAL-01). Siehe CanvasRenderHandler.qml maleElement().
     property string bmkSeiteText:  "auto"
-    // NKZ-05: Vorschlag fuer den BMK-Kennbuchstaben (z.B. "M" fuer Motor),
-    // wird beim Platzieren als Praefix fuer das automatische Platzhalter-BMK
-    // gelesen. Reine Klassifikations-Metadatur ohne Geometriebezug - bewusst
-    // unabhaengig vom Builtin-Schreibschutz speicherbar, siehe speichern().
-    property string bmkKennbuchstabeText: ""
+    // NKZ-05: BMK-Kennbuchstaben-Vorschlaege (z.B. "M" fuer Motor) - mehrere
+    // moeglich, da ein Symbol je nach Geraet unterschiedliche Buchstaben
+    // tragen kann (Spule = Schuetz "K" oder Leistungsschalter "Q"). Ein
+    // Eintrag als Standard markiert wird beim Platzieren automatisch
+    // vorbelegt, die uebrigen erscheinen im EP als Umschalt-Chips.
+    // Eintrag: {kennbuchstabe, istStandard}. Reine Klassifikations-Metadatur
+    // ohne Geometriebezug - bewusst unabhaengig vom Builtin-Schreibschutz
+    // speicherbar, siehe speichern().
+    property var bmkKennbuchstaben: []
+
+    function bmkBuchstabeHinzufuegen(text) {
+        var kb = (text || "").trim().toUpperCase()
+        if (kb === "") return
+        for (var i = 0; i < bmkKennbuchstaben.length; i++)
+            if (bmkKennbuchstaben[i].kennbuchstabe === kb) return  // schon vorhanden
+        var liste = bmkKennbuchstaben.slice()
+        liste.push({ kennbuchstabe: kb, istStandard: liste.length === 0 })
+        bmkKennbuchstaben = liste
+    }
+    function bmkBuchstabeEntfernen(index) {
+        var liste = bmkKennbuchstaben.slice()
+        var warStandard = liste[index] && liste[index].istStandard
+        liste.splice(index, 1)
+        if (warStandard && liste.length > 0) liste[0] = Object.assign({}, liste[0], { istStandard: true })
+        bmkKennbuchstaben = liste
+    }
+    function bmkStandardSetzen(index) {
+        var liste = bmkKennbuchstaben.map(function(e, i) {
+            return Object.assign({}, e, { istStandard: i === index })
+        })
+        bmkKennbuchstaben = liste
+    }
     // Symbolweite Schriftgröße (mm) für Pin-Beschriftungen im Canvas/PDF-Export
     // (PIN-LABEL-SCHRIFTGROESSE-01) — eng bestückte Symbole (Arduino, SPS-
     // Baugruppen im 4mm-Raster) brauchen kleinere Schrift als Symbole mit
@@ -144,7 +171,7 @@ Item {
             rolleText     = vInfo.rolle     || "durchleiter"
             bmkSeiteText  = vInfo.bmkSeite  || "auto"
             pinSchriftMm  = vInfo.pinSchriftMm || 2.0
-            bmkKennbuchstabeText = vInfo.bmkKennbuchstabe || ""
+            bmkKennbuchstaben = symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(vorlageId)
             istBuiltin    = false
 
             var vPrims   = symbolDefinitionModel.primitiveFuerSymbol(vorlageId)
@@ -174,7 +201,7 @@ Item {
             rolleText     = "durchleiter"
             bmkSeiteText  = "auto"
             pinSchriftMm  = 2.0
-            bmkKennbuchstabeText = ""
+            bmkKennbuchstaben = []
             istBuiltin    = false
             primitive     = []
             pins          = []
@@ -187,7 +214,7 @@ Item {
             rolleText     = info.rolle     || "durchleiter"
             bmkSeiteText  = info.bmkSeite  || "auto"
             pinSchriftMm  = info.pinSchriftMm || 2.0
-            bmkKennbuchstabeText = info.bmkKennbuchstabe || ""
+            bmkKennbuchstaben = symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(editSymbolId)
             istBuiltin    = info.ist_builtin     || false
 
             var prims = symbolDefinitionModel.primitiveFuerSymbol(editSymbolId)
@@ -331,7 +358,7 @@ Item {
         // BMK-Kennbuchstaben bekommen koennen, ohne den Geometrieschutz
         // aufzuweichen.
         if (istBuiltin && editSymbolId !== "")
-            symbolDefinitionModel.bmkKennbuchstabeSetzen(editSymbolId, bmkKennbuchstabeText.trim())
+            symbolDefinitionModel.bmkKennbuchstabenSpeichern(editSymbolId, bmkKennbuchstaben)
 
         if (istBuiltin) {
             meldungManager.zeigen(qsTr("Eingebaute Symbole können nicht verändert werden (Kennbuchstabe wurde übernommen). Für Geometrieänderungen «Als Vorlage kopieren» nutzen."), false)
@@ -356,7 +383,7 @@ Item {
         } else {
             symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm)
         }
-        symbolDefinitionModel.bmkKennbuchstabeSetzen(sid, bmkKennbuchstabeText.trim())
+        symbolDefinitionModel.bmkKennbuchstabenSpeichern(sid, bmkKennbuchstaben)
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)
         for (var i = 0; i < primitive.length; i++) {

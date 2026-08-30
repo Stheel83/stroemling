@@ -224,17 +224,45 @@ Rectangle {
                 }
                 TextField {
                     id: kbNeuFeld
-                    implicitWidth: 92; implicitHeight: 24
+                    implicitWidth: 64; implicitHeight: 24
                     font.pixelSize: 11
-                    placeholderText: qsTr("+ Buchstabe")
+                    placeholderText: qsTr("Buchstabe")
                     placeholderTextColor: editor.theme.accent
                     // Auffälliger Akzent-Rahmen statt des sonst üblichen unscheinbaren
                     // theme.border - sonst wirkt das Feld bei leerer Kennbuchstaben-
                     // Liste wie ein deaktiviertes/übersehbares Eingabefeld.
                     background: Rectangle { color: editor.theme.inputBg; radius: 4; border.color: editor.theme.accent }
                     color: editor.theme.textPrimary
-                    onAccepted: { editor.bmkBuchstabeHinzufuegen(text); text = "" }
-                    Keys.onTabPressed: { editor.bmkBuchstabeHinzufuegen(text); text = ""; event.accepted = false }
+                    onAccepted: kbAddBtn.hinzufuegen()
+                }
+                // Expliziter Button statt nur Enter-Taste (SE-KENNBUCHSTABEN-ADD-BUG-01:
+                // Enter-only war fuer den Nutzer nicht erkennbar/auffindbar - "wie trage
+                // ich einen zweiten Buchstaben ein?"). Enter im Feld bleibt zusaetzlich
+                // als Shortcut nutzbar (siehe onAccepted oben).
+                Rectangle {
+                    id: kbAddBtn
+                    function hinzufuegen() { editor.bmkBuchstabeHinzufuegen(kbNeuFeld.text); kbNeuFeld.text = ""; kbNeuFeld.forceActiveFocus() }
+                    implicitWidth: 24; implicitHeight: 24; radius: 4
+                    color: kbAddMa.containsMouse ? editor.theme.accent : editor.theme.inputBg
+                    border.color: editor.theme.accent
+                    Text {
+                        anchors.centerIn: parent; text: "+"; font.pixelSize: 14; font.bold: true
+                        color: kbAddMa.containsMouse ? "white" : editor.theme.accent
+                    }
+                    MouseArea {
+                        id: kbAddMa
+                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: kbAddBtn.hinzufuegen()
+                    }
+                    ToolTip.visible: kbAddMa.containsMouse
+                    ToolTip.text: qsTr("Kennbuchstaben hinzufügen (auch mit Enter im Feld links)")
+                    ToolTip.delay: 500
+                }
+                Text {
+                    visible: editor.bmkKennbuchstaben.length === 0
+                    text: qsTr("(noch keine hinterlegt)")
+                    color: editor.theme.textMuted; font.pixelSize: 10; font.italic: true
+                    anchors.verticalCenter: kbNeuFeld.verticalCenter
                 }
             }
 

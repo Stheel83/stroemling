@@ -131,6 +131,45 @@ QVariantList Database::drcSymboleOhneBmk(int projektId)
     return ergebnis;
 }
 
+// ============================================================
+// drcUnbestaetigtesPlatzhalterBmk (D-13, NKZ-05)
+// Findet Symbole, deren BMK automatisch beim Platzieren vorgeschlagen
+// wurde (extra_daten.bmkVorlaeufig=true) und die der Nutzer noch nicht
+// bestaetigt hat - siehe konzept/features/07_normkennzeichnung.md §7.
+// ============================================================
+QVariantList Database::drcUnbestaetigtesPlatzhalterBmk(int projektId)
+{
+    QVariantList ergebnis;
+    QSqlQuery q(m_db);
+    q.prepare(
+        "SELECT ge.id, ge.symbol_id, ge.seite_id, s.bezeichnung, "
+        "       json_extract(ge.extra_daten, '$.bmk') "
+        "FROM grafik_element ge "
+        "JOIN seite s ON ge.seite_id = s.id "
+        "JOIN ort o ON o.id = s.ort_id "
+        "JOIN anlage a ON a.id = o.anlage_id "
+        "WHERE a.projekt_id = :pid "
+        "  AND ge.typ = 'symbol' "
+        "  AND json_extract(ge.extra_daten, '$.bmkVorlaeufig') = 1 "
+        "ORDER BY s.blattnummer, ge.id"
+    );
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "drcUnbestaetigtesPlatzhalterBmk:" << q.lastError().text();
+        return ergebnis;
+    }
+    while (q.next()) {
+        QVariantMap fund;
+        fund["elementId"] = q.value(0).toInt();
+        fund["symbolId"]  = q.value(1).toString();
+        fund["seiteId"]   = q.value(2).toInt();
+        fund["seiteName"] = q.value(3).toString();
+        fund["bmk"]       = q.value(4).toString();
+        ergebnis << fund;
+    }
+    return ergebnis;
+}
+
 QVariantList Database::drcSeitenOhneBezeichnung(int projektId)
 {
     QVariantList ergebnis;

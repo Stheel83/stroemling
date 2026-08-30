@@ -8,6 +8,7 @@ ColumnLayout {
     required property var theme
 
     property alias bezeichnung:   fBez.text
+    property alias bmkVorlage:    fBmkVorlage.text
     property alias hersteller:    fHer.text
     property alias artikelnummer: fArt.text
     property alias lieferant:     fLief.text
@@ -25,9 +26,19 @@ ColumnLayout {
     Text { text: qsTr("Bezeichnung *"); color: theme.textMuted; font.pixelSize: 12 }
     NavTextField {
         id: fBez; Layout.fillWidth: true
-        tabTarget: fHer; backtabTarget: fUrlDat
+        tabTarget: fBmkVorlage; backtabTarget: fUrlDat
         background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
         color: theme.textPrimary; font.pixelSize: 14
+    }
+
+    Text { text: qsTr("BMK-Vorlage (Kennbuchstabe, z.B. –K)"); color: theme.textMuted; font.pixelSize: 12 }
+    NavTextField {
+        id: fBmkVorlage; Layout.fillWidth: true; Layout.preferredWidth: 80
+        tabTarget: fHer; backtabTarget: fBez
+        background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+        color: theme.textPrimary; font.pixelSize: 14; placeholderText: "-K"
+        ToolTip.visible: hovered; ToolTip.delay: 600
+        ToolTip.text: qsTr("Vorschlag fuer den BMK-Kennbuchstaben, wird beim Platzieren dieses Bauteils als Platzhalter-BMK vorgeschlagen")
     }
 
     GridLayout {
@@ -37,7 +48,7 @@ ColumnLayout {
         Text { text: qsTr("Artikelnummer"); color: theme.textMuted; font.pixelSize: 12 }
         NavTextField {
             id: fHer; Layout.fillWidth: true
-            tabTarget: fArt; backtabTarget: fBez
+            tabTarget: fArt; backtabTarget: fBmkVorlage
             background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
             color: theme.textPrimary; font.pixelSize: 14
         }

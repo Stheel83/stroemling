@@ -1,4 +1,5 @@
 import QtQuick
+import "../SymbolKlassen.js" as SK
 
 // Werkzeug-Zustandsmaschine des SchaltplanCanvas.
 // Verarbeitet alle Mausereignisse (Klick, Drag, Release, DoubleClick).
@@ -529,6 +530,27 @@ MouseArea {
                 opazitaet:        canvas.stilVorlage.opazitaet,
                 eckenRadius:      0
             }
+
+            // NKZ-05 (konzept/features/07_normkennzeichnung.md §7): automatisches
+            // Platzhalter-BMK fuer freihaendig aus der Symbolpalette platzierte
+            // Symbole (kein bauteilId - der Bauteil-first-Weg bekommt seinen
+            // Vorschlag stattdessen im BMK-Dialog aus bauteil.bmk_vorlage, siehe
+            // SchaltplanCanvas.qml bmkNachPlatzierenDialog.onOpened, da dort erst
+            // ein echter betriebsmittel-Datensatz angelegt wird). Verbindungs-
+            // helfer (SK.istVerbHelper) und bereits vorbelegte BMKs (z.B. aus dem
+            // GERAETE-Kontaktworkflow, paletteExtraDaten.bmk) bleiben unberuehrt.
+            if (!SK.istVerbHelper(elSym.symbolId) && !elSym.extraDaten.bmk
+                    && !(canvas.paletteExtraDaten && canvas.paletteExtraDaten.bauteilId)
+                    && canvas.projektId >= 0) {
+                var _sinfo = symbolDefinitionModel.symbolInfo(elSym.symbolId)
+                var _praefix = (_sinfo && _sinfo.bmkKennbuchstabe) ? _sinfo.bmkKennbuchstabe.trim() : ""
+                if (_praefix !== "" && !_praefix.startsWith("-")) _praefix = "-" + _praefix
+                if (_praefix !== "") {
+                    elSym.extraDaten.bmk          = db.naechsteBmkNummer(canvas.projektId, _praefix)
+                    elSym.extraDaten.bmkVorlaeufig = true
+                }
+            }
+
             if (_geist) {
                 var _ohneGeist = _snap.filter(function(_, i) { return i !== _geist.idx })
                 canvas.aktionAusfuehren(_ohneGeist.concat([elSym]))

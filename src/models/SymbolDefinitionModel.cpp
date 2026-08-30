@@ -144,7 +144,7 @@ QString SymbolDefinitionModel::rolleForSymbol(const QString &symbolId) const
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm, COALESCE(bmk_kennbuchstabe,'') FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
@@ -157,6 +157,7 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
         m["bmkSeite"]     = q.value(6).toString();
         m["kopieVonId"]   = q.value(7).toString();
         m["pinSchriftMm"] = q.value(8).toDouble();
+        m["bmkKennbuchstabe"] = q.value(9).toString();
         return m;
     }
     return {};
@@ -348,6 +349,19 @@ bool SymbolDefinitionModel::markierungLoeschenSetzen(const QString &symbolId, bo
     q.bindValue(":id", symbolId);
     if (!q.exec()) {
         qCWarning(lcModel) << "markierungLoeschenSetzen:" << q.lastError().text();
+        return false;
+    }
+    return q.numRowsAffected() > 0;
+}
+
+bool SymbolDefinitionModel::bmkKennbuchstabeSetzen(const QString &symbolId, const QString &kennbuchstabe)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE symbol_definition SET bmk_kennbuchstabe = :k WHERE id = :id");
+    q.bindValue(":k",  kennbuchstabe.isEmpty() ? QVariant() : kennbuchstabe);
+    q.bindValue(":id", symbolId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "bmkKennbuchstabeSetzen:" << q.lastError().text();
         return false;
     }
     return q.numRowsAffected() > 0;

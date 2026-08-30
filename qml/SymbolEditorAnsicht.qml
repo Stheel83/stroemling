@@ -39,6 +39,11 @@ Item {
     // Grundausrichtung bei 0° bereits vertikal ist, z.B. Kontakte nach
     // SYMBOL-VERTIKAL-01). Siehe CanvasRenderHandler.qml maleElement().
     property string bmkSeiteText:  "auto"
+    // NKZ-05: Vorschlag fuer den BMK-Kennbuchstaben (z.B. "M" fuer Motor),
+    // wird beim Platzieren als Praefix fuer das automatische Platzhalter-BMK
+    // gelesen. Reine Klassifikations-Metadatur ohne Geometriebezug - bewusst
+    // unabhaengig vom Builtin-Schreibschutz speicherbar, siehe speichern().
+    property string bmkKennbuchstabeText: ""
     // Symbolweite Schriftgröße (mm) für Pin-Beschriftungen im Canvas/PDF-Export
     // (PIN-LABEL-SCHRIFTGROESSE-01) — eng bestückte Symbole (Arduino, SPS-
     // Baugruppen im 4mm-Raster) brauchen kleinere Schrift als Symbole mit
@@ -139,6 +144,7 @@ Item {
             rolleText     = vInfo.rolle     || "durchleiter"
             bmkSeiteText  = vInfo.bmkSeite  || "auto"
             pinSchriftMm  = vInfo.pinSchriftMm || 2.0
+            bmkKennbuchstabeText = vInfo.bmkKennbuchstabe || ""
             istBuiltin    = false
 
             var vPrims   = symbolDefinitionModel.primitiveFuerSymbol(vorlageId)
@@ -168,6 +174,7 @@ Item {
             rolleText     = "durchleiter"
             bmkSeiteText  = "auto"
             pinSchriftMm  = 2.0
+            bmkKennbuchstabeText = ""
             istBuiltin    = false
             primitive     = []
             pins          = []
@@ -180,6 +187,7 @@ Item {
             rolleText     = info.rolle     || "durchleiter"
             bmkSeiteText  = info.bmkSeite  || "auto"
             pinSchriftMm  = info.pinSchriftMm || 2.0
+            bmkKennbuchstabeText = info.bmkKennbuchstabe || ""
             istBuiltin    = info.ist_builtin     || false
 
             var prims = symbolDefinitionModel.primitiveFuerSymbol(editSymbolId)
@@ -317,8 +325,16 @@ Item {
 
     // ── Speichern ──────────────────────────────────────────────────
     function speichern() {
+        // NKZ-05: Kennbuchstabe ist reine Klassifikations-Metadatur ohne
+        // Geometriebezug - bewusst VOR dem Builtin-Schreibschutz gespeichert,
+        // damit auch eingebaute Symbole (Motor, Sicherung, ...) einen
+        // BMK-Kennbuchstaben bekommen koennen, ohne den Geometrieschutz
+        // aufzuweichen.
+        if (istBuiltin && editSymbolId !== "")
+            symbolDefinitionModel.bmkKennbuchstabeSetzen(editSymbolId, bmkKennbuchstabeText.trim())
+
         if (istBuiltin) {
-            meldungManager.zeigen(qsTr("Eingebaute Symbole können nicht verändert werden. Nutze «Als Vorlage kopieren»."), false)
+            meldungManager.zeigen(qsTr("Eingebaute Symbole können nicht verändert werden (Kennbuchstabe wurde übernommen). Für Geometrieänderungen «Als Vorlage kopieren» nutzen."), false)
             return
         }
 
@@ -340,6 +356,7 @@ Item {
         } else {
             symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm)
         }
+        symbolDefinitionModel.bmkKennbuchstabeSetzen(sid, bmkKennbuchstabeText.trim())
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)
         for (var i = 0; i < primitive.length; i++) {

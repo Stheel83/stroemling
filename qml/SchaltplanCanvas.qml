@@ -1342,6 +1342,21 @@ Item {
             bmkNachPlatzierenDialog.close()
         }
 
-        onOpened: { bmkField.text = ""; bmkField.forceActiveFocus() }
+        onOpened: {
+            // NKZ-05: Vorschlag aus bauteil.bmk_vorlage vorbelegen statt leerem
+            // Feld - Nutzer bestaetigt per Enter/"Anlegen" oder passt an, bevor
+            // ueberhaupt ein betriebsmittel-Datensatz entsteht (siehe
+            // bmkAnlegenUndSchliessen() oben).
+            var _vorschlag = ""
+            if (root._bmkBauteilId > 0) {
+                var _bt = bauteilModel.bauteilNachId(root._bmkBauteilId)
+                var _praefix = (_bt && _bt.bmkVorlage) ? _bt.bmkVorlage.trim() : ""
+                if (_praefix !== "" && !_praefix.startsWith("-")) _praefix = "-" + _praefix
+                if (_praefix !== "") _vorschlag = db.naechsteBmkNummer(root.projektId, _praefix)
+            }
+            bmkField.text = _vorschlag
+            bmkField.forceActiveFocus()
+            bmkField.selectAll()
+        }
     }
 }

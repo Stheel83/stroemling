@@ -110,6 +110,8 @@ Dialog {
                     )
                     if (newId > 0 && root.gewaehlterSymbolId !== "")
                         bauteilModel.symbolSpeichern(newId, root.gewaehlterSymbolId)
+                    if (newId > 0 && neuForm.bmkVorlage.trim() !== "")
+                        bauteilModel.bmkVorlageSpeichern(newId, neuForm.bmkVorlage.trim())
                     root.close()
                 }
             }

@@ -2294,6 +2294,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE grafik_element SET symbol_id='motor_mit_pe' WHERE symbol_id='kopie_von_motor')",
             R"(DELETE FROM symbol_definition WHERE id='kopie_von_motor')",
         }},
+
+        { 143, "NKZ-05 (Konzept konzept/features/07_normkennzeichnung.md §7): symbol_definition.bmk_kennbuchstabe ergaenzt - Fallback-Kennbuchstabe (z.B. 'M' fuer Motor) fuer das automatische Platzhalter-BMK beim Platzieren freihaendig aus der Symbolpalette gezogener Symbole. Analog zu bauteil.bmk_vorlage (existiert bereits fuer den Bauteil-first/Geraetekasten-Weg), aber auf Symbol-Ebene fuer den Weg ohne Bauteil-Verknuepfung. Leere Spalte, keine Datenmigration noetig - Nutzer traegt die Kennbuchstaben selbst symbolweise ein (Symboleditor, Feld wirkt bewusst auch bei ist_builtin=1, da reine Klassifikations-Metadatur ohne Geometriebezug).", {
+            R"(ALTER TABLE symbol_definition ADD COLUMN bmk_kennbuchstabe TEXT)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

@@ -51,6 +51,7 @@ Item {
 
         property int    itemId:           -1
         property string altBezeichnung:   ""
+        property string altBmkVorlage:    ""
         property string altHersteller:    ""
         property string altArtikelnummer: ""
         property string altLieferant:     ""
@@ -69,6 +70,7 @@ Item {
 
         onOpened: {
             editForm.bezeichnung   = dlgBauteilBearbeiten.altBezeichnung
+            editForm.bmkVorlage    = dlgBauteilBearbeiten.altBmkVorlage
             editForm.hersteller    = dlgBauteilBearbeiten.altHersteller
             editForm.artikelnummer = dlgBauteilBearbeiten.altArtikelnummer
             editForm.lieferant     = dlgBauteilBearbeiten.altLieferant
@@ -312,6 +314,7 @@ Item {
                             editForm.urlDatenblatt.trim()
                         )
                         bauteilModel.symbolSpeichern(dlgBauteilBearbeiten.itemId, dlgBauteilBearbeiten.altSymbolId)
+                        bauteilModel.bmkVorlageSpeichern(dlgBauteilBearbeiten.itemId, editForm.bmkVorlage.trim())
                         dlgBauteilBearbeiten.close()
                     }
                 }
@@ -784,6 +787,7 @@ Item {
                                 onClicked: {
                                     dlgBauteilBearbeiten.itemId           = model.bauteilId
                                     dlgBauteilBearbeiten.altBezeichnung   = model.bezeichnung
+                                    dlgBauteilBearbeiten.altBmkVorlage    = model.bmkVorlage
                                     dlgBauteilBearbeiten.altHersteller    = model.hersteller
                                     dlgBauteilBearbeiten.altArtikelnummer = model.artikelnummer
                                     dlgBauteilBearbeiten.altLieferant     = model.lieferant

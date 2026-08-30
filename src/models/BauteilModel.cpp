@@ -222,7 +222,10 @@ void BauteilListModel::ladenIntern()
         "(SELECT COUNT(*) FROM bibliothek.bauteil_kabel_ader WHERE kabel_id = ka.id), "
         "COALESCE(sv.polzahl,0), COALESCE(sv.montageform,''), "
         "COALESCE(kt.geschlecht,''), COALESCE(kt.kontaktgroesse,0), COALESCE(kt.verbindungstechnik,''), "
-        "COALESCE(kk.laenge_m,0), COALESCE(kkka.kabeltyp,'') "
+        "COALESCE(kk.laenge_m,0), COALESCE(kkka.kabeltyp,''), "
+        // NKZ-05: BMK-Kennbuchstaben-Vorschlag, bewusst ganz ans Ende angehaengt
+        // (siehe Kommentar oben zu BAUTEILLISTE-KONTEXTSPALTEN-01).
+        "COALESCE(b.bmk_vorlage,'') "
         "FROM bibliothek.bauteil b "
         "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
         "LEFT JOIN bibliothek.farb_definition fd            ON fd.id = k.gehaeuse_farbe_id "
@@ -303,6 +306,7 @@ void BauteilListModel::ladenIntern()
         b.verbindungstechnik       = q.value(32).toString();
         b.laengeM                  = q.value(33).toDouble();
         b.konfkabelKabeltyp        = q.value(34).toString();
+        b.bmkVorlage                = q.value(35).toString();
         m_bauteile.append(b);
     }
 
@@ -327,6 +331,7 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case BauteilIdRole:     return b.id;
     case KategorieIdRole:   return b.kategorieId;
     case BezeichnungRole:   return b.bezeichnung;
+    case BmkVorlageRole:    return b.bmkVorlage;
     case HerstellerRole:    return b.hersteller;
     case ArtikelnummerRole: return b.artikelnummer;
     case LieferantRole:     return b.lieferant;
@@ -369,6 +374,7 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { BauteilIdRole,     "bauteilId"     },
         { KategorieIdRole,   "kategorieId"   },
         { BezeichnungRole,   "bezeichnung"   },
+        { BmkVorlageRole,    "bmkVorlage"    },
         { HerstellerRole,    "hersteller"    },
         { ArtikelnummerRole, "artikelnummer" },
         { LieferantRole,     "lieferant"     },
@@ -785,7 +791,7 @@ QVariantMap BauteilListModel::bauteilNachId(int id) const
               "COALESCE(lieferant,''), COALESCE(preis_eur,0), COALESCE(spannung_v,0), "
               "COALESCE(strom_a,0), COALESCE(leistung_w,0), COALESCE(bemerkung,''), "
               "COALESCE(url_hersteller,''), COALESCE(url_datenblatt,''), "
-              "COALESCE(ist_system,0) "
+              "COALESCE(ist_system,0), COALESCE(bmk_vorlage,'') "
               "FROM bibliothek.bauteil WHERE id = :id");
     q.bindValue(":id", id);
     if (!q.exec() || !q.next()) return m;
@@ -801,6 +807,7 @@ QVariantMap BauteilListModel::bauteilNachId(int id) const
     m["urlHersteller"] = q.value(9).toString();
     m["urlDatenblatt"] = q.value(10).toString();
     m["istSystem"]     = q.value(11).toInt() != 0;
+    m["bmkVorlage"]    = q.value(12).toString();
     return m;
 }
 
@@ -815,6 +822,20 @@ bool BauteilListModel::bauteilTitelSpeichern(int id, const QString &bezeichnung,
     q.bindValue(":id", id);
     if (!q.exec()) {
         qCWarning(lcModel) << "bauteilTitelSpeichern Fehler:" << q.lastError().text();
+        return false;
+    }
+    laden(m_aktiveKategorieId);
+    return true;
+}
+
+bool BauteilListModel::bmkVorlageSpeichern(int id, const QString &bmkVorlage)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE bibliothek.bauteil SET bmk_vorlage = :bmk WHERE id = :id");
+    q.bindValue(":bmk", bmkVorlage.isEmpty() ? QVariant() : bmkVorlage);
+    q.bindValue(":id",  id);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "bmkVorlageSpeichern Fehler:" << q.lastError().text();
         return false;
     }
     laden(m_aktiveKategorieId);

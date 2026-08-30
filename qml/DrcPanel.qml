@@ -168,6 +168,18 @@ Item {
             })
         }
 
+        var d13 = db.drcUnbestaetigtesPlatzhalterBmk(root.projektId)
+        for (var u = 0; u < d13.length; u++) {
+            var pb = d13[u]
+            ergebnisModel.append({
+                "typ":       "bmk_unbestaetigt",
+                "meldung":   qsTr("Unbestätigtes Platzhalter-BMK: %1").arg(pb.bmk || "?"),
+                "detail":    qsTr("Seite: %1 – automatisch vorgeschlagen, im Eigenschaften-Panel prüfen").arg(pb.seiteName),
+                "seiteId":   pb.seiteId,
+                "elementId": pb.elementId
+            })
+        }
+
         root.hatGeprueft = true
         achievementManager.ereignis("drc_ausgefuehrt", { "fehlerAnzahl": ergebnisModel.count })
     }

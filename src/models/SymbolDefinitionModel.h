@@ -105,6 +105,12 @@ public:
     // selbst). SYM-LOESCH-MARKIERUNG-01.
     Q_INVOKABLE bool markierungLoeschenSetzen(const QString &symbolId, bool markiert);
 
+    // BMK-Kennbuchstaben-Vorschlag setzen (auch für ist_builtin=1 — reine
+    // Klassifikations-Metadatur ohne Geometriebezug, siehe NKZ-05 in
+    // konzept/features/07_normkennzeichnung.md §7). Leerer String löscht
+    // den Vorschlag wieder (kein automatisches Platzhalter-BMK).
+    Q_INVOKABLE bool bmkKennbuchstabeSetzen(const QString &symbolId, const QString &kennbuchstabe);
+
     // Einzelnes Primitiv hinzufügen; gibt neue Zeilen-ID zurück (-1 bei Fehler).
     // daten: {typ, reihenfolge, x1, y1, x2, y2, x3, y3, radius,
     //         winkel_von, winkel_bis, bogen_gegen_uhrzeiger,

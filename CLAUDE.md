@@ -84,7 +84,7 @@ Danach nur die Konzeptdateien die zum aktuellen Thema passen.
 | `konzept/features/symbolgroessen_audit.md` | Symbolgrößen-Audit gegen EPLAN-Referenzmaße (Bounding-Box-Korrektur, familienweise) | 🔄 Messphase |
 | `konzept/features/05_leitungen_kabel.md` | Einzelader, Kabelbaum, Verbindungslogik im Canvas | ✅ |
 | `konzept/features/06_bauteilbibliothek.md` | Bibliotheksstruktur, Varianten, Kabeldefinitionen | ✅ |
-| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Schriftfeld DIN 6771/EN ISO 7200 (beide Stile wählbar), NKZ-04 Default-Anlage/Ort | ✅ NKZ-01 entschieden (klassisches Schema beibehalten, Jun 2026) · 🔄 NKZ-05 Konzept fertig, Umsetzung offen (Aug 2026) |
+| `konzept/features/07_normkennzeichnung.md` | BMK nach DIN EN 81346, Schriftfeld DIN 6771/EN ISO 7200 (beide Stile wählbar), NKZ-04 Default-Anlage/Ort, NKZ-05 automatisches Platzhalter-BMK | ✅ NKZ-01 entschieden (klassisches Schema beibehalten, Jun 2026) · ✅ NKZ-05 implementiert (Aug 2026), Live-Test im Programm noch offen |
 | `konzept/features/09_klemmen.md` | Klemmen: 3-Ebenen-Modell, Bauteil-Editor, Klemmenreihen-Editor, Canvas-Platzierung | ✅ |
 | `konzept/features/11_symboleditor.md` | Symbole visuell erstellen und bearbeiten | ✅ |
 | `konzept/features/12_Kabelberechnung.md` | Kabelquerschnitt-Rechner: Formeln, UI-Layout, Normen-Referenztabellen (IP/IK/VDE/IEC) | ✅ |

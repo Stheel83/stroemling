@@ -845,6 +845,9 @@ public:
     // Gibt Symbole zurück, die ein BMK benötigen aber keines haben.
     // Rückgabe: [{elementId, symbolId, seiteId, seiteName}]
     Q_INVOKABLE QVariantList drcSymboleOhneBmk(int projektId);
+    // D-13 (NKZ-05): automatisch vergebene, vom Nutzer noch nicht bestaetigte Platzhalter-BMKs.
+    // Rückgabe: [{elementId, symbolId, seiteId, seiteName, bmk}]
+    Q_INVOKABLE QVariantList drcUnbestaetigtesPlatzhalterBmk(int projektId);
     // Gibt Seiten zurück, die keine Bezeichnung haben.
     // Rückgabe: [{seiteId, blattnummer}]
     Q_INVOKABLE QVariantList drcSeitenOhneBezeichnung(int projektId);

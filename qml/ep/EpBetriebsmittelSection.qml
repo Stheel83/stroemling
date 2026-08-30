@@ -209,6 +209,9 @@ Item {
                     anchors { fill: parent; margins: 5 }
                     color: root._istNf ? theme.borderLight : theme.textSecondary
                     font.pixelSize: 11
+                    // NKZ-05: automatisch vergebene, vom Nutzer noch nicht
+                    // bestaetigte Platzhalter-BMKs kursiv kennzeichnen.
+                    font.italic: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig)
                     verticalAlignment: TextInput.AlignVCenter
                     readOnly: root._istNf
 
@@ -220,10 +223,19 @@ Item {
                                  ? (panel.el.extraDaten.bmk || "") : ""
                         delayed: true
                     }
+                    ToolTip.visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig) && bmkHoverMa.containsMouse
+                    ToolTip.text: qsTr("Automatisch vorgeschlagen, noch nicht bestätigt")
+                    ToolTip.delay: 400
+                    MouseArea {
+                        id: bmkHoverMa; anchors.fill: parent; hoverEnabled: true
+                        acceptedButtons: Qt.NoButton
+                    }
                     onEditingFinished: {
                         var kz = text.trim()
                         if (kz !== "" && !kz.startsWith("-")) kz = "-" + kz
                         root.extraSetzen("bmk", kz)
+                        if (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig)
+                            root.extraSetzen("bmkVorlaeufig", false)
                         if (root._istHf && root._bmId > 0 && kz !== "") {
                             db.betriebsmittelKzSetzen(root._bmId, kz)
                             panel.canvas.seiteNeuLaden()
@@ -265,6 +277,8 @@ Item {
                         if (!praefix) praefix = "-?"
                         var vorschlag = db.naechsteBmkNummer(panel.canvas.projektId, praefix)
                         root.extraSetzen("bmk", vorschlag)
+                        if (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig)
+                            root.extraSetzen("bmkVorlaeufig", false)
                         if (root._istHf && root._bmId > 0)
                             db.betriebsmittelKzSetzen(root._bmId, vorschlag)
                     }

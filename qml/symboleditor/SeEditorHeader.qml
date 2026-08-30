@@ -173,6 +173,23 @@ Rectangle {
                 }
             }
 
+            Text {
+                text: qsTr("Kennbuchstabe:"); color: editor.theme.textMuted; font.pixelSize: 11
+                ToolTip.visible: kbHover.containsMouse; ToolTip.delay: 400
+                ToolTip.text: qsTr("BMK-Kennbuchstabe nach DIN EN 81346 (z.B. \"M\" fuer Motor, \"F\" fuer Sicherung). Wird beim Platzieren dieses Symbols als Praefix fuer das automatische Platzhalter-BMK vorgeschlagen. Leer = kein Vorschlag. Wirkt auch bei eingebauten Symbolen (reine Klassifikations-Metadatur, keine Geometrie).")
+                MouseArea { id: kbHover; anchors.fill: parent; hoverEnabled: true }
+            }
+            TextField {
+                id: kbFeld
+                text:              editor.bmkKennbuchstabeText
+                onEditingFinished: editor.bmkKennbuchstabeText = text
+                placeholderText:   qsTr("z.B. M")
+                implicitWidth: 60; implicitHeight: 28
+                font.pixelSize: 13
+                background: Rectangle { color: editor.theme.inputBg; radius: 4; border.color: editor.theme.border }
+                color: editor.theme.textPrimary
+            }
+
             Item { Layout.fillWidth: true }
 
             // Vergleichs-Navigation (SE-VERGLEICH-01) — nur sichtbar sobald 2+

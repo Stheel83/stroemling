@@ -21,6 +21,7 @@ struct BauteilEintrag {
     QString bezeichnung;
     QString hersteller;
     QString artikelnummer;
+    QString bmkVorlage;
     QString lieferant;
     double  preisEur;
     double  spannungV;
@@ -105,6 +106,7 @@ public:
         BauteilIdRole = Qt::UserRole + 1,
         KategorieIdRole,
         BezeichnungRole,
+        BmkVorlageRole,
         HerstellerRole,
         ArtikelnummerRole,
         LieferantRole,
@@ -183,6 +185,9 @@ public:
     Q_INVOKABLE bool bauteilTitelSpeichern(int id, const QString &bezeichnung,
                                             const QString &hersteller, const QString &artikelnummer);
     Q_INVOKABLE bool symbolSpeichern(int id, const QString &symbolId);
+    // NKZ-05: Vorschlag fuer den BMK-Kennbuchstaben dieses Bauteils (z.B. "-K"),
+    // wird beim Platzieren als Praefix fuer das automatische Platzhalter-BMK gelesen.
+    Q_INVOKABLE bool bmkVorlageSpeichern(int id, const QString &bmkVorlage);
     Q_INVOKABLE QVariantList bauteileWithSymbol() const;
 
     // ONBOARDING-KETTEN-01: reiner Entwicklungs-Merker (analog Symboleditor

@@ -412,9 +412,27 @@ void RosiManager::_pruefeAuftritt(int nutzungsminuten)
     _zaehlerSet("naechste_erscheinung_ab_minute", nutzungsminuten + intervall);
     _zaehlerSet("erschienen_anzahl", erschienenAnzahl + 1);
     _zaehlerSet("vorwarn_minuten", 0); // nächster Zyklus würfelt neu (s.o.)
+
+    // ROSI-14: m_vorwarnungAktiv lebt nur im RAM (nicht in rosi_zustand
+    // persistiert). Wird die App genau in dem einen Tick geschlossen und neu
+    // gestartet, der nutzungsminuten von "< vorwarnSchwelle" direkt auf
+    // "== schwelle" springen lässt, verschluckt die neue Session das
+    // Vorwarn-Fenster komplett — Rosi tauchte dann ohne sichtbare
+    // Rohröffnung auf (Öffnung wurde erst beim Zurückziehen sichtbar, weil
+    // _zurueckziehen() sie auf Grundopazität hochfaded). Statt die
+    // Vorwarnung ganz auszulassen, hier dieselbe kurze Vorwarnung wie
+    // jetztTesten() nachholen, bevor Rosi erscheint.
+    const bool vorwarnungVerschluckt = !m_vorwarnungAktiv;
     m_vorwarnungAktiv = false;
 
-    emit auftauchen(text);
+    if (vorwarnungVerschluckt) {
+        emit vorwarnung(kTestVorwarnSekunden);
+        QTimer::singleShot(kTestVorwarnSekunden * 1000, this, [this, text]() {
+            emit auftauchen(text);
+        });
+    } else {
+        emit auftauchen(text);
+    }
 }
 
 QString RosiManager::_spruchWaehlen(int erschienenAnzahl)

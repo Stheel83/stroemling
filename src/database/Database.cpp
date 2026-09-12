@@ -337,6 +337,19 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
         return false;
     }
 
+    // GRAFIK-INSERT-MISMATCH-01: checkAndApplySchema() wendet alle Migrationen
+    // > CURRENT_SCHEMA_VERSION an (z.B. kabel_id aus Migration 140). Ohne
+    // diesen Aufruf lief ein frisch erstelltes Projekt seine GESAMTE erste
+    // Sitzung mit veraltetem Schema, bis die Datei einmal neu geoeffnet wurde
+    // - sichtbar geworden als irrefuehrendes "Parameter count mismatch" beim
+    // allerersten grafikSpeichern() nach "Neues Projekt".
+    if (!checkAndApplySchema()) {
+        m_db.close(); m_db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        QFile::remove(localPath);
+        return false;
+    }
+
     if (m_bibliothekDb.isOpen()) {
         QSqlQuery att(m_db);
         att.exec(QString("ATTACH DATABASE '%1' AS bibliothek")
@@ -863,7 +876,10 @@ QStringList Database::projektZuletztVerwendeteSymbole(int projektId)
 bool Database::projektZuletztVerwendeteSymboleSpeichern(int projektId, const QStringList &codes)
 {
     QSqlQuery q(m_db);
-    q.prepare("UPDATE projekt SET zuletzt_verwendete_symbole = :liste WHERE id = :pid");
+    if (!q.prepare("UPDATE projekt SET zuletzt_verwendete_symbole = :liste WHERE id = :pid")) {
+        qCWarning(lcDb) << "projektZuletztVerwendeteSymboleSpeichern prepare:" << q.lastError().text();
+        return false;
+    }
     QString liste = codes.join(',');
     q.bindValue(":liste", liste);
     q.bindValue(":pid",   projektId);

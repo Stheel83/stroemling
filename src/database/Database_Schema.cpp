@@ -2355,6 +2355,9 @@ static QList<SchemaMigration> alleMigrationen()
                    SELECT 1 FROM symbol_bmk_kennbuchstabe skb WHERE skb.symbol_id = v.column1
                ))",
         }},
+        { 146, "GRAFIK-INSERT-MISMATCH-01: projekt.zuletzt_verwendete_symbole nachtraeglich fuer alle seit der CURRENT_SCHEMA_VERSION-Baseline (v129) neu erstellten Projekte ergaenzt - Migration 126 hatte die Spalte urspruenglich hinzugefuegt, aber createProjekt() traegt seit der Einfuehrung von CURRENT_SCHEMA_VERSION=129 fuer NEUE Projekte direkt Version 129 in schema_migration ein (Kommentar dort: 'alle Migrationen bis hier bereits in schema.sql') - schema.sql wurde dabei aber nie um diese Spalte ergaenzt, wodurch Migration 126 fuer jedes seither neu angelegte Projekt lautlos uebersprungen wurde. Sichtbar geworden als irrefuehrendes 'Parameter count mismatch' bei jedem Aufruf von projektZuletztVerwendeteSymboleSpeichern() (Symbolpalette 'Zuletzt verwendet') - Ursache war in Wahrheit ein 'no such column', aber der Rueckgabewert von QSqlQuery::prepare() wurde nirgends geprueft. ALTER TABLE ist idempotent (siehe applyMigrationStatements()), betrifft bereits korrekt migrierte Alt-Projekte also nicht.", {
+            R"(ALTER TABLE projekt ADD COLUMN zuletzt_verwendete_symbole TEXT NOT NULL DEFAULT '')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

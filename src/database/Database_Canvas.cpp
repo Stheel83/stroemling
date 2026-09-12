@@ -299,7 +299,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
     }
 
     QSqlQuery qIns;
-    qIns.prepare(R"(
+    if (!qIns.prepare(R"(
         INSERT INTO grafik_element
             (seite_id, typ, x1, y1, x2, y2,
              strich_farbe, strich_breite, strich_art,
@@ -316,7 +316,10 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
              :punkte, :textinhalt, :textausrichtung, :texteinpassen,
              :bildpfad, :bildmime, :extradaten, :bmid,
              :gid, :kid)
-    )");
+    )")) {
+        qCWarning(lcDb) << "grafikSpeichern insert prepare:" << qIns.lastError().text();
+        m_db.rollback(); return false;
+    }
 
     for (int i = 0; i < elemente.size(); i++) {
         const QVariantMap el = elemente.at(i).toMap();

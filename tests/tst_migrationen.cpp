@@ -331,6 +331,45 @@ private slots:
         QFile::remove(kopie + "-wal");
         QFile::remove(kopie + "-shm");
     }
+
+    // GRAFIK-INSERT-MISMATCH-01 Regressionstest: createProjekt() muss alle
+    // Migrationen > CURRENT_SCHEMA_VERSION sofort anwenden, nicht erst beim
+    // naechsten openProjekt(). Sonst laeuft ein frisch erstelltes Projekt
+    // seine gesamte erste Sitzung mit veraltetem Schema (z.B. fehlendes
+    // grafik_element.kabel_id aus Migration 140) - sichtbar geworden als
+    // irrefuehrendes "Parameter count mismatch" beim allerersten Speichern.
+    // Eigene Database-Instanz/Connection, damit es die anderen Tests (m_db)
+    // nicht stoert - deshalb ans Ende gesetzt.
+    void test_12_createProjektWendetNeueMigrationenSofortAn()
+    {
+        const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"
+                           + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".stroemling";
+        Database frisch;
+        QVERIFY2(frisch.createProjekt(tmp, "Soforttest"),
+                 "createProjekt() sollte auch die neuen Migrationen (>129) sofort anwenden");
+
+        QSqlQuery qs(QSqlDatabase::database());
+        QVERIFY(qs.exec("INSERT INTO seite (blattnummer, bezeichnung) VALUES ('1', 'Sofort')"));
+        int seiteId = qs.lastInsertId().toInt();
+
+        QVariantList elemente;
+        QVariantMap symbol;
+        symbol["typ"] = "symbol";
+        symbol["x1"] = 10.0; symbol["y1"] = 10.0;
+        symbol["x2"] = 30.0; symbol["y2"] = 30.0;
+        symbol["symbolId"] = "motor";
+        elemente.append(symbol);
+        QVERIFY2(frisch.grafikSpeichern(seiteId, elemente),
+                 "grafikSpeichern() direkt nach createProjekt() sollte funktionieren (kabel_id etc. aus Migration 140)");
+
+        QVERIFY2(frisch.projektZuletztVerwendeteSymboleSpeichern(1, {"motor"}),
+                 "projektZuletztVerwendeteSymboleSpeichern() direkt nach createProjekt() (Migration 146)");
+
+        frisch.closeProjekt();
+        QFile::remove(tmp);
+        QFile::remove(tmp + "-wal");
+        QFile::remove(tmp + "-shm");
+    }
 };
 
 QTEST_GUILESS_MAIN(TstMigrationen)

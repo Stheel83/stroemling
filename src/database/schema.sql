@@ -61,7 +61,8 @@ CREATE TABLE projekt (
     status          TEXT DEFAULT 'in_bearbeitung',
     bemerkung       TEXT,
     norm                TEXT NOT NULL DEFAULT 'IEC',
-    canvas_hintergrund  TEXT NOT NULL DEFAULT '#fdf8e8'
+    canvas_hintergrund  TEXT NOT NULL DEFAULT '#fdf8e8',
+    zuletzt_verwendete_symbole TEXT NOT NULL DEFAULT ''
 );
 
 -- Changelog

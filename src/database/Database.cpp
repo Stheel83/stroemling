@@ -864,10 +864,14 @@ bool Database::projektZuletztVerwendeteSymboleSpeichern(int projektId, const QSt
 {
     QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET zuletzt_verwendete_symbole = :liste WHERE id = :pid");
-    q.bindValue(":liste", codes.join(','));
+    QString liste = codes.join(',');
+    q.bindValue(":liste", liste);
     q.bindValue(":pid",   projektId);
     if (!q.exec()) {
-        qCWarning(lcDb) << "projektZuletztVerwendeteSymboleSpeichern:" << q.lastError().text();
+        qCWarning(lcDb) << "projektZuletztVerwendeteSymboleSpeichern:" << q.lastError().text()
+                         << "projektId=" << projektId << "codes=" << codes
+                         << "listeLen=" << liste.length()
+                         << "boundValues=" << q.boundValues();
         return false;
     }
     return true;

@@ -13,7 +13,7 @@ Item {
 
     // Tab-Rotation VOR Platzierung: Keys statt Shortcut, weil Qt Tab
     // vor Shortcuts an das Fokus-System weitergibt.
-    Keys.onTabPressed: {
+    Keys.onTabPressed: (event) => {
         if (root.aktivesWerkzeug === "symbol" && root.paletteSymbolId !== "") {
             root.paletteSymbolRotation = (root.paletteSymbolRotation + 90) % 360
             root.vorschau = root.symbolVorschauErstellen(root.letzteMausWeltX, root.letzteMausWeltY)

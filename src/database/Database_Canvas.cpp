@@ -475,7 +475,11 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
         }
 
         if (!qIns.exec()) {
-            qCWarning(lcDb) << "grafikSpeichern insert:" << qIns.lastError().text();
+            qCWarning(lcDb) << "grafikSpeichern insert:" << qIns.lastError().text()
+                             << "typ=" << el.value(QStringLiteral("typ")).toString()
+                             << "element" << (i + 1) << "von" << elemente.size()
+                             << "keys=" << el.keys()
+                             << "boundValues=" << qIns.boundValues();
             m_db.rollback(); return false;
         }
 

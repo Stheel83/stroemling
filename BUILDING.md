@@ -156,7 +156,7 @@ Loop grundsätzlich korrekter.
 
 ---
 
-## Linux-Build via GitHub Actions (ab v0.667 der reguläre Release-Weg)
+## Linux-Build via GitHub Actions (ab v0.67 der reguläre Release-Weg)
 
 **Update Aug 2026:** Ab der nächsten Version wird das Linux-Paket regulär
 über GitHub Actions gebaut, nicht mehr auf dem separaten Leap-16-Rechner.
@@ -327,7 +327,7 @@ Der Nutzer entpackt das ZIP und startet `stroemling_app.exe` — fertig.
 
 ---
 
-## Windows-Build via GitHub Actions (ab v0.667 der reguläre Release-Weg)
+## Windows-Build via GitHub Actions (ab v0.67 der reguläre Release-Weg)
 
 **Update Aug 2026:** Ab der nächsten Version wird auch das Windows-Paket
 regulär über GitHub Actions gebaut, nicht mehr manuell lokal per

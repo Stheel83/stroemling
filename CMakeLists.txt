@@ -474,7 +474,7 @@ target_link_libraries(stroemling_app PRIVATE
 target_include_directories(stroemling_app PRIVATE src)
 
 string(TIMESTAMP BUILD_DATE "%Y-%m-%d")
-target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}" APP_VERSION="0.666")
+target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}" APP_VERSION="0.67")
 
 # ============================================================
 # Tests

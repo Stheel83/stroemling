@@ -2033,6 +2033,17 @@ QtObject {
                                 ctx.textAlign    = "center"
                                 ctx.textBaseline = "bottom"
                             }
+                            // PIN-LABEL-OFFSET-01: manueller Zusatzversatz je Instanz/Pin
+                            // (extraDaten.pinLabelOffset = {pinName: {dx, dy}}, EP-Feld
+                            // "Versatz" im Pin-Bezeichnungen-Block), on top vom obigen
+                            // automatischen Versatz - für die seltenen Fälle, in denen der
+                            // nicht reicht (z.B. sehr eng benachbarte Pins). Gleiche
+                            // Werteinheit wie bmkOffsetX/Y (Weltwert = mm * mmToPx).
+                            var _pbManOff = (_pbEd.pinLabelOffset || {})[_pbPin.name]
+                            if (_pbManOff) {
+                                _pbX += (_pbManOff.dx || 0) * cv.zoom
+                                _pbY += (_pbManOff.dy || 0) * cv.zoom
+                            }
                             ctx.fillText(_pbLabel, _pbX, _pbY)
                         }
                         ctx.restore()

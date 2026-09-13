@@ -663,6 +663,7 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
 
     QVariantMap ed     = el.value("extraDaten").toMap();
     QVariantMap pinBez = ed.value("pinBez").toMap();
+    QVariantMap pinLabelOffset = ed.value("pinLabelOffset").toMap(); // PIN-LABEL-OFFSET-01
 
     double x1 = el.value("x1").toDouble(), y1 = el.value("y1").toDouble();
     double x2 = el.value("x2").toDouble(), y2 = el.value("y2").toDouble();
@@ -698,6 +699,15 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
 
         QPointF pos = pdfPinWeltPos(x1, y1, x2, y2, rot, spX, spY, pin.x, pin.y);
         double px = pos.x() * C, py = pos.y() * C;
+
+        // PIN-LABEL-OFFSET-01: manueller Zusatzversatz je Instanz/Pin, 1:1-Port
+        // des EP-Felds "Versatz" (EpSymbolSection.qml) / des Renderer-Ports in
+        // CanvasRenderHandler.qml - gleiche Werteinheit wie bmkOffsetX/Y.
+        if (pinLabelOffset.contains(pin.name)) {
+            QVariantMap off = pinLabelOffset.value(pin.name).toMap();
+            px += off.value("dx", 0.0).toDouble() * C;
+            py += off.value("dy", 0.0).toDouble() * C;
+        }
 
         double ox = pin.offenX, oy = pin.offenY;
         if (spX) ox = -ox;

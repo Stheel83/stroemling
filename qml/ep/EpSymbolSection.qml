@@ -114,6 +114,30 @@ Item {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
+    // PIN-LABEL-OFFSET-01: manueller Zusatzversatz je Pin-Beschriftung, on top
+    // vom automatisch berechneten Versatz quer zur Pin-Richtung (s. Renderer-
+    // Kommentar "PIN-LABEL-UEBERLAPP-02" in CanvasRenderHandler.qml). Für die
+    // seltenen Fälle, in denen der automatische Versatz bei eng benachbarten
+    // Pins (z.B. Arduino/SPS) nicht reicht. Gleiche Werteinheit/Konvention wie
+    // bmkOffsetX/Y (Weltwert = mm * mmToPx), damit derselbe Umrechnungscode
+    // wiederverwendbar ist. dx===0 && dy===0 löscht den Eintrag wieder (Default).
+    readonly property var _aktuellerPinLabelOffset:
+        (panel.el && panel.el.extraDaten && panel.el.extraDaten.pinLabelOffset)
+        ? panel.el.extraDaten.pinLabelOffset : ({})
+
+    function _pinLabelOffsetSetzen(pinName, dx, dy) {
+        var ed = panel.el && panel.el.extraDaten
+                 ? JSON.parse(JSON.stringify(panel.el.extraDaten)) : {}
+        if (!ed.pinLabelOffset) ed.pinLabelOffset = {}
+        if (dx === 0 && dy === 0) {
+            delete ed.pinLabelOffset[pinName]
+            if (Object.keys(ed.pinLabelOffset).length === 0) delete ed.pinLabelOffset
+        } else {
+            ed.pinLabelOffset[pinName] = { dx: dx, dy: dy }
+        }
+        panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
+    }
+
     Column {
         id: symbolCol
         width: parent.width; spacing: 0
@@ -341,36 +365,113 @@ Item {
 
                     Repeater {
                         model: panel.el ? root._pinsFuerBeschriftung(panel.el.symbolId || "") : []
-                        delegate: RowLayout {
-                            width: parent.width; height: 28
-                            spacing: 0
+                        delegate: Column {
+                            id: pinZeile
+                            width: parent.width; spacing: 2
 
-                            // Pin-Name (grau, links)
-                            Item {
-                                Layout.preferredWidth: 44; height: parent.height
-                                Text {
-                                    anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                                    text: modelData.name; font.pixelSize: 10
-                                    color: root.theme.textMuted
+                            readonly property var _off: root._aktuellerPinLabelOffset[modelData.name] || ({})
+
+                            RowLayout {
+                                width: parent.width; height: 28
+                                spacing: 0
+
+                                // Pin-Name (grau, links)
+                                Item {
+                                    Layout.preferredWidth: 44; height: parent.height
+                                    Text {
+                                        anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                        text: modelData.name; font.pixelSize: 10
+                                        color: root.theme.textMuted
+                                    }
+                                }
+
+                                // Editierbares Label
+                                Rectangle {
+                                    Layout.fillWidth: true; height: 24; radius: 3
+                                    Layout.rightMargin: 12
+                                    color: pinLabelTf.activeFocus ? root.theme.inputBgActive : root.theme.inputBg
+                                    border.color: pinLabelTf.activeFocus ? root.theme.accent : root.theme.border
+
+                                    TextInput {
+                                        id: pinLabelTf
+                                        anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
+                                        text: root._aktuellerPinBez[modelData.name] || modelData.name
+                                        color: root.theme.accent; font.pixelSize: 11
+                                        verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
+                                        onEditingFinished: root._pinBezSpeichern(modelData.name, text.trim())
+                                        Keys.onEscapePressed: { text = root._aktuellerPinBez[modelData.name] || modelData.name; focus = false }
+                                    }
                                 }
                             }
 
-                            // Editierbares Label
-                            Rectangle {
-                                Layout.fillWidth: true; height: 24; radius: 3
-                                Layout.rightMargin: 12
-                                color: pinLabelTf.activeFocus ? root.theme.inputBgActive : root.theme.inputBg
-                                border.color: pinLabelTf.activeFocus ? root.theme.accent : root.theme.border
-
-                                TextInput {
-                                    id: pinLabelTf
-                                    anchors { fill: parent; leftMargin: 6; rightMargin: 6 }
-                                    text: root._aktuellerPinBez[modelData.name] || modelData.name
-                                    color: root.theme.accent; font.pixelSize: 11
-                                    verticalAlignment: TextInput.AlignVCenter; selectByMouse: true
-                                    onEditingFinished: root._pinBezSpeichern(modelData.name, text.trim())
-                                    Keys.onEscapePressed: { text = root._aktuellerPinBez[modelData.name] || modelData.name; focus = false }
+                            // PIN-LABEL-OFFSET-01: manueller Zusatzversatz (mm), on top vom
+                            // automatischen Versatz quer zur Pin-Richtung. Nur für die seltenen
+                            // Fälle nötig, in denen der Automatismus bei eng benachbarten Pins
+                            // nicht reicht - daher bewusst klein/unauffällig unter dem Label.
+                            RowLayout {
+                                width: parent.width; height: 22
+                                spacing: 4
+                                Item { Layout.preferredWidth: 44; height: 1 }
+                                Text { text: qsTr("Versatz"); font.pixelSize: 9; color: root.theme.borderLight
+                                       Layout.preferredWidth: 40 }
+                                Rectangle {
+                                    Layout.preferredWidth: 34; height: 20; radius: 3
+                                    color: root.theme.inputBg
+                                    border.color: pinOxTf.activeFocus ? root.theme.accent : root.theme.border
+                                    TextInput {
+                                        id: pinOxTf
+                                        anchors { fill: parent; leftMargin: 3; rightMargin: 3 }
+                                        horizontalAlignment: TextInput.AlignRight
+                                        color: root.theme.textSecondary; font.pixelSize: 9
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        property real weltWert: pinZeile._off.dx || 0
+                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
+                                        Binding on text { when: !pinOxTf.activeFocus; value: (pinOxTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                                        onEditingFinished: {
+                                            var v = parseFloat(text.replace(",", "."))
+                                            if (!isNaN(v))
+                                                root._pinLabelOffsetSetzen(modelData.name, v * panel.canvas.mmToPx, pinZeile._off.dy || 0)
+                                        }
+                                        Keys.onEscapePressed: focus = false
+                                    }
                                 }
+                                Rectangle {
+                                    Layout.preferredWidth: 34; height: 20; radius: 3
+                                    color: root.theme.inputBg
+                                    border.color: pinOyTf.activeFocus ? root.theme.accent : root.theme.border
+                                    TextInput {
+                                        id: pinOyTf
+                                        anchors { fill: parent; leftMargin: 3; rightMargin: 3 }
+                                        horizontalAlignment: TextInput.AlignRight
+                                        color: root.theme.textSecondary; font.pixelSize: 9
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        property real weltWert: pinZeile._off.dy || 0
+                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
+                                        Binding on text { when: !pinOyTf.activeFocus; value: (pinOyTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                                        onEditingFinished: {
+                                            var v = parseFloat(text.replace(",", "."))
+                                            if (!isNaN(v))
+                                                root._pinLabelOffsetSetzen(modelData.name, pinZeile._off.dx || 0, v * panel.canvas.mmToPx)
+                                        }
+                                        Keys.onEscapePressed: focus = false
+                                    }
+                                }
+                                Text { text: qsTr("mm"); font.pixelSize: 9; color: root.theme.borderLight }
+                                Rectangle {
+                                    width: 18; height: 18; radius: 3
+                                    color: pinOffResetMa.containsMouse ? root.theme.hover : "transparent"
+                                    border.color: root.theme.border
+                                    visible: (pinZeile._off.dx || 0) !== 0 || (pinZeile._off.dy || 0) !== 0
+                                    Text { anchors.centerIn: parent; text: "↺"; font.pixelSize: 10; color: root.theme.textMuted }
+                                    MouseArea {
+                                        id: pinOffResetMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: root._pinLabelOffsetSetzen(modelData.name, 0, 0)
+                                    }
+                                    ToolTip { visible: pinOffResetMa.containsMouse; text: qsTr("Versatz zurücksetzen"); delay: 500 }
+                                }
+                                Item { Layout.fillWidth: true; height: 1 }
                             }
                         }
                     }

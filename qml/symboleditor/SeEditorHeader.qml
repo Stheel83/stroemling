@@ -159,17 +159,32 @@ Rectangle {
                 onCurrentIndexChanged: editor.bmkSeiteText = model[currentIndex]
                 implicitWidth: 100; implicitHeight: 28; font.pixelSize: 12
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
-                contentItem: Text {
-                    text: {
-                        switch (bmkSeiteCombo.currentIndex) {
-                        case 1: return qsTr("Seitlich")
-                        case 2: return qsTr("Unten")
-                        case 3: return qsTr("Oben")
-                        default: return qsTr("Auto")
-                        }
+
+                // BMK-SEITE-LABEL-01: Anzeige-Label statt Rohwert, für geschlossene Box
+                // UND Popup-Liste identisch (vorher zeigte nur die geschlossene Box
+                // "Seitlich" für "vertikal", die aufgeklappte Liste aber den rohen
+                // DB-Wert "vertikal" - wirkte wie zwei verschiedene Optionen).
+                function label(i) {
+                    switch (i) {
+                    case 1: return qsTr("Seitlich")
+                    case 2: return qsTr("Unten")
+                    case 3: return qsTr("Oben")
+                    default: return qsTr("Auto")
                     }
+                }
+                contentItem: Text {
+                    text: bmkSeiteCombo.label(bmkSeiteCombo.currentIndex)
                     color: editor.theme.textPrimary; font.pixelSize: 12
                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                }
+                delegate: ItemDelegate {
+                    width: bmkSeiteCombo.width
+                    contentItem: Text {
+                        text: bmkSeiteCombo.label(index)
+                        color: editor.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: 8; verticalAlignment: Text.AlignVCenter
+                    }
+                    highlighted: bmkSeiteCombo.highlightedIndex === index
                 }
             }
 

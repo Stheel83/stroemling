@@ -13,6 +13,20 @@ Column {
 
     property bool _expanded: true
 
+    // Identisch zu AderKreuzungPicker.qml/AderzuordnungDialog.qml - dort
+    // lokal dupliziert statt geteilt, hier bisher übersehen (IEC-FARBE-01):
+    // panel.canvas.iecFarbe() existiert nicht, canvas kennt keine solche
+    // Methode - jeder Aufruf warf "is not a function", die Farbpunkte bei
+    // den Ader-Zeilen blieben dadurch immer auf dem Fallback-Grau.
+    function iecFarbe(code) {
+        var m = {
+            "BK": "#1a1a1a", "BN": "#7B3F00", "RD": "#CC0000", "OG": "#FF7700",
+            "YE": "#CCCC00", "GN": "#006600", "BU": "#0044AA", "VT": "#660099",
+            "GY": "#777777", "WH": "#CCCCCC", "PK": "#FF99BB"
+        }
+        return m[code] || "#888888"
+    }
+
     // KABEL-ADERFARBE-PROPAGATION-02: "Dieser Linie zugeordnet" zeigt NICHT
     // die statische Ader-Roster-Liste des Kabeltyps (extra_daten.adern —
     // die bleibt unverändert, auch wenn die Linie gar keine Verbindung mehr
@@ -103,7 +117,7 @@ Column {
                         Rectangle {
                             width: 10; height: 10; radius: 5
                             visible: (modelData.farbe || "") !== ""
-                            color: panel.canvas.iecFarbe(modelData.farbe || "")
+                            color: root.iecFarbe(modelData.farbe || "")
                             border.color: "#00000055"; border.width: 1
                             Layout.alignment: Qt.AlignVCenter
                         }
@@ -156,7 +170,7 @@ Column {
                         Rectangle {
                             width: 10; height: 10; radius: 5
                             visible: (modelData.farbe || "") !== ""
-                            color: panel.canvas.iecFarbe(modelData.farbe || "")
+                            color: root.iecFarbe(modelData.farbe || "")
                             border.color: "#00000055"; border.width: 1
                             Layout.alignment: Qt.AlignVCenter
                         }

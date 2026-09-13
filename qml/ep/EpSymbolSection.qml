@@ -389,7 +389,7 @@ Item {
                                 Rectangle {
                                     Layout.fillWidth: true; height: 24; radius: 3
                                     Layout.rightMargin: 12
-                                    color: pinLabelTf.activeFocus ? root.theme.inputBgActive : root.theme.inputBg
+                                    color: root.theme.inputBg
                                     border.color: pinLabelTf.activeFocus ? root.theme.accent : root.theme.border
 
                                     TextInput {

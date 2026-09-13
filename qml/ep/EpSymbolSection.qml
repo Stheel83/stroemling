@@ -424,12 +424,18 @@ Item {
                                         horizontalAlignment: TextInput.AlignRight
                                         color: root.theme.textSecondary; font.pixelSize: 9
                                         verticalAlignment: TextInput.AlignVCenter
-                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        // Bewusst ganzzahlig ohne Komma/Punkt (PIN-LABEL-OFFSET-02,
+                                        // Nutzerwunsch): DoubleValidator ohne explizites locale nutzt
+                                        // die Systemsprache (Komma als Dezimaltrennzeichen), verschluckt
+                                        // dadurch beim Tippen von "5.0" den Punkt lautlos - Ergebnis war
+                                        // "50". Ganzzahlige mm sind für einen Label-Nudge ausreichend
+                                        // präzise, umgeht das Locale-Problem komplett statt es zu fixen.
+                                        validator: IntValidator { bottom: -999; top: 999 }
                                         property real weltWert: pinZeile._off.dx || 0
-                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
-                                        Binding on text { when: !pinOxTf.activeFocus; value: (pinOxTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                                        text: Math.round(weltWert / panel.canvas.mmToPx)
+                                        Binding on text { when: !pinOxTf.activeFocus; value: Math.round(pinOxTf.weltWert / panel.canvas.mmToPx); delayed: true }
                                         onEditingFinished: {
-                                            var v = parseFloat(text.replace(",", "."))
+                                            var v = parseInt(text, 10)
                                             if (!isNaN(v))
                                                 root._pinLabelOffsetSetzen(modelData.name, v * panel.canvas.mmToPx, pinZeile._off.dy || 0)
                                         }
@@ -446,12 +452,12 @@ Item {
                                         horizontalAlignment: TextInput.AlignRight
                                         color: root.theme.textSecondary; font.pixelSize: 9
                                         verticalAlignment: TextInput.AlignVCenter
-                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        validator: IntValidator { bottom: -999; top: 999 }
                                         property real weltWert: pinZeile._off.dy || 0
-                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
-                                        Binding on text { when: !pinOyTf.activeFocus; value: (pinOyTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
+                                        text: Math.round(weltWert / panel.canvas.mmToPx)
+                                        Binding on text { when: !pinOyTf.activeFocus; value: Math.round(pinOyTf.weltWert / panel.canvas.mmToPx); delayed: true }
                                         onEditingFinished: {
-                                            var v = parseFloat(text.replace(",", "."))
+                                            var v = parseInt(text, 10)
                                             if (!isNaN(v))
                                                 root._pinLabelOffsetSetzen(modelData.name, pinZeile._off.dx || 0, v * panel.canvas.mmToPx)
                                         }

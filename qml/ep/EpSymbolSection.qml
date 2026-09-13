@@ -255,12 +255,12 @@ Item {
                                         horizontalAlignment: TextInput.AlignRight
                                         color: root.theme.textSecondary; font.pixelSize: 10
                                         verticalAlignment: TextInput.AlignVCenter
-                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        validator: IntValidator { bottom: -999; top: 999 }
                                         property real weltWert: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkOffsetX !== undefined)
                                                                 ? panel.el.extraDaten.bmkOffsetX : 0
-                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
-                                        Binding on text { when: !symOxTf.activeFocus; value: (symOxTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
-                                        onEditingFinished: { var v = parseFloat(text.replace(",",".")); if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * panel.canvas.mmToPx) }
+                                        text: Math.round(weltWert / panel.canvas.mmToPx)
+                                        Binding on text { when: !symOxTf.activeFocus; value: Math.round(symOxTf.weltWert / panel.canvas.mmToPx); delayed: true }
+                                        onEditingFinished: { var v = parseInt(text, 10); if (!isNaN(v)) root.extraSetzen("bmkOffsetX", v * panel.canvas.mmToPx) }
                                         Keys.onEscapePressed: focus = false
                                     }
                                 }
@@ -283,12 +283,12 @@ Item {
                                         horizontalAlignment: TextInput.AlignRight
                                         color: root.theme.textSecondary; font.pixelSize: 10
                                         verticalAlignment: TextInput.AlignVCenter
-                                        validator: DoubleValidator { bottom: -999; top: 999; decimals: 1; notation: DoubleValidator.StandardNotation }
+                                        validator: IntValidator { bottom: -999; top: 999 }
                                         property real weltWert: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkOffsetY !== undefined)
                                                                 ? panel.el.extraDaten.bmkOffsetY : -14
-                                        text: (weltWert / panel.canvas.mmToPx).toFixed(1)
-                                        Binding on text { when: !symOyTf.activeFocus; value: (symOyTf.weltWert / panel.canvas.mmToPx).toFixed(1); delayed: true }
-                                        onEditingFinished: { var v = parseFloat(text.replace(",",".")); if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * panel.canvas.mmToPx) }
+                                        text: Math.round(weltWert / panel.canvas.mmToPx)
+                                        Binding on text { when: !symOyTf.activeFocus; value: Math.round(symOyTf.weltWert / panel.canvas.mmToPx); delayed: true }
+                                        onEditingFinished: { var v = parseInt(text, 10); if (!isNaN(v)) root.extraSetzen("bmkOffsetY", v * panel.canvas.mmToPx) }
                                         Keys.onEscapePressed: focus = false
                                     }
                                 }

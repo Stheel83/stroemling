@@ -50,8 +50,13 @@ Dialog {
                 : _stripUrl(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)) + "/export.pdf"
         }
 
-        // StandardPaths gibt in Qt6/QML URLs zurück (file:///…) – immer strippen
+        // StandardPaths gibt in Qt6/QML URLs zurück (file:///…) – immer strippen.
+        // PDF-STRIPURL-01: StandardPaths.writableLocation() liefert ein echtes
+        // QML-url-Objekt (kein String) - .startsWith() darauf wirft "is not a
+        // function". String(s) erzwingt die Konvertierung, funktioniert für
+        // beide Fälle (schon-String aus tfPfad.text, oder url-Objekt).
         function _stripUrl(s) {
+            s = String(s)
             if (s.startsWith("file:///")) return s.substring(7)
             if (s.startsWith("file://"))  return s.substring(7)
             return s

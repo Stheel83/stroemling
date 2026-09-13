@@ -124,7 +124,7 @@ ColumnLayout {
                     id:           ordOeffMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: if (root.appOrdner !== "") Qt.openUrlExternally("file://" + root.appOrdner)
+                    onClicked: if (root.appOrdner !== "") Qt.openUrlExternally("file:///" + root.appOrdner.replace(/^\/+/, ""))
                 }
                 ToolTip { visible: ordOeffMouse.containsMouse; text: qsTr("Im Dateimanager öffnen"); delay: 600 }
             }

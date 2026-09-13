@@ -614,7 +614,7 @@ Item {
                         Text { anchors.centerIn: parent; text: "📁"; font.pixelSize: 13 }
                         MouseArea {
                             id: pfad1Ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: Qt.openUrlExternally("file://" + db.projektPfad.substring(0, db.projektPfad.lastIndexOf("/")))
+                            onClicked: Qt.openUrlExternally("file:///" + db.projektPfad.substring(0, db.projektPfad.lastIndexOf("/")).replace(/^\/+/, ""))
                             ToolTip.visible: containsMouse; ToolTip.delay: 600
                             ToolTip.text: qsTr("Verzeichnis öffnen")
                         }

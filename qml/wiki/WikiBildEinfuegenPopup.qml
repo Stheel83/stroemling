@@ -64,7 +64,7 @@ Popup {
 
                     Image {
                         anchors.fill: parent
-                        source:       modelData.tempPfad ? "file://" + modelData.tempPfad : ""
+                        source:       modelData.tempPfad || ""
                         fillMode:     Image.PreserveAspectCrop
                         smooth:       true
                         asynchronous: true

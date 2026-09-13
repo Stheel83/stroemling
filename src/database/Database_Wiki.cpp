@@ -630,7 +630,7 @@ QString Database::wikiBildAlsTempDatei(int id)
     if (!q.exec() || !q.next()) return {};
     const QString fn = q.value(0).toString();
     if (fn.isEmpty()) return {};
-    return m_wikiBlobDir + "/" + fn;
+    return QUrl::fromLocalFile(m_wikiBlobDir + "/" + fn).toString();
 }
 
 // ============================================================

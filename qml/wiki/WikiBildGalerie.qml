@@ -74,7 +74,7 @@ Rectangle {
 
                 Image {
                     anchors.fill: parent
-                    source:       modelData.tempPfad ? "file://" + modelData.tempPfad : ""
+                    source:       modelData.tempPfad || ""
                     fillMode:     Image.PreserveAspectCrop
                     smooth:       true
                     asynchronous: true
@@ -103,7 +103,7 @@ Rectangle {
                 TapHandler {
                     onTapped: {
                         root.vollbildAnzeigen(
-                            modelData.tempPfad ? "file://" + modelData.tempPfad : "",
+                            modelData.tempPfad || "",
                             modelData.beschreibung || modelData.dateiname
                         )
                     }

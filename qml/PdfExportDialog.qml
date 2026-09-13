@@ -144,7 +144,7 @@ Dialog {
                         if (p.startsWith("file:///")) p = p.substring(7)
                         else if (p.startsWith("file://")) p = p.substring(7)
                         if (!p.endsWith(".pdf")) p = p + ".pdf"
-                        speicherDialog.selectedFile = "file://" + p
+                        speicherDialog.selectedFile = "file:///" + p.replace(/^\/+/, "")
                         speicherDialog.accept()
                     }
                     contentItem: Text { text: parent.text; font.pixelSize: 12

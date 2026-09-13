@@ -115,7 +115,7 @@ Item {
         for (var i = 0; i < root._bilder.length; i++) {
             var b = root._bilder[i]
             if (b.tempPfad && b.id)
-                result = result.split("wiki://bild/" + b.id).join("file://" + b.tempPfad)
+                result = result.split("wiki://bild/" + b.id).join(b.tempPfad)
         }
         return result
     }

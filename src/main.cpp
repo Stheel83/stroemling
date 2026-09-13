@@ -195,8 +195,19 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_WIN
     // Auf Windows: single-threaded Render-Loop damit QSqlQuery in Canvas.onPaint
     // die Datenbankverbindung des Haupt-Threads nutzen kann.
-    // Fusion-Style explizit setzen, da der native Windows-Style nicht vollständig deployed wird.
     qputenv("QSG_RENDER_LOOP", "basic");
+#endif
+
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+    // STYLE-ABI-01 (Sep 2026): Fusion-Style explizit erzwingen - der native
+    // Style wird im AppImage/ZIP nicht vollständig deployed (Windows) bzw.
+    // löst auf Linux+KDE-Desktops den System-Breeze-QQC2-Style auf, dessen
+    // QML-Implementierung aus der Host-KDE-Installation stammt und nicht
+    // zum im Bundle mitgelieferten Qt 6.7.3 passt ("Unable to assign
+    // TextArea_QMLTYPE_110 to QQuickTextInput" im Log). Fusion ist Teil von
+    // Qt selbst (keine externe Plugin-Abhängigkeit), deshalb auf beiden
+    // Plattformen sicher. Ursprünglich nur für Windows gesetzt, obwohl der
+    // Grund (nativer Style nicht sauber deploybar) auf Linux identisch gilt.
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE"))
         qputenv("QT_QUICK_CONTROLS_STYLE", "Fusion");
 #endif

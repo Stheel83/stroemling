@@ -2358,6 +2358,15 @@ static QList<SchemaMigration> alleMigrationen()
         { 146, "GRAFIK-INSERT-MISMATCH-01: projekt.zuletzt_verwendete_symbole nachtraeglich fuer alle seit der CURRENT_SCHEMA_VERSION-Baseline (v129) neu erstellten Projekte ergaenzt - Migration 126 hatte die Spalte urspruenglich hinzugefuegt, aber createProjekt() traegt seit der Einfuehrung von CURRENT_SCHEMA_VERSION=129 fuer NEUE Projekte direkt Version 129 in schema_migration ein (Kommentar dort: 'alle Migrationen bis hier bereits in schema.sql') - schema.sql wurde dabei aber nie um diese Spalte ergaenzt, wodurch Migration 126 fuer jedes seither neu angelegte Projekt lautlos uebersprungen wurde. Sichtbar geworden als irrefuehrendes 'Parameter count mismatch' bei jedem Aufruf von projektZuletztVerwendeteSymboleSpeichern() (Symbolpalette 'Zuletzt verwendet') - Ursache war in Wahrheit ein 'no such column', aber der Rueckgabewert von QSqlQuery::prepare() wurde nirgends geprueft. ALTER TABLE ist idempotent (siehe applyMigrationStatements()), betrifft bereits korrekt migrierte Alt-Projekte also nicht.", {
             R"(ALTER TABLE projekt ADD COLUMN zuletzt_verwendete_symbole TEXT NOT NULL DEFAULT '')",
         }},
+        { 147, "PIN-LABEL-OFFSET-01-Diagnose (Nutzer-Screenshot): bmk_seite bei den 10 Installation-Kategorie '*_uebersicht'-Symbolen (Schalter/Taster/Ausschalter/Kreuzschalter/Wechselschalter/Serienschalter/Zeitschalter Uebersicht) von 'auto' auf 'vertikal' - ihr einziger Pin P1 zeigt bei 0-Grad-Rotation nach oben (offen_y=-1), 'auto' zeichnete das BMK-Label dadurch direkt in den Leitungsweg der Verbindung. Nutzer hat das zunaechst an eigenen Kopien im Projekt Pokestroems Aquarium ausprobiert und 'vertikal' (Label seitlich statt oben) bestaetigt, hier auf die Originale uebertragen. Pin-Abstand zur Kreiskontur (zweiter, kleinerer Befund derselben Diagnose) bewusst nicht angefasst - Nutzerentscheidung, aktuell nicht noetig.", {
+            R"(UPDATE symbol_definition SET bmk_seite = 'vertikal' WHERE id IN (
+                'schalter_allgemein_uebersicht', 'ausschalter_einpolig_uebersicht',
+                'ausschalter_zweipolig_uebersicht', 'zeitschalter_einpolig_uebersicht',
+                'schalter_kontrolleuchte_uebersicht', 'kreuzschalter_einpolig_uebersicht',
+                'wechselschalter_einpolig_uebersicht', 'serienschalter_einpolig_uebersicht',
+                'taster_mit_leuchte_uebersicht', 'taster_uebersicht'
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

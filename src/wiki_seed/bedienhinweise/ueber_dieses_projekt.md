@@ -18,9 +18,13 @@ angefangen, selbst etwas zu bauen.
 
 ## Der Name
 
-Den Begriff **„Strömlinge"** kenne ich noch aus meiner Lehrzeit, irgendwo
-um die Jahrtausendwende herum. Jetzt konnte ich den
-Begriff endlich mal in einem eigenen Projekt verwenden.
+Den Begriff **„Strömlinge"** kenne ich aus der Elektrotechnik – eine Art
+Verballhornung von „Elektronen": Strom besteht schließlich aus
+Strömlingen. Kennengelernt habe ich ihn noch in meiner Lehrzeit, irgendwo
+um die Jahrtausendwende. Dass „Strömling" zufällig auch der Name eines
+Ostseeherings ist, ist ein sehr passender Zufall – ich komme selbst von
+der Ostsee. Jetzt konnte ich den Begriff endlich mal in einem eigenen
+Projekt verwenden.
 
 ## KI-Unterstützung
 

@@ -62,7 +62,7 @@ Item {
         }
         Text {
             width:              parent.width
-            text:               "CAE · OPEN SOURCE"
+            text:               "ELEKTROKRAM · OPEN SOURCE"
             font.family:        "Courier New"
             font.pixelSize:     10
             font.letterSpacing: 0.3

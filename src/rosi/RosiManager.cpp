@@ -320,8 +320,13 @@ void RosiManager::_pruefeKrankheit()
 // ROSI-11/ROSI-13: meldet QML, ob gerade die permanente Urlaubs- bzw.
 // Kranktags-Anzeige an der Röhre gezeigt werden soll, und mit welchem Text.
 // Emittiert nur bei einer tatsächlichen Änderung (Start/Ende), nicht bei
-// jedem Tick erneut.
-void RosiManager::_pruefeAbwesenheit()
+// jedem Tick erneut. erzwingen=true (ROSI-15-Testknöpfe) überspringt den
+// Dedup-Guard bewusst — wichtig für den Fall "gerade läuft real gar keine
+// Abwesenheit": dort ist der berechnete Text genauso leer wie
+// m_letzteAbwesenheitAnzeige nach einem Test, ein reines
+// Text-Vergleich-Reset (leer == leer) würde das nötige
+// abwesenheitVerstecken()-Signal sonst verschlucken.
+void RosiManager::_pruefeAbwesenheit(bool erzwingen)
 {
     const qint64 jetzt      = QDateTime::currentSecsSinceEpoch();
     const qint64 urlaubBis  = _zaehlerGet("urlaub_bis");
@@ -344,7 +349,7 @@ void RosiManager::_pruefeAbwesenheit()
         text = QStringLiteral("krank: %1 – morgen wieder da").arg(grund);
     }
 
-    if (text == m_letzteAbwesenheitAnzeige) return;
+    if (!erzwingen && text == m_letzteAbwesenheitAnzeige) return;
     m_letzteAbwesenheitAnzeige = text;
 
     if (text.isEmpty())
@@ -515,16 +520,15 @@ void RosiManager::jetztTesten()
 
 // ROSI-15: stateless Testtrigger für die Urlaubs-Anzeige — zeigt die
 // dekorierte Urlaubs-Röhre kurz an, ohne urlaub_von/urlaub_bis zu berühren.
-// Nach Ablauf wird m_letzteAbwesenheitAnzeige zurückgesetzt und
-// _pruefeAbwesenheit() erneut aufgerufen, damit ein währenddessen wirklich
-// aktiver Urlaub/Krankheitstag korrekt weiter angezeigt wird (sonst würde
-// der Dedup-Guard das nächste Auftauchen bis zu 60s lang unterdrücken).
+// Nach Ablauf erzwingt _pruefeAbwesenheit(true) einen echten Resync (auch
+// wenn real gerade nichts läuft — sonst bliebe die Test-Anzeige stehen,
+// weil der leere Ist-Zustand textgleich mit dem geleerten Test-Zustand
+// wäre und der normale Dedup-Guard das Verstecken-Signal verschluckt).
 void RosiManager::jetztUrlaubTesten()
 {
     emit abwesenheitAnzeigen(QStringLiteral("im Urlaub von 01.01. bis 14.01. (Test)"), true);
     QTimer::singleShot(kTestAbwesenheitSekunden * 1000, this, [this]() {
-        m_letzteAbwesenheitAnzeige.clear();
-        _pruefeAbwesenheit();
+        _pruefeAbwesenheit(/*erzwingen=*/true);
     });
 }
 
@@ -534,8 +538,7 @@ void RosiManager::jetztKrankheitTesten()
 {
     emit abwesenheitAnzeigen(QStringLiteral("krank: Test-Schnupfen – morgen wieder da"), false);
     QTimer::singleShot(kTestAbwesenheitSekunden * 1000, this, [this]() {
-        m_letzteAbwesenheitAnzeige.clear();
-        _pruefeAbwesenheit();
+        _pruefeAbwesenheit(/*erzwingen=*/true);
     });
 }
 

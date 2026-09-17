@@ -59,7 +59,7 @@ private:
     void _pruefeUrlaubStart();
     bool _urlaubsblockFuerHeute(const QDate &heute, QDate &von, QDate &bisInklusive);
     void _pruefeKrankheit();
-    void _pruefeAbwesenheit();
+    void _pruefeAbwesenheit(bool erzwingen = false);
     void _pruefePostkarte();
     void _pruefeAuftritt(int nutzungsminuten);
     QString _spruchWaehlen(int erschienenAnzahl);

@@ -347,6 +347,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("elementeModel4",       &elementeModel4);
     engine.rootContext()->setContextProperty("buildDatum",           QString(BUILD_DATE));
     engine.rootContext()->setContextProperty("appVersion",            QString(APP_VERSION));
+#ifdef STROEMLING_DEV_BUILD
+    engine.rootContext()->setContextProperty("istEntwicklungsversion", true);
+#else
+    engine.rootContext()->setContextProperty("istEntwicklungsversion", false);
+#endif
 
     // Hauptfenster laden
     engine.loadFromModule("stroemling", "Main");

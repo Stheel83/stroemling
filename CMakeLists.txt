@@ -477,6 +477,13 @@ target_include_directories(stroemling_app PRIVATE src)
 string(TIMESTAMP BUILD_DATE "%Y-%m-%d")
 target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}" APP_VERSION="0.67")
 
+# Release-Builds (GitHub Actions: -DCMAKE_BUILD_TYPE=Release) markieren sich
+# selbst — steuert z.B. Entwickler-only-UI wie die Rosi-Testknöpfe für
+# Urlaub/Krankheit (ROSI-15), die Nutzer nicht sehen sollen.
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_definitions(stroemling_app PRIVATE STROEMLING_DEV_BUILD)
+endif()
+
 # ============================================================
 # Tests
 # ============================================================

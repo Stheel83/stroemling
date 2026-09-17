@@ -118,9 +118,12 @@ ColumnLayout {
             }
 
             // ── Urlaub/Krankheit testen (ROSI-15) ─────
+            // Nur in Entwicklungs-Builds sichtbar (istEntwicklungsversion,
+            // main.cpp), Release-Nutzer sehen diese Testknöpfe nicht.
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
+                visible: istEntwicklungsversion
 
                 Rectangle {
                     Layout.fillWidth: true

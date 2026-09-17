@@ -1957,8 +1957,8 @@ ApplicationWindow {
         function onVorwarnung(sekunden) {
             rosiSprechblase.vorwarnen(sekunden)
         }
-        function onAbwesenheitAnzeigen(text) {
-            rosiSprechblase.abwesenheitAnzeigen(text)
+        function onAbwesenheitAnzeigen(text, istUrlaub) {
+            rosiSprechblase.abwesenheitAnzeigen(text, istUrlaub)
         }
         function onAbwesenheitVerstecken() {
             rosiSprechblase.abwesenheitVerstecken()

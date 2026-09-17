@@ -39,7 +39,10 @@ signals:
     // Grundopazität, statt zu verschwinden, und zeigt den übergebenen Text
     // permanent an (kein Auftritt, kein Klick-Ziel). Nur eines von beiden
     // kann aktiv sein (Krankheit wird nur gewürfelt, wenn kein Urlaub läuft).
-    void abwesenheitAnzeigen(const QString &text);
+    // istUrlaub unterscheidet die beiden Fälle in QML, damit nur im
+    // Urlaub die dekorierte Urlaubs-Röhrengrafik statt der normalen
+    // Rohröffnung angezeigt wird (ROSI-15).
+    void abwesenheitAnzeigen(const QString &text, bool istUrlaub);
     void abwesenheitVerstecken();
 
 private:

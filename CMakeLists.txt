@@ -308,6 +308,7 @@ qt_add_resources(stroemling_app "stromlinge_assets"
         qml/assets/stroemling_icon.png
         qml/assets/rosi_roehrenaal.png
         qml/assets/rosi_rohroeffnung.png
+        qml/assets/rosi_urlaubsroehre.png
         qml/assets/rosi_roehrenaal_uebersicht.png
         qml/assets/kabeljau_uebersicht.png
         qml/assets/krizzo_uebersicht.png

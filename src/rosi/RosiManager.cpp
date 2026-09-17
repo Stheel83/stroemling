@@ -327,11 +327,13 @@ void RosiManager::_pruefeAbwesenheit()
     const qint64 krankBis   = _zaehlerGet("krank_bis");
 
     QString text;
+    bool istUrlaub = false;
     if (urlaubBis > jetzt) {
         const QDate von          = QDateTime::fromSecsSinceEpoch(_zaehlerGet("urlaub_von")).date();
         const QDate bisInklusive = QDateTime::fromSecsSinceEpoch(urlaubBis).date().addDays(-1);
         text = QStringLiteral("im Urlaub von %1 bis %2.")
                    .arg(von.toString("dd.MM."), bisInklusive.toString("dd.MM."));
+        istUrlaub = true;
     } else if (krankBis > jetzt) {
         const QStringList krankheiten = _poolJ_Krankheiten();
         const int grundId = static_cast<int>(_zaehlerGet("krank_grund_id"));
@@ -347,7 +349,7 @@ void RosiManager::_pruefeAbwesenheit()
     if (text.isEmpty())
         emit abwesenheitVerstecken();
     else
-        emit abwesenheitAnzeigen(text);
+        emit abwesenheitAnzeigen(text, istUrlaub);
 }
 
 // Postkarte/Nachricht aus dem Urlaub (ROSI-12): alle 7 Tage statt einmalig.

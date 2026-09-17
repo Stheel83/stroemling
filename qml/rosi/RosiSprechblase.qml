@@ -9,11 +9,12 @@ import QtQuick.Layouts
 // lässt die Rohröffnung über die angegebene Dauer langsam einfaden, damit
 // sich der Nutzer auf den Auftritt einstellen kann (konzept §4/§6).
 //
-// rosiSprechblase.abwesenheitAnzeigen(text) / .abwesenheitVerstecken() –
+// rosiSprechblase.abwesenheitAnzeigen(text, istUrlaub) / .abwesenheitVerstecken() –
 // ausgelöst von rosiManager.abwesenheitAnzeigen/-Verstecken (ROSI-11/ROSI-13):
 // während Urlaub oder Krankentag bleibt die Rohröffnung dauerhaft auf
 // Grundopazität sichtbar, Rosi selbst taucht nicht auf, stattdessen zeigt ein
-// permanentes Text-Label den Grund an.
+// permanentes Text-Label den Grund an. Bei istUrlaub=true wird statt der
+// normalen Rohröffnung die dekorierte Urlaubs-Röhre gezeigt (ROSI-15).
 //
 // Körper-Asset (rosi_roehrenaal.png) und Rohröffnung (rosi_rohroeffnung.png)
 // sind seit ROSI-01 echte Bilder.
@@ -28,6 +29,7 @@ Item {
 
     property bool _sichtbar:          false
     property bool _abwesenheitAktiv:  false
+    property bool _abwesenheitIstUrlaub: false
     property real _rohrOpazitaetBasis: 0.45
     property real _rohrOpazitaet:      0.0 // beim Programmstart unsichtbar, fadet erst vor Auftritt ein
 
@@ -36,6 +38,12 @@ Item {
     // ~108 von 403 Bildzeilen) — bestimmt, wie tief der Körper "in die
     // Röhre eintaucht" statt nur lose darüber zu schweben.
     readonly property real _rohrOeffnungAnteil: 108 / 403
+
+    // Seitenverhältnisse der beiden Rohr-Grafiken (Höhe/Breite), da die
+    // Urlaubs-Röhre (rosi_urlaubsroehre.png, 1024×1536) ein deutlich
+    // anderes Format als die normale Rohröffnung (443×403) hat.
+    readonly property real _rohrSeitenverhaeltnisNormal: 403 / 443
+    readonly property real _rohrSeitenverhaeltnisUrlaub: 1536 / 1024
 
     function zeigen(text) {
         if (root._sichtbar) return // schon dabei, kein Überlagern
@@ -65,8 +73,9 @@ Item {
     // ROSI-11/ROSI-13: Urlaubs- bzw. Kranktags-Anzeige — Rohröffnung bleibt
     // dauerhaft bei Grundopazität sichtbar (keine Verschwinden-Logik), Text
     // daneben, kein Auftritt von Rosi selbst.
-    function abwesenheitAnzeigen(text) {
+    function abwesenheitAnzeigen(text, istUrlaub) {
         root._abwesenheitAktiv = true
+        root._abwesenheitIstUrlaub = !!istUrlaub
         abwesenheitText.text = text
         rohrVerschwindenTimer.stop()
         rohrVerschwindenAnim.stop()
@@ -77,6 +86,7 @@ Item {
 
     function abwesenheitVerstecken() {
         root._abwesenheitAktiv = false
+        root._abwesenheitIstUrlaub = false
         // Normale Inaktivitäts-Logik übernimmt wieder (fadet nach 2 Min aus,
         // sofern nicht vorher ein neuer Auftritt/Vorwarnung dazwischenkommt).
         rohrVerschwindenTimer.restart()
@@ -116,10 +126,18 @@ Item {
     }
 
     // ── Rohröffnung (beim Start unsichtbar, fadet vor dem Auftritt ein) ──
+    // Während des Urlaubs (ROSI-15) zeigt sie statt der normalen Öffnung
+    // die dekorierte Urlaubs-Röhre — an Krankentagen bleibt es bei der
+    // normalen Grafik, das Strand-Motiv passt nur zum Urlaub.
     Image {
         id:       rohr
-        source:   "qrc:/assets/rosi_rohroeffnung.png"
-        width:    100; height: width * 403 / 443 // Bild-Seitenverhältnis
+        source: (root._abwesenheitAktiv && root._abwesenheitIstUrlaub)
+                     ? "qrc:/assets/rosi_urlaubsroehre.png"
+                     : "qrc:/assets/rosi_rohroeffnung.png"
+        width:    100
+        height:   width * ((root._abwesenheitAktiv && root._abwesenheitIstUrlaub)
+                                ? root._rohrSeitenverhaeltnisUrlaub
+                                : root._rohrSeitenverhaeltnisNormal)
         fillMode: Image.PreserveAspectFit
         opacity:  root._rohrOpazitaet
         anchors.bottom: parent.bottom

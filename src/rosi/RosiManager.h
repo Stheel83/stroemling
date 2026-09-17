@@ -28,6 +28,15 @@ public:
     // rosi_zustand) zu beeinflussen — analog zum Fun-Modus-Testknopf.
     Q_INVOKABLE void jetztTesten();
 
+    // ROSI-15: stateless Testtrigger für die Urlaubs-/Kranktags-Anzeige
+    // (analog jetztTesten()) — verändern keine echten urlaub_bis/krank_bis-
+    // Zähler, blenden die Anzeige nur kurz ein und erzwingen danach über
+    // _pruefeAbwesenheit() einen echten Resync (zeigt den tatsächlichen
+    // Zustand wieder korrekt an, falls währenddessen echter Urlaub/Krankheit
+    // aktiv war).
+    Q_INVOKABLE void jetztUrlaubTesten();
+    Q_INVOKABLE void jetztKrankheitTesten();
+
 signals:
     void auftauchen(const QString &text);
     void postkarteAngekommen(const QString &text);

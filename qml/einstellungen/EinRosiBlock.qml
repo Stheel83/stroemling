@@ -117,6 +117,60 @@ ColumnLayout {
                 }
             }
 
+            // ── Urlaub/Krankheit testen (ROSI-15) ─────
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height:       34; radius: 4
+                    color:        urlaubMaus.containsMouse ? root.theme.accent : root.theme.inputBg
+                    border.color: root.theme.border
+
+                    Text {
+                        anchors.centerIn: parent
+                        text:           qsTr("Urlaub testen")
+                        font.pixelSize: 12; font.weight: Font.Medium
+                        color:          urlaubMaus.containsMouse ? "white" : root.theme.textPrimary
+                    }
+                    MouseArea {
+                        id:           urlaubMaus
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape:  Qt.PointingHandCursor
+                        onClicked:    rosiManager.jetztUrlaubTesten()
+                        ToolTip.visible: containsMouse
+                        ToolTip.text:    qsTr("Zeigt kurz die Urlaubs-Röhre + Anzeige, ohne den echten Urlaubskalender zu verändern")
+                        ToolTip.delay:   500
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height:       34; radius: 4
+                    color:        krankMaus.containsMouse ? root.theme.accent : root.theme.inputBg
+                    border.color: root.theme.border
+
+                    Text {
+                        anchors.centerIn: parent
+                        text:           qsTr("Krankheit testen")
+                        font.pixelSize: 12; font.weight: Font.Medium
+                        color:          krankMaus.containsMouse ? "white" : root.theme.textPrimary
+                    }
+                    MouseArea {
+                        id:           krankMaus
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape:  Qt.PointingHandCursor
+                        onClicked:    rosiManager.jetztKrankheitTesten()
+                        ToolTip.visible: containsMouse
+                        ToolTip.text:    qsTr("Zeigt kurz die Krankentags-Anzeige, ohne einen echten Krankentag zu setzen")
+                        ToolTip.delay:   500
+                    }
+                }
+            }
+
             Item { implicitHeight: 2 }
         }
     }

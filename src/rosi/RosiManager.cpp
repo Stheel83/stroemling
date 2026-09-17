@@ -21,6 +21,7 @@ constexpr int  kBesuchChanceProzent        = 5;
 constexpr int  kVorwarnMinutenMin          = 2;
 constexpr int  kVorwarnMinutenMax          = 7;
 constexpr int  kTestVorwarnSekunden        = 3;
+constexpr int  kTestAbwesenheitSekunden    = 8; // ROSI-15: Anzeigedauer der Test-Urlaubs-/Krankheitsanzeige
 constexpr double kKrankChanceProTag        = 0.03; // 3 % pro Kalendertag, nur außerhalb des Urlaubs (ROSI-13)
 
 // Fester Jahres-Urlaubskalender (ROSI-10, konzept §4): 30 Werktage, verteilt
@@ -509,6 +510,32 @@ void RosiManager::jetztTesten()
     emit vorwarnung(kTestVorwarnSekunden);
     QTimer::singleShot(kTestVorwarnSekunden * 1000, this, [this]() {
         emit auftauchen(_zufall(_poolA_Begruessung()));
+    });
+}
+
+// ROSI-15: stateless Testtrigger für die Urlaubs-Anzeige — zeigt die
+// dekorierte Urlaubs-Röhre kurz an, ohne urlaub_von/urlaub_bis zu berühren.
+// Nach Ablauf wird m_letzteAbwesenheitAnzeige zurückgesetzt und
+// _pruefeAbwesenheit() erneut aufgerufen, damit ein währenddessen wirklich
+// aktiver Urlaub/Krankheitstag korrekt weiter angezeigt wird (sonst würde
+// der Dedup-Guard das nächste Auftauchen bis zu 60s lang unterdrücken).
+void RosiManager::jetztUrlaubTesten()
+{
+    emit abwesenheitAnzeigen(QStringLiteral("im Urlaub von 01.01. bis 14.01. (Test)"), true);
+    QTimer::singleShot(kTestAbwesenheitSekunden * 1000, this, [this]() {
+        m_letzteAbwesenheitAnzeige.clear();
+        _pruefeAbwesenheit();
+    });
+}
+
+// ROSI-15: dasselbe für die Krankentags-Anzeige (bleibt bei der normalen
+// Rohröffnung, kein eigenes Grafik-Asset).
+void RosiManager::jetztKrankheitTesten()
+{
+    emit abwesenheitAnzeigen(QStringLiteral("krank: Test-Schnupfen – morgen wieder da"), false);
+    QTimer::singleShot(kTestAbwesenheitSekunden * 1000, this, [this]() {
+        m_letzteAbwesenheitAnzeige.clear();
+        _pruefeAbwesenheit();
     });
 }
 

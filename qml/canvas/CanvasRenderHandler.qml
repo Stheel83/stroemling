@@ -1543,17 +1543,72 @@ QtObject {
         ctx.stroke()
     }
 
+    // Zeichnet einen S1-/S2-Arm (immer genau eine Ader, s. Konzept §3.6 —
+    // nie gebändert) als EINEN zusammenhängenden Pfad über mehrere Punkte
+    // statt mehrerer getrennter stroke()-Aufrufe. Grund: der Arm knickt
+    // zwischen dem äußeren Pin und dem inneren Verzweigungsknoten j/j2
+    // einmal ab (P(0.25,0.5) bzw. entsprechend) — als ein Pfad fügt Canvas
+    // dort automatisch einen glatten Miter-Join ein (analog _maleWinkel()),
+    // statt dass zwei einzeln gecappte Segmente dort eine Kerbe/Lücke offen
+    // lassen (TREFFPUNKT-CAP-UEBERLAPP-01-Nachbesserung: reines
+    // Butt-Cap auf getrennten Pfaden sah an dieser Knickstelle wie
+    // "abgeschnittene" Arme aus). Nur das äußere Pin-Ende (points[0]) wird
+    // manuell um die halbe Linienbreite verlängert (nahtloser Übergang zur
+    // externen Leitung, LEITUNG-ZOOM-BREITE-01-Nachtrag) — das innere Ende
+    // (letzter Punkt, = j/j2) bleibt bündig.
+    function _maleTreffpunktArmEinfarbig(ctx, points, band) {
+        if (!band || points.length < 2) return
+        var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
+        var p0 = points[0], p1 = points[1]
+        var dx = p1.x - p0.x, dy = p1.y - p0.y
+        var len = Math.sqrt(dx*dx + dy*dy)
+        var startX = p0.x, startY = p0.y
+        if (len > 1e-6) {
+            var ext = breitePx / 2
+            startX -= (dx/len) * ext
+            startY -= (dy/len) * ext
+        }
+        function _stroke() {
+            ctx.beginPath()
+            ctx.moveTo(startX, startY)
+            for (var i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y)
+            ctx.stroke()
+        }
+        ctx.lineCap  = "butt"
+        ctx.lineJoin = "miter"
+        if (band.modus === "bifarb") {
+            // Zweifarbige Ader (aderfarbe2, z.B. PE grün-gelb) — analog zum
+            // bifarb-Zweig in _maleGebaenderteLinie(), nur über den ganzen
+            // (ggf. geknickten) Arm-Pfad statt eines einzelnen Segments.
+            var dashLen = Math.max(2, breitePx * 3)
+            ctx.setLineDash([dashLen, dashLen])
+            ctx.lineWidth = breitePx
+            ctx.strokeStyle = band.farben[0]
+            ctx.lineDashOffset = 0
+            _stroke()
+            ctx.strokeStyle = band.farben[1]
+            ctx.lineDashOffset = dashLen
+            _stroke()
+            ctx.setLineDash([])
+        } else {
+            ctx.setLineDash([])
+            ctx.strokeStyle = band.farbe || band.farben[0]
+            ctx.lineWidth   = breitePx
+            _stroke()
+        }
+    }
+
     // Zeichnet die drei Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln
     // (statt über drawByPrimitiv), weil der Ziel-Arm gebändert sein kann –
     // Koordinaten aus symbole.sql (lokale, unrotierte Symbolkoordinaten 0..1,
     // Rotation/Spiegelung ist über den ctx-Transform des Aufrufers bereits aktiv).
-    // Jedes Segment bekommt über L() explizit squareCapA/squareCapB mit: true
-    // am äußeren Pin-Ende (0,0.5)/(1,0.5)/(0.5,0)/(0.5,1) – dort weiterhin ein
-    // manuell nachgebautes Square-Cap für den nahtlosen Übergang zur
-    // anschließenden Leitung (LEITUNG-ZOOM-BREITE-01-Nachtrag) – und false am
-    // inneren Verzweigungsknoten j/j2, wo die Arme sonst als überlappende,
-    // herausstehende Rechtecke übereinander gezeichnet würden
-    // (TREFFPUNKT-CAP-UEBERLAPP-01, s. _maleGebaenderteLinie()).
+    // S1/S2 laufen über _maleTreffpunktArmEinfarbig() als EIN Pfad (glatter
+    // Knick zum inneren Verzweigungsknoten j/j2). Der Ziel-Arm ist immer nur
+    // ein einzelnes Segment (j/j2 → äußerer Pin) und kann gebändert sein —
+    // läuft weiter über _maleGebaenderteLinie() mit squareCapA/squareCapB:
+    // true am äußeren Pin-Ende (nahtloser Übergang zur externen Leitung),
+    // false am inneren Verzweigungsknoten (bündig, keine überlappenden
+    // Rechtecke, TREFFPUNKT-CAP-UEBERLAPP-01).
     function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
         if (!armInfo) return
         function P(nx, ny) { return { x: nx * w, y: ny * h } }
@@ -1564,15 +1619,12 @@ QtObject {
 
         if (symbolId === "treffpunkt") {
             var j = P(0.5, 0.75)
-            L(P(0, 0.5),   P(0.25, 0.5), armInfo.s1,   true,  false)
-            L(P(0.25, 0.5), j,           armInfo.s1,   false, false)
+            _maleTreffpunktArmEinfarbig(ctx, [P(0, 0.5), P(0.25, 0.5), j], armInfo.s1)
             L(j, P(0.5, 1),              armInfo.ziel, false, true)
-            L(j, P(0.75, 0.5),           armInfo.s2,   false, false)
-            L(P(0.75, 0.5), P(1, 0.5),   armInfo.s2,   false, true)
+            _maleTreffpunktArmEinfarbig(ctx, [P(1, 0.5), P(0.75, 0.5), j], armInfo.s2)
         } else if (symbolId === "treffpunkt_l") {
             var j2 = P(0.5, 0.75)
-            L(P(0, 0.5),   P(0.25, 0.5), armInfo.s1,   true,  false)
-            L(P(0.25, 0.5), j2,          armInfo.s1,   false, false)
+            _maleTreffpunktArmEinfarbig(ctx, [P(0, 0.5), P(0.25, 0.5), j2], armInfo.s1)
             L(P(0.5, 0),   j2,           armInfo.s2,   true,  false)
             L(j2, P(0.5, 1),             armInfo.ziel, false, true)
         }

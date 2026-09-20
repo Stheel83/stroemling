@@ -861,6 +861,56 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
 }
 
+// Zeichnet einen S1-/S2-Arm (immer genau eine Ader, s. Konzept §3.6 — nie
+// gebändert) als EINEN zusammenhängenden QPainterPath über mehrere Punkte
+// statt getrennter drawLine()-Aufrufe – Qt fügt am inneren Knick
+// (P(0.25,0.5) bzw. entsprechend) automatisch einen glatten Miter-Join ein,
+// statt dass zwei einzeln gecappte Segmente dort eine Kerbe/Lücke offen
+// lassen (TREFFPUNKT-CAP-UEBERLAPP-01-Nachbesserung, 1:1-Port von
+// _maleTreffpunktArmEinfarbig() in CanvasRenderHandler.qml). Nur points[0]
+// (äußeres Pin-Ende) wird manuell um die halbe Linienbreite verlängert
+// (nahtloser Übergang zur externen Leitung), der letzte Punkt (innerer
+// Verzweigungsknoten) bleibt bündig. seg == nullptr: unverbunden →
+// Default-Blau (analog L()-Lambda unten).
+static void pdfMaleTreffpunktArmEinfarbig(QPainter &p, const QVector<QPointF> &points,
+                                          const PdfLeitungsSegment *seg, double lwBasis)
+{
+    if (points.size() < 2) return;
+    double lw = seg ? seg->lw : lwBasis;
+    QPointF p0 = points[0], p1 = points[1];
+    double dx = p1.x() - p0.x(), dy = p1.y() - p0.y();
+    double len = std::sqrt(dx*dx + dy*dy);
+    QPointF start = p0;
+    if (len > 1e-6) {
+        double ux = dx / len, uy = dy / len, ext = lw / 2.0;
+        start -= QPointF(ux * ext, uy * ext);
+    }
+    QPainterPath path;
+    path.moveTo(start);
+    for (int i = 1; i < points.size(); ++i) path.lineTo(points[i]);
+
+    if (seg && seg->farbe2.isValid()) {
+        // Zweifarbige Ader (aderfarbe2, z.B. PE grün-gelb) — analog
+        // pdfMaleBifarbLinie(), nur über den ganzen (ggf. geknickten)
+        // Arm-Pfad statt eines einzelnen Segments.
+        const double dashLen = qMax(2.0, lw * 3.0);
+        QPen pen1(seg->color, lw, Qt::CustomDashLine, Qt::FlatCap, Qt::MiterJoin);
+        pen1.setDashPattern({ dashLen / lw, dashLen / lw });
+        pen1.setDashOffset(0.0);
+        p.setPen(pen1);
+        p.drawPath(path);
+        QPen pen2(seg->farbe2, lw, Qt::CustomDashLine, Qt::FlatCap, Qt::MiterJoin);
+        pen2.setDashPattern({ dashLen / lw, dashLen / lw });
+        pen2.setDashOffset(dashLen / lw);
+        p.setPen(pen2);
+        p.drawPath(path);
+        return;
+    }
+    QColor color = seg ? seg->color : QColor("#4a9eff");
+    p.setPen(QPen(color, lw, Qt::SolidLine, Qt::FlatCap, Qt::MiterJoin));
+    p.drawPath(path);
+}
+
 // Winkel: transparenter Durchlaufpunkt (§2.2), keine Bänderung nötig (immer
 // genau ein Netzsegment durch beide Arme). Beide Primitiv-Linien als EIN
 // QPainterPath statt zweier getrennter drawLine()-Aufrufe (wie
@@ -922,15 +972,12 @@ static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, doubl
 
     if (symbolId == QLatin1String("treffpunkt")) {
         QPointF j = P(0.5, 0.75);
-        L(P(0, 0.5),    P(0.25, 0.5), s1Seg,   true,  false);
-        L(P(0.25, 0.5), j,            s1Seg,   false, false);
+        pdfMaleTreffpunktArmEinfarbig(p, { P(0, 0.5), P(0.25, 0.5), j }, s1Seg, lwBasis);
         L(j,            P(0.5, 1),    zielSeg, false, true);
-        L(j,            P(0.75, 0.5), s2Seg,   false, false);
-        L(P(0.75, 0.5), P(1, 0.5),    s2Seg,   false, true);
+        pdfMaleTreffpunktArmEinfarbig(p, { P(1, 0.5), P(0.75, 0.5), j }, s2Seg, lwBasis);
     } else if (symbolId == QLatin1String("treffpunkt_l")) {
         QPointF j2 = P(0.5, 0.75);
-        L(P(0, 0.5),    P(0.25, 0.5), s1Seg,   true,  false);
-        L(P(0.25, 0.5), j2,           s1Seg,   false, false);
+        pdfMaleTreffpunktArmEinfarbig(p, { P(0, 0.5), P(0.25, 0.5), j2 }, s1Seg, lwBasis);
         L(P(0.5, 0),    j2,           s2Seg,   true,  false);
         L(j2,           P(0.5, 1),    zielSeg, false, true);
     }

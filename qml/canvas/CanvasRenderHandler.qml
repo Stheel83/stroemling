@@ -1398,20 +1398,34 @@ QtObject {
                 var modus     = armAnzahl >= 3 ? "mehrfach"
                                 : (farben[0] === farben[1] ? "gleich" : "verschieden")
 
-                // Referenzpunkt (Weltkoordinate des S1-Pins): legt fest, auf
-                // welcher Seite farben[0] beim Zeichnen landet (s.
-                // _maleGebaenderteLinie) – unabhängig von der zufälligen
-                // Punktreihenfolge der einzelnen Segmente entlang des
-                // Ziel-Arms. Nur bei armAnzahl===2 relevant (jeder andere
-                // Fall landet ohnehin in "mehrfach").
+                // WINKEL-FARBE-01 (Sep 2026, Nutzer-Konzeptentscheid nach
+                // Skizze): "welche Farbe liegt auf welcher Seite" wird HIER,
+                // EINMAL, am Ziel-Arm-Anfang per Kreuzprodukt-Test gegen den
+                // S1-Pin bestimmt (`flip`) und danach als FESTER Wert unverändert
+                // durch die komplette Winkel-Kette weitergereicht (derselbe
+                // `info`-Objektverweis für jedes erreichte Segment, s.
+                // propagiere()) – NICHT mehr pro Leitungsstück unabhängig neu
+                // getestet (das war der Fehler: derselbe Kreuzprodukt-Test
+                // liefert für zwei unterschiedlich ausgerichtete Geraden nach
+                // einem 90°-Knick unterschiedliche Ergebnisse, keine
+                // Rechenpanne, sondern zwingende Folge der Richtungsänderung —
+                // sichtbar als Farbtausch/-kreuzung direkt am Winkel). Mit
+                // einem einmal bestimmten, konstant weitergereichten `flip`
+                // sorgt die pro Segment ohnehin unterschiedliche Normalen-
+                // Richtung (s. _maleGebaenderteLinie/_maleWinkelGebaendertViewport)
+                // ganz von selbst für einen sauberen, nicht kreuzenden Übergang
+                // durch beliebig viele Knicke.
                 var s1Seg = net.segmente[arme.s1]
                 var s1PinX = s1Seg.elIdxA === tIdxs[ti] ? s1Seg.x1 : s1Seg.x2
                 var s1PinY = s1Seg.elIdxA === tIdxs[ti] ? s1Seg.y1 : s1Seg.y2
+                var zielSeg = net.segmente[arme.ziel]
+                var zdx = zielSeg.x2 - zielSeg.x1, zdy = zielSeg.y2 - zielSeg.y1
+                var flip = (zdx * (s1PinY - zielSeg.y1) - zdy * (s1PinX - zielSeg.x1)) >= 0
 
                 propagiere(arme.ziel, { modus: modus, farbe: farben[0], farben: farben,
                                          armAnzahl: armAnzahl,
                                          breite: _breiteFuerAnzahl(armAnzahl, net.signaltyp),
-                                         refX: s1PinX, refY: s1PinY })
+                                         flip: flip })
                 geaendert = true
             }
         }
@@ -1432,15 +1446,21 @@ QtObject {
     // bei Leitungen, lokale Symbol-Pixel bei Treffpunkt-Armen) – kein Zoom-/
     // Welt-Bezug hier. Gemeinsam genutzt von maleAutoVerbindungen() und
     // _maleTreffpunktArme().
-    // refX/refY (optional, gleiche Einheit wie ax/ay/bx/by): ein Punkt, der
-    // bekanntermaßen auf der Seite von band.farben[0] liegt (der S1-Pin des
-    // Treffpunkts) – legt fest, auf welche Seite der Linie farben[0] bzw.
-    // farben[1] gezeichnet wird. Ohne refX/refY hinge das sonst von der
-    // zufälligen Punktreihenfolge (x1,y1→x2,y2) des jeweiligen Segments ab,
-    // die bei mehreren verketteten Segmenten entlang des Ziel-Arms nicht
-    // konsistent ist – Ergebnis wäre eine an Segmentgrenzen "verdrehte"
-    // Seitenzuordnung (VERBINDUNGSFARBE-04).
-    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band, refX, refY) {
+    // band.flip (bei modus "verschieden"): WINKEL-FARBE-01-Nachbesserung
+    // (Sep 2026) – legt fest, auf welche Seite der Linie farben[0] bzw.
+    // farben[1] gezeichnet wird, wird aber NICHT mehr hier aus einem
+    // Referenzpunkt neu berechnet. `_treffpunktZielBaender()` bestimmt
+    // `flip` einmal am Ziel-Arm-Anfang und reicht ihn als festen Wert durch
+    // die komplette Winkel-Kette weiter (derselbe Objektverweis für jedes
+    // Segment) – eine erneute Berechnung pro Segment (frühere Fassung, per
+    // Kreuzprodukt-Test gegen einen fernen S1-Referenzpunkt) konnte an
+    // einem 90°-Knick ein anderes Ergebnis liefern als am vorigen
+    // Leitungsstück (zwei unterschiedlich ausgerichtete Geraden), sichtbar
+    // als Farbtausch/-kreuzung direkt am Winkel statt eines glatten,
+    // nicht-kreuzenden Übergangs (VERBINDUNGSFARBE-04 löste das ursprünglich
+    // nur für die zufällige Punktreihenfolge INNERHALB einer Geraden, nicht
+    // für Richtungswechsel AN einem Knick).
+    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band) {
         if (!band) return
         ctx.setLineDash([])
         var modus = band.modus || "einzel"
@@ -1484,9 +1504,7 @@ QtObject {
         var px = -dy / len, py = dx / len   // Einheits-Senkrechte
         var basis = breitePx / 2            // Breite je Einzel-Ader-Band
         var off = basis / 2
-        var flip = false
-        if (refX !== undefined && refY !== undefined)
-            flip = (dx * (refY - ay) - dy * (refX - ax)) >= 0
+        var flip = band.flip || false
         var farbeNeg = flip ? band.farben[1] : band.farben[0]
         var farbePos = flip ? band.farben[0] : band.farben[1]
         ctx.strokeStyle = farbeNeg
@@ -1537,16 +1555,19 @@ QtObject {
     // cv.geometrie.pinViewportPos() ermittelt) statt im lokalen, ggf.
     // rotierten/gespiegelten Symbol-Koordinatensystem von _renderSymbol() –
     // vermeidet dadurch von vornherein, dass die Seitenzuordnung (welche
-    // Ader auf welcher Seite) bei Rotation/Spiegelung durcheinandergerät
-    // (dieselbe Fallenklasse wie VERBINDUNGSFARBE-04, hier vorab vermieden
-    // statt nachträglich gefixt). refVX/refVY: Viewport-Weltpunkt auf der
-    // S1-Seite (aus _treffpunktZielBaender()), bestimmt wie bei
-    // _maleGebaenderteLinie() per Kreuzprodukt-Test welche Farbe auf welcher
-    // Seite landet. Jede der beiden Linien ist ein eigener 4-Punkt-Pfad
-    // (Bevel-artiger Knick am Versatzpunkt statt echter Miter-Schnittpunkt-
-    // Berechnung) – optisch ausreichend für den schmalen Versatz, deutlich
-    // einfacher als eine echte Liniensegment-Schnittpunkt-Berechnung.
-    function _maleWinkelGebaendertViewport(ctx, vp0, vp1, vp2, band, refVX, refVY) {
+    // Ader auf welcher Seite) bei Rotation/Spiegelung durcheinandergerät.
+    // band.flip (aus _treffpunktZielBaender(), ein FESTER, für die komplette
+    // Winkel-Kette gleicher Wert – s. dortiger Kommentar) legt fest, welche
+    // Farbe auf der "-1"- bzw. "+1"-Seite landet; dieselbe Konstante wird
+    // für BEIDE Teilstücke (n1 UND n2) verwendet, nicht pro Teilstück neu
+    // berechnet – nur so bleibt der Übergang am Knick nicht-kreuzend
+    // (Nutzerskizze: beide Farben biegen einfach gemeinsam um die Ecke,
+    // ohne die Seite zu wechseln) UND stimmt automatisch mit der davor/
+    // danach weiterlaufenden externen Leitung überein (dieselbe Konstante,
+    // s. _maleGebaenderteLinie()). Beide Linien als je EIN durchgehender
+    // 4-Punkt-Pfad (kein Bevel/Lücke am Knick nötig, da beide Teilstücke
+    // ohnehin dieselbe Farbe ohne Sprung fortsetzen).
+    function _maleWinkelGebaendertViewport(ctx, vp0, vp1, vp2, band) {
         ctx.setLineDash([])
         ctx.lineJoin = "miter"
         var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
@@ -1567,43 +1588,20 @@ QtObject {
         var n2 = normale(vp1.x, vp1.y, vp2.x, vp2.y)
         var basis = breitePx / 2   // Breite je Einzel-Ader-Band, wie _maleGebaenderteLinie
         var off = basis / 2
-        // WINKEL-FARBE-01-Nachbesserung (Sep 2026): flip MUSS pro Teilstück
-        // einzeln berechnet werden, nicht einmal aus dem ersten Teilstück für
-        // beide übernommen — der Kreuzprodukt-Test ist nur entlang EINER
-        // Geraden verschiebungsinvariant (derselbe Punkt (ax,ay) auf derselben
-        // Linie liefert überall dasselbe Ergebnis), nicht über einen Knick
-        // hinweg (andere Richtung = andere Gerade). Mit nur einem
-        // gemeinsamen flip stimmte die Seitenzuordnung des zweiten
-        // Teilstücks nicht mit der unabhängig berechneten Seitenzuordnung
-        // der extern weiterlaufenden Leitung (_maleGebaenderteLinie(), exakt
-        // dieselbe Formel, aber pro Segment neu ausgewertet) überein –
-        // sichtbar als Farbtausch direkt hinter dem Winkel. Nutzer-Screenshot
-        // + Nachrechnen an echten Projektkoordinaten bestätigt.
-        var flip1 = false, flip2 = false
-        if (refVX !== undefined && refVY !== undefined) {
-            var dx1 = vp1.x - vp0.x, dy1 = vp1.y - vp0.y
-            flip1 = (dx1 * (refVY - vp0.y) - dy1 * (refVX - vp0.x)) >= 0
-            var dx2 = vp2.x - vp1.x, dy2 = vp2.y - vp1.y
-            flip2 = (dx2 * (refVY - vp1.y) - dy2 * (refVX - vp1.x)) >= 0
-        }
-        function seite(sign) {
-            ctx.lineWidth = basis
-            ctx.lineCap   = "square"
-            var farbe1 = (sign < 0) === !flip1 ? band.farben[0] : band.farben[1]
-            var farbe2 = (sign < 0) === !flip2 ? band.farben[0] : band.farben[1]
-            ctx.strokeStyle = farbe1
+        var flip = band.flip || false
+        function seite(sign, farbe) {
+            ctx.strokeStyle = farbe
+            ctx.lineWidth   = basis
+            ctx.lineCap     = "square"
             ctx.beginPath()
             ctx.moveTo(vp0.x + n1.px*off*sign, vp0.y + n1.py*off*sign)
             ctx.lineTo(vp1.x + n1.px*off*sign, vp1.y + n1.py*off*sign)
-            ctx.stroke()
-            ctx.strokeStyle = farbe2
-            ctx.beginPath()
-            ctx.moveTo(vp1.x + n2.px*off*sign, vp1.y + n2.py*off*sign)
+            ctx.lineTo(vp1.x + n2.px*off*sign, vp1.y + n2.py*off*sign)
             ctx.lineTo(vp2.x + n2.px*off*sign, vp2.y + n2.py*off*sign)
             ctx.stroke()
         }
-        seite(-1)
-        seite(+1)
+        seite(-1, flip ? band.farben[1] : band.farben[0])
+        seite(+1, flip ? band.farben[0] : band.farben[1])
     }
 
     // Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden
@@ -1842,10 +1840,6 @@ QtObject {
                         return { modus: "bifarb", farbe: fb.farbe, farben: [fb.farbe, fb.farbe2], breite: fb.breite, armAnzahl: 1 }
                     return { modus: "einzel", farbe: fb.farbe, farben: [fb.farbe], breite: fb.breite, armAnzahl: 1 }
                 })()
-                // Referenzpunkt (S1-Pin) in Viewport-Koordinaten für die
-                // Seitenzuordnung der Bänderung (s. _maleGebaenderteLinie).
-                var _refVX = band.refX !== undefined ? band.refX * cv.zoom + cv.worldX : undefined
-                var _refVY = band.refY !== undefined ? band.refY * cv.zoom + cv.worldY : undefined
 
                 var segKey  = ni + "-" + si
                 var kreuzX  = kreuzungsLuecken[segKey]
@@ -1879,19 +1873,16 @@ QtObject {
                         var le  = cx + luecke
                         if (ls > pos)
                             _maleGebaenderteLinie(ctx, pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY,
-                                                        ls  * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band,
-                                                        _refVX, _refVY)
+                                                        ls  * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band)
                         pos = le
                     }
                     if (pos < hx2)
                         _maleGebaenderteLinie(ctx, pos * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY,
-                                                    hx2 * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band,
-                                                    _refVX, _refVY)
+                                                    hx2 * cv.zoom + cv.worldX, hy * cv.zoom + cv.worldY, band)
                     ctx.restore()
                 } else {
                     _maleGebaenderteLinie(ctx, seg.x1 * cv.zoom + cv.worldX, seg.y1 * cv.zoom + cv.worldY,
-                                                seg.x2 * cv.zoom + cv.worldX, seg.y2 * cv.zoom + cv.worldY, band,
-                                                _refVX, _refVY)
+                                                seg.x2 * cv.zoom + cv.worldX, seg.y2 * cv.zoom + cv.worldY, band)
                 }
 
                 // Zahl-Label ab 3 zusammenlaufenden Adern (Treffpunkt-Ziel-Arm,
@@ -2082,10 +2073,7 @@ QtObject {
                 var _wvp0 = cv.geometrie.pinViewportPos(el, 0, 0)
                 var _wvp1 = cv.geometrie.pinViewportPos(el, 0, 1)
                 var _wvp2 = cv.geometrie.pinViewportPos(el, 1, 1)
-                var _wBand = rc.winkelBand
-                var _wRefVX = _wBand.refX !== undefined ? _wBand.refX * cv.zoom + cv.worldX : undefined
-                var _wRefVY = _wBand.refY !== undefined ? _wBand.refY * cv.zoom + cv.worldY : undefined
-                _maleWinkelGebaendertViewport(ctx, _wvp0, _wvp1, _wvp2, _wBand, _wRefVX, _wRefVY)
+                _maleWinkelGebaendertViewport(ctx, _wvp0, _wvp1, _wvp2, rc.winkelBand)
             }
 
             // SYMBOL-TEXT-LESBAR-01: Text-Primitive mit lesbar_halten=true werden

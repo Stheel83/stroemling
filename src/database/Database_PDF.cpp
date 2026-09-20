@@ -592,8 +592,16 @@ struct PdfLeitungsSegment {
 
     bool    gebaendert = false;   // true: Ziel-Arm eines Treffpunkts mit 2 Adern
     bool    zweifarbig = false;   // true: farbeA/farbeB nebeneinander; false: eine Volllinie in farbeA
-    QColor  farbeA, farbeB;       // bei zweifarbig: farbeA auf der refPunkt-Seite
-    QPointF refPunkt;             // Weltkoordinate (Canvas-Einheiten) des S1-Pins
+    QColor  farbeA, farbeB;       // bei zweifarbig: farbeA auf der Seite mit flip==false
+    QPointF refPunkt;             // Weltkoordinate (Canvas-Einheiten) des S1-Pins (nur zur Berechnung von flip)
+    // WINKEL-FARBE-01 (Sep 2026): EINMAL beim Aufbau dieses Segments per
+    // Kreuzprodukt-Test gegen refPunkt bestimmt und danach als fester Wert
+    // verwendet (1:1-Port der QML-Nachbesserung, s. _treffpunktZielBaender()
+    // in CanvasRenderHandler.qml) — eine erneute Berechnung pro Aufrufer
+    // (frühere Fassung) konnte an einem 90°-Knick (Winkel) ein anderes
+    // Ergebnis liefern als am Segment selbst, sichtbar als Farbtausch/
+    // -kreuzung direkt am Winkel.
+    bool    flip = false;
 
     // Bifarb-Ader (aderfarbe2, z.B. PE oder DIN-47100-Bifarben): einzelne Ader
     // mit zweifarbiger Isolierung, als Strich-Alternierung gezeichnet – NICHT
@@ -791,14 +799,17 @@ static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, dou
 // Zeichnet ein Geraden-Stück – einfarbig, bifarb (aderfarbe2) oder
 // (Treffpunkt-Ziel-Arm, außerhalb des Symbols weiterlaufend) gebändert.
 // 1:1-Port von _maleGebaenderteLinie() in CanvasRenderHandler.qml
-// (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY bereits in derselben
-// Zieleinheit des Aufrufers (Device-Pixel bei Leitungen). RoundCap statt
-// FlatCap: Leitungssegmente treffen sich an Ecken/Verzweigungen als mehrere
-// separate drawLine()-Aufrufe (nicht ein QPainterPath) - Qt-Line-Joins
-// greifen nur innerhalb eines Path, sonst bleibt am gemeinsamen Punkt eine
-// keilförmige Lücke sichtbar (analog Winkel-Symbol, s. pdfElementRendern).
+// (VERBINDUNGSFARBE-03/04). ax,ay,bx,by bereits in derselben Zieleinheit
+// des Aufrufers (Device-Pixel bei Leitungen). s.flip ist ein für das ganze
+// Segment fester, vorab EINMAL berechneter Wert (WINKEL-FARBE-01-
+// Nachbesserung, Sep 2026, s. Kommentar an PdfLeitungsSegment::flip) – wird
+// hier nicht mehr aus refPunkt neu berechnet. RoundCap statt FlatCap:
+// Leitungssegmente treffen sich an Ecken/Verzweigungen als mehrere separate
+// drawLine()-Aufrufe (nicht ein QPainterPath) - Qt-Line-Joins greifen nur
+// innerhalb eines Path, sonst bleibt am gemeinsamen Punkt eine keilförmige
+// Lücke sichtbar (analog Winkel-Symbol, s. pdfElementRendern).
 static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
-                                     const PdfLeitungsSegment &s, double refX, double refY,
+                                     const PdfLeitungsSegment &s,
                                      double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap)
 {
     if (!s.gebaendert && s.farbe2.isValid()) {
@@ -821,9 +832,8 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     double px = -dy / len, py = dx / len;
     double basis = s.lw / 2.0;
     double off   = basis / 2.0;
-    bool flip = (dx * (refY - ay) - dy * (refX - ax)) >= 0.0;
-    QColor farbeNeg = flip ? s.farbeB : s.farbeA;
-    QColor farbePos = flip ? s.farbeA : s.farbeB;
+    QColor farbeNeg = s.flip ? s.farbeB : s.farbeA;
+    QColor farbePos = s.flip ? s.farbeA : s.farbeB;
 
     p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, capStyle));
     p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
@@ -910,14 +920,16 @@ static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
 // Device-Pixeln (Welt-Pin-Position via pdfPinWeltPos() * C) – bewusst NICHT
 // im lokalen, ggf. rotierten/gespiegelten Symbol-Koordinatensystem, um die
 // VERBINDUNGSFARBE-04-Fallenklasse (Seitenzuordnung kippt bei Rotation) von
-// vornherein zu vermeiden. Seitenzuordnung per Kreuzprodukt-Test mit
-// s.refPunkt (S1-Referenzpunkt), analog pdfMaleGebaenderteLinie(). Jede der
-// beiden Linien ein eigener 4-Punkt-QPainterPath (Bevel-artiger Knick am
-// Versatzpunkt statt echter Miter-Schnittpunkt-Berechnung).
+// vornherein zu vermeiden. s.flip ist ein FESTER, für das ganze Segment
+// (und damit für BEIDE Teilstücke hier) gleicher Wert (s. Kommentar an
+// PdfLeitungsSegment::flip) – dieselbe Konstante für n1 UND n2 verwendet,
+// nicht pro Teilstück neu berechnet: nur so bleibt der Übergang am Knick
+// nicht-kreuzend (Nutzerskizze) UND stimmt automatisch mit der davor/danach
+// weiterlaufenden externen Leitung überein (pdfMaleGebaenderteLinie(),
+// dieselbe Konstante). Jede Linie ein durchgehender 4-Punkt-QPainterPath.
 static void pdfMaleWinkelGebaendert(QPainter &p, QPointF vp0, QPointF vp1, QPointF vp2,
-                                     const PdfLeitungsSegment &s, double C)
+                                     const PdfLeitungsSegment &s)
 {
-    double refX = s.refPunkt.x() * C, refY = s.refPunkt.y() * C;
     auto normale = [](QPointF a, QPointF b) {
         double dx = b.x() - a.x(), dy = b.y() - a.y();
         double len = std::sqrt(dx*dx + dy*dy);
@@ -927,34 +939,18 @@ static void pdfMaleWinkelGebaendert(QPainter &p, QPointF vp0, QPointF vp1, QPoin
     QPointF n2 = normale(vp1, vp2);
     double basis = s.lw / 2.0;   // Breite je Einzel-Ader-Band, wie pdfMaleGebaenderteLinie
     double off   = basis / 2.0;
-    // WINKEL-FARBE-01-Nachbesserung (Sep 2026): flip MUSS pro Teilstück
-    // einzeln berechnet werden (1:1-Analogie zur QML-Nachbesserung in
-    // _maleWinkelGebaendertViewport(), s. dortiger Kommentar für die
-    // Begründung) — mit nur einem gemeinsamen flip stimmte die
-    // Seitenzuordnung des zweiten Teilstücks nicht mit der unabhängig
-    // berechneten Seitenzuordnung der extern weiterlaufenden Leitung
-    // (pdfMaleGebaenderteLinie()) überein, sichtbar als Farbtausch direkt
-    // hinter dem Winkel.
-    double dx1 = vp1.x() - vp0.x(), dy1 = vp1.y() - vp0.y();
-    bool flip1 = (dx1 * (refY - vp0.y()) - dy1 * (refX - vp0.x())) >= 0.0;
-    double dx2 = vp2.x() - vp1.x(), dy2 = vp2.y() - vp1.y();
-    bool flip2 = (dx2 * (refY - vp1.y()) - dy2 * (refX - vp1.x())) >= 0.0;
 
-    auto seite = [&](double sign) {
-        QColor farbe1 = ((sign < 0.0) != flip1) ? s.farbeA : s.farbeB;
-        QColor farbe2 = ((sign < 0.0) != flip2) ? s.farbeA : s.farbeB;
-        QPen pen(Qt::black, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin);
-        pen.setColor(farbe1);
-        p.setPen(pen);
-        p.drawLine(QLineF(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign,
-                           vp1.x() + n1.x()*off*sign, vp1.y() + n1.y()*off*sign));
-        pen.setColor(farbe2);
-        p.setPen(pen);
-        p.drawLine(QLineF(vp1.x() + n2.x()*off*sign, vp1.y() + n2.y()*off*sign,
-                           vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign));
+    auto seite = [&](double sign, const QColor &farbe) {
+        QPainterPath path;
+        path.moveTo(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign);
+        path.lineTo(vp1.x() + n1.x()*off*sign, vp1.y() + n1.y()*off*sign);
+        path.lineTo(vp1.x() + n2.x()*off*sign, vp1.y() + n2.y()*off*sign);
+        path.lineTo(vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign);
+        p.setPen(QPen(farbe, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+        p.drawPath(path);
     };
-    seite(-1.0);
-    seite(+1.0);
+    seite(-1.0, s.flip ? s.farbeB : s.farbeA);
+    seite(+1.0, s.flip ? s.farbeA : s.farbeB);
 }
 
 // Zeichnet die S1-/S2-Arme eines Treffpunkt-/Treffpunkt_L-Symbols als zwei
@@ -1604,6 +1600,10 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
             s.zweifarbig = fa.name() != fb.name();
             s.farbeA = fa; s.farbeB = fb;
             s.refPunkt = k.s1Welt;
+            {
+                double zdx = s.cx2 - s.cx1, zdy = s.cy2 - s.cy1;
+                s.flip = (zdx * (k.s1Welt.y() - s.cy1) - zdy * (k.s1Welt.x() - s.cx1)) >= 0.0;
+            }
             s.lw = qMax(0.3, breiteWelt * 0.25 * pxPerMm);
             s.color = fa; // Fallback für die Treffpunkt-Symbolfarbe (pdfSegmentFuerPunkt, s.u.)
         }
@@ -2422,7 +2422,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 QPointF wp2 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 1.0, 1.0);
                 pdfMaleWinkelGebaendert(p, QPointF(wp0.x()*C, wp0.y()*C),
                                             QPointF(wp1.x()*C, wp1.y()*C),
-                                            QPointF(wp2.x()*C, wp2.y()*C), *mSeg, C);
+                                            QPointF(wp2.x()*C, wp2.y()*C), *mSeg);
             } else {
                 p.save();
                 p.translate(symX + absSw / 2, symY + absSh / 2);
@@ -3065,12 +3065,11 @@ static void pdfLeitungenRendern(QPainter &p, double C, double pxPerMm,
     p.setBrush(Qt::NoBrush);
     for (int i = 0; i < segs.size(); i++) {
         const PdfLeitungsSegment &s = segs[i];
-        double refX = s.refPunkt.x() * C, refY = s.refPunkt.y() * C;
 
         auto it = crossings.constFind(i);
         if (it == crossings.constEnd() || it->isEmpty()) {
             // Kein Kreuzungspunkt: normal zeichnen
-            pdfMaleGebaenderteLinie(p, s.cx1*C, s.cy1*C, s.cx2*C, s.cy2*C, s, refX, refY, pxPerMm);
+            pdfMaleGebaenderteLinie(p, s.cx1*C, s.cy1*C, s.cx2*C, s.cy2*C, s, pxPerMm);
         } else {
             // H-Segment mit Lücken: stückweise zeichnen
             double hx1 = qMin(s.cx1, s.cx2);
@@ -3081,11 +3080,11 @@ static void pdfLeitungenRendern(QPainter &p, double C, double pxPerMm,
                 double ls = cx - luecke;
                 double le = cx + luecke;
                 if (ls > pos)
-                    pdfMaleGebaenderteLinie(p, pos*C, hy*C, ls*C, hy*C, s, refX, refY, pxPerMm);
+                    pdfMaleGebaenderteLinie(p, pos*C, hy*C, ls*C, hy*C, s, pxPerMm);
                 pos = le;
             }
             if (pos < hx2)
-                pdfMaleGebaenderteLinie(p, pos*C, hy*C, hx2*C, hy*C, s, refX, refY, pxPerMm);
+                pdfMaleGebaenderteLinie(p, pos*C, hy*C, hx2*C, hy*C, s, pxPerMm);
         }
     }
 }

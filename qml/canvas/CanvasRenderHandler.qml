@@ -1567,24 +1567,43 @@ QtObject {
         var n2 = normale(vp1.x, vp1.y, vp2.x, vp2.y)
         var basis = breitePx / 2   // Breite je Einzel-Ader-Band, wie _maleGebaenderteLinie
         var off = basis / 2
-        var flip = false
+        // WINKEL-FARBE-01-Nachbesserung (Sep 2026): flip MUSS pro Teilstück
+        // einzeln berechnet werden, nicht einmal aus dem ersten Teilstück für
+        // beide übernommen — der Kreuzprodukt-Test ist nur entlang EINER
+        // Geraden verschiebungsinvariant (derselbe Punkt (ax,ay) auf derselben
+        // Linie liefert überall dasselbe Ergebnis), nicht über einen Knick
+        // hinweg (andere Richtung = andere Gerade). Mit nur einem
+        // gemeinsamen flip stimmte die Seitenzuordnung des zweiten
+        // Teilstücks nicht mit der unabhängig berechneten Seitenzuordnung
+        // der extern weiterlaufenden Leitung (_maleGebaenderteLinie(), exakt
+        // dieselbe Formel, aber pro Segment neu ausgewertet) überein –
+        // sichtbar als Farbtausch direkt hinter dem Winkel. Nutzer-Screenshot
+        // + Nachrechnen an echten Projektkoordinaten bestätigt.
+        var flip1 = false, flip2 = false
         if (refVX !== undefined && refVY !== undefined) {
-            var dx = vp1.x - vp0.x, dy = vp1.y - vp0.y
-            flip = (dx * (refVY - vp0.y) - dy * (refVX - vp0.x)) >= 0
+            var dx1 = vp1.x - vp0.x, dy1 = vp1.y - vp0.y
+            flip1 = (dx1 * (refVY - vp0.y) - dy1 * (refVX - vp0.x)) >= 0
+            var dx2 = vp2.x - vp1.x, dy2 = vp2.y - vp1.y
+            flip2 = (dx2 * (refVY - vp1.y) - dy2 * (refVX - vp1.x)) >= 0
         }
-        function seite(sign, farbe) {
-            ctx.strokeStyle = farbe
-            ctx.lineWidth   = basis
-            ctx.lineCap     = "square"
+        function seite(sign) {
+            ctx.lineWidth = basis
+            ctx.lineCap   = "square"
+            var farbe1 = (sign < 0) === !flip1 ? band.farben[0] : band.farben[1]
+            var farbe2 = (sign < 0) === !flip2 ? band.farben[0] : band.farben[1]
+            ctx.strokeStyle = farbe1
             ctx.beginPath()
             ctx.moveTo(vp0.x + n1.px*off*sign, vp0.y + n1.py*off*sign)
             ctx.lineTo(vp1.x + n1.px*off*sign, vp1.y + n1.py*off*sign)
-            ctx.lineTo(vp1.x + n2.px*off*sign, vp1.y + n2.py*off*sign)
+            ctx.stroke()
+            ctx.strokeStyle = farbe2
+            ctx.beginPath()
+            ctx.moveTo(vp1.x + n2.px*off*sign, vp1.y + n2.py*off*sign)
             ctx.lineTo(vp2.x + n2.px*off*sign, vp2.y + n2.py*off*sign)
             ctx.stroke()
         }
-        seite(-1, flip ? band.farben[1] : band.farben[0])
-        seite(+1, flip ? band.farben[0] : band.farben[1])
+        seite(-1)
+        seite(+1)
     }
 
     // Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden

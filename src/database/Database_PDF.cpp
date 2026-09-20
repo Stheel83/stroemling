@@ -927,22 +927,34 @@ static void pdfMaleWinkelGebaendert(QPainter &p, QPointF vp0, QPointF vp1, QPoin
     QPointF n2 = normale(vp1, vp2);
     double basis = s.lw / 2.0;   // Breite je Einzel-Ader-Band, wie pdfMaleGebaenderteLinie
     double off   = basis / 2.0;
-    double dx = vp1.x() - vp0.x(), dy = vp1.y() - vp0.y();
-    bool flip = (dx * (refY - vp0.y()) - dy * (refX - vp0.x())) >= 0.0;
-    QColor farbeNeg = flip ? s.farbeB : s.farbeA;
-    QColor farbePos = flip ? s.farbeA : s.farbeB;
+    // WINKEL-FARBE-01-Nachbesserung (Sep 2026): flip MUSS pro Teilstück
+    // einzeln berechnet werden (1:1-Analogie zur QML-Nachbesserung in
+    // _maleWinkelGebaendertViewport(), s. dortiger Kommentar für die
+    // Begründung) — mit nur einem gemeinsamen flip stimmte die
+    // Seitenzuordnung des zweiten Teilstücks nicht mit der unabhängig
+    // berechneten Seitenzuordnung der extern weiterlaufenden Leitung
+    // (pdfMaleGebaenderteLinie()) überein, sichtbar als Farbtausch direkt
+    // hinter dem Winkel.
+    double dx1 = vp1.x() - vp0.x(), dy1 = vp1.y() - vp0.y();
+    bool flip1 = (dx1 * (refY - vp0.y()) - dy1 * (refX - vp0.x())) >= 0.0;
+    double dx2 = vp2.x() - vp1.x(), dy2 = vp2.y() - vp1.y();
+    bool flip2 = (dx2 * (refY - vp1.y()) - dy2 * (refX - vp1.x())) >= 0.0;
 
-    auto seite = [&](double sign, const QColor &farbe) {
-        QPainterPath path;
-        path.moveTo(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign);
-        path.lineTo(vp1.x() + n1.x()*off*sign, vp1.y() + n1.y()*off*sign);
-        path.lineTo(vp1.x() + n2.x()*off*sign, vp1.y() + n2.y()*off*sign);
-        path.lineTo(vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign);
-        p.setPen(QPen(farbe, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-        p.drawPath(path);
+    auto seite = [&](double sign) {
+        QColor farbe1 = ((sign < 0.0) != flip1) ? s.farbeA : s.farbeB;
+        QColor farbe2 = ((sign < 0.0) != flip2) ? s.farbeA : s.farbeB;
+        QPen pen(Qt::black, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin);
+        pen.setColor(farbe1);
+        p.setPen(pen);
+        p.drawLine(QLineF(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign,
+                           vp1.x() + n1.x()*off*sign, vp1.y() + n1.y()*off*sign));
+        pen.setColor(farbe2);
+        p.setPen(pen);
+        p.drawLine(QLineF(vp1.x() + n2.x()*off*sign, vp1.y() + n2.y()*off*sign,
+                           vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign));
     };
-    seite(-1.0, farbeNeg);
-    seite(+1.0, farbePos);
+    seite(-1.0);
+    seite(+1.0);
 }
 
 // Zeichnet die S1-/S2-Arme eines Treffpunkt-/Treffpunkt_L-Symbols als zwei

@@ -933,6 +933,26 @@ static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
     p.drawPath(path);
 }
 
+// Schließt die keilförmige Lücke, die am inneren Verzweigungsknoten (j/j2)
+// entsteht, wenn dort mehrere bündig (FlatCap) geschnittene, unterschiedlich
+// gerichtete Arme aufeinandertreffen (TREFFPUNKT-CAP-UEBERLAPP-01, zweite
+// Nachbesserung, 1:1-Port von _maleTreffpunktKnotenPunkt() in
+// CanvasRenderHandler.qml). Ein echtes RoundCap kommt hier nicht infrage, da
+// derselbe Pfad auch das äußere, bewusst eckig verlängerte Pin-Ende trägt.
+// Stattdessen pro Arm ein kleiner gefüllter Kreis in dessen eigener
+// Farbe/Breite exakt auf dem Knoten. seg == nullptr: unverbunden →
+// Default-Blau (analog L()-Lambda).
+static void pdfMaleTreffpunktKnotenPunkt(QPainter &p, QPointF pt, const PdfLeitungsSegment *seg,
+                                         double lwBasis)
+{
+    double lw = seg ? seg->lw : lwBasis;
+    QColor farbe = seg ? seg->color : QColor("#4a9eff");
+    p.setPen(Qt::NoPen);
+    p.setBrush(farbe);
+    p.drawEllipse(pt, lw / 2.0, lw / 2.0);
+    p.setBrush(Qt::NoBrush);
+}
+
 // Zeichnet die Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln (statt
 // über die generischen symbol_primitiv-Zeilen), damit der Ziel-Arm bei Bedarf
 // gebändert werden kann. 1:1-Analogie zu _maleTreffpunktArme() in
@@ -973,13 +993,19 @@ static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, doubl
     if (symbolId == QLatin1String("treffpunkt")) {
         QPointF j = P(0.5, 0.75);
         pdfMaleTreffpunktArmEinfarbig(p, { P(0, 0.5), P(0.25, 0.5), j }, s1Seg, lwBasis);
+        pdfMaleTreffpunktKnotenPunkt(p, j, s1Seg, lwBasis);
         L(j,            P(0.5, 1),    zielSeg, false, true);
+        pdfMaleTreffpunktKnotenPunkt(p, j, zielSeg, lwBasis);
         pdfMaleTreffpunktArmEinfarbig(p, { P(1, 0.5), P(0.75, 0.5), j }, s2Seg, lwBasis);
+        pdfMaleTreffpunktKnotenPunkt(p, j, s2Seg, lwBasis);
     } else if (symbolId == QLatin1String("treffpunkt_l")) {
         QPointF j2 = P(0.5, 0.75);
         pdfMaleTreffpunktArmEinfarbig(p, { P(0, 0.5), P(0.25, 0.5), j2 }, s1Seg, lwBasis);
+        pdfMaleTreffpunktKnotenPunkt(p, j2, s1Seg, lwBasis);
         L(P(0.5, 0),    j2,           s2Seg,   true,  false);
+        pdfMaleTreffpunktKnotenPunkt(p, j2, s2Seg, lwBasis);
         L(j2,           P(0.5, 1),    zielSeg, false, true);
+        pdfMaleTreffpunktKnotenPunkt(p, j2, zielSeg, lwBasis);
     }
 }
 

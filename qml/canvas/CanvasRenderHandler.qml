@@ -1598,6 +1598,28 @@ QtObject {
         }
     }
 
+    // Schließt die keilförmige Lücke, die am inneren Verzweigungsknoten
+    // (j/j2) entsteht, wenn dort mehrere bündig (butt) geschnittene, in
+    // unterschiedliche Richtungen zeigende Arme aufeinandertreffen
+    // (TREFFPUNKT-CAP-UEBERLAPP-01, zweite Nachbesserung). Ein echtes
+    // ctx.lineCap="round" kommt hier nicht infrage, weil derselbe Pfad auch
+    // das äußere, bewusst eckig verlängerte Pin-Ende hat (ein Cap-Wert gilt
+    // für den ganzen Pfad). Stattdessen pro Arm ein kleiner gefüllter Kreis
+    // in dessen eigener Farbe/Breite exakt auf dem Knoten — bildet denselben
+    // Effekt nach, den ein echtes RoundCap dort hätte, ohne den äußeren
+    // Pin zu beeinflussen. Bei mehreren, sich am selben Punkt überlappenden
+    // Kreisen gewinnt der zuletzt gezeichnete (analog dazu, wie sich echte
+    // RoundCaps an dieser Stelle überlagern würden) — unkritisch, da alle
+    // Kreise nah beieinander liegende Radien haben.
+    function _maleTreffpunktKnotenPunkt(ctx, pt, band) {
+        if (!band) return
+        var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
+        ctx.fillStyle = band.modus === "bifarb" ? band.farben[0] : (band.farbe || band.farben[0])
+        ctx.beginPath()
+        ctx.arc(pt.x, pt.y, breitePx / 2, 0, Math.PI * 2)
+        ctx.fill()
+    }
+
     // Zeichnet die drei Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln
     // (statt über drawByPrimitiv), weil der Ziel-Arm gebändert sein kann –
     // Koordinaten aus symbole.sql (lokale, unrotierte Symbolkoordinaten 0..1,
@@ -1608,7 +1630,9 @@ QtObject {
     // läuft weiter über _maleGebaenderteLinie() mit squareCapA/squareCapB:
     // true am äußeren Pin-Ende (nahtloser Übergang zur externen Leitung),
     // false am inneren Verzweigungsknoten (bündig, keine überlappenden
-    // Rechtecke, TREFFPUNKT-CAP-UEBERLAPP-01).
+    // Rechtecke, TREFFPUNKT-CAP-UEBERLAPP-01). Je ein kleiner Rundpunkt pro
+    // Arm schließt danach die am bündigen Knoten entstehende Kerbe (s.
+    // _maleTreffpunktKnotenPunkt()).
     function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
         if (!armInfo) return
         function P(nx, ny) { return { x: nx * w, y: ny * h } }
@@ -1620,13 +1644,19 @@ QtObject {
         if (symbolId === "treffpunkt") {
             var j = P(0.5, 0.75)
             _maleTreffpunktArmEinfarbig(ctx, [P(0, 0.5), P(0.25, 0.5), j], armInfo.s1)
+            _maleTreffpunktKnotenPunkt(ctx, j, armInfo.s1)
             L(j, P(0.5, 1),              armInfo.ziel, false, true)
+            _maleTreffpunktKnotenPunkt(ctx, j, armInfo.ziel)
             _maleTreffpunktArmEinfarbig(ctx, [P(1, 0.5), P(0.75, 0.5), j], armInfo.s2)
+            _maleTreffpunktKnotenPunkt(ctx, j, armInfo.s2)
         } else if (symbolId === "treffpunkt_l") {
             var j2 = P(0.5, 0.75)
             _maleTreffpunktArmEinfarbig(ctx, [P(0, 0.5), P(0.25, 0.5), j2], armInfo.s1)
+            _maleTreffpunktKnotenPunkt(ctx, j2, armInfo.s1)
             L(P(0.5, 0),   j2,           armInfo.s2,   true,  false)
+            _maleTreffpunktKnotenPunkt(ctx, j2, armInfo.s2)
             L(j2, P(0.5, 1),             armInfo.ziel, false, true)
+            _maleTreffpunktKnotenPunkt(ctx, j2, armInfo.ziel)
         }
     }
 

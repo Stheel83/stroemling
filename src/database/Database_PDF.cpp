@@ -908,50 +908,52 @@ static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
 // _maleTreffpunktArme() in CanvasRenderHandler.qml, s. dortiger Kommentar
 // für die Design-Begründung). S1 bleibt im Bündel Richtung Ziel auf der
 // linken, S2 auf der rechten Seite — fest im Symbol definiert, rotiert/
-// spiegelt mit. Bei 'treffpunkt' (T-Form) werden beide Arme symmetrisch
-// versetzt; bei 'treffpunkt_l' bleibt S2 (schon von Haus aus die
-// durchgehende Gerade) laut zweiter Nutzer-Nachbesserung komplett
-// unversetzt, nur S1 rückt seitlich heran (s. dortiger Zweig unten). Der
-// Ziel-Pin selbst bleibt exakt auf seiner Koordinate; die Adern enden knapp
-// seitlich davon versetzt (treffpunkt_l: nur S1). Läuft im bereits
+// spiegelt mit. Der Versatz-Betrag ist bewusst NICHT aus S1/S2s eigener
+// Breite abgeleitet, sondern exakt derselbe wie im gebänderten Zweig von
+// pdfMaleGebaenderteLinie() (dort für die EXTERNE, außerhalb des Symbols
+// weiterlaufende Leitung genutzt) — nur so schließt die Symbol-eigene
+// Darstellung nahtlos an, ohne an der Ziel-Pin-Grenze einen seitlichen
+// Sprung ("Stufe") zu zeigen (dritte Nutzer-Nachbesserung, Sep 2026, per
+// Skizze). Ist die externe Leitung dort undividiert (gleiche Farbe/nur
+// eine Ader), ist der Versatz hier ebenfalls 0. Läuft im bereits
 // transformierten (translate/rotate/scale) Koordinatensystem wie
 // pdfSymbolRendern – lokale, unrotierte 0..1-Koordinaten (s.
 // symbol_primitiv für 'treffpunkt'/'treffpunkt_l'). s1Seg/s2Seg: das
 // jeweils an diesem Pin anliegende, bereits farblich aufgelöste
-// Leitungssegment (nullptr = unverbunden → Default-Blau). Das Ziel-seitige
-// Leitungssegment wird hier bewusst nicht mehr benötigt (die externe,
-// außerhalb des Symbols weiterlaufende Leitung nutzt weiterhin unverändert
-// die bestehende Bänderungs-Logik, s. pdfLeitungenSammeln).
+// Leitungssegment (nullptr = unverbunden → Default-Blau). zielSeg wird nur
+// für den Versatz-Betrag gelesen (gebaendert/zweifarbig/lw), seine Farbe
+// bleibt für die Symbol-eigene Darstellung ungenutzt.
 static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, double w, double h,
                                      double lwBasis, const PdfLeitungsSegment *s1Seg,
-                                     const PdfLeitungsSegment *s2Seg)
+                                     const PdfLeitungsSegment *s2Seg,
+                                     const PdfLeitungsSegment *zielSeg)
 {
     auto P = [&](double nx, double ny) { return QPointF(nx * w, ny * h); };
-    auto versatz = [&](const PdfLeitungsSegment *seg) { return (seg ? seg->lw : lwBasis) / 2.0; };
+    double off = (zielSeg && zielSeg->gebaendert && zielSeg->zweifarbig) ? zielSeg->lw / 4.0 : 0.0;
 
     if (symbolId == QLatin1String("treffpunkt")) {
-        double off1 = versatz(s1Seg), off2 = versatz(s2Seg);
         pdfMaleTreffpunktArmEinfarbig(p, {
             P(0, 0.5), P(0.25, 0.5),
-            QPointF(0.5*w - off1, 0.75*h), QPointF(0.5*w - off1, h)
+            QPointF(0.5*w - off, 0.75*h), QPointF(0.5*w - off, h)
         }, s1Seg, lwBasis);
         pdfMaleTreffpunktArmEinfarbig(p, {
             P(1, 0.5), P(0.75, 0.5),
-            QPointF(0.5*w + off2, 0.75*h), QPointF(0.5*w + off2, h)
+            QPointF(0.5*w + off, 0.75*h), QPointF(0.5*w + off, h)
         }, s2Seg, lwBasis);
     } else if (symbolId == QLatin1String("treffpunkt_l")) {
-        // Zweite Nutzer-Nachbesserung (Sep 2026): S2 bleibt hier die ganze
-        // Strecke unangetastet auf ihrer ursprünglichen, geraden Linie
-        // (0.5,0)→(0.5,1) — kein Versatz, kein Knick. Nur S1 rückt seitlich
-        // heran, bis sie bündig direkt neben S2 liegt; ihr Versatz ist
-        // deshalb die Summe beider halben Linienbreiten (nicht mehr nur die
-        // eigene), weil S2 ihr nicht mehr entgegenkommt.
-        double offA = versatz(s1Seg) + versatz(s2Seg);
+        // Dritte Nutzer-Nachbesserung: S2 startet zentriert am eigenen Pin,
+        // schwenkt aber jetzt (statt komplett gerade zu bleiben) ab dem
+        // Knotenpunkt leicht schräg zur versetzten Position, S1
+        // spiegelbildlich in die andere Richtung — beide enden symmetrisch
+        // ± off neben der Mittelachse.
         pdfMaleTreffpunktArmEinfarbig(p, {
             P(0, 0.5), P(0.25, 0.5),
-            QPointF(0.5*w - offA, 0.75*h), QPointF(0.5*w - offA, h)
+            QPointF(0.5*w - off, 0.75*h), QPointF(0.5*w - off, h)
         }, s1Seg, lwBasis);
-        pdfMaleTreffpunktArmEinfarbig(p, { P(0.5, 0), P(0.5, 1) }, s2Seg, lwBasis);
+        pdfMaleTreffpunktArmEinfarbig(p, {
+            P(0.5, 0), QPointF(0.5*w, 0.75*h),
+            QPointF(0.5*w + off, h)
+        }, s2Seg, lwBasis);
     }
 }
 
@@ -2372,17 +2374,16 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
             double rot = el.value("rotation").toDouble();
             bool   spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
 
-            const PdfLeitungsSegment *s1Seg = nullptr, *s2Seg = nullptr;
+            const PdfLeitungsSegment *s1Seg = nullptr, *s2Seg = nullptr, *zielSeg = nullptr;
             for (const PdfPinDef &pin : pdfPinsFuerTyp(sid)) {
-                if (pin.name != QLatin1String("s1") && pin.name != QLatin1String("s2"))
-                    continue; // Ziel-Pin wird für die Symbol-eigene Darstellung nicht mehr gebraucht
                 QPointF w = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, pin.px, pin.py);
                 for (int fi = 0; fi < leitungsSegs->size(); fi++) {
                     const PdfLeitungsSegment &ls = (*leitungsSegs)[fi];
                     if (!pdfPunktAufSegment(w.x(), w.y(), ls.cx1, ls.cy1, ls.cx2, ls.cy2, 2.0))
                         continue;
-                    if      (pin.name == QLatin1String("s1")) s1Seg = &ls;
-                    else                                       s2Seg = &ls;
+                    if      (pin.name == QLatin1String("s1"))   s1Seg = &ls;
+                    else if (pin.name == QLatin1String("s2"))   s2Seg = &ls;
+                    else if (pin.name == QLatin1String("ziel")) zielSeg = &ls;
                     break;
                 }
             }
@@ -2393,7 +2394,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
             if (spX) p.scale(-1.0, 1.0);
             if (spY) p.scale(1.0, -1.0);
             p.translate(-absSw / 2, -absSh / 2);
-            pdfTreffpunktArmeRendern(p, sid, absSw, absSh, pen.widthF(), s1Seg, s2Seg);
+            pdfTreffpunktArmeRendern(p, sid, absSw, absSh, pen.widthF(), s1Seg, s2Seg, zielSeg);
             p.restore();
         } else {
             pdfSymbolRendern(p, sid, symX, symY, absSw, absSh,

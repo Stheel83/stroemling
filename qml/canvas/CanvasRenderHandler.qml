@@ -1579,50 +1579,50 @@ QtObject {
     // Richtung Ziel auf der linken, S2 auf der rechten Seite — fest im
     // Symbol definiert, rotiert/spiegelt mit (kein Bezug zur Netz-
     // Bänderung). Bei `treffpunkt` (T-Form) werden beide Arme symmetrisch
-    // versetzt; bei `treffpunkt_l` bleibt S2 (schon von Haus aus die
-    // durchgehende Gerade) laut zweiter Nutzer-Nachbesserung komplett
-    // unversetzt, nur S1 rückt seitlich heran (s. dortiger Zweig unten). Der
-    // Ziel-Pin selbst bleibt exakt auf seiner Koordinate; die Adern enden
-    // knapp seitlich davon versetzt (treffpunkt_l: nur S1). Zwei Adern mit
-    // zufällig gleicher Farbe zeigen keine Trennlinie mehr (Nutzerentscheid:
-    // die Breite allein reicht als Erkennungsmerkmal) — das alte
-    // "gleich"/"verschieden"-Bänderungsmodell für den Ziel-Arm entfällt
-    // dadurch für die Symbol-eigene Darstellung ersatzlos.
-    // `armInfo.ziel` (Netz-Bänderung für die EXTERNE, außerhalb des Symbols
-    // weiterlaufende Leitung) bleibt unverändert und wird hier bewusst NICHT
-    // verwendet — nur maleAutoVerbindungen() liest das noch (Scope-
-    // Entscheidung: nur die Symbol-eigene Darstellung wurde überarbeitet).
+    // versetzt. Der Versatz-Betrag ist bewusst NICHT aus S1/S2s eigener
+    // Breite abgeleitet, sondern exakt derselbe wie im "verschieden"-Zweig
+    // von _maleGebaenderteLinie() (dort für die EXTERNE, außerhalb des
+    // Symbols weiterlaufende Leitung genutzt) — nur so schließt die
+    // Symbol-eigene Darstellung nahtlos an die externe Leitung an, ohne an
+    // der Ziel-Pin-Grenze einen seitlichen Sprung ("Stufe") zu zeigen
+    // (dritte Nutzer-Nachbesserung, Sep 2026, per Skizze). Haben `s1`/`s2`
+    // dieselbe Farbe, ist die externe Leitung dort undividiert (Modus
+    // "gleich"/"einzel", kein Versatz, s. VERBINDUNGSFARBE-WEISSLINIE-01) —
+    // dann ist der Versatz hier ebenfalls 0, beide Adern laufen unauffällig
+    // (weil gleichfarbig) im selben Punkt zusammen.
     // Koordinaten aus symbole.sql (lokale, unrotierte Symbolkoordinaten 0..1,
     // Rotation/Spiegelung ist über den ctx-Transform des Aufrufers bereits aktiv).
     function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
         if (!armInfo) return
         function P(nx, ny) { return { x: nx * w, y: ny * h } }
-        function versatz(band) { return Math.max(0.5, band.breite * cv.mmToPx * cv.zoom) / 2 }
+        var zielBand = armInfo.ziel
+        var off = 0
+        if (zielBand && zielBand.modus === "verschieden")
+            off = Math.max(0.5, zielBand.breite * cv.mmToPx * cv.zoom) / 4
 
         if (symbolId === "treffpunkt") {
-            var off1 = versatz(armInfo.s1), off2 = versatz(armInfo.s2)
             _maleTreffpunktArmEinfarbig(ctx, [
                 P(0, 0.5), P(0.25, 0.5),
-                { x: 0.5*w - off1, y: 0.75*h }, { x: 0.5*w - off1, y: h }
+                { x: 0.5*w - off, y: 0.75*h }, { x: 0.5*w - off, y: h }
             ], armInfo.s1)
             _maleTreffpunktArmEinfarbig(ctx, [
                 P(1, 0.5), P(0.75, 0.5),
-                { x: 0.5*w + off2, y: 0.75*h }, { x: 0.5*w + off2, y: h }
+                { x: 0.5*w + off, y: 0.75*h }, { x: 0.5*w + off, y: h }
             ], armInfo.s2)
         } else if (symbolId === "treffpunkt_l") {
-            // Nutzer-Nachbesserung (Sep 2026, zweite Skizze): S2 bleibt hier
-            // die ganze Strecke unangetastet auf ihrer ursprünglichen,
-            // geraden Linie (0.5,0)→(0.5,1) — kein Versatz, kein Knick. Nur
-            // S1 rückt seitlich heran, bis sie bündig direkt neben S2 liegt;
-            // ihr Versatz ist deshalb jetzt die Summe beider halben
-            // Linienbreiten (nicht mehr nur die eigene), weil S2 ihr nicht
-            // mehr entgegenkommt.
-            var offA = versatz(armInfo.s1) + versatz(armInfo.s2)
+            // Dritte Nutzer-Nachbesserung: S2 startet zentriert am eigenen
+            // Pin, schwenkt aber jetzt (statt komplett gerade zu bleiben)
+            // ab dem Knotenpunkt leicht schräg zur versetzten Position,
+            // S1 spiegelbildlich in die andere Richtung — beide enden
+            // symmetrisch ± off neben der Mittelachse.
             _maleTreffpunktArmEinfarbig(ctx, [
                 P(0, 0.5), P(0.25, 0.5),
-                { x: 0.5*w - offA, y: 0.75*h }, { x: 0.5*w - offA, y: h }
+                { x: 0.5*w - off, y: 0.75*h }, { x: 0.5*w - off, y: h }
             ], armInfo.s1)
-            _maleTreffpunktArmEinfarbig(ctx, [P(0.5, 0), P(0.5, 1)], armInfo.s2)
+            _maleTreffpunktArmEinfarbig(ctx, [
+                P(0.5, 0), { x: 0.5*w, y: 0.75*h },
+                { x: 0.5*w + off, y: h }
+            ], armInfo.s2)
         }
     }
 

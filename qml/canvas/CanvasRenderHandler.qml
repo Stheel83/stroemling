@@ -1429,20 +1429,7 @@ QtObject {
     // die bei mehreren verketteten Segmenten entlang des Ziel-Arms nicht
     // konsistent ist – Ergebnis wäre eine an Segmentgrenzen "verdrehte"
     // Seitenzuordnung (VERBINDUNGSFARBE-04).
-    // squareCapA/squareCapB (optional, TREFFPUNKT-CAP-UEBERLAPP-01): true
-    // verlängert das jeweilige Ende manuell um die halbe Linienbreite (wie
-    // ctx.lineCap="square" es täte), false schneidet es bündig ab
-    // (ctx.lineCap="butt"). Werden von _maleTreffpunktArme() genutzt, um am
-    // äußeren Pin-Ende eines Arms (Übergang zur externen Leitung, s.
-    // LEITUNG-ZOOM-BREITE-01-Nachtrag) weiterhin nahtlos zu wirken, ohne dass
-    // die Verlängerung auch am INNEREN Verzweigungsknoten überlappende
-    // Rechtecke erzeugt — dort treffen bis zu drei einzeln gezeichnete,
-    // unterschiedlich gefärbte Arm-Segmente aufeinander, ein globales
-    // ctx.lineCap="square" verlängert dort jedes von ihnen über den
-    // gemeinsamen Punkt hinaus. Ohne diese Parameter (normale
-    // Leitungssegmente) bleibt ctx.lineCap unverändert wie bisher (vom
-    // Aufrufer geerbt).
-    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band, refX, refY, squareCapA, squareCapB) {
+    function _maleGebaenderteLinie(ctx, ax, ay, bx, by, band, refX, refY) {
         if (!band) return
         ctx.setLineDash([])
         var modus = band.modus || "einzel"
@@ -1457,17 +1444,6 @@ QtObject {
         // wären. Ein einziger Umrechnungspunkt hier stellt sicher, dass
         // beide Pfade denselben, aktuellen cv.zoom verwenden.
         var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
-        if (squareCapA !== undefined || squareCapB !== undefined) {
-            var _dx = bx - ax, _dy = by - ay
-            var _len = Math.sqrt(_dx*_dx + _dy*_dy)
-            if (_len > 1e-6) {
-                var _ux = _dx / _len, _uy = _dy / _len
-                var _ext = breitePx / 2
-                if (squareCapA) { ax -= _ux * _ext; ay -= _uy * _ext }
-                if (squareCapB) { bx += _ux * _ext; by += _uy * _ext }
-            }
-            ctx.lineCap = "butt"
-        }
         if (modus === "bifarb") {
             // Bifarb-Ader (aderfarbe2): längs alternierendes Strich-Band statt
             // Parallel-Offset (das wäre mit der Treffpunkt-Bänderung "verschieden"
@@ -1543,35 +1519,40 @@ QtObject {
         ctx.stroke()
     }
 
-    // Zeichnet einen S1-/S2-Arm (immer genau eine Ader, s. Konzept §3.6 —
-    // nie gebändert) als EINEN zusammenhängenden Pfad über mehrere Punkte
-    // statt mehrerer getrennter stroke()-Aufrufe. Grund: der Arm knickt
-    // zwischen dem äußeren Pin und dem inneren Verzweigungsknoten j/j2
-    // einmal ab (P(0.25,0.5) bzw. entsprechend) — als ein Pfad fügt Canvas
-    // dort automatisch einen glatten Miter-Join ein (analog _maleWinkel()),
-    // statt dass zwei einzeln gecappte Segmente dort eine Kerbe/Lücke offen
-    // lassen (TREFFPUNKT-CAP-UEBERLAPP-01-Nachbesserung: reines
-    // Butt-Cap auf getrennten Pfaden sah an dieser Knickstelle wie
-    // "abgeschnittene" Arme aus). Nur das äußere Pin-Ende (points[0]) wird
-    // manuell um die halbe Linienbreite verlängert (nahtloser Übergang zur
-    // externen Leitung, LEITUNG-ZOOM-BREITE-01-Nachtrag) — das innere Ende
-    // (letzter Punkt, = j/j2) bleibt bündig.
+    // Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden
+    // Pfad vom eigenen äußeren Pin bis zum Ziel-Pin (TREFFPUNKT-CAP-
+    // UEBERLAPP-01, Nutzer-Konzeptentscheid Sep 2026: statt drei Arm-Stubs,
+    // die sich in einem gemeinsamen Knoten treffen, laufen S1 und S2 als
+    // zwei unabhängige, durchgehende Adern bis zum Ziel — dort wo sie sich
+    // Richtung Ziel annähern, bündig parallel nebeneinander statt vereint.
+    // Damit gibt es keinen gemeinsamen Vertex mehr, an dem Cap-Überlappungen
+    // oder Kerben entstehen könnten). points enthält bereits die fertige,
+    // ggf. zum Ziel hin seitlich versetzte Wegpunkt-Kette (s.
+    // _maleTreffpunktArme()); beide Enden (eigener Pin UND Ziel-Ende) sind
+    // echte Übergänge zu externen Leitungen und werden hier manuell um die
+    // halbe Linienbreite verlängert (nahtloser Anschluss,
+    // LEITUNG-ZOOM-BREITE-01-Nachtrag). Interne Knickpunkte dazwischen
+    // bleiben Teil desselben Pfades — Canvas fügt dort automatisch einen
+    // glatten Miter-Join ein (analog _maleWinkel()).
     function _maleTreffpunktArmEinfarbig(ctx, points, band) {
         if (!band || points.length < 2) return
         var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
-        var p0 = points[0], p1 = points[1]
-        var dx = p1.x - p0.x, dy = p1.y - p0.y
-        var len = Math.sqrt(dx*dx + dy*dy)
-        var startX = p0.x, startY = p0.y
-        if (len > 1e-6) {
-            var ext = breitePx / 2
-            startX -= (dx/len) * ext
-            startY -= (dy/len) * ext
-        }
+        var ext = breitePx / 2
+        var pts = points.slice()
+        var n = pts.length
+        var dxA = pts[1].x - pts[0].x, dyA = pts[1].y - pts[0].y
+        var lenA = Math.sqrt(dxA*dxA + dyA*dyA)
+        if (lenA > 1e-6)
+            pts[0] = { x: pts[0].x - (dxA/lenA)*ext, y: pts[0].y - (dyA/lenA)*ext }
+        var dxB = pts[n-1].x - pts[n-2].x, dyB = pts[n-1].y - pts[n-2].y
+        var lenB = Math.sqrt(dxB*dxB + dyB*dyB)
+        if (lenB > 1e-6)
+            pts[n-1] = { x: pts[n-1].x + (dxB/lenB)*ext, y: pts[n-1].y + (dyB/lenB)*ext }
+
         function _stroke() {
             ctx.beginPath()
-            ctx.moveTo(startX, startY)
-            for (var i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y)
+            ctx.moveTo(pts[0].x, pts[0].y)
+            for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
             ctx.stroke()
         }
         ctx.lineCap  = "butt"
@@ -1598,65 +1579,52 @@ QtObject {
         }
     }
 
-    // Schließt die keilförmige Lücke, die am inneren Verzweigungsknoten
-    // (j/j2) entsteht, wenn dort mehrere bündig (butt) geschnittene, in
-    // unterschiedliche Richtungen zeigende Arme aufeinandertreffen
-    // (TREFFPUNKT-CAP-UEBERLAPP-01, zweite Nachbesserung). Ein echtes
-    // ctx.lineCap="round" kommt hier nicht infrage, weil derselbe Pfad auch
-    // das äußere, bewusst eckig verlängerte Pin-Ende hat (ein Cap-Wert gilt
-    // für den ganzen Pfad). Stattdessen pro Arm ein kleiner gefüllter Kreis
-    // in dessen eigener Farbe/Breite exakt auf dem Knoten — bildet denselben
-    // Effekt nach, den ein echtes RoundCap dort hätte, ohne den äußeren
-    // Pin zu beeinflussen. Bei mehreren, sich am selben Punkt überlappenden
-    // Kreisen gewinnt der zuletzt gezeichnete (analog dazu, wie sich echte
-    // RoundCaps an dieser Stelle überlagern würden) — unkritisch, da alle
-    // Kreise nah beieinander liegende Radien haben.
-    function _maleTreffpunktKnotenPunkt(ctx, pt, band) {
-        if (!band) return
-        var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
-        ctx.fillStyle = band.modus === "bifarb" ? band.farben[0] : (band.farbe || band.farben[0])
-        ctx.beginPath()
-        ctx.arc(pt.x, pt.y, breitePx / 2, 0, Math.PI * 2)
-        ctx.fill()
-    }
-
-    // Zeichnet die drei Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln
-    // (statt über drawByPrimitiv), weil der Ziel-Arm gebändert sein kann –
+    // Zeichnet die S1-/S2-Arme eines Treffpunkt-/Treffpunkt_L-Symbols als
+    // zwei unabhängige, durchgehende Adern (TREFFPUNKT-CAP-UEBERLAPP-01,
+    // Nutzer-Konzeptentscheid Sep 2026 — ersetzt das vorherige Modell mit
+    // einem gemeinsamen Verzweigungsknoten komplett). S1 bleibt im Bündel
+    // Richtung Ziel auf der linken, S2 auf der rechten Seite — fest im
+    // Symbol definiert, rotiert/spiegelt mit (kein Bezug zur Netz-
+    // Bänderung). Der Ziel-Pin selbst bleibt exakt auf seiner Koordinate;
+    // beide Adern enden knapp seitlich davon versetzt. Zwei Adern mit
+    // zufällig gleicher Farbe zeigen keine Trennlinie mehr (Nutzerentscheid:
+    // die Breite allein reicht als Erkennungsmerkmal) — das alte
+    // "gleich"/"verschieden"-Bänderungsmodell für den Ziel-Arm entfällt
+    // dadurch für die Symbol-eigene Darstellung ersatzlos.
+    // `armInfo.ziel` (Netz-Bänderung für die EXTERNE, außerhalb des Symbols
+    // weiterlaufende Leitung) bleibt unverändert und wird hier bewusst NICHT
+    // verwendet — nur maleAutoVerbindungen() liest das noch (Scope-
+    // Entscheidung: nur die Symbol-eigene Darstellung wurde überarbeitet).
     // Koordinaten aus symbole.sql (lokale, unrotierte Symbolkoordinaten 0..1,
     // Rotation/Spiegelung ist über den ctx-Transform des Aufrufers bereits aktiv).
-    // S1/S2 laufen über _maleTreffpunktArmEinfarbig() als EIN Pfad (glatter
-    // Knick zum inneren Verzweigungsknoten j/j2). Der Ziel-Arm ist immer nur
-    // ein einzelnes Segment (j/j2 → äußerer Pin) und kann gebändert sein —
-    // läuft weiter über _maleGebaenderteLinie() mit squareCapA/squareCapB:
-    // true am äußeren Pin-Ende (nahtloser Übergang zur externen Leitung),
-    // false am inneren Verzweigungsknoten (bündig, keine überlappenden
-    // Rechtecke, TREFFPUNKT-CAP-UEBERLAPP-01). Je ein kleiner Rundpunkt pro
-    // Arm schließt danach die am bündigen Knoten entstehende Kerbe (s.
-    // _maleTreffpunktKnotenPunkt()).
     function _maleTreffpunktArme(ctx, symbolId, w, h, armInfo) {
         if (!armInfo) return
         function P(nx, ny) { return { x: nx * w, y: ny * h } }
-        // S1-Pin liegt bei beiden Symboltypen lokal auf (0, 0.5) – als
-        // Referenz für die Seitenzuordnung der Bänderung (s. _maleGebaenderteLinie).
-        var s1Ref = P(0, 0.5)
-        var L = function(a, b, band, capA, capB) { _maleGebaenderteLinie(ctx, a.x, a.y, b.x, b.y, band, s1Ref.x, s1Ref.y, capA, capB) }
+        function versatz(band) { return Math.max(0.5, band.breite * cv.mmToPx * cv.zoom) / 2 }
 
         if (symbolId === "treffpunkt") {
-            var j = P(0.5, 0.75)
-            _maleTreffpunktArmEinfarbig(ctx, [P(0, 0.5), P(0.25, 0.5), j], armInfo.s1)
-            _maleTreffpunktKnotenPunkt(ctx, j, armInfo.s1)
-            L(j, P(0.5, 1),              armInfo.ziel, false, true)
-            _maleTreffpunktKnotenPunkt(ctx, j, armInfo.ziel)
-            _maleTreffpunktArmEinfarbig(ctx, [P(1, 0.5), P(0.75, 0.5), j], armInfo.s2)
-            _maleTreffpunktKnotenPunkt(ctx, j, armInfo.s2)
+            var off1 = versatz(armInfo.s1), off2 = versatz(armInfo.s2)
+            _maleTreffpunktArmEinfarbig(ctx, [
+                P(0, 0.5), P(0.25, 0.5),
+                { x: 0.5*w - off1, y: 0.75*h }, { x: 0.5*w - off1, y: h }
+            ], armInfo.s1)
+            _maleTreffpunktArmEinfarbig(ctx, [
+                P(1, 0.5), P(0.75, 0.5),
+                { x: 0.5*w + off2, y: 0.75*h }, { x: 0.5*w + off2, y: h }
+            ], armInfo.s2)
         } else if (symbolId === "treffpunkt_l") {
-            var j2 = P(0.5, 0.75)
-            _maleTreffpunktArmEinfarbig(ctx, [P(0, 0.5), P(0.25, 0.5), j2], armInfo.s1)
-            _maleTreffpunktKnotenPunkt(ctx, j2, armInfo.s1)
-            L(P(0.5, 0),   j2,           armInfo.s2,   true,  false)
-            _maleTreffpunktKnotenPunkt(ctx, j2, armInfo.s2)
-            L(j2, P(0.5, 1),             armInfo.ziel, false, true)
-            _maleTreffpunktKnotenPunkt(ctx, j2, armInfo.ziel)
+            var offA = versatz(armInfo.s1), offB = versatz(armInfo.s2)
+            _maleTreffpunktArmEinfarbig(ctx, [
+                P(0, 0.5), P(0.25, 0.5),
+                { x: 0.5*w - offA, y: 0.75*h }, { x: 0.5*w - offA, y: h }
+            ], armInfo.s1)
+            // S2 bleibt bis zur Höhe des S1-Knicks (lokal y=0.75) exakt
+            // mittig, erst ab dort schwenkt sie zur bündig-parallelen
+            // Position neben S1 (Nutzervorgabe).
+            _maleTreffpunktArmEinfarbig(ctx, [
+                P(0.5, 0), { x: 0.5*w, y: 0.75*h },
+                { x: 0.5*w + offB, y: h }
+            ], armInfo.s2)
         }
     }
 

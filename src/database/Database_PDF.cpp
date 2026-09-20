@@ -789,44 +789,18 @@ static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, dou
 }
 
 // Zeichnet ein Geraden-Stück – einfarbig, bifarb (aderfarbe2) oder
-// (Treffpunkt-Ziel-Arm) gebändert. 1:1-Port von _maleGebaenderteLinie() in
-// CanvasRenderHandler.qml (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY
-// bereits in derselben Zieleinheit des Aufrufers (Device-Pixel bei
-// Leitungen, lokale Symbol-Pixel bei Treffpunkt-Armen – s.
-// pdfTreffpunktArmeRendern). RoundCap statt FlatCap: Treffpunkt-Arme und
-// Leitungssegmente treffen sich an Ecken/Verzweigungen als mehrere separate
-// drawLine()-Aufrufe (nicht ein QPainterPath) - Qt-Line-Joins greifen nur
-// innerhalb eines Path, sonst bleibt am gemeinsamen Punkt eine keilförmige
-// Lücke sichtbar (analog Winkel-Symbol, s. pdfElementRendern).
-// capStyle (LEITUNG-ZOOM-BREITE-01-Nachtrag, Aug 2026): Default RoundCap wie
-// bisher für normale Leitungssegmente (Aufrufer weiter unten in dieser
-// Datei) – Treffpunkt-Arme übergeben stattdessen SquareCap, damit der
-// Übergang zur anschließenden Leitung nahtlos wirkt statt als runder "Blob"
-// (1:1 zum QML-Fix in _maleTreffpunktArme(), das dort lineCap="square"
-// setzt statt das ererbte "round" von maleElement() zu behalten).
-// squareCapA/squareCapB (optional, TREFFPUNKT-CAP-UEBERLAPP-01, 1:1-Port der
-// gleichnamigen QML-Parameter): verlängern nur das jeweilige Ende manuell um
-// die halbe Linienbreite und erzwingen FlatCap – vermeidet, dass am inneren
-// Treffpunkt-Verzweigungsknoten mehrere einzeln gezeichnete, unterschiedlich
-// gefärbte Arm-Segmente als überlappende Rechtecke übereinanderstehen,
-// während das äußere Pin-Ende weiter nahtlos an die externe Leitung
-// anschließt.
+// (Treffpunkt-Ziel-Arm, außerhalb des Symbols weiterlaufend) gebändert.
+// 1:1-Port von _maleGebaenderteLinie() in CanvasRenderHandler.qml
+// (VERBINDUNGSFARBE-03/04). ax,ay,bx,by,refX,refY bereits in derselben
+// Zieleinheit des Aufrufers (Device-Pixel bei Leitungen). RoundCap statt
+// FlatCap: Leitungssegmente treffen sich an Ecken/Verzweigungen als mehrere
+// separate drawLine()-Aufrufe (nicht ein QPainterPath) - Qt-Line-Joins
+// greifen nur innerhalb eines Path, sonst bleibt am gemeinsamen Punkt eine
+// keilförmige Lücke sichtbar (analog Winkel-Symbol, s. pdfElementRendern).
 static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
                                      const PdfLeitungsSegment &s, double refX, double refY,
-                                     double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap,
-                                     bool squareCapA = false, bool squareCapB = false)
+                                     double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap)
 {
-    if (squareCapA || squareCapB) {
-        double dx0 = bx - ax, dy0 = by - ay;
-        double len0 = std::sqrt(dx0*dx0 + dy0*dy0);
-        if (len0 > 1e-6) {
-            double ux = dx0 / len0, uy = dy0 / len0;
-            double ext = s.lw / 2.0;
-            if (squareCapA) { ax -= ux * ext; ay -= uy * ext; }
-            if (squareCapB) { bx += ux * ext; by += uy * ext; }
-        }
-        capStyle = Qt::FlatCap;
-    }
     if (!s.gebaendert) {
         if (s.farbe2.isValid()) {
             pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
@@ -861,32 +835,30 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
 }
 
-// Zeichnet einen S1-/S2-Arm (immer genau eine Ader, s. Konzept §3.6 — nie
-// gebändert) als EINEN zusammenhängenden QPainterPath über mehrere Punkte
-// statt getrennter drawLine()-Aufrufe – Qt fügt am inneren Knick
-// (P(0.25,0.5) bzw. entsprechend) automatisch einen glatten Miter-Join ein,
-// statt dass zwei einzeln gecappte Segmente dort eine Kerbe/Lücke offen
-// lassen (TREFFPUNKT-CAP-UEBERLAPP-01-Nachbesserung, 1:1-Port von
-// _maleTreffpunktArmEinfarbig() in CanvasRenderHandler.qml). Nur points[0]
-// (äußeres Pin-Ende) wird manuell um die halbe Linienbreite verlängert
-// (nahtloser Übergang zur externen Leitung), der letzte Punkt (innerer
-// Verzweigungsknoten) bleibt bündig. seg == nullptr: unverbunden →
-// Default-Blau (analog L()-Lambda unten).
-static void pdfMaleTreffpunktArmEinfarbig(QPainter &p, const QVector<QPointF> &points,
+// Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden
+// QPainterPath vom eigenen äußeren Pin bis zum Ziel-Pin
+// (TREFFPUNKT-CAP-UEBERLAPP-01, Nutzer-Konzeptentscheid Sep 2026, 1:1-Port
+// von _maleTreffpunktArmEinfarbig() in CanvasRenderHandler.qml — s. dortiger
+// Kommentar für die Design-Begründung). points enthält bereits die fertige,
+// ggf. zum Ziel hin seitlich versetzte Wegpunkt-Kette (s.
+// pdfTreffpunktArmeRendern()); beide Enden (eigener Pin UND Ziel-Ende) sind
+// echte Übergänge zu externen Leitungen und werden hier manuell um die
+// halbe Linienbreite verlängert. seg == nullptr: unverbunden → Default-Blau.
+static void pdfMaleTreffpunktArmEinfarbig(QPainter &p, QVector<QPointF> points,
                                           const PdfLeitungsSegment *seg, double lwBasis)
 {
     if (points.size() < 2) return;
     double lw = seg ? seg->lw : lwBasis;
-    QPointF p0 = points[0], p1 = points[1];
-    double dx = p1.x() - p0.x(), dy = p1.y() - p0.y();
-    double len = std::sqrt(dx*dx + dy*dy);
-    QPointF start = p0;
-    if (len > 1e-6) {
-        double ux = dx / len, uy = dy / len, ext = lw / 2.0;
-        start -= QPointF(ux * ext, uy * ext);
-    }
+    int n = points.size();
+    double dxA = points[1].x() - points[0].x(), dyA = points[1].y() - points[0].y();
+    double lenA = std::sqrt(dxA*dxA + dyA*dyA);
+    if (lenA > 1e-6) points[0] -= QPointF(dxA/lenA, dyA/lenA) * (lw / 2.0);
+    double dxB = points[n-1].x() - points[n-2].x(), dyB = points[n-1].y() - points[n-2].y();
+    double lenB = std::sqrt(dxB*dxB + dyB*dyB);
+    if (lenB > 1e-6) points[n-1] += QPointF(dxB/lenB, dyB/lenB) * (lw / 2.0);
+
     QPainterPath path;
-    path.moveTo(start);
+    path.moveTo(points[0]);
     for (int i = 1; i < points.size(); ++i) path.lineTo(points[i]);
 
     if (seg && seg->farbe2.isValid()) {
@@ -933,79 +905,53 @@ static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
     p.drawPath(path);
 }
 
-// Schließt die keilförmige Lücke, die am inneren Verzweigungsknoten (j/j2)
-// entsteht, wenn dort mehrere bündig (FlatCap) geschnittene, unterschiedlich
-// gerichtete Arme aufeinandertreffen (TREFFPUNKT-CAP-UEBERLAPP-01, zweite
-// Nachbesserung, 1:1-Port von _maleTreffpunktKnotenPunkt() in
-// CanvasRenderHandler.qml). Ein echtes RoundCap kommt hier nicht infrage, da
-// derselbe Pfad auch das äußere, bewusst eckig verlängerte Pin-Ende trägt.
-// Stattdessen pro Arm ein kleiner gefüllter Kreis in dessen eigener
-// Farbe/Breite exakt auf dem Knoten. seg == nullptr: unverbunden →
-// Default-Blau (analog L()-Lambda).
-static void pdfMaleTreffpunktKnotenPunkt(QPainter &p, QPointF pt, const PdfLeitungsSegment *seg,
-                                         double lwBasis)
-{
-    double lw = seg ? seg->lw : lwBasis;
-    QColor farbe = seg ? seg->color : QColor("#4a9eff");
-    p.setPen(Qt::NoPen);
-    p.setBrush(farbe);
-    p.drawEllipse(pt, lw / 2.0, lw / 2.0);
-    p.setBrush(Qt::NoBrush);
-}
-
-// Zeichnet die Arme eines Treffpunkt-/Treffpunkt_L-Symbols einzeln (statt
-// über die generischen symbol_primitiv-Zeilen), damit der Ziel-Arm bei Bedarf
-// gebändert werden kann. 1:1-Analogie zu _maleTreffpunktArme() in
-// CanvasRenderHandler.qml. Läuft im bereits transformierten (translate/
-// rotate/scale) Koordinatensystem wie pdfSymbolRendern – lokale, unrotierte
-// 0..1-Koordinaten (s. symbol_primitiv für 'treffpunkt'/'treffpunkt_l').
-// s1Seg/s2Seg/zielSeg: das jeweils an diesem Pin anliegende, bereits farblich
-// aufgelöste Leitungssegment (nullptr = unverbunden → Default-Blau).
+// Zeichnet die S1-/S2-Arme eines Treffpunkt-/Treffpunkt_L-Symbols als zwei
+// unabhängige, durchgehende Adern (TREFFPUNKT-CAP-UEBERLAPP-01, Nutzer-
+// Konzeptentscheid Sep 2026 — ersetzt das vorherige Modell mit einem
+// gemeinsamen Verzweigungsknoten komplett, 1:1-Port von
+// _maleTreffpunktArme() in CanvasRenderHandler.qml, s. dortiger Kommentar
+// für die Design-Begründung). S1 bleibt im Bündel Richtung Ziel auf der
+// linken, S2 auf der rechten Seite — fest im Symbol definiert, rotiert/
+// spiegelt mit. Der Ziel-Pin selbst bleibt exakt auf seiner Koordinate;
+// beide Adern enden knapp seitlich davon versetzt. Läuft im bereits
+// transformierten (translate/rotate/scale) Koordinatensystem wie
+// pdfSymbolRendern – lokale, unrotierte 0..1-Koordinaten (s.
+// symbol_primitiv für 'treffpunkt'/'treffpunkt_l'). s1Seg/s2Seg: das
+// jeweils an diesem Pin anliegende, bereits farblich aufgelöste
+// Leitungssegment (nullptr = unverbunden → Default-Blau). Das Ziel-seitige
+// Leitungssegment wird hier bewusst nicht mehr benötigt (die externe,
+// außerhalb des Symbols weiterlaufende Leitung nutzt weiterhin unverändert
+// die bestehende Bänderungs-Logik, s. pdfLeitungenSammeln).
 static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, double w, double h,
                                      double lwBasis, const PdfLeitungsSegment *s1Seg,
-                                     const PdfLeitungsSegment *s2Seg,
-                                     const PdfLeitungsSegment *zielSeg, double pxPerMm)
+                                     const PdfLeitungsSegment *s2Seg)
 {
     auto P = [&](double nx, double ny) { return QPointF(nx * w, ny * h); };
-    QPointF s1RefLocal = P(0.0, 0.5); // S1-Pin ist bei beiden Symboltypen lokal (0, 0.5)
-    // capA/capB: true am äußeren Pin-Ende (weiterhin nahtloser Übergang zur
-    // externen Leitung), false am inneren Verzweigungsknoten j/j2 (bündig,
-    // keine überlappenden Rechtecke – TREFFPUNKT-CAP-UEBERLAPP-01).
-    auto L = [&](QPointF a, QPointF b, const PdfLeitungsSegment *seg, bool capA, bool capB) {
-        if (seg) {
-            pdfMaleGebaenderteLinie(p, a.x(), a.y(), b.x(), b.y(), *seg,
-                                    s1RefLocal.x(), s1RefLocal.y(), pxPerMm, Qt::SquareCap,
-                                    capA, capB);
-        } else {
-            QPointF aa = a, bb = b;
-            double dx = bb.x() - aa.x(), dy = bb.y() - aa.y();
-            double len = std::sqrt(dx*dx + dy*dy);
-            if (len > 1e-6) {
-                double ux = dx / len, uy = dy / len, ext = lwBasis / 2.0;
-                if (capA) aa -= QPointF(ux * ext, uy * ext);
-                if (capB) bb += QPointF(ux * ext, uy * ext);
-            }
-            p.setPen(QPen(QColor("#4a9eff"), lwBasis, Qt::SolidLine, Qt::FlatCap));
-            p.drawLine(QLineF(aa, bb));
-        }
-    };
+    auto versatz = [&](const PdfLeitungsSegment *seg) { return (seg ? seg->lw : lwBasis) / 2.0; };
 
     if (symbolId == QLatin1String("treffpunkt")) {
-        QPointF j = P(0.5, 0.75);
-        pdfMaleTreffpunktArmEinfarbig(p, { P(0, 0.5), P(0.25, 0.5), j }, s1Seg, lwBasis);
-        pdfMaleTreffpunktKnotenPunkt(p, j, s1Seg, lwBasis);
-        L(j,            P(0.5, 1),    zielSeg, false, true);
-        pdfMaleTreffpunktKnotenPunkt(p, j, zielSeg, lwBasis);
-        pdfMaleTreffpunktArmEinfarbig(p, { P(1, 0.5), P(0.75, 0.5), j }, s2Seg, lwBasis);
-        pdfMaleTreffpunktKnotenPunkt(p, j, s2Seg, lwBasis);
+        double off1 = versatz(s1Seg), off2 = versatz(s2Seg);
+        pdfMaleTreffpunktArmEinfarbig(p, {
+            P(0, 0.5), P(0.25, 0.5),
+            QPointF(0.5*w - off1, 0.75*h), QPointF(0.5*w - off1, h)
+        }, s1Seg, lwBasis);
+        pdfMaleTreffpunktArmEinfarbig(p, {
+            P(1, 0.5), P(0.75, 0.5),
+            QPointF(0.5*w + off2, 0.75*h), QPointF(0.5*w + off2, h)
+        }, s2Seg, lwBasis);
     } else if (symbolId == QLatin1String("treffpunkt_l")) {
-        QPointF j2 = P(0.5, 0.75);
-        pdfMaleTreffpunktArmEinfarbig(p, { P(0, 0.5), P(0.25, 0.5), j2 }, s1Seg, lwBasis);
-        pdfMaleTreffpunktKnotenPunkt(p, j2, s1Seg, lwBasis);
-        L(P(0.5, 0),    j2,           s2Seg,   true,  false);
-        pdfMaleTreffpunktKnotenPunkt(p, j2, s2Seg, lwBasis);
-        L(j2,           P(0.5, 1),    zielSeg, false, true);
-        pdfMaleTreffpunktKnotenPunkt(p, j2, zielSeg, lwBasis);
+        double offA = versatz(s1Seg), offB = versatz(s2Seg);
+        pdfMaleTreffpunktArmEinfarbig(p, {
+            P(0, 0.5), P(0.25, 0.5),
+            QPointF(0.5*w - offA, 0.75*h), QPointF(0.5*w - offA, h)
+        }, s1Seg, lwBasis);
+        // S2 bleibt bis zur Höhe des S1-Knicks (lokal y=0.75) exakt mittig,
+        // erst ab dort schwenkt sie zur bündig-parallelen Position neben S1
+        // (Nutzervorgabe).
+        pdfMaleTreffpunktArmEinfarbig(p, {
+            P(0.5, 0), QPointF(0.5*w, 0.75*h),
+            QPointF(0.5*w + offB, h)
+        }, s2Seg, lwBasis);
     }
 }
 
@@ -2426,16 +2372,17 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
             double rot = el.value("rotation").toDouble();
             bool   spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
 
-            const PdfLeitungsSegment *s1Seg = nullptr, *s2Seg = nullptr, *zielSeg = nullptr;
+            const PdfLeitungsSegment *s1Seg = nullptr, *s2Seg = nullptr;
             for (const PdfPinDef &pin : pdfPinsFuerTyp(sid)) {
+                if (pin.name != QLatin1String("s1") && pin.name != QLatin1String("s2"))
+                    continue; // Ziel-Pin wird für die Symbol-eigene Darstellung nicht mehr gebraucht
                 QPointF w = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, pin.px, pin.py);
                 for (int fi = 0; fi < leitungsSegs->size(); fi++) {
                     const PdfLeitungsSegment &ls = (*leitungsSegs)[fi];
                     if (!pdfPunktAufSegment(w.x(), w.y(), ls.cx1, ls.cy1, ls.cx2, ls.cy2, 2.0))
                         continue;
-                    if      (pin.name == QLatin1String("s1"))   s1Seg = &ls;
-                    else if (pin.name == QLatin1String("s2"))   s2Seg = &ls;
-                    else if (pin.name == QLatin1String("ziel")) zielSeg = &ls;
+                    if      (pin.name == QLatin1String("s1")) s1Seg = &ls;
+                    else                                       s2Seg = &ls;
                     break;
                 }
             }
@@ -2446,7 +2393,7 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
             if (spX) p.scale(-1.0, 1.0);
             if (spY) p.scale(1.0, -1.0);
             p.translate(-absSw / 2, -absSh / 2);
-            pdfTreffpunktArmeRendern(p, sid, absSw, absSh, pen.widthF(), s1Seg, s2Seg, zielSeg, pxPerMm);
+            pdfTreffpunktArmeRendern(p, sid, absSw, absSh, pen.widthF(), s1Seg, s2Seg);
             p.restore();
         } else {
             pdfSymbolRendern(p, sid, symX, symY, absSw, absSh,

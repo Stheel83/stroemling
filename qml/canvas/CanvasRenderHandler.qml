@@ -1412,9 +1412,12 @@ QtObject {
 
     // Zeichnet ein einzelnes, bereits lückenfrei geschnittenes Geraden-Stück
     // (ax,ay)-(bx,by) entsprechend seinem Bänderungs-Modus:
-    // - "einzel"/"mehrfach": ein Stroke in band.farbe, Breite band.breite
-    // - "gleich": dicker Stroke in band.farben[0] + dünne Trennlinie in der
-    //   Canvas-Hintergrundfarbe darüber (zwei optisch getrennte, gleichfarbige Adern)
+    // - "einzel"/"mehrfach"/"gleich": ein Stroke in band.farbe/band.farben[0],
+    //   Breite band.breite (VERBINDUNGSFARBE-WEISSLINIE-01, Sep 2026,
+    //   Nutzerentscheid: zwei gleichfarbige Adern zeigten hier früher eine
+    //   dünne weiße Trennlinie in der Mitte — entfällt ersatzlos, die
+    //   höhere Dicke allein reicht als Erkennungsmerkmal, analog zur
+    //   Treffpunkt-eigenen Darstellung s. TREFFPUNKT-CAP-UEBERLAPP-01)
     // - "verschieden": zwei parallele, senkrecht zur Linie versetzte Strokes,
     //   je Ader eine Basisbreite und eigene Farbe
     // Koordinaten sind bereits in der Zieleinheit des Aufrufers (Viewport-Pixel
@@ -1461,7 +1464,7 @@ QtObject {
             ctx.setLineDash([])
             return
         }
-        if (modus !== "gleich" && modus !== "verschieden") {
+        if (modus !== "verschieden") {
             ctx.strokeStyle = band.farbe
             ctx.lineWidth   = breitePx
             ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
@@ -1472,32 +1475,22 @@ QtObject {
         if (len < 1e-6) return
         var px = -dy / len, py = dx / len   // Einheits-Senkrechte
         var basis = breitePx / 2            // Breite je Einzel-Ader-Band
-
-        if (modus === "gleich") {
-            ctx.strokeStyle = band.farben[0]
-            ctx.lineWidth   = breitePx
-            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
-            ctx.strokeStyle = cv.hintergrundFarbe
-            ctx.lineWidth   = 1.0
-            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
-        } else {
-            var off = basis / 2
-            var flip = false
-            if (refX !== undefined && refY !== undefined)
-                flip = (dx * (refY - ay) - dy * (refX - ax)) >= 0
-            var farbeNeg = flip ? band.farben[1] : band.farben[0]
-            var farbePos = flip ? band.farben[0] : band.farben[1]
-            ctx.strokeStyle = farbeNeg
-            ctx.lineWidth   = basis
-            ctx.beginPath()
-            ctx.moveTo(ax - px*off, ay - py*off); ctx.lineTo(bx - px*off, by - py*off)
-            ctx.stroke()
-            ctx.strokeStyle = farbePos
-            ctx.lineWidth   = basis
-            ctx.beginPath()
-            ctx.moveTo(ax + px*off, ay + py*off); ctx.lineTo(bx + px*off, by + py*off)
-            ctx.stroke()
-        }
+        var off = basis / 2
+        var flip = false
+        if (refX !== undefined && refY !== undefined)
+            flip = (dx * (refY - ay) - dy * (refX - ax)) >= 0
+        var farbeNeg = flip ? band.farben[1] : band.farben[0]
+        var farbePos = flip ? band.farben[0] : band.farben[1]
+        ctx.strokeStyle = farbeNeg
+        ctx.lineWidth   = basis
+        ctx.beginPath()
+        ctx.moveTo(ax - px*off, ay - py*off); ctx.lineTo(bx - px*off, by - py*off)
+        ctx.stroke()
+        ctx.strokeStyle = farbePos
+        ctx.lineWidth   = basis
+        ctx.beginPath()
+        ctx.moveTo(ax + px*off, ay + py*off); ctx.lineTo(bx + px*off, by + py*off)
+        ctx.stroke()
     }
 
     // Winkel: transparenter Durchlaufpunkt (§2.2), keine Bänderung nötig (immer

@@ -591,7 +591,7 @@ struct PdfLeitungsSegment {
     double lw;   // Linienbreite in Device-Pixeln (bei gebaendert: Vollbreite, s.u.)
 
     bool    gebaendert = false;   // true: Ziel-Arm eines Treffpunkts mit 2 Adern
-    bool    zweifarbig = false;   // true: farbeA/farbeB nebeneinander; false: farbeA + Trennlinie
+    bool    zweifarbig = false;   // true: farbeA/farbeB nebeneinander; false: eine Volllinie in farbeA
     QColor  farbeA, farbeB;       // bei zweifarbig: farbeA auf der refPunkt-Seite
     QPointF refPunkt;             // Weltkoordinate (Canvas-Einheiten) des S1-Pins
 
@@ -801,27 +801,23 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
                                      const PdfLeitungsSegment &s, double refX, double refY,
                                      double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap)
 {
-    if (!s.gebaendert) {
-        if (s.farbe2.isValid()) {
-            pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
-            return;
-        }
+    if (!s.gebaendert && s.farbe2.isValid()) {
+        pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
+        return;
+    }
+    if (!s.gebaendert || !s.zweifarbig) {
+        // Ungebändert ODER zwei zufällig gleichfarbige Adern
+        // (VERBINDUNGSFARBE-WEISSLINIE-01, Sep 2026, Nutzerentscheid): früher
+        // zusätzlich eine dünne weiße Trennlinie in der Mitte — entfällt
+        // ersatzlos, die höhere Dicke allein reicht als Erkennungsmerkmal.
         p.setPen(QPen(s.color, s.lw, Qt::SolidLine, capStyle));
         p.drawLine(QLineF(ax, ay, bx, by));
         return;
     }
+
     double dx = bx - ax, dy = by - ay;
     double len = std::sqrt(dx*dx + dy*dy);
     if (len < 1e-6) return;
-
-    if (!s.zweifarbig) {
-        p.setPen(QPen(s.farbeA, s.lw, Qt::SolidLine, capStyle));
-        p.drawLine(QLineF(ax, ay, bx, by));
-        p.setPen(QPen(Qt::white, qMax(0.3, 1.0 * 0.25 * pxPerMm), Qt::SolidLine, capStyle));
-        p.drawLine(QLineF(ax, ay, bx, by));
-        return;
-    }
-
     double px = -dy / len, py = dx / len;
     double basis = s.lw / 2.0;
     double off   = basis / 2.0;

@@ -804,10 +804,29 @@ static void pdfMaleBifarbLinie(QPainter &p, double ax, double ay, double bx, dou
 // Übergang zur anschließenden Leitung nahtlos wirkt statt als runder "Blob"
 // (1:1 zum QML-Fix in _maleTreffpunktArme(), das dort lineCap="square"
 // setzt statt das ererbte "round" von maleElement() zu behalten).
+// squareCapA/squareCapB (optional, TREFFPUNKT-CAP-UEBERLAPP-01, 1:1-Port der
+// gleichnamigen QML-Parameter): verlängern nur das jeweilige Ende manuell um
+// die halbe Linienbreite und erzwingen FlatCap – vermeidet, dass am inneren
+// Treffpunkt-Verzweigungsknoten mehrere einzeln gezeichnete, unterschiedlich
+// gefärbte Arm-Segmente als überlappende Rechtecke übereinanderstehen,
+// während das äußere Pin-Ende weiter nahtlos an die externe Leitung
+// anschließt.
 static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx, double by,
                                      const PdfLeitungsSegment &s, double refX, double refY,
-                                     double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap)
+                                     double pxPerMm, Qt::PenCapStyle capStyle = Qt::RoundCap,
+                                     bool squareCapA = false, bool squareCapB = false)
 {
+    if (squareCapA || squareCapB) {
+        double dx0 = bx - ax, dy0 = by - ay;
+        double len0 = std::sqrt(dx0*dx0 + dy0*dy0);
+        if (len0 > 1e-6) {
+            double ux = dx0 / len0, uy = dy0 / len0;
+            double ext = s.lw / 2.0;
+            if (squareCapA) { ax -= ux * ext; ay -= uy * ext; }
+            if (squareCapB) { bx += ux * ext; by += uy * ext; }
+        }
+        capStyle = Qt::FlatCap;
+    }
     if (!s.gebaendert) {
         if (s.farbe2.isValid()) {
             pdfMaleBifarbLinie(p, ax, ay, bx, by, s.color, s.farbe2, s.lw);
@@ -879,29 +898,41 @@ static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, doubl
 {
     auto P = [&](double nx, double ny) { return QPointF(nx * w, ny * h); };
     QPointF s1RefLocal = P(0.0, 0.5); // S1-Pin ist bei beiden Symboltypen lokal (0, 0.5)
-    auto L = [&](QPointF a, QPointF b, const PdfLeitungsSegment *seg) {
+    // capA/capB: true am äußeren Pin-Ende (weiterhin nahtloser Übergang zur
+    // externen Leitung), false am inneren Verzweigungsknoten j/j2 (bündig,
+    // keine überlappenden Rechtecke – TREFFPUNKT-CAP-UEBERLAPP-01).
+    auto L = [&](QPointF a, QPointF b, const PdfLeitungsSegment *seg, bool capA, bool capB) {
         if (seg) {
             pdfMaleGebaenderteLinie(p, a.x(), a.y(), b.x(), b.y(), *seg,
-                                    s1RefLocal.x(), s1RefLocal.y(), pxPerMm, Qt::SquareCap);
+                                    s1RefLocal.x(), s1RefLocal.y(), pxPerMm, Qt::SquareCap,
+                                    capA, capB);
         } else {
-            p.setPen(QPen(QColor("#4a9eff"), lwBasis, Qt::SolidLine, Qt::SquareCap));
-            p.drawLine(QLineF(a, b));
+            QPointF aa = a, bb = b;
+            double dx = bb.x() - aa.x(), dy = bb.y() - aa.y();
+            double len = std::sqrt(dx*dx + dy*dy);
+            if (len > 1e-6) {
+                double ux = dx / len, uy = dy / len, ext = lwBasis / 2.0;
+                if (capA) aa -= QPointF(ux * ext, uy * ext);
+                if (capB) bb += QPointF(ux * ext, uy * ext);
+            }
+            p.setPen(QPen(QColor("#4a9eff"), lwBasis, Qt::SolidLine, Qt::FlatCap));
+            p.drawLine(QLineF(aa, bb));
         }
     };
 
     if (symbolId == QLatin1String("treffpunkt")) {
         QPointF j = P(0.5, 0.75);
-        L(P(0, 0.5),    P(0.25, 0.5), s1Seg);
-        L(P(0.25, 0.5), j,            s1Seg);
-        L(j,            P(0.5, 1),    zielSeg);
-        L(j,            P(0.75, 0.5), s2Seg);
-        L(P(0.75, 0.5), P(1, 0.5),    s2Seg);
+        L(P(0, 0.5),    P(0.25, 0.5), s1Seg,   true,  false);
+        L(P(0.25, 0.5), j,            s1Seg,   false, false);
+        L(j,            P(0.5, 1),    zielSeg, false, true);
+        L(j,            P(0.75, 0.5), s2Seg,   false, false);
+        L(P(0.75, 0.5), P(1, 0.5),    s2Seg,   false, true);
     } else if (symbolId == QLatin1String("treffpunkt_l")) {
         QPointF j2 = P(0.5, 0.75);
-        L(P(0, 0.5),    P(0.25, 0.5), s1Seg);
-        L(P(0.25, 0.5), j2,           s1Seg);
-        L(P(0.5, 0),    j2,           s2Seg);
-        L(j2,           P(0.5, 1),    zielSeg);
+        L(P(0, 0.5),    P(0.25, 0.5), s1Seg,   true,  false);
+        L(P(0.25, 0.5), j2,           s1Seg,   false, false);
+        L(P(0.5, 0),    j2,           s2Seg,   true,  false);
+        L(j2,           P(0.5, 1),    zielSeg, false, true);
     }
 }
 

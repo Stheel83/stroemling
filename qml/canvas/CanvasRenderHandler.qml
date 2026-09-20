@@ -357,6 +357,13 @@ QtObject {
         // gebändert) statt einer einzelnen Farbe – wird unten über rc.armInfo
         // an _renderSymbol()/_maleTreffpunktArme() weitergereicht.
         var _armInfo = null
+        // WINKEL-FARBE-01 (Sep 2026): der volle Bänderungs-Deskriptor (nicht
+        // nur farbe/breite) wird zusätzlich durchgereicht, damit _renderSymbol()
+        // bei modus "verschieden" (zwei echte, unterschiedlich gefärbte Adern
+        // laufen durch denselben Winkel) zwei parallele, bündige Linien statt
+        // eines flachen Einzelstrichs zeichnen kann (Nutzerwunsch, analog zur
+        // bereits bestehenden Bänderung gerader Leitungen).
+        var _winkelBand = null
         // _breiteFuerAnzahl() liefert seit dem LEITUNG-ZOOM-BREITE-01-Nachtrag
         // einen zoom-unabhängigen mm-Wert (wie strichBreite) — sb wird unten
         // ganz normal über den regulären mmToPx*zoom-Pfad skaliert, kein
@@ -369,7 +376,7 @@ QtObject {
         if (routingFarben && el.typ === "symbol") {
             if (el.symbolId === "winkel") {
                 var _rf = routingFarben[idx]
-                if (_rf) { sf = _rf.farbe; sb = _rf.breite }
+                if (_rf) { sf = _rf.farbe; sb = _rf.breite; _winkelBand = _rf }
             } else if (el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") {
                 _armInfo = routingFarben[idx] || null
             }
@@ -424,7 +431,8 @@ QtObject {
 
         var rc = { vorschau: vorschau, gewaehlt: gewaehlt, skipText: _skipText,
                    sf: sf, sb: sb, sa: sa, fu: fu, ff: ff, fo: fo, op: op, er: er,
-                   vx1: vx1, vy1: vy1, vx2: vx2, vy2: vy2, lw: lw, idx: idx, armInfo: _armInfo }
+                   vx1: vx1, vy1: vy1, vx2: vx2, vy2: vy2, lw: lw, idx: idx, armInfo: _armInfo,
+                   winkelBand: _winkelBand }
 
         if      (el.typ === "linie")          _renderLinie(ctx, el, rc)
         else if (el.typ === "kabellinie")     _renderKabellinie(ctx, el, rc)
@@ -1493,13 +1501,20 @@ QtObject {
         ctx.stroke()
     }
 
-    // Winkel: transparenter Durchlaufpunkt (§2.2), keine Bänderung nötig (immer
-    // genau ein Netzsegment durch beide Arme). Beide Primitiv-Linien als EIN
-    // Pfad statt zweier getrennter stroke()-Aufrufe (wie drawByPrimitiv() es
-    // täte) — Canvas fügt am gemeinsamen Punkt automatisch einen sauberen
-    // Miter-Join ein, kein RoundCap-Workaround nötig. lineCap "square" wie bei
-    // normalen Leitungssegmenten (maleAutoVerbindungen()), damit der Übergang
-    // zur anschließenden Leitung nahtlos wirkt statt als runder "Blob"
+    // Winkel: transparenter Durchlaufpunkt (§2.2), normalerweise keine eigene
+    // Bänderung nötig (genau ein Netzsegment durch beide Arme, einfarbig).
+    // Ausnahme seit WINKEL-FARBE-01 (Sep 2026): laufen zwei echte,
+    // unterschiedlich gefärbte Adern durch denselben Winkel (modus
+    // "verschieden", z.B. Ziel-Insel eines Treffpunkts die über einen Winkel
+    // weiterläuft), zeichnet _renderSymbol() stattdessen
+    // _maleWinkelGebaendertViewport() – diese Funktion hier bleibt der Pfad
+    // für alle anderen Fälle (einzel/gleich/mehrfach/bifarb sowie
+    // Vorschau/unverbunden). Beide Primitiv-Linien als EIN Pfad statt zweier
+    // getrennter stroke()-Aufrufe (wie drawByPrimitiv() es täte) — Canvas
+    // fügt am gemeinsamen Punkt automatisch einen sauberen Miter-Join ein,
+    // kein RoundCap-Workaround nötig. lineCap "square" wie bei normalen
+    // Leitungssegmenten (maleAutoVerbindungen()), damit der Übergang zur
+    // anschließenden Leitung nahtlos wirkt statt als runder "Blob"
     // (LEITUNG-ZOOM-BREITE-01-Nachtrag, Aug 2026 — bei kleinem Zoom sonst
     // unverhältnismäßig dick, da die RoundCap-Überstände nicht mit der
     // Symbolgröße mitschrumpfen). Koordinaten aus symbole.sql (0,0)→(0,1)→(1,1).
@@ -1510,6 +1525,66 @@ QtObject {
         ctx.lineTo(0, h)
         ctx.lineTo(w, h)
         ctx.stroke()
+    }
+
+    // WINKEL-FARBE-01 (Sep 2026, Nutzerskizze): zwei parallele, bündige
+    // (Versatz = halbe Einzel-Ader-Breite, keine Lücke wie
+    // _maleGebaenderteLinie) Linien durch den 90°-Knick des Winkels statt
+    // eines flachen Einzelstrichs – für den Fall, dass zwei Adern mit
+    // unterschiedlicher Farbe durch denselben, an sich transparenten Winkel
+    // laufen (band.modus === "verschieden"). Arbeitet bewusst in
+    // Viewport-Pixel-Koordinaten (drei Eckpunkte vp0/vp1/vp2, via
+    // cv.geometrie.pinViewportPos() ermittelt) statt im lokalen, ggf.
+    // rotierten/gespiegelten Symbol-Koordinatensystem von _renderSymbol() –
+    // vermeidet dadurch von vornherein, dass die Seitenzuordnung (welche
+    // Ader auf welcher Seite) bei Rotation/Spiegelung durcheinandergerät
+    // (dieselbe Fallenklasse wie VERBINDUNGSFARBE-04, hier vorab vermieden
+    // statt nachträglich gefixt). refVX/refVY: Viewport-Weltpunkt auf der
+    // S1-Seite (aus _treffpunktZielBaender()), bestimmt wie bei
+    // _maleGebaenderteLinie() per Kreuzprodukt-Test welche Farbe auf welcher
+    // Seite landet. Jede der beiden Linien ist ein eigener 4-Punkt-Pfad
+    // (Bevel-artiger Knick am Versatzpunkt statt echter Miter-Schnittpunkt-
+    // Berechnung) – optisch ausreichend für den schmalen Versatz, deutlich
+    // einfacher als eine echte Liniensegment-Schnittpunkt-Berechnung.
+    function _maleWinkelGebaendertViewport(ctx, vp0, vp1, vp2, band, refVX, refVY) {
+        ctx.setLineDash([])
+        ctx.lineJoin = "miter"
+        var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
+        if (band.modus !== "verschieden") {
+            ctx.lineCap = "square"
+            ctx.strokeStyle = band.farbe
+            ctx.lineWidth   = breitePx
+            ctx.beginPath()
+            ctx.moveTo(vp0.x, vp0.y); ctx.lineTo(vp1.x, vp1.y); ctx.lineTo(vp2.x, vp2.y)
+            ctx.stroke()
+            return
+        }
+        function normale(ax, ay, bx, by) {
+            var dx = bx - ax, dy = by - ay, len = Math.sqrt(dx*dx + dy*dy)
+            return len < 1e-6 ? { px: 0, py: 0 } : { px: -dy/len, py: dx/len }
+        }
+        var n1 = normale(vp0.x, vp0.y, vp1.x, vp1.y)
+        var n2 = normale(vp1.x, vp1.y, vp2.x, vp2.y)
+        var basis = breitePx / 2   // Breite je Einzel-Ader-Band, wie _maleGebaenderteLinie
+        var off = basis / 2
+        var flip = false
+        if (refVX !== undefined && refVY !== undefined) {
+            var dx = vp1.x - vp0.x, dy = vp1.y - vp0.y
+            flip = (dx * (refVY - vp0.y) - dy * (refVX - vp0.x)) >= 0
+        }
+        function seite(sign, farbe) {
+            ctx.strokeStyle = farbe
+            ctx.lineWidth   = basis
+            ctx.lineCap     = "square"
+            ctx.beginPath()
+            ctx.moveTo(vp0.x + n1.px*off*sign, vp0.y + n1.py*off*sign)
+            ctx.lineTo(vp1.x + n1.px*off*sign, vp1.y + n1.py*off*sign)
+            ctx.lineTo(vp1.x + n2.px*off*sign, vp1.y + n2.py*off*sign)
+            ctx.lineTo(vp2.x + n2.px*off*sign, vp2.y + n2.py*off*sign)
+            ctx.stroke()
+        }
+        seite(-1, flip ? band.farben[1] : band.farben[0])
+        seite(+1, flip ? band.farben[0] : band.farben[1])
     }
 
     // Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden
@@ -1971,13 +2046,28 @@ QtObject {
             // Bei gestecktem Zustand: Bogen der Buchse / Rechteck des Steckers
             // (jeweils Primitiv-Index 1) grün einfärben.
             var _steBuFarbe = _steBuOk ? { 1: "#00e5a0" } : undefined
+            var _winkelGebaendert = el.symbolId === "winkel" && rc.winkelBand && rc.winkelBand.modus === "verschieden"
             if ((el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") && rc.armInfo)
                 _maleTreffpunktArme(ctx, el.symbolId, Math.abs(sw), Math.abs(sh), rc.armInfo)
-            else if (el.symbolId === "winkel")
+            else if (el.symbolId === "winkel" && !_winkelGebaendert)
                 _maleWinkel(ctx, Math.abs(sw), Math.abs(sh))
-            else
+            else if (!_winkelGebaendert)
                 drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
             ctx.restore()
+
+            // WINKEL-FARBE-01: bewusst NACH dem restore(), in Viewport- statt
+            // lokalen Symbol-Koordinaten gezeichnet (s. Kommentar an
+            // _maleWinkelGebaendertViewport()) - vermeidet Rotations-/
+            // Spiegel-Fallstricke bei der Seitenzuordnung.
+            if (_winkelGebaendert) {
+                var _wvp0 = cv.geometrie.pinViewportPos(el, 0, 0)
+                var _wvp1 = cv.geometrie.pinViewportPos(el, 0, 1)
+                var _wvp2 = cv.geometrie.pinViewportPos(el, 1, 1)
+                var _wBand = rc.winkelBand
+                var _wRefVX = _wBand.refX !== undefined ? _wBand.refX * cv.zoom + cv.worldX : undefined
+                var _wRefVY = _wBand.refY !== undefined ? _wBand.refY * cv.zoom + cv.worldY : undefined
+                _maleWinkelGebaendertViewport(ctx, _wvp0, _wvp1, _wvp2, _wBand, _wRefVX, _wRefVY)
+            }
 
             // SYMBOL-TEXT-LESBAR-01: Text-Primitive mit lesbar_halten=true werden
             // NICHT im oben rotierten/gespiegelten ctx-Block gezeichnet (drawByPrimitiv

@@ -901,6 +901,50 @@ static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
     p.drawPath(path);
 }
 
+// WINKEL-FARBE-01 (Sep 2026): 1:1-Port von _maleWinkelGebaendertViewport()
+// in CanvasRenderHandler.qml. Zwei parallele, bündige (Versatz = halbe
+// Einzel-Ader-Breite, kein Zwischenraum) Pfade durch den 90°-Knick statt
+// des flachen Einzelstrichs von pdfMaleWinkel() – für den Fall, dass zwei
+// unterschiedlich gefärbte Adern durch denselben, an sich transparenten
+// Winkel laufen (s.gebaendert && s.zweifarbig). vp0/vp1/vp2 bereits in
+// Device-Pixeln (Welt-Pin-Position via pdfPinWeltPos() * C) – bewusst NICHT
+// im lokalen, ggf. rotierten/gespiegelten Symbol-Koordinatensystem, um die
+// VERBINDUNGSFARBE-04-Fallenklasse (Seitenzuordnung kippt bei Rotation) von
+// vornherein zu vermeiden. Seitenzuordnung per Kreuzprodukt-Test mit
+// s.refPunkt (S1-Referenzpunkt), analog pdfMaleGebaenderteLinie(). Jede der
+// beiden Linien ein eigener 4-Punkt-QPainterPath (Bevel-artiger Knick am
+// Versatzpunkt statt echter Miter-Schnittpunkt-Berechnung).
+static void pdfMaleWinkelGebaendert(QPainter &p, QPointF vp0, QPointF vp1, QPointF vp2,
+                                     const PdfLeitungsSegment &s, double C)
+{
+    double refX = s.refPunkt.x() * C, refY = s.refPunkt.y() * C;
+    auto normale = [](QPointF a, QPointF b) {
+        double dx = b.x() - a.x(), dy = b.y() - a.y();
+        double len = std::sqrt(dx*dx + dy*dy);
+        return len < 1e-6 ? QPointF(0.0, 0.0) : QPointF(-dy/len, dx/len);
+    };
+    QPointF n1 = normale(vp0, vp1);
+    QPointF n2 = normale(vp1, vp2);
+    double basis = s.lw / 2.0;   // Breite je Einzel-Ader-Band, wie pdfMaleGebaenderteLinie
+    double off   = basis / 2.0;
+    double dx = vp1.x() - vp0.x(), dy = vp1.y() - vp0.y();
+    bool flip = (dx * (refY - vp0.y()) - dy * (refX - vp0.x())) >= 0.0;
+    QColor farbeNeg = flip ? s.farbeB : s.farbeA;
+    QColor farbePos = flip ? s.farbeA : s.farbeB;
+
+    auto seite = [&](double sign, const QColor &farbe) {
+        QPainterPath path;
+        path.moveTo(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign);
+        path.lineTo(vp1.x() + n1.x()*off*sign, vp1.y() + n1.y()*off*sign);
+        path.lineTo(vp1.x() + n2.x()*off*sign, vp1.y() + n2.y()*off*sign);
+        path.lineTo(vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign);
+        p.setPen(QPen(farbe, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+        p.drawPath(path);
+    };
+    seite(-1.0, farbeNeg);
+    seite(+1.0, farbePos);
+}
+
 // Zeichnet die S1-/S2-Arme eines Treffpunkt-/Treffpunkt_L-Symbols als zwei
 // unabhängige, durchgehende Adern (TREFFPUNKT-CAP-UEBERLAPP-01, Nutzer-
 // Konzeptentscheid Sep 2026 — ersetzt das vorherige Modell mit einem
@@ -1558,19 +1602,18 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
 
 // Nächstgelegenes Segment zu einem Punkt (Canvas-Einheiten) – gleiche Technik
 // wie das geometrische Matching in Database_Klemmen.cpp (klemmlistenauszug).
-static bool pdfSegmentFuerPunkt(double cx, double cy,
-                                const QVector<PdfLeitungsSegment> &segs,
-                                QColor &farbeOut, double &lwOut)
+// WINKEL-FARBE-01 (Sep 2026): gibt jetzt den vollen Segment-Zeiger zurück
+// (statt nur Farbe+Breite), damit der Winkel-Zeichenpfad auch
+// gebaendert/zweifarbig/farbeA/farbeB/refPunkt auswerten kann.
+static const PdfLeitungsSegment *pdfSegmentPtrFuerPunkt(double cx, double cy,
+                                const QVector<PdfLeitungsSegment> &segs)
 {
     const double TOL = 2.0;   // Canvas-Einheiten (0.5 mm)
     for (const PdfLeitungsSegment &s : segs) {
-        if (pdfPunktAufSegment(cx, cy, s.cx1, s.cy1, s.cx2, s.cy2, TOL)) {
-            farbeOut = s.color;
-            lwOut    = s.lw;
-            return true;
-        }
+        if (pdfPunktAufSegment(cx, cy, s.cx1, s.cy1, s.cx2, s.cy2, TOL))
+            return &s;
     }
-    return false;
+    return nullptr;
 }
 // pdfElementRendern() Typ-Handler (REFACTOR-CPP-02: aus pdfElementRendern() extrahiert)
 static void pdfElementLinieRendern(QPainter &p, const QVariantMap &el,
@@ -2339,30 +2382,45 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 { rx1, rmy }, { rx2, rmy }, { rmx, ry1 }, { rmx, ry2 },
                 { rx1, ry1 }, { rx2, ry1 }, { rx1, ry2 }, { rx2, ry2 }
             };
-            QColor mFarbe; double mLw;
+            const PdfLeitungsSegment *mSeg = nullptr;
             for (const QPointF &k : kandidaten) {
-                if (pdfSegmentFuerPunkt(k.x(), k.y(), *leitungsSegs, mFarbe, mLw)) {
-                    symPen.setColor(mFarbe);
-                    symPen.setWidthF(mLw);
+                mSeg = pdfSegmentPtrFuerPunkt(k.x(), k.y(), *leitungsSegs);
+                if (mSeg) {
+                    symPen.setColor(mSeg->color);
+                    symPen.setWidthF(mSeg->lw);
                     break;
                 }
             }
-        }
 
-        // Winkel: eigener Zeichenpfad (pdfMaleWinkel, SquareCap + ein
-        // zusammenhängender QPainterPath statt zweier RoundCap-drawLine()-
-        // Aufrufe über pdfSymbolRendern) – LEITUNG-ZOOM-BREITE-01-Nachtrag,
-        // Aug 2026, 1:1-Analogie zum QML-Fix in CanvasRenderHandler.qml
-        // _renderSymbol()/_maleWinkel().
-        if (leitungsSegs && sid == "winkel") {
-            p.save();
-            p.translate(symX + absSw / 2, symY + absSh / 2);
-            if (el.value("rotation").toInt() != 0) p.rotate(el.value("rotation").toInt());
-            if (el.value("spiegelX").toBool()) p.scale(-1.0, 1.0);
-            if (el.value("spiegelY").toBool()) p.scale(1.0, -1.0);
-            p.translate(-absSw / 2, -absSh / 2);
-            pdfMaleWinkel(p, absSw, absSh, symPen);
-            p.restore();
+            // Winkel: eigener Zeichenpfad (pdfMaleWinkel, SquareCap + ein
+            // zusammenhängender QPainterPath statt zweier RoundCap-drawLine()-
+            // Aufrufe über pdfSymbolRendern) – LEITUNG-ZOOM-BREITE-01-Nachtrag,
+            // Aug 2026, 1:1-Analogie zum QML-Fix in CanvasRenderHandler.qml
+            // _renderSymbol()/_maleWinkel(). WINKEL-FARBE-01 (Sep 2026): läuft
+            // eine echte Zweifarb-Bänderung durch den Winkel (mSeg->gebaendert
+            // && mSeg->zweifarbig), zeichnet pdfMaleWinkelGebaendert() zwei
+            // parallele, bündige Linien statt des flachen Einzelstrichs –
+            // bewusst in Weltkoordinaten*C (pdfPinWeltPos()) statt im lokalen
+            // p.translate/rotate/scale-Block, s. dortiger Kommentar.
+            if (mSeg && mSeg->gebaendert && mSeg->zweifarbig) {
+                double rot = el.value("rotation").toDouble();
+                bool   spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
+                QPointF wp0 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 0.0, 0.0);
+                QPointF wp1 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 0.0, 1.0);
+                QPointF wp2 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 1.0, 1.0);
+                pdfMaleWinkelGebaendert(p, QPointF(wp0.x()*C, wp0.y()*C),
+                                            QPointF(wp1.x()*C, wp1.y()*C),
+                                            QPointF(wp2.x()*C, wp2.y()*C), *mSeg, C);
+            } else {
+                p.save();
+                p.translate(symX + absSw / 2, symY + absSh / 2);
+                if (el.value("rotation").toInt() != 0) p.rotate(el.value("rotation").toInt());
+                if (el.value("spiegelX").toBool()) p.scale(-1.0, 1.0);
+                if (el.value("spiegelY").toBool()) p.scale(1.0, -1.0);
+                p.translate(-absSw / 2, -absSh / 2);
+                pdfMaleWinkel(p, absSw, absSh, symPen);
+                p.restore();
+            }
         // Treffpunkt/Treffpunkt_L: eigener 3-Arm-Zeichenpfad (S1/S2/Ziel), da
         // der Ziel-Arm gebändert sein kann (VERBINDUNGSFARBE-03/04-Port,
         // 1:1-Analogie zu CanvasRenderHandler.qml maleElement/

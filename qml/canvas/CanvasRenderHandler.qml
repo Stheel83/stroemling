@@ -1585,8 +1585,12 @@ QtObject {
     // einem gemeinsamen Verzweigungsknoten komplett). S1 bleibt im Bündel
     // Richtung Ziel auf der linken, S2 auf der rechten Seite — fest im
     // Symbol definiert, rotiert/spiegelt mit (kein Bezug zur Netz-
-    // Bänderung). Der Ziel-Pin selbst bleibt exakt auf seiner Koordinate;
-    // beide Adern enden knapp seitlich davon versetzt. Zwei Adern mit
+    // Bänderung). Bei `treffpunkt` (T-Form) werden beide Arme symmetrisch
+    // versetzt; bei `treffpunkt_l` bleibt S2 (schon von Haus aus die
+    // durchgehende Gerade) laut zweiter Nutzer-Nachbesserung komplett
+    // unversetzt, nur S1 rückt seitlich heran (s. dortiger Zweig unten). Der
+    // Ziel-Pin selbst bleibt exakt auf seiner Koordinate; die Adern enden
+    // knapp seitlich davon versetzt (treffpunkt_l: nur S1). Zwei Adern mit
     // zufällig gleicher Farbe zeigen keine Trennlinie mehr (Nutzerentscheid:
     // die Breite allein reicht als Erkennungsmerkmal) — das alte
     // "gleich"/"verschieden"-Bänderungsmodell für den Ziel-Arm entfällt
@@ -1613,18 +1617,19 @@ QtObject {
                 { x: 0.5*w + off2, y: 0.75*h }, { x: 0.5*w + off2, y: h }
             ], armInfo.s2)
         } else if (symbolId === "treffpunkt_l") {
-            var offA = versatz(armInfo.s1), offB = versatz(armInfo.s2)
+            // Nutzer-Nachbesserung (Sep 2026, zweite Skizze): S2 bleibt hier
+            // die ganze Strecke unangetastet auf ihrer ursprünglichen,
+            // geraden Linie (0.5,0)→(0.5,1) — kein Versatz, kein Knick. Nur
+            // S1 rückt seitlich heran, bis sie bündig direkt neben S2 liegt;
+            // ihr Versatz ist deshalb jetzt die Summe beider halben
+            // Linienbreiten (nicht mehr nur die eigene), weil S2 ihr nicht
+            // mehr entgegenkommt.
+            var offA = versatz(armInfo.s1) + versatz(armInfo.s2)
             _maleTreffpunktArmEinfarbig(ctx, [
                 P(0, 0.5), P(0.25, 0.5),
                 { x: 0.5*w - offA, y: 0.75*h }, { x: 0.5*w - offA, y: h }
             ], armInfo.s1)
-            // S2 bleibt bis zur Höhe des S1-Knicks (lokal y=0.75) exakt
-            // mittig, erst ab dort schwenkt sie zur bündig-parallelen
-            // Position neben S1 (Nutzervorgabe).
-            _maleTreffpunktArmEinfarbig(ctx, [
-                P(0.5, 0), { x: 0.5*w, y: 0.75*h },
-                { x: 0.5*w + offB, y: h }
-            ], armInfo.s2)
+            _maleTreffpunktArmEinfarbig(ctx, [P(0.5, 0), P(0.5, 1)], armInfo.s2)
         }
     }
 

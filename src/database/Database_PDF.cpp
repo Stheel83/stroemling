@@ -912,8 +912,12 @@ static void pdfMaleWinkel(QPainter &p, double w, double h, const QPen &pen)
 // _maleTreffpunktArme() in CanvasRenderHandler.qml, s. dortiger Kommentar
 // für die Design-Begründung). S1 bleibt im Bündel Richtung Ziel auf der
 // linken, S2 auf der rechten Seite — fest im Symbol definiert, rotiert/
-// spiegelt mit. Der Ziel-Pin selbst bleibt exakt auf seiner Koordinate;
-// beide Adern enden knapp seitlich davon versetzt. Läuft im bereits
+// spiegelt mit. Bei 'treffpunkt' (T-Form) werden beide Arme symmetrisch
+// versetzt; bei 'treffpunkt_l' bleibt S2 (schon von Haus aus die
+// durchgehende Gerade) laut zweiter Nutzer-Nachbesserung komplett
+// unversetzt, nur S1 rückt seitlich heran (s. dortiger Zweig unten). Der
+// Ziel-Pin selbst bleibt exakt auf seiner Koordinate; die Adern enden knapp
+// seitlich davon versetzt (treffpunkt_l: nur S1). Läuft im bereits
 // transformierten (translate/rotate/scale) Koordinatensystem wie
 // pdfSymbolRendern – lokale, unrotierte 0..1-Koordinaten (s.
 // symbol_primitiv für 'treffpunkt'/'treffpunkt_l'). s1Seg/s2Seg: das
@@ -940,18 +944,18 @@ static void pdfTreffpunktArmeRendern(QPainter &p, const QString &symbolId, doubl
             QPointF(0.5*w + off2, 0.75*h), QPointF(0.5*w + off2, h)
         }, s2Seg, lwBasis);
     } else if (symbolId == QLatin1String("treffpunkt_l")) {
-        double offA = versatz(s1Seg), offB = versatz(s2Seg);
+        // Zweite Nutzer-Nachbesserung (Sep 2026): S2 bleibt hier die ganze
+        // Strecke unangetastet auf ihrer ursprünglichen, geraden Linie
+        // (0.5,0)→(0.5,1) — kein Versatz, kein Knick. Nur S1 rückt seitlich
+        // heran, bis sie bündig direkt neben S2 liegt; ihr Versatz ist
+        // deshalb die Summe beider halben Linienbreiten (nicht mehr nur die
+        // eigene), weil S2 ihr nicht mehr entgegenkommt.
+        double offA = versatz(s1Seg) + versatz(s2Seg);
         pdfMaleTreffpunktArmEinfarbig(p, {
             P(0, 0.5), P(0.25, 0.5),
             QPointF(0.5*w - offA, 0.75*h), QPointF(0.5*w - offA, h)
         }, s1Seg, lwBasis);
-        // S2 bleibt bis zur Höhe des S1-Knicks (lokal y=0.75) exakt mittig,
-        // erst ab dort schwenkt sie zur bündig-parallelen Position neben S1
-        // (Nutzervorgabe).
-        pdfMaleTreffpunktArmEinfarbig(p, {
-            P(0.5, 0), QPointF(0.5*w, 0.75*h),
-            QPointF(0.5*w + offB, h)
-        }, s2Seg, lwBasis);
+        pdfMaleTreffpunktArmEinfarbig(p, { P(0.5, 0), P(0.5, 1) }, s2Seg, lwBasis);
     }
 }
 

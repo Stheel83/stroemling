@@ -1759,27 +1759,39 @@ QtObject {
                         // keinerlei Bezug zur tatsächlichen Netz-Flussrichtung, die
                         // `band.flip` und die Normalenrichtung der angrenzenden
                         // Leitung (`_maleGebaenderteLinie()`, aus seg.x1/y1→x2/y2)
-                        // bestimmt. Trifft `seg` (das Segment, aus dem dieser Winkel
-                        // seinen Bänderungs-Deskriptor erbt) mit seinem "hinteren"
-                        // Ende (elIdxB) auf den Winkel-Pin, der lokal (0,0) entspricht
-                        // (oder spiegelbildlich: mit dem "vorderen" Ende auf (1,1)),
-                        // passt die feste Zeichenreihenfolge zur Flussrichtung – sonst
-                        // läuft sie ihr entgegen und die beiden Farben kippen exakt am
-                        // Übergang Leitung→Winkel (unabhängig von der ohnehin
-                        // erwartbaren Innen/Außen-Konsistenz entlang gleichsinniger
-                        // Knicke). Geometrischer Soll/Ist-Abgleich statt Pin-Namen,
-                        // da robuster gegenüber Rotation/Spiegelung.
+                        // bestimmt.
+                        //
+                        // Nachbesserung (direkter Nachtrag, erster Anlauf per
+                        // "berührtes Ende elIdxA/B" war an einem zweiten Winkel in
+                        // derselben Kette falsch, s. Git-Historie): statt aus
+                        // elIdxA/elIdxB auf eine Fluss-"Richtung" zu schließen (das
+                        // war die fehlerhafte Annahme), wird direkt geometrisch
+                        // verglichen, ob der ALS-GEZEICHNETE Richtungsvektor des
+                        // Winkel-Teilstücks, das seg berührt, physisch in dieselbe
+                        // oder die entgegengesetzte Richtung zeigt wie `seg` selbst
+                        // (beide liegen auf derselben Geraden, da am Berührpunkt kein
+                        // Knick ist – der Knick sitzt am jeweils anderen Ende des
+                        // Teilstücks). Zeigen beide Vektoren in dieselbe Richtung
+                        // (Skalarprodukt ≥ 0), zeigt die als-gezeichnete Normale zur
+                        // Segment-Normale in dieselbe physische Richtung → Farben
+                        // passen am Berührpunkt zusammen, kein Tausch nötig. Zeigen
+                        // sie entgegengesetzt (Skalarprodukt < 0), tauschen die
+                        // Normalen physisch die Seite → Punktreihenfolge umkehren.
                         if (_wBand.modus === "verschieden") {
                             var _wSeg = net.segmente[si]
+                            var _segDx = _wSeg.x2 - _wSeg.x1, _segDy = _wSeg.y2 - _wSeg.y1
                             var _touchedX = (_wSeg.elIdxA === eIdx) ? _wSeg.x1 : _wSeg.x2
                             var _touchedY = (_wSeg.elIdxA === eIdx) ? _wSeg.y1 : _wSeg.y2
-                            var _incoming = (_wSeg.elIdxB === eIdx)
                             var _p0 = cv.geometrie.pinWeltPos(eEl, 0, 0)
+                            var _p1 = cv.geometrie.pinWeltPos(eEl, 0, 1)
                             var _p2 = cv.geometrie.pinWeltPos(eEl, 1, 1)
                             var _d0 = (_touchedX - _p0.x) * (_touchedX - _p0.x) + (_touchedY - _p0.y) * (_touchedY - _p0.y)
                             var _d2 = (_touchedX - _p2.x) * (_touchedX - _p2.x) + (_touchedY - _p2.y) * (_touchedY - _p2.y)
-                            var _touchedIstP0 = _d0 < _d2
-                            _wBand = Object.assign({}, _wBand, { winkelUmkehren: (_touchedIstP0 !== _incoming) })
+                            var _legDx, _legDy
+                            if (_d0 < _d2) { _legDx = _p1.x - _p0.x; _legDy = _p1.y - _p0.y }
+                            else           { _legDx = _p2.x - _p1.x; _legDy = _p2.y - _p1.y }
+                            var _dot = _legDx * _segDx + _legDy * _segDy
+                            _wBand = Object.assign({}, _wBand, { winkelUmkehren: _dot < 0 })
                         }
                         out[eIdx] = _wBand
                     } else if (esid === "treffpunkt" || esid === "treffpunkt_l") {

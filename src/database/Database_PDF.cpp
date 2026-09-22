@@ -2423,13 +2423,19 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 // WINKEL-DREHER-01 (Sep 2026, 1:1-Port der QML-Nachbesserung in
                 // berechneRoutingSymbolFarben()/CanvasRenderHandler.qml): die feste
                 // Zeichenreihenfolge wp0→wp1→wp2 hat keinen Bezug zur tatsächlichen
-                // Netz-Flussrichtung, die mSeg->flip bestimmt hat. Berührt mSeg mit
-                // seinem cx2/cy2-Ende (statt cx1/cy1) den Winkel-Pin, der lokal
-                // (0,0)=wp0 entspricht (oder spiegelbildlich: cx1/cy1 auf wp2),
-                // läuft die feste Reihenfolge der Flussrichtung entgegen und die
-                // Farben kippen exakt am Übergang Leitung→Winkel. Geometrischer
-                // Soll/Ist-Abgleich (kürzeste Distanz) statt Pin-Namen, robust
-                // gegenüber Rotation/Spiegelung.
+                // Netz-Flussrichtung, die mSeg->flip bestimmt hat.
+                //
+                // Nachbesserung (direkter Nachtrag, erster Anlauf per "berührtes
+                // Ende cx1/cx2" war an einem zweiten Winkel in derselben Kette
+                // falsch): statt aus dem berührten Segment-Ende auf eine
+                // Fluss-"Richtung" zu schließen, wird direkt geometrisch verglichen,
+                // ob der ALS-GEZEICHNETE Richtungsvektor des Winkel-Teilstücks, das
+                // mSeg berührt, physisch in dieselbe oder die entgegengesetzte
+                // Richtung zeigt wie mSeg selbst (beide liegen auf derselben
+                // Geraden, da am Berührpunkt kein Knick ist). Skalarprodukt ≥ 0:
+                // Normalen zeigen zur selben physischen Seite, kein Tausch nötig.
+                // Skalarprodukt < 0: Normalen tauschen physisch die Seite,
+                // Punktreihenfolge umkehren.
                 auto _dist2 = [](QPointF a, QPointF b) {
                     double dx = a.x() - b.x(), dy = a.y() - b.y();
                     return dx*dx + dy*dy;
@@ -2439,8 +2445,12 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 double dC2P0 = _dist2(QPointF(mSeg->cx2, mSeg->cy2), wp0);
                 double dC2P2 = _dist2(QPointF(mSeg->cx2, mSeg->cy2), wp2);
                 bool touchIstC2  = qMin(dC2P0, dC2P2) < qMin(dC1P0, dC1P2);
-                bool touchIstWp0 = touchIstC2 ? (dC2P0 < dC2P2) : (dC1P0 < dC1P2);
-                bool umkehren    = (touchIstWp0 != touchIstC2);
+                bool touchedIstWp0 = touchIstC2 ? (dC2P0 < dC2P2) : (dC1P0 < dC1P2);
+                double segDx = mSeg->cx2 - mSeg->cx1, segDy = mSeg->cy2 - mSeg->cy1;
+                double legDx, legDy;
+                if (touchedIstWp0) { legDx = wp1.x() - wp0.x(); legDy = wp1.y() - wp0.y(); }
+                else                { legDx = wp2.x() - wp1.x(); legDy = wp2.y() - wp1.y(); }
+                bool umkehren = (legDx * segDx + legDy * segDy) < 0.0;
                 if (umkehren)
                     pdfMaleWinkelGebaendert(p, QPointF(wp2.x()*C, wp2.y()*C),
                                                 QPointF(wp1.x()*C, wp1.y()*C),

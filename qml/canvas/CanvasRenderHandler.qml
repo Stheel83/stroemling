@@ -1446,10 +1446,32 @@ QtObject {
 
                 var i1 = _bandOderEinfach(net, segAdps, out, arme.s1, elemente)
                 var i2 = _bandOderEinfach(net, segAdps, out, arme.s2, elemente)
-                var farben    = i1.farben.concat(i2.farben)
                 var armAnzahl = i1.armAnzahl + i2.armAnzahl
-                var modus     = armAnzahl >= 3 ? "mehrfach"
-                                : (farben[0] === farben[1] ? "gleich" : "verschieden")
+                var modus, farben, farben2
+                if (armAnzahl >= 3) {
+                    modus  = "mehrfach"
+                    farben = i1.farben.concat(i2.farben)
+                } else {
+                    // BIFARB-TREFFPUNKT-01 (Sep 2026, Nutzerentscheid): zwei
+                    // physische Adern (armAnzahl===2) ergeben immer genau EIN
+                    // Band PRO ARM, nicht pro Farbe – vorher wurden
+                    // i1.farben/i2.farben blind zusammengehängt
+                    // (`.concat()`), wodurch eine bifarb Ader (2 Farbeinträge)
+                    // den dritten Eintrag lieferte, den `_maleGebaenderteLinie()`
+                    // nie liest (nur farben[0]/[1]) – die zweite Ader
+                    // verschwand dadurch stillschweigend. Jetzt: `farben[]`
+                    // bleibt strikt ein Eintrag pro Arm (dessen PRIMÄRfarbe),
+                    // eine zusätzliche `farben2[]` trägt parallel die
+                    // Sekundärfarbe NUR für Arme, die selbst bifarb sind
+                    // (sonst undefined) – `_maleGebaenderteLinie()` zeichnet
+                    // so ein Band mit Sekundärfarbe alternierend statt
+                    // einfarbig, analog zur eigenständigen Bifarb-Ader.
+                    farben  = [i1.farbe, i2.farbe]
+                    farben2 = [i1.modus === "bifarb" ? i1.farben[1] : undefined,
+                               i2.modus === "bifarb" ? i2.farben[1] : undefined]
+                    var beideEinfarbig = !farben2[0] && !farben2[1]
+                    modus = (beideEinfarbig && farben[0] === farben[1]) ? "gleich" : "verschieden"
+                }
 
                 // WINKEL-FARBE-01 (Sep 2026, Nutzer-Konzeptentscheid nach
                 // Skizze): "welche Farbe liegt auf welcher Seite" wird HIER,
@@ -1476,6 +1498,7 @@ QtObject {
                 var flip = (zdx * (s1PinY - zielSeg.y1) - zdy * (s1PinX - zielSeg.x1)) >= 0
 
                 propagiere(arme.ziel, { modus: modus, farbe: farben[0], farben: farben,
+                                         farben2: farben2,
                                          armAnzahl: armAnzahl,
                                          breite: _breiteFuerAnzahl(armAnzahl, net.signaltyp),
                                          flip: flip })
@@ -1643,16 +1666,41 @@ QtObject {
         if (band.segUmkehr) flip = !flip
         var farbeNeg = flip ? band.farben[1] : band.farben[0]
         var farbePos = flip ? band.farben[0] : band.farben[1]
-        ctx.strokeStyle = farbeNeg
-        ctx.lineWidth   = basis
-        ctx.beginPath()
-        ctx.moveTo(ax - px*off, ay - py*off); ctx.lineTo(bx - px*off, by - py*off)
-        ctx.stroke()
-        ctx.strokeStyle = farbePos
-        ctx.lineWidth   = basis
-        ctx.beginPath()
-        ctx.moveTo(ax + px*off, ay + py*off); ctx.lineTo(bx + px*off, by + py*off)
-        ctx.stroke()
+        // BIFARB-TREFFPUNKT-01 (Sep 2026, Nutzerentscheid): trifft an einem
+        // Treffpunkt eine bifarb Ader auf eine andere Ader, bekommt IHR Band
+        // (nicht ein drittes, eigenes) ein alternierendes Strichmuster statt
+        // Vollfarbe – analog zur eigenständigen Bifarb-Ader-Darstellung
+        // (modus "bifarb" oben), nur innerhalb der halben Bandbreite dieser
+        // Seite. band.farben2 folgt demselben flip wie band.farben, damit
+        // die Sekundärfarbe am richtigen Arm/Seite bleibt.
+        var farben2 = band.farben2 || []
+        var farbe2Neg = flip ? farben2[1] : farben2[0]
+        var farbe2Pos = flip ? farben2[0] : farben2[1]
+        function seiteZeichnen(x1, y1, x2, y2, farbe, farbe2) {
+            if (farbe2) {
+                var vorherCap = ctx.lineCap
+                var dashZoomCap = 2.0   // s. BIFARB-DASH-ZOOM-CAP-01
+                var dashZoom = Math.min(cv.zoom, dashZoomCap)
+                var dashLen = Math.max(2, (band.breite / 2) * cv.mmToPx * dashZoom * 3)
+                ctx.lineCap = "butt"
+                ctx.strokeStyle = farbe
+                ctx.lineWidth   = basis
+                ctx.setLineDash([dashLen, dashLen])
+                ctx.lineDashOffset = 0
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+                ctx.strokeStyle = farbe2
+                ctx.lineDashOffset = dashLen
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+                ctx.setLineDash([])
+                ctx.lineCap = vorherCap
+            } else {
+                ctx.strokeStyle = farbe
+                ctx.lineWidth   = basis
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+            }
+        }
+        seiteZeichnen(ax - px*off, ay - py*off, bx - px*off, by - py*off, farbeNeg, farbe2Neg)
+        seiteZeichnen(ax + px*off, ay + py*off, bx + px*off, by + py*off, farbePos, farbe2Pos)
     }
 
     // Winkel: transparenter Durchlaufpunkt (§2.2), normalerweise keine eigene

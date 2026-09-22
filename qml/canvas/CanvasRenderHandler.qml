@@ -1773,6 +1773,13 @@ QtObject {
         var basis = breitePx / 2   // Breite je Einzel-Ader-Band, wie _maleGebaenderteLinie
         var off = basis / 2
         var flip = band.flip || false
+        // BIFARB-TREFFPUNKT-01 (Sep 2026): analog zu _maleGebaenderteLinie() –
+        // band.farben2 trägt die Sekundärfarbe nur für Arme, die selbst
+        // bifarb sind (sonst undefined), folgt demselben flip wie
+        // band.farben.
+        var farben2 = band.farben2 || []
+        var farbe2Neg = flip ? farben2[1] : farben2[0]
+        var farbe2Pos = flip ? farben2[0] : farben2[1]
         // WINKEL-BAND-ECKE-01 (Sep 2026): die beiden Versatzpunkte an vp1
         // (vp1+n1*off UND vp1+n2*off) lagen bisher als ZWEI getrennte Punkte
         // im Pfad, mit einer schrägen Verbindungslinie dazwischen – bei einem
@@ -1787,20 +1794,47 @@ QtObject {
         // korrekte Eckpunkt ersetzt die beiden getrennten Punkte – der Pfad
         // biegt dadurch genauso rechtwinklig ab wie der Winkel selbst
         // (_maleWinkel()), keine Diagonale/Spitze mehr nötig.
-        function seite(sign, farbe) {
-            ctx.strokeStyle = farbe
-            ctx.lineWidth   = basis
-            ctx.lineCap     = "square"
+        function seite(sign, farbe, farbe2) {
             var eckeX = vp1.x + (n1.px + n2.px) * off * sign
             var eckeY = vp1.y + (n1.py + n2.py) * off * sign
-            ctx.beginPath()
-            ctx.moveTo(vp0.x + n1.px*off*sign, vp0.y + n1.py*off*sign)
-            ctx.lineTo(eckeX, eckeY)
-            ctx.lineTo(vp2.x + n2.px*off*sign, vp2.y + n2.py*off*sign)
-            ctx.stroke()
+            var x0 = vp0.x + n1.px*off*sign, y0 = vp0.y + n1.py*off*sign
+            var x2 = vp2.x + n2.px*off*sign, y2 = vp2.y + n2.py*off*sign
+            if (farbe2) {
+                // BIFARB-TREFFPUNKT-01-Nachtrag (Sep 2026): dieses Band
+                // gehört zu einer bifarb Ader – alternierendes Strichmuster
+                // über den ganzen 3-Punkt-Pfad (beide Arme + Eckpunkt) statt
+                // Vollfarbe, dieselbe Dash-Zyklus-Logik wie
+                // _maleGebaenderteLinie()/BIFARB-DASH-ZOOM-CAP-01. Canvas
+                // führt den Dash-Offset über den Knick hinweg nahtlos fort,
+                // da beide Arme EIN zusammenhängender Pfad sind.
+                var vorherCap = ctx.lineCap
+                var dashZoomCap = 2.0
+                var dashZoom = Math.min(cv.zoom, dashZoomCap)
+                var dashLen = Math.max(2, (band.breite / 2) * cv.mmToPx * dashZoom * 3)
+                ctx.lineCap = "butt"
+                ctx.strokeStyle = farbe
+                ctx.lineWidth   = basis
+                ctx.setLineDash([dashLen, dashLen])
+                ctx.lineDashOffset = 0
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(eckeX, eckeY); ctx.lineTo(x2, y2); ctx.stroke()
+                ctx.strokeStyle = farbe2
+                ctx.lineDashOffset = dashLen
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(eckeX, eckeY); ctx.lineTo(x2, y2); ctx.stroke()
+                ctx.setLineDash([])
+                ctx.lineCap = vorherCap
+            } else {
+                ctx.strokeStyle = farbe
+                ctx.lineWidth   = basis
+                ctx.lineCap     = "square"
+                ctx.beginPath()
+                ctx.moveTo(x0, y0)
+                ctx.lineTo(eckeX, eckeY)
+                ctx.lineTo(x2, y2)
+                ctx.stroke()
+            }
         }
-        seite(-1, flip ? band.farben[1] : band.farben[0])
-        seite(+1, flip ? band.farben[0] : band.farben[1])
+        seite(-1, flip ? band.farben[1] : band.farben[0], farbe2Neg)
+        seite(+1, flip ? band.farben[0] : band.farben[1], farbe2Pos)
     }
 
     // Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden

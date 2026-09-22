@@ -1365,17 +1365,70 @@ QtObject {
 
         var adj = cv.geometrie._winkelAdjazenz(net.segmente)
         var out = {}
+        // WINKEL-DREHER-01 (Sep 2026, vierter/finaler Anlauf): zwei frühere
+        // Anläufe scheiterten, weil sie nur den WINKEL selbst korrigierten
+        // (Punktreihenfolge vp0/vp2), aber die dazwischenliegenden GERADEN
+        // Netzsegmente unangetastet ließen. `_maleGebaenderteLinie()` zeichnet
+        // jedes Segment IMMER strikt in der rohen `seg.x1/y1→x2/y2`-
+        // Speicherreihenfolge – ohne eigenen Umkehr-Hebel. Ist diese
+        // Speicherreihenfolge für ein Segment "rückwärts" zur restlichen Kette
+        // orientiert (durchaus möglich, das Netzberechnungs-Backend garantiert
+        // das nicht), kippt die Farbe GENAU an diesem Segment, egal wie der
+        // angrenzende Winkel gezeichnet wird – exakt das vom Nutzer beobachtete
+        // "der Dreher passiert jetzt erst NACH dem 2. Winkel" (der 2. Winkel
+        // selbst war schon korrekt, aber das gerade Stück danach kippte).
+        // Fix: pro Segment ein `segUmkehr`-Flag (analog `winkelUmkehren`, aber
+        // für _maleGebaenderteLinie() statt _maleWinkelGebaendertViewport())
+        // wird während derselben BFS mitpropagiert – ausgehend vom Start-
+        // segment (segUmkehr=false, dort ist `flip` bereits per Kreuzprodukt-
+        // Test korrekt) über jeden gekreuzten Winkel hinweg konsistent
+        // weitergereicht. `winkelSwap`/`segUmkehr` werden dabei GEMEINSAM in
+        // _winkelDurchgang() berechnet, nicht mehr getrennt – der Winkel-
+        // Ausschlag UND die Ausrichtung des direkt anschließenden geraden
+        // Segments hängen von derselben Berührpunkt-Geometrie ab.
+        var winkelSwap = {}
 
         function propagiere(startSi, info) {
-            var visited = {}, queue = [startSi]
+            var visited = {}
+            var segUmkehr = {}
+            segUmkehr[startSi] = false
+            var queue = [startSi]
             while (queue.length > 0) {
                 var cur = queue.shift()
                 if (visited[cur]) continue
                 visited[cur] = true
-                out[cur] = info
-                var nb = adj[cur] || []
-                for (var i = 0; i < nb.length; i++)
-                    if (!visited[nb[i]]) queue.push(nb[i])
+                var curUmkehr = segUmkehr[cur] || false
+                out[cur] = Object.assign({}, info, { segUmkehr: curUmkehr })
+
+                var curSeg = net.segmente[cur]
+                var curCands = [curSeg.elIdxA, curSeg.elIdxB]
+                var nbList = adj[cur] || []
+
+                // Für jedes Winkel-Ende dieses Segments: das Ausgangssegment
+                // (falls per adj+gemeinsamem Element auffindbar) einbeziehen,
+                // sonst (totes Kettenende, zweiter Pin unverbunden) nur die
+                // winkeleigene Umkehrung berechnen – deckt beide Fälle ab
+                // (Nachbesserung des dritten Anlaufs, s. Git-Historie).
+                for (var cci = 0; cci < 2; cci++) {
+                    var cIdx = curCands[cci]
+                    if (cIdx < 0 || winkelSwap[cIdx] !== undefined) continue
+                    var cEl = cv.elementeModel.element(cIdx)
+                    if (!cEl || cEl.symbolId !== "winkel") continue
+
+                    var ausgangSi = -1
+                    for (var ni = 0; ni < nbList.length; ni++) {
+                        var nbSeg0 = net.segmente[nbList[ni]]
+                        if (nbSeg0.elIdxA === cIdx || nbSeg0.elIdxB === cIdx) { ausgangSi = nbList[ni]; break }
+                    }
+                    var res = _winkelDurchgang(cEl, cIdx, curSeg, curUmkehr,
+                                                ausgangSi >= 0 ? net.segmente[ausgangSi] : null)
+                    winkelSwap[cIdx] = res.winkelUmkehren
+                    if (ausgangSi >= 0 && segUmkehr[ausgangSi] === undefined)
+                        segUmkehr[ausgangSi] = res.segUmkehrAusgang
+                }
+
+                for (var i = 0; i < nbList.length; i++)
+                    if (!visited[nbList[i]]) queue.push(nbList[i])
             }
         }
 
@@ -1429,7 +1482,63 @@ QtObject {
                 geaendert = true
             }
         }
+        // winkelSwap als verstecktes Zusatzfeld auf dem zurückgegebenen
+        // segment-indizierten Objekt mitgeben (kein eigenes Rückgabe-Tupel,
+        // damit die bestehenden Aufrufer treffpunktBaender[si] unverändert
+        // weiter nutzen können) – s. berechneRoutingSymbolFarben().
+        out.__winkelSwap = winkelSwap
         return out
+    }
+
+    // WINKEL-DREHER-01 (Sep 2026, vierter Anlauf): berechnet für EINEN
+    // Winkel-Durchgang GEMEINSAM (a) ob der Winkel selbst umgekehrt gezeichnet
+    // werden muss (winkelUmkehren, für _maleWinkelGebaendertViewport()) und
+    // (b) ob das direkt anschließende gerade Ausgangssegment umgekehrt
+    // gezeichnet werden muss (segUmkehrAusgang, für _maleGebaenderteLinie()).
+    // ankerSeg ist das bereits als korrekt etablierte Segment, über das die
+    // BFS diesen Winkel erreicht hat; ankerUmkehr sein bereits akkumuliertes
+    // eigenes Umkehr-Flag (falls ankerSeg selbst schon invertiert gezeichnet
+    // wird). ausgangSeg das nächste Segment (oder null an einem toten
+    // Kettenende, z.B. ein unverbundener zweiter Pin).
+    //
+    // Skalarprodukt-Test: das jeweilige Winkel-Teilstück liegt mit dem
+    // berührenden Segment auf derselben Geraden (kein Knick am Berührpunkt,
+    // der sitzt am jeweils anderen Ende des Teilstücks) – die
+    // Richtungsvektoren können also nur parallel oder antiparallel sein.
+    // Negatives Skalarprodukt ⇒ Normalen zeigen zur entgegengesetzten
+    // physischen Seite ⇒ Umkehren nötig. Für das Ausgangssegment wird dabei
+    // die vom Winkel-Umkehren bereits BEEINFLUSSTE (effektive) Richtung des
+    // ausgangsseitigen Teilstücks verwendet, nicht die rohe – sonst würde ein
+    // bereits umgekehrter Winkel die Prüfung für das Ausgangssegment verfälschen.
+    function _winkelDurchgang(winkelEl, winkelIdx, ankerSeg, ankerUmkehr, ausgangSeg) {
+        var ankerDx = ankerSeg.x2 - ankerSeg.x1, ankerDy = ankerSeg.y2 - ankerSeg.y1
+        if (ankerUmkehr) { ankerDx = -ankerDx; ankerDy = -ankerDy }
+        var touchedX = (ankerSeg.elIdxA === winkelIdx) ? ankerSeg.x1 : ankerSeg.x2
+        var touchedY = (ankerSeg.elIdxA === winkelIdx) ? ankerSeg.y1 : ankerSeg.y2
+        var p0 = cv.geometrie.pinWeltPos(winkelEl, 0, 0)
+        var p1 = cv.geometrie.pinWeltPos(winkelEl, 0, 1)
+        var p2 = cv.geometrie.pinWeltPos(winkelEl, 1, 1)
+        var d0 = (touchedX - p0.x) * (touchedX - p0.x) + (touchedY - p0.y) * (touchedY - p0.y)
+        var d2 = (touchedX - p2.x) * (touchedX - p2.x) + (touchedY - p2.y) * (touchedY - p2.y)
+        var ankerIstP0 = d0 < d2
+        var legAnkerDx, legAnkerDy
+        if (ankerIstP0) { legAnkerDx = p1.x - p0.x; legAnkerDy = p1.y - p0.y }
+        else            { legAnkerDx = p2.x - p1.x; legAnkerDy = p2.y - p1.y }
+        var umkehren = (legAnkerDx * ankerDx + legAnkerDy * ankerDy) < 0
+
+        var segUmkehrAusgang = false
+        if (ausgangSeg) {
+            var legAusgDx, legAusgDy
+            // Das Ausgangsteilstück berührt jeweils den ANDEREN Punkt
+            // (ankerIstP0 → Ausgang berührt p2, und umgekehrt) – ein Winkel
+            // hat nur zwei Pins.
+            if (ankerIstP0) { legAusgDx = p2.x - p1.x; legAusgDy = p2.y - p1.y }
+            else            { legAusgDx = p1.x - p0.x; legAusgDy = p1.y - p0.y }
+            if (umkehren) { legAusgDx = -legAusgDx; legAusgDy = -legAusgDy }
+            var ausgDx = ausgangSeg.x2 - ausgangSeg.x1, ausgDy = ausgangSeg.y2 - ausgangSeg.y1
+            segUmkehrAusgang = (legAusgDx * ausgDx + legAusgDy * ausgDy) < 0
+        }
+        return { winkelUmkehren: umkehren, segUmkehrAusgang: segUmkehrAusgang }
     }
 
     // Zeichnet ein einzelnes, bereits lückenfrei geschnittenes Geraden-Stück
@@ -1504,7 +1613,13 @@ QtObject {
         var px = -dy / len, py = dx / len   // Einheits-Senkrechte
         var basis = breitePx / 2            // Breite je Einzel-Ader-Band
         var off = basis / 2
+        // WINKEL-DREHER-01 (Sep 2026): band.segUmkehr (pro Segment, aus
+        // _treffpunktZielBaender()/_winkelDurchgang()) kehrt die Seite für
+        // GENAU DIESES Segment um, wenn seine rohe x1/y1→x2/y2-Speicherreihenfolge
+        // rückwärts zur restlichen, bereits konsistenten Kette orientiert ist –
+        // das gemeinsame `flip` allein reicht dafür nicht, da es netzweit fest ist.
         var flip = band.flip || false
+        if (band.segUmkehr) flip = !flip
         var farbeNeg = flip ? band.farben[1] : band.farben[0]
         var farbePos = flip ? band.farben[0] : band.farben[1]
         ctx.strokeStyle = farbeNeg
@@ -1752,46 +1867,20 @@ QtObject {
                     if (!eEl || eEl.typ !== "symbol") continue
                     if (esid === "winkel") {
                         var _wBand = _bandOderEinfach(net, segAdps, treffpunktBaender, si, elemente)
-                        // WINKEL-DREHER-01 (Sep 2026): _maleWinkelGebaendertViewport()
-                        // zeichnet die zwei Bänder immer in der FESTEN, durch die
-                        // Symboldefinition vorgegebenen Punktreihenfolge (0,0)→(0,1)→
-                        // (1,1) (s. dortiger Kommentar) – diese Reihenfolge hat aber
-                        // keinerlei Bezug zur tatsächlichen Netz-Flussrichtung, die
-                        // `band.flip` und die Normalenrichtung der angrenzenden
-                        // Leitung (`_maleGebaenderteLinie()`, aus seg.x1/y1→x2/y2)
-                        // bestimmt.
-                        //
-                        // Nachbesserung (direkter Nachtrag, erster Anlauf per
-                        // "berührtes Ende elIdxA/B" war an einem zweiten Winkel in
-                        // derselben Kette falsch, s. Git-Historie): statt aus
-                        // elIdxA/elIdxB auf eine Fluss-"Richtung" zu schließen (das
-                        // war die fehlerhafte Annahme), wird direkt geometrisch
-                        // verglichen, ob der ALS-GEZEICHNETE Richtungsvektor des
-                        // Winkel-Teilstücks, das seg berührt, physisch in dieselbe
-                        // oder die entgegengesetzte Richtung zeigt wie `seg` selbst
-                        // (beide liegen auf derselben Geraden, da am Berührpunkt kein
-                        // Knick ist – der Knick sitzt am jeweils anderen Ende des
-                        // Teilstücks). Zeigen beide Vektoren in dieselbe Richtung
-                        // (Skalarprodukt ≥ 0), zeigt die als-gezeichnete Normale zur
-                        // Segment-Normale in dieselbe physische Richtung → Farben
-                        // passen am Berührpunkt zusammen, kein Tausch nötig. Zeigen
-                        // sie entgegengesetzt (Skalarprodukt < 0), tauschen die
-                        // Normalen physisch die Seite → Punktreihenfolge umkehren.
+                        // WINKEL-DREHER-01 (Sep 2026, dritter/finaler Anlauf): die
+                        // Umkehr-Entscheidung kommt jetzt NICHT mehr aus einer
+                        // lokalen Berechnung mit einem beliebigen, hier zuerst
+                        // gefundenen Nachbarsegment (`si`) – ein Winkel kann zwei
+                        // gültige Nachbarsegmente haben (je eines pro Pin), und nur
+                        // das Segment, über das die BFS in `_treffpunktZielBaender()`
+                        // diesen Winkel tatsächlich kausal erreicht, liefert eine mit
+                        // der restlichen Kette konsistente Entscheidung (s. dortiger
+                        // Kommentar an `winkelSwap`/`_winkelUmkehrenBerechnen()`).
+                        // Deshalb: Lookup aus dem dort bereits fertig berechneten
+                        // `__winkelSwap`-Feld statt eigener Neuberechnung hier.
                         if (_wBand.modus === "verschieden") {
-                            var _wSeg = net.segmente[si]
-                            var _segDx = _wSeg.x2 - _wSeg.x1, _segDy = _wSeg.y2 - _wSeg.y1
-                            var _touchedX = (_wSeg.elIdxA === eIdx) ? _wSeg.x1 : _wSeg.x2
-                            var _touchedY = (_wSeg.elIdxA === eIdx) ? _wSeg.y1 : _wSeg.y2
-                            var _p0 = cv.geometrie.pinWeltPos(eEl, 0, 0)
-                            var _p1 = cv.geometrie.pinWeltPos(eEl, 0, 1)
-                            var _p2 = cv.geometrie.pinWeltPos(eEl, 1, 1)
-                            var _d0 = (_touchedX - _p0.x) * (_touchedX - _p0.x) + (_touchedY - _p0.y) * (_touchedY - _p0.y)
-                            var _d2 = (_touchedX - _p2.x) * (_touchedX - _p2.x) + (_touchedY - _p2.y) * (_touchedY - _p2.y)
-                            var _legDx, _legDy
-                            if (_d0 < _d2) { _legDx = _p1.x - _p0.x; _legDy = _p1.y - _p0.y }
-                            else           { _legDx = _p2.x - _p1.x; _legDy = _p2.y - _p1.y }
-                            var _dot = _legDx * _segDx + _legDy * _segDy
-                            _wBand = Object.assign({}, _wBand, { winkelUmkehren: _dot < 0 })
+                            var _swapMap = treffpunktBaender.__winkelSwap || {}
+                            _wBand = Object.assign({}, _wBand, { winkelUmkehren: _swapMap[eIdx] === true })
                         }
                         out[eIdx] = _wBand
                     } else if (esid === "treffpunkt" || esid === "treffpunkt_l") {

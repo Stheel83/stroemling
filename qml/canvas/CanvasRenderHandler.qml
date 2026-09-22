@@ -1751,7 +1751,37 @@ QtObject {
                     var esid = eEl ? (eEl.symbolId || "") : ""
                     if (!eEl || eEl.typ !== "symbol") continue
                     if (esid === "winkel") {
-                        out[eIdx] = _bandOderEinfach(net, segAdps, treffpunktBaender, si, elemente)
+                        var _wBand = _bandOderEinfach(net, segAdps, treffpunktBaender, si, elemente)
+                        // WINKEL-DREHER-01 (Sep 2026): _maleWinkelGebaendertViewport()
+                        // zeichnet die zwei Bänder immer in der FESTEN, durch die
+                        // Symboldefinition vorgegebenen Punktreihenfolge (0,0)→(0,1)→
+                        // (1,1) (s. dortiger Kommentar) – diese Reihenfolge hat aber
+                        // keinerlei Bezug zur tatsächlichen Netz-Flussrichtung, die
+                        // `band.flip` und die Normalenrichtung der angrenzenden
+                        // Leitung (`_maleGebaenderteLinie()`, aus seg.x1/y1→x2/y2)
+                        // bestimmt. Trifft `seg` (das Segment, aus dem dieser Winkel
+                        // seinen Bänderungs-Deskriptor erbt) mit seinem "hinteren"
+                        // Ende (elIdxB) auf den Winkel-Pin, der lokal (0,0) entspricht
+                        // (oder spiegelbildlich: mit dem "vorderen" Ende auf (1,1)),
+                        // passt die feste Zeichenreihenfolge zur Flussrichtung – sonst
+                        // läuft sie ihr entgegen und die beiden Farben kippen exakt am
+                        // Übergang Leitung→Winkel (unabhängig von der ohnehin
+                        // erwartbaren Innen/Außen-Konsistenz entlang gleichsinniger
+                        // Knicke). Geometrischer Soll/Ist-Abgleich statt Pin-Namen,
+                        // da robuster gegenüber Rotation/Spiegelung.
+                        if (_wBand.modus === "verschieden") {
+                            var _wSeg = net.segmente[si]
+                            var _touchedX = (_wSeg.elIdxA === eIdx) ? _wSeg.x1 : _wSeg.x2
+                            var _touchedY = (_wSeg.elIdxA === eIdx) ? _wSeg.y1 : _wSeg.y2
+                            var _incoming = (_wSeg.elIdxB === eIdx)
+                            var _p0 = cv.geometrie.pinWeltPos(eEl, 0, 0)
+                            var _p2 = cv.geometrie.pinWeltPos(eEl, 1, 1)
+                            var _d0 = (_touchedX - _p0.x) * (_touchedX - _p0.x) + (_touchedY - _p0.y) * (_touchedY - _p0.y)
+                            var _d2 = (_touchedX - _p2.x) * (_touchedX - _p2.x) + (_touchedY - _p2.y) * (_touchedY - _p2.y)
+                            var _touchedIstP0 = _d0 < _d2
+                            _wBand = Object.assign({}, _wBand, { winkelUmkehren: (_touchedIstP0 !== _incoming) })
+                        }
+                        out[eIdx] = _wBand
                     } else if (esid === "treffpunkt" || esid === "treffpunkt_l") {
                         var arme = _treffpunktArmSegmente(net, eIdx)
                         out[eIdx] = {
@@ -2073,7 +2103,17 @@ QtObject {
                 var _wvp0 = cv.geometrie.pinViewportPos(el, 0, 0)
                 var _wvp1 = cv.geometrie.pinViewportPos(el, 0, 1)
                 var _wvp2 = cv.geometrie.pinViewportPos(el, 1, 1)
-                _maleWinkelGebaendertViewport(ctx, _wvp0, _wvp1, _wvp2, rc.winkelBand)
+                // WINKEL-DREHER-01 (Sep 2026): rc.winkelBand.winkelUmkehren (s.
+                // berechneRoutingSymbolFarben()) gleicht die feste Symbol-
+                // Punktreihenfolge an die tatsächliche Netz-Flussrichtung an —
+                // ohne das würde die feste Reihenfolge bei bestimmten
+                // Rotations-/Anschluss-Konstellationen der Flussrichtung
+                // entgegenlaufen und die Farben genau am Leitung→Winkel-
+                // Übergang tauschen lassen.
+                if (rc.winkelBand.winkelUmkehren)
+                    _maleWinkelGebaendertViewport(ctx, _wvp2, _wvp1, _wvp0, rc.winkelBand)
+                else
+                    _maleWinkelGebaendertViewport(ctx, _wvp0, _wvp1, _wvp2, rc.winkelBand)
             }
 
             // SYMBOL-TEXT-LESBAR-01: Text-Primitive mit lesbar_halten=true werden

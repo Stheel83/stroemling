@@ -2420,9 +2420,35 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 QPointF wp0 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 0.0, 0.0);
                 QPointF wp1 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 0.0, 1.0);
                 QPointF wp2 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 1.0, 1.0);
-                pdfMaleWinkelGebaendert(p, QPointF(wp0.x()*C, wp0.y()*C),
-                                            QPointF(wp1.x()*C, wp1.y()*C),
-                                            QPointF(wp2.x()*C, wp2.y()*C), *mSeg);
+                // WINKEL-DREHER-01 (Sep 2026, 1:1-Port der QML-Nachbesserung in
+                // berechneRoutingSymbolFarben()/CanvasRenderHandler.qml): die feste
+                // Zeichenreihenfolge wp0→wp1→wp2 hat keinen Bezug zur tatsächlichen
+                // Netz-Flussrichtung, die mSeg->flip bestimmt hat. Berührt mSeg mit
+                // seinem cx2/cy2-Ende (statt cx1/cy1) den Winkel-Pin, der lokal
+                // (0,0)=wp0 entspricht (oder spiegelbildlich: cx1/cy1 auf wp2),
+                // läuft die feste Reihenfolge der Flussrichtung entgegen und die
+                // Farben kippen exakt am Übergang Leitung→Winkel. Geometrischer
+                // Soll/Ist-Abgleich (kürzeste Distanz) statt Pin-Namen, robust
+                // gegenüber Rotation/Spiegelung.
+                auto _dist2 = [](QPointF a, QPointF b) {
+                    double dx = a.x() - b.x(), dy = a.y() - b.y();
+                    return dx*dx + dy*dy;
+                };
+                double dC1P0 = _dist2(QPointF(mSeg->cx1, mSeg->cy1), wp0);
+                double dC1P2 = _dist2(QPointF(mSeg->cx1, mSeg->cy1), wp2);
+                double dC2P0 = _dist2(QPointF(mSeg->cx2, mSeg->cy2), wp0);
+                double dC2P2 = _dist2(QPointF(mSeg->cx2, mSeg->cy2), wp2);
+                bool touchIstC2  = qMin(dC2P0, dC2P2) < qMin(dC1P0, dC1P2);
+                bool touchIstWp0 = touchIstC2 ? (dC2P0 < dC2P2) : (dC1P0 < dC1P2);
+                bool umkehren    = (touchIstWp0 != touchIstC2);
+                if (umkehren)
+                    pdfMaleWinkelGebaendert(p, QPointF(wp2.x()*C, wp2.y()*C),
+                                                QPointF(wp1.x()*C, wp1.y()*C),
+                                                QPointF(wp0.x()*C, wp0.y()*C), *mSeg);
+                else
+                    pdfMaleWinkelGebaendert(p, QPointF(wp0.x()*C, wp0.y()*C),
+                                                QPointF(wp1.x()*C, wp1.y()*C),
+                                                QPointF(wp2.x()*C, wp2.y()*C), *mSeg);
             } else {
                 p.save();
                 p.translate(symX + absSw / 2, symY + absSh / 2);

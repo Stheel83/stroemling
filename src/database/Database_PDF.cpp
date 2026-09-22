@@ -602,6 +602,14 @@ struct PdfLeitungsSegment {
     // Ergebnis liefern als am Segment selbst, sichtbar als Farbtausch/
     // -kreuzung direkt am Winkel.
     bool    flip = false;
+    // WINKEL-DREHER-01-PDF (Sep 2026, 1:1-Port des vierten/finalen QML-Fixes,
+    // s. Kommentar an pdfLeitungenSammeln()): pro-Segment-Umkehrung, analog
+    // band.segUmkehr in CanvasRenderHandler.qml — flip ist für die GANZE
+    // propagierte Winkel-Kette fest, aber ein einzelnes gerades Segment kann
+    // "rückwärts" (cx2/cy2→cx1/cy1 statt in Kettenrichtung) gespeichert sein;
+    // pdfMaleGebaenderteLinie() muss dann effektiv mit invertiertem flip
+    // zeichnen, um am Übergang zum Nachbarsegment/Winkel konsistent zu bleiben.
+    bool    segUmkehr = false;
 
     // Bifarb-Ader (aderfarbe2, z.B. PE oder DIN-47100-Bifarben): einzelne Ader
     // mit zweifarbiger Isolierung, als Strich-Alternierung gezeichnet – NICHT
@@ -832,8 +840,12 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     double px = -dy / len, py = dx / len;
     double basis = s.lw / 2.0;
     double off   = basis / 2.0;
-    QColor farbeNeg = s.flip ? s.farbeB : s.farbeA;
-    QColor farbePos = s.flip ? s.farbeA : s.farbeB;
+    // WINKEL-DREHER-01-PDF (Sep 2026): s.segUmkehr invertiert flip nur für
+    // DIESES Segment (s. Kommentar an PdfLeitungsSegment::segUmkehr) — 1:1-
+    // Port von band.segUmkehr in _maleGebaenderteLinie()/CanvasRenderHandler.qml.
+    bool flip = s.segUmkehr ? !s.flip : s.flip;
+    QColor farbeNeg = flip ? s.farbeB : s.farbeA;
+    QColor farbePos = flip ? s.farbeA : s.farbeB;
 
     p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, capStyle));
     p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
@@ -940,11 +952,19 @@ static void pdfMaleWinkelGebaendert(QPainter &p, QPointF vp0, QPointF vp1, QPoin
     double basis = s.lw / 2.0;   // Breite je Einzel-Ader-Band, wie pdfMaleGebaenderteLinie
     double off   = basis / 2.0;
 
+    // WINKEL-BAND-ECKE-01 (Sep 2026, 1:1-Port der QML-Nachbesserung): statt
+    // zweier getrennter Versatzpunkte an vp1 (vp1+n1*off UND vp1+n2*off, mit
+    // schräger Verbindungslinie dazwischen — ergab mit MiterJoin eine
+    // sichtbare Dreiecksspitze am äußeren Eck) wird der eine, geometrisch
+    // exakte Schnittpunkt der beiden Versatzgeraden verwendet: bei einem
+    // 90°-Knick stehen n1/n2 senkrecht zueinander, die Versatzgeraden
+    // schneiden sich exakt in vp1 + n1*off + n2*off (Parallelogrammsumme).
     auto seite = [&](double sign, const QColor &farbe) {
+        QPointF ecke(vp1.x() + (n1.x() + n2.x()) * off * sign,
+                     vp1.y() + (n1.y() + n2.y()) * off * sign);
         QPainterPath path;
         path.moveTo(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign);
-        path.lineTo(vp1.x() + n1.x()*off*sign, vp1.y() + n1.y()*off*sign);
-        path.lineTo(vp1.x() + n2.x()*off*sign, vp1.y() + n2.y()*off*sign);
+        path.lineTo(ecke);
         path.lineTo(vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign);
         p.setPen(QPen(farbe, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
         p.drawPath(path);
@@ -1114,7 +1134,8 @@ static QString pdfNaechsterStabilerPunkt(int elIdx, int vonIdx, const QString &p
 
 static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
                                                         const QSqlDatabase &db,
-                                                        QVector<PdfKabelAderLabel> *aderLabelsOut = nullptr)
+                                                        QVector<PdfKabelAderLabel> *aderLabelsOut = nullptr,
+                                                        QHash<int, bool> *winkelUmkehrenOut = nullptr)
 {
     QVector<PdfLeitungsSegment> segs;
 
@@ -1526,13 +1547,18 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
     }
 
     // Treffpunkt-/Treffpunkt_L-Ziel-Arm-Bänderung (VERBINDUNGSFARBE-03/04-
-    // Port): S1/S2-Pins geometrisch auf ihr jeweiliges Segment matchen, bei
-    // unterschiedlicher (gleicher) Endfarbe den Ziel-Arm zweifarbig (mit
-    // Trennlinie) markieren. Verkettung mehrerer Treffpunkte (Ziel-Arm eines
-    // Treffpunkts = Quell-Arm eines zweiten) wird hier bewusst NICHT
+    // Port, WINKEL-DREHER-01-PDF Sep 2026 erweitert um Mehrfach-Winkel-
+    // Propagation): S1/S2-Pins geometrisch auf ihr jeweiliges Segment
+    // matchen, bei unterschiedlicher (gleicher) Endfarbe den Ziel-Arm
+    // zweifarbig (mit Trennlinie) markieren – und die Bänderung jetzt per
+    // BFS über beliebig viele nachfolgende winkel-Elemente propagieren
+    // (1:1-Port von _treffpunktZielBaender()/propagiere() in
+    // CanvasRenderHandler.qml), statt nur das EINE direkt anliegende
+    // Ziel-Segment zu bändern (frühere, bewusst dokumentierte Einschränkung
+    // — s. Git-Historie). Verkettung mehrerer TREFFPUNKTE (Ziel-Arm eines
+    // Treffpunkts = Quell-Arm eines zweiten) wird weiterhin bewusst NICHT
     // aufgelöst (kein Zahl-Label-Fallback im PDF wie im Live-Canvas) – ein
-    // beteiligter Treffpunkt fällt dann auf die einfache Endfarbe zurück,
-    // statt eine irreführende Bänderung zu zeichnen.
+    // beteiligter Treffpunkt fällt dann auf die einfache Endfarbe zurück.
     auto segAnPunkt = [&](const QPointF &w) -> int {
         for (int i = 0; i < n; i++)
             if (nah(raw[i].x1, raw[i].y1, w) || nah(raw[i].x2, raw[i].y2, w))
@@ -1573,13 +1599,147 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
             }
         }
     }
-    // Finales Zusammenbau: normale Endfarbe, ggf. mit Bänderungsinfo für
-    // Ziel-Arm-Segmente überschrieben.
-    QHash<int, TpKandidat> baenderMap;
+
+    // WINKEL-DREHER-01-PDF: alle winkel-Elemente der Seite + welches
+    // raw[]-Segment an welchem ihrer beiden Pins (lokal (0,0) bzw. (1,1))
+    // anliegt — 1:1-Analogie zu net.segmente[].elIdxA/elIdxB +
+    // _winkelAdjazenz() in CanvasGeometrie.qml, hier geometrisch statt über
+    // einen elIdx-Graphen (PDF-Export hat keinen Live-Netzgraphen).
+    struct PdfWinkelInfo {
+        int id; double x1, y1, x2, y2, rot; bool spX, spY;
+        int segAmP0 = -1, segAmP2 = -1;
+    };
+    QVector<PdfWinkelInfo> winkelListe;
+    {
+        QSqlQuery wtq(db);
+        wtq.prepare(R"(
+            SELECT id, x1, y1, x2, y2, rotation, spiegel_x, spiegel_y
+            FROM grafik_element WHERE seite_id = :sid AND typ = 'symbol' AND symbol_id = 'winkel'
+        )");
+        wtq.bindValue(":sid", seiteId);
+        if (wtq.exec()) {
+            while (wtq.next()) {
+                PdfWinkelInfo w;
+                w.id  = wtq.value(0).toInt();
+                w.x1  = wtq.value(1).toDouble(); w.y1 = wtq.value(2).toDouble();
+                w.x2  = wtq.value(3).toDouble(); w.y2 = wtq.value(4).toDouble();
+                w.rot = wtq.value(5).toDouble();
+                w.spX = wtq.value(6).toBool();   w.spY = wtq.value(7).toBool();
+                QPointF p0 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 0.0);
+                QPointF p2 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 1.0, 1.0);
+                w.segAmP0 = segAnPunkt(p0);
+                w.segAmP2 = segAnPunkt(p2);
+                winkelListe.append(w);
+            }
+        }
+    }
+    // Adjazenz: raw[]-Segmentindex → Liste von (Nachbarsegment, winkelListe-Index) —
+    // nur für Winkel mit BEIDEN Pins verbunden (für die eigentliche
+    // BFS-Weiterverfolgung; ein totes Kettenende hat ohnehin nichts, wohin
+    // weitergegangen werden könnte).
+    QHash<int, QVector<QPair<int,int>>> segAdj;
+    // Zusätzlich: raw[]-Segmentindex → Liste ALLER berührenden winkel-Indizes,
+    // auch wenn der jeweils ANDERE Pin unverbunden ist (totes Kettenende) —
+    // WINKEL-DREHER-01-PDF-Nachbesserung (direkter Nachtrag, 1:1-Port der
+    // entsprechenden QML-Nachbesserung): ohne das bliebe die Umkehr-
+    // Entscheidung für einen Winkel am Ende einer Kette unberechnet
+    // (fällt sonst stillschweigend auf "kein Tausch" zurück).
+    QHash<int, QVector<int>> segZuWinkel;
+    for (int wi = 0; wi < winkelListe.size(); wi++) {
+        const PdfWinkelInfo &w = winkelListe[wi];
+        if (w.segAmP0 >= 0 && w.segAmP2 >= 0) {
+            segAdj[w.segAmP0].append({ w.segAmP2, wi });
+            segAdj[w.segAmP2].append({ w.segAmP0, wi });
+        }
+        if (w.segAmP0 >= 0) segZuWinkel[w.segAmP0].append(wi);
+        if (w.segAmP2 >= 0) segZuWinkel[w.segAmP2].append(wi);
+    }
+
+    // Pro Segment vorberechnete Bänderungsinfo (statt nur für das eine
+    // zielIdx-Segment wie bisher) + pro Winkel die Umkehr-Entscheidung.
+    QVector<bool>   segGebaendert(n, false), segZweifarbig(n, false), segUmkehrV(n, false), segFlipV(n, false);
+    QVector<QColor> segFarbeAV(n), segFarbeBV(n);
+    QVector<double> segBreiteV(n, 0.0);
+    QHash<int, bool> winkelUmkehren; // key: winkelListe-Index
+
     for (const TpKandidat &k : kandidaten) {
         if (zielIdxSet.contains(k.s1Idx) || zielIdxSet.contains(k.s2Idx)) continue;
         if (!endFarbe[k.s1Idx].isValid() || !endFarbe[k.s2Idx].isValid()) continue;
-        baenderMap.insert(k.zielIdx, k);
+        if (segGebaendert[k.zielIdx]) continue; // bereits durch einen anderen Treffpunkt versorgt
+
+        QColor fa = endFarbe[k.s1Idx], fb = endFarbe[k.s2Idx];
+        bool   zweifarbig = fa.name() != fb.name();
+        double breiteWelt = pdfBreiteFuerAnzahl(2, raw[k.zielIdx].signaltyp);
+        double zdx = raw[k.zielIdx].x2 - raw[k.zielIdx].x1, zdy = raw[k.zielIdx].y2 - raw[k.zielIdx].y1;
+        bool   flip0 = (zdx * (k.s1Welt.y() - raw[k.zielIdx].y1) - zdy * (k.s1Welt.x() - raw[k.zielIdx].x1)) >= 0.0;
+
+        // BFS ab dem Ziel-Segment über segAdj — 1:1-Analogie zu propagiere()
+        // in CanvasRenderHandler.qml. segUmkehrLokal[startSi]=false ist die
+        // Basis (dort ist flip0 per Kreuzprodukt-Test bereits korrekt); an
+        // jedem gekreuzten Winkel werden Winkel- UND Ausgangssegment-
+        // Umkehrung GEMEINSAM aus derselben Berührpunkt-Geometrie berechnet
+        // (_winkelDurchgang()-Äquivalent), konsistent mit dem bereits
+        // akkumulierten Umkehr-Zustand des Eingangssegments.
+        QVector<int> queue; QSet<int> visited;
+        QHash<int, bool> segUmkehrLokal;
+        queue.append(k.zielIdx);
+        segUmkehrLokal[k.zielIdx] = false;
+        for (int qi = 0; qi < queue.size(); qi++) {
+            int cur = queue[qi];
+            if (visited.contains(cur)) continue;
+            visited.insert(cur);
+
+            segGebaendert[cur] = true;
+            segZweifarbig[cur] = zweifarbig;
+            segFarbeAV[cur] = fa; segFarbeBV[cur] = fb;
+            segFlipV[cur] = flip0;
+            segUmkehrV[cur] = segUmkehrLokal.value(cur, false);
+            segBreiteV[cur] = breiteWelt;
+
+            // Beide berührenden Winkel dieses Segments direkt prüfen (auch
+            // ohne Ausgangssegment, s. Kommentar an segZuWinkel oben) —
+            // 1:1-Port der QML-Nachbesserung (curCands-Schleife in
+            // propagiere()).
+            for (int wi : segZuWinkel.value(cur)) {
+                if (winkelUmkehren.contains(wi)) continue;
+                const PdfWinkelInfo &w = winkelListe[wi];
+                QPointF p0 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 0.0);
+                QPointF p1 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 1.0);
+                QPointF p2 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 1.0, 1.0);
+                bool ankerIstP0 = (w.segAmP0 == cur);
+                double ankerDx = raw[cur].x2 - raw[cur].x1, ankerDy = raw[cur].y2 - raw[cur].y1;
+                if (segUmkehrV[cur]) { ankerDx = -ankerDx; ankerDy = -ankerDy; }
+                double legAnkerDx, legAnkerDy;
+                if (ankerIstP0) { legAnkerDx = p1.x()-p0.x(); legAnkerDy = p1.y()-p0.y(); }
+                else            { legAnkerDx = p2.x()-p1.x(); legAnkerDy = p2.y()-p1.y(); }
+                bool umk = (legAnkerDx*ankerDx + legAnkerDy*ankerDy) < 0.0;
+                winkelUmkehren[wi] = umk;
+
+                // Ausgangssegment (das jeweils andere Ende dieses Winkels) —
+                // -1, wenn dort nichts angeschlossen ist (totes Kettenende).
+                int ausgangSi = ankerIstP0 ? w.segAmP2 : w.segAmP0;
+                if (ausgangSi >= 0) {
+                    double legAusgDx, legAusgDy;
+                    if (ankerIstP0) { legAusgDx = p2.x()-p1.x(); legAusgDy = p2.y()-p1.y(); }
+                    else            { legAusgDx = p1.x()-p0.x(); legAusgDy = p1.y()-p0.y(); }
+                    if (umk) { legAusgDx = -legAusgDx; legAusgDy = -legAusgDy; }
+                    double ausgDx = raw[ausgangSi].x2 - raw[ausgangSi].x1, ausgDy = raw[ausgangSi].y2 - raw[ausgangSi].y1;
+                    if (!segUmkehrLokal.contains(ausgangSi))
+                        segUmkehrLokal[ausgangSi] = (legAusgDx*ausgDx + legAusgDy*ausgDy) < 0.0;
+                }
+            }
+
+            for (const auto &nb : segAdj.value(cur)) {
+                int nbSeg = nb.first;
+                if (!visited.contains(nbSeg)) queue.append(nbSeg);
+            }
+        }
+    }
+
+    if (winkelUmkehrenOut) {
+        winkelUmkehrenOut->clear();
+        for (auto it = winkelUmkehren.constBegin(); it != winkelUmkehren.constEnd(); ++it)
+            winkelUmkehrenOut->insert(winkelListe[it.key()].id, it.value());
     }
 
     segs.reserve(n);
@@ -1591,21 +1751,14 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         s.farbe2 = endFarbe2[i]; // nur gueltig wenn eine Bifarb-ADP getroffen wurde
         s.lw     = qMax(0.3, 1.5 * 0.25 * pxPerMm);
 
-        auto bit = baenderMap.constFind(i);
-        if (bit != baenderMap.constEnd()) {
-            const TpKandidat &k = bit.value();
-            QColor fa = endFarbe[k.s1Idx], fb = endFarbe[k.s2Idx];
-            double breiteWelt = pdfBreiteFuerAnzahl(2, raw[i].signaltyp);
+        if (segGebaendert[i]) {
             s.gebaendert = true;
-            s.zweifarbig = fa.name() != fb.name();
-            s.farbeA = fa; s.farbeB = fb;
-            s.refPunkt = k.s1Welt;
-            {
-                double zdx = s.cx2 - s.cx1, zdy = s.cy2 - s.cy1;
-                s.flip = (zdx * (k.s1Welt.y() - s.cy1) - zdy * (k.s1Welt.x() - s.cx1)) >= 0.0;
-            }
-            s.lw = qMax(0.3, breiteWelt * 0.25 * pxPerMm);
-            s.color = fa; // Fallback für die Treffpunkt-Symbolfarbe (pdfSegmentFuerPunkt, s.u.)
+            s.zweifarbig = segZweifarbig[i];
+            s.farbeA = segFarbeAV[i]; s.farbeB = segFarbeBV[i];
+            s.flip   = segFlipV[i];
+            s.segUmkehr = segUmkehrV[i];
+            s.lw = qMax(0.3, segBreiteV[i] * 0.25 * pxPerMm);
+            s.color = s.farbeA; // Fallback für die Treffpunkt-Symbolfarbe (pdfSegmentFuerPunkt, s.u.)
         }
         segs.append(s);
     }
@@ -2347,7 +2500,8 @@ static QStringList pdfKlemmenAnschlussPartner(const QSqlDatabase &db, int klemme
 static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                                      double C, double pxPerMm, const QSqlDatabase &db,
                                      const QVector<PdfLeitungsSegment> *leitungsSegs,
-                                     int seiteId)
+                                     int seiteId,
+                                     const QHash<int, bool> *winkelUmkehrenMap = nullptr)
 {
     double x1 = el.value("x1").toDouble() * C;
     double y1 = el.value("y1").toDouble() * C;
@@ -2420,37 +2574,17 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
                 QPointF wp0 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 0.0, 0.0);
                 QPointF wp1 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 0.0, 1.0);
                 QPointF wp2 = pdfPinWeltPos(rx1, ry1, rx2, ry2, rot, spX, spY, 1.0, 1.0);
-                // WINKEL-DREHER-01 (Sep 2026, 1:1-Port der QML-Nachbesserung in
-                // berechneRoutingSymbolFarben()/CanvasRenderHandler.qml): die feste
-                // Zeichenreihenfolge wp0→wp1→wp2 hat keinen Bezug zur tatsächlichen
-                // Netz-Flussrichtung, die mSeg->flip bestimmt hat.
-                //
-                // Nachbesserung (direkter Nachtrag, erster Anlauf per "berührtes
-                // Ende cx1/cx2" war an einem zweiten Winkel in derselben Kette
-                // falsch): statt aus dem berührten Segment-Ende auf eine
-                // Fluss-"Richtung" zu schließen, wird direkt geometrisch verglichen,
-                // ob der ALS-GEZEICHNETE Richtungsvektor des Winkel-Teilstücks, das
-                // mSeg berührt, physisch in dieselbe oder die entgegengesetzte
-                // Richtung zeigt wie mSeg selbst (beide liegen auf derselben
-                // Geraden, da am Berührpunkt kein Knick ist). Skalarprodukt ≥ 0:
-                // Normalen zeigen zur selben physischen Seite, kein Tausch nötig.
-                // Skalarprodukt < 0: Normalen tauschen physisch die Seite,
-                // Punktreihenfolge umkehren.
-                auto _dist2 = [](QPointF a, QPointF b) {
-                    double dx = a.x() - b.x(), dy = a.y() - b.y();
-                    return dx*dx + dy*dy;
-                };
-                double dC1P0 = _dist2(QPointF(mSeg->cx1, mSeg->cy1), wp0);
-                double dC1P2 = _dist2(QPointF(mSeg->cx1, mSeg->cy1), wp2);
-                double dC2P0 = _dist2(QPointF(mSeg->cx2, mSeg->cy2), wp0);
-                double dC2P2 = _dist2(QPointF(mSeg->cx2, mSeg->cy2), wp2);
-                bool touchIstC2  = qMin(dC2P0, dC2P2) < qMin(dC1P0, dC1P2);
-                bool touchedIstWp0 = touchIstC2 ? (dC2P0 < dC2P2) : (dC1P0 < dC1P2);
-                double segDx = mSeg->cx2 - mSeg->cx1, segDy = mSeg->cy2 - mSeg->cy1;
-                double legDx, legDy;
-                if (touchedIstWp0) { legDx = wp1.x() - wp0.x(); legDy = wp1.y() - wp0.y(); }
-                else                { legDx = wp2.x() - wp1.x(); legDy = wp2.y() - wp1.y(); }
-                bool umkehren = (legDx * segDx + legDy * segDy) < 0.0;
+                // WINKEL-DREHER-01-PDF (Sep 2026): die feste Zeichenreihenfolge
+                // wp0→wp1→wp2 hat keinen Bezug zur tatsächlichen Netz-
+                // Flussrichtung, die mSeg->flip bestimmt hat. Die Umkehr-
+                // Entscheidung kommt jetzt fertig aus winkelUmkehrenMap (per
+                // BFS in pdfLeitungenSammeln() berechnet, s. dortiger
+                // Kommentar) statt hier lokal per Skalarprodukt gegen ein
+                // beliebig gematchtes mSeg neu zu raten — dieselbe Lehre wie
+                // im QML-Fix: nur die BFS-kausale Berechnung relativ zum
+                // tatsächlichen Vorgänger-Segment ist über beliebig lange
+                // Winkel-Ketten konsistent.
+                bool umkehren = winkelUmkehrenMap && winkelUmkehrenMap->value(el.value("id").toInt(), false);
                 if (umkehren)
                     pdfMaleWinkelGebaendert(p, QPointF(wp2.x()*C, wp2.y()*C),
                                                 QPointF(wp1.x()*C, wp1.y()*C),
@@ -2987,7 +3121,8 @@ static void pdfElementSymbolRendern(QPainter &p, const QVariantMap &el,
 static void pdfElementRendern(QPainter &p, const QVariantMap &el,
                                double C, double pxPerMm, const QSqlDatabase &db,
                                const QVector<PdfLeitungsSegment> *leitungsSegs = nullptr,
-                               int seiteId = -1)
+                               int seiteId = -1,
+                               const QHash<int, bool> *winkelUmkehrenMap = nullptr)
 {
     QString typ = el.value("typ").toString();
     if (typ == "linie") pdfElementLinieRendern(p, el, C, pxPerMm, db, leitungsSegs);
@@ -3002,7 +3137,7 @@ static void pdfElementRendern(QPainter &p, const QVariantMap &el,
     else if (typ == "strukturkasten") pdfElementStrukturkastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "makrokasten") pdfElementMakrokastenRendern(p, el, C, pxPerMm, db, leitungsSegs);
     else if (typ == "schirm") pdfElementSchirmRendern(p, el, C, pxPerMm, db, leitungsSegs);
-    else if (typ == "symbol") pdfElementSymbolRendern(p, el, C, pxPerMm, db, leitungsSegs, seiteId);
+    else if (typ == "symbol") pdfElementSymbolRendern(p, el, C, pxPerMm, db, leitungsSegs, seiteId, winkelUmkehrenMap);
 }
 
 // Aderbezeichnungen an Kabellinie-Schnittpunkten rendern
@@ -3607,9 +3742,10 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
             painter.translate(-txCu * C, -tyCu * C);
         QVariantList elemente = grafikLaden(seiteId);
         QVector<PdfKabelAderLabel> aderLabels;
-        QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels);
+        QHash<int, bool> winkelUmkehrenMap;
+        QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels, &winkelUmkehrenMap);
         for (const QVariant &ev : elemente)
-            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId);
+            pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId, &winkelUmkehrenMap);
         pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
         pdfKabelAderBeschriftungRendern(painter, C, pxPerMm, aderLabels);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
@@ -3672,9 +3808,10 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
         painter.translate(-txCu * C, -tyCu * C);
     QVariantList elemente = grafikLaden(seiteId);
     QVector<PdfKabelAderLabel> aderLabels;
-    QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels);
+    QHash<int, bool> winkelUmkehrenMap;
+    QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels, &winkelUmkehrenMap);
     for (const QVariant &ev : elemente)
-        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId);
+        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId, &winkelUmkehrenMap);
     pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
     pdfKabelAderBeschriftungRendern(painter, C, pxPerMm, aderLabels);
     painter.restore();

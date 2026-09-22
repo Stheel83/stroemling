@@ -593,6 +593,14 @@ struct PdfLeitungsSegment {
     bool    gebaendert = false;   // true: Ziel-Arm eines Treffpunkts mit 2 Adern
     bool    zweifarbig = false;   // true: farbeA/farbeB nebeneinander; false: eine Volllinie in farbeA
     QColor  farbeA, farbeB;       // bei zweifarbig: farbeA auf der Seite mit flip==false
+    // BIFARB-TREFFPUNKT-01 (Sep 2026, 1:1-Port von band.farben2 in
+    // CanvasRenderHandler.qml): ist einer der beiden am Treffpunkt
+    // zusammenlaufenden Arme selbst eine bifarb Ader (aderfarbe2), trägt
+    // farbeA2/farbeB2 (nur das jeweils passende gültig) ihre Sekundärfarbe —
+    // pdfMaleGebaenderteLinie()/pdfMaleWinkelGebaendert() zeichnen DIESES
+    // Band dann alternierend statt einfarbig, das andere Band bleibt
+    // unverändert.
+    QColor  farbeA2, farbeB2;
     QPointF refPunkt;             // Weltkoordinate (Canvas-Einheiten) des S1-Pins (nur zur Berechnung von flip)
     // WINKEL-FARBE-01 (Sep 2026): EINMAL beim Aufbau dieses Segments per
     // Kreuzprodukt-Test gegen refPunkt bestimmt und danach als fester Wert
@@ -846,11 +854,27 @@ static void pdfMaleGebaenderteLinie(QPainter &p, double ax, double ay, double bx
     bool flip = s.segUmkehr ? !s.flip : s.flip;
     QColor farbeNeg = flip ? s.farbeB : s.farbeA;
     QColor farbePos = flip ? s.farbeA : s.farbeB;
+    // BIFARB-TREFFPUNKT-01-PDF (Sep 2026, 1:1-Port von farben2 in
+    // _maleGebaenderteLinie()/CanvasRenderHandler.qml): ist einer der beiden
+    // Arme selbst eine bifarb Ader, trägt farbeA2/farbeB2 ihre
+    // Sekundärfarbe (sonst ungültig) — dieses Band wird dann per
+    // pdfMaleBifarbLinie() alternierend statt einfarbig gezeichnet, exakt
+    // dieselbe Funktion wie für eine eigenständige Bifarb-Ader.
+    QColor farbe2Neg = flip ? s.farbeB2 : s.farbeA2;
+    QColor farbe2Pos = flip ? s.farbeA2 : s.farbeB2;
 
-    p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, capStyle));
-    p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
-    p.setPen(QPen(farbePos, basis, Qt::SolidLine, capStyle));
-    p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
+    if (farbe2Neg.isValid())
+        pdfMaleBifarbLinie(p, ax - px*off, ay - py*off, bx - px*off, by - py*off, farbeNeg, farbe2Neg, basis);
+    else {
+        p.setPen(QPen(farbeNeg, basis, Qt::SolidLine, capStyle));
+        p.drawLine(QLineF(ax - px*off, ay - py*off, bx - px*off, by - py*off));
+    }
+    if (farbe2Pos.isValid())
+        pdfMaleBifarbLinie(p, ax + px*off, ay + py*off, bx + px*off, by + py*off, farbePos, farbe2Pos, basis);
+    else {
+        p.setPen(QPen(farbePos, basis, Qt::SolidLine, capStyle));
+        p.drawLine(QLineF(ax + px*off, ay + py*off, bx + px*off, by + py*off));
+    }
 }
 
 // Zeichnet einen kompletten S1- oder S2-Arm als EINEN zusammenhängenden
@@ -959,18 +983,39 @@ static void pdfMaleWinkelGebaendert(QPainter &p, QPointF vp0, QPointF vp1, QPoin
     // exakte Schnittpunkt der beiden Versatzgeraden verwendet: bei einem
     // 90°-Knick stehen n1/n2 senkrecht zueinander, die Versatzgeraden
     // schneiden sich exakt in vp1 + n1*off + n2*off (Parallelogrammsumme).
-    auto seite = [&](double sign, const QColor &farbe) {
+    // BIFARB-TREFFPUNKT-01-PDF (Sep 2026, Winkel-Nachtrag, 1:1-Port von
+    // farben2 in _maleWinkelGebaendertViewport()/CanvasRenderHandler.qml):
+    // ist einer der beiden Arme selbst eine bifarb Ader, zeichnet dieses
+    // Band ein alternierendes Strichmuster über den kompletten Pfad (beide
+    // Arme + Eckpunkt aus WINKEL-BAND-ECKE-01) statt Vollfarbe — Qt führt
+    // den Dash-Offset über den Knick hinweg nahtlos fort, da beide Arme
+    // EIN zusammenhängender QPainterPath sind.
+    auto seite = [&](double sign, const QColor &farbe, const QColor &farbe2) {
         QPointF ecke(vp1.x() + (n1.x() + n2.x()) * off * sign,
                      vp1.y() + (n1.y() + n2.y()) * off * sign);
         QPainterPath path;
         path.moveTo(vp0.x() + n1.x()*off*sign, vp0.y() + n1.y()*off*sign);
         path.lineTo(ecke);
         path.lineTo(vp2.x() + n2.x()*off*sign, vp2.y() + n2.y()*off*sign);
-        p.setPen(QPen(farbe, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-        p.drawPath(path);
+        if (farbe2.isValid()) {
+            double dashLen = qMax(2.0, basis * 3.0);
+            QPen pen1(farbe, basis, Qt::CustomDashLine, Qt::SquareCap, Qt::MiterJoin);
+            pen1.setDashPattern({ dashLen / basis, dashLen / basis });
+            pen1.setDashOffset(0.0);
+            p.setPen(pen1);
+            p.drawPath(path);
+            QPen pen2(farbe2, basis, Qt::CustomDashLine, Qt::SquareCap, Qt::MiterJoin);
+            pen2.setDashPattern({ dashLen / basis, dashLen / basis });
+            pen2.setDashOffset(dashLen / basis);
+            p.setPen(pen2);
+            p.drawPath(path);
+        } else {
+            p.setPen(QPen(farbe, basis, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+            p.drawPath(path);
+        }
     };
-    seite(-1.0, s.flip ? s.farbeB : s.farbeA);
-    seite(+1.0, s.flip ? s.farbeA : s.farbeB);
+    seite(-1.0, s.flip ? s.farbeB : s.farbeA, s.flip ? s.farbeB2 : s.farbeA2);
+    seite(+1.0, s.flip ? s.farbeA : s.farbeB, s.flip ? s.farbeA2 : s.farbeB2);
 }
 
 // Zeichnet die S1-/S2-Arme eines Treffpunkt-/Treffpunkt_L-Symbols als zwei
@@ -1658,7 +1703,7 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
     // Pro Segment vorberechnete Bänderungsinfo (statt nur für das eine
     // zielIdx-Segment wie bisher) + pro Winkel die Umkehr-Entscheidung.
     QVector<bool>   segGebaendert(n, false), segZweifarbig(n, false), segUmkehrV(n, false), segFlipV(n, false);
-    QVector<QColor> segFarbeAV(n), segFarbeBV(n);
+    QVector<QColor> segFarbeAV(n), segFarbeBV(n), segFarbeA2V(n), segFarbeB2V(n);
     QVector<double> segBreiteV(n, 0.0);
     QHash<int, bool> winkelUmkehren; // key: winkelListe-Index
 
@@ -1668,7 +1713,12 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
         if (segGebaendert[k.zielIdx]) continue; // bereits durch einen anderen Treffpunkt versorgt
 
         QColor fa = endFarbe[k.s1Idx], fb = endFarbe[k.s2Idx];
-        bool   zweifarbig = fa.name() != fb.name();
+        QColor fa2 = endFarbe2[k.s1Idx], fb2 = endFarbe2[k.s2Idx];
+        // BIFARB-TREFFPUNKT-01: ein Arm gilt auch dann als "zweifarbig"
+        // (zeichnet zwei Bänder statt einer Volllinie), wenn seine Farben
+        // zufällig gleich sind, aber einer der Arme selbst bifarb ist —
+        // sonst würde eine gültige Sekundärfarbe stillschweigend verworfen.
+        bool   zweifarbig = fa.name() != fb.name() || fa2.isValid() || fb2.isValid();
         double breiteWelt = pdfBreiteFuerAnzahl(2, raw[k.zielIdx].signaltyp);
         double zdx = raw[k.zielIdx].x2 - raw[k.zielIdx].x1, zdy = raw[k.zielIdx].y2 - raw[k.zielIdx].y1;
         bool   flip0 = (zdx * (k.s1Welt.y() - raw[k.zielIdx].y1) - zdy * (k.s1Welt.x() - raw[k.zielIdx].x1)) >= 0.0;
@@ -1692,6 +1742,7 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
             segGebaendert[cur] = true;
             segZweifarbig[cur] = zweifarbig;
             segFarbeAV[cur] = fa; segFarbeBV[cur] = fb;
+            segFarbeA2V[cur] = fa2; segFarbeB2V[cur] = fb2;
             segFlipV[cur] = flip0;
             segUmkehrV[cur] = segUmkehrLokal.value(cur, false);
             segBreiteV[cur] = breiteWelt;
@@ -1755,6 +1806,7 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
             s.gebaendert = true;
             s.zweifarbig = segZweifarbig[i];
             s.farbeA = segFarbeAV[i]; s.farbeB = segFarbeBV[i];
+            s.farbeA2 = segFarbeA2V[i]; s.farbeB2 = segFarbeB2V[i];
             s.flip   = segFlipV[i];
             s.segUmkehr = segUmkehrV[i];
             s.lw = qMax(0.3, segBreiteV[i] * 0.25 * pxPerMm);

@@ -1588,7 +1588,28 @@ QtObject {
             // Bifarb-Ader (aderfarbe2): längs alternierendes Strich-Band statt
             // Parallel-Offset (das wäre mit der Treffpunkt-Bänderung "verschieden"
             // optisch verwechselbar, siehe Feldkommentar an _bandOderEinfach()).
-            var dashLen = Math.max(2, breitePx * 3)
+            //
+            // BIFARB-DASH-ZOOM-CAP-01 (Sep 2026, Nutzerentscheid nach
+            // Screenshot-Vergleich mit dem PDF-Export): die Zyklus-Länge ist
+            // bewusst physisch (mm-fest, unabhängig vom Zoom) – anders als
+            // bei der Linienbreite selbst (LEITUNG-ZOOM-BREITE-01) wirkt ein
+            // rein physisches Streifenmaß beim starken Reinzoomen aber nicht
+            // wie ein feines Muster, sondern wie ein einzelner, dominanter
+            // Farbblock (man zoomt schlicht in eine einzelne Halbperiode
+            // hinein – kein Rechenfehler, reiner Framing-Effekt). Das PDF hat
+            // dieses Problem nie, weil es immer nur die reale 1:1-Druckgröße
+            // zeigt (~ Canvas-Zoom 90–100%) und nie "hineingezoomt" wird.
+            // Deshalb: die Zyklus-Länge nutzt einen bei `dashZoomCap`
+            // gedeckelten Zoom-Wert statt des vollen `cv.zoom` – wächst wie
+            // bisher normal mit dem Zoom bis zu diesem Punkt (physisch
+            // korrektes Verhalten beim Rauszoomen bleibt erhalten), bleibt
+            // darüber hinaus aber auf dem "PDF-ähnlichen" Bildschirm-Pixel-
+            // Maß stehen. Nur die Streifenlänge ist davon betroffen – die
+            // Linienbreite (`breitePx`, `ctx.lineWidth`) bleibt unverändert
+            // voll zoomgetreu.
+            var dashZoomCap = 2.0
+            var dashZoom = Math.min(cv.zoom, dashZoomCap)
+            var dashLen = Math.max(2, band.breite * cv.mmToPx * dashZoom * 3)
             ctx.lineCap = "butt"
             ctx.strokeStyle = band.farben[0]
             ctx.lineWidth   = breitePx

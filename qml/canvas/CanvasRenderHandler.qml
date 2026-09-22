@@ -1704,14 +1704,29 @@ QtObject {
         var basis = breitePx / 2   // Breite je Einzel-Ader-Band, wie _maleGebaenderteLinie
         var off = basis / 2
         var flip = band.flip || false
+        // WINKEL-BAND-ECKE-01 (Sep 2026): die beiden Versatzpunkte an vp1
+        // (vp1+n1*off UND vp1+n2*off) lagen bisher als ZWEI getrennte Punkte
+        // im Pfad, mit einer schrägen Verbindungslinie dazwischen – bei einem
+        // 90°-Knick UND ctx.lineJoin="miter" ergab das eine deutlich
+        // sichtbare, dreieckige Spitze am äußeren Eck statt eines sauberen
+        // rechten Winkels (Nutzer-Screenshot). Da n1/n2 bei einem 90°-Knick
+        // zueinander senkrecht stehen, schneiden sich die beiden
+        // Versatzgeraden (Gerade durch vp1+n1*off in Richtung Arm 1, Gerade
+        // durch vp1+n2*off in Richtung Arm 2) exakt in EINEM Punkt:
+        // vp1 + n1*off + n2*off (Beweis: Parallelogrammsumme, da n1 ∥ Arm 2
+        // und n2 ∥ Arm 1 bei einem rechten Winkel). Dieser EINE, geometrisch
+        // korrekte Eckpunkt ersetzt die beiden getrennten Punkte – der Pfad
+        // biegt dadurch genauso rechtwinklig ab wie der Winkel selbst
+        // (_maleWinkel()), keine Diagonale/Spitze mehr nötig.
         function seite(sign, farbe) {
             ctx.strokeStyle = farbe
             ctx.lineWidth   = basis
             ctx.lineCap     = "square"
+            var eckeX = vp1.x + (n1.px + n2.px) * off * sign
+            var eckeY = vp1.y + (n1.py + n2.py) * off * sign
             ctx.beginPath()
             ctx.moveTo(vp0.x + n1.px*off*sign, vp0.y + n1.py*off*sign)
-            ctx.lineTo(vp1.x + n1.px*off*sign, vp1.y + n1.py*off*sign)
-            ctx.lineTo(vp1.x + n2.px*off*sign, vp1.y + n2.py*off*sign)
+            ctx.lineTo(eckeX, eckeY)
             ctx.lineTo(vp2.x + n2.px*off*sign, vp2.y + n2.py*off*sign)
             ctx.stroke()
         }

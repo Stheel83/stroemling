@@ -433,6 +433,48 @@ QtObject {
         return null
     }
 
+    // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026): Viewport-Hit-Test für das
+    // Sternchen-Zahl-Label an einer Treffpunkt-Verkettung (≥3 zusammen-
+    // laufende Adern, Farbdarstellung nicht mehr eindeutig) – für den
+    // Hover-Tooltip. Nutzt exakt dieselbe Berechnung wie beim Zeichnen
+    // (CanvasRenderHandler.qml::_treffpunktZielBaender()/_zahlLabelPosition()),
+    // keine zweite, divergierende Geometrie (Lehre aus
+    // PDF-KABEL-ADERN-POOL-01: nie zwei getrennte Berechnungen fürs selbe
+    // Label pflegen). Gibt bei Treffer {vpX, vpY, armAnzahl} zurück
+    // (Anker-Position fürs Tooltip-Popup), sonst null.
+    function treffpunktMehrfachBeiPosition(vpX, vpY) {
+        var elemente = cv.elementeModel.snapshot()
+        var netze    = cv.netzberechnung.autoNetzeBerechnen()
+        var adpList  = cv.renderHandler._sammleAderdefinitionspunkte()
+        var ctxM     = cv._drawCanvas.getContext("2d")
+        var fs       = Math.max(8, Math.round(9 * cv.zoom))
+        ctxM.font = "bold " + fs + "px sans-serif"
+
+        for (var ni = 0; ni < netze.length; ni++) {
+            var net     = netze[ni]
+            var segAdps = adpFuerNetSegmente(net.segmente, adpList)
+            var baender = cv.renderHandler._treffpunktZielBaender(net, segAdps, elemente)
+
+            for (var si = 0; si < net.segmente.length; si++) {
+                var band = baender[si]
+                if (!band || band.armAnzahl < 3) continue
+                var seg  = net.segmente[si]
+                var pos  = cv.renderHandler._zahlLabelPosition(seg, band)
+                var text = "" + band.armAnzahl + "*"
+                var tw   = ctxM.measureText(text).width
+                var pad  = 5
+                var bx1  = pos.align === "left" ? pos.x - pad         : pos.x - tw / 2 - pad
+                var bx2  = pos.align === "left" ? pos.x + tw + pad    : pos.x + tw / 2 + pad
+                var by1  = pos.baseline === "middle" ? pos.y - fs / 2 - pad : pos.y - fs - pad
+                var by2  = pos.baseline === "middle" ? pos.y + fs / 2 + pad : pos.y + pad
+
+                if (vpX >= bx1 && vpX <= bx2 && vpY >= by1 && vpY <= by2)
+                    return { vpX: pos.x, vpY: pos.y, armAnzahl: band.armAnzahl }
+            }
+        }
+        return null
+    }
+
     // Gibt die kreuzenden Verbindungsnetze einer Kabellinie zurück –
     // sortiert nach Position entlang der Linie (t=0..1), dedupliziert nach netKey.
     // Rückgabe: [{t, netKey, verbindungId, bezeichnung, signaltyp}]

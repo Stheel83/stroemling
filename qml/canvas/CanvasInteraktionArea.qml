@@ -154,41 +154,46 @@ MouseArea {
                                           && (canvas.labelTreffenTest(vp.x, vp.y) >= 0)
                 var hIdx = canvas.elementBeiPosition(vp.x, vp.y)
                 canvas.mausUeberElement = !canvas.mausUeberGriff && (hIdx >= 0)
-                // Tooltip für klemme_anschluss
-                if (hIdx >= 0 && !canvas.mausUeberGriff) {
-                    var hEl = em.element(hIdx)
-                    if (hEl && hEl.typ === "symbol" && hEl.symbolId === "klemme_anschluss") {
-                        var hed    = hEl.extraDaten || {}
-                        var hBez   = hed.anschlussBezeichnung || ""
-                        var hRaw   = hed.bmk || ""
-                        var hBase  = (hBez !== "" && hRaw.endsWith(":" + hBez))
-                                     ? hRaw.slice(0, hRaw.length - hBez.length - 1) : hRaw
-                        var hColon  = hBase.lastIndexOf(":")
-                        var hLeiste = hColon >= 0 ? hBase.slice(0, hColon) : hBase
-                        var hNr     = hColon >= 0 ? hBase.slice(hColon + 1) : ""
-                        var hParts  = []
-                        if (hLeiste) hParts.push("Leiste    " + hLeiste)
-                        if (hNr)     hParts.push("Klemme    Nr. " + hNr)
-                        if (hBez)    hParts.push("Anschluss " + hBez)
-                        // Gegenstelle(n) derselben Klemme/Ebene (KLEMMENANSCHLUSS-
-                        // PARTNER-01): macht die sonst unsichtbare Verbindung zu
-                        // einem einzeln platzierten zweiten Anschluss greifbar.
-                        var hPartner = canvas._klemmeAnschlussPartnerMap
-                                       ? canvas._klemmeAnschlussPartnerMap[hIdx] : undefined
-                        if (hPartner && hPartner.length > 0) {
-                            for (var hpi = 0; hpi < hPartner.length; hpi++)
-                                hParts.push("↔ " + hPartner[hpi].label)
-                        }
-                        if (hed.geist === true) hParts.push("⚠ Platzhalter – echten Anschluss direkt darauf setzen")
-                        root.tooltipText = hParts.join("\n")
-                        kaTooltip.x = mouse.x + 14
-                        kaTooltip.y = mouse.y + 14
-                        kaTooltip.visible = false
-                        ttTimer.restart()
-                    } else {
-                        root.tooltipText = ""
-                        ttTimer.stop(); kaTooltip.visible = false
+                var hEl = (hIdx >= 0 && !canvas.mausUeberGriff) ? em.element(hIdx) : null
+                // Tooltip für klemme_anschluss ODER (TREFFPUNKT-MEHRFARB-
+                // MARKER-01) für das Sternchen-Zahl-Label einer Treffpunkt-
+                // Verkettung – beide nutzen denselben Cursor-nahen kaTooltip,
+                // nur mit unterschiedlichem Text/Anker.
+                if (hEl && hEl.typ === "symbol" && hEl.symbolId === "klemme_anschluss") {
+                    var hed    = hEl.extraDaten || {}
+                    var hBez   = hed.anschlussBezeichnung || ""
+                    var hRaw   = hed.bmk || ""
+                    var hBase  = (hBez !== "" && hRaw.endsWith(":" + hBez))
+                                 ? hRaw.slice(0, hRaw.length - hBez.length - 1) : hRaw
+                    var hColon  = hBase.lastIndexOf(":")
+                    var hLeiste = hColon >= 0 ? hBase.slice(0, hColon) : hBase
+                    var hNr     = hColon >= 0 ? hBase.slice(hColon + 1) : ""
+                    var hParts  = []
+                    if (hLeiste) hParts.push("Leiste    " + hLeiste)
+                    if (hNr)     hParts.push("Klemme    Nr. " + hNr)
+                    if (hBez)    hParts.push("Anschluss " + hBez)
+                    // Gegenstelle(n) derselben Klemme/Ebene (KLEMMENANSCHLUSS-
+                    // PARTNER-01): macht die sonst unsichtbare Verbindung zu
+                    // einem einzeln platzierten zweiten Anschluss greifbar.
+                    var hPartner = canvas._klemmeAnschlussPartnerMap
+                                   ? canvas._klemmeAnschlussPartnerMap[hIdx] : undefined
+                    if (hPartner && hPartner.length > 0) {
+                        for (var hpi = 0; hpi < hPartner.length; hpi++)
+                            hParts.push("↔ " + hPartner[hpi].label)
                     }
+                    if (hed.geist === true) hParts.push("⚠ Platzhalter – echten Anschluss direkt darauf setzen")
+                    root.tooltipText = hParts.join("\n")
+                    kaTooltip.x = mouse.x + 14
+                    kaTooltip.y = mouse.y + 14
+                    kaTooltip.visible = false
+                    ttTimer.restart()
+                } else if (!canvas.mausUeberGriff
+                           && canvas.treffpunktMehrfachBeiPosition(vp.x, vp.y) !== null) {
+                    root.tooltipText = "Mehr als 2 Adern treffen hier zusammen – Farbdarstellung ist nicht mehr eindeutig."
+                    kaTooltip.x = mouse.x + 14
+                    kaTooltip.y = mouse.y + 14
+                    kaTooltip.visible = false
+                    ttTimer.restart()
                 } else {
                     root.tooltipText = ""
                     ttTimer.stop(); kaTooltip.visible = false

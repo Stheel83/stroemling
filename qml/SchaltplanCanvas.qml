@@ -400,6 +400,7 @@ Item {
     // Brücken-Funktionen für CanvasInteraktionArea
     function verbindungBeiPosition(x, y)   { return geometrieHandler.verbindungBeiPosition(x, y) }
     function kabelKreuzungBeiPosition(x, y) { return geometrieHandler.kabelKreuzungBeiPosition(x, y) }
+    function treffpunktMehrfachBeiPosition(x, y) { return geometrieHandler.treffpunktMehrfachBeiPosition(x, y) }
     function koordinatenTextSetzen(text)   { footerBar.koordinatenText = text }
     function bildLaden(url)                { drawCanvas.loadImage(url) }
 
@@ -507,6 +508,12 @@ Item {
 
     // Render-Helferfunktionen ausgelagert (REFACTOR-01 Stufe 5a+5b)
     CanvasRenderHandler { id: renderHandler; cv: root }
+    // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026): vorher nur lokal als `id`
+    // innerhalb dieser Datei sichtbar – CanvasGeometrie.qml braucht Zugriff
+    // auf _treffpunktZielBaender()/_sammleAderdefinitionspunkte() für den
+    // Hover-Hit-Test des Zahl-Labels (dieselbe Berechnung wie beim Zeichnen,
+    // keine zweite, divergierende Kopie).
+    property alias renderHandler: renderHandler
 
     // --------------------------------------------------------
     // Zeichenebene

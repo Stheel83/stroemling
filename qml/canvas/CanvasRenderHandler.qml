@@ -1251,6 +1251,31 @@ QtObject {
         return bMm
     }
 
+    // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026, Nachbesserung): Viewport-
+    // Position des Zahl-Labels (ab 3 zusammenlaufenden Adern bzw. ab 4
+    // dokumentierten ADPs, s. Render-Schleife) als eigene Funktion – wird
+    // sowohl beim Zeichnen HIER als auch vom Hit-Test für den Hover-Tooltip
+    // (CanvasGeometrie.qml::treffpunktMehrfachBeiPosition()) verwendet, damit
+    // beide exakt dieselbe Geometrie nutzen (sonst könnte der Tooltip an
+    // einer anderen Stelle reagieren als der Marker tatsächlich sitzt).
+    //
+    // Nutzerbericht: bei einer SENKRECHTEN Leitung lag das Label vorher fest
+    // 3px ÜBER dem Mittelpunkt (nur für waagerechte Leitungen sinnvoll) –
+    // die (ggf. mehrere Pixel breite) Linie selbst lag dadurch genau unter
+    // dem Text und verdeckte ihn großteils. Fix: Versatz senkrecht zur
+    // tatsächlichen Segmentrichtung, um mindestens die halbe Linienbreite
+    // (+Puffer) hinaus versetzt.
+    function _zahlLabelPosition(seg, band) {
+        var mvx = (seg.x1 + seg.x2) / 2 * cv.zoom + cv.worldX
+        var mvy = (seg.y1 + seg.y2) / 2 * cv.zoom + cv.worldY
+        var breitePx = Math.max(0.5, band.breite * cv.mmToPx * cv.zoom)
+        var versatz  = breitePx / 2 + 8
+        var istVert  = Math.abs(seg.x2 - seg.x1) < 0.5
+        if (istVert)
+            return { x: mvx + versatz, y: mvy, align: "left", baseline: "middle" }
+        return { x: mvx, y: mvy - versatz, align: "center", baseline: "bottom" }
+    }
+
     // Farbe + Linienbreite für ein Netzsegment. Aderfarbe überschreibt die
     // Signaltyp-Farbe – außer im Fehlersuchmodus, wo per Toggle
     // (fehlersuchZeigeAderfarbe) auf reine Kategorie-/Signaltyp-Ansicht
@@ -2165,12 +2190,6 @@ QtObject {
                 var _labelSchwelle = _zielBand ? 3 : 4
                 var _labelWert     = _zielBand ? band.armAnzahl : sAdps.length
                 if (_labelWert >= _labelSchwelle && !cv.bewegungAktiv) {
-                    var mvx = (seg.x1 + seg.x2) / 2 * cv.zoom + cv.worldX
-                    var mvy = (seg.y1 + seg.y2) / 2 * cv.zoom + cv.worldY
-                    ctx.save()
-                    ctx.font = "bold " + Math.max(8, Math.round(9 * cv.zoom)) + "px sans-serif"
-                    ctx.fillStyle = band.farbe
-                    ctx.textAlign = "center"; ctx.textBaseline = "bottom"
                     // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026): Sternchen nur
                     // am Treffpunkt-Verkettungsfall (_zielBand) – hier zeigt
                     // die Linie nur noch EINE Farbe (band.farbe, die erste der
@@ -2180,7 +2199,20 @@ QtObject {
                     // (sAdps.length≥4 auf einem gewöhnlichen Segment) ist ein
                     // anderer, unveränderter Anwendungsfall und bleibt ohne
                     // Sternchen.
-                    ctx.fillText("" + _labelWert + (_zielBand ? "*" : ""), mvx, mvy - 3)
+                    var _labelText = "" + _labelWert + (_zielBand ? "*" : "")
+                    var _labelFs   = Math.max(8, Math.round(9 * cv.zoom))
+                    var _labelPos  = _zahlLabelPosition(seg, band)
+                    ctx.save()
+                    ctx.font = "bold " + _labelFs + "px sans-serif"
+                    ctx.textAlign = _labelPos.align; ctx.textBaseline = _labelPos.baseline
+                    // Nachbesserung (Nutzerbericht, Screenshot einer
+                    // senkrechten Leitung): band.farbe kann der Linienfarbe
+                    // selbst beliebig ähnlich sein – ohne Kontrastfeld war das
+                    // Label praktisch unlesbar. Gleiches Hintergrundfeld wie
+                    // an anderen Canvas-Labels (textHintergrundFeld()).
+                    textHintergrundFeld(ctx, _labelText, _labelPos.x, _labelPos.y, _labelFs)
+                    ctx.fillStyle = band.farbe
+                    ctx.fillText(_labelText, _labelPos.x, _labelPos.y)
                     ctx.restore()
                 }
             }

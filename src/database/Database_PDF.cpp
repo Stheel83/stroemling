@@ -624,6 +624,16 @@ struct PdfLeitungsSegment {
     // zu verwechseln mit obiger Treffpunkt-Bänderung (zwei verschiedene Adern
     // treffen sich). Nur gesetzt wenn !gebaendert (Bänderung hat Vorrang).
     QColor  farbe2;
+
+    // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026, 1:1-Port von
+    // band.modus==="mehrfach"/band.armAnzahl in _treffpunktZielBaender()):
+    // ≥3 an einem Treffpunkt-Ziel-Arm zusammenlaufende Adern (Verkettung
+    // mehrerer Treffpunkte) lassen sich nicht mehr als 2-Band-Bänderung
+    // darstellen – stattdessen einfarbige Linie (color/lw wie unten) PLUS
+    // Zahl-Label ("armAnzahl*", Sternchen wie im Canvas) in
+    // pdfLeitungenRendern(). gebaendert bleibt dabei false.
+    bool mehrfach  = false;
+    int  armAnzahl = 0;
 };
 
 // PDF-ADERNUMMER-POOL-01/PDF-ADERBESCHRIFTUNG-POOL-01 (Aug 2026): Ader-Kreuzungslabel
@@ -1593,17 +1603,22 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
 
     // Treffpunkt-/Treffpunkt_L-Ziel-Arm-Bänderung (VERBINDUNGSFARBE-03/04-
     // Port, WINKEL-DREHER-01-PDF Sep 2026 erweitert um Mehrfach-Winkel-
-    // Propagation): S1/S2-Pins geometrisch auf ihr jeweiliges Segment
-    // matchen, bei unterschiedlicher (gleicher) Endfarbe den Ziel-Arm
-    // zweifarbig (mit Trennlinie) markieren – und die Bänderung jetzt per
-    // BFS über beliebig viele nachfolgende winkel-Elemente propagieren
+    // Propagation, TREFFPUNKT-MEHRFARB-MARKER-01 Sep 2026 erweitert um
+    // Treffpunkt-VERKETTUNG): S1/S2-Pins geometrisch auf ihr jeweiliges
+    // Segment matchen, bei unterschiedlicher (gleicher) Endfarbe den
+    // Ziel-Arm zweifarbig (mit Trennlinie) markieren – und die Bänderung
+    // per BFS über beliebig viele nachfolgende winkel-Elemente propagieren
     // (1:1-Port von _treffpunktZielBaender()/propagiere() in
-    // CanvasRenderHandler.qml), statt nur das EINE direkt anliegende
-    // Ziel-Segment zu bändern (frühere, bewusst dokumentierte Einschränkung
-    // — s. Git-Historie). Verkettung mehrerer TREFFPUNKTE (Ziel-Arm eines
-    // Treffpunkts = Quell-Arm eines zweiten) wird weiterhin bewusst NICHT
-    // aufgelöst (kein Zahl-Label-Fallback im PDF wie im Live-Canvas) – ein
-    // beteiligter Treffpunkt fällt dann auf die einfache Endfarbe zurück.
+    // CanvasRenderHandler.qml). Verkettung mehrerer TREFFPUNKTE (Ziel-Arm
+    // eines Treffpunkts = Quell-Arm eines zweiten) wird jetzt ebenfalls
+    // aufgelöst: eine Konvergenz-Schleife (1:1-Port des QML-Fixes für
+    // TREFFPUNKT-MEHRFARB-MARKER-01, s. dortiger Kommentar) berechnet jeden
+    // Kandidaten neu, solange sich armAnzahl/Modus ändern, statt ihn wie
+    // vorher nach der ersten Berechnung dauerhaft zu sperren – bei
+    // ungünstiger `kandidaten`-Reihenfolge (nachgelagerter Treffpunkt vor
+    // seinem vorgelagerten) blieb die armAnzahl sonst zu niedrig eingefroren.
+    // Ab armAnzahl>=3 "mehrfach"-Modus (einfarbige Linie + Zahl-Label,
+    // s. PdfLeitungsSegment::mehrfach) statt 2-Band-Bänderung.
     auto segAnPunkt = [&](const QPointF &w) -> int {
         for (int i = 0; i < n; i++)
             if (nah(raw[i].x1, raw[i].y1, w) || nah(raw[i].x2, raw[i].y2, w))
@@ -1613,7 +1628,6 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
 
     struct TpKandidat { int s1Idx, s2Idx, zielIdx; QPointF s1Welt; };
     QVector<TpKandidat> kandidaten;
-    QSet<int> zielIdxSet;
     {
         QSqlQuery tq(db);
         tq.prepare(R"(
@@ -1640,7 +1654,6 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
                 int s1i = segAnPunkt(s1W), s2i = segAnPunkt(s2W), zi = segAnPunkt(zielW);
                 if (s1i < 0 || s2i < 0 || zi < 0) continue;
                 kandidaten.append({ s1i, s2i, zi, s1W });
-                zielIdxSet.insert(zi);
             }
         }
     }
@@ -1707,83 +1720,125 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
     QVector<double> segBreiteV(n, 0.0);
     QHash<int, bool> winkelUmkehren; // key: winkelListe-Index
 
-    for (const TpKandidat &k : kandidaten) {
-        if (zielIdxSet.contains(k.s1Idx) || zielIdxSet.contains(k.s2Idx)) continue;
-        if (!endFarbe[k.s1Idx].isValid() || !endFarbe[k.s2Idx].isValid()) continue;
-        if (segGebaendert[k.zielIdx]) continue; // bereits durch einen anderen Treffpunkt versorgt
+    // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026, 1:1-Port von band.modus===
+    // "mehrfach"/band.armAnzahl in _treffpunktZielBaender()): armAnzahl je
+    // Ziel-Segment, damit eine Verkettung mehrerer Treffpunkte (Ziel-Arm
+    // eines Treffpunkts = Quell-Arm eines zweiten) erkannt statt wie bisher
+    // per zielIdxSet-Skip komplett übersprungen wird. Ab armAnzahl>=3
+    // "mehrfach"-Modus (einfarbige Linie + Zahl-Label) statt 2-Band.
+    QVector<bool> segMehrfach(n, false);
+    QVector<int>  segArmAnzahlV(n, 0);
+    QVector<int>  segModusV(n, 0);   // 0=unbestimmt, 1=gebaendert, 2=mehrfach — für den Konvergenzvergleich unten
+    auto armAnzahlFuer = [&](int idx) -> int {
+        return (segGebaendert[idx] || segMehrfach[idx]) ? segArmAnzahlV[idx] : 1;
+    };
 
-        QColor fa = endFarbe[k.s1Idx], fb = endFarbe[k.s2Idx];
-        QColor fa2 = endFarbe2[k.s1Idx], fb2 = endFarbe2[k.s2Idx];
-        // BIFARB-TREFFPUNKT-01: ein Arm gilt auch dann als "zweifarbig"
-        // (zeichnet zwei Bänder statt einer Volllinie), wenn seine Farben
-        // zufällig gleich sind, aber einer der Arme selbst bifarb ist —
-        // sonst würde eine gültige Sekundärfarbe stillschweigend verworfen.
-        bool   zweifarbig = fa.name() != fb.name() || fa2.isValid() || fb2.isValid();
-        double breiteWelt = pdfBreiteFuerAnzahl(2, raw[k.zielIdx].signaltyp);
-        double zdx = raw[k.zielIdx].x2 - raw[k.zielIdx].x1, zdy = raw[k.zielIdx].y2 - raw[k.zielIdx].y1;
-        bool   flip0 = (zdx * (k.s1Welt.y() - raw[k.zielIdx].y1) - zdy * (k.s1Welt.x() - raw[k.zielIdx].x1)) >= 0.0;
+    // Konvergenz-Schleife statt Einzeldurchlauf (1:1-Port des QML-Fixes für
+    // TREFFPUNKT-MEHRFARB-MARKER-01, s. ausführlicher Kommentar an
+    // _treffpunktZielBaender() in CanvasRenderHandler.qml): wurde ein
+    // Kandidat verarbeitet, BEVOR sein vorgelagerter Treffpunkt (falls s1/s2
+    // selbst ein Ziel-Arm sind) an der Reihe war, sah er seinen Arm noch als
+    // unverschmolzen (armAnzahlFuer()==1 statt der später korrekten 2) — bei
+    // einem einmaligen Durchlauf (wie vorher) wäre dieses zu niedrige
+    // Ergebnis für immer eingefroren geblieben. Jeder Kandidat wird jetzt
+    // neu berechnet, solange sich armAnzahl/Modus seines Ziel-Segments
+    // gegenüber der letzten Berechnung ändern; armAnzahl kann pro Runde nur
+    // wachsen, Konvergenz bleibt innerhalb der Rundenzahl-Schranke garantiert.
+    bool geaendert = true; int runden = 0;
+    while (geaendert && runden < kandidaten.size() + 2) {
+        geaendert = false; runden++;
+        for (const TpKandidat &k : kandidaten) {
+            if (!endFarbe[k.s1Idx].isValid() || !endFarbe[k.s2Idx].isValid()) continue;
 
-        // BFS ab dem Ziel-Segment über segAdj — 1:1-Analogie zu propagiere()
-        // in CanvasRenderHandler.qml. segUmkehrLokal[startSi]=false ist die
-        // Basis (dort ist flip0 per Kreuzprodukt-Test bereits korrekt); an
-        // jedem gekreuzten Winkel werden Winkel- UND Ausgangssegment-
-        // Umkehrung GEMEINSAM aus derselben Berührpunkt-Geometrie berechnet
-        // (_winkelDurchgang()-Äquivalent), konsistent mit dem bereits
-        // akkumulierten Umkehr-Zustand des Eingangssegments.
-        QVector<int> queue; QSet<int> visited;
-        QHash<int, bool> segUmkehrLokal;
-        queue.append(k.zielIdx);
-        segUmkehrLokal[k.zielIdx] = false;
-        for (int qi = 0; qi < queue.size(); qi++) {
-            int cur = queue[qi];
-            if (visited.contains(cur)) continue;
-            visited.insert(cur);
+            int  armAnzahl = armAnzahlFuer(k.s1Idx) + armAnzahlFuer(k.s2Idx);
+            bool mehrfach  = armAnzahl >= 3;
+            int  neuerModus = mehrfach ? 2 : 1;
+            if (segModusV[k.zielIdx] == neuerModus && segArmAnzahlV[k.zielIdx] == armAnzahl)
+                continue; // Konvergenz: keine Änderung gegenüber der letzten Berechnung
 
-            segGebaendert[cur] = true;
-            segZweifarbig[cur] = zweifarbig;
-            segFarbeAV[cur] = fa; segFarbeBV[cur] = fb;
-            segFarbeA2V[cur] = fa2; segFarbeB2V[cur] = fb2;
-            segFlipV[cur] = flip0;
-            segUmkehrV[cur] = segUmkehrLokal.value(cur, false);
-            segBreiteV[cur] = breiteWelt;
+            QColor fa = endFarbe[k.s1Idx], fb = endFarbe[k.s2Idx];
+            QColor fa2 = endFarbe2[k.s1Idx], fb2 = endFarbe2[k.s2Idx];
+            // BIFARB-TREFFPUNKT-01: ein Arm gilt auch dann als "zweifarbig"
+            // (zeichnet zwei Bänder statt einer Volllinie), wenn seine Farben
+            // zufällig gleich sind, aber einer der Arme selbst bifarb ist —
+            // sonst würde eine gültige Sekundärfarbe stillschweigend verworfen.
+            // Nur relevant im 2-Band-Fall — im mehrfach-Fall gibt es ohnehin
+            // nur eine Signalfarbe (band.farbe/farben[0]-Äquivalent).
+            bool   zweifarbig = !mehrfach && (fa.name() != fb.name() || fa2.isValid() || fb2.isValid());
+            double breiteWelt = pdfBreiteFuerAnzahl(mehrfach ? armAnzahl : 2, raw[k.zielIdx].signaltyp);
+            double zdx = raw[k.zielIdx].x2 - raw[k.zielIdx].x1, zdy = raw[k.zielIdx].y2 - raw[k.zielIdx].y1;
+            bool   flip0 = (zdx * (k.s1Welt.y() - raw[k.zielIdx].y1) - zdy * (k.s1Welt.x() - raw[k.zielIdx].x1)) >= 0.0;
 
-            // Beide berührenden Winkel dieses Segments direkt prüfen (auch
-            // ohne Ausgangssegment, s. Kommentar an segZuWinkel oben) —
-            // 1:1-Port der QML-Nachbesserung (curCands-Schleife in
-            // propagiere()).
-            for (int wi : segZuWinkel.value(cur)) {
-                if (winkelUmkehren.contains(wi)) continue;
-                const PdfWinkelInfo &w = winkelListe[wi];
-                QPointF p0 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 0.0);
-                QPointF p1 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 1.0);
-                QPointF p2 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 1.0, 1.0);
-                bool ankerIstP0 = (w.segAmP0 == cur);
-                double ankerDx = raw[cur].x2 - raw[cur].x1, ankerDy = raw[cur].y2 - raw[cur].y1;
-                if (segUmkehrV[cur]) { ankerDx = -ankerDx; ankerDy = -ankerDy; }
-                double legAnkerDx, legAnkerDy;
-                if (ankerIstP0) { legAnkerDx = p1.x()-p0.x(); legAnkerDy = p1.y()-p0.y(); }
-                else            { legAnkerDx = p2.x()-p1.x(); legAnkerDy = p2.y()-p1.y(); }
-                bool umk = (legAnkerDx*ankerDx + legAnkerDy*ankerDy) < 0.0;
-                winkelUmkehren[wi] = umk;
+            // BFS ab dem Ziel-Segment über segAdj — 1:1-Analogie zu propagiere()
+            // in CanvasRenderHandler.qml. segUmkehrLokal[startSi]=false ist die
+            // Basis (dort ist flip0 per Kreuzprodukt-Test bereits korrekt); an
+            // jedem gekreuzten Winkel werden Winkel- UND Ausgangssegment-
+            // Umkehrung GEMEINSAM aus derselben Berührpunkt-Geometrie berechnet
+            // (_winkelDurchgang()-Äquivalent), konsistent mit dem bereits
+            // akkumulierten Umkehr-Zustand des Eingangssegments.
+            QVector<int> queue; QSet<int> visited;
+            QHash<int, bool> segUmkehrLokal;
+            queue.append(k.zielIdx);
+            segUmkehrLokal[k.zielIdx] = false;
+            for (int qi = 0; qi < queue.size(); qi++) {
+                int cur = queue[qi];
+                if (visited.contains(cur)) continue;
+                visited.insert(cur);
 
-                // Ausgangssegment (das jeweils andere Ende dieses Winkels) —
-                // -1, wenn dort nichts angeschlossen ist (totes Kettenende).
-                int ausgangSi = ankerIstP0 ? w.segAmP2 : w.segAmP0;
-                if (ausgangSi >= 0) {
-                    double legAusgDx, legAusgDy;
-                    if (ankerIstP0) { legAusgDx = p2.x()-p1.x(); legAusgDy = p2.y()-p1.y(); }
-                    else            { legAusgDx = p1.x()-p0.x(); legAusgDy = p1.y()-p0.y(); }
-                    if (umk) { legAusgDx = -legAusgDx; legAusgDy = -legAusgDy; }
-                    double ausgDx = raw[ausgangSi].x2 - raw[ausgangSi].x1, ausgDy = raw[ausgangSi].y2 - raw[ausgangSi].y1;
-                    if (!segUmkehrLokal.contains(ausgangSi))
-                        segUmkehrLokal[ausgangSi] = (legAusgDx*ausgDx + legAusgDy*ausgDy) < 0.0;
+                segGebaendert[cur] = !mehrfach;
+                segMehrfach[cur]   = mehrfach;
+                segModusV[cur]     = neuerModus;
+                segArmAnzahlV[cur] = armAnzahl;
+                segZweifarbig[cur] = zweifarbig;
+                segFarbeAV[cur] = fa; segFarbeBV[cur] = fb;
+                segFarbeA2V[cur] = mehrfach ? QColor() : fa2;
+                segFarbeB2V[cur] = mehrfach ? QColor() : fb2;
+                segFlipV[cur] = flip0;
+                segUmkehrV[cur] = segUmkehrLokal.value(cur, false);
+                segBreiteV[cur] = breiteWelt;
+
+                // Beide berührenden Winkel dieses Segments direkt prüfen (auch
+                // ohne Ausgangssegment, s. Kommentar an segZuWinkel oben) —
+                // 1:1-Port der QML-Nachbesserung (curCands-Schleife in
+                // propagiere()). winkelUmkehren ist rein geometrisch (hängt
+                // nicht von armAnzahl ab) und bleibt daher bewusst über alle
+                // Runden hinweg ein einmaliger Sperr-Cache (kein Konvergenz-
+                // Vergleich nötig, anders als oben bei segModusV).
+                for (int wi : segZuWinkel.value(cur)) {
+                    if (winkelUmkehren.contains(wi)) continue;
+                    const PdfWinkelInfo &w = winkelListe[wi];
+                    QPointF p0 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 0.0);
+                    QPointF p1 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 1.0);
+                    QPointF p2 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 1.0, 1.0);
+                    bool ankerIstP0 = (w.segAmP0 == cur);
+                    double ankerDx = raw[cur].x2 - raw[cur].x1, ankerDy = raw[cur].y2 - raw[cur].y1;
+                    if (segUmkehrV[cur]) { ankerDx = -ankerDx; ankerDy = -ankerDy; }
+                    double legAnkerDx, legAnkerDy;
+                    if (ankerIstP0) { legAnkerDx = p1.x()-p0.x(); legAnkerDy = p1.y()-p0.y(); }
+                    else            { legAnkerDx = p2.x()-p1.x(); legAnkerDy = p2.y()-p1.y(); }
+                    bool umk = (legAnkerDx*ankerDx + legAnkerDy*ankerDy) < 0.0;
+                    winkelUmkehren[wi] = umk;
+
+                    // Ausgangssegment (das jeweils andere Ende dieses Winkels) —
+                    // -1, wenn dort nichts angeschlossen ist (totes Kettenende).
+                    int ausgangSi = ankerIstP0 ? w.segAmP2 : w.segAmP0;
+                    if (ausgangSi >= 0) {
+                        double legAusgDx, legAusgDy;
+                        if (ankerIstP0) { legAusgDx = p2.x()-p1.x(); legAusgDy = p2.y()-p1.y(); }
+                        else            { legAusgDx = p1.x()-p0.x(); legAusgDy = p1.y()-p0.y(); }
+                        if (umk) { legAusgDx = -legAusgDx; legAusgDy = -legAusgDy; }
+                        double ausgDx = raw[ausgangSi].x2 - raw[ausgangSi].x1, ausgDy = raw[ausgangSi].y2 - raw[ausgangSi].y1;
+                        if (!segUmkehrLokal.contains(ausgangSi))
+                            segUmkehrLokal[ausgangSi] = (legAusgDx*ausgDx + legAusgDy*ausgDy) < 0.0;
+                    }
+                }
+
+                for (const auto &nb : segAdj.value(cur)) {
+                    int nbSeg = nb.first;
+                    if (!visited.contains(nbSeg)) queue.append(nbSeg);
                 }
             }
-
-            for (const auto &nb : segAdj.value(cur)) {
-                int nbSeg = nb.first;
-                if (!visited.contains(nbSeg)) queue.append(nbSeg);
-            }
+            geaendert = true;
         }
     }
 
@@ -1811,6 +1866,22 @@ static QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPer
             s.segUmkehr = segUmkehrV[i];
             s.lw = qMax(0.3, segBreiteV[i] * 0.25 * pxPerMm);
             s.color = s.farbeA; // Fallback für die Treffpunkt-Symbolfarbe (pdfSegmentFuerPunkt, s.u.)
+        } else if (segMehrfach[i]) {
+            // TREFFPUNKT-MEHRFARB-MARKER-01: ≥3 verschmolzene Adern – keine
+            // 2-Band-Bänderung (gebaendert bleibt false, pdfMaleGebaenderteLinie()
+            // zeichnet dadurch automatisch eine einfarbige Linie), stattdessen
+            // Zahl-Label in pdfLeitungenRendern().
+            s.mehrfach  = true;
+            s.armAnzahl = segArmAnzahlV[i];
+            s.color     = segFarbeAV[i]; // erste der ≥3 beteiligten Farben, wie band.farbe=farben[0] im Canvas
+            s.lw        = qMax(0.3, segBreiteV[i] * 0.25 * pxPerMm);
+            // s.farbe2 (oben unconditional aus endFarbe2[i] gesetzt) hier
+            // bewusst zurücksetzen: pdfMaleGebaenderteLinie() prüft
+            // "!s.gebaendert && s.farbe2.isValid()" zuerst — ohne diesen Reset
+            // würde ein Segment, das zufällig ZUSÄTZLICH einen eigenen
+            // Bifarb-Aderdefinitionspunkt trägt, zweifarbig-gestreift statt
+            // als einfarbige mehrfach-Linie gezeichnet.
+            s.farbe2 = QColor();
         }
         segs.append(s);
     }
@@ -3308,6 +3379,33 @@ static void pdfLeitungenRendern(QPainter &p, double C, double pxPerMm,
             }
             if (pos < hx2)
                 pdfMaleGebaenderteLinie(p, pos*C, hy*C, hx2*C, hy*C, s, pxPerMm);
+        }
+
+        // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026, 1:1-Port des Canvas-
+        // Zahl-Labels, s. CanvasRenderHandler.qml::_zahlLabelPosition()):
+        // "armAnzahl*" senkrecht zur Segmentrichtung versetzt, damit die
+        // (ggf. mehrere Punkt breite) Linie selbst das Label nicht verdeckt.
+        if (s.mehrfach) {
+            double mx = (s.cx1 + s.cx2) / 2.0 * C;
+            double my = (s.cy1 + s.cy2) / 2.0 * C;
+            bool   istVert  = qAbs(s.cx2 - s.cx1) < 0.5;
+            double versatz  = s.lw / 2.0 + 2.0 * pxPerMm;
+            double fsDev    = 2.2 * pxPerMm;
+            QFont f; f.setFamily(QStringLiteral("sans-serif")); f.setBold(true);
+            f.setPixelSize(qMax(1, qRound(fsDev)));
+            QString text = QString::number(s.armAnzahl) + QStringLiteral("*");
+            double  tw    = QFontMetricsF(f).horizontalAdvance(text);
+            p.save();
+            p.setFont(f);
+            p.setPen(s.color);
+            if (istVert) {
+                QRectF r(mx + versatz, my - fsDev * 0.6, tw + 2.0, fsDev * 1.2);
+                p.drawText(r, Qt::AlignLeft | Qt::AlignVCenter, text);
+            } else {
+                QRectF r(mx - tw / 2.0 - 1.0, my - versatz - fsDev * 1.2, tw + 2.0, fsDev * 1.2);
+                p.drawText(r, Qt::AlignHCenter | Qt::AlignBottom, text);
+            }
+            p.restore();
         }
     }
 }

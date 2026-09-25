@@ -1442,7 +1442,6 @@ QtObject {
             for (var ti = 0; ti < tIdxs.length; ti++) {
                 var arme = _treffpunktArmSegmente(net, tIdxs[ti])
                 if (arme.s1 < 0 || arme.s2 < 0 || arme.ziel < 0) continue
-                if (out[arme.ziel] !== undefined) continue
 
                 var i1 = _bandOderEinfach(net, segAdps, out, arme.s1, elemente)
                 var i2 = _bandOderEinfach(net, segAdps, out, arme.s2, elemente)
@@ -1472,6 +1471,32 @@ QtObject {
                     var beideEinfarbig = !farben2[0] && !farben2[1]
                     modus = (beideEinfarbig && farben[0] === farben[1]) ? "gleich" : "verschieden"
                 }
+
+                // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026): früher wurde ein
+                // Treffpunkt nach der ersten Berechnung dauerhaft gesperrt
+                // (`if (out[arme.ziel] !== undefined) continue`, jetzt entfernt).
+                // Bei ungünstiger Reihenfolge in `tIdxs` (ein nachgelagerter
+                // Treffpunkt B, dessen S1/S2-Arm der Ziel-Arm eines
+                // vorgelagerten Treffpunkts A ist, wird VOR A verarbeitet) sah
+                // B seinen Arm noch als unverschmolzen (`armAnzahl===1` statt
+                // der erst durch A später bekannten `2`) — das Ergebnis wurde
+                // dann für immer eingefroren, obwohl der Kommentar oben
+                // ausdrücklich behauptet, die Runden-Schleife löse
+                // Verkettungen "ohne Traversal-Reihenfolge vorauszusetzen".
+                // Konkreter Fall: S1 bringt bereits 2 verschmolzene Adern mit
+                // (aus A), S2 eine dritte — B hätte in den "mehrfach"-
+                // Zahl-Label-Modus fallen müssen, blieb bei ungünstiger
+                // Reihenfolge aber im 2-Band-Modus "verschieden" stehen und
+                // unterschlug die dritte Ader komplett (ohne jeden Hinweis).
+                // Fix: ein Treffpunkt wird jetzt neu berechnet UND neu
+                // propagiert, solange sich `armAnzahl`/`modus` gegenüber der
+                // zuletzt berechneten Fassung ändern — `armAnzahl` kann pro
+                // Runde nur wachsen (i1/i2.armAnzahl ist immer ≥1), die
+                // Konvergenz ist also innerhalb der bestehenden Rundenzahl-
+                // Schranke garantiert.
+                var bisher = out[arme.ziel]
+                if (bisher && bisher.armAnzahl === armAnzahl && bisher.modus === modus)
+                    continue
 
                 // WINKEL-FARBE-01 (Sep 2026, Nutzer-Konzeptentscheid nach
                 // Skizze): "welche Farbe liegt auf welcher Seite" wird HIER,
@@ -2146,7 +2171,16 @@ QtObject {
                     ctx.font = "bold " + Math.max(8, Math.round(9 * cv.zoom)) + "px sans-serif"
                     ctx.fillStyle = band.farbe
                     ctx.textAlign = "center"; ctx.textBaseline = "bottom"
-                    ctx.fillText("" + _labelWert, mvx, mvy - 3)
+                    // TREFFPUNKT-MEHRFARB-MARKER-01 (Sep 2026): Sternchen nur
+                    // am Treffpunkt-Verkettungsfall (_zielBand) – hier zeigt
+                    // die Linie nur noch EINE Farbe (band.farbe, die erste der
+                    // ≥3 zusammenlaufenden Adern) statt aller tatsächlich
+                    // beteiligten Farben, die Darstellung ist also bewusst
+                    // unvollständig. Das reine ADP-Dokumentations-Label
+                    // (sAdps.length≥4 auf einem gewöhnlichen Segment) ist ein
+                    // anderer, unveränderter Anwendungsfall und bleibt ohne
+                    // Sternchen.
+                    ctx.fillText("" + _labelWert + (_zielBand ? "*" : ""), mvx, mvy - 3)
                     ctx.restore()
                 }
             }

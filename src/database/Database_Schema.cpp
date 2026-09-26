@@ -2367,6 +2367,24 @@ static QList<SchemaMigration> alleMigrationen()
                 'taster_mit_leuchte_uebersicht', 'taster_uebersicht'
             ))",
         }},
+        { 148, "SYM-KOPIE-VON-04 (Projekt Pokestroems Aquarium): knoten_gruppe=1 fuer Pin A2 bei 5 zweipoligen Verbraucher-Symbolen ('spule', 'ventil', 'anzugverzoegerte_spule_relais', 'rueckfallverzoegerte_spule_relais', 'thermo_spule_relais') - Nutzer hatte das an lokalen Kopien eingestellt. Zwei verschiedene Ursachen: (1) 'spule' war durch Migration 89 (NETZ-MEHRPOL-02 Teil A) bereits korrekt auf 1 gesetzt, wurde aber durch die spaetere Migration 116 (SYM-KOPIE-VON-01 zweiter Durchlauf, dieselbe Regressionsklasse wie bei 'motor' in Migration 142 beschrieben) per DELETE+INSERT ohne knoten_gruppe-Spalte unbemerkt auf den Default 0 zurueckgesetzt. (2) die anderen 4 Symbole wurden von Migration 89 trotz des Kommentars 'uebrige 2-4-Pin-Verbraucher-Symbole' schlicht nie erfasst - 'analoges_ventil' (abgeleitet von 'ventil', Migration 138) hat A2 dagegen bereits korrekt auf einer eigenen Knoten-Gruppe, was den Verdacht auf ein Versehen bei diesen vier stuetzt. Die lokalen Kopien (kopie_von_spule_relais, kopie_von_ventil, kopie_von_anzugverzoegerte_spule_relais, kopie_von_rueckfallverzoegerte_spule_relais, kopie_von_thermo_spule_relais) werden im Anschluss aus dem Projekt entfernt - platzierte Instanzen werden zuvor auf die echte Built-in-ID umgehaengt.", {
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'spule' AND name = 'A2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'ventil' AND name = 'A2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'anzugverzoegerte_spule_relais' AND name = 'A2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'rueckfallverzoegerte_spule_relais' AND name = 'A2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'thermo_spule_relais' AND name = 'A2')",
+            R"(UPDATE grafik_element SET symbol_id = 'spule' WHERE symbol_id = 'kopie_von_spule_relais')",
+            R"(UPDATE grafik_element SET symbol_id = 'ventil' WHERE symbol_id = 'kopie_von_ventil')",
+            R"(UPDATE grafik_element SET symbol_id = 'anzugverzoegerte_spule_relais' WHERE symbol_id = 'kopie_von_anzugverzoegerte_spule_relais')",
+            R"(UPDATE grafik_element SET symbol_id = 'rueckfallverzoegerte_spule_relais' WHERE symbol_id = 'kopie_von_rueckfallverzoegerte_spule_relais')",
+            R"(UPDATE grafik_element SET symbol_id = 'thermo_spule_relais' WHERE symbol_id = 'kopie_von_thermo_spule_relais')",
+            R"(DELETE FROM symbol_definition WHERE id IN (
+                'kopie_von_spule_relais', 'kopie_von_ventil',
+                'kopie_von_anzugverzoegerte_spule_relais',
+                'kopie_von_rueckfallverzoegerte_spule_relais',
+                'kopie_von_thermo_spule_relais'
+            ) AND ist_builtin = 0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

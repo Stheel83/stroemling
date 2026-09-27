@@ -27,6 +27,21 @@ Item {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
+    // BMK-DOPPEL-STRUKTUR-01: Dieses Feld soll nur das Betriebsmittelkennzeichen
+    // selbst tragen (z.B. "-K1") - Anlage/Ort werden an anderer Stelle
+    // automatisch aus Seite/Strukturkasten ergänzt (konzept/architektur/
+    // 50_strukturkennzeichen.md). Tippt jemand gewohnheitsmäßig das komplette
+    // DIN-Kennzeichen inkl. Struktur ein (z.B. "=ZB+BE001-K1"), verdoppelt das
+    // sonst das "Vollkennzeichen"-Badge im EigenschaftenPanel, das genau diese
+    // Struktur zusätzlich voranstellt. Schneidet einen führenden ==/=/++/+-
+    // Block vor dem eigentlichen "-..."-Teil ab, egal ob er zur aktuellen
+    // Seite passt oder nicht (ein abweichender Präfix wäre sonst sogar noch
+    // verwirrender falsch verkettet).
+    function _bmkBereinigen(text) {
+        var m = text.match(/^(?:==[^=+]+)?(?:=[^=+]+)?(?:\+\+[^=+]+)?(?:\+[^=+]+)?(-.*)$/)
+        return (m && m[1] !== text) ? m[1] : text
+    }
+
     // NKZ-05: alle hinterlegten Kennbuchstaben des Symbols (z.B. K + Q für
     // eine Spule) - Umschalt-Chips erscheinen nur ab 2 Einträgen.
     readonly property var _bmkAlternativen: {
@@ -255,15 +270,17 @@ Item {
                                  ? (panel.el.extraDaten.bmk || "") : ""
                         delayed: true
                     }
-                    ToolTip.visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig) && bmkHoverMa.containsMouse
-                    ToolTip.text: qsTr("Automatisch vorgeschlagen, noch nicht bestätigt")
+                    ToolTip.visible: bmkHoverMa.containsMouse
+                    ToolTip.text: (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig)
+                                  ? qsTr("Automatisch vorgeschlagen, noch nicht bestätigt")
+                                  : qsTr("Nur das Betriebsmittelkennzeichen selbst, z.B. \"-K1\" — Anlage/Ort werden automatisch aus der Seite ergänzt (bzw. aus einem Strukturkasten, falls das Element darin liegt). Nicht hier mit eintragen, sonst erscheint die Struktur doppelt im Vollkennzeichen.")
                     ToolTip.delay: 400
                     MouseArea {
                         id: bmkHoverMa; anchors.fill: parent; hoverEnabled: true
                         acceptedButtons: Qt.NoButton
                     }
                     onEditingFinished: {
-                        var kz = text.trim()
+                        var kz = root._bmkBereinigen(text.trim())
                         if (kz !== "" && !kz.startsWith("-")) kz = "-" + kz
                         root.extraSetzen("bmk", kz)
                         if (panel.el && panel.el.extraDaten && panel.el.extraDaten.bmkVorlaeufig)

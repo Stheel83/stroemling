@@ -60,14 +60,37 @@ Rectangle {
             font.pixelSize: 9; color: editor.theme.textMuted
         }
         ComboBox {
+            id: linienartCombo
             width: 64
-            model: ["—", "- -", "···", "-·-"]
-            currentIndex: ["durchgehend","gestrichelt","gepunktet","Strich-Punkt"].indexOf(editor.aktLinienart)
-            onCurrentIndexChanged: editor.aktLinienart = ["durchgehend","gestrichelt","gepunktet","Strich-Punkt"][currentIndex]
+            // SE-LINIENART-SPRACHE-01: der gespeicherte symbol_primitiv.linienart-Wert
+            // ist "solid"/"dash"/"dot"/"dashdot" (schema.sql, von CanvasRenderHandler.qml/
+            // Database_PDF.cpp/FunSprite.qml so gelesen) - Modell hält jetzt genau diese
+            // Rohwerte, label() liefert nur die Anzeige. Vorher schrieb dieses Combo
+            // deutsche Strings ("gestrichelt" etc.), die kein Renderer außer der
+            // Editor-eigenen Vorschau kannte - Strichart war dadurch außerhalb des
+            // Editors faktisch wirkungslos (immer durchgezogen).
+            model: ["solid", "dash", "dot", "dashdot"]
+            function label(key) {
+                switch (key) {
+                case "dash":    return "- -"
+                case "dot":     return "···"
+                case "dashdot": return "-·-"
+                default:        return "—"
+                }
+            }
+            currentIndex: Math.max(0, model.indexOf(editor.aktLinienart))
+            onCurrentIndexChanged: editor.aktLinienart = model[currentIndex]
             font.pixelSize: 10; implicitHeight: 24
             background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
-            contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 10;
+            contentItem: Text { text: linienartCombo.label(linienartCombo.currentText); color: editor.theme.textPrimary; font.pixelSize: 10;
                                 leftPadding: 6; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+            delegate: ItemDelegate {
+                width: linienartCombo.width
+                highlighted: linienartCombo.highlightedIndex === index
+                contentItem: Text { text: linienartCombo.label(modelData); font.pixelSize: 10;
+                                     color: editor.theme.textPrimary; leftPadding: 6;
+                                     verticalAlignment: Text.AlignVCenter }
+            }
         }
 
         Rectangle {
@@ -102,7 +125,7 @@ Rectangle {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "⌘Z"
+            text: qsTr("Strg+Z")
             font.pixelSize: 9; color: editor.theme.textMuted
             topPadding: 4
             ToolTip.visible: undoArea.containsMouse

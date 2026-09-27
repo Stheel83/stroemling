@@ -39,7 +39,13 @@ Dialog {
         var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
         for (var i = 0; i < prims.length; i++) {
             var p = prims[i]
-            ctx.setLineDash([])
+            // SE-LINIENART-SPRACHE-01-Nachtrag: analog SymbolPalette.qml.
+            switch (p.linienart) {
+                case "dash":    ctx.setLineDash([4, 2]); break
+                case "dot":     ctx.setLineDash([1, 2]); break
+                case "dashdot": ctx.setLineDash([4, 2, 1, 2]); break
+                default:        ctx.setLineDash([]);     break
+            }
             switch (p.typ) {
                 case "linie":
                     ctx.beginPath()

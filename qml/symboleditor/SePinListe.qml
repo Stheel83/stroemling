@@ -20,20 +20,6 @@ Rectangle {
     // müssen ein Vielfaches von 4mm sein, sonst bleibt der Pin bei Rotation
     // nicht am Anker-Pin ausgerichtet (siehe
     // konzept/features/04_symbolsystem.md §13/ARD-GRID-01).
-    // SE-KNOTENGRUPPE-02: bei rolle='verbraucher' soll ein neuer Pin nicht
-    // auf den Default-Knoten 0 fallen, da ein Verbraucher-Pin i.d.R. ein
-    // eigener, vom Rest galvanisch getrennter Anschluss ist (s.
-    // konzept/features/04_symbolsystem.md §21) - Ersteller kann die Zahl
-    // danach weiterhin von Hand auf eine bestehende Gruppe zurücksetzen.
-    function naechsteFreieKnotenGruppe() {
-        var maxKg = -1
-        for (var i = 0; i < root.editor.pins.length; i++) {
-            var kg = root.editor.pins[i].knotenGruppe
-            if (kg !== undefined && kg > maxKg) maxKg = kg
-        }
-        return maxKg + 1
-    }
-
     function pinAufRaster(pin, idx) {
         if (!pin || idx === 0) return true
         var anker = (root.editor.pins && root.editor.pins.length > 0) ? root.editor.pins[0] : pin
@@ -108,18 +94,6 @@ Rectangle {
                         {name:"2", x:xMid, y:1.0, offenX:0, offenY:1,  signaltyp:"neutral", kontext:"", knotenGruppe:kg2}
                     ]
                     root.editor.ausgewaehltPinIdx = -1
-                    root.editor.repaintAll()
-                }
-                background: Rectangle { color: parent.hovered ? root.editor.theme.badge : "transparent"; radius: 4; border.color: root.editor.theme.accent; border.width: 1 }
-                contentItem: Text { text: parent.text; color: root.editor.theme.accent; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            }
-
-            Button {
-                text: qsTr("+ Pin"); implicitHeight: 24; implicitWidth: 58
-                onClicked: {
-                    var kgNeu = root.editor.rolleText === "verbraucher" ? root.naechsteFreieKnotenGruppe() : 0
-                    root.editor.pins = root.editor.pins.concat([{name:"P"+(root.editor.pins.length+1),x:0.5,y:1,offenX:0,offenY:1,signaltyp:"neutral",kontext:"",knotenGruppe:kgNeu}])
-                    root.editor.ausgewaehltPinIdx = root.editor.pins.length - 1
                     root.editor.repaintAll()
                 }
                 background: Rectangle { color: parent.hovered ? root.editor.theme.badge : "transparent"; radius: 4; border.color: root.editor.theme.accent; border.width: 1 }
@@ -302,7 +276,9 @@ Rectangle {
                     TextField {
                         width: 60; height: 30; font.pixelSize: 14
                         text: (parent.parent.myPin.knotenGruppe !== undefined ? parent.parent.myPin.knotenGruppe : 0).toString()
-                        validator: IntValidator { bottom: 0; top: 9 }
+                        // top:9 war zu eng für Boards mit vielen unabhängigen Pins
+                        // (Arduino: ~27 Knoten, s. konzept/features/04_symbolsystem.md §9).
+                        validator: IntValidator { bottom: 0; top: 99 }
                         horizontalAlignment: Text.AlignHCenter
                         background: Rectangle { color: root.editor.theme.inputBg; radius: 3; border.color: root.editor.theme.border }
                         color: root.editor.theme.textPrimary

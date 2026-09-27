@@ -189,8 +189,19 @@ Rectangle {
             visible: editor.ausgewaehltPrimIdx >= 0
             Text { text: qsTr("Linienart:"); font.pixelSize: 11; color: editor.theme.textMuted }
             ComboBox {
+                id: linienartEditCombo
                 Layout.fillWidth: true; font.pixelSize: 11
-                model: ["durchgehend", "gestrichelt", "gepunktet", "Strich-Punkt"]
+                // SE-LINIENART-SPRACHE-01: Rohwert bleibt "solid"/"dash"/"dot"/"dashdot"
+                // (s. SeWerkzeugToolbar.qml), nur label() übersetzt für die Anzeige.
+                model: ["solid", "dash", "dot", "dashdot"]
+                function label(key) {
+                    switch (key) {
+                    case "dash":    return qsTr("Gestrichelt")
+                    case "dot":     return qsTr("Gepunktet")
+                    case "dashdot": return qsTr("Strich-Punkt")
+                    default:        return qsTr("Durchgehend")
+                    }
+                }
                 currentIndex: {
                     var idx6 = editor.ausgewaehltPrimIdx; if (idx6 < 0) return 0
                     var pla = editor.primitive[idx6]; if (!pla) return 0
@@ -205,8 +216,15 @@ Rectangle {
                     editor.repaintAll()
                 }
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
-                contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 11;
+                contentItem: Text { text: linienartEditCombo.label(linienartEditCombo.currentText); color: editor.theme.textPrimary; font.pixelSize: 11;
                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                delegate: ItemDelegate {
+                    width: linienartEditCombo.width
+                    highlighted: linienartEditCombo.highlightedIndex === index
+                    contentItem: Text { text: linienartEditCombo.label(modelData); font.pixelSize: 11;
+                                         color: editor.theme.textPrimary; leftPadding: 8;
+                                         verticalAlignment: Text.AlignVCenter }
+                }
             }
         }
 

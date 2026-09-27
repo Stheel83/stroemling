@@ -98,6 +98,9 @@ Item {
     property int    ausgewaehltPinIdx:  -1
     property string aktLinienart:       "solid"
     property bool   aktGefuellt:        false
+    // Feste absolute Größe für das "Punkt"-Werkzeug (mm), s. addPrimitiv-Aufruf
+    // im "punkt"-Case weiter unten.
+    readonly property real _punktRadiusMm: 0.5
 
     // Zwischenpunkte für Mehrstufenwerkzeuge (Linie, Rechteck, Kreis, Bogen)
     property var    werkzeugPunkte: []
@@ -327,8 +330,23 @@ Item {
     }
 
     // ── Pin hinzufügen ─────────────────────────────────────────────
+    // SE-KNOTENGRUPPE-02: bei rolle='verbraucher' soll ein neuer Pin nicht
+    // auf den Default-Knoten 0 fallen, da ein Verbraucher-Pin i.d.R. ein
+    // eigener, vom Rest galvanisch getrennter Anschluss ist (s.
+    // konzept/features/04_symbolsystem.md §21) - Ersteller kann die Zahl
+    // danach weiterhin von Hand auf eine bestehende Gruppe zurücksetzen.
+    function naechsteFreieKnotenGruppe() {
+        var maxKg = -1
+        for (var i = 0; i < pins.length; i++) {
+            var kg = pins[i].knotenGruppe
+            if (kg !== undefined && kg > maxKg) maxKg = kg
+        }
+        return maxKg + 1
+    }
+
     function addPin(nx, ny) {
-        var neu = {name: "P" + (pins.length + 1), x: nx, y: ny, offenX: -1, offenY: 0, signaltyp: "neutral", kontext: "", knotenGruppe: 0}
+        var kg = rolleText === "verbraucher" ? naechsteFreieKnotenGruppe() : 0
+        var neu = {name: "P" + (pins.length + 1), x: nx, y: ny, offenX: -1, offenY: 0, signaltyp: "neutral", kontext: "", knotenGruppe: kg}
         pins = pins.concat([neu])
         undoStack = undoStack.concat([{typ: "pin"}])
         ausgewaehltPinIdx = pins.length - 1
@@ -776,10 +794,10 @@ Item {
                                 ctx.strokeStyle = isSel ? "#00e5a0" : "#0b5394"
                                 ctx.lineWidth   = isSel ? 3.0 : 2.0
 
-                                var la = p.linienart || "durchgehend"
-                                if      (la === "gestrichelt")    ctx.setLineDash([8, 4])
-                                else if (la === "gepunktet")     ctx.setLineDash([2, 4])
-                                else if (la === "Strich-Punkt") ctx.setLineDash([8, 4, 2, 4])
+                                var la = p.linienart || "solid"
+                                if      (la === "dash")    ctx.setLineDash([8, 4])
+                                else if (la === "dot")     ctx.setLineDash([2, 4])
+                                else if (la === "dashdot") ctx.setLineDash([8, 4, 2, 4])
                                 else                       ctx.setLineDash([])
 
                                 // dx/dy=0: Ursprung liegt bereits durch obiges translate() an
@@ -1251,7 +1269,12 @@ Item {
                                     break
 
                                 case "punkt":
-                                    root.addPrimitiv({typ:"kreis_gefuellt",x1:nx,y1:ny,radius:0.04,linienart:"solid"})
+                                    // Feste absolute Größe statt relativ zu breiteMm (vorher 0.04
+                                    // normiert -> 0,64mm bei 16mm-Symbol, aber 4,16mm bei einem
+                                    // 104mm-Symbol wie Arduino Mega) - radius bleibt im Schema
+                                    // relativ zu breite_mm gespeichert (Konvention aller Renderer),
+                                    // daher hier umgekehrt aus der gewünschten mm-Größe berechnet.
+                                    root.addPrimitiv({typ:"kreis_gefuellt",x1:nx,y1:ny,radius:root._punktRadiusMm/root.breiteMm,linienart:"solid"})
                                     break
 
                                 case "text":

@@ -1,4 +1,5 @@
 import QtQuick
+import "../SymbolPrimitivZeichner.js" as SPZ
 
 // Qt 6: required-Properties mit Rollennamen werden vom Repeater automatisch gebunden.
 Item {
@@ -56,101 +57,7 @@ Item {
             ctx.strokeStyle = "#cce0ff"
             ctx.lineWidth   = Math.max(1.2, Math.min(pw, ph) * 0.055)
 
-            for (var i = 0; i < prims.length; i++) {
-                var p = prims[i]
-
-                switch (p.linienart) {
-                    case "dash":    ctx.setLineDash([5, 3]); break
-                    case "dot":     ctx.setLineDash([2, 3]); break
-                    case "dashdot": ctx.setLineDash([5,3,2,3]); break
-                    default:        ctx.setLineDash([]);     break
-                }
-
-                switch (p.typ) {
-                    case "linie":
-                        ctx.beginPath()
-                        ctx.moveTo(p.x1 * pw, p.y1 * ph)
-                        ctx.lineTo(p.x2 * pw, p.y2 * ph)
-                        ctx.stroke()
-                        break
-                    case "rechteck": {
-                        var rrw = (p.x2-p.x1)*pw, rrh = (p.y2-p.y1)*ph
-                        if (p.rotation) {
-                            ctx.save()
-                            ctx.translate((p.x1+p.x2)/2*pw, (p.y1+p.y2)/2*ph)
-                            ctx.rotate(p.rotation * Math.PI / 180)
-                            ctx.strokeRect(-rrw/2, -rrh/2, rrw, rrh)
-                            ctx.restore()
-                        } else {
-                            ctx.strokeRect(p.x1*pw, p.y1*ph, rrw, rrh)
-                        }
-                        break
-                    }
-                    case "rechteck_gefuellt": {
-                        var rgw = (p.x2-p.x1)*pw, rgh = (p.y2-p.y1)*ph
-                        ctx.save()
-                        ctx.fillStyle = ctx.strokeStyle
-                        if (p.rotation) {
-                            ctx.translate((p.x1+p.x2)/2*pw, (p.y1+p.y2)/2*ph)
-                            ctx.rotate(p.rotation * Math.PI / 180)
-                            ctx.fillRect(-rgw/2, -rgh/2, rgw, rgh)
-                        } else {
-                            ctx.fillRect(p.x1*pw, p.y1*ph, rgw, rgh)
-                        }
-                        ctx.restore()
-                        break
-                    }
-                    case "kreis_offen":
-                        ctx.beginPath()
-                        ctx.arc(p.x1*pw, p.y1*ph, p.radius*pw, 0, 2*Math.PI)
-                        ctx.stroke()
-                        break
-                    case "kreis_gefuellt":
-                        ctx.save()
-                        ctx.fillStyle = ctx.strokeStyle
-                        ctx.beginPath()
-                        ctx.arc(p.x1*pw, p.y1*ph, p.radius*pw, 0, 2*Math.PI)
-                        ctx.fill()
-                        ctx.restore()
-                        break
-                    case "bogen":
-                        ctx.beginPath()
-                        ctx.arc(p.x1*pw, p.y1*ph, p.radius*pw,
-                                p.winkel_von * Math.PI / 180,
-                                p.winkel_bis * Math.PI / 180,
-                                p.bogen_gegen_uhrzeiger)
-                        ctx.stroke()
-                        break
-                    case "text":
-                        ctx.save()
-                        ctx.fillStyle    = ctx.strokeStyle
-                        ctx.font         = (p.schrift_fett ? "bold " : "")
-                                           + Math.round(p.schrift_relativ * ph) + "px sans-serif"
-                        ctx.textAlign    = p.text_align    || "center"
-                        ctx.textBaseline = p.text_baseline || "middle"
-                        if (p.rotation) {
-                            ctx.translate(p.x1*pw, p.y1*ph)
-                            ctx.rotate(p.rotation * Math.PI / 180)
-                            ctx.fillText(p.text_inhalt, 0, 0)
-                        } else {
-                            ctx.fillText(p.text_inhalt, p.x1*pw, p.y1*ph)
-                        }
-                        ctx.restore()
-                        break
-                    case "dreieck_gefuellt":
-                        ctx.save()
-                        ctx.fillStyle = ctx.strokeStyle
-                        ctx.beginPath()
-                        ctx.moveTo(p.x1*pw, p.y1*ph)
-                        ctx.lineTo(p.x2*pw, p.y2*ph)
-                        ctx.lineTo(p.x3*pw, p.y3*ph)
-                        ctx.closePath()
-                        ctx.fill()
-                        ctx.restore()
-                        break
-                }
-            }
-            ctx.setLineDash([])
+            SPZ.zeichnePrimitive(ctx, prims, pw, ph)
             ctx.restore()
         }
 

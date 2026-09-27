@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../SymbolPrimitivZeichner.js" as SPZ
 
 // ============================================================
 // BaSymbolPickerDialog – Symbol für ein Bauteil auswählen
@@ -34,95 +35,9 @@ Dialog {
         color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6
     }
 
-    // ── Hilfsfunktion: Primitiv-Rendering (analog SymbolPalette) ──
+    // ── Hilfsfunktion: Primitiv-Rendering (SymbolPrimitivZeichner.js, s. dort) ──
     function drawSymbol(ctx, symbolId, w, h) {
-        var prims = symbolDefinitionModel.primitiveFuerSymbol(symbolId)
-        for (var i = 0; i < prims.length; i++) {
-            var p = prims[i]
-            // SE-LINIENART-SPRACHE-01-Nachtrag: analog SymbolPalette.qml.
-            switch (p.linienart) {
-                case "dash":    ctx.setLineDash([4, 2]); break
-                case "dot":     ctx.setLineDash([1, 2]); break
-                case "dashdot": ctx.setLineDash([4, 2, 1, 2]); break
-                default:        ctx.setLineDash([]);     break
-            }
-            switch (p.typ) {
-                case "linie":
-                    ctx.beginPath()
-                    ctx.moveTo(p.x1 * w, p.y1 * h)
-                    ctx.lineTo(p.x2 * w, p.y2 * h)
-                    ctx.stroke()
-                    break
-                case "rechteck": {
-                    var rrw = (p.x2 - p.x1) * w, rrh = (p.y2 - p.y1) * h
-                    if (p.rotation) {
-                        ctx.save()
-                        ctx.translate((p.x1+p.x2)/2 * w, (p.y1+p.y2)/2 * h)
-                        ctx.rotate(p.rotation * Math.PI / 180)
-                        ctx.strokeRect(-rrw / 2, -rrh / 2, rrw, rrh)
-                        ctx.restore()
-                    } else {
-                        ctx.strokeRect(p.x1 * w, p.y1 * h, rrw, rrh)
-                    }
-                    break
-                }
-                case "rechteck_gefuellt": {
-                    var rgw = (p.x2 - p.x1) * w, rgh = (p.y2 - p.y1) * h
-                    ctx.save(); ctx.fillStyle = ctx.strokeStyle
-                    if (p.rotation) {
-                        ctx.translate((p.x1+p.x2)/2 * w, (p.y1+p.y2)/2 * h)
-                        ctx.rotate(p.rotation * Math.PI / 180)
-                        ctx.fillRect(-rgw / 2, -rgh / 2, rgw, rgh)
-                    } else {
-                        ctx.fillRect(p.x1 * w, p.y1 * h, rgw, rgh)
-                    }
-                    ctx.restore()
-                    break
-                }
-                case "kreis_offen":
-                    ctx.beginPath()
-                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
-                    ctx.stroke()
-                    break
-                case "kreis_gefuellt":
-                    ctx.save(); ctx.fillStyle = ctx.strokeStyle
-                    ctx.beginPath()
-                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w, 0, 2 * Math.PI)
-                    ctx.fill(); ctx.restore()
-                    break
-                case "bogen":
-                    ctx.beginPath()
-                    ctx.arc(p.x1 * w, p.y1 * h, p.radius * w,
-                            p.winkel_von * Math.PI / 180,
-                            p.winkel_bis * Math.PI / 180,
-                            p.bogen_gegen_uhrzeiger)
-                    ctx.stroke()
-                    break
-                case "text":
-                    ctx.save(); ctx.fillStyle = ctx.strokeStyle
-                    ctx.font         = (p.schrift_fett ? "bold " : "") +
-                                       Math.round(p.schrift_relativ * h) + "px sans-serif"
-                    ctx.textAlign    = p.text_align    || "center"
-                    ctx.textBaseline = p.text_baseline || "middle"
-                    if (p.rotation) {
-                        ctx.translate(p.x1 * w, p.y1 * h)
-                        ctx.rotate(p.rotation * Math.PI / 180)
-                        ctx.fillText(p.text_inhalt, 0, 0)
-                    } else {
-                        ctx.fillText(p.text_inhalt, p.x1 * w, p.y1 * h)
-                    }
-                    ctx.restore()
-                    break
-                case "dreieck_gefuellt":
-                    ctx.save(); ctx.fillStyle = ctx.strokeStyle
-                    ctx.beginPath()
-                    ctx.moveTo(p.x1 * w, p.y1 * h)
-                    ctx.lineTo(p.x2 * w, p.y2 * h)
-                    ctx.lineTo(p.x3 * w, p.y3 * h)
-                    ctx.closePath(); ctx.fill(); ctx.restore()
-                    break
-            }
-        }
+        SPZ.zeichnePrimitive(ctx, symbolDefinitionModel.primitiveFuerSymbol(symbolId), w, h)
     }
 
     function _filtern(text) {

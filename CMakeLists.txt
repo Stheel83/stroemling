@@ -153,6 +153,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaKategorieNeuDialog.qml
         qml/ba/BaKategorieBearbeitenDialog.qml
         qml/ba/BaBauteilNeuDialog.qml
+        qml/ba/BaBauteilBearbeitenDialog.qml
         qml/ba/BaSymbolPickerDialog.qml
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaBauteilListe.qml
@@ -284,6 +285,7 @@ qt_add_qml_module(stroemling_app
         qml/rosi/RosiPostkarte.qml
         qml/logos/LogoHeader.qml
         qml/SymbolKlassen.js
+        qml/SymbolPrimitivZeichner.js
         qml/Normwerte.js
 )
 

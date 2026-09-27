@@ -2385,6 +2385,17 @@ static QList<SchemaMigration> alleMigrationen()
                 'kopie_von_thermo_spule_relais'
             ) AND ist_builtin = 0)",
         }},
+        { 149, "VERBRAUCHER-KNOTEN-AUDIT-01 (Projekt Pokestroems Aquarium): systematische Durchsicht aller rolle='verbraucher'-Symbole ergab 3 weitere 2-Pin-Symbole mit identischer knoten_gruppe auf beiden Pins (Regel: ein Verbraucher mit 2 Pins muss immer zwei getrennte Knoten haben, sonst modelliert die Netzberechnung einen Kurzschluss durch das Bauteil) sowie 2 falsch/gar nicht getrennte Mehrpol-Verbraucher. 'lampe': dieselbe Regressionsklasse wie bei 'spule'/'motor' (Migration 116/142/148) - Migration 89 hatte Pin '2' korrekt auf 1 gesetzt, Migration 118 (Pins von eingerueckt auf echte Kanten korrigiert) hat symbol_pin per DELETE+INSERT ohne knoten_gruppe-Spalte neu angelegt, Wert fiel unbemerkt auf Default 0 zurueck - vom Nutzer bereits an einer lokalen Kopie 'kopie_von_lampe' korrigiert und hier bestaetigt uebernommen, Kopie hatte keine platzierten Instanzen. 'heizelement' (Migration 128) und 'wp_heizstab' (nie seit Einfuehrung) wurden von Migration 89 dagegen schlicht nie erfasst - reines Versehen, keine Regression. 'brueckengleichrichter': eigene Fehlerklasse - Migration 89 hatte die Korrektur (~1=0/~2=1/+=2/-=3) bereits vorgesehen, aber das zugehoerige UPDATE steht in symbole.sql VOR dem eigentlichen INSERT (aus einer spaeteren Groessenkorrektur weiter unten in der Datei) und traf dadurch beim Neuanlegen eines Projekts 0 Zeilen - elektrisch sind bei einem Brueckengleichrichter alle 4 Anschluesse eigene Knoten (nur ueber Dioden verbunden, kein direkter Kurzschluss), daher hier per Migration erneut gesetzt, symbole.sql bewusst nicht angefasst (analog Migration 148 laeuft die Korrektur nur ueber die Migrationskette). 'wp_mischer' (1/AUF/ZU aktuell alle auf Knoten 0): auf Nutzerentscheid nach Konzeptgespraech als generelle Leitlinie fuer Mehrpol-Verbraucher behandelt - Ersteller-Pruefung heisst 'Ersteller kann von komplett getrennten Knoten als Standard abweichen', nicht 'Standard ist ein gemeinsamer Knoten' - hier daher analog zu 'rollladenmotor' auf 3 getrennte Knoten gesetzt.", {
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'lampe' AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'heizelement' AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'wp_heizstab' AND name = '2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'brueckengleichrichter' AND name = '~2')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'brueckengleichrichter' AND name = '+')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 3 WHERE symbol_id = 'brueckengleichrichter' AND name = '-')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 1 WHERE symbol_id = 'wp_mischer' AND name = 'AUF')",
+            R"(UPDATE symbol_pin SET knoten_gruppe = 2 WHERE symbol_id = 'wp_mischer' AND name = 'ZU')",
+            R"(DELETE FROM symbol_definition WHERE id = 'kopie_von_lampe' AND ist_builtin = 0)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

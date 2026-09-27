@@ -844,6 +844,16 @@ MouseArea {
             elR.extraDaten  = { schriftgroesse: canvas.stilVorlage.schriftgroesse || 3.5 }
         }
         canvas.aktionAusfuehren(em.snapshot().concat([elR]))
+        // STRUKTURKASTEN-ID-VERALTET-01: grafikSpeichernJetzt() (in
+        // aktionAusfuehren()) macht ein komplettes DELETE+INSERT aller
+        // Elemente der Seite - dabei bekommen ALLE Elemente neue DB-IDs.
+        // Ohne Reload zeigt das gleich danach ausgewählte Element (newElR)
+        // noch auf die alte, jetzt falsche ID - direkte ID-Schreibzugriffe
+        // wie EpStrukturkastenSection.qml::skApplyOrt() (Anlage/Ort setzen)
+        // liefen dadurch ins Leere, bis die Seite einmal neu geladen wurde.
+        // Analog zum bereits etablierten Muster in
+        // CanvasAktionenHandler.qml::crossProjektMakroErstellen().
+        canvas.elementeModel.laden(canvas.seiteId)
         canvas.aktivesWerkzeug = "zeiger"
         var newIdx = em.anzahl - 1
         canvas.auswahl = [newIdx]

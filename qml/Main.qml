@@ -57,6 +57,13 @@ ApplicationWindow {
     property int    aktivSeiteId:   -1
     property string aktivSeiteName: ""
 
+    // IBN-ZENTRIEREN-SCOPE-01: gehören logisch zum IBN-Sprung-Timer weiter
+    // unten, müssen aber hier auf root liegen - Handler und Timer greifen
+    // beide über "root._ibnZentriereX/Y" zu, nicht über die SplitView, in
+    // der sie ursprünglich (falsch) deklariert waren.
+    property real _ibnZentriereX: 0
+    property real _ibnZentriereY: 0
+
     // gitVerfuegbar() ist ein blockierender Prozessaufruf – einmal cachen reicht
     readonly property bool gitVerfuegbar: db.gitVerfuegbar()
 
@@ -1707,8 +1714,9 @@ ApplicationWindow {
                     // Sprungziel-Markierung analog CanvasPanel.seiteOeffnenUndZentrieren:
                     // ibnCanvas hängt hier direkt (nicht über CanvasPanel), daher eigener
                     // kleiner Timer statt Wiederverwendung von dessen Funktion.
-                    property real _ibnZentriereX: 0
-                    property real _ibnZentriereY: 0
+                    // IBN-ZENTRIEREN-SCOPE-01: _ibnZentriereX/Y liegen jetzt auf root
+                    // (siehe oben) statt hier - Handler und Timer griffen beide über
+                    // "root."  zu, hier deklariert waren sie für root unerreichbar.
                     Timer {
                         id:       ibnZentriereTimer
                         interval: 80

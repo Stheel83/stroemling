@@ -54,6 +54,14 @@ Dialog {
         root.gewaehltId = panel.el ? (panel.el.betriebsmittelId || 0) : 0
         neuKzField.text  = (panel.el && panel.el.extraDaten) ? (panel.el.extraDaten.bmk || "") : ""
         neuBezField.text = ""
+        // BM-VERKNUEPFEN-LISTE-STALE-01: bmListe.model ist eine reine
+        // Bindung auf einen Q_INVOKABLE-Aufruf ohne NOTIFY - sie wertet sich
+        // nur einmal aus, wenn die Bindung entsteht, nicht erneut bei jedem
+        // Öffnen des Dialogs. Ein zwischenzeitlich geändertes BMK (z.B. an
+        // der Spule oder einem Hilfskontakt) blieb dadurch bis zum
+        // Programmneustart unsichtbar. Explizit neu laden.
+        bmListe.model = panel.canvas.projektId >= 0
+                        ? db.betriebsmittelListe(panel.canvas.projektId) : []
     }
 
     onAccepted: {

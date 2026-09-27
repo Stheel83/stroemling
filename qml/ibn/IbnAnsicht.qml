@@ -39,7 +39,8 @@ Item {
         return result
     }
 
-    signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1)
+    signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1,
+                        string blattnummer, string seitenbezeichnung)
     signal geschlossen()
 
     // ── BM-Liste ──────────────────────────────────────────────
@@ -321,7 +322,9 @@ Item {
             visible:           root._kategorie === "bm"
             Layout.fillWidth:  true
             Layout.fillHeight: root._kategorie === "bm"
-            onBmkGewaehlt: function(sId, eId, x, y) { root.bmkGewaehlt(sId, eId, x, y) }
+            onBmkGewaehlt: function(sId, eId, x, y, blattnr, seiteBez) {
+                root.bmkGewaehlt(sId, eId, x, y, blattnr, seiteBez)
+            }
         }
 
         IbnKabelSplit {
@@ -331,7 +334,10 @@ Item {
             visible:           root._kategorie === "kabel"
             Layout.fillWidth:  true
             Layout.fillHeight: root._kategorie === "kabel"
-            onKabelGewaehlt: function(sId, eId, x, y) { root.bmkGewaehlt(sId, eId, x, y) }
+            // IBN-SEITENNAME-STALE-01: Kabelliste liefert kein blattnummer/
+            // seitenbezeichnung (ibnKabelListeLaden() joint nicht gegen seite) -
+            // Titelzeile bleibt hier bewusst auf dem alten Stand, kein Datenbruch.
+            onKabelGewaehlt: function(sId, eId, x, y) { root.bmkGewaehlt(sId, eId, x, y, "", "") }
         }
 
         IbnFeldPanel {

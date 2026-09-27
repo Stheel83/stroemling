@@ -1681,11 +1681,21 @@ ApplicationWindow {
 
                         onGeschlossen: root.aktiveAnsicht = "seiten"
 
-                        onBmkGewaehlt: function(sid, elementId, wx, wy) {
+                        onBmkGewaehlt: function(sid, elementId, wx, wy, blattnr, seiteBez) {
                             if (sid !== root.aktivSeiteId) {
                                 root._ibnZentriereX = wx
                                 root._ibnZentriereY = wy
                                 root.aktivSeiteId   = sid
+                                // IBN-SEITENNAME-STALE-01: aktivSeiteId speist zwar
+                                // ibnCanvas.seiteId (Canvas-Inhalt springt korrekt um),
+                                // aktivSeiteName wird aber sonst nur von panel1/panel2
+                                // (Schaltplan-Modus) gepflegt - im IBN-Modus blieb die
+                                // Titelzeile über dem Canvas dadurch auf der vorherigen
+                                // Seite stehen, obwohl der Sprung selbst funktionierte.
+                                // Formel identisch zu CanvasPanel.aktivSeiteName.
+                                if (blattnr !== "")
+                                    root.aktivSeiteName = seiteBez.length > 0
+                                                          ? seiteBez + "  –  " + blattnr : blattnr
                                 ibnZentriereTimer.restart()
                             } else {
                                 ibnCanvas._zoomZuWeltPosition(wx, wy)

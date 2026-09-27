@@ -10,7 +10,8 @@ SplitView {
     required property var theme
     property bool debug: false
 
-    signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1)
+    signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1,
+                        string blattnummer, string seitenbezeichnung)
 
     orientation: Qt.Horizontal
 
@@ -88,7 +89,8 @@ SplitView {
                     onClicked: {
                         panel.ausgewaehlterIndex = index
                         root.bmkGewaehlt(modelData.seiteId, modelData.elementId,
-                                         modelData.x1, modelData.y1)
+                                         modelData.x1, modelData.y1,
+                                         modelData.blattnummer, modelData.seitenbezeichnung)
                     }
                 }
             }

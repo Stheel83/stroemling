@@ -45,7 +45,14 @@ Rectangle {
             Text { text: qsTr("x (mm)");    width: 62; font.pixelSize: 10; color: root.editor.theme.textMuted }
             Text { text: qsTr("y (mm)");    width: 62; font.pixelSize: 10; color: root.editor.theme.textMuted }
             Text { text: qsTr("Richtung"); width: 96; font.pixelSize: 10; color: root.editor.theme.textMuted }
-            Text { text: qsTr("Signaltyp"); width: 95; font.pixelSize: 10; color: root.editor.theme.textMuted }
+            Text {
+                text: qsTr("Signaltyp")
+                width: 95; font.pixelSize: 10; color: root.editor.theme.textMuted
+                ToolTip.visible: sigHeaderHover.hovered
+                ToolTip.delay: 400
+                ToolTip.text: qsTr("Steuert u.a. die Farbdarstellung der angeschlossenen Ader/Leitung (z.B. \"power\" = L-Leiter, \"pe\"/\"n\" = Schutz-/Neutralleiter, \"dc_plus\"/\"dc_minus\" = Gleichspannung, \"input_*\"/\"output_*\" = SPS-Ein-/Ausgänge).")
+                HoverHandler { id: sigHeaderHover }
+            }
             Text {
                 text: qsTr("Rolle")
                 width: 78; font.pixelSize: 10; color: root.editor.theme.textMuted
@@ -69,6 +76,7 @@ Rectangle {
                 ToolTip.visible: hovered; ToolTip.delay: 600
                 ToolTip.text: qsTr("Waagerecht: Pin 1 links (0 mm), Pin 2 rechts (%1 mm)").arg(root.editor.breiteMm)
                 onClicked: {
+                    root.editor.pushUndoSnapshot()
                     var yMid = 0.5
                     var kg2 = root.editor.rolleText === "verbraucher" ? 1 : 0
                     root.editor.pins = [
@@ -87,6 +95,7 @@ Rectangle {
                 ToolTip.visible: hovered; ToolTip.delay: 600
                 ToolTip.text: qsTr("Senkrecht: Pin 1 oben (0 mm), Pin 2 unten (%1 mm)").arg(root.editor.hoeheMm)
                 onClicked: {
+                    root.editor.pushUndoSnapshot()
                     var xMid = 0.5
                     var kg2 = root.editor.rolleText === "verbraucher" ? 1 : 0
                     root.editor.pins = [
@@ -98,6 +107,28 @@ Rectangle {
                 }
                 background: Rectangle { color: parent.hovered ? root.editor.theme.badge : "transparent"; radius: 4; border.color: root.editor.theme.accent; border.width: 1 }
                 contentItem: Text { text: parent.text; color: root.editor.theme.accent; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            }
+        }
+
+        // SE-VERBRAUCHER-WARNUNG-01: proaktiver Hinweis statt der Fehlerklasse,
+        // die im Symboleditor-Audit mehrfach gefunden wurde (Verbraucher-Symbol
+        // mit zwei Pins in derselben Knoten-Gruppe, s. konzept/features/
+        // 04_symbolsystem.md §21) - direkt im Editor sichtbar statt erst per
+        // Migration/DB-Audit im Nachhinein.
+        Rectangle {
+            Layout.fillWidth: true
+            visible: root.editor.gemeinsameKnotenBeiVerbraucher()
+            implicitHeight: warnRow.implicitHeight + 6
+            color: "#40331a"; radius: 4; border.color: "#cc8800"; border.width: 1
+            Row {
+                id: warnRow
+                anchors { verticalCenter: parent.verticalCenter; left: parent.left; leftMargin: 8 }
+                spacing: 6
+                Text { text: "⚠"; color: "#ffbb44"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                Text {
+                    text: qsTr("Verbraucher mit gemeinsamer Knoten-Gruppe – zwei Pins gelten dadurch als intern kurzgeschlossen. Meist ungewollt, prüfen ob das so beabsichtigt ist.")
+                    color: "#ffbb44"; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
 
@@ -218,7 +249,29 @@ Rectangle {
                         model: ["neutral","power","pe","n","dc_plus","dc_minus","input_digital","output_digital","input_analog","output_analog","kommunikation","temp","stepper","sicherheit","fe"]
                         font.pixelSize: 10
                         // Anzeige-Label je Schlüssel – gespeicherter Wert bleibt der Rohschlüssel
-                        function labelFuer(key) { return key === "power" ? "L" : key }
+                        // SE-SIGNALTYP-LABEL-01: rohe Schlüssel wie "input_analog"
+                        // waren bisher unübersetzt sichtbar - kurze, gebräuchliche
+                        // Abkürzungen statt Rohwert, analog zum bestehenden BMK-Seite-/
+                        // Linienart-label()-Muster. Gespeicherter Wert bleibt der Rohschlüssel.
+                        function labelFuer(key) {
+                            switch (key) {
+                            case "power":          return "L"
+                            case "pe":             return "PE"
+                            case "n":              return "N"
+                            case "dc_plus":        return "DC+"
+                            case "dc_minus":       return "DC-"
+                            case "input_digital":  return "DI"
+                            case "output_digital": return "DO"
+                            case "input_analog":   return "AI"
+                            case "output_analog":  return "AO"
+                            case "kommunikation":  return qsTr("Kom.")
+                            case "temp":           return qsTr("Temp.")
+                            case "stepper":        return qsTr("Schritt")
+                            case "sicherheit":     return qsTr("Sicherheit")
+                            case "fe":             return "FE"
+                            default:               return qsTr("Neutral")
+                            }
+                        }
                         displayText: labelFuer(currentText)
                         currentIndex: {
                             var st = parent.parent.myPin.signaltyp || "neutral"
@@ -301,6 +354,7 @@ Rectangle {
                         TapHandler {
                             onTapped: {
                                 var myI = parent.parent.parent.myIdx
+                                root.editor.pushUndoSnapshot()
                                 root.editor.pins = root.editor.pins.filter(function(_, i2) { return i2 !== myI })
                                 if (root.editor.ausgewaehltPinIdx >= root.editor.pins.length)
                                     root.editor.ausgewaehltPinIdx = -1

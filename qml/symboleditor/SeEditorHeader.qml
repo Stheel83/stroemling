@@ -135,7 +135,12 @@ Rectangle {
             Layout.fillWidth: true
             spacing: 8
 
-            Text { text: qsTr("Rolle:"); color: editor.theme.textMuted; font.pixelSize: 11 }
+            Text {
+                text: qsTr("Rolle:"); color: editor.theme.textMuted; font.pixelSize: 11
+                ToolTip.visible: rolleHeaderHover.containsMouse; ToolTip.delay: 400
+                ToolTip.text: qsTr("Bestimmt, wie sich eine Ader-/Leitungsfarbe durch dieses Symbol ausbreitet (Netzberechnung):\nDurchleiter: lässt die Farbe unverändert durch, wie ein Draht (Schalter, Kontakte, Klemmen).\nVerbraucher: nimmt eine Farbe entgegen, gibt aber keine eigene weiter (Lampe, Motor, Widerstand).\nQuelle: speist selbst eine Farbe ins Netz ein (Netzteil-Ausgang, SPS-Ausgang).\nTrenner: blockiert die Ausbreitung komplett (bewusste Leitungsunterbrechung).\nVariabel: die tatsächliche Rolle wird erst beim Platzieren im Schaltplan festgelegt (z.B. ein Sensor).\nBei Symbolen mit gemischten Anschlüssen (z.B. Netzteil) lässt sich die Rolle zusätzlich pro Pin überschreiben (Spalte \"Rolle\" in der Pin-Liste unten).")
+                MouseArea { id: rolleHeaderHover; anchors.fill: parent; hoverEnabled: true }
+            }
             ComboBox {
                 model: ["durchleiter", "verbraucher", "quelle", "trenner", "variabel"]
                 currentIndex: Math.max(0, model.indexOf(editor.rolleText))
@@ -144,6 +149,8 @@ Rectangle {
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
                 contentItem: Text { text: parent.displayText; color: editor.theme.textPrimary; font.pixelSize: 12;
                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                ToolTip.visible: hovered; ToolTip.delay: 400
+                ToolTip.text: qsTr("Durchleiter: Farbe läuft unverändert durch.\nVerbraucher: nimmt Farbe entgegen, Endpunkt.\nQuelle: speist eine Farbe ein.\nTrenner: blockiert die Ausbreitung.\nVariabel: Rolle wird erst bei Platzierung festgelegt.")
             }
 
             Text {
@@ -369,7 +376,7 @@ Rectangle {
                 text: qsTr("❐ Kopie")
                 visible: editor.editSymbolId !== ""
                 implicitHeight: 28; implicitWidth: 78
-                onClicked: editor.kopieErstellen()
+                onClicked: editor.verwerfenUndFortfahren(function() { editor.kopieErstellen() })
                 background: Rectangle {
                     color: parent.hovered ? editor.theme.hover : editor.theme.inputBg
                     radius: 4; border.color: editor.theme.border
@@ -384,7 +391,7 @@ Rectangle {
                 text: qsTr("Abbrechen")
                 implicitHeight: 28; implicitWidth: 90
                 flat: true
-                onClicked: editor.abgebrochen()
+                onClicked: editor.verwerfenUndFortfahren(function() { editor.abgebrochen() })
                 background: Rectangle { color: parent.hovered ? editor.theme.hover : editor.theme.inputBg; radius: 4; border.color: editor.theme.border }
                 contentItem: Text { text: parent.text; color: editor.theme.textSecondary; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }

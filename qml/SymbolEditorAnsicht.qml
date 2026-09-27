@@ -91,7 +91,42 @@ Item {
 
     property var    primitive:          []   // array of QVariantMap
     property var    pins:               []   // array of {name, x, y, offenX, offenY, signaltyp, kontext}
-    property var    undoStack:          []   // array of {typ: "primitiv"|"pin"}
+    // Snapshot-basiertes Undo (SE-UNDO-VOLLSTAENDIG-01): jeder Eintrag ist eine
+    // Kopie von {primitive, pins} VOR der jeweiligen Änderung - deckt damit
+    // auch Löschen/Verschieben ab, nicht nur Hinzufügen wie zuvor
+    // (undoStack speicherte vorher nur {typ: "primitiv"|"pin"} und konnte
+    // ausschließlich das zuletzt hinzugefügte Element entfernen).
+    property var    undoStack:          []
+    readonly property int _undoMax: 50
+
+    // SE-UNGESPEICHERT-WARNUNG-01: true sobald sich primitive/pins/Stammdaten
+    // seit dem letzten Laden/Speichern geändert haben - Grundlage für die
+    // Rückfrage vor dem Verwerfen (verwerfenUndFortfahren()).
+    property bool   _unsavedChanges:    false
+    property var    _ausstehendeAktion: null
+    onPrimitiveChanged:     _unsavedChanges = true
+    onPinsChanged:          _unsavedChanges = true
+    onNameTextChanged:      _unsavedChanges = true
+    onKategorieTextChanged: _unsavedChanges = true
+    onBreiteMmChanged:      _unsavedChanges = true
+    onHoeheMmChanged:       _unsavedChanges = true
+    onRolleTextChanged:     _unsavedChanges = true
+    onBmkSeiteTextChanged:  _unsavedChanges = true
+    onPinSchriftMmChanged:  _unsavedChanges = true
+    onBmkKennbuchstabenChanged: _unsavedChanges = true
+
+    // Führt aktion() sofort aus, wenn nichts Ungespeichertes vorliegt - sonst
+    // erst nach Bestätigung im Dialog (verhindert stillschweigenden
+    // Datenverlust beim Wechseln/Neuanlegen/Kopieren/Abbrechen während einer
+    // laufenden Bearbeitung, s. Nutzerfeedback zum Symboleditor-Audit).
+    function verwerfenUndFortfahren(aktion) {
+        if (_unsavedChanges) {
+            _ausstehendeAktion = aktion
+            ungespeichertDialog.open()
+        } else {
+            aktion()
+        }
+    }
 
     property string aktivesWerkzeug:    "auswahl"
     property int    ausgewaehltPrimIdx: -1
@@ -242,6 +277,7 @@ Item {
             primitive = prims.slice()
             pins      = flatPins
         }
+        _unsavedChanges = false
         zeichneCanvas.requestPaint()
     }
 
@@ -322,10 +358,23 @@ Item {
     function snapX(v) { return Math.round(v * root.breiteMm * 2) / (root.breiteMm * 2) }
     function snapY(v) { return Math.round(v * root.hoeheMm  * 2) / (root.hoeheMm  * 2) }
 
+    // ── Undo-Snapshot (SE-UNDO-VOLLSTAENDIG-01) ─────────────────────
+    // Vor JEDER destruktiven/hinzufügenden Änderung aufrufen - Undo stellt
+    // den kompletten {primitive, pins}-Stand von davor wieder her, deckt
+    // damit auch Löschen und Verschieben ab (nicht nur "zuletzt hinzugefügt").
+    function pushUndoSnapshot() {
+        var snap = {
+            primitive: primitive.map(function(p) { return Object.assign({}, p) }),
+            pins:      pins.map(function(p) { return Object.assign({}, p) })
+        }
+        var neu = undoStack.concat([snap])
+        undoStack = neu.length > _undoMax ? neu.slice(neu.length - _undoMax) : neu
+    }
+
     // ── Primitiv hinzufügen ────────────────────────────────────────
     function addPrimitiv(p) {
+        pushUndoSnapshot()
         primitive = primitive.concat([p])
-        undoStack = undoStack.concat([{typ: "primitiv"}])
         zeichneCanvas.requestPaint()
     }
 
@@ -345,10 +394,10 @@ Item {
     }
 
     function addPin(nx, ny) {
+        pushUndoSnapshot()
         var kg = rolleText === "verbraucher" ? naechsteFreieKnotenGruppe() : 0
         var neu = {name: "P" + (pins.length + 1), x: nx, y: ny, offenX: -1, offenY: 0, signaltyp: "neutral", kontext: "", knotenGruppe: kg}
         pins = pins.concat([neu])
-        undoStack = undoStack.concat([{typ: "pin"}])
         ausgewaehltPinIdx = pins.length - 1
         zeichneCanvas.requestPaint()
     }
@@ -358,14 +407,38 @@ Item {
         if (undoStack.length === 0) return
         var last = undoStack[undoStack.length - 1]
         undoStack = undoStack.slice(0, undoStack.length - 1)
-        if (last.typ === "primitiv" && primitive.length > 0) {
-            primitive = primitive.slice(0, primitive.length - 1)
-            if (ausgewaehltPrimIdx >= primitive.length) ausgewaehltPrimIdx = -1
-        } else if (last.typ === "pin" && pins.length > 0) {
-            pins = pins.slice(0, pins.length - 1)
-            if (ausgewaehltPinIdx >= pins.length) ausgewaehltPinIdx = -1
-        }
+        primitive = last.primitive
+        pins      = last.pins
+        if (ausgewaehltPrimIdx >= primitive.length) ausgewaehltPrimIdx = -1
+        if (ausgewaehltPinIdx  >= pins.length)       ausgewaehltPinIdx  = -1
         zeichneCanvas.requestPaint()
+    }
+
+    // Farbe je Knoten-Gruppe für die Pin-Darstellung auf der Zeichenfläche
+    // (SE-KNOTEN-VISUALISIERUNG-01) - macht sichtbar, welche Pins intern
+    // verbunden sind, ohne dass man die Zahlenfelder einzeln vergleichen muss.
+    readonly property var _knotenFarben: ["#4a9eff","#ff6b6b","#5ce65c","#ffcc00",
+                                           "#c77dff","#00d4d4","#ff9f4a","#e05fc4"]
+    function knotenFarbe(kg) {
+        var i = (kg || 0) % _knotenFarben.length
+        if (i < 0) i += _knotenFarben.length
+        return _knotenFarben[i]
+    }
+
+    // SE-VERBRAUCHER-WARNUNG-01: true wenn dieses Symbol als "Verbraucher"
+    // markiert ist, aber zwei oder mehr Pins dieselbe Knoten-Gruppe teilen -
+    // genau die Fehlerklasse, die im Symboleditor-Audit mehrfach gefunden
+    // wurde (lampe/heizelement/wp_heizstab u.a.). Frühwarnung im Editor statt
+    // erst per Migration/DB-Audit im Nachhinein.
+    function gemeinsameKnotenBeiVerbraucher() {
+        if (rolleText !== "verbraucher" || pins.length < 2) return false
+        var gesehen = {}
+        for (var i = 0; i < pins.length; i++) {
+            var kg = pins[i].knotenGruppe || 0
+            if (gesehen[kg]) return true
+            gesehen[kg] = true
+        }
+        return false
     }
 
     // ── Speichern ──────────────────────────────────────────────────
@@ -381,6 +454,21 @@ Item {
         if (istBuiltin) {
             meldungManager.zeigen(qsTr("Kennbuchstaben gespeichert. Geometrie eingebauter Symbole bleibt geschützt – dafür «Als Vorlage kopieren» nutzen."), true)
             return
+        }
+
+        // SE-PIN-DUPLIKAT-01: doppelte Pin-Namen innerhalb desselben Symbols
+        // waren bisher unbemerkt speicherbar - verwirrend beim Platzieren
+        // (welcher "A1" ist gemeint?) und für BMK-/DRC-Logik, die Pins über
+        // den Namen anspricht.
+        var pinNamenGesehen = {}
+        for (var pn = 0; pn < pins.length; pn++) {
+            var pname = (pins[pn].name || "").trim()
+            if (pname !== "" && pinNamenGesehen[pname]) {
+                speichernFehlerText.text = qsTr("Pin-Name «%1» ist mehrfach vergeben. Bitte eindeutige Namen verwenden.").arg(pname)
+                speichernFehlerDialog.open()
+                return
+            }
+            pinNamenGesehen[pname] = true
         }
 
         var sid = editSymbolId
@@ -416,8 +504,9 @@ Item {
         }
 
         symbollisteAktualisieren()
-        aktiveListenId = sid
-        editSymbolId   = sid
+        aktiveListenId  = sid
+        editSymbolId    = sid
+        _unsavedChanges = false
         meldungManager.zeigen(qsTr("Symbol gespeichert."), true)
         root.gespeichert(sid)
     }
@@ -433,8 +522,14 @@ Item {
         }
         if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
             if (ausgewaehltPrimIdx >= 0) {
+                pushUndoSnapshot()
                 primitive = primitive.filter(function(_, idx) { return idx !== ausgewaehltPrimIdx })
                 ausgewaehltPrimIdx = -1
+                zeichneCanvas.requestPaint()
+            } else if (ausgewaehltPinIdx >= 0) {
+                pushUndoSnapshot()
+                pins = pins.filter(function(_, idx) { return idx !== ausgewaehltPinIdx })
+                ausgewaehltPinIdx = -1
                 zeichneCanvas.requestPaint()
             }
             event.accepted = true; return
@@ -610,6 +705,27 @@ Item {
             root.loeschenSymbolId   = ""
             root.loeschenSymbolName = ""
         }
+    }
+
+    // SE-UNGESPEICHERT-WARNUNG-01: Rückfrage vor dem Verwerfen ungespeicherter
+    // Änderungen (Symbolwechsel, "+ Neu", "Als Vorlage kopieren", Kopie-Button,
+    // Abbrechen) - s. verwerfenUndFortfahren().
+    Dialog {
+        id:    ungespeichertDialog
+        title: qsTr("Ungespeicherte Änderungen")
+        modal: true; parent: Overlay.overlay; anchors.centerIn: parent; width: 340; padding: 16
+        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
+        contentItem: Text {
+            text: qsTr("Dieses Symbol hat ungespeicherte Änderungen, die dabei verloren gehen. Trotzdem fortfahren?")
+            color: root.theme.textSecondary; font.pixelSize: 12; wrapMode: Text.Wrap
+        }
+        standardButtons: Dialog.Yes | Dialog.No
+        onAccepted: {
+            var aktion = root._ausstehendeAktion
+            root._ausstehendeAktion = null
+            if (aktion) aktion()
+        }
+        onRejected: root._ausstehendeAktion = null
     }
 
     // ── Hauptlayout ────────────────────────────────────────────────
@@ -922,23 +1038,34 @@ Item {
                             }
 
                             // ── Pins ──────────────────────────────────
+                            // SE-KNOTEN-VISUALISIERUNG-01: Pin-Farbe zeigt die Knoten-Gruppe,
+                            // damit sichtbar wird, welche Pins intern verbunden sind, statt die
+                            // Zahlenfelder in der Liste einzeln vergleichen zu müssen. Die
+                            // Gruppennummer wird nur an die Beschriftung angehängt, wenn das
+                            // Symbol tatsächlich mehr als eine Gruppe hat.
+                            var _knotenSet = {}
+                            for (var _kpi = 0; _kpi < root.pins.length; _kpi++)
+                                _knotenSet[root.pins[_kpi].knotenGruppe || 0] = true
+                            var _mehrereKnoten = Object.keys(_knotenSet).length > 1
                             for (var pii = 0; pii < root.pins.length; pii++) {
                                 var pin = root.pins[pii]
-                                var isSelP = (pii === root.ausgewaehltPinIdx)
+                                var isSelP  = (pii === root.ausgewaehltPinIdx)
+                                var kFarbe  = root.knotenFarbe(pin.knotenGruppe || 0)
                                 ctx.beginPath()
                                 ctx.arc(n2sx(pin.x), n2sy(pin.y), isSelP ? 6 : 4, 0, 2*Math.PI)
-                                ctx.fillStyle   = isSelP ? "#ff8800" : "#4a9eff"
+                                ctx.fillStyle   = isSelP ? "#ff8800" : kFarbe
                                 ctx.strokeStyle = isSelP ? "#7f4400" : "#0a2040"
                                 ctx.lineWidth   = 1; ctx.fill(); ctx.stroke()
                                 // Pin-Bezeichnung
                                 ctx.save()
-                                ctx.fillStyle = isSelP ? "#ff8800" : "#7aaddd"
+                                ctx.fillStyle = isSelP ? "#ff8800" : kFarbe
                                 ctx.font = "10px sans-serif"
                                 ctx.textAlign = "left"; ctx.textBaseline = "bottom"
-                                ctx.fillText(pin.name || "", n2sx(pin.x)+8, n2sy(pin.y)-1)
+                                var pinLabel = (pin.name || "") + (_mehrereKnoten ? " ·" + (pin.knotenGruppe || 0) : "")
+                                ctx.fillText(pinLabel, n2sx(pin.x)+8, n2sy(pin.y)-1)
                                 ctx.restore()
                                 // Richtungspfeil (offen-Vektor)
-                                ctx.strokeStyle = isSelP ? "#ff8800" : "#4a9eff"
+                                ctx.strokeStyle = isSelP ? "#ff8800" : kFarbe
                                 ctx.lineWidth   = 1.5
                                 ctx.beginPath()
                                 ctx.moveTo(n2sx(pin.x), n2sy(pin.y))
@@ -1152,6 +1279,10 @@ Item {
                                 root.mausImCanvas = true
 
                                 if (dragAktiv && dragObjStart !== null) {
+                                    // Snapshot einmalig beim ersten tatsächlichen Verschieben dieser
+                                    // Drag-Geste (nicht bei jedem Mausereignis, sonst würde Strg+Z nur
+                                    // einen winzigen Teilschritt zurücknehmen statt der ganzen Bewegung).
+                                    if (!dragBewegteSich) root.pushUndoSnapshot()
                                     var ddx = nm.x - dragStartNorm.x
                                     var ddy = nm.y - dragStartNorm.y
                                     if (dragIstPin && root.ausgewaehltPinIdx >= 0) {

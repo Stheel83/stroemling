@@ -233,6 +233,7 @@ Rectangle {
             visible: editor.ausgewaehltPrimIdx >= 0
             text: qsTr("Primitiv löschen"); implicitHeight: 28
             onClicked: {
+                editor.pushUndoSnapshot()
                 editor.primitive = editor.primitive.filter(function(_, idx) { return idx !== editor.ausgewaehltPrimIdx })
                 editor.ausgewaehltPrimIdx = -1
                 editor.repaintAll()

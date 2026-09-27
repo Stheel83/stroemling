@@ -49,7 +49,7 @@ Rectangle {
                 Button {
                     text:          qsTr("+ Neu")
                     implicitHeight: 28; implicitWidth: 62
-                    onClicked:     root.editor.neuesSymbol()
+                    onClicked:     root.editor.verwerfenUndFortfahren(function() { root.editor.neuesSymbol() })
                     background: Rectangle {
                         color: parent.hovered ? root.editor.theme.accent : root.editor.theme.inputBg
                         radius: 4; border.color: root.editor.theme.accent
@@ -143,10 +143,12 @@ Rectangle {
                                 TapHandler {
                                     onTapped: {
                                         var src = modelData.id
-                                        root.editor.aktiveListenId = ""
-                                        root.editor.editSymbolId   = ""
-                                        root.editor.vorlageId      = ""
-                                        Qt.callLater(function() { root.editor.vorlageId = src })
+                                        root.editor.verwerfenUndFortfahren(function() {
+                                            root.editor.aktiveListenId = ""
+                                            root.editor.editSymbolId   = ""
+                                            root.editor.vorlageId      = ""
+                                            Qt.callLater(function() { root.editor.vorlageId = src })
+                                        })
                                     }
                                 }
                             }
@@ -213,9 +215,14 @@ Rectangle {
                     HoverHandler { id: listeItemHover }
                     TapHandler {
                         onTapped: {
-                            root.editor.aktiveListenId = modelData.id
-                            root.editor.vorlageId      = ""
-                            root.editor.editSymbolId   = modelData.id
+                            // Bereits aktives Symbol erneut anklicken lädt ohnehin nichts neu
+                            // (kein onEditSymbolIdChanged bei gleichem Wert) - keine Rückfrage nötig.
+                            if (modelData.id === root.editor.editSymbolId) return
+                            root.editor.verwerfenUndFortfahren(function() {
+                                root.editor.aktiveListenId = modelData.id
+                                root.editor.vorlageId      = ""
+                                root.editor.editSymbolId   = modelData.id
+                            })
                         }
                     }
                 }

@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Dialogs
 import "../components"
 
 Item {
@@ -251,7 +250,7 @@ Item {
                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.accent : theme.inputBg; radius: 4;
                             border.color: theme.accent }
-                        onClicked: pdfSaveDialog.open()
+                        onClicked: pdfExportDialog.open()
                         ToolTip.visible: hovered; ToolTip.text: qsTr("Prüfprotokoll als PDF exportieren")
                         ToolTip.delay: 600
                     }
@@ -394,19 +393,14 @@ Item {
     }
 
     // ── PDF-Export ────────────────────────────────────────
-    FileDialog {
-        id: pdfSaveDialog
-        title: qsTr("Prüfprotokoll speichern")
-        fileMode: FileDialog.SaveFile
-        nameFilters: [qsTr("PDF-Datei (*.pdf)"), qsTr("Alle Dateien (*)")]
-        defaultSuffix: "pdf"
-        onAccepted: {
-            var sid = root.ansichtModus === "seite" ? root.seiteId : -1
-            var ok  = db.ibnProtokollPdfSpeichern(root.projektId, sid,
-                                                   selectedFile.toString())
-            if (ok) achievementManager.ereignis("ibn_protokoll")
-            meldungManager.zeigen(ok ? qsTr("PDF gespeichert.") : qsTr("PDF konnte nicht gespeichert werden."), ok)
-        }
+    // PRUEFPROTOKOLL-PDF-DIALOG-01: eigener Pfad-Picker statt nativem
+    // FileDialog, analog PdfExportDialog.qml (Schaltplan-PDF-Export) -
+    // Seiten-Auswahl/Normblatt-Optionen dort sind hier nicht relevant.
+    IbnPdfExportDialog {
+        id:        pdfExportDialog
+        theme:     root.theme
+        projektId: root.projektId
+        seiteId:   root.ansichtModus === "seite" ? root.seiteId : -1
     }
 
     DebugLabel { panelName: qsTr("IBN-Ansicht"); visible: root.debug }

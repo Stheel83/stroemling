@@ -20,6 +20,20 @@ Rectangle {
     // müssen ein Vielfaches von 4mm sein, sonst bleibt der Pin bei Rotation
     // nicht am Anker-Pin ausgerichtet (siehe
     // konzept/features/04_symbolsystem.md §13/ARD-GRID-01).
+    // SE-KNOTENGRUPPE-02: bei rolle='verbraucher' soll ein neuer Pin nicht
+    // auf den Default-Knoten 0 fallen, da ein Verbraucher-Pin i.d.R. ein
+    // eigener, vom Rest galvanisch getrennter Anschluss ist (s.
+    // konzept/features/04_symbolsystem.md §21) - Ersteller kann die Zahl
+    // danach weiterhin von Hand auf eine bestehende Gruppe zurücksetzen.
+    function naechsteFreieKnotenGruppe() {
+        var maxKg = -1
+        for (var i = 0; i < root.editor.pins.length; i++) {
+            var kg = root.editor.pins[i].knotenGruppe
+            if (kg !== undefined && kg > maxKg) maxKg = kg
+        }
+        return maxKg + 1
+    }
+
     function pinAufRaster(pin, idx) {
         if (!pin || idx === 0) return true
         var anker = (root.editor.pins && root.editor.pins.length > 0) ? root.editor.pins[0] : pin
@@ -70,9 +84,10 @@ Rectangle {
                 ToolTip.text: qsTr("Waagerecht: Pin 1 links (0 mm), Pin 2 rechts (%1 mm)").arg(root.editor.breiteMm)
                 onClicked: {
                     var yMid = 0.5
+                    var kg2 = root.editor.rolleText === "verbraucher" ? 1 : 0
                     root.editor.pins = [
                         {name:"1", x:0.0, y:yMid, offenX:-1, offenY:0, signaltyp:"neutral", kontext:"", knotenGruppe:0},
-                        {name:"2", x:1.0, y:yMid, offenX:1,  offenY:0, signaltyp:"neutral", kontext:"", knotenGruppe:0}
+                        {name:"2", x:1.0, y:yMid, offenX:1,  offenY:0, signaltyp:"neutral", kontext:"", knotenGruppe:kg2}
                     ]
                     root.editor.ausgewaehltPinIdx = -1
                     root.editor.repaintAll()
@@ -87,9 +102,10 @@ Rectangle {
                 ToolTip.text: qsTr("Senkrecht: Pin 1 oben (0 mm), Pin 2 unten (%1 mm)").arg(root.editor.hoeheMm)
                 onClicked: {
                     var xMid = 0.5
+                    var kg2 = root.editor.rolleText === "verbraucher" ? 1 : 0
                     root.editor.pins = [
                         {name:"1", x:xMid, y:0.0, offenX:0, offenY:-1, signaltyp:"neutral", kontext:"", knotenGruppe:0},
-                        {name:"2", x:xMid, y:1.0, offenX:0, offenY:1,  signaltyp:"neutral", kontext:"", knotenGruppe:0}
+                        {name:"2", x:xMid, y:1.0, offenX:0, offenY:1,  signaltyp:"neutral", kontext:"", knotenGruppe:kg2}
                     ]
                     root.editor.ausgewaehltPinIdx = -1
                     root.editor.repaintAll()
@@ -101,7 +117,8 @@ Rectangle {
             Button {
                 text: qsTr("+ Pin"); implicitHeight: 24; implicitWidth: 58
                 onClicked: {
-                    root.editor.pins = root.editor.pins.concat([{name:"P"+(root.editor.pins.length+1),x:0.5,y:1,offenX:0,offenY:1,signaltyp:"neutral",kontext:"",knotenGruppe:0}])
+                    var kgNeu = root.editor.rolleText === "verbraucher" ? root.naechsteFreieKnotenGruppe() : 0
+                    root.editor.pins = root.editor.pins.concat([{name:"P"+(root.editor.pins.length+1),x:0.5,y:1,offenX:0,offenY:1,signaltyp:"neutral",kontext:"",knotenGruppe:kgNeu}])
                     root.editor.ausgewaehltPinIdx = root.editor.pins.length - 1
                     root.editor.repaintAll()
                 }

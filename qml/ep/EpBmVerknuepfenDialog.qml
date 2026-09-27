@@ -21,6 +21,28 @@ Dialog {
 
     property int gewaehltId: 0
 
+    // BM-VERKNUEPFEN-ID0-01: analog SPS-KANAL-ZUWEISEN-ID0-01
+    // (EpSpsKanalSection.qml) - ein frisch platziertes, noch nicht per
+    // elementeModel.laden() aufgefrischtes Element kann hier id=0 haben
+    // (grafikSpeichernJetzt() vergibt bei jedem Speichern per DELETE+INSERT
+    // neue grafik_element-IDs). Speichert, lädt neu, findet das Element über
+    // Typ+Position wieder statt der potenziell veralteten `panel.el.id`.
+    function _frischesElementId() {
+        if (!panel.el) return 0
+        var savedTyp = panel.el.typ, savedSymbolId = panel.el.symbolId
+        var savedX1 = panel.el.x1, savedY1 = panel.el.y1
+        panel.canvas.grafikSpeichernJetzt()
+        panel.canvas.elementeModel.laden(panel.canvas.seiteId)
+        var reloaded = panel.canvas.elementeModel.snapshot()
+        for (var i = 0; i < reloaded.length; i++) {
+            var r = reloaded[i]
+            if (r.typ === savedTyp && r.symbolId === savedSymbolId
+                    && Math.abs(r.x1 - savedX1) < 0.01 && Math.abs(r.y1 - savedY1) < 0.01)
+                return r.id || 0
+        }
+        return 0
+    }
+
     background: Rectangle {
         color:        root.theme.sidebar
         border.color: root.theme.border
@@ -43,10 +65,13 @@ Dialog {
                                               neuBezField.text.trim())
         }
         if (zielId > 0) {
-            db.grafikElementVerknuepfen(panel.el.id, zielId)
-            panel.canvas.eigenschaftAktualisieren("betriebsmittelId", zielId)
-            db.betriebsmittelBmkSynchronisieren(zielId)
-            panel.canvas.seiteNeuLaden()
+            var elId = root._frischesElementId()
+            if (elId > 0) {
+                db.grafikElementVerknuepfen(elId, zielId)
+                panel.canvas.eigenschaftAktualisieren("betriebsmittelId", zielId)
+                db.betriebsmittelBmkSynchronisieren(zielId)
+                panel.canvas.seiteNeuLaden()
+            }
         }
     }
 

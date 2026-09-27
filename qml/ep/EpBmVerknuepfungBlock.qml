@@ -13,6 +13,28 @@ Column {
     width:   parent ? parent.width : 0
     spacing: 0
 
+    // BM-VERKNUEPFEN-ID0-01: analog SPS-KANAL-ZUWEISEN-ID0-01
+    // (EpSpsKanalSection.qml) - ein frisch platziertes, noch nicht per
+    // elementeModel.laden() aufgefrischtes Element kann hier id=0 haben
+    // (grafikSpeichernJetzt() vergibt bei jedem Speichern per DELETE+INSERT
+    // neue grafik_element-IDs). Speichert, lädt neu, findet das Element über
+    // Typ+Position wieder statt der potenziell veralteten `panel.el.id`.
+    function _frischesElementId() {
+        if (!panel.el) return 0
+        var savedTyp = panel.el.typ, savedSymbolId = panel.el.symbolId
+        var savedX1 = panel.el.x1, savedY1 = panel.el.y1
+        panel.canvas.grafikSpeichernJetzt()
+        panel.canvas.elementeModel.laden(panel.canvas.seiteId)
+        var reloaded = panel.canvas.elementeModel.snapshot()
+        for (var i = 0; i < reloaded.length; i++) {
+            var r = reloaded[i]
+            if (r.typ === savedTyp && r.symbolId === savedSymbolId
+                    && Math.abs(r.x1 - savedX1) < 0.01 && Math.abs(r.y1 - savedY1) < 0.01)
+                return r.id || 0
+        }
+        return 0
+    }
+
     component FeldLabel: Item {
         property string text: ""
         width: root.width; height: 20
@@ -153,8 +175,11 @@ Column {
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         enabled: verknuepfungItem.bmId > 0
                         onClicked: {
-                            db.grafikElementEntknuepfen(panel.el.id)
-                            panel.canvas.eigenschaftAktualisieren("betriebsmittelId", 0)
+                            var elId = root._frischesElementId()
+                            if (elId > 0) {
+                                db.grafikElementEntknuepfen(elId)
+                                panel.canvas.eigenschaftAktualisieren("betriebsmittelId", 0)
+                            }
                         }
                     }
                 }
@@ -181,6 +206,8 @@ Column {
                         id: hfMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
+                            var elId = root._frischesElementId()
+                            if (elId <= 0) return
                             var bmId = verknuepfungItem.bmId
                             if (bmId <= 0) {
                                 var kz = (panel.el && panel.el.extraDaten
@@ -193,10 +220,10 @@ Column {
                                 // Nur gezielte UPDATEs – kein eigenschaftAktualisieren,
                                 // das würde DELETE+INSERT triggern und alle Element-IDs
                                 // invalidieren (FK setzt haupt_element_id auf NULL).
-                                db.grafikElementVerknuepfen(panel.el.id, bmId)
+                                db.grafikElementVerknuepfen(elId, bmId)
                                 db.betriebsmittelBmkSynchronisieren(bmId)
                             }
-                            db.betriebsmittelHauptfunktionSetzen(bmId, panel.el.id)
+                            db.betriebsmittelHauptfunktionSetzen(bmId, elId)
                             // seiteNeuLaden() liest per SELECT aus DB – keine ID-Änderung.
                             // In-Memory-Modell bekommt betriebsmittelId aus der DB zurück.
                             panel.canvas.seiteNeuLaden()

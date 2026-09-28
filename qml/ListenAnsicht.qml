@@ -451,17 +451,20 @@ Item {
                 anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                 spacing: 2
                 Repeater {
+                    // Anzeigereihenfolge nach Themenblöcken (Material → Verdrahtung →
+                    // Klemmen → Steckverbinder → Navigation), unabhängig von der
+                    // StackLayout-Reihenfolge (tab: verweist weiter auf deren Index).
                     model: [
                         { label: qsTr("Stückliste  (")        + stuecklisteModel.count    + ")",  tab: 0 },
-                        { label: qsTr("Querverweise  (")      + querverweisModel.count    + ")",  tab: 1 },
+                        { label: qsTr("Bestellliste  (")      + bestellisteModel.count    + ")",  tab: 8 },
+                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
                         { label: qsTr("Aderliste  (")         + aderlisteModel.count      + ")",  tab: 2 },
+                        { label: qsTr("Adersummenliste  (")   + aderSummenlisteModel.count + ")", tab: 9 },
                         { label: qsTr("Klemmenplan  (")       + klemmenplanZaehler        + ")",  tab: 3 },
                         { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler + ")", tab: 4 },
-                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
                         { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 },
                         { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl    + ")",  tab: 7 },
-                        { label: qsTr("Bestellliste  (")      + bestellisteModel.count    + ")",  tab: 8 },
-                        { label: qsTr("Adersummenliste  (")   + aderSummenlisteModel.count + ")", tab: 9 }
+                        { label: qsTr("Querverweise  (")      + querverweisModel.count    + ")",  tab: 1 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5

@@ -557,6 +557,83 @@ QVariantList Database::aderliste(int projektId)
 }
 
 // ============================================================
+// aderSummenliste (ADERSUMME-01)
+// Materialliste: alle Aderdefinitionspunkte eines Projekts gruppiert nach
+// Aderfarbe+Aderfarbe2+Querschnitt, Längen je Gruppe aufsummiert.
+// Adern ohne Bauteil-Katalogbezug (freier Text in extra_daten) – daher
+// eigene Liste statt Einbau in die bauteil_id-basierte Bestellliste.
+// ============================================================
+QVariantList Database::aderSummenliste(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT ge.extra_daten
+        FROM grafik_element ge
+        JOIN seite  s ON s.id  = ge.seite_id
+        JOIN ort    o ON o.id  = s.ort_id
+        JOIN anlage a ON a.id  = o.anlage_id
+        WHERE a.projekt_id = :pid
+          AND ge.typ       = 'symbol'
+          AND ge.symbol_id = 'aderdefinition'
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "aderSummenliste:" << q.lastError().text();
+        return result;
+    }
+
+    struct Gruppe {
+        QString aderfarbe, aderfarbe2;
+        double  querschnitt = 0.0;
+        double  laenge      = 0.0;
+        int     anzahl      = 0;
+    };
+    QVector<Gruppe> gruppen;
+    auto finde = [&](const QString &farbe, const QString &farbe2, double quer) -> Gruppe & {
+        for (Gruppe &g : gruppen)
+            if (g.aderfarbe == farbe && g.aderfarbe2 == farbe2 && qFuzzyCompare(g.querschnitt + 1.0, quer + 1.0))
+                return g;
+        gruppen.append({farbe, farbe2, quer, 0.0, 0});
+        return gruppen.last();
+    };
+
+    while (q.next()) {
+        QString extra = q.value(0).toString();
+        if (extra.isEmpty()) continue;
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(extra.toUtf8(), &err);
+        if (err.error || !doc.isObject()) continue;
+        QJsonObject obj = doc.object();
+        const QString aderfarbe   = obj[QStringLiteral("aderfarbe")].toString();
+        const QString aderfarbe2  = obj[QStringLiteral("aderfarbe2")].toString();
+        const double  querschnitt = obj[QStringLiteral("querschnitt_mm2")].toDouble(0.0);
+        const double  laenge      = obj[QStringLiteral("laenge_m")].toDouble(0.0);
+
+        Gruppe &g = finde(aderfarbe, aderfarbe2, querschnitt);
+        g.laenge += laenge;
+        g.anzahl += 1;
+    }
+
+    std::sort(gruppen.begin(), gruppen.end(), [](const Gruppe &a, const Gruppe &b) {
+        if (a.aderfarbe != b.aderfarbe)   return a.aderfarbe  < b.aderfarbe;
+        if (a.aderfarbe2 != b.aderfarbe2) return a.aderfarbe2 < b.aderfarbe2;
+        return a.querschnitt < b.querschnitt;
+    });
+
+    for (const Gruppe &g : gruppen) {
+        QVariantMap m;
+        m[QStringLiteral("aderfarbe")]      = g.aderfarbe;
+        m[QStringLiteral("aderfarbe2")]     = g.aderfarbe2;
+        m[QStringLiteral("querschnittMm2")] = g.querschnitt;
+        m[QStringLiteral("anzahl")]         = g.anzahl;
+        m[QStringLiteral("laengeGesamtM")]  = g.laenge;
+        result.append(m);
+    }
+    return result;
+}
+
+// ============================================================
 // strukturkastenOverrideAnwenden
 // ============================================================
 void Database::strukturkastenOverrideAnwenden(const QString &skExtraDaten,
@@ -1033,6 +1110,30 @@ bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
             << csvQ(row[QStringLiteral("ortUO")].toString())    << u';'
             << csvQ(row[QStringLiteral("anlageKz")].toString()) << u';'
             << csvQ(row[QStringLiteral("ortKz")].toString())    << u'\n';
+    }
+    return true;
+}
+
+// ============================================================
+// aderSummenlisteCsvSpeichern
+// ============================================================
+bool Database::aderSummenlisteCsvSpeichern(int projektId, const QString &pfad)
+{
+    QFile file;
+    QTextStream out;
+    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "aderSummenlisteCsvSpeichern"))
+        return false;
+    out << "Aderfarbe;Querschnitt mm2;Anzahl;Gesamtlaenge m\n";
+    auto csvQ = CsvHelfer::escapeBedarf;
+    for (const QVariant &v : aderSummenliste(projektId)) {
+        const QVariantMap row = v.toMap();
+        QString af  = row[QStringLiteral("aderfarbe")].toString();
+        QString af2 = row[QStringLiteral("aderfarbe2")].toString();
+        const double querschnitt = row[QStringLiteral("querschnittMm2")].toDouble();
+        out << csvQ(af2.isEmpty() ? af : af + "/" + af2) << u';'
+            << csvQ(querschnitt > 0 ? QString::number(querschnitt) : QString()) << u';'
+            << row[QStringLiteral("anzahl")].toInt() << u';'
+            << QString::number(row[QStringLiteral("laengeGesamtM")].toDouble(), 'f', 2) << u'\n';
     }
     return true;
 }

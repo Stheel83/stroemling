@@ -19,9 +19,10 @@ Item {
 
     function laden() {
         if (projektId < 0) {
-            stuecklisteModel.clear(); querverweisModel.clear()
-            aderlisteModel.clear();   klemmenplanModel.clear()
-            klaModel.clear();         bestellisteModel.clear()
+            stuecklisteModel.clear();      querverweisModel.clear()
+            aderlisteModel.clear();        klemmenplanModel.clear()
+            klaModel.clear();              bestellisteModel.clear()
+            aderSummenlisteModel.clear()
             panel._kabelDaten = []; return
         }
         stuecklisteModel.clear()
@@ -35,6 +36,10 @@ Item {
         aderlisteModel.clear()
         var al = db.aderliste(projektId)
         for (var k = 0; k < al.length; k++) aderlisteModel.append(al[k])
+
+        aderSummenlisteModel.clear()
+        var asl = db.aderSummenliste(projektId)
+        for (var q = 0; q < asl.length; q++) aderSummenlisteModel.append(asl[q])
 
         klemmenplanModel.clear()
         var kp = db.klemmenplan(projektId)
@@ -61,13 +66,15 @@ Item {
     ListModel { id: klemmenplanModel }
     ListModel { id: klaModel }
     ListModel { id: bestellisteModel }
+    ListModel { id: aderSummenlisteModel }
 
-    property alias _stuecklisteModel: stuecklisteModel
-    property alias _querverweisModel: querverweisModel
-    property alias _aderlisteModel:   aderlisteModel
-    property alias _klemmenplanModel: klemmenplanModel
-    property alias _klaModel:         klaModel
-    property alias _bestellisteModel: bestellisteModel
+    property alias _stuecklisteModel:      stuecklisteModel
+    property alias _querverweisModel:      querverweisModel
+    property alias _aderlisteModel:        aderlisteModel
+    property alias _klemmenplanModel:      klemmenplanModel
+    property alias _klaModel:              klaModel
+    property alias _bestellisteModel:      bestellisteModel
+    property alias _aderSummenlisteModel:  aderSummenlisteModel
 
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
@@ -206,6 +213,10 @@ Item {
         { header: "Lieferant",       w: 110 }, { header: "Menge",         w: 80  },
         { header: "Einzelpreis EUR", w: 100 }, { header: "Summe EUR",     w: 100 }
     ]
+    property var asCols: [
+        { header: "Aderfarbe",  w: 100 }, { header: "Querschnitt", w: 90 },
+        { header: "Anzahl",     w: 70  }, { header: "Gesamtlänge", w: 100 }
+    ]
 
     // ── Spaltenbreiten: Nutzer-Resizing + Persistenz ──────────────────
     // (klaCols/klAderCols bewusst nicht resizebar: klaCols hat handgeschriebene
@@ -222,6 +233,7 @@ Item {
         property string svCols: ""
         property string bpCols: ""
         property string boCols: ""
+        property string asCols: ""
     }
 
     function _spaltenLaden(propName) {
@@ -246,6 +258,7 @@ Item {
         _spaltenLaden("alCols"); _spaltenLaden("kpCols")
         _spaltenLaden("klCols"); _spaltenLaden("svCols")
         _spaltenLaden("bpCols"); _spaltenLaden("boCols")
+        _spaltenLaden("asCols")
     }
 
     Rectangle { anchors.fill: parent; color: theme.surface }
@@ -447,7 +460,8 @@ Item {
                         { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
                         { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 },
                         { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl    + ")",  tab: 7 },
-                        { label: qsTr("Bestellliste  (")      + bestellisteModel.count    + ")",  tab: 8 }
+                        { label: qsTr("Bestellliste  (")      + bestellisteModel.count    + ")",  tab: 8 },
+                        { label: qsTr("Adersummenliste  (")   + aderSummenlisteModel.count + ")", tab: 9 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5
@@ -486,6 +500,7 @@ Item {
             LaTabSteckverbinder    { panel: panel; theme: panel.theme }
             LaTabBelegungsplan     { panel: panel; theme: panel.theme }
             LaTabBestellliste      { panel: panel; theme: panel.theme }
+            LaTabAderSummenliste   { panel: panel; theme: panel.theme }
         }
     }
 

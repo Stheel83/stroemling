@@ -203,6 +203,11 @@ public:
     // Gibt [{bezeichnung, aderfarbe, querschnittMm2, laengeM, seite, anlageKz, ortKz}] zurück.
     Q_INVOKABLE QVariantList aderliste(int projektId);
 
+    // Adersummenliste (ADERSUMME-01): aderliste()-Einträge gruppiert nach
+    // Aderfarbe+Aderfarbe2+Querschnitt, Längen aufsummiert, mit Anzahl je Gruppe.
+    // Gibt [{aderfarbe, aderfarbe2, querschnittMm2, anzahl, laengeGesamtM}] zurück.
+    Q_INVOKABLE QVariantList aderSummenliste(int projektId);
+
     // Erkannte Auto-Verbindungen (als Netze) in verbindung/verbindung_segment speichern.
     // netze: [{netKey, bezeichnung, signaltyp, farbe, querschnitt,
     //           segmente:[{x1,y1,x2,y2}], querverweise:[{vonSeiteId,nachSeiteId,...}]}]
@@ -344,6 +349,7 @@ public:
     Q_INVOKABLE bool stuecklisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool querverweislisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool aderlisteCsvSpeichern(int projektId, const QString &pfad);
+    Q_INVOKABLE bool aderSummenlisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool kabellisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool bestellisteCsvSpeichern(int projektId, const QString &pfad);
 

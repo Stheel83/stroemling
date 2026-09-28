@@ -18,13 +18,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.steckverbinderlisteCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialog
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Steckverbinderliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "steckverbinderliste.pdf"
+        titelText: qsTr("Steckverbinderliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.svCols.map(function (c) { return c.header })
             var zeilen = panel.svAnzeige.map(function (r) {
                 return [r.bmk || "", r.gkBezeichnung || "", r.bauteilBez || "", r.hersteller || "",
@@ -32,7 +31,7 @@ ColumnLayout {
                         r.geschirmt ? "SH" : "–", r.blattnr || "", r.anlageUO || "", r.ortUO || "",
                         r.anlageKz || "", r.ortKz || "", ""]
             })
-            db.listePdfSpeichern(qsTr("Steckverbinder"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Steckverbinder"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

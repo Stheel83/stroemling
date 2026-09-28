@@ -18,13 +18,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.klemmenplanCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialog
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Klemmenplan als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "klemmenplan.pdf"
+        titelText: qsTr("Klemmenplan exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = [qsTr("Leiste"), qsTr("Nr."), qsTr("Bauteil"), qsTr("Typ"),
                            qsTr("Querschnitt"), qsTr("Farbe"), qsTr("Potenzial"), qsTr("Ort")]
             var zeilen = []
@@ -34,7 +33,7 @@ ColumnLayout {
                 zeilen.push([r.leisteBmk || "", r.nummer || "", r.bauteilBez || "", r.anschlussTyp || "",
                              r.querschnitt || "", r.farbeBez || "", r.potenzial || "", r.ortKz || ""])
             }
-            db.listePdfSpeichern(qsTr("Klemmenplan"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Klemmenplan"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

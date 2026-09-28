@@ -18,19 +18,18 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.stuecklisteCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialogStueckliste
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Stückliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "stueckliste.pdf"
+        titelText: qsTr("Stückliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.slCols.map(function (c) { return c.header })
             var zeilen = panel.slAnzeige.map(function (r) {
                 return [r.bmk || "", r.symbolId || "", r.freitext1 || "", r.freitext2 || "",
                         r.seite || "", r.anlageUO || "", r.ortUO || "", r.anlageKz || "", r.ortKz || "", ""]
             })
-            db.listePdfSpeichern(qsTr("Stückliste"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Stückliste"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

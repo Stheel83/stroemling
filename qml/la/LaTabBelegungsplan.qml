@@ -18,13 +18,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.steckverbinderBelegungsplanCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialog
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Belegungsplan als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "belegungsplan.pdf"
+        titelText: qsTr("Belegungsplan exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = [qsTr("GK-BMK"), qsTr("Typ"), qsTr("Symbol-BMK"), qsTr("Pin"), qsTr("Signal"),
                            qsTr("Aderfarbe"), qsTr("Querschnitt mm²"), qsTr("Seite")]
             var zeilen = []
@@ -36,7 +35,7 @@ ColumnLayout {
                 zeilen.push([currentGkBmk, r.kontaktTyp || "", r.kontaktBmk || "", r.kontaktBez || "",
                              r.signalBez || "", r.signalFarbe || "", qs > 0 ? qs : "", r.blattnr || ""])
             }
-            db.listePdfSpeichern(qsTr("Belegungsplan"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Belegungsplan"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

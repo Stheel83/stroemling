@@ -18,18 +18,17 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.querverweislisteCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialogQV
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Querverweisliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "querverweisliste.pdf"
+        titelText: qsTr("Querverweisliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.qvCols.map(function (c) { return c.header })
             var zeilen = panel.qvAnzeige.map(function (r) {
                 return [r.signalname || "", r.richtung || "", r.seite || "", r.zielSeite || "", ""]
             })
-            db.listePdfSpeichern(qsTr("Querverweisliste"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Querverweisliste"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

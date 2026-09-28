@@ -51,13 +51,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.klemmlistenauszugCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialog
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Klemmlistenauszug als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "klemmlistenauszug.pdf"
+        titelText: qsTr("Klemmlistenauszug exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = [qsTr("Leiste"), qsTr("Nr."), qsTr("Von-Anschl."), qsTr("Von-Verbindung"),
                            qsTr("Von-Seite"), qsTr("Von-Aderfarbe"), qsTr("Nach-Anschl."), qsTr("Nach-Verbindung"),
                            qsTr("Nach-Seite"), qsTr("Nach-Aderfarbe"), qsTr("Querschnitt"), qsTr("Farbe")]
@@ -77,7 +76,7 @@ ColumnLayout {
                              r.nachPlatziert ? (r.nachBlattnummer || "") : "", nachFarbe,
                              r.querschnitt || "", r.farbeBez || ""])
             }
-            db.listePdfSpeichern(qsTr("Klemmlistenauszug"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Klemmlistenauszug"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

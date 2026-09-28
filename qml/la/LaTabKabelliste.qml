@@ -25,13 +25,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.kabellisteCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialogKabel
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Kabelliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "kabelliste.pdf"
+        titelText: qsTr("Kabelliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.klCols.map(function (c) { return c.header })
             var zeilen = panel.klAnzeige.map(function (k) {
                 return [k.bezeichnung || "–", k.kabeltyp || "–",
@@ -40,7 +39,7 @@ ColumnLayout {
                         k.laengeM > 0 ? (k.laengeM + "").replace(".", ",") + " m" : "–",
                         k.vonOrt || "–", k.nachOrt || "–", k.linienAnzahl > 0 ? k.linienAnzahl : "–"]
             })
-            db.listePdfSpeichern(qsTr("Kabelliste"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Kabelliste"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

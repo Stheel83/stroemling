@@ -19,13 +19,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.aderlisteCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialogAder
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Aderliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "aderliste.pdf"
+        titelText: qsTr("Aderliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.alCols.map(function (c) { return c.header })
             var zeilen = panel.alAnzeige.map(function (r) {
                 var farbe = r.aderfarbe ? (r.aderfarbe + (r.aderfarbe2 ? "/" + r.aderfarbe2 : "")) : "–"
@@ -34,7 +33,7 @@ ColumnLayout {
                         r.laengeM > 0 ? r.laengeM + " m" : "–",
                         r.seite || "", r.anlageUO || "", r.ortUO || "", r.anlageKz || "", r.ortKz || "", ""]
             })
-            db.listePdfSpeichern(qsTr("Aderliste"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Aderliste"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

@@ -25,13 +25,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.aderSummenlisteCsvSpeichern(panel.projektId, selectedFile, panel.asJeAnlageOrt)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialogAderSumme
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Adersummenliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "adersummenliste.pdf"
+        titelText: qsTr("Adersummenliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.asJeAnlageOrt
                 ? [qsTr("Anlage"), qsTr("Ort")].concat(panel.asCols.map(function (c) { return c.header }))
                 : panel.asCols.map(function (c) { return c.header })
@@ -41,7 +40,7 @@ ColumnLayout {
                              r.anzahl, r.laengeGesamtM > 0 ? r.laengeGesamtM.toFixed(2) + " m" : "–"]
                 return panel.asJeAnlageOrt ? [r.anlageKz || "", r.ortKz || ""].concat(basis) : basis
             })
-            db.listePdfSpeichern(qsTr("Adersummenliste"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Adersummenliste"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

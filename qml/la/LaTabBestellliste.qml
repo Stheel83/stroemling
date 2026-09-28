@@ -24,13 +24,12 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.bestellisteCsvSpeichern(panel.projektId, selectedFile)
     }
-    FileDialog {
+    LaPdfExportDialog {
         id: pdfDialogBestellliste
-        fileMode: FileDialog.SaveFile
-        title: qsTr("Bestellliste als PDF speichern")
-        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
-        defaultSuffix: "pdf"
-        onAccepted: {
+        theme: root.theme
+        dateiname: "bestellliste.pdf"
+        titelText: qsTr("Bestellliste exportieren")
+        onExportAngefordert: (pfad) => {
             var spalten = panel.boCols.map(function (c) { return c.header })
             var zeilen = panel.boAnzeige.map(function (r) {
                 return [r.bezeichnung || "", r.hersteller || "", r.artikelnummer || "", r.bestellnummer || "",
@@ -39,7 +38,7 @@ ColumnLayout {
                         r.preisEur > 0 ? r.preisEur.toFixed(2) : "–",
                         r.summeEur > 0 ? r.summeEur.toFixed(2) : "–"]
             })
-            db.listePdfSpeichern(qsTr("Bestellliste"), panel.projektName, spalten, zeilen, selectedFile)
+            erfolgReagieren(db.listePdfSpeichern(qsTr("Bestellliste"), panel.projektName, spalten, zeilen, pfad))
         }
     }
 

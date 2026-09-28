@@ -18,12 +18,33 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.klemmenplanCsvSpeichern(panel.projektId, selectedFile)
     }
+    FileDialog {
+        id: pdfDialog
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Klemmenplan als PDF speichern")
+        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var spalten = [qsTr("Leiste"), qsTr("Nr."), qsTr("Bauteil"), qsTr("Typ"),
+                           qsTr("Querschnitt"), qsTr("Farbe"), qsTr("Potenzial"), qsTr("Ort")]
+            var zeilen = []
+            for (var i = 0; i < panel._klemmenplanModel.count; i++) {
+                var r = panel._klemmenplanModel.get(i)
+                if (r.typ !== "klemme") continue
+                zeilen.push([r.leisteBmk || "", r.nummer || "", r.bauteilBez || "", r.anschlussTyp || "",
+                             r.querschnitt || "", r.farbeBez || "", r.potenzial || "", r.ortKz || ""])
+            }
+            db.listePdfSpeichern(qsTr("Klemmenplan"), panel.projektName, spalten, zeilen, selectedFile)
+        }
+    }
 
     LaCsvLeiste {
         theme: root.theme
         listenName: qsTr("Klemmenplan")
         anzahl: panel.klemmenplanZaehler
+        filterAktiv: false
         onCsvKlick: csvDialog.open()
+        onPdfKlick: pdfDialog.open()
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 

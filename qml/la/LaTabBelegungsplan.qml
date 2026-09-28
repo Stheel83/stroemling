@@ -18,12 +18,35 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.steckverbinderBelegungsplanCsvSpeichern(panel.projektId, selectedFile)
     }
+    FileDialog {
+        id: pdfDialog
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Belegungsplan als PDF speichern")
+        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var spalten = [qsTr("GK-BMK"), qsTr("Typ"), qsTr("Symbol-BMK"), qsTr("Pin"), qsTr("Signal"),
+                           qsTr("Aderfarbe"), qsTr("Querschnitt mm²"), qsTr("Seite")]
+            var zeilen = []
+            var currentGkBmk = ""
+            for (var i = 0; i < panel._bpDaten.length; i++) {
+                var r = panel._bpDaten[i]
+                if (r.typ === "gehaeuse") { currentGkBmk = r.bmk || ""; continue }
+                var qs = r.querschnitt || 0
+                zeilen.push([currentGkBmk, r.kontaktTyp || "", r.kontaktBmk || "", r.kontaktBez || "",
+                             r.signalBez || "", r.signalFarbe || "", qs > 0 ? qs : "", r.blattnr || ""])
+            }
+            db.listePdfSpeichern(qsTr("Belegungsplan"), panel.projektName, spalten, zeilen, selectedFile)
+        }
+    }
 
     LaCsvLeiste {
         theme: root.theme
         listenName: qsTr("Belegungsplan")
         anzahl: panel._bpKontaktAnzahl
+        filterAktiv: false
         onCsvKlick: csvDialog.open()
+        onPdfKlick: pdfDialog.open()
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: root.theme.border }
 

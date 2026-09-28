@@ -18,68 +18,94 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.querverweislisteCsvSpeichern(panel.projektId, selectedFile)
     }
+    FileDialog {
+        id: pdfDialogQV
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Querverweisliste als PDF speichern")
+        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var spalten = panel.qvCols.map(function (c) { return c.header })
+            var zeilen = panel.qvAnzeige.map(function (r) {
+                return [r.signalname || "", r.richtung || "", r.seite || "", r.zielSeite || "", ""]
+            })
+            db.listePdfSpeichern(qsTr("Querverweisliste"), panel.projektName, spalten, zeilen, selectedFile)
+        }
+    }
 
     LaCsvLeiste {
         theme: root.theme
         listenName: qsTr("Querverweisliste")
-        anzahl: panel._querverweisModel.count
+        anzahl: panel.qvAnzeige.length
+        filterText: panel.qvFilter
+        onFilterTextChanged: panel.qvFilter = filterText
         onCsvKlick: csvDialogQV.open()
+        onPdfKlick: pdfDialogQV.open()
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    LaSpaltenHeader { panel: root.panel; theme: root.theme; colsProp: "qvCols" }
+    LaSpaltenHeader {
+        panel: root.panel; theme: root.theme; colsProp: "qvCols"
+        sortFeld: panel.qvSortFeld; sortAsc: panel.qvSortAsc
+        onSpalteKlick: (feld) => panel.sortSetzen("qvSortFeld", "qvSortAsc", feld)
+    }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
     ScrollView {
-        Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+        Layout.fillWidth: true; Layout.fillHeight: true
+        clip: true; contentWidth: availableWidth
+        background: Rectangle { color: root.theme.surface }
 
-        ListView {
-            id: qvView
-            model: panel._querverweisModel; clip: true
+        Column {
+            width: parent.width
 
             Column {
-                visible: panel._querverweisModel.count === 0
-                anchors.centerIn: parent
+                visible: panel.qvAnzeige.length === 0
+                width: parent.width; topPadding: 40
                 spacing: 6
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: panel.projektId >= 0 ? qsTr("Keine Querverweise im Projekt") : qsTr("Kein Projekt ausgewählt")
+                    text: panel.projektId < 0 ? qsTr("Kein Projekt ausgewählt")
+                        : (panel.qvFilter ? qsTr("Kein Treffer für den Filter") : qsTr("Keine Querverweise im Projekt"))
                     font.pixelSize: 14; color: root.theme.borderDark
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: panel.projektId >= 0
+                    visible: panel.projektId >= 0 && !panel.qvFilter
                     text: qsTr("Querverweis-Linien im Canvas zeichnen (Werkzeug: ∿), um Querverweise zu erzeugen.")
                     font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
                 }
             }
 
-            delegate: Rectangle {
-                width: qvView.width; height: 30
-                color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
-                Row {
-                    anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                    spacing: 0
-                    Text { width: panel.qvCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: model.signalname || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.qvCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: model.richtung   || ""; font.pixelSize: 12;
-                           color: model.richtung === "ausgang" ? root.theme.accent : "#66ddaa"; elide: Text.ElideRight }
-                    Text { width: panel.qvCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.seite      || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
-                    Text { width: panel.qvCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: model.zielSeite  || "–"; font.pixelSize: 12;
-                           color: model.zielSeite ? root.theme.accentLight : root.theme.borderDark; elide: Text.ElideRight }
-                    Item {
-                        width: panel.qvCols[4].w; height: 30
-                        Rectangle {
-                            anchors.centerIn: parent; width: 20; height: 18; radius: 3
-                            color: qvSprungMa.containsMouse ? root.theme.accent : "transparent"
-                            border.color: qvSprungMa.containsMouse ? root.theme.accent : root.theme.border
-                            Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
-                                   color: qvSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
-                            MouseArea {
-                                id: qvSprungMa; anchors.fill: parent
-                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                enabled: panel.canvas !== null && (model.seiteId || 0) > 0
-                                onClicked: panel.canvas.bmElementSprungAnfordern(
-                                    model.seiteId, model.seite, model.seiteBez, model.weltX, model.weltY)
+            Repeater {
+                model: panel.qvAnzeige
+                delegate: Rectangle {
+                    width: parent.width; height: 30
+                    color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd
+                    Row {
+                        anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                        spacing: 0
+                        Text { width: panel.qvCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.signalname || "–"; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                        Text { width: panel.qvCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.richtung   || ""; font.pixelSize: 12;
+                               color: modelData.richtung === "ausgang" ? root.theme.accent : "#66ddaa"; elide: Text.ElideRight }
+                        Text { width: panel.qvCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.seite      || ""; font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight }
+                        Text { width: panel.qvCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.zielSeite  || "–"; font.pixelSize: 12;
+                               color: modelData.zielSeite ? root.theme.accentLight : root.theme.borderDark; elide: Text.ElideRight }
+                        Item {
+                            width: panel.qvCols[4].w; height: 30
+                            Rectangle {
+                                anchors.centerIn: parent; width: 20; height: 18; radius: 3
+                                color: qvSprungMa.containsMouse ? root.theme.accent : "transparent"
+                                border.color: qvSprungMa.containsMouse ? root.theme.accent : root.theme.border
+                                Text { anchors.centerIn: parent; text: "→"; font.pixelSize: 10;
+                                       color: qvSprungMa.containsMouse ? "#ffffff" : root.theme.accent }
+                                MouseArea {
+                                    id: qvSprungMa; anchors.fill: parent
+                                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    enabled: panel.canvas !== null && (modelData.seiteId || 0) > 0
+                                    onClicked: panel.canvas.bmElementSprungAnfordern(
+                                        modelData.seiteId, modelData.seite, modelData.seiteBez, modelData.weltX, modelData.weltY)
+                                }
                             }
                         }
                     }

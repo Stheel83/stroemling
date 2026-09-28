@@ -10,6 +10,12 @@ ColumnLayout {
     required property var theme
     spacing: 0
 
+    readonly property real _gesamtEur: {
+        var s = 0
+        for (var i = 0; i < panel.boAnzeige.length; i++) s += (panel.boAnzeige[i].summeEur || 0)
+        return s
+    }
+
     FileDialog {
         id: csvDialogBestellliste
         fileMode: FileDialog.SaveFile
@@ -18,16 +24,41 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.bestellisteCsvSpeichern(panel.projektId, selectedFile)
     }
+    FileDialog {
+        id: pdfDialogBestellliste
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Bestellliste als PDF speichern")
+        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var spalten = panel.boCols.map(function (c) { return c.header })
+            var zeilen = panel.boAnzeige.map(function (r) {
+                return [r.bezeichnung || "", r.hersteller || "", r.artikelnummer || "", r.bestellnummer || "",
+                        r.lieferant || "",
+                        (r.einheit === "Stk" ? r.menge.toFixed(0) : r.menge.toFixed(2)) + " " + (r.einheit || ""),
+                        r.preisEur > 0 ? r.preisEur.toFixed(2) : "–",
+                        r.summeEur > 0 ? r.summeEur.toFixed(2) : "–"]
+            })
+            db.listePdfSpeichern(qsTr("Bestellliste"), panel.projektName, spalten, zeilen, selectedFile)
+        }
+    }
 
     LaCsvLeiste {
         theme: root.theme
         listenName: qsTr("Bestellliste")
-        anzahl: panel._bestellisteModel.count
+        anzahl: panel.boAnzeige.length
+        filterText: panel.boFilter
+        onFilterTextChanged: panel.boFilter = filterText
         onCsvKlick: csvDialogBestellliste.open()
+        onPdfKlick: pdfDialogBestellliste.open()
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
-    LaSpaltenHeader { panel: root.panel; theme: root.theme; colsProp: "boCols" }
+    LaSpaltenHeader {
+        panel: root.panel; theme: root.theme; colsProp: "boCols"
+        sortFeld: panel.boSortFeld; sortAsc: panel.boSortAsc
+        onSpalteKlick: (feld) => panel.sortSetzen("boSortFeld", "boSortAsc", feld)
+    }
     Rectangle { height: 1; Layout.fillWidth: true; color: theme.border }
 
     ScrollView {
@@ -35,20 +66,21 @@ ColumnLayout {
 
         ListView {
             id: boView
-            model: panel._bestellisteModel; clip: true
+            model: panel.boAnzeige; clip: true
 
             Column {
-                visible: panel._bestellisteModel.count === 0
+                visible: panel.boAnzeige.length === 0
                 anchors.centerIn: parent
                 spacing: 6
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: panel.projektId >= 0 ? qsTr("Keine bestellbaren Bauteile im Projekt") : qsTr("Kein Projekt ausgewählt")
+                    text: panel.projektId < 0 ? qsTr("Kein Projekt ausgewählt")
+                        : (panel.boFilter ? qsTr("Kein Treffer für den Filter") : qsTr("Keine bestellbaren Bauteile im Projekt"))
                     font.pixelSize: 14; color: root.theme.borderDark
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: panel.projektId >= 0
+                    visible: panel.projektId >= 0 && !panel.boFilter
                     text: qsTr("Nur Klemmen, Kabel und Geräte mit Bauteil-Verknüpfung erscheinen hier (v1).")
                     font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
                 }
@@ -61,28 +93,39 @@ ColumnLayout {
                 Row {
                     anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                     spacing: 0
-                    Text { width: panel.boCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: model.bezeichnung   || ""; font.pixelSize: 12; color: root.theme.accent;         elide: Text.ElideRight }
-                    Text { width: panel.boCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: model.hersteller    || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.boCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: model.artikelnummer || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.boCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: model.bestellnummer || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
-                    Text { width: panel.boCols[4].w; anchors.verticalCenter: parent.verticalCenter; text: model.lieferant     || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.boCols[0].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.bezeichnung   || ""; font.pixelSize: 12; color: root.theme.accent;         elide: Text.ElideRight }
+                    Text { width: panel.boCols[1].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.hersteller    || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.boCols[2].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.artikelnummer || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.boCols[3].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.bestellnummer || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
+                    Text { width: panel.boCols[4].w; anchors.verticalCenter: parent.verticalCenter; text: modelData.lieferant     || ""; font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight }
                     Text {
                         width: panel.boCols[5].w; anchors.verticalCenter: parent.verticalCenter
-                        text: (model.einheit === "Stk" ? model.menge.toFixed(0) : model.menge.toFixed(2)) + " " + (model.einheit || "")
+                        text: (modelData.einheit === "Stk" ? modelData.menge.toFixed(0) : modelData.menge.toFixed(2)) + " " + (modelData.einheit || "")
                         font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight
                     }
                     Text {
                         width: panel.boCols[6].w; anchors.verticalCenter: parent.verticalCenter
-                        text: model.preisEur > 0 ? model.preisEur.toFixed(2) : "–"
+                        text: modelData.preisEur > 0 ? modelData.preisEur.toFixed(2) : "–"
                         font.pixelSize: 12; color: root.theme.textSecondary; elide: Text.ElideRight
                     }
                     Text {
                         width: panel.boCols[7].w; anchors.verticalCenter: parent.verticalCenter
-                        text: model.summeEur > 0 ? model.summeEur.toFixed(2) : "–"
+                        text: modelData.summeEur > 0 ? modelData.summeEur.toFixed(2) : "–"
                         font.pixelSize: 12; color: root.theme.accentLight; elide: Text.ElideRight
                     }
                 }
             }
+        }
+    }
+
+    // Fußzeile: Gesamtsumme EUR (LISTEN-IDEEN-01)
+    Rectangle {
+        visible: panel.boAnzeige.length > 0
+        Layout.fillWidth: true; height: 28; color: theme.tableHeader
+        Text {
+            anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+            text: qsTr("Gesamtsumme: %1 EUR").arg(root._gesamtEur.toFixed(2))
+            font.pixelSize: 12; font.weight: Font.Medium; color: theme.accentLight
         }
     }
 }

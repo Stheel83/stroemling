@@ -10,6 +10,13 @@ Rectangle {
     property int leftMargin:  12
     property int minColWidth: 40
 
+    // Klick-Sortierung (LISTEN-IDEEN-01): nur Spalten mit cols[i].field sind
+    // klickbar. sortFeld/sortAsc kommen von der Tab-Seite (Panel-Sortierstate),
+    // spalteKlick meldet den geklickten field-Namen zurück.
+    property string sortFeld: ""
+    property bool   sortAsc:  true
+    signal spalteKlick(string feld)
+
     readonly property var cols: panel[colsProp]
 
     Layout.fillWidth: true
@@ -35,8 +42,21 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - (index < root.cols.length - 1 ? 6 : 0)
                     text: root.cols[index].header
+                          + (root.cols[index].field && root.cols[index].field === root.sortFeld
+                             ? (root.sortAsc ? " ▲" : " ▼") : "")
                     font.pixelSize: 11; font.weight: Font.Medium; color: root.theme.textSubtle
                     elide: Text.ElideRight
+                }
+
+                // Klickfläche für Sortierung – lässt rechts Platz für den
+                // Resize-Griff (dessen Trefferbereich per margins:-3 übersteht).
+                MouseArea {
+                    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                    width: Math.max(0, parent.width - 8)
+                    visible: !!root.cols[index].field
+                    enabled: !!root.cols[index].field
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.spalteKlick(root.cols[index].field)
                 }
 
                 // Drag-Griff zum Verändern der Spaltenbreite (verschiebt Breite
@@ -69,8 +89,8 @@ Rectangle {
                                        Math.min(gesamt - root.minColWidth, _startW0 + dx))
                             var w1 = gesamt - w0
                             var arr = root.cols.slice()
-                            arr[index]     = { header: arr[index].header,     w: w0 }
-                            arr[index + 1] = { header: arr[index + 1].header, w: w1 }
+                            arr[index]     = Object.assign({}, arr[index],     { w: w0 })
+                            arr[index + 1] = Object.assign({}, arr[index + 1], { w: w1 })
                             root.panel[root.colsProp] = arr
                         }
                         onReleased: root.panel.spaltenSpeichern(root.colsProp)

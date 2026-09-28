@@ -11,6 +11,12 @@ ColumnLayout {
     required property var theme
     spacing: 0
 
+    readonly property real _gesamtLaengeM: {
+        var s = 0
+        for (var i = 0; i < panel.klAnzeige.length; i++) s += (panel.klAnzeige[i].laengeM || 0)
+        return s
+    }
+
     FileDialog {
         id: csvDialogKabel
         fileMode: FileDialog.SaveFile
@@ -19,12 +25,33 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.kabellisteCsvSpeichern(panel.projektId, selectedFile)
     }
+    FileDialog {
+        id: pdfDialogKabel
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Kabelliste als PDF speichern")
+        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var spalten = panel.klCols.map(function (c) { return c.header })
+            var zeilen = panel.klAnzeige.map(function (k) {
+                return [k.bezeichnung || "–", k.kabeltyp || "–",
+                        k.aderzahl > 0 ? k.aderzahl : "–",
+                        k.querschnittMm2 > 0 ? (k.querschnittMm2 + "").replace(".", ",") : "–",
+                        k.laengeM > 0 ? (k.laengeM + "").replace(".", ",") + " m" : "–",
+                        k.vonOrt || "–", k.nachOrt || "–", k.linienAnzahl > 0 ? k.linienAnzahl : "–"]
+            })
+            db.listePdfSpeichern(qsTr("Kabelliste"), panel.projektName, spalten, zeilen, selectedFile)
+        }
+    }
 
     LaCsvLeiste {
         theme: root.theme
         listenName: qsTr("Kabelliste")
-        anzahl: panel._kabelDaten.length
+        anzahl: panel.klAnzeige.length
+        filterText: panel.klFilter
+        onFilterTextChanged: panel.klFilter = filterText
         onCsvKlick: csvDialogKabel.open()
+        onPdfKlick: pdfDialogKabel.open()
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: root.theme.border }
 
@@ -40,7 +67,7 @@ ColumnLayout {
             width: parent.width
 
             Repeater {
-                model: panel._kabelDaten
+                model: panel.klAnzeige
                 delegate: Column {
                     width: parent.width
                     property var  kbl:        modelData
@@ -171,19 +198,31 @@ ColumnLayout {
             }
 
             Text {
-                visible: panel._kabelDaten.length === 0
+                visible: panel.klAnzeige.length === 0
                 width: parent.width; height: 60
-                text: panel.projektId >= 0 ? qsTr("Keine Kabel im Projekt") : qsTr("Kein Projekt ausgewählt")
+                text: panel.projektId < 0 ? qsTr("Kein Projekt ausgewählt")
+                    : panel.klFilter ? qsTr("Kein Treffer für den Filter") : qsTr("Keine Kabel im Projekt")
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 font.pixelSize: 14; color: root.theme.borderDark
             }
             Text {
-                visible: panel._kabelDaten.length === 0 && panel.projektId >= 0
+                visible: panel.klAnzeige.length === 0 && panel.projektId >= 0 && !panel.klFilter
                 width: parent.width; height: 24
                 text: qsTr("Kabeldefinitionslinie im Canvas zeichnen (Werkzeug: ┄) und Kabel im Bauteilkatalog verknüpfen.")
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: 11; font.italic: true; color: root.theme.textMuted
             }
+        }
+    }
+
+    // Fußzeile: Gesamtlänge (LISTEN-IDEEN-01)
+    Rectangle {
+        visible: panel.klAnzeige.length > 0
+        Layout.fillWidth: true; height: 28; color: theme.tableHeader
+        Text {
+            anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+            text: qsTr("Gesamtlänge: %1 m").arg(root._gesamtLaengeM.toFixed(2))
+            font.pixelSize: 12; font.weight: Font.Medium; color: theme.accentLight
         }
     }
 }

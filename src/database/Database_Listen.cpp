@@ -16,6 +16,10 @@
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
+#include <QPrinter>
+#include <QPageLayout>
+#include <QPageSize>
+#include <QTextDocument>
 #include <algorithm>
 
 QVariantList Database::alleSeitenFlach(int projektId)
@@ -557,18 +561,36 @@ QVariantList Database::aderliste(int projektId)
 }
 
 // ============================================================
-// aderSummenliste (ADERSUMME-01)
+// aderSummenliste (ADERSUMME-01, jeAnlageOrt: LISTEN-IDEEN-01)
 // Materialliste: alle Aderdefinitionspunkte eines Projekts gruppiert nach
 // Aderfarbe+Aderfarbe2+Querschnitt, Längen je Gruppe aufsummiert.
 // Adern ohne Bauteil-Katalogbezug (freier Text in extra_daten) – daher
 // eigene Liste statt Einbau in die bauteil_id-basierte Bestellliste.
+// jeAnlageOrt=true: zusätzlich nach (überschriebener) Anlage/Ort gruppiert,
+// sinnvoll bei Projekten mit mehreren Anlagen/Schränken (wie viel Kabel
+// pro Schrank statt nur projektweit). Gleicher Override-Mechanismus wie
+// aderliste()/strukturkastenOverrideAnwenden().
 // ============================================================
-QVariantList Database::aderSummenliste(int projektId)
+QVariantList Database::aderSummenliste(int projektId, bool jeAnlageOrt)
 {
     QVariantList result;
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT ge.extra_daten
+        SELECT ge.extra_daten,
+               a.kuerzel AS anlage_kz,
+               o.kuerzel AS ort_kz,
+               COALESCE(a.anlage_uebergeordnet, '')   AS anlage_uo,
+               COALESCE(o.standort_uebergeordnet, '') AS ort_uo,
+               (SELECT sk.extra_daten
+                FROM grafik_element sk
+                WHERE sk.seite_id = ge.seite_id
+                  AND sk.typ = 'strukturkasten'
+                  AND (ge.x1 + ge.x2) / 2.0 >= MIN(sk.x1, sk.x2)
+                  AND (ge.x1 + ge.x2) / 2.0 <= MAX(sk.x1, sk.x2)
+                  AND (ge.y1 + ge.y2) / 2.0 >= MIN(sk.y1, sk.y2)
+                  AND (ge.y1 + ge.y2) / 2.0 <= MAX(sk.y1, sk.y2)
+                ORDER BY ABS((sk.x2 - sk.x1) * (sk.y2 - sk.y1)) ASC
+                LIMIT 1) AS sk_extra
         FROM grafik_element ge
         JOIN seite  s ON s.id  = ge.seite_id
         JOIN ort    o ON o.id  = s.ort_id
@@ -584,17 +606,20 @@ QVariantList Database::aderSummenliste(int projektId)
     }
 
     struct Gruppe {
-        QString aderfarbe, aderfarbe2;
+        QString aderfarbe, aderfarbe2, anlageKz, ortKz;
         double  querschnitt = 0.0;
         double  laenge      = 0.0;
         int     anzahl      = 0;
     };
     QVector<Gruppe> gruppen;
-    auto finde = [&](const QString &farbe, const QString &farbe2, double quer) -> Gruppe & {
+    auto finde = [&](const QString &farbe, const QString &farbe2, double quer,
+                      const QString &anlageKz, const QString &ortKz) -> Gruppe & {
         for (Gruppe &g : gruppen)
-            if (g.aderfarbe == farbe && g.aderfarbe2 == farbe2 && qFuzzyCompare(g.querschnitt + 1.0, quer + 1.0))
+            if (g.aderfarbe == farbe && g.aderfarbe2 == farbe2
+                && qFuzzyCompare(g.querschnitt + 1.0, quer + 1.0)
+                && g.anlageKz == anlageKz && g.ortKz == ortKz)
                 return g;
-        gruppen.append({farbe, farbe2, quer, 0.0, 0});
+        gruppen.append({farbe, farbe2, anlageKz, ortKz, quer, 0.0, 0});
         return gruppen.last();
     };
 
@@ -610,14 +635,25 @@ QVariantList Database::aderSummenliste(int projektId)
         const double  querschnitt = obj[QStringLiteral("querschnitt_mm2")].toDouble(0.0);
         const double  laenge      = obj[QStringLiteral("laenge_m")].toDouble(0.0);
 
-        Gruppe &g = finde(aderfarbe, aderfarbe2, querschnitt);
+        QString anlageKz, ortKz;
+        if (jeAnlageOrt) {
+            anlageKz = q.value(1).toString();
+            ortKz    = q.value(2).toString();
+            QString anlageUO = q.value(3).toString();
+            QString ortUO    = q.value(4).toString();
+            strukturkastenOverrideAnwenden(q.value(5).toString(), anlageKz, ortKz, anlageUO, ortUO);
+        }
+
+        Gruppe &g = finde(aderfarbe, aderfarbe2, querschnitt, anlageKz, ortKz);
         g.laenge += laenge;
         g.anzahl += 1;
     }
 
     std::sort(gruppen.begin(), gruppen.end(), [](const Gruppe &a, const Gruppe &b) {
-        if (a.aderfarbe != b.aderfarbe)   return a.aderfarbe  < b.aderfarbe;
-        if (a.aderfarbe2 != b.aderfarbe2) return a.aderfarbe2 < b.aderfarbe2;
+        if (a.anlageKz != b.anlageKz)     return a.anlageKz    < b.anlageKz;
+        if (a.ortKz != b.ortKz)           return a.ortKz       < b.ortKz;
+        if (a.aderfarbe != b.aderfarbe)   return a.aderfarbe   < b.aderfarbe;
+        if (a.aderfarbe2 != b.aderfarbe2) return a.aderfarbe2  < b.aderfarbe2;
         return a.querschnitt < b.querschnitt;
     });
 
@@ -628,6 +664,10 @@ QVariantList Database::aderSummenliste(int projektId)
         m[QStringLiteral("querschnittMm2")] = g.querschnitt;
         m[QStringLiteral("anzahl")]         = g.anzahl;
         m[QStringLiteral("laengeGesamtM")]  = g.laenge;
+        if (jeAnlageOrt) {
+            m[QStringLiteral("anlageKz")] = g.anlageKz;
+            m[QStringLiteral("ortKz")]    = g.ortKz;
+        }
         result.append(m);
     }
     return result;
@@ -1117,25 +1157,97 @@ bool Database::aderlisteCsvSpeichern(int projektId, const QString &pfad)
 // ============================================================
 // aderSummenlisteCsvSpeichern
 // ============================================================
-bool Database::aderSummenlisteCsvSpeichern(int projektId, const QString &pfad)
+bool Database::aderSummenlisteCsvSpeichern(int projektId, const QString &pfad, bool jeAnlageOrt)
 {
     QFile file;
     QTextStream out;
     if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "aderSummenlisteCsvSpeichern"))
         return false;
-    out << "Aderfarbe;Querschnitt mm2;Anzahl;Gesamtlaenge m\n";
+    out << (jeAnlageOrt ? "==Anlage;+Ort;Aderfarbe;Querschnitt mm2;Anzahl;Gesamtlaenge m\n"
+                        : "Aderfarbe;Querschnitt mm2;Anzahl;Gesamtlaenge m\n");
     auto csvQ = CsvHelfer::escapeBedarf;
-    for (const QVariant &v : aderSummenliste(projektId)) {
+    for (const QVariant &v : aderSummenliste(projektId, jeAnlageOrt)) {
         const QVariantMap row = v.toMap();
         QString af  = row[QStringLiteral("aderfarbe")].toString();
         QString af2 = row[QStringLiteral("aderfarbe2")].toString();
         const double querschnitt = row[QStringLiteral("querschnittMm2")].toDouble();
+        if (jeAnlageOrt)
+            out << csvQ(row[QStringLiteral("anlageKz")].toString()) << u';'
+                << csvQ(row[QStringLiteral("ortKz")].toString())    << u';';
         out << csvQ(af2.isEmpty() ? af : af + "/" + af2) << u';'
             << csvQ(querschnitt > 0 ? QString::number(querschnitt) : QString()) << u';'
             << row[QStringLiteral("anzahl")].toInt() << u';'
             << QString::number(row[QStringLiteral("laengeGesamtM")].toDouble(), 'f', 2) << u'\n';
     }
     return true;
+}
+
+// ============================================================
+// listePdfSpeichern (LISTEN-IDEEN-01)
+// Generischer Tabellen-PDF-Export für alle Listen der Listen-Ansicht.
+// Daten/Formatierung (inkl. aktiver Filter/Sortierung) kommen fertig
+// aufbereitet von der QML-Seite – hier nur HTML-Tabelle bauen + drucken,
+// analog zum bestehenden Muster in ibnProtokollPdfSpeichern().
+// ============================================================
+bool Database::listePdfSpeichern(const QString &titel, const QString &projektName,
+                                  const QStringList &spalten, const QVariantList &zeilen,
+                                  const QString &pfad)
+{
+    QString localPath = QUrl(pfad).toLocalFile();
+    if (localPath.isEmpty()) localPath = pfad;
+
+    auto esc = [](const QString &s) -> QString {
+        QString r = s;
+        r.replace(u'&', QLatin1String("&amp;"));
+        r.replace(u'<', QLatin1String("&lt;"));
+        r.replace(u'>', QLatin1String("&gt;"));
+        return r;
+    };
+
+    QString html;
+    html.reserve(32 * 1024);
+    html += QStringLiteral(R"(<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>
+  body  { font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; color: #222; margin: 0; }
+  h1    { font-size: 13pt; color: #1a3560; margin: 0 0 2px 0; }
+  .subtitle { font-size: 9pt; color: #555; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th    { text-align: left; background: #eef2f7; padding: 4px 6px; font-size: 8pt;
+          color: #1a3560; border-bottom: 1px solid #1a3560; }
+  td    { padding: 3px 6px; font-size: 8.5pt; border-bottom: 1px solid #e0e0e0; }
+  tr:nth-child(even) td { background: #f7f7f7; }
+</style></head><body>)");
+
+    html += QStringLiteral("<h1>") + esc(titel) + QStringLiteral("</h1>");
+    if (!projektName.isEmpty())
+        html += QStringLiteral("<div class='subtitle'>") + esc(projektName) + QStringLiteral("</div>");
+
+    html += QStringLiteral("<table><thead><tr>");
+    for (const QString &s : spalten)
+        html += QStringLiteral("<th>") + esc(s) + QStringLiteral("</th>");
+    html += QStringLiteral("</tr></thead><tbody>");
+
+    for (const QVariant &zv : zeilen) {
+        const QVariantList zeile = zv.toList();
+        html += QStringLiteral("<tr>");
+        for (const QVariant &cv : zeile)
+            html += QStringLiteral("<td>") + esc(cv.toString()) + QStringLiteral("</td>");
+        html += QStringLiteral("</tr>");
+    }
+    html += QStringLiteral("</tbody></table></body></html>");
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setOutputFileName(localPath);
+    printer.setPageSize(QPageSize(QPageSize::A4));
+    printer.setPageOrientation(QPageLayout::Landscape);
+    printer.setPageMargins(QMarginsF(12, 12, 12, 12), QPageLayout::Millimeter);
+
+    QTextDocument doc;
+    doc.setHtml(html);
+    doc.print(&printer);
+
+    return QFile::exists(localPath);
 }
 
 // ============================================================

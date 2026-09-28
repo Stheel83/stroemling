@@ -18,17 +18,41 @@ ColumnLayout {
         defaultSuffix: "csv"
         onAccepted: db.steckverbinderlisteCsvSpeichern(panel.projektId, selectedFile)
     }
+    FileDialog {
+        id: pdfDialog
+        fileMode: FileDialog.SaveFile
+        title: qsTr("Steckverbinderliste als PDF speichern")
+        nameFilters: ["PDF-Dateien (*.pdf)", "Alle Dateien (*)"]
+        defaultSuffix: "pdf"
+        onAccepted: {
+            var spalten = panel.svCols.map(function (c) { return c.header })
+            var zeilen = panel.svAnzeige.map(function (r) {
+                return [r.bmk || "", r.gkBezeichnung || "", r.bauteilBez || "", r.hersteller || "",
+                        r.polzahl > 0 ? r.polzahl + qsTr("-pol") : "", r.ipGesteckt || "", r.kodierung || "",
+                        r.geschirmt ? "SH" : "–", r.blattnr || "", r.anlageUO || "", r.ortUO || "",
+                        r.anlageKz || "", r.ortKz || "", ""]
+            })
+            db.listePdfSpeichern(qsTr("Steckverbinder"), panel.projektName, spalten, zeilen, selectedFile)
+        }
+    }
 
     LaCsvLeiste {
         theme: root.theme
         listenName: qsTr("Steckverbinder")
-        anzahl: panel._svDaten.length
+        anzahl: panel.svAnzeige.length
+        filterText: panel.svFilter
+        onFilterTextChanged: panel.svFilter = filterText
         onCsvKlick: csvDialog.open()
+        onPdfKlick: pdfDialog.open()
     }
     Rectangle { height: 1; Layout.fillWidth: true; color: root.theme.border }
 
     // Spalten-Header
-    LaSpaltenHeader { panel: root.panel; theme: root.theme; colsProp: "svCols" }
+    LaSpaltenHeader {
+        panel: root.panel; theme: root.theme; colsProp: "svCols"
+        sortFeld: panel.svSortFeld; sortAsc: panel.svSortAsc
+        onSpalteKlick: (feld) => panel.sortSetzen("svSortFeld", "svSortAsc", feld)
+    }
     Rectangle { height: 1; Layout.fillWidth: true; color: root.theme.border }
 
     ScrollView {
@@ -40,18 +64,18 @@ ColumnLayout {
             width: parent.width
 
             Text {
-                visible: panel._svDaten.length === 0
+                visible: panel.svAnzeige.length === 0
                 width: parent.width; padding: 24
-                text: panel.projektId >= 0
-                    ? qsTr("Keine Steckverbinder-Gerätekästen im Projekt.\nGerätekasten zeichnen (G), dann im BAUTEILE-Panel ein Steckverbinder-Bauteil verknüpfen.")
-                    : qsTr("Kein Projekt ausgewählt")
+                text: panel.projektId < 0 ? qsTr("Kein Projekt ausgewählt")
+                    : panel.svFilter ? qsTr("Kein Treffer für den Filter")
+                    : qsTr("Keine Steckverbinder-Gerätekästen im Projekt.\nGerätekasten zeichnen (G), dann im BAUTEILE-Panel ein Steckverbinder-Bauteil verknüpfen.")
                 font.pixelSize: 12; color: root.theme.textMuted
                 font.italic: true; wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
 
             Repeater {
-                model: panel._svDaten
+                model: panel.svAnzeige
                 delegate: Rectangle {
                     width: parent.width; height: 30
                     color: index % 2 === 0 ? root.theme.tableEven : root.theme.tableOdd

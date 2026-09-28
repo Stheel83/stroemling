@@ -17,29 +17,28 @@ Item {
     onProjektIdChanged: laden()
     onVisibleChanged:   if (visible && projektId >= 0) laden()
 
+    // LISTEN-IDEEN-01: Stückliste/Querverweise/Aderliste/Bestellliste/
+    // Adersummenliste liegen als rohe JS-Arrays vor (statt ListModel), analog
+    // zum schon vorhandenen Muster bei _kabelDaten/_svDaten/_bpDaten – nötig
+    // für Klick-Sortierung + Freitext-Filter (siehe _listeGefiltertSortiert).
+    // Klemmenplan/Klemmlistenauszug bleiben ListModel: hierarchische Gruppen-
+    // Header (Leiste→Klemmen bzw. Leiste→Anschlüsse), Sortierung/Filter dort
+    // bewusst nicht angeboten – würde die Gruppierung zerreißen.
     function laden() {
         if (projektId < 0) {
-            stuecklisteModel.clear();      querverweisModel.clear()
-            aderlisteModel.clear();        klemmenplanModel.clear()
-            klaModel.clear();              bestellisteModel.clear()
-            aderSummenlisteModel.clear()
-            panel._kabelDaten = []; return
+            panel._stuecklisteDaten     = []
+            panel._querverweisDaten     = []
+            panel._aderlisteDaten       = []
+            panel._bestellisteDaten     = []
+            panel._aderSummenlisteDaten = []
+            klemmenplanModel.clear(); klaModel.clear()
+            panel._kabelDaten = []; panel._svDaten = []; panel._bpDaten = []
+            return
         }
-        stuecklisteModel.clear()
-        var sl = db.stueckliste(projektId)
-        for (var i = 0; i < sl.length; i++) stuecklisteModel.append(sl[i])
-
-        querverweisModel.clear()
-        var qvl = db.querverweisListe(projektId)
-        for (var j = 0; j < qvl.length; j++) querverweisModel.append(qvl[j])
-
-        aderlisteModel.clear()
-        var al = db.aderliste(projektId)
-        for (var k = 0; k < al.length; k++) aderlisteModel.append(al[k])
-
-        aderSummenlisteModel.clear()
-        var asl = db.aderSummenliste(projektId)
-        for (var q = 0; q < asl.length; q++) aderSummenlisteModel.append(asl[q])
+        panel._stuecklisteDaten = db.stueckliste(projektId)
+        panel._querverweisDaten = db.querverweisListe(projektId)
+        panel._aderlisteDaten   = db.aderliste(projektId)
+        aderSummenlisteNeuLaden()
 
         klemmenplanModel.clear()
         var kp = db.klemmenplan(projektId)
@@ -55,31 +54,106 @@ Item {
         panel._svDaten = db.steckverbinderListe(projektId)
         panel._bpDaten = db.steckverbinderBelegungsplan(projektId)
 
-        bestellisteModel.clear()
-        var bl = db.bestellliste(projektId)
-        for (var p = 0; p < bl.length; p++) bestellisteModel.append(bl[p])
+        panel._bestellisteDaten = db.bestellliste(projektId)
     }
 
-    ListModel { id: stuecklisteModel }
-    ListModel { id: querverweisModel }
-    ListModel { id: aderlisteModel }
+    // Adersummenliste separat neu ladbar (Umschalter "je Anlage/Ort", ohne
+    // die restlichen Listen mitzuladen).
+    property bool asJeAnlageOrt: false
+    onAsJeAnlageOrtChanged: aderSummenlisteNeuLaden()
+    function aderSummenlisteNeuLaden() {
+        panel._aderSummenlisteDaten = projektId >= 0 ? db.aderSummenliste(projektId, asJeAnlageOrt) : []
+    }
+
     ListModel { id: klemmenplanModel }
     ListModel { id: klaModel }
-    ListModel { id: bestellisteModel }
-    ListModel { id: aderSummenlisteModel }
 
-    property alias _stuecklisteModel:      stuecklisteModel
-    property alias _querverweisModel:      querverweisModel
-    property alias _aderlisteModel:        aderlisteModel
-    property alias _klemmenplanModel:      klemmenplanModel
-    property alias _klaModel:              klaModel
-    property alias _bestellisteModel:      bestellisteModel
-    property alias _aderSummenlisteModel:  aderSummenlisteModel
+    property alias _klemmenplanModel: klemmenplanModel
+    property alias _klaModel:         klaModel
+
+    property var _stuecklisteDaten:     []
+    property var _querverweisDaten:     []
+    property var _aderlisteDaten:       []
+    property var _bestellisteDaten:     []
+    property var _aderSummenlisteDaten: []
 
     property var _kabelDaten:    []
     property var _kabelExpanded: ({})
     property var _svDaten:       []
     property var _bpDaten:       []
+
+    // ── Sortier-/Filterzustand je flacher Liste (LISTEN-IDEEN-01) ─────
+    property string slSortFeld: ""; property bool slSortAsc: true
+    property string qvSortFeld: ""; property bool qvSortAsc: true
+    property string alSortFeld: ""; property bool alSortAsc: true
+    property string boSortFeld: ""; property bool boSortAsc: true
+    property string asSortFeld: ""; property bool asSortAsc: true
+    property string svSortFeld: ""; property bool svSortAsc: true
+
+    property string slFilter: ""
+    property string qvFilter: ""
+    property string alFilter: ""
+    property string boFilter: ""
+    property string asFilter: ""
+    property string svFilter: ""
+    property string klFilter: ""
+
+    // Klick auf Spaltenkopf: gleiches Feld erneut → Richtung umdrehen,
+    // sonst neu aufsteigend sortieren.
+    function sortSetzen(feldProp, ascProp, feld) {
+        if (panel[feldProp] === feld) panel[ascProp] = !panel[ascProp]
+        else { panel[feldProp] = feld; panel[ascProp] = true }
+    }
+
+    // Gemeinsame Filter+Sortier-Logik für alle flachen Listen. filterFelder:
+    // Feldnamen, die textuell durchsucht werden. sortFeld leer → unsortiert
+    // (Original-Reihenfolge aus der DB-Abfrage bleibt erhalten).
+    function _listeGefiltertSortiert(daten, filterText, filterFelder, sortFeld, sortAsc) {
+        var out = daten || []
+        if (filterText) {
+            var ft = filterText.toLowerCase()
+            out = out.filter(function (row) {
+                for (var i = 0; i < filterFelder.length; i++) {
+                    var v = row[filterFelder[i]]
+                    if (v !== undefined && v !== null && String(v).toLowerCase().indexOf(ft) !== -1) return true
+                }
+                return false
+            })
+        }
+        if (sortFeld) {
+            out = out.slice().sort(function (a, b) {
+                var av = a[sortFeld], bv = b[sortFeld]
+                if (typeof av === "number" && typeof bv === "number") return sortAsc ? av - bv : bv - av
+                av = (av === undefined || av === null) ? "" : String(av).toLowerCase()
+                bv = (bv === undefined || bv === null) ? "" : String(bv).toLowerCase()
+                if (av < bv) return sortAsc ? -1 : 1
+                if (av > bv) return sortAsc ? 1 : -1
+                return 0
+            })
+        }
+        return out
+    }
+
+    readonly property var slAnzeige: _listeGefiltertSortiert(_stuecklisteDaten, slFilter,
+        ["bmk", "symbolId", "freitext1", "freitext2", "seite", "anlageUO", "ortUO", "anlageKz", "ortKz"],
+        slSortFeld, slSortAsc)
+    readonly property var qvAnzeige: _listeGefiltertSortiert(_querverweisDaten, qvFilter,
+        ["signalname", "richtung", "seite", "zielSeite"], qvSortFeld, qvSortAsc)
+    readonly property var alAnzeige: _listeGefiltertSortiert(_aderlisteDaten, alFilter,
+        ["bezeichnung", "aderfarbe", "aderfarbe2", "seite", "anlageUO", "ortUO", "anlageKz", "ortKz"],
+        alSortFeld, alSortAsc)
+    readonly property var boAnzeige: _listeGefiltertSortiert(_bestellisteDaten, boFilter,
+        ["bezeichnung", "hersteller", "artikelnummer", "bestellnummer", "lieferant"], boSortFeld, boSortAsc)
+    // Je-Anlage/Ort-Modus: nur filtern, NICHT sortieren – die Gruppierung
+    // nach Anlage/Ort/Farbe/Querschnitt aus der DB bleibt sonst zerrissen.
+    readonly property var asAnzeige: asJeAnlageOrt
+        ? _listeGefiltertSortiert(_aderSummenlisteDaten, asFilter, ["aderfarbe", "aderfarbe2", "anlageKz", "ortKz"], "", true)
+        : _listeGefiltertSortiert(_aderSummenlisteDaten, asFilter, ["aderfarbe", "aderfarbe2"], asSortFeld, asSortAsc)
+    readonly property var svAnzeige: _listeGefiltertSortiert(_svDaten, svFilter,
+        ["bmk", "gkBezeichnung", "bauteilBez", "hersteller", "blattnr", "anlageUO", "ortUO", "anlageKz", "ortKz"],
+        svSortFeld, svSortAsc)
+    readonly property var klAnzeige: _listeGefiltertSortiert(_kabelDaten, klFilter,
+        ["bezeichnung", "kabeltyp", "vonOrt", "nachOrt"], "", true)
 
     readonly property int _bpKontaktAnzahl: {
         var n = 0
@@ -148,24 +222,26 @@ Item {
         return max
     }
 
+    // field: Datenfeld für Klick-Sortierung (LISTEN-IDEEN-01) – fehlt field,
+    // ist die Spalte nicht klickbar (z.B. "Canvas Pos."-Sprungpfeil-Spalte).
     property var slCols: [
-        { header: "BMK",        w: 110 }, { header: "Typ",        w: 110 },
-        { header: "Freitext 1", w: 130 }, { header: "Freitext 2", w: 130 },
-        { header: "Seite",      w: 65  }, { header: "==Anlage",   w: 65  },
-        { header: "++Ort",      w: 65  }, { header: "=Anlage",    w: 55  },
-        { header: "+Ort",       w: 55  }, { header: "Canvas Pos.", w: 70  }
+        { header: "BMK",        w: 110, field: "bmk" },       { header: "Typ",        w: 110, field: "symbolId" },
+        { header: "Freitext 1", w: 130, field: "freitext1" }, { header: "Freitext 2", w: 130, field: "freitext2" },
+        { header: "Seite",      w: 65,  field: "seite" },     { header: "==Anlage",   w: 65,  field: "anlageUO" },
+        { header: "++Ort",      w: 65,  field: "ortUO" },     { header: "=Anlage",    w: 55,  field: "anlageKz" },
+        { header: "+Ort",       w: 55,  field: "ortKz" },     { header: "Canvas Pos.", w: 70  }
     ]
     property var qvCols: [
-        { header: "Signalname", w: 160 }, { header: "Richtung",    w: 100 },
-        { header: "Seite",      w: 90  }, { header: "Zielseite",   w: 90  },
+        { header: "Signalname", w: 160, field: "signalname" }, { header: "Richtung",    w: 100, field: "richtung" },
+        { header: "Seite",      w: 90,  field: "seite" },      { header: "Zielseite",   w: 90,  field: "zielSeite" },
         { header: "Canvas Pos.", w: 70 }
     ]
     property var alCols: [
-        { header: "Bezeichnung",  w: 80 }, { header: "Aderfarbe",   w: 70 },
-        { header: "Querschnitt",  w: 80 }, { header: "Länge (m)",   w: 70 },
-        { header: "Seite",        w: 60 }, { header: "==Anlage",    w: 60 },
-        { header: "++Ort",        w: 60 }, { header: "=Anlage",     w: 55 },
-        { header: "+Ort",         w: 55 }, { header: "Canvas Pos.", w: 70 }
+        { header: "Bezeichnung",  w: 80, field: "bezeichnung" },     { header: "Aderfarbe",   w: 70, field: "aderfarbe" },
+        { header: "Querschnitt",  w: 80, field: "querschnittMm2" },  { header: "Länge (m)",   w: 70, field: "laengeM" },
+        { header: "Seite",        w: 60, field: "seite" },           { header: "==Anlage",    w: 60, field: "anlageUO" },
+        { header: "++Ort",        w: 60, field: "ortUO" },           { header: "=Anlage",     w: 55, field: "anlageKz" },
+        { header: "+Ort",         w: 55, field: "ortKz" },           { header: "Canvas Pos.", w: 70 }
     ]
     property var kpCols: [
         { header: "Nr.",         w: 55  }, { header: "Bauteil",     w: 155 },
@@ -187,13 +263,13 @@ Item {
         { header: "Nach-Ort",    w: 100 }, { header: "Linien",    w: 50  }
     ]
     property var svCols: [
-        { header: "BMK",         w: 80  }, { header: "Bezeichnung", w: 120 },
-        { header: "Bauteil/Typ", w: 130 }, { header: "Hersteller",  w: 110 },
-        { header: "Polzahl",     w: 60  }, { header: "IP gesteckt", w: 75  },
-        { header: "Kodierung",   w: 70  }, { header: "Geschirmt",   w: 70  },
-        { header: "Seite",       w: 55  }, { header: "==Anlage",    w: 65  },
-        { header: "++Ort",       w: 65  }, { header: "=Anlage",     w: 55  },
-        { header: "+Ort",        w: 55  }, { header: "Canvas Pos.", w: 70  }
+        { header: "BMK",         w: 80,  field: "bmk" },           { header: "Bezeichnung", w: 120, field: "gkBezeichnung" },
+        { header: "Bauteil/Typ", w: 130, field: "bauteilBez" },    { header: "Hersteller",  w: 110, field: "hersteller" },
+        { header: "Polzahl",     w: 60,  field: "polzahl" },       { header: "IP gesteckt", w: 75,  field: "ipGesteckt" },
+        { header: "Kodierung",   w: 70,  field: "kodierung" },     { header: "Geschirmt",   w: 70,  field: "geschirmt" },
+        { header: "Seite",       w: 55,  field: "blattnr" },       { header: "==Anlage",    w: 65,  field: "anlageUO" },
+        { header: "++Ort",       w: 65,  field: "ortUO" },         { header: "=Anlage",     w: 55,  field: "anlageKz" },
+        { header: "+Ort",        w: 55,  field: "ortKz" },         { header: "Canvas Pos.", w: 70 }
     ]
     property var bpCols: [
         { header: qsTr("Pin"),        w: 45  }, { header: qsTr("Typ"),       w: 90  },
@@ -208,14 +284,14 @@ Item {
         { header: "Nach",        w: 90  }, { header: "",            w: 30  }
     ]
     property var boCols: [
-        { header: "Bezeichnung",     w: 180 }, { header: "Hersteller",    w: 120 },
-        { header: "Artikelnr.",      w: 110 }, { header: "Bestellnr.",    w: 110 },
-        { header: "Lieferant",       w: 110 }, { header: "Menge",         w: 80  },
-        { header: "Einzelpreis EUR", w: 100 }, { header: "Summe EUR",     w: 100 }
+        { header: "Bezeichnung",     w: 180, field: "bezeichnung" },   { header: "Hersteller",    w: 120, field: "hersteller" },
+        { header: "Artikelnr.",      w: 110, field: "artikelnummer" }, { header: "Bestellnr.",    w: 110, field: "bestellnummer" },
+        { header: "Lieferant",       w: 110, field: "lieferant" },     { header: "Menge",         w: 80,  field: "menge" },
+        { header: "Einzelpreis EUR", w: 100, field: "preisEur" },      { header: "Summe EUR",     w: 100, field: "summeEur" }
     ]
     property var asCols: [
-        { header: "Aderfarbe",  w: 100 }, { header: "Querschnitt", w: 90 },
-        { header: "Anzahl",     w: 70  }, { header: "Gesamtlänge", w: 100 }
+        { header: "Aderfarbe",  w: 100, field: "aderfarbe" },      { header: "Querschnitt", w: 90, field: "querschnittMm2" },
+        { header: "Anzahl",     w: 70,  field: "anzahl" },         { header: "Gesamtlänge", w: 100, field: "laengeGesamtM" }
     ]
 
     // ── Spaltenbreiten: Nutzer-Resizing + Persistenz ──────────────────
@@ -243,7 +319,7 @@ Item {
             var breiten = JSON.parse(json)
             var cols    = panel[propName]
             if (!Array.isArray(breiten) || breiten.length !== cols.length) return
-            var neu = cols.map(function (c, i) { return { header: c.header, w: breiten[i] } })
+            var neu = cols.map(function (c, i) { return Object.assign({}, c, { w: breiten[i] }) })
             panel[propName] = neu
         } catch (e) { /* ungültiges/altes JSON ignorieren, Default bleibt */ }
     }
@@ -455,16 +531,16 @@ Item {
                     // Klemmen → Steckverbinder → Navigation), unabhängig von der
                     // StackLayout-Reihenfolge (tab: verweist weiter auf deren Index).
                     model: [
-                        { label: qsTr("Stückliste  (")        + stuecklisteModel.count    + ")",  tab: 0 },
-                        { label: qsTr("Bestellliste  (")      + bestellisteModel.count    + ")",  tab: 8 },
-                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length  + ")",  tab: 5 },
-                        { label: qsTr("Aderliste  (")         + aderlisteModel.count      + ")",  tab: 2 },
-                        { label: qsTr("Adersummenliste  (")   + aderSummenlisteModel.count + ")", tab: 9 },
-                        { label: qsTr("Klemmenplan  (")       + klemmenplanZaehler        + ")",  tab: 3 },
-                        { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler + ")", tab: 4 },
-                        { label: qsTr("Steckverbinder  (")    + panel._svDaten.length     + ")",  tab: 6 },
-                        { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl    + ")",  tab: 7 },
-                        { label: qsTr("Querverweise  (")      + querverweisModel.count    + ")",  tab: 1 }
+                        { label: qsTr("Stückliste  (")        + panel._stuecklisteDaten.length     + ")", tab: 0 },
+                        { label: qsTr("Bestellliste  (")      + panel._bestellisteDaten.length     + ")", tab: 8 },
+                        { label: qsTr("Kabelliste  (")        + panel._kabelDaten.length           + ")", tab: 5 },
+                        { label: qsTr("Aderliste  (")         + panel._aderlisteDaten.length       + ")", tab: 2 },
+                        { label: qsTr("Adersummenliste  (")   + panel._aderSummenlisteDaten.length + ")", tab: 9 },
+                        { label: qsTr("Klemmenplan  (")       + klemmenplanZaehler                 + ")", tab: 3 },
+                        { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler         + ")", tab: 4 },
+                        { label: qsTr("Steckverbinder  (")    + panel._svDaten.length              + ")", tab: 6 },
+                        { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl             + ")", tab: 7 },
+                        { label: qsTr("Querverweise  (")      + panel._querverweisDaten.length     + ")", tab: 1 }
                     ]
                     delegate: Rectangle {
                         width: tabLabel.implicitWidth + 24; height: 28; radius: 5

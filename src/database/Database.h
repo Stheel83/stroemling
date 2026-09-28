@@ -203,10 +203,13 @@ public:
     // Gibt [{bezeichnung, aderfarbe, querschnittMm2, laengeM, seite, anlageKz, ortKz}] zurück.
     Q_INVOKABLE QVariantList aderliste(int projektId);
 
-    // Adersummenliste (ADERSUMME-01): aderliste()-Einträge gruppiert nach
-    // Aderfarbe+Aderfarbe2+Querschnitt, Längen aufsummiert, mit Anzahl je Gruppe.
-    // Gibt [{aderfarbe, aderfarbe2, querschnittMm2, anzahl, laengeGesamtM}] zurück.
-    Q_INVOKABLE QVariantList aderSummenliste(int projektId);
+    // Adersummenliste (ADERSUMME-01, LISTEN-IDEEN-01): aderliste()-Einträge
+    // gruppiert nach Aderfarbe+Aderfarbe2+Querschnitt, Längen aufsummiert,
+    // mit Anzahl je Gruppe. jeAnlageOrt=true gruppiert zusätzlich nach
+    // (überschriebener) Anlage/Ort – dann zusätzlich anlageKz/ortKz je Zeile.
+    // Gibt [{aderfarbe, aderfarbe2, querschnittMm2, anzahl, laengeGesamtM,
+    //        (anlageKz, ortKz)}] zurück.
+    Q_INVOKABLE QVariantList aderSummenliste(int projektId, bool jeAnlageOrt = false);
 
     // Erkannte Auto-Verbindungen (als Netze) in verbindung/verbindung_segment speichern.
     // netze: [{netKey, bezeichnung, signaltyp, farbe, querschnitt,
@@ -349,9 +352,20 @@ public:
     Q_INVOKABLE bool stuecklisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool querverweislisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool aderlisteCsvSpeichern(int projektId, const QString &pfad);
-    Q_INVOKABLE bool aderSummenlisteCsvSpeichern(int projektId, const QString &pfad);
+    Q_INVOKABLE bool aderSummenlisteCsvSpeichern(int projektId, const QString &pfad, bool jeAnlageOrt = false);
     Q_INVOKABLE bool kabellisteCsvSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE bool bestellisteCsvSpeichern(int projektId, const QString &pfad);
+
+    // Generischer PDF-Export für Listen (LISTEN-IDEEN-01): baut eine
+    // einfache Tabelle (Titel, optional Projektname, Kopfzeile, Zeilen) als
+    // Querformat-PDF. spalten = Kopfzeilentexte, zeilen = Liste von Zeilen,
+    // jede Zeile eine Liste von Zellentexten (gleiche Länge wie spalten).
+    // Formatierung/Datenauswahl (inkl. aktiver Filter/Sortierung) übernimmt
+    // die aufrufende QML-Seite, damit ein PDF exakt das zeigt was am
+    // Bildschirm sichtbar ist.
+    Q_INVOKABLE bool listePdfSpeichern(const QString &titel, const QString &projektName,
+                                        const QStringList &spalten, const QVariantList &zeilen,
+                                        const QString &pfad);
 
     // Normblatt: alle Daten einer Seite für Canvas-Rendering laden.
     // Gibt {blattnummer, bezeichnung, anlageKuerzel, ortKuerzel, breiteMm, hoeheMm,

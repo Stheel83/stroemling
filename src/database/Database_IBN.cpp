@@ -499,6 +499,8 @@ bool Database::seedIbnFeldvorlagen()
     struct KatMap { QString symbolId, kategorie; };
     static const QList<KatMap> katMap = {
         { "lss",          "leitungsschutzschalter" },
+        { "lss_3pol",     "leitungsschutzschalter" },
+        { "lss_2pol",     "leitungsschutzschalter" },
         { "sicherung",    "sicherung"              },
         { "fi",           "fi_schutzschalter"      },
         { "fi_2pol",      "fi_schutzschalter"      },

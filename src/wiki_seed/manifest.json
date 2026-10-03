@@ -145,35 +145,15 @@
       ]
     },
     {
-      "name": "Nachschlagetabellen",
-      "beschreibung": "Schnelle Referenztabellen: LSS, Strombelastbarkeit, RCD-Typen, IP/IK-Schutzarten, Anzugsdrehmomente, Aderendhülsen, Kabelverschraubungen",
+      "name": "Leitungen & Verbindungstechnik",
+      "beschreibung": "Strombelastbarkeit, AWG, Standardkabel, Wallbox-Dimensionierung, Aderendhülsen, Kabelverschraubungen, Anzugsdrehmomente",
       "sortierung": 20,
       "ist_system": false,
       "artikel": [
         {
-          "titel": "LSS – Auslösecharakteristiken B, C, D",
-          "tags": "leitungsschutzschalter MCB LSS auslösecharakteristik B C D Selektivität Motoranlauf",
-          "datei": "nachschlagetabellen/lss_ausloesecharakteristik.md"
-        },
-        {
           "titel": "Strombelastbarkeit von Leitungen und Einzeladern – VDE 0298",
           "tags": "strombelastbarkeit kabel leitung einzelader querschnitt VDE 0298 verlegeart häufung korrekturfaktor H07V-K H05V-K Schaltschrankverdrahtung Absicherung VDE 0100-430 gG-Sicherung Leitungsschutzschalter",
           "datei": "nachschlagetabellen/strombelastbarkeit_vde0298.md"
-        },
-        {
-          "titel": "RCD-Typen – Welcher FI-Schutzschalter wofür?",
-          "tags": "RCD FI Schutzschalter Typ A B F Wallbox Frequenzumrichter Wechselrichter EV-Laden",
-          "datei": "nachschlagetabellen/rcd_typen.md"
-        },
-        {
-          "titel": "IP-Schutzarten – Tabelle und Erklärung",
-          "tags": "IP Schutzart IP20 IP44 IP65 IP67 IP68 IP69K Staub Wasser Gehäuse DIN EN 60529",
-          "datei": "nachschlagetabellen/ip_schutzarten.md"
-        },
-        {
-          "titel": "IK-Schutzklassen – Mechanische Stoßfestigkeit",
-          "tags": "IK Schutzklasse Stoßfestigkeit IK07 IK08 IK10 Vandalismusschutz mechanisch",
-          "datei": "nachschlagetabellen/ik_schutzklassen.md"
         },
         {
           "titel": "Anzugsdrehmomente für Schraubklemmen",
@@ -242,7 +222,7 @@
     },
     {
       "name": "Schutzmaßnahmen",
-      "beschreibung": "5 Sicherheitsregeln, Überspannungsschutz SPD, Netzformen TN/TT/IT, PE vs. FE",
+      "beschreibung": "5 Sicherheitsregeln, Netzformen TN/TT/IT, PE vs. FE, Überspannungsschutz SPD, RCD-Typen, PRCD, LSS-Auslösecharakteristik, IP/IK-Schutzarten",
       "sortierung": 40,
       "ist_system": false,
       "artikel": [
@@ -275,6 +255,26 @@
           "titel": "PRCD – Ortsveränderliche Fehlerstrom-Schutzeinrichtungen",
           "tags": "PRCD PRCD-S PRCD-K Personenschutzschalter FI ortsveränderlich Zwischenstecker Baustelle Schutzleiterüberwachung DIN VDE 0661 IEC 61540 DGUV 203-006 Typ B CEE",
           "datei": "schutz/prcd_ortsveraenderliche_fi.md"
+        },
+        {
+          "titel": "LSS – Auslösecharakteristiken B, C, D",
+          "tags": "leitungsschutzschalter MCB LSS auslösecharakteristik B C D Selektivität Motoranlauf",
+          "datei": "nachschlagetabellen/lss_ausloesecharakteristik.md"
+        },
+        {
+          "titel": "RCD-Typen – Welcher FI-Schutzschalter wofür?",
+          "tags": "RCD FI Schutzschalter Typ A B F Wallbox Frequenzumrichter Wechselrichter EV-Laden",
+          "datei": "nachschlagetabellen/rcd_typen.md"
+        },
+        {
+          "titel": "IP-Schutzarten – Tabelle und Erklärung",
+          "tags": "IP Schutzart IP20 IP44 IP65 IP67 IP68 IP69K Staub Wasser Gehäuse DIN EN 60529",
+          "datei": "nachschlagetabellen/ip_schutzarten.md"
+        },
+        {
+          "titel": "IK-Schutzklassen – Mechanische Stoßfestigkeit",
+          "tags": "IK Schutzklasse Stoßfestigkeit IK07 IK08 IK10 Vandalismusschutz mechanisch",
+          "datei": "nachschlagetabellen/ik_schutzklassen.md"
         }
       ]
     },
@@ -799,5 +799,8 @@
         }
       ]
     }
+  ],
+  "entfallene_kategorien": [
+    "Nachschlagetabellen"
   ]
 }

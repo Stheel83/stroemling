@@ -1350,6 +1350,16 @@ bool Database::seedWikiStarterInhalte()
         WHERE kategorie_id = :kid AND titel = :titel AND ist_system = 1
     )");
 
+    // Seed-eigene Kategorien (aktuell im Manifest + entfallene): nur Artikel aus diesen
+    // werden beim Umsortieren verschoben, benutzerangelegte Kategorien bleiben unberührt.
+    QStringList seedKategorien;
+    for (const QJsonValue &v : doc["kategorien"].toArray())
+        seedKategorien << v.toObject()["name"].toString();
+    QStringList entfalleneKategorien;
+    for (const QJsonValue &v : doc["entfallene_kategorien"].toArray())
+        entfalleneKategorien << v.toString();
+    seedKategorien << entfalleneKategorien;
+
     for (const QJsonValue &katVal : doc["kategorien"].toArray()) {
         const QJsonObject kat     = katVal.toObject();
         const QString     katName = kat["name"].toString();
@@ -1391,6 +1401,37 @@ bool Database::seedWikiStarterInhalte()
                     inhalt = QString::fromUtf8(f.readAll());
                 else
                     qCWarning(lcDb) << "seedWikiStarterInhalte: Datei nicht gefunden:" << datei;
+            }
+
+            // Umsortierung: Seed-Artikel mit gleichem Titel in anderer Seed-Kategorie
+            // in die Zielkategorie verschieben (statt Duplikat anzulegen).
+            {
+                QSqlQuery qHas(m_wikiDb);
+                qHas.prepare("SELECT 1 FROM wiki_artikel WHERE kategorie_id = :kid AND titel = :t");
+                qHas.bindValue(":kid", katId);
+                qHas.bindValue(":t",   titel);
+                if (qHas.exec() && !qHas.next()) {
+                    QSqlQuery qAlt(m_wikiDb);
+                    qAlt.prepare(R"(
+                        SELECT a.id, k.name FROM wiki_artikel a
+                        JOIN wiki_kategorie k ON k.id = a.kategorie_id
+                        WHERE a.titel = :t AND a.kategorie_id <> :kid
+                    )");
+                    qAlt.bindValue(":t",   titel);
+                    qAlt.bindValue(":kid", katId);
+                    if (qAlt.exec()) {
+                        while (qAlt.next()) {
+                            if (!seedKategorien.contains(qAlt.value(1).toString())) continue;
+                            QSqlQuery qUmzug(m_wikiDb);
+                            qUmzug.prepare("UPDATE wiki_artikel SET kategorie_id = :kid WHERE id = :id");
+                            qUmzug.bindValue(":kid", katId);
+                            qUmzug.bindValue(":id",  qAlt.value(0).toInt());
+                            if (!qUmzug.exec())
+                                qCWarning(lcDb) << "seedWikiStarterInhalte Artikel-Umzug:" << qUmzug.lastError().text();
+                            break;
+                        }
+                    }
+                }
             }
 
             qArtIns.bindValue(":kid",    katId);
@@ -1525,6 +1566,19 @@ bool Database::seedWikiStarterInhalte()
                 }
             }
         }
+    }
+
+    // Entfallene Seed-Kategorien entfernen, sobald sie leer sind (Artikel wurden oben
+    // in ihre neue Kategorie verschoben).
+    for (const QString &name : entfalleneKategorien) {
+        QSqlQuery qDel(m_wikiDb);
+        qDel.prepare(R"(
+            DELETE FROM wiki_kategorie WHERE name = :n
+              AND NOT EXISTS (SELECT 1 FROM wiki_artikel WHERE kategorie_id = wiki_kategorie.id)
+        )");
+        qDel.bindValue(":n", name);
+        if (!qDel.exec())
+            qCWarning(lcDb) << "seedWikiStarterInhalte entfallene Kategorie:" << qDel.lastError().text();
     }
 
     return true;

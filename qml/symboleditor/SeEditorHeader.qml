@@ -47,7 +47,7 @@ Rectangle {
                 id: breiteBox
                 from: 4; to: 400; stepSize: 4
                 value: editor.breiteMm
-                onValueModified: editor.breiteMm = value
+                onValueModified: editor.groesseAendern(value, editor.hoeheMm)
                 implicitWidth: 80; implicitHeight: 28
                 // Fusion reserviert Padding nur rechts (▲/▼ gestapelt) – bei eigenen Indikatoren
                 // (▼ links) deckte das Zahlenfeld den ▼-Bereich ab und schluckte den Klick (SE-SPINBOX-01)
@@ -67,7 +67,7 @@ Rectangle {
                 down.indicator: Rectangle { width: 22; height: parent.height; color: "transparent"
                     Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: editor.theme.textMuted } }
                 ToolTip.visible: hovered; ToolTip.delay: 600
-                ToolTip.text: qsTr("Breite in mm (Vielfaches von 4 empfohlen)")
+                ToolTip.text: qsTr("Breite in mm (Vielfaches von 4 empfohlen)\nDer Inhalt bleibt in seinen mm-Maßen unverändert, das Symbol wächst nach rechts.")
             }
             Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
 
@@ -76,7 +76,7 @@ Rectangle {
                 id: hoeheBox
                 from: 4; to: 400; stepSize: 4
                 value: editor.hoeheMm
-                onValueModified: editor.hoeheMm = value
+                onValueModified: editor.groesseAendern(editor.breiteMm, value)
                 implicitWidth: 80; implicitHeight: 28
                 // Fusion reserviert Padding nur rechts (▲/▼ gestapelt) – bei eigenen Indikatoren
                 // (▼ links) deckte das Zahlenfeld den ▼-Bereich ab und schluckte den Klick (SE-SPINBOX-01)
@@ -96,7 +96,7 @@ Rectangle {
                 down.indicator: Rectangle { width: 22; height: parent.height; color: "transparent"
                     Text { anchors.centerIn: parent; text: "▼"; font.pixelSize: 8; color: editor.theme.textMuted } }
                 ToolTip.visible: hovered; ToolTip.delay: 600
-                ToolTip.text: qsTr("Höhe in mm (Vielfaches von 4 empfohlen, z.B. 104 mm für 26 Pins)")
+                ToolTip.text: qsTr("Höhe in mm (Vielfaches von 4 empfohlen, z.B. 104 mm für 26 Pins)\nDer Inhalt bleibt in seinen mm-Maßen unverändert, das Symbol wächst nach unten.")
             }
             Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
 

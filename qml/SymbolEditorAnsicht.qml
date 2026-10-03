@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "components"
 import "symboleditor"
+import "symboleditor/SeGroesse.js" as SeGroesse
 
 // ============================================================
 // SymbolEditorAnsicht – visueller Symboleditor (Phase D)
@@ -365,7 +366,9 @@ Item {
     function pushUndoSnapshot() {
         var snap = {
             primitive: primitive.map(function(p) { return Object.assign({}, p) }),
-            pins:      pins.map(function(p) { return Object.assign({}, p) })
+            pins:      pins.map(function(p) { return Object.assign({}, p) }),
+            breiteMm:  breiteMm,
+            hoeheMm:   hoeheMm
         }
         var neu = undoStack.concat([snap])
         undoStack = neu.length > _undoMax ? neu.slice(neu.length - _undoMax) : neu
@@ -409,8 +412,26 @@ Item {
         undoStack = undoStack.slice(0, undoStack.length - 1)
         primitive = last.primitive
         pins      = last.pins
+        // Größe mitzurücksetzen: Primitive/Pins sind relativ zur Größe normiert (SE-GROESSE-01)
+        if (last.breiteMm !== undefined) breiteMm = last.breiteMm
+        if (last.hoeheMm  !== undefined) hoeheMm  = last.hoeheMm
         if (ausgewaehltPrimIdx >= primitive.length) ausgewaehltPrimIdx = -1
         if (ausgewaehltPinIdx  >= pins.length)       ausgewaehltPinIdx  = -1
+        zeichneCanvas.requestPaint()
+    }
+
+    // Größe ändern, ohne den Inhalt zu verzerren (SE-GROESSE-01): absolute mm-Maße
+    // von Primitiven und Pins bleiben erhalten, das Symbol wächst nach rechts/unten.
+    function groesseAendern(neueBreite, neueHoehe) {
+        var nb = Math.max(4, Math.round(neueBreite))
+        var nh = Math.max(4, Math.round(neueHoehe))
+        if (nb === breiteMm && nh === hoeheMm) return
+        pushUndoSnapshot()
+        var r = SeGroesse.skaliere(primitive, pins, breiteMm, hoeheMm, nb, nh)
+        primitive = r.primitive
+        pins      = r.pins
+        breiteMm  = nb
+        hoeheMm   = nh
         zeichneCanvas.requestPaint()
     }
 

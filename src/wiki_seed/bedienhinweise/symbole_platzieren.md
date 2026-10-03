@@ -19,6 +19,11 @@
 2. Name, Kategorie und Größe (Breite/Höhe in mm) festlegen. Pin-Abstände
    sollten Vielfache von 4mm sein (das größer hervorgehobene Raster zeigt
    das an), sonst rasten Leitungen später nicht sauber ein.
+   Ändern Sie Breite oder Höhe nachträglich, bleibt der vorhandene Inhalt
+   in seinen mm-Maßen unverändert: das Symbol wächst nach rechts bzw. nach
+   unten (und schrumpft von dort), es wird nichts verzerrt. Pins am unteren
+   oder rechten Rand bleiben dabei an ihrer alten Position und müssen bei
+   Bedarf selbst an die neue Kante verschoben werden.
 3. Mit den Zeichenwerkzeugen (Linie, Rechteck, Kreis, Bogen, Punkt, Text)
    die Geometrie zeichnen. Strichart und „Gefüllt"-Schalter in der
    Werkzeugleiste wirken auf das **nächste neu gezeichnete** Objekt, nicht

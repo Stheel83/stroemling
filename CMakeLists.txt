@@ -218,6 +218,7 @@ qt_add_qml_module(stroemling_app
         qml/symboleditor/SeEigenschaftenPanel.qml
         qml/symboleditor/SePinListe.qml
         qml/symboleditor/SeGroesse.js
+        qml/symboleditor/SeAuswahl.js
 
         qml/klemmen/KlemmenVorschau.qml
         qml/klemmen/KlemmenEditor.qml

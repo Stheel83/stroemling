@@ -140,7 +140,7 @@ Rectangle {
 
             delegate: Rectangle {
                 width:  ListView.view.width; height: 30; radius: 3
-                color:  root.editor.ausgewaehltPinIdx === index ? root.editor.theme.badge : "transparent"
+                color:  (root.editor.ausgewaehltPinIdx === index || root.editor.multiPins.indexOf(index) >= 0) ? root.editor.theme.badge : "transparent"
 
                 property int myIdx: index
                 property var myPin: root.editor.pins[index] || {}

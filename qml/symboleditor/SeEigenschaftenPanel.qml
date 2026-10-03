@@ -18,6 +18,7 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             text: {
+                if (editor.auswahlAnzahl > 1) return qsTr("%1 Elemente ausgewählt").arg(editor.auswahlAnzahl)
                 if (editor.ausgewaehltPrimIdx >= 0) {
                     var p = editor.primitive[editor.ausgewaehltPrimIdx]
                     return p ? qsTr("Primitiv: ") + p.typ : qsTr("—")
@@ -30,6 +31,13 @@ Rectangle {
         }
 
         Rectangle { Layout.fillWidth: true; height: 1; color: editor.theme.border }
+
+        Text {
+            Layout.fillWidth: true
+            visible: editor.auswahlAnzahl > 1
+            text: qsTr("Ziehen oder Pfeiltasten (Shift = 4 mm): verschieben\nEntf: löschen · Esc: Auswahl aufheben\nShift/Strg+Klick: Element hinzufügen oder entfernen")
+            font.pixelSize: 11; color: editor.theme.textMuted; wrapMode: Text.Wrap
+        }
 
         // Koordinaten-Felder für ausgewähltes Primitiv
         Repeater {

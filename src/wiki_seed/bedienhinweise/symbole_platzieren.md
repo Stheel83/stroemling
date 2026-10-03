@@ -113,3 +113,23 @@ nie direkt überschreiben.
   `+`/`−`-Buttons oben rechts; Klick auf die Prozentzahl setzt zurück.
 - **Pan:** mittlere Maustaste ziehen.
 - **Strg+Z:** macht die letzte Aktion rückgängig.
+
+## Mehrere Elemente markieren und gemeinsam verschieben
+
+Mit dem **Auswahl-Werkzeug** (Taste `A`):
+
+- **Strg+A** markiert alles (alle Zeichen-Elemente und alle Pins).
+- **Rahmen aufziehen** auf leerer Fläche: von links nach rechts markiert nur,
+  was **komplett** im (blauen) Rahmen liegt; von rechts nach links markiert
+  alles, was den (grünen, gestrichelten) Rahmen **berührt**.
+- **Shift+Klick** oder **Strg+Klick** fügt ein Element zur Auswahl hinzu oder
+  nimmt es wieder heraus.
+- Ein markiertes Element **ziehen** verschiebt die ganze Auswahl; alternativ die
+  **Pfeiltasten** (0,5 mm, mit Shift 4 mm). Die Auswahl bleibt dabei innerhalb
+  des Symbols – nichts wird gestaucht.
+- **Entf** löscht alle markierten Elemente, **Esc** hebt die Auswahl auf,
+  **Strg+Z** nimmt die Verschiebung als einen Schritt zurück.
+
+Tipp: Wollen Sie ein Symbol nachträglich vergrößern und den Inhalt
+mitverschieben, ändern Sie zuerst Breite/Höhe, markieren dann mit Strg+A und
+verschieben die Auswahl in den neuen Platz.

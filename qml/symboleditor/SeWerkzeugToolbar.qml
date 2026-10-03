@@ -15,7 +15,7 @@ Rectangle {
 
         Repeater {
             model: [
-                {id: "auswahl",     icon: "↖", tooltip: qsTr("Auswahl (A)")},
+                {id: "auswahl",     icon: "↖", tooltip: qsTr("Auswahl (A)\nRahmen aufziehen: links→rechts = Fenster, rechts→links = Schneiden\nShift/Strg+Klick: mehrere · Strg+A: alles · Pfeiltasten: verschieben")},
                 {id: "linie",       icon: "╱", tooltip: qsTr("Linie (L)")},
                 {id: "rechteck",    icon: "□", tooltip: qsTr("Rechteck (R)")},
                 {id: "kreis_offen", icon: "○", tooltip: qsTr("Kreis (K)")},

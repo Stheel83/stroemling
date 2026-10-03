@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import "components"
 import "symboleditor"
 import "symboleditor/SeGroesse.js" as SeGroesse
+import "symboleditor/SeAuswahl.js" as SeAuswahl
 
 // ============================================================
 // SymbolEditorAnsicht – visueller Symboleditor (Phase D)
@@ -132,6 +133,25 @@ Item {
     property string aktivesWerkzeug:    "auswahl"
     property int    ausgewaehltPrimIdx: -1
     property int    ausgewaehltPinIdx:  -1
+    // Mehrfachauswahl (SE-MEHRFACHAUSWAHL-01): Index-Listen, nur bei >= 2 Elementen gesetzt.
+    // Bei genau einem Element gilt wie bisher ausgewaehltPrimIdx/ausgewaehltPinIdx.
+    property var    multiPrim:          []
+    property var    multiPins:          []
+    property bool   _internAuswahl:     false
+    readonly property int auswahlAnzahl: (multiPrim.length + multiPins.length > 1)
+        ? multiPrim.length + multiPins.length
+        : (ausgewaehltPrimIdx >= 0 ? 1 : 0) + (ausgewaehltPinIdx >= 0 ? 1 : 0)
+    // Gummiband-Rahmen (Normkoordinaten, ungeclampt)
+    property bool   _rbAktiv:           false
+    property var    _rbA:               ({x: 0, y: 0})
+    property var    _rbB:               ({x: 0, y: 0})
+    property var    _rbBasisPrim:       []
+    property var    _rbBasisPins:       []
+    property bool   _pfeilUndoOffen:    false
+    // Direkte Zuweisung von ausgewaehlt*Idx (Pin-Liste, Pin setzen …) beendet die Mehrfachauswahl
+    onAusgewaehltPrimIdxChanged: if (!_internAuswahl && ausgewaehltPrimIdx >= 0) { multiPrim = []; multiPins = [] }
+    onAusgewaehltPinIdxChanged:  if (!_internAuswahl && ausgewaehltPinIdx  >= 0) { multiPrim = []; multiPins = [] }
+    Timer { id: pfeilUndoTimer; interval: 1000; onTriggered: root._pfeilUndoOffen = false }
     property string aktLinienart:       "solid"
     property bool   aktGefuellt:        false
     // Feste absolute Größe für das "Punkt"-Werkzeug (mm), s. addPrimitiv-Aufruf
@@ -195,6 +215,8 @@ Item {
         undoStack          = []
         ausgewaehltPrimIdx = -1
         ausgewaehltPinIdx  = -1
+        multiPrim          = []
+        multiPins          = []
         werkzeugPunkte     = []
         _sePreviewRotation = 0
         _sePreviewSpiegelX = false
@@ -417,6 +439,7 @@ Item {
         if (last.hoeheMm  !== undefined) hoeheMm  = last.hoeheMm
         if (ausgewaehltPrimIdx >= primitive.length) ausgewaehltPrimIdx = -1
         if (ausgewaehltPinIdx  >= pins.length)       ausgewaehltPinIdx  = -1
+        multiPrim = []; multiPins = []      // Indizes der Mehrfachauswahl wären veraltet
         zeichneCanvas.requestPaint()
     }
 
@@ -433,6 +456,84 @@ Item {
         breiteMm  = nb
         hoeheMm   = nh
         zeichneCanvas.requestPaint()
+    }
+
+    // ── Mehrfachauswahl (SE-MEHRFACHAUSWAHL-01) ─────────────────────────
+    // Setzt die Auswahl konsistent: 0/1 Element → Einzel-Modus (EP bearbeitbar),
+    // ab 2 Elementen → Index-Listen multiPrim/multiPins.
+    function setzeAuswahl(prims, pinsL) {
+        _internAuswahl = true
+        if (prims.length + pinsL.length <= 1) {
+            multiPrim = []; multiPins = []
+            ausgewaehltPrimIdx = prims.length === 1 ? prims[0] : -1
+            ausgewaehltPinIdx  = pinsL.length === 1 ? pinsL[0] : -1
+        } else {
+            ausgewaehltPrimIdx = -1; ausgewaehltPinIdx = -1
+            multiPrim = prims; multiPins = pinsL
+        }
+        _internAuswahl = false
+        zeichneCanvas.requestPaint()
+    }
+    function auswahlPrimListe() {
+        if (multiPrim.length + multiPins.length > 1) return multiPrim
+        return ausgewaehltPrimIdx >= 0 ? [ausgewaehltPrimIdx] : []
+    }
+    function auswahlPinListe() {
+        if (multiPrim.length + multiPins.length > 1) return multiPins
+        return ausgewaehltPinIdx >= 0 ? [ausgewaehltPinIdx] : []
+    }
+    function alleMarkieren() {
+        aktivesWerkzeug = "auswahl"; werkzeugPunkte = []
+        var pl = [], nl = []
+        for (var i = 0; i < primitive.length; i++) pl.push(i)
+        for (var j = 0; j < pins.length; j++)      nl.push(j)
+        setzeAuswahl(pl, nl)
+    }
+    function auswahlLoeschen() {
+        var pl = auswahlPrimListe(), nl = auswahlPinListe()
+        if (pl.length + nl.length === 0) return
+        pushUndoSnapshot()
+        primitive = primitive.filter(function(_, i) { return pl.indexOf(i) < 0 })
+        pins      = pins.filter(function(_, i) { return nl.indexOf(i) < 0 })
+        setzeAuswahl([], [])
+    }
+    // Verschiebt die Auswahl um (ddx,ddy) relativ zu den Basis-Arrays (Drag: Stand bei
+    // Gestenbeginn; Pfeiltasten: aktueller Stand). Versatz wird auf den Rand begrenzt.
+    function verschiebeAuswahlUm(basisPrim, basisPins, pl, nl, ddx, ddy) {
+        var d = SeAuswahl.gruppenDelta(basisPrim, basisPins, pl, nl, ddx, ddy)
+        var np = basisPrim.slice(), npin = basisPins.slice()
+        pl.forEach(function(i) { np[i] = SeAuswahl.verschiebePrimitiv(basisPrim[i], d.dx, d.dy) })
+        nl.forEach(function(i) {
+            var q = Object.assign({}, basisPins[i]); q.x += d.dx; q.y += d.dy; npin[i] = q
+        })
+        primitive = np
+        pins      = npin
+        zeichneCanvas.requestPaint()
+    }
+    // Pfeiltasten: aufeinanderfolgende Tastendrücke = ein Undo-Schritt (1 s Pause beendet ihn)
+    function pfeilVerschieben(dxMm, dyMm) {
+        var pl = auswahlPrimListe(), nl = auswahlPinListe()
+        if (pl.length + nl.length === 0) return false
+        if (!_pfeilUndoOffen) { pushUndoSnapshot(); _pfeilUndoOffen = true }
+        pfeilUndoTimer.restart()
+        verschiebeAuswahlUm(primitive, pins, pl, nl, dxMm / breiteMm, dyMm / hoeheMm)
+        return true
+    }
+    // Rahmen a→b (Normkoordinaten): links→rechts = Fenster, rechts→links = Schneiden
+    function rahmenAuswahlAnwenden(a, b, basisPrim, basisPins) {
+        var fenster = b.x >= a.x
+        var r = { x1: a.x, y1: a.y, x2: b.x, y2: b.y }
+        var pl = basisPrim.slice(), nl = basisPins.slice()
+        for (var i = 0; i < primitive.length; i++) {
+            if (pl.indexOf(i) >= 0) continue
+            if (SeAuswahl.trifftRahmen(SeAuswahl.bboxPrimitiv(primitive[i], breiteMm, hoeheMm), r, fenster)) pl.push(i)
+        }
+        for (var j = 0; j < pins.length; j++) {
+            if (nl.indexOf(j) >= 0) continue
+            var pn = pins[j]
+            if (SeAuswahl.trifftRahmen({ x1: pn.x, y1: pn.y, x2: pn.x, y2: pn.y }, r, fenster)) nl.push(j)
+        }
+        setzeAuswahl(pl, nl)
     }
 
     // Farbe je Knoten-Gruppe für die Pin-Darstellung auf der Zeichenfläche
@@ -537,22 +638,25 @@ Item {
         if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)) {
             undo(); event.accepted = true; return
         }
+        if (event.key === Qt.Key_A && (event.modifiers & Qt.ControlModifier)) {
+            alleMarkieren(); event.accepted = true; return
+        }
         if (event.key === Qt.Key_Escape) {
+            if (aktivesWerkzeug === "auswahl" && auswahlAnzahl > 0) setzeAuswahl([], [])
             werkzeugPunkte = []; zeichneCanvas.requestPaint()
             event.accepted = true; return
         }
+        if (aktivesWerkzeug === "auswahl" && !(event.modifiers & Qt.ControlModifier) && auswahlAnzahl > 0) {
+            var schrittMm = (event.modifiers & Qt.ShiftModifier) ? 4 : 0.5
+            var pdx = 0, pdy = 0
+            if      (event.key === Qt.Key_Left)  pdx = -schrittMm
+            else if (event.key === Qt.Key_Right) pdx =  schrittMm
+            else if (event.key === Qt.Key_Up)    pdy = -schrittMm
+            else if (event.key === Qt.Key_Down)  pdy =  schrittMm
+            if ((pdx !== 0 || pdy !== 0) && pfeilVerschieben(pdx, pdy)) { event.accepted = true; return }
+        }
         if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
-            if (ausgewaehltPrimIdx >= 0) {
-                pushUndoSnapshot()
-                primitive = primitive.filter(function(_, idx) { return idx !== ausgewaehltPrimIdx })
-                ausgewaehltPrimIdx = -1
-                zeichneCanvas.requestPaint()
-            } else if (ausgewaehltPinIdx >= 0) {
-                pushUndoSnapshot()
-                pins = pins.filter(function(_, idx) { return idx !== ausgewaehltPinIdx })
-                ausgewaehltPinIdx = -1
-                zeichneCanvas.requestPaint()
-            }
+            auswahlLoeschen()
             event.accepted = true; return
         }
         if (!event.isAutoRepeat) {
@@ -927,7 +1031,7 @@ Item {
 
                             for (var pi = 0; pi < root.primitive.length; pi++) {
                                 var p = root.primitive[pi]
-                                var isSel = (pi === root.ausgewaehltPrimIdx)
+                                var isSel = (pi === root.ausgewaehltPrimIdx) || root.multiPrim.indexOf(pi) >= 0
                                 ctx.strokeStyle = isSel ? "#00e5a0" : "#0b5394"
                                 ctx.lineWidth   = isSel ? 3.0 : 2.0
 
@@ -1011,7 +1115,7 @@ Item {
                                 var tx = ox*Math.cos(_pvRad) - oy*Math.sin(_pvRad)
                                 var ty = ox*Math.sin(_pvRad) + oy*Math.cos(_pvRad)
                                 ctx.save()
-                                ctx.fillStyle = (lti === root.ausgewaehltPrimIdx) ? "#00e5a0" : "#0b5394"
+                                ctx.fillStyle = (lti === root.ausgewaehltPrimIdx || root.multiPrim.indexOf(lti) >= 0) ? "#00e5a0" : "#0b5394"
                                 ctx.font = ((ltp.schrift_fett ? "bold " : "") +
                                             Math.round((ltp.schrift_relativ||0.15)*dh) + "px sans-serif")
                                 ctx.textAlign    = ltp.text_align    || "center"
@@ -1070,7 +1174,7 @@ Item {
                             var _mehrereKnoten = Object.keys(_knotenSet).length > 1
                             for (var pii = 0; pii < root.pins.length; pii++) {
                                 var pin = root.pins[pii]
-                                var isSelP  = (pii === root.ausgewaehltPinIdx)
+                                var isSelP  = (pii === root.ausgewaehltPinIdx) || root.multiPins.indexOf(pii) >= 0
                                 var kFarbe  = root.knotenFarbe(pin.knotenGruppe || 0)
                                 ctx.beginPath()
                                 ctx.arc(n2sx(pin.x), n2sy(pin.y), isSelP ? 6 : 4, 0, 2*Math.PI)
@@ -1092,6 +1196,21 @@ Item {
                                 ctx.moveTo(n2sx(pin.x), n2sy(pin.y))
                                 ctx.lineTo(n2sx(pin.x) + (pin.offenX||0)*12, n2sy(pin.y) + (pin.offenY||0)*12)
                                 ctx.stroke()
+                            }
+
+                            // ── Auswahlrahmen (SE-MEHRFACHAUSWAHL-01) ──
+                            if (root._rbAktiv) {
+                                var rbFenster = root._rbB.x >= root._rbA.x
+                                var rx = n2sx(Math.min(root._rbA.x, root._rbB.x)), ry = n2sy(Math.min(root._rbA.y, root._rbB.y))
+                                var rw = Math.abs(n2sx(root._rbB.x) - n2sx(root._rbA.x)), rh = Math.abs(n2sy(root._rbB.y) - n2sy(root._rbA.y))
+                                ctx.save()
+                                ctx.fillStyle   = rbFenster ? "#4a9eff22" : "#4ec94e22"
+                                ctx.strokeStyle = rbFenster ? "#4a9eff"   : "#4ec94e"
+                                ctx.lineWidth   = 1.5
+                                ctx.setLineDash(rbFenster ? [] : [6, 4])
+                                ctx.fillRect(rx, ry, rw, rh)
+                                ctx.strokeRect(rx, ry, rw, rh)
+                                ctx.restore()
                             }
 
                             // ── Fadenkreuz ────────────────────────────
@@ -1231,6 +1350,13 @@ Item {
                             property bool dragBewegteSich: false
                             property var  dragStartNorm:   ({x: 0, y: 0})
                             property var  dragObjStart:    null
+                            // Gruppen-Drag (Mehrfachauswahl, SE-MEHRFACHAUSWAHL-01)
+                            property bool _gruppeAktiv:      false
+                            property var  _gruppeBasisPrim:  []
+                            property var  _gruppeBasisPins:  []
+                            property var  _gruppePl:         []
+                            property var  _gruppeNl:         []
+                            property bool _rbBewegt:         false
 
                             // Pan-Zustand (mittlere Maustaste)
                             property bool _panAktiv:  false
@@ -1246,6 +1372,13 @@ Item {
                                 return {x: nx, y: ny}
                             }
 
+                            // Wie mausZuNorm, aber ohne Raster/Begrenzung (Auswahlrahmen darf
+                            // außerhalb des Symbols beginnen/enden, z. B. für „Schneiden")
+                            function mausZuNormFrei(mx, my) {
+                                return {x: (mx - zeichneCanvas.drawX) / zeichneCanvas.drawW,
+                                        y: (my - zeichneCanvas.drawY) / zeichneCanvas.drawH}
+                            }
+
                             onPressed: function(mouse) {
                                 if (mouse.button === Qt.MiddleButton) {
                                     _panAktiv  = true
@@ -1254,29 +1387,55 @@ Item {
                                     _panStartY = root._sePanY
                                     return
                                 }
+                                _rbBewegt = false
                                 if (root.aktivesWerkzeug !== "auswahl") return
+                                if (mouse.button !== Qt.LeftButton) return
                                 var nm = mausZuNorm(mouse.x, mouse.y)
+                                var additiv = (mouse.modifiers & (Qt.ShiftModifier | Qt.ControlModifier)) !== 0
                                 var pi = root.treffePin(nm.x, nm.y)
-                                if (pi >= 0) {
-                                    root.ausgewaehltPinIdx  = pi
-                                    root.ausgewaehltPrimIdx = -1
-                                    dragAktiv     = true
-                                    dragIstPin    = true
-                                    dragStartNorm = {x: nm.x, y: nm.y}
-                                    dragObjStart  = {x: root.pins[pi].x, y: root.pins[pi].y}
+                                var priIdx = pi >= 0 ? -1 : root.treffePrimitiv(nm.x, nm.y)
+
+                                if (pi < 0 && priIdx < 0) {
+                                    // Leere Fläche → Auswahlrahmen aufziehen
+                                    root._rbBasisPrim = additiv ? root.auswahlPrimListe().slice() : []
+                                    root._rbBasisPins = additiv ? root.auswahlPinListe().slice()  : []
+                                    if (!additiv) root.setzeAuswahl([], [])
+                                    root._rbA = mausZuNormFrei(mouse.x, mouse.y)
+                                    root._rbB = root._rbA
+                                    root._rbAktiv = true
                                     zeichneCanvas.requestPaint()
                                     return
                                 }
-                                var priIdx = root.treffePrimitiv(nm.x, nm.y)
-                                if (priIdx >= 0) {
-                                    root.ausgewaehltPrimIdx = priIdx
-                                    root.ausgewaehltPinIdx  = -1
-                                    dragAktiv     = true
-                                    dragIstPin    = false
-                                    dragStartNorm = {x: nm.x, y: nm.y}
-                                    dragObjStart  = Object.assign({}, root.primitive[priIdx])
-                                    zeichneCanvas.requestPaint()
+
+                                // Treffer: Auswahl anpassen (Shift/Strg = umschalten, sonst ersetzen
+                                // – außer das Element gehört schon zur Auswahl, dann bleibt sie bestehen)
+                                var pl = root.auswahlPrimListe().slice(), nl = root.auswahlPinListe().slice()
+                                var istSel = (pi >= 0) ? nl.indexOf(pi) >= 0 : pl.indexOf(priIdx) >= 0
+                                if (additiv) {
+                                    if (pi >= 0) nl = istSel ? nl.filter(function(v) { return v !== pi })     : nl.concat([pi])
+                                    else         pl = istSel ? pl.filter(function(v) { return v !== priIdx }) : pl.concat([priIdx])
+                                    root.setzeAuswahl(pl, nl)
+                                    if (istSel) return          // gerade abgewählt → nicht ziehen
+                                } else if (!istSel) {
+                                    root.setzeAuswahl(priIdx >= 0 ? [priIdx] : [], pi >= 0 ? [pi] : [])
                                 }
+                                dragStartNorm = {x: nm.x, y: nm.y}
+                                dragAktiv     = true
+                                if (root.auswahlAnzahl >= 2) {
+                                    // Gruppen-Drag: Stand bei Gestenbeginn merken
+                                    _gruppeAktiv     = true
+                                    _gruppeBasisPrim = root.primitive.slice()
+                                    _gruppeBasisPins = root.pins.slice()
+                                    _gruppePl        = root.auswahlPrimListe().slice()
+                                    _gruppeNl        = root.auswahlPinListe().slice()
+                                } else if (pi >= 0) {
+                                    dragIstPin   = true
+                                    dragObjStart = {x: root.pins[pi].x, y: root.pins[pi].y}
+                                } else {
+                                    dragIstPin   = false
+                                    dragObjStart = Object.assign({}, root.primitive[priIdx])
+                                }
+                                zeichneCanvas.requestPaint()
                             }
 
                             onReleased: function(mouse) {
@@ -1284,8 +1443,17 @@ Item {
                                     _panAktiv = false
                                     return
                                 }
-                                dragAktiv    = false
-                                dragObjStart = null
+                                if (root._rbAktiv) {
+                                    root._rbAktiv = false
+                                    if (_rbBewegt)
+                                        root.rahmenAuswahlAnwenden(root._rbA, root._rbB, root._rbBasisPrim, root._rbBasisPins)
+                                    else
+                                        root.setzeAuswahl(root._rbBasisPrim, root._rbBasisPins)
+                                    zeichneCanvas.requestPaint()
+                                }
+                                dragAktiv     = false
+                                dragObjStart  = null
+                                _gruppeAktiv  = false
                             }
 
                             onPositionChanged: function(mouse) {
@@ -1298,6 +1466,29 @@ Item {
                                 var nm = mausZuNorm(mouse.x, mouse.y)
                                 root.mausNormPos  = nm
                                 root.mausImCanvas = true
+
+                                if (root._rbAktiv) {
+                                    root._rbB = mausZuNormFrei(mouse.x, mouse.y)
+                                    // erst ab ~4 px als Rahmen werten (sonst ist es ein einfacher Klick)
+                                    var rbPx = Math.max(Math.abs(root._rbB.x - root._rbA.x) * zeichneCanvas.drawW,
+                                                        Math.abs(root._rbB.y - root._rbA.y) * zeichneCanvas.drawH)
+                                    if (rbPx > 4) _rbBewegt = true
+                                    zeichneCanvas.requestPaint()
+                                    return
+                                }
+
+                                if (dragAktiv && _gruppeAktiv) {
+                                    // Versatz auf 0,5-mm-Raster runden (relative Geometrie der Auswahl bleibt erhalten)
+                                    var gdx = Math.round((nm.x - dragStartNorm.x) * root.breiteMm * 2) / 2 / root.breiteMm
+                                    var gdy = Math.round((nm.y - dragStartNorm.y) * root.hoeheMm  * 2) / 2 / root.hoeheMm
+                                    if (!dragBewegteSich && (gdx !== 0 || gdy !== 0)) {
+                                        root.pushUndoSnapshot()
+                                        dragBewegteSich = true
+                                    }
+                                    if (dragBewegteSich)
+                                        root.verschiebeAuswahlUm(_gruppeBasisPrim, _gruppeBasisPins, _gruppePl, _gruppeNl, gdx, gdy)
+                                    return
+                                }
 
                                 if (dragAktiv && dragObjStart !== null) {
                                     // Snapshot einmalig beim ersten tatsächlichen Verschieben dieser
@@ -1348,6 +1539,7 @@ Item {
                             onClicked: function(mouse) {
                                 if (mouse.button === Qt.MiddleButton) return
                                 if (dragBewegteSich) { dragBewegteSich = false; return }
+                                if (_rbBewegt) { _rbBewegt = false; root.forceActiveFocus(); return }
                                 root.forceActiveFocus()
                                 var nm = mausZuNorm(mouse.x, mouse.y)
                                 var nx = nm.x, ny = nm.y
@@ -1360,15 +1552,7 @@ Item {
 
                                 switch (root.aktivesWerkzeug) {
                                 case "auswahl":
-                                    var pi2 = root.treffePin(nx, ny)
-                                    if (pi2 >= 0) {
-                                        root.ausgewaehltPinIdx  = pi2
-                                        root.ausgewaehltPrimIdx = -1
-                                    } else {
-                                        root.ausgewaehltPrimIdx = root.treffePrimitiv(nx, ny)
-                                        root.ausgewaehltPinIdx  = -1
-                                    }
-                                    zeichneCanvas.requestPaint()
+                                    // Auswahl wird seit SE-MEHRFACHAUSWAHL-01 vollständig in onPressed/onReleased gesetzt
                                     break
 
                                 case "linie":

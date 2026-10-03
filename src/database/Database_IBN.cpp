@@ -506,6 +506,7 @@ bool Database::seedIbnFeldvorlagen()
         { "fi_2pol",      "fi_schutzschalter"      },
         { "fi_4pol_n_links",  "fi_schutzschalter" },
         { "fi_4pol_n_rechts", "fi_schutzschalter" },
+        { "prcd_5pol_n_links", "fi_schutzschalter" },
         { "bimetall_nc",  "motorschutzschalter"    },
         { "spule",        "schuetz"                },
         { "spule_ansi",   "schuetz"                },

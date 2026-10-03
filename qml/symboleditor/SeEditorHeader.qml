@@ -49,6 +49,11 @@ Rectangle {
                 value: editor.breiteMm
                 onValueModified: editor.breiteMm = value
                 implicitWidth: 80; implicitHeight: 28
+                // Fusion reserviert Padding nur rechts (▲/▼ gestapelt) – bei eigenen Indikatoren
+                // (▼ links) deckte das Zahlenfeld den ▼-Bereich ab und schluckte den Klick (SE-SPINBOX-01)
+                editable: true
+                leftPadding: 4 + down.indicator.width
+                rightPadding: 4 + up.indicator.width
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
                 contentItem: TextInput {
                     text: breiteBox.textFromValue(breiteBox.value, breiteBox.locale)
@@ -73,6 +78,11 @@ Rectangle {
                 value: editor.hoeheMm
                 onValueModified: editor.hoeheMm = value
                 implicitWidth: 80; implicitHeight: 28
+                // Fusion reserviert Padding nur rechts (▲/▼ gestapelt) – bei eigenen Indikatoren
+                // (▼ links) deckte das Zahlenfeld den ▼-Bereich ab und schluckte den Klick (SE-SPINBOX-01)
+                editable: true
+                leftPadding: 4 + down.indicator.width
+                rightPadding: 4 + up.indicator.width
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
                 contentItem: TextInput {
                     text: hoeheBox.textFromValue(hoeheBox.value, hoeheBox.locale)
@@ -112,6 +122,10 @@ Rectangle {
                 textFromValue: function(value) { return (value / 10).toFixed(1) }
                 valueFromText: function(text)  { return Math.round(parseFloat(text) * 10) }
                 implicitWidth: 70; implicitHeight: 28
+                // Fusion reserviert Padding nur rechts (▲/▼ gestapelt) – bei eigenen Indikatoren
+                // (▼ links) deckte das Zahlenfeld den ▼-Bereich ab und schluckte den Klick (SE-SPINBOX-01)
+                leftPadding: 4 + down.indicator.width
+                rightPadding: 4 + up.indicator.width
                 background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
                 contentItem: TextInput {
                     text: pinSchriftBox.textFromValue(pinSchriftBox.value)

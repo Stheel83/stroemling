@@ -501,6 +501,7 @@ bool Database::seedIbnFeldvorlagen()
         { "lss",          "leitungsschutzschalter" },
         { "sicherung",    "sicherung"              },
         { "fi",           "fi_schutzschalter"      },
+        { "fi_2pol",      "fi_schutzschalter"      },
         { "bimetall_nc",  "motorschutzschalter"    },
         { "spule",        "schuetz"                },
         { "spule_ansi",   "schuetz"                },

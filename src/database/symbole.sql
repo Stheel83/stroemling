@@ -3541,3 +3541,55 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('motor_mit_pe',4,'linie',0.5,0.25,0.5,0.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0),
 ('motor_mit_pe',5,'linie',0.8333333333333334,0.4583333333333333,0.8333333333333334,0.0,0.0,0.0,0.0,0.0,360.0,0,NULL,0.15,0,'center','middle','solid',0.0,0),
 ('motor_mit_pe',6,'linie',0.5,1.0,1.0,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','gestrichelt',0.0,0);
+
+-- ── fi_2pol (SYM-PRCD-01 Teil 1) ───────────────────────────
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('fi_2pol', 'FI-Schutzschalter 2-polig', 'Schutz', 20, 16, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_2pol','1',0.4,0.0,0.0,-1.0,'power',0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_2pol','2',0.4,1.0,0.0,1.0,'power',0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_2pol','3',0.6,0.0,0.0,-1.0,'n',1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_2pol','4',0.6,1.0,0.0,1.0,'n',1);
+INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
+('fi_2pol',0,'linie',0.4,0.65625,0.4,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('fi_2pol',1,'linie',0.4,0.4375,0.4,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',2,'linie',0.6,0.4375,0.6,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',3,'linie',0.25,0.03125,0.25,0.09375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',4,'linie',0.25,0.1875,0.25,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',5,'linie',0.125,0.28125,0.125,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',6,'linie',0.125,0.28125,0.15,0.28125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',7,'linie',0.125,0.34375,0.15,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',8,'text',0.09375,0.21875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'T',0.15,1,'center','middle','solid',0.0,0),
+('fi_2pol',9,'linie',0.125,0.3125,0.21875,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_2pol',10,'linie',0.25,0.03125,0.4,0.03125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',11,'linie',0.2,0.25,0.25,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',12,'rechteck',0.225,0.09375,0.275,0.1875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',13,'kreis_gefuellt',0.4,0.03125,0.0,0.0,0.0,0.0,0.0125,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',14,'linie',0.25,0.375,0.25,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',15,'linie',0.325,0.4375,0.25,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',16,'linie',0.475,0.4375,0.4,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',17,'linie',0.675,0.4375,0.6,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',18,'linie',0.25,0.65625,0.25,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',19,'linie',0.25,0.90625,0.6,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',20,'linie',0.6,0.65625,0.6,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',21,'kreis_gefuellt',0.6,0.90625,0.0,0.0,0.0,0.0,0.0125,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',22,'linie',0.3,0.53125,0.8,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_2pol',23,'rechteck',0.8,0.4375,0.95,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',24,'linie',0.8,0.53125,0.95,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',25,'linie',0.875,0.4375,0.875,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',26,'linie',0.95,0.53125,1.0,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',27,'linie',1.0,0.46875,1.0,0.59375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',28,'linie',0.35,0.8125,0.625,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',29,'rechteck_gefuellt',0.625,0.75,0.675,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',30,'linie',0.65,0.71875,0.65,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',31,'linie',0.65,0.875,0.65,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',32,'linie',0.775,0.71875,0.65,0.71875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',33,'linie',0.65,0.90625,0.775,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',34,'linie',0.775,0.71875,0.775,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',35,'linie',0.775,0.90625,0.775,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',36,'rechteck',0.7,0.75,0.85,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',37,'linie',0.725,0.78125,0.725,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',38,'linie',0.7,0.8125,0.725,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',39,'linie',0.8,0.78125,0.825,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',40,'linie',0.825,0.8125,0.8,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',41,'linie',0.775,0.78125,0.775,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_2pol',42,'linie',0.875,0.625,0.875,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_2pol',43,'linie',0.875,0.8125,0.85,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0);

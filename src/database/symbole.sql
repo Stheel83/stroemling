@@ -3594,127 +3594,127 @@ INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3
 ('fi_2pol',42,'linie',0.8958333333333334,0.625,0.8958333333333334,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
 ('fi_2pol',43,'linie',0.8958333333333334,0.8125,0.875,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0);
 
--- ── fi_4pol_n_links / fi_4pol_n_rechts (SYM-PRCD-01 Teil 3, ersetzen fi_4pol) ─────
-INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('fi_4pol_n_links', 'FI-Schutzschalter 4-polig (N links)', 'Schutz', 28, 16, 'durchleiter', 1, 'vertikal');
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','(N)1',0.2857142857142857,0.0,0.0,-1.0,'n',0);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','(N)2',0.2857142857142857,1.0,0.0,1.0,'n',0);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','3',0.42857142857142855,0.0,0.0,-1.0,'power',1);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','4',0.42857142857142855,1.0,0.0,1.0,'power',1);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','5',0.5714285714285714,0.0,0.0,-1.0,'power',2);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','6',0.5714285714285714,1.0,0.0,1.0,'power',2);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','7',0.7142857142857143,0.0,0.0,-1.0,'power',3);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','8',0.7142857142857143,1.0,0.0,1.0,'power',3);
+-- ── fi_4pol_n_links / fi_4pol_n_rechts, 40x16 (SYM-PRCD-01 Teil 5, ersetzt die 28x16-Fassung) ──
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('fi_4pol_n_links', 'FI-Schutzschalter 4-polig (N links)', 'Schutz', 40, 16, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','(N)1',0.19999999999999998,0.0,0.0,-1.0,'n',0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','(N)2',0.19999999999999998,1.0,0.0,1.0,'n',0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','3',0.4,0.0,0.0,-1.0,'power',1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','4',0.4,1.0,0.0,1.0,'power',1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','5',0.6,0.0,0.0,-1.0,'power',2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','6',0.6,1.0,0.0,1.0,'power',2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','7',0.8,0.0,0.0,-1.0,'power',3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_links','8',0.8,1.0,0.0,1.0,'power',3);
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
-('fi_4pol_n_links',0,'linie',0.28571428571428575,0.65625,0.28571428571428575,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',1,'linie',0.2857142857142857,0.4375,0.2857142857142857,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',2,'linie',0.42857142857142855,0.4375,0.42857142857142855,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',3,'linie',0.17857142857142858,0.03125,0.17857142857142858,0.09375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',4,'linie',0.17857142857142858,0.1875,0.17857142857142858,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',5,'linie',0.08928571428571429,0.28125,0.08928571428571429,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',6,'linie',0.08928571428571429,0.28125,0.10714285714285714,0.28125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',7,'linie',0.08928571428571429,0.34375,0.10714285714285714,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',8,'text',0.06696428571428571,0.21875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'T',0.15,1,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',9,'linie',0.08928571428571429,0.3125,0.15625,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_links',10,'linie',0.17857142857142858,0.03125,0.42857142857142855,0.03125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',11,'linie',0.14285714285714288,0.25,0.17857142857142858,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',12,'rechteck',0.1607142857142857,0.09375,0.19642857142857142,0.1875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',13,'kreis_gefuellt',0.42857142857142855,0.03125,0.0,0.0,0.0,0.0,0.00892857142857143,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',14,'linie',0.17857142857142858,0.375,0.17857142857142858,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',15,'linie',0.23214285714285715,0.4375,0.17857142857142858,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',16,'linie',0.33928571428571425,0.4375,0.28571428571428575,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',17,'linie',0.4821428571428572,0.4375,0.42857142857142855,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',18,'linie',0.17857142857142858,0.65625,0.17857142857142858,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',19,'linie',0.17857142857142858,0.90625,0.2857142857142857,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',20,'linie',0.42857142857142855,0.65625,0.42857142857142855,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',21,'kreis_gefuellt',0.2857142857142857,0.90625,0.0,0.0,0.0,0.0,0.00892857142857143,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',22,'linie',0.21428571428571427,0.53125,0.8571428571428571,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_links',23,'rechteck',0.8571428571428571,0.4375,0.9642857142857143,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',24,'linie',0.8571428571428571,0.53125,0.9642857142857143,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',25,'linie',0.9107142857142857,0.4375,0.9107142857142857,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',26,'linie',0.9642857142857143,0.53125,1.0,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',27,'linie',1.0,0.46875,1.0,0.59375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',28,'linie',0.25,0.8125,0.7321428571428571,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',29,'rechteck_gefuellt',0.7321428571428571,0.75,0.7678571428571429,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',30,'linie',0.75,0.71875,0.75,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',31,'linie',0.75,0.875,0.75,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',32,'linie',0.8392857142857143,0.71875,0.75,0.71875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',33,'linie',0.75,0.90625,0.8392857142857143,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',34,'linie',0.8392857142857143,0.71875,0.8392857142857143,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',35,'linie',0.8392857142857143,0.90625,0.8392857142857143,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',36,'rechteck',0.7857142857142857,0.75,0.8928571428571429,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',37,'linie',0.8035714285714286,0.78125,0.8035714285714286,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',38,'linie',0.7857142857142857,0.8125,0.8035714285714286,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',39,'linie',0.8571428571428571,0.78125,0.875,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',40,'linie',0.875,0.8125,0.8571428571428571,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',41,'linie',0.8392857142857143,0.78125,0.8392857142857143,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',42,'linie',0.9107142857142857,0.625,0.9107142857142857,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_links',43,'linie',0.9107142857142857,0.8125,0.8928571428571429,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_links',44,'linie',0.5714285714285714,0.4375,0.5714285714285714,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',45,'linie',0.7142857142857143,0.4375,0.7142857142857143,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',46,'linie',0.5714285714285714,0.65625,0.5714285714285714,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',47,'linie',0.7142857142857143,0.65625,0.7142857142857143,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',48,'linie',0.5714285714285714,0.65625,0.625,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_links',49,'linie',0.7142857142857143,0.65625,0.7678571428571429,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0);
-INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('fi_4pol_n_rechts', 'FI-Schutzschalter 4-polig (N rechts)', 'Schutz', 28, 16, 'durchleiter', 1, 'vertikal');
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','1',0.28571428571428575,0.0,0.0,-1.0,'power',0);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','2',0.2857142857142857,1.0,0.0,1.0,'power',0);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','3',0.42857142857142855,0.0,0.0,-1.0,'power',1);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','4',0.42857142857142855,1.0,0.0,1.0,'power',1);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','5',0.5714285714285714,0.0,0.0,-1.0,'power',2);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','6',0.5714285714285714,1.0,0.0,1.0,'power',2);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','7(N)',0.7142857142857143,0.0,0.0,-1.0,'n',3);
-INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','8(N)',0.7142857142857143,1.0,0.0,1.0,'n',3);
+('fi_4pol_n_links',0,'linie',0.20000000000000004,0.65625,0.20000000000000004,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',1,'linie',0.19999999999999998,0.4375,0.19999999999999998,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',2,'linie',0.4,0.4375,0.4,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',3,'linie',0.125,0.0625,0.125,0.09375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',4,'linie',0.125,0.1875,0.125,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',5,'linie',0.0625,0.28125,0.0625,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',6,'linie',0.0625,0.28125,0.075,0.28125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',7,'linie',0.0625,0.34375,0.075,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',8,'text',0.046875,0.21875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'T',0.15,1,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',9,'linie',0.0625,0.3125,0.109375,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_links',10,'linie',0.125,0.0625,0.4,0.0625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',11,'linie',0.10000000000000002,0.25,0.125,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',12,'rechteck',0.1125,0.09375,0.13749999999999998,0.1875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',13,'kreis_gefuellt',0.4,0.0625,0.0,0.0,0.0,0.0,0.006250000000000001,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',14,'linie',0.125,0.375,0.125,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',15,'linie',0.1625,0.4375,0.125,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',16,'linie',0.23749999999999996,0.4375,0.20000000000000004,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',17,'linie',0.4375000000000001,0.4375,0.4,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',18,'linie',0.125,0.65625,0.125,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',19,'linie',0.125,0.90625,0.19999999999999998,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',20,'linie',0.4,0.65625,0.4,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',21,'kreis_gefuellt',0.19999999999999998,0.90625,0.0,0.0,0.0,0.0,0.006250000000000001,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',22,'linie',0.15,0.53125,0.8999999999999999,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_links',23,'rechteck',0.8999999999999999,0.4375,0.975,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',24,'linie',0.8999999999999999,0.53125,0.975,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',25,'linie',0.9374999999999999,0.4375,0.9374999999999999,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',26,'linie',0.975,0.53125,0.9999999999999999,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',27,'linie',0.9999999999999999,0.46875,0.9999999999999999,0.59375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',28,'linie',0.175,0.8125,0.8125,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',29,'rechteck_gefuellt',0.8125,0.75,0.8375,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',30,'linie',0.825,0.71875,0.825,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',31,'linie',0.825,0.875,0.825,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',32,'linie',0.8875,0.71875,0.825,0.71875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',33,'linie',0.825,0.90625,0.8875,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',34,'linie',0.8875,0.71875,0.8875,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',35,'linie',0.8875,0.90625,0.8875,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',36,'rechteck',0.85,0.75,0.9249999999999999,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',37,'linie',0.8624999999999999,0.78125,0.8624999999999999,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',38,'linie',0.85,0.8125,0.8624999999999999,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',39,'linie',0.8999999999999999,0.78125,0.9124999999999999,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',40,'linie',0.9124999999999999,0.8125,0.8999999999999999,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',41,'linie',0.8875,0.78125,0.8875,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',42,'linie',0.9374999999999999,0.625,0.9374999999999999,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_links',43,'linie',0.9374999999999999,0.8125,0.9249999999999999,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_links',44,'linie',0.6,0.4375,0.6,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',45,'linie',0.8,0.4375,0.8,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',46,'linie',0.6,0.65625,0.6,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',47,'linie',0.8,0.65625,0.8,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',48,'linie',0.6,0.65625,0.6374999999999998,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_links',49,'linie',0.8,0.65625,0.8375,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0);
+INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('fi_4pol_n_rechts', 'FI-Schutzschalter 4-polig (N rechts)', 'Schutz', 40, 16, 'durchleiter', 1, 'vertikal');
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','1',0.2,0.0,0.0,-1.0,'power',0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','2',0.19999999999999998,1.0,0.0,1.0,'power',0);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','3',0.4,0.0,0.0,-1.0,'power',1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','4',0.4,1.0,0.0,1.0,'power',1);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','5',0.6,0.0,0.0,-1.0,'power',2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','6',0.6,1.0,0.0,1.0,'power',2);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','7(N)',0.8,0.0,0.0,-1.0,'n',3);
+INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, knoten_gruppe) VALUES ('fi_4pol_n_rechts','8(N)',0.8,1.0,0.0,1.0,'n',3);
 INSERT INTO symbol_primitiv (symbol_id, reihenfolge, typ, x1, y1, x2, y2, x3, y3, radius, winkel_von, winkel_bis, bogen_gegen_uhrzeiger, text_inhalt, schrift_relativ, schrift_fett, text_align, text_baseline, linienart, rotation, lesbar_halten) VALUES
-('fi_4pol_n_rechts',0,'linie',0.28571428571428575,0.65625,0.28571428571428575,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',1,'linie',0.28571428571428575,0.4375,0.28571428571428575,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',2,'linie',0.42857142857142855,0.4375,0.42857142857142855,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',3,'linie',0.17857142857142858,0.03125,0.17857142857142858,0.09375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',4,'linie',0.17857142857142858,0.1875,0.17857142857142858,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',5,'linie',0.08928571428571429,0.28125,0.08928571428571429,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',6,'linie',0.08928571428571429,0.28125,0.10714285714285714,0.28125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',7,'linie',0.08928571428571429,0.34375,0.10714285714285714,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',8,'text',0.06696428571428571,0.21875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'T',0.15,1,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',9,'linie',0.08928571428571429,0.3125,0.15625,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_rechts',10,'linie',0.17857142857142858,0.03125,0.28571428571428575,0.03125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',11,'linie',0.14285714285714288,0.25,0.17857142857142858,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',12,'rechteck',0.1607142857142857,0.09375,0.19642857142857142,0.1875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',13,'kreis_gefuellt',0.28571428571428575,0.03125,0.0,0.0,0.0,0.0,0.00892857142857143,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',14,'linie',0.17857142857142858,0.375,0.17857142857142858,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',15,'linie',0.23214285714285715,0.4375,0.17857142857142858,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',16,'linie',0.33928571428571425,0.4375,0.28571428571428575,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',17,'linie',0.4821428571428572,0.4375,0.42857142857142855,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',18,'linie',0.17857142857142858,0.65625,0.17857142857142858,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',19,'linie',0.17857142857142858,0.90625,0.7142857142857143,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',20,'linie',0.42857142857142855,0.65625,0.42857142857142855,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',21,'kreis_gefuellt',0.7142857142857143,0.90625,0.0,0.0,0.0,0.0,0.00892857142857143,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',22,'linie',0.21428571428571427,0.53125,0.8571428571428571,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_rechts',23,'rechteck',0.8571428571428571,0.4375,0.9642857142857143,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',24,'linie',0.8571428571428571,0.53125,0.9642857142857143,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',25,'linie',0.9107142857142857,0.4375,0.9107142857142857,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',26,'linie',0.9642857142857143,0.53125,1.0,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',0,'linie',0.20000000000000004,0.65625,0.20000000000000004,1.0,0.0,0.0,0.0,0.0,0.0,0,NULL,0.5,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',1,'linie',0.2,0.4375,0.2,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',2,'linie',0.4,0.4375,0.4,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',3,'linie',0.125,0.0625,0.125,0.09375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',4,'linie',0.125,0.1875,0.125,0.25,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',5,'linie',0.0625,0.28125,0.0625,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',6,'linie',0.0625,0.28125,0.075,0.28125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',7,'linie',0.0625,0.34375,0.075,0.34375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',8,'text',0.046875,0.21875,0.0,0.0,0.0,0.0,0.0,0.0,360.0,0,'T',0.15,1,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',9,'linie',0.0625,0.3125,0.109375,0.3125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_rechts',10,'linie',0.125,0.0625,0.2,0.0625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',11,'linie',0.10000000000000002,0.25,0.125,0.375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',12,'rechteck',0.1125,0.09375,0.13749999999999998,0.1875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',13,'kreis_gefuellt',0.2,0.0625,0.0,0.0,0.0,0.0,0.006250000000000001,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',14,'linie',0.125,0.375,0.125,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',15,'linie',0.1625,0.4375,0.125,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',16,'linie',0.23749999999999996,0.4375,0.20000000000000004,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',17,'linie',0.4375000000000001,0.4375,0.4,0.65625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',18,'linie',0.125,0.65625,0.125,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',19,'linie',0.125,0.90625,0.8,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',20,'linie',0.4,0.65625,0.4,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',21,'kreis_gefuellt',0.8,0.90625,0.0,0.0,0.0,0.0,0.006250000000000001,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',22,'linie',0.15,0.53125,0.8999999999999999,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_rechts',23,'rechteck',0.8999999999999999,0.4375,0.9750000000000001,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',24,'linie',0.8999999999999999,0.53125,0.9750000000000001,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',25,'linie',0.9375,0.4375,0.9375,0.625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',26,'linie',0.9750000000000001,0.53125,1.0,0.53125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
 ('fi_4pol_n_rechts',27,'linie',1.0,0.46875,1.0,0.59375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',28,'linie',0.25,0.8125,0.7321428571428571,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',29,'rechteck_gefuellt',0.7321428571428571,0.75,0.7678571428571429,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',30,'linie',0.75,0.71875,0.75,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',31,'linie',0.75,0.875,0.75,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',32,'linie',0.8392857142857143,0.71875,0.75,0.71875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',33,'linie',0.75,0.90625,0.8392857142857143,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',34,'linie',0.8392857142857143,0.71875,0.8392857142857143,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',35,'linie',0.8392857142857143,0.90625,0.8392857142857143,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',36,'rechteck',0.7857142857142857,0.75,0.8928571428571429,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',37,'linie',0.8035714285714286,0.78125,0.8035714285714286,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',38,'linie',0.7857142857142857,0.8125,0.8035714285714286,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',39,'linie',0.8571428571428571,0.78125,0.875,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',40,'linie',0.875,0.8125,0.8571428571428571,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',41,'linie',0.8392857142857143,0.78125,0.8392857142857143,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',42,'linie',0.9107142857142857,0.625,0.9107142857142857,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_rechts',43,'linie',0.9107142857142857,0.8125,0.8928571428571429,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
-('fi_4pol_n_rechts',44,'linie',0.5714285714285714,0.4375,0.5714285714285714,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',45,'linie',0.7142857142857143,0.4375,0.7142857142857143,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',46,'linie',0.5714285714285714,0.65625,0.5714285714285714,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',47,'linie',0.7142857142857143,0.65625,0.7142857142857143,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',48,'linie',0.5714285714285714,0.65625,0.625,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
-('fi_4pol_n_rechts',49,'linie',0.7142857142857143,0.65625,0.7678571428571429,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0);
+('fi_4pol_n_rechts',28,'linie',0.175,0.8125,0.8125,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',29,'rechteck_gefuellt',0.8125,0.75,0.8374999999999999,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',30,'linie',0.825,0.71875,0.825,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',31,'linie',0.825,0.875,0.825,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',32,'linie',0.8875,0.71875,0.825,0.71875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',33,'linie',0.825,0.90625,0.8875,0.90625,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',34,'linie',0.8875,0.71875,0.8875,0.75,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',35,'linie',0.8875,0.90625,0.8875,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',36,'rechteck',0.8499999999999999,0.75,0.925,0.875,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',37,'linie',0.8625,0.78125,0.8625,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',38,'linie',0.8499999999999999,0.8125,0.8625,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',39,'linie',0.8999999999999999,0.78125,0.9124999999999999,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',40,'linie',0.9124999999999999,0.8125,0.8999999999999999,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',41,'linie',0.8875,0.78125,0.8875,0.84375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',42,'linie',0.9375,0.625,0.9375,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_rechts',43,'linie',0.9375,0.8125,0.925,0.8125,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','dash',0.0,0),
+('fi_4pol_n_rechts',44,'linie',0.6,0.4375,0.6,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',45,'linie',0.8,0.4375,0.8,0.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',46,'linie',0.6,0.65625,0.6,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',47,'linie',0.8,0.65625,0.8,1.0,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',48,'linie',0.6,0.65625,0.6375,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0),
+('fi_4pol_n_rechts',49,'linie',0.8,0.65625,0.8374999999999999,0.4375,0.0,0.0,0.0,0.0,360.0,0,'',0.15,0,'center','middle','solid',0.0,0);
 
 -- ── lss_3pol / lss_2pol (SYM-KOPIE-VON-05) ──────────────────────────
 INSERT INTO symbol_definition (id, name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite) VALUES ('lss_3pol', 'Leitungsschutzschalter 3pol', 'Schutz', 24, 12, 'durchleiter', 1, 'vertikal');

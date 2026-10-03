@@ -270,6 +270,11 @@
           "titel": "PE und FE – Schutzleiter vs. Funktionserde",
           "tags": "PE FE Schutzleiter Funktionserde DIN EN 60445 VDE 0197 Funktionspotentialausgleich Farbe rosa grün-gelb EMV ICT Personenschutz",
           "datei": "schutz/pe_fe_funktionserde.md"
+        },
+        {
+          "titel": "PRCD – Ortsveränderliche Fehlerstrom-Schutzeinrichtungen",
+          "tags": "PRCD PRCD-S PRCD-K Personenschutzschalter FI ortsveränderlich Zwischenstecker Baustelle Schutzleiterüberwachung DIN VDE 0661 IEC 61540 DGUV 203-006 Typ B CEE",
+          "datei": "schutz/prcd_ortsveraenderliche_fi.md"
         }
       ]
     },

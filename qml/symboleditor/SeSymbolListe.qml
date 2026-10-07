@@ -11,7 +11,7 @@ Rectangle {
 
     function kategorieName(k) {
         var n = { "kontakte": "Kontakte", "schutz": "Schutzgeräte", "antriebe": "Antriebe",
-                  "passive": "Passive", "signalgeraete": "Signalgeräte", "klemmen": "Stecker / Klemmen",
+                  "passive": "Passive", "signalgeraete": "Signalgeräte", "klemmen": "Anschlüsse",
                   "sps_pls": "SPS / PLS", "kfz": "KFZ-Elektrik", "arduino": "Arduino",
                   "sensoren": "Sensoren" }
         return n[k] || (k || qsTr("Ohne Kategorie"))

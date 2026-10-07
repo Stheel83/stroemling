@@ -213,7 +213,7 @@ Rectangle {
             "antriebe":      "Antriebe",
             "passive":       "Passive",
             "signalgeraete": "Signalgeräte",
-            "klemmen":       "Stecker / Klemmen",
+            "klemmen":       "Anschlüsse",
             "verbindungen":  "Verbindungen",
             "sps_pls":       "SPS / PLS",
             "kfz":           "KFZ-Elektrik",

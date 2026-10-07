@@ -1300,7 +1300,7 @@ Item {
                                 break
                             case "bogen": {
                                 var ra = (p.winkel_von||0) * Math.PI/180
-                                var re = (p.winkel_bis||90) * Math.PI/180
+                                var re = (p.winkel_bis !== undefined && p.winkel_bis !== null ? p.winkel_bis : 90) * Math.PI/180
                                 ctx.beginPath()
                                 ctx.arc(dx+(p.x1||0)*dw, dy+(p.y1||0)*dh, (p.radius||0.1)*dw,
                                         ra, re, p.bogen_gegen_uhrzeiger ? true : false)

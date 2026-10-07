@@ -508,8 +508,11 @@ Item {
                         id: refreshMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (panel.projektId >= 0)
-                                db.kabelAderEndpunkteBerechnenUndSpeichern(panel.projektId)
+                            // Von/Nach per Canvas-Traversal (KABEL-VONNACH-BAUTEIL-01): rechnet
+                            // die Adern, deren Kabellinie auf der aktuellen Seite liegt; andere
+                            // Seiten behalten ihre gespeicherten Werte.
+                            if (panel.projektId >= 0 && panel.canvas)
+                                panel.canvas.verdrahtungswegeAktualisieren()
                             panel.laden()
                         }
                     }

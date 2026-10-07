@@ -1099,6 +1099,34 @@ QVariantList Database::kabelAderListeMitVerbindung(int projektId)
 }
 
 // ============================================================
+// kabelSeitenIds
+// Seiten-IDs, auf denen die Kabellinie mindestens einer verdrahteten Ader
+// liegt. Die Von/Nach-Berechnung (QML, Canvas-Traversal) läuft pro Seite;
+// die Listenansicht rechnet damit alle betroffenen Seiten nacheinander durch.
+// ============================================================
+QVariantList Database::kabelSeitenIds(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT DISTINCT ge.seite_id
+        FROM kabel_ader ka
+        JOIN kabel k ON k.id = ka.kabel_id AND k.projekt_id = :pid
+        JOIN grafik_element ge ON ge.id = ka.kabellinie_grafik_element_id
+        WHERE ka.verbindung_id IS NOT NULL AND ka.verbindung_id > 0
+        ORDER BY ge.seite_id
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "kabelSeitenIds:" << q.lastError().text();
+        return result;
+    }
+    while (q.next())
+        result.append(q.value(0).toInt());
+    return result;
+}
+
+// ============================================================
 // kabelAderEndpunkteBerechnenUndSpeichern
 // Berechnet von_gerat_pin / nach_gerat_pin für alle kabel_adern des Projekts
 // rein aus der DB (ohne Canvas). Nutzt verbindung_segment-Endpunkte und

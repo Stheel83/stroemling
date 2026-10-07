@@ -674,6 +674,8 @@ public:
     // Alle kabel_adern eines Projekts mit verbindung_id für Verdrahtungsweg-Berechnung.
     // Gibt [{kabelId, aderNr, verbindungId, kabellinieGrafikElementId}] zurück.
     Q_INVOKABLE QVariantList kabelAderListeMitVerbindung(int projektId);
+    // Seiten (IDs), auf denen Kabellinien verdrahteter Adern liegen (Von/Nach-Berechnung aller Seiten)
+    Q_INVOKABLE QVariantList kabelSeitenIds(int projektId);
 
 
     // Von/Nach-Gerät:Pin-Endpunkte für eine Liste kabel_adern speichern (Bulk-Update).

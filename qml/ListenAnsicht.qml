@@ -14,6 +14,37 @@ Item {
     property bool   debug:       false
     property var    canvas:      null
 
+    // KABEL-VONNACH-SEITEN-01: Von/Nach aller Kabel per Canvas-Traversal. Die Traversal
+    // hängt am Canvas (Netzberechnung, Pin-Positionen), daher wird ein unsichtbarer
+    // Berechnungs-Canvas (eigenes ElementeModel, kein Einfluss auf die sichtbaren Panels)
+    // nacheinander auf jede Seite mit Kabellinien gesetzt. Gelesen wird aus der DB – die
+    // sichtbaren Canvases speichern bei jeder Änderung (Maus loslassen/Dialog), der
+    // DB-Stand ist also aktuell.
+    function vonNachAlleSeitenBerechnen() {
+        if (projektId < 0) return
+        var seiten = db.kabelSeitenIds(projektId)
+        if (!seiten || seiten.length === 0) return
+        var cv = vonNachCanvasKomponente.createObject(panel, {projektId: projektId})
+        if (!cv) return
+        for (var i = 0; i < seiten.length; i++) {
+            cv.seiteId = seiten[i]
+            cv.verdrahtungswegeAktualisieren()
+        }
+        cv.seiteId = -1
+        cv.destroy()
+    }
+
+    Component {
+        id: vonNachCanvasKomponente
+        SchaltplanCanvas {
+            visible:       false
+            width:         100
+            height:        100
+            theme:         panel.theme
+            elementeModel: elementeModel5
+        }
+    }
+
     onProjektIdChanged: laden()
     onVisibleChanged:   if (visible && projektId >= 0) laden()
 
@@ -508,11 +539,7 @@ Item {
                         id: refreshMa; anchors.fill: parent
                         hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            // Von/Nach per Canvas-Traversal (KABEL-VONNACH-BAUTEIL-01): rechnet
-                            // die Adern, deren Kabellinie auf der aktuellen Seite liegt; andere
-                            // Seiten behalten ihre gespeicherten Werte.
-                            if (panel.projektId >= 0 && panel.canvas)
-                                panel.canvas.verdrahtungswegeAktualisieren()
+                            panel.vonNachAlleSeitenBerechnen()
                             panel.laden()
                         }
                     }

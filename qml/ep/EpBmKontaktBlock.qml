@@ -11,11 +11,21 @@ Item {
 
     width: parent ? parent.width : 0
 
-    // Kontaktsymbole: alle Symbole der Kategorie "Kontakte" (neue Kontakt-Symbole
-    // erscheinen damit automatisch, keine feste ID-Liste mehr) + bimetall_nc
-    // (Kategorie "Schutz", aber Hilfskontakt mit Anschlusskennzeichnung).
+    // Sichtbarkeit (EP-KONTAKT-BLOCK-01/02): die Anschlusskennzeichnung wirkt nur bei
+    // einer Nebenfunktion (Kontakt eines Betriebsmittels, erscheint im Kontaktspiegel
+    // der Hauptfunktion). Daher:
+    //  - mit Betriebsmittel verknüpft: sichtbar genau dann, wenn das Element NICHT die
+    //    Hauptfunktion ist (egal welche Symbolkategorie, z.B. Schütz-Hilfskontakt),
+    //  - noch nicht verknüpft: sichtbar bei Kontaktsymbolen (Kategorie "Kontakte",
+    //    plus bimetall_nc), damit man sie vor dem Verknüpfen schon eintragen kann.
     readonly property bool _istKontakt: {
-        if (!panel.el || panel.el.typ !== "symbol") return false
+        if (!panel.el || panel.el.typ !== "symbol" || !(panel._refresh * 0 === 0)) return false
+        if ((panel.el.betriebsmittelId || 0) > 0) {
+            var mitglieder = db.betriebsmittelMitglieder(panel.el.betriebsmittelId)
+            for (var i = 0; i < mitglieder.length; i++)
+                if (mitglieder[i].id === panel.el.id) return !mitglieder[i].istHauptfunktion
+            return false
+        }
         var sid = panel.el.symbolId || ""
         if (sid === "bimetall_nc") return true
         var info = symbolDefinitionModel.symbolInfo(sid)

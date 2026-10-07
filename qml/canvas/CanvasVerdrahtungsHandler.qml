@@ -117,6 +117,34 @@ QtObject {
         return {von: von, nach: nach}
     }
 
+    // Normales Bauteil mit BMK als Ziel (KABEL-VONNACH-BAUTEIL-01): trifft die Traversal
+    // auf ein Symbol mit BMK, endet sie dort mit "BMK:Pin". Der Pin ist der, an dem
+    // das eingehende Segment sitzt (Anzeige-Label wie auf dem Canvas: pinBez oder
+    // Pin-Name). Leer, wenn das Element kein BMK hat oder kein Pin passt – dann
+    // läuft die Traversal wie bisher transparent weiter.
+    function _bauteilEndpunkt(el, startElIdx, vonElIdx, adj) {
+        if (!el || el.typ !== "symbol") return ""
+        var ed  = el.extraDaten || {}
+        var bmk = ed.bmk || ""
+        if (!bmk) return ""
+        var entries = adj[startElIdx] || []
+        var connPos = null
+        for (var ai = 0; ai < entries.length; ai++) {
+            if (entries[ai].neighbor === vonElIdx) { connPos = entries[ai].connPosOnSelf; break }
+        }
+        if (!connPos) return ""
+        var pins = symbolDefinitionModel.pinsForSymbol(el.symbolId || "")
+        var best = null, bestD2 = 1.0
+        for (var pi = 0; pi < pins.length; pi++) {
+            var wp = cv.pinWeltPos(el, pins[pi].x, pins[pi].y)
+            var dx = wp.x - connPos.x, dy = wp.y - connPos.y
+            var d2 = dx * dx + dy * dy
+            if (d2 < bestD2) { bestD2 = d2; best = pins[pi] }
+        }
+        if (!best) return ""
+        return bmk + ":" + ((ed.pinBez || {})[best.name] || best.name)
+    }
+
     // Gerichtete DFS-Traversal: startet bei startElIdx (aus Richtung vonElIdx).
     // Liefert den formatierten Endpunkt-String.
     function _traversiereEndpunkt(startElIdx, vonElIdx, adj, net, tiefe) {
@@ -166,6 +194,10 @@ QtObject {
             }
             return "⚠ Treffpunkt"
         }
+
+        // Normales Bauteil mit BMK: "BMK:Pin" als Ziel
+        var bauteilZiel = _bauteilEndpunkt(el, startElIdx, vonElIdx, adj)
+        if (bauteilZiel !== "") return bauteilZiel
 
         // Transparente Elemente (winkel, aderdefinition, …): nächsten Nachbar folgen
         var nbList = adj[startElIdx] || []
@@ -241,7 +273,7 @@ QtObject {
         }
 
         if (sid === "isoliert_gelegte_ader")
-            return "isoliert"
+            return "isoliert gelegt"
 
         return sid
     }
@@ -338,7 +370,7 @@ QtObject {
             var kaBmk = ed.bmk || ""
             return kaBmk ? (kaBmk + ":" + kaAnz) : (kaAnz || "KA")
         }
-        if (sid === "isoliert_gelegte_ader") return "isoliert"
+        if (sid === "isoliert_gelegte_ader") return "isoliert gelegt"
         return sid
     }
 
@@ -394,6 +426,10 @@ QtObject {
             }
             return "⚠ Treffpunkt"
         }
+
+        // Normales Bauteil mit BMK: "BMK:Pin" als Ziel
+        var bauteilZiel = _bauteilEndpunkt(el, startElIdx, vonElIdx, adj)
+        if (bauteilZiel !== "") return bauteilZiel
 
         // Transparente Elemente (winkel, aderdefinition, …)
         var nbList = adj[startElIdx] || []

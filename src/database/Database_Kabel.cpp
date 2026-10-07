@@ -1303,7 +1303,7 @@ bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
             return bz.isEmpty() ? sn : bz;
         }
         if (el.symbolId == QLatin1String("isoliert_gelegte_ader"))
-            return QStringLiteral("isoliert");
+            return QStringLiteral("isoliert gelegt");
         return {};
     };
 

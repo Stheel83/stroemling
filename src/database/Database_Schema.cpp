@@ -2610,6 +2610,13 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE grafik_element SET symbol_id='prcd_5pol_n_links' WHERE symbol_id='prcd_5_polig_n_links')",
             R"(DELETE FROM symbol_definition WHERE id='prcd_5_polig_n_links')",
         }},
+        { 157, "SYM-STECKKONTAKT-01: verallgemeinerte Steckkopplung, im Symboleditor einstellbar statt an die IDs stecker/buchse und den Pin-Namen '2' gebunden. Neue Spalte symbol_definition.steck_rolle (''/'stecker'/'buchse') und symbol_pin.steckkontakt (0/1). Pins mit steckkontakt=1 eines Symbols mit steck_rolle verbinden sich ausschliesslich mit dem gleichnamigen Steckkontakt-Pin des Gegenstuecks (logische, nicht gezeichnete Verbindung), tragen keine Pin-Beschriftung und zeigen den Gesteckt-Status (gruen/orange). Die Builtins stecker/buchse werden auf den neuen Mechanismus umgestellt (Pin '2' = Steckkontakt); die Hardcodes in C++/QML entfallen.", {
+            R"(ALTER TABLE symbol_definition ADD COLUMN steck_rolle TEXT NOT NULL DEFAULT '')",
+            R"(ALTER TABLE symbol_pin ADD COLUMN steckkontakt INTEGER NOT NULL DEFAULT 0)",
+            R"(UPDATE symbol_definition SET steck_rolle='stecker' WHERE id='stecker')",
+            R"(UPDATE symbol_definition SET steck_rolle='buchse' WHERE id='buchse')",
+            R"(UPDATE symbol_pin SET steckkontakt=1 WHERE name='2' AND symbol_id IN ('stecker','buchse'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

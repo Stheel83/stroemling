@@ -36,6 +36,22 @@ public:
     // Gibt die Rolle des Symbols zurück (z.B. "durchleiter", "verbraucher").
     Q_INVOKABLE QString rolleForSymbol(const QString &symbolId) const;
 
+    // Steckverbinder-Rolle des Symbols (SYM-STECKKONTAKT-01): "" (keine),
+    // "stecker" oder "buchse". Nur Pins mit steckkontakt=1 eines Symbols mit
+    // Rolle nehmen an der Steckkopplung teil (s. autoVerbindungenBerechnen).
+    Q_INVOKABLE QString steckRolleForSymbol(const QString &symbolId) const;
+
+    // Setzt die Steckverbinder-Rolle (wirkt auch bei eingebauten Symbolen -
+    // reine Klassifikations-Metadatur, wie bmkKennbuchstabenSpeichern).
+    Q_INVOKABLE bool steckRolleSetzen(const QString &symbolId, const QString &rolle);
+
+    // Steckkontakt-Pins des Symbols: [{name, x, y, primitive:[idx…]}].
+    // primitive = Reihenfolge-Indizes der flächigen Primitive (Rechteck, Kreis,
+    // Bogen, Dreieck), deren Bounding-Box den Pin berührt - sie werden im
+    // gesteckten Zustand grün eingefärbt. Linien/Text zählen bewusst nicht
+    // (Zuleitungen enden am Kontakt, gehören aber nicht zu ihm).
+    Q_INVOKABLE QVariantList steckkontaktInfo(const QString &symbolId) const;
+
     // Berechnet Auto-Verbindungen zwischen Symbol-Pins auf gleicher H-/V-Lane.
     // snapshot   : elementeModel.snapshot()
     // gridPx     : root.gridPx  (canvas-Einheiten pro Rasterfeld)
@@ -145,4 +161,5 @@ private:
     // In-Memory-Cache: symbolId → Primitive-Liste (gültig solange keine Schreiboperation stattfindet)
     mutable QHash<QString, QVariantList> m_primitivCache;
     mutable QHash<QString, QVariantList> m_pinCache;
+    mutable QHash<QString, QString>      m_steckRolleCache;
 };

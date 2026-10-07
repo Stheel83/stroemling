@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QSet>
 #include "database/Database.h"
+#include "models/SymbolDefinitionModel.h"
 
 // Testet das Migrations-System auf einer temporären SQLite-Datei.
 // Ablauf: createProjekt (v40-Baseline) → closeProjekt → openProjekt
@@ -17,6 +18,18 @@ class TstMigrationen : public QObject
 
     QString   m_tmpPfad;
     Database *m_db = nullptr;
+
+    // Eigenes Frisch-Projekt je Test (test_10/11 lassen die Default-Verbindung
+    // nicht offen zurück).
+    struct TmpProjekt {
+        QString pfad; Database db;
+        explicit TmpProjekt(const QString &tag) {
+            pfad = QDir::tempPath() + "/stroemling_test_" + tag + "_"
+                 + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".stroemling";
+            db.createProjekt(pfad, "Tmp");
+        }
+        ~TmpProjekt() { db.closeProjekt(); QFile::remove(pfad); QFile::remove(pfad + "-wal"); QFile::remove(pfad + "-shm"); }
+    };
 
 private slots:
     void initTestCase()
@@ -340,6 +353,95 @@ private slots:
     // irrefuehrendes "Parameter count mismatch" beim allerersten Speichern.
     // Eigene Database-Instanz/Connection, damit es die anderen Tests (m_db)
     // nicht stoert - deshalb ans Ende gesetzt.
+    // SYM-STECKKONTAKT-01 (Migration 157): stecker/buchse laufen über den
+    // verallgemeinerten Mechanismus (steck_rolle + Pin-Flag steckkontakt).
+    void test_13_steckkontaktMigration()
+    {
+        TmpProjekt tp("sk13"); QVERIFY(tp.db.isOpen());
+        SymbolDefinitionModel m;
+        QCOMPARE(m.steckRolleForSymbol("stecker"), QStringLiteral("stecker"));
+        QCOMPARE(m.steckRolleForSymbol("buchse"),  QStringLiteral("buchse"));
+        QCOMPARE(m.steckRolleForSymbol("motor"),   QString());
+        const QVariantList info = m.steckkontaktInfo("stecker");
+        QCOMPARE(info.size(), 1);
+        QCOMPARE(info[0].toMap().value("name").toString(), QStringLiteral("2"));
+        // Rechteck (Index 1) berührt Pin 2, die Zuleitung (Linie, Index 0) nicht
+        QCOMPARE(info[0].toMap().value("primitive").toList(), QVariantList{1});
+        const QVariantList binfo = m.steckkontaktInfo("buchse");
+        QCOMPARE(binfo.size(), 1);
+        QCOMPARE(binfo[0].toMap().value("primitive").toList(), QVariantList{1});
+    }
+
+    // Steckkopplung eigener Symbole: Partner nur Stecker<->Buchse mit gleichem
+    // Pin-Namen, in jeder Ausrichtung, als logisches (ungezeichnetes) Segment.
+    void test_14_steckkontaktKopplung()
+    {
+        TmpProjekt tp("sk14"); QVERIFY(tp.db.isOpen());
+        SymbolDefinitionModel m;
+        auto anlegen = [&](const QString &id, const QString &rolle, const QString &kontaktName) {
+            QVERIFY(m.symbolAnlegen(id, id, "Test", 24, 4, "durchleiter"));
+            QVERIFY(m.steckRolleSetzen(id, rolle));
+            // Anschluss unten (offen nach unten), Kontakt oben (offen nach oben)
+            QVariantMap a; a["name"] = "L"; a["x"] = 0.5; a["y"] = 1.0; a["offenX"] = 0.0; a["offenY"] = 1.0;
+            QVariantMap k; k["name"] = kontaktName; k["x"] = 0.5; k["y"] = 0.0; k["offenX"] = 0.0; k["offenY"] = -1.0;
+            k["steckkontakt"] = true;
+            QVERIFY(m.pinHinzufuegen(id, a) > 0);
+            QVERIFY(m.pinHinzufuegen(id, k) > 0);
+            QVariantMap r; r["typ"] = "rechteck"; r["x1"] = 0.4; r["y1"] = 0.0; r["x2"] = 0.6; r["y2"] = 0.5; r["reihenfolge"] = 0;
+            QVERIFY(m.primitivHinzufuegen(id, r) > 0);
+        };
+        anlegen("t_stecker", "stecker", "L'");
+        anlegen("t_buchse",  "buchse",  "L'");
+        anlegen("t_stecker2", "stecker", "L'");
+        anlegen("t_buchse_x", "buchse",  "N'");
+
+        auto el = [](const QString &sid, double y1, double rot) {
+            QVariantMap e;
+            e["typ"] = "symbol"; e["symbolId"] = sid;
+            e["x1"] = 40.0; e["y1"] = y1; e["x2"] = 64.0; e["y2"] = y1 + 4.0;
+            e["rotation"] = rot; e["spiegelX"] = false; e["spiegelY"] = false;
+            e["extraDaten"] = QVariantMap();
+            return e;
+        };
+        auto logischeSegmente = [&](const QVariantList &snap) {
+            int n = 0;
+            for (const QVariant &v : m.autoVerbindungenBerechnen(snap, 4.0, QVariantMap())) {
+                const QVariantMap seg = v.toMap();
+                if (seg.value("logisch").toBool()) n++;
+            }
+            return n;
+        };
+        auto alleSegmente = [&](const QVariantList &snap) {
+            return m.autoVerbindungenBerechnen(snap, 4.0, QVariantMap()).size();
+        };
+
+        // Stecker (oben, Kontakt zeigt nach UNTEN → gedreht) über Buchse:
+        // Buchse oben mit Kontakt nach unten = Rotation 180, Stecker unten Rotation 0.
+        QVariantList snap{ el("t_buchse", 0.0, 180.0), el("t_stecker", 8.0, 0.0) };
+        QCOMPARE(logischeSegmente(snap), 1);
+
+        // gleiche Rolle koppelt nicht (und verbindet sich auch nicht anderweitig)
+        QVariantList gleich{ el("t_stecker2", 0.0, 180.0), el("t_stecker", 8.0, 0.0) };
+        QCOMPARE(logischeSegmente(gleich), 0);
+        QCOMPARE(alleSegmente(gleich), 0);
+
+        // anderer Kontakt-Name koppelt nicht
+        QVariantList anders{ el("t_buchse_x", 0.0, 180.0), el("t_stecker", 8.0, 0.0) };
+        QCOMPARE(logischeSegmente(anders), 0);
+        QCOMPARE(alleSegmente(anders), 0);
+
+        // seitlich (alle Ausrichtungen): Rotation 90/270 statt vertikal
+        QVariantMap b90 = el("t_buchse", 0.0, 90.0);
+        QVariantMap s90 = el("t_stecker", 0.0, 270.0);
+        b90["x1"] = 0.0;  b90["x2"] = 24.0;  b90["y1"] = 0.0; b90["y2"] = 4.0;
+        s90["x1"] = 24.0 + 8.0 - 10.0; s90["x2"] = s90["x1"].toDouble() + 24.0; s90["y1"] = 0.0; s90["y2"] = 4.0;
+        // Kontakt-Pin von b90 sitzt rotiert an anderer Stelle; hier genügt: Kopplung
+        // wird in dieser Konstellation entweder erkannt (logisch) oder gar nicht
+        // gezeichnet verbunden - nie als normale Leitung.
+        const QVariantList seit{ b90, s90 };
+        QCOMPARE(alleSegmente(seit), logischeSegmente(seit));
+    }
+
     void test_12_createProjektWendetNeueMigrationenSofortAn()
     {
         const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"

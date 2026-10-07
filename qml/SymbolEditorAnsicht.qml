@@ -36,6 +36,7 @@ Item {
     property int    breiteMm:      32
     property int    hoeheMm:       16
     property string rolleText:     "durchleiter"
+    property string steckRolleText: ""   // SYM-STECKKONTAKT-01: "" | "stecker" | "buchse"
     // BMK-Label-Position (SYMBOL-BMKSEITE-EDITOR-01): "auto" (0°/180°→oben,
     // 90°/270°→seitlich) oder "vertikal" (umgekehrt — für Symbole deren
     // Grundausrichtung bei 0° bereits vertikal ist, z.B. Kontakte nach
@@ -230,6 +231,7 @@ Item {
             breiteMm      = vInfo.breiteMm  || 32
             hoeheMm       = vInfo.hoeheMm   || 16
             rolleText     = vInfo.rolle     || "durchleiter"
+            steckRolleText = vInfo.steckRolle || ""
             bmkSeiteText  = vInfo.bmkSeite  || "auto"
             pinSchriftMm  = vInfo.pinSchriftMm || 2.0
             bmkKennbuchstaben = symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(vorlageId)
@@ -249,7 +251,8 @@ Item {
                     signaltyp: vp.signaltyp || "neutral",
                     kontext:   vp.kontext   || "",
                     knotenGruppe: vp.knotenGruppe !== undefined ? vp.knotenGruppe : 0,
-                    rolle:     vp.rolle || ""
+                    rolle:     vp.rolle || "",
+                    steckkontakt: vp.steckkontakt === true
                 })
             }
             primitive = vPrims.slice()
@@ -260,6 +263,7 @@ Item {
             breiteMm      = 32
             hoeheMm       = 16
             rolleText     = "durchleiter"
+            steckRolleText = ""
             bmkSeiteText  = "auto"
             pinSchriftMm  = 2.0
             bmkKennbuchstaben = []
@@ -273,6 +277,7 @@ Item {
             breiteMm      = info.breiteMm  || 32
             hoeheMm       = info.hoeheMm   || 16
             rolleText     = info.rolle     || "durchleiter"
+            steckRolleText = info.steckRolle || ""
             bmkSeiteText  = info.bmkSeite  || "auto"
             pinSchriftMm  = info.pinSchriftMm || 2.0
             bmkKennbuchstaben = symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(editSymbolId)
@@ -294,7 +299,8 @@ Item {
                     signaltyp: p.signaltyp || "neutral",
                     kontext:   p.kontext   || "",
                     knotenGruppe: p.knotenGruppe !== undefined ? p.knotenGruppe : 0,
-                    rolle:     p.rolle || ""
+                    rolle:     p.rolle || "",
+                    steckkontakt: p.steckkontakt === true
                 })
             }
             primitive = prims.slice()
@@ -611,6 +617,7 @@ Item {
         } else {
             symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm)
         }
+        symbolDefinitionModel.steckRolleSetzen(sid, steckRolleText)
         symbolDefinitionModel.bmkKennbuchstabenSpeichern(sid, bmkKennbuchstaben)
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)

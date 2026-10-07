@@ -69,6 +69,14 @@ Rectangle {
                 ToolTip.text: qsTr("Knoten-Gruppe: Pins mit unterschiedlicher Zahl gelten in der Netzberechnung als getrennte Anschlüsse desselben Symbols (z.B. bei Widerstand/Kondensator/Spule nötig, damit beide Pole nicht intern kurzgeschlossen erscheinen). Gleiche Zahl (Default 0) = Pins gelten als intern verbunden, wie bei Klemme/Schalter.")
                 HoverHandler { id: knGrHeaderHover }
             }
+            Text {
+                text: qsTr("Steck")
+                width: 40; font.pixelSize: 10; color: root.editor.theme.textMuted
+                ToolTip.visible: steckHeaderHover.hovered
+                ToolTip.delay: 400
+                ToolTip.text: qsTr("Steckkontakt: markiert Pins auf der Steckseite eines Steckers/einer Buchse (Symbol-Einstellung \"Steckverbinder\" im Kopf). Solche Pins verbinden sich nur mit dem gleichnamigen Steckkontakt des Gegenstücks, ohne gezeichnete Leitung und ohne Beschriftung. Funktioniert nur, wenn das Symbol als Stecker oder Buchse eingestellt ist.")
+                HoverHandler { id: steckHeaderHover }
+            }
             Item { Layout.fillWidth: true }
 
             Button {
@@ -344,6 +352,19 @@ Rectangle {
                             p.knotenGruppe = parseInt(text) || 0
                             arr[parent.parent.myIdx] = p; root.editor.pins = arr
                         }
+                    }
+
+                    CheckBox {
+                        width: 40; height: 30
+                        checked: parent.parent.myPin.steckkontakt === true
+                        onToggled: {
+                            var arr = root.editor.pins.slice()
+                            var p   = Object.assign({}, arr[parent.parent.myIdx])
+                            p.steckkontakt = checked
+                            arr[parent.parent.myIdx] = p; root.editor.pins = arr
+                        }
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Steckkontakt (nur wirksam, wenn das Symbol als Stecker/Buchse eingestellt ist)")
                     }
 
                     Rectangle {

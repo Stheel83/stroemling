@@ -2355,9 +2355,13 @@ QtObject {
         var sf = rc.sf, sb = rc.sb, sa = rc.sa, fu = rc.fu, ff = rc.ff, fo = rc.fo, op = rc.op, er = rc.er
         var vx1 = rc.vx1, vy1 = rc.vy1, vx2 = rc.vx2, vy2 = rc.vy2, lw = rc.lw, idx = rc.idx
         var sw = vx2 - vx1, sh = vy2 - vy1
-        // Stecker/Buchse: Verbindungsstatus einmal ermitteln (Pin-Marker + Primitiv-Einfärbung)
-        var _istSteBu  = (el.symbolId === "stecker" || el.symbolId === "buchse")
-        var _steBuOk   = (!vorschau && _istSteBu) ? cv.hatLogischeVerbindung(idx) : false
+        // Steckkontakte (SYM-STECKKONTAKT-01, Stecker/Buchse-Symbole mit steck_rolle):
+        // Verbindungsstatus je Kontakt-Pin einmal ermitteln (Pin-Marker +
+        // Primitiv-Einfärbung). _steckOk: pinName → true wenn Partner gefunden.
+        var _steckInfo = vorschau ? [] : symbolDefinitionModel.steckkontaktInfo(el.symbolId || "")
+        var _steckOk   = {}
+        for (var _sk = 0; _sk < _steckInfo.length; _sk++)
+            _steckOk[_steckInfo[_sk].name] = cv.hatLogischeVerbindungPin(idx, _steckInfo[_sk].name)
         if (Math.abs(sw) > 0.5 && Math.abs(sh) > 0.5) {
             var scx = vx1 + sw/2, scy = vy1 + sh/2
             var rot = (el.rotation || 0) * Math.PI / 180
@@ -2368,16 +2372,22 @@ QtObject {
             if (el.spiegelX) ctx.scale(-1, 1)
             if (el.spiegelY) ctx.scale(1, -1)
             ctx.translate(-Math.abs(sw)/2, -Math.abs(sh)/2)
-            // Bei gestecktem Zustand: Bogen der Buchse / Rechteck des Steckers
-            // (jeweils Primitiv-Index 1) grün einfärben.
-            var _steBuFarbe = _steBuOk ? { 1: "#00e5a0" } : undefined
+            // Bei gestecktem Kontakt: die Primitive, die den Kontakt-Pin berühren
+            // (Rechteck des Steckers / Bogen der Buchse), grün einfärben.
+            var _steckFarbe = undefined
+            for (var _sf = 0; _sf < _steckInfo.length; _sf++) {
+                if (!_steckOk[_steckInfo[_sf].name]) continue
+                if (!_steckFarbe) _steckFarbe = {}
+                for (var _sp = 0; _sp < _steckInfo[_sf].primitive.length; _sp++)
+                    _steckFarbe[_steckInfo[_sf].primitive[_sp]] = "#00e5a0"
+            }
             var _winkelGebaendert = el.symbolId === "winkel" && rc.winkelBand && rc.winkelBand.modus === "verschieden"
             if ((el.symbolId === "treffpunkt" || el.symbolId === "treffpunkt_l") && rc.armInfo)
                 _maleTreffpunktArme(ctx, el.symbolId, Math.abs(sw), Math.abs(sh), rc.armInfo)
             else if (el.symbolId === "winkel" && !_winkelGebaendert)
                 _maleWinkel(ctx, Math.abs(sw), Math.abs(sh))
             else if (!_winkelGebaendert)
-                drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steBuFarbe)
+                drawByPrimitiv(ctx, el.symbolId || "", Math.abs(sw), Math.abs(sh), _steckFarbe)
             ctx.restore()
 
             // WINKEL-FARBE-01: bewusst NACH dem restore(), in Viewport- statt
@@ -2439,13 +2449,14 @@ QtObject {
                     var pp = cv.geometrie.pinViewportPos(el, pins[pi].x, pins[pi].y)
                     var pr = gewaehlt ? 2.5 : 1.5
                     ctx.globalAlpha = gewaehlt ? 1.0 : 0.55
-                    // Stecker/Buchse Pin 2 (fiktive Steckverbindung): grün = gesteckt,
+                    // Steckkontakt (fiktive Steckverbindung): grün = gesteckt,
                     // orange = offen – unabhängig von der Auswahl-Hervorhebung.
-                    if (_istSteBu && pins[pi].name === "2") {
+                    if (pins[pi].steckkontakt) {
+                        var _skOk = _steckOk[pins[pi].name] === true
                         pr = Math.max(pr, 2.0)
                         ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, 2 * Math.PI)
-                        ctx.fillStyle   = _steBuOk ? "#00e5a0" : "#f0a030"
-                        ctx.strokeStyle = _steBuOk ? "#004d35" : "#7a4400"
+                        ctx.fillStyle   = _skOk ? "#00e5a0" : "#f0a030"
+                        ctx.strokeStyle = _skOk ? "#004d35" : "#7a4400"
                         ctx.lineWidth   = 1.0
                         ctx.fill(); ctx.stroke()
                         continue
@@ -2481,11 +2492,10 @@ QtObject {
                         ctx.globalAlpha = 1.0
                         for (var _pbI = 0; _pbI < _pbPins.length; _pbI++) {
                             var _pbPin   = _pbPins[_pbI]
-                            // Stecker/Buchse Pin 2 (fiktive Steckverbindung) braucht keine
+                            // Steckkontakte (fiktive Steckverbindung) brauchen keine
                             // Beschriftung – der Verbindungsstatus wird stattdessen farblich
-                            // am Pin-Punkt und an Bogen/Rechteck angezeigt (s.u.).
-                            if ((el.symbolId === "stecker" || el.symbolId === "buchse") &&
-                                _pbPin.name === "2") continue
+                            // am Pin-Punkt und an Bogen/Rechteck angezeigt (s.o.).
+                            if (_pbPin.steckkontakt) continue
                             var _pbLabel = _pbBez[_pbPin.name] || _pbPin.name
                             var _pbPos = cv.geometrie.pinViewportPos(el, _pbPin.x, _pbPin.y)
                             // Richtungsvektor mit Spiegelung + Rotation transformieren

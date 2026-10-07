@@ -523,6 +523,8 @@ qt_add_executable(stroemling_test
     src/database/Database_Kontakt.cpp
     src/database/Database_Betriebsmittel.cpp
     src/database/Database.h
+    src/models/SymbolDefinitionModel.cpp
+    src/models/SymbolDefinitionModel.h
 )
 
 qt_add_resources(stroemling_test "database_seeds_test"

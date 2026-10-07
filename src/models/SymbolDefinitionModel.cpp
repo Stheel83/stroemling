@@ -93,7 +93,7 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
     QVariantList result;
     QSqlQuery q;
     q.prepare(R"(
-        SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle
+        SELECT id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle, steckkontakt
         FROM symbol_pin
         WHERE symbol_id = :sym
         ORDER BY id ASC
@@ -125,6 +125,9 @@ QVariantList SymbolDefinitionModel::pinsForSymbol(const QString &symbolId) const
         // genau diesen Pin – nötig für Symbole mit gemischten Rollen
         // (Netzteil: L/N=Verbraucher, +/-=Quelle).
         m["rolle"]        = q.value(9).toString();
+        // SYM-STECKKONTAKT-01: Pin ist ein Steckkontakt (Steckseite eines
+        // Stecker-/Buchsen-Symbols), s. steckRolleForSymbol().
+        m["steckkontakt"] = q.value(10).toInt() != 0;
         result.append(m);
     }
     m_pinCache.insert(symbolId, result);
@@ -141,10 +144,95 @@ QString SymbolDefinitionModel::rolleForSymbol(const QString &symbolId) const
     return QStringLiteral("durchleiter");
 }
 
+QString SymbolDefinitionModel::steckRolleForSymbol(const QString &symbolId) const
+{
+    auto it = m_steckRolleCache.find(symbolId);
+    if (it != m_steckRolleCache.end())
+        return it.value();
+    QString r;
+    QSqlQuery q;
+    q.prepare("SELECT steck_rolle FROM symbol_definition WHERE id = :sym LIMIT 1");
+    q.bindValue(":sym", symbolId);
+    if (q.exec() && q.next())
+        r = q.value(0).toString();
+    m_steckRolleCache.insert(symbolId, r);
+    return r;
+}
+
+bool SymbolDefinitionModel::steckRolleSetzen(const QString &symbolId, const QString &rolle)
+{
+    if (!rolle.isEmpty() && rolle != QLatin1String("stecker") && rolle != QLatin1String("buchse"))
+        return false;
+    QSqlQuery q;
+    q.prepare("UPDATE symbol_definition SET steck_rolle = :r WHERE id = :id");
+    q.bindValue(":r",  rolle);
+    q.bindValue(":id", symbolId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "steckRolleSetzen:" << q.lastError().text();
+        return false;
+    }
+    m_steckRolleCache.remove(symbolId);
+    return true;
+}
+
+QVariantList SymbolDefinitionModel::steckkontaktInfo(const QString &symbolId) const
+{
+    QVariantList result;
+    if (steckRolleForSymbol(symbolId).isEmpty())
+        return result;
+    const QVariantMap info = symbolInfo(symbolId);
+    const double w = info.value("breiteMm").toDouble();
+    const double h = info.value("hoeheMm").toDouble();
+    if (w <= 0 || h <= 0)
+        return result;
+    const double tol = 0.25; // mm
+    const QVariantList prims = primitiveFuerSymbol(symbolId);
+    for (const QVariant &pv : pinsForSymbol(symbolId)) {
+        const QVariantMap pin = pv.toMap();
+        if (!pin.value("steckkontakt").toBool()) continue;
+        const double px = pin.value("x").toDouble() * w;
+        const double py = pin.value("y").toDouble() * h;
+        QVariantList idx;
+        for (int i = 0; i < prims.size(); i++) {
+            const QVariantMap p = prims[i].toMap();
+            const QString typ = p.value("typ").toString();
+            double x0, y0, x1, y1;
+            if (typ == QLatin1String("rechteck") || typ == QLatin1String("rechteck_gefuellt")) {
+                x0 = std::min(p.value("x1").toDouble(), p.value("x2").toDouble()) * w;
+                x1 = std::max(p.value("x1").toDouble(), p.value("x2").toDouble()) * w;
+                y0 = std::min(p.value("y1").toDouble(), p.value("y2").toDouble()) * h;
+                y1 = std::max(p.value("y1").toDouble(), p.value("y2").toDouble()) * h;
+            } else if (typ == QLatin1String("kreis_offen") || typ == QLatin1String("kreis_gefuellt")
+                       || typ == QLatin1String("bogen")) {
+                // Canvas-Renderer: Radius relativ zur Symbolbreite (radius * w)
+                const double r = p.value("radius").toDouble() * w;
+                x0 = p.value("x1").toDouble() * w - r; x1 = p.value("x1").toDouble() * w + r;
+                y0 = p.value("y1").toDouble() * h - r; y1 = p.value("y1").toDouble() * h + r;
+            } else if (typ == QLatin1String("dreieck_gefuellt")) {
+                const double xs[3] = { p.value("x1").toDouble() * w, p.value("x2").toDouble() * w, p.value("x3").toDouble() * w };
+                const double ys[3] = { p.value("y1").toDouble() * h, p.value("y2").toDouble() * h, p.value("y3").toDouble() * h };
+                x0 = *std::min_element(xs, xs + 3); x1 = *std::max_element(xs, xs + 3);
+                y0 = *std::min_element(ys, ys + 3); y1 = *std::max_element(ys, ys + 3);
+            } else {
+                continue;
+            }
+            if (px >= x0 - tol && px <= x1 + tol && py >= y0 - tol && py <= y1 + tol)
+                idx.append(i);
+        }
+        QVariantMap m;
+        m["name"]      = pin.value("name");
+        m["x"]         = pin.value("x");
+        m["y"]         = pin.value("y");
+        m["primitive"] = idx;
+        result.append(m);
+    }
+    return result;
+}
+
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm, steck_rolle FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
@@ -157,6 +245,7 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
         m["bmkSeite"]     = q.value(6).toString();
         m["kopieVonId"]   = q.value(7).toString();
         m["pinSchriftMm"] = q.value(8).toDouble();
+        m["steckRolle"]   = q.value(9).toString();
         return m;
     }
     return {};
@@ -337,6 +426,7 @@ bool SymbolDefinitionModel::symbolLoeschen(const QString &symbolId)
     }
     m_primitivCache.remove(symbolId);
     m_pinCache.remove(symbolId);
+    m_steckRolleCache.remove(symbolId);
     return q.numRowsAffected() > 0;
 }
 
@@ -414,6 +504,7 @@ void SymbolDefinitionModel::cacheLeeren()
 {
     m_primitivCache.clear();
     m_pinCache.clear();
+    m_steckRolleCache.clear();
 }
 
 int SymbolDefinitionModel::primitivHinzufuegen(const QString &symbolId, const QVariantMap &daten)
@@ -479,8 +570,8 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
 {
     QSqlQuery q;
     q.prepare(R"(
-        INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle)
-        VALUES (:sym, :name, :x, :y, :ox, :oy, :sig, :ctx, :kg, :rolle)
+        INSERT INTO symbol_pin (symbol_id, name, x, y, offen_x, offen_y, signaltyp, kontext, knoten_gruppe, rolle, steckkontakt)
+        VALUES (:sym, :name, :x, :y, :ox, :oy, :sig, :ctx, :kg, :rolle, :sk)
     )");
     q.bindValue(":sym",  symbolId);
     q.bindValue(":name", daten.value("name", ""));
@@ -494,6 +585,7 @@ int SymbolDefinitionModel::pinHinzufuegen(const QString &symbolId, const QVarian
     // NETZTEIL-ROLLE-01: bisher nur per Migration/symbole.sql setzbar, jetzt
     // auch über den Rolle-Dropdown im Symboleditor (SePinListe.qml).
     q.bindValue(":rolle", daten.value("rolle", ""));
+    q.bindValue(":sk",    daten.value("steckkontakt", false).toBool() ? 1 : 0);
     if (!q.exec()) {
         qCWarning(lcModel) << "pinHinzufuegen:" << q.lastError().text();
         return -1;
@@ -537,6 +629,9 @@ struct PinInfo {
     // Trafo Primär-/Sekundärwicklung). Default 0 = alle Pins eines Symbols
     // sind ein Knoten (unveränderte Bedeutung für alle anderen Symbole).
     int     knotenGruppe = 0;
+    // SYM-STECKKONTAKT-01: Steckkopplung. steckRolle ("stecker"/"buchse") ist
+    // nur gesetzt, wenn der Pin ein Steckkontakt eines Symbols mit Rolle ist.
+    QString steckRolle;
 };
 
 struct Unterbrechung { double cx, cy, hw, hh; };
@@ -586,22 +681,22 @@ static bool vBlockiert(double x, double ay, double by,
     return false;
 }
 
-// Stecker/Buchse Pin 2 ist die fiktive Steckverbindung (kein Kabelanschluss):
-// sie darf sich ausschliesslich mit dem jeweiligen Gegenstueck verbinden,
-// nie mit einem anderen Symbol. Erkannte Verbindung wird "logisch" markiert
-// (wie Querverweis-Bruecken) - nicht gezeichnet, nur fuer die Potenzialkette.
-static bool istSteckerBuchsePin2(const PinInfo &p)
+// Steckkontakt-Pins (SYM-STECKKONTAKT-01, vorher fest "Pin 2" von stecker/
+// buchse) sind die fiktive Steckverbindung (kein Kabelanschluss): sie duerfen
+// sich ausschliesslich mit dem gleichnamigen Steckkontakt des jeweiligen
+// Gegenstuecks verbinden, nie mit einem anderen Symbol. Erkannte Verbindung
+// wird "logisch" markiert (wie Querverweis-Bruecken) - nicht gezeichnet, nur
+// fuer die Potenzialkette.
+static bool istSteckkontakt(const PinInfo &p)
 {
-    return (p.symbolId == QLatin1String("stecker") || p.symbolId == QLatin1String("buchse"))
-           && p.pinName == QLatin1String("2");
+    return !p.steckRolle.isEmpty();
 }
 
-static bool sindSteckerBuchsePartner(const PinInfo &a, const PinInfo &b)
+static bool sindSteckPartner(const PinInfo &a, const PinInfo &b)
 {
-    return (a.symbolId == QLatin1String("stecker") && a.pinName == QLatin1String("2") &&
-            b.symbolId == QLatin1String("buchse")  && b.pinName == QLatin1String("2"))
-        || (a.symbolId == QLatin1String("buchse")  && a.pinName == QLatin1String("2") &&
-            b.symbolId == QLatin1String("stecker") && b.pinName == QLatin1String("2"));
+    return istSteckkontakt(a) && istSteckkontakt(b)
+        && a.steckRolle != b.steckRolle
+        && a.pinName == b.pinName;
 }
 
 } // namespace
@@ -709,6 +804,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                                  ? ed.value("signaltyp", QStringLiteral("neutral")).toString()
                                  : QStringLiteral("neutral");
 
+        const QString steckRolleSym = steckRolleForSymbol(symbolId);
         const double rotation = el["rotation"].toDouble();
         const double rot  = rotation * M_PI / 180.0;
         const double cosR = std::cos(rot), sinR = std::sin(rot);
@@ -739,6 +835,8 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
             pi.symbolId = symbolId;
             pi.pinName  = pin["name"].toString();
             pi.knotenGruppe = pin.value("knotenGruppe", 0).toInt();
+            if (pin.value("steckkontakt").toBool())
+                pi.steckRolle = steckRolleSym;
 
             const QVariantMap offen = pin["offen"].toMap();
             if (!offen.isEmpty()) {
@@ -768,8 +866,8 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         for (int li = 0; li < lane.size() - 1; li++) {
             const PinInfo &a = lane[li], &b = lane[li + 1];
             if (a.elIdx == b.elIdx) continue;
-            if (istSteckerBuchsePin2(a) || istSteckerBuchsePin2(b)) {
-                if (!sindSteckerBuchsePartner(a, b)) continue;
+            if (istSteckkontakt(a) || istSteckkontakt(b)) {
+                if (!sindSteckPartner(a, b)) continue;
                 if (b.x - a.x > steckerBuchseMaxAbstand) continue;
             }
             if ((!a.hatOffen || a.offenX > eps) &&
@@ -783,7 +881,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
                 v["pinNameB"] = b.pinName; v["knotenGruppeB"] = b.knotenGruppe;
                 v["signaltyp"] = QStringLiteral("neutral");
-                if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
+                if (sindSteckPartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);
             }
         }
@@ -803,8 +901,8 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
         for (int li = 0; li < lane.size() - 1; li++) {
             const PinInfo &a = lane[li], &b = lane[li + 1];
             if (a.elIdx == b.elIdx) continue;
-            if (istSteckerBuchsePin2(a) || istSteckerBuchsePin2(b)) {
-                if (!sindSteckerBuchsePartner(a, b)) continue;
+            if (istSteckkontakt(a) || istSteckkontakt(b)) {
+                if (!sindSteckPartner(a, b)) continue;
                 if (b.y - a.y > steckerBuchseMaxAbstand) continue;
             }
             if ((!a.hatOffen || a.offenY > eps) &&
@@ -818,7 +916,7 @@ QVariantList SymbolDefinitionModel::autoVerbindungenBerechnen(
                 v["elIdxB"] = b.elIdx; v["rolleB"] = b.rolle; v["quellSigB"] = b.quellSig;
                 v["pinNameB"] = b.pinName; v["knotenGruppeB"] = b.knotenGruppe;
                 v["signaltyp"] = QStringLiteral("neutral");
-                if (sindSteckerBuchsePartner(a, b)) v["logisch"] = true;
+                if (sindSteckPartner(a, b)) v["logisch"] = true;
                 verbindungen.append(v);
             }
         }

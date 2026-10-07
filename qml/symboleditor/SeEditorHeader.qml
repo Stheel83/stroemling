@@ -210,6 +210,42 @@ Rectangle {
             }
 
             Text {
+                text: qsTr("Steckverbinder:"); color: editor.theme.textMuted; font.pixelSize: 11
+                ToolTip.visible: steckHover.containsMouse; ToolTip.delay: 400
+                ToolTip.text: qsTr("Macht das Symbol zu einem Stecker bzw. einer Buchse (Steckkopplung).\nPins, die in der Pin-Liste als \"Steckkontakt\" markiert sind, verbinden sich auf dem Canvas nur mit dem gleichnamigen Steckkontakt des Gegenstücks (keine gezeichnete Leitung), tragen keine Beschriftung und zeigen grün (gesteckt) bzw. orange (offen).\nKein: normales Symbol.")
+                MouseArea { id: steckHover; anchors.fill: parent; hoverEnabled: true }
+            }
+            ComboBox {
+                id: steckRolleCombo
+                model: ["", "stecker", "buchse"]
+                currentIndex: Math.max(0, model.indexOf(editor.steckRolleText))
+                onActivated: function(i) { editor.steckRolleText = model[i] }
+                implicitWidth: 100; implicitHeight: 28; font.pixelSize: 12
+                function label(i) {
+                    switch (i) {
+                    case 1: return qsTr("Stecker")
+                    case 2: return qsTr("Buchse")
+                    default: return qsTr("Kein")
+                    }
+                }
+                background: Rectangle { color: editor.theme.inputBg; border.color: editor.theme.border; radius: 4 }
+                contentItem: Text {
+                    text: steckRolleCombo.label(steckRolleCombo.currentIndex)
+                    color: editor.theme.textPrimary; font.pixelSize: 12
+                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                }
+                delegate: ItemDelegate {
+                    width: steckRolleCombo.width
+                    contentItem: Text {
+                        text: steckRolleCombo.label(index)
+                        color: editor.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: 8; verticalAlignment: Text.AlignVCenter
+                    }
+                    highlighted: steckRolleCombo.highlightedIndex === index
+                }
+            }
+
+            Text {
                 text: qsTr("Kennbuchstaben:"); color: editor.theme.textMuted; font.pixelSize: 11
                 ToolTip.visible: kbHover.containsMouse; ToolTip.delay: 400
                 ToolTip.text: qsTr("BMK-Kennbuchstaben nach DIN EN 81346 (z.B. \"M\" fuer Motor, \"K\"/\"Q\" fuer eine Spule die je nach Geraet Schuetz oder Leistungsschalter ist). Mehrere moeglich - der markierte (farbig) wird beim Platzieren automatisch vorbelegt, die uebrigen erscheinen als Umschalt-Chips im Eigenschaften-Panel. Klick auf einen Chip macht ihn zum Standard, × entfernt ihn. Keine Eintraege = kein Vorschlag. Wirkt auch bei eingebauten Symbolen (reine Klassifikations-Metadatur, keine Geometrie).")

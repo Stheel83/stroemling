@@ -684,15 +684,15 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
 
     QSqlQuery q(db);
     q.prepare(QStringLiteral(
-        "SELECT name, x, y, offen_x, offen_y FROM symbol_pin WHERE symbol_id = :sym"));
+        "SELECT name, x, y, offen_x, offen_y, steckkontakt FROM symbol_pin WHERE symbol_id = :sym"));
     q.bindValue(":sym", sid);
     if (!q.exec()) return;
 
-    struct PbPin { QString name; double x, y, offenX, offenY; };
+    struct PbPin { QString name; double x, y, offenX, offenY; bool steckkontakt; };
     QVector<PbPin> pins;
     while (q.next())
         pins.append({ q.value(0).toString(), q.value(1).toDouble(), q.value(2).toDouble(),
-                       q.value(3).toDouble(), q.value(4).toDouble() });
+                       q.value(3).toDouble(), q.value(4).toDouble(), q.value(5).toInt() != 0 });
     if (pins.isEmpty()) return;
 
     QVariantMap ed     = el.value("extraDaten").toMap();
@@ -703,7 +703,6 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
     double x2 = el.value("x2").toDouble(), y2 = el.value("y2").toDouble();
     double rot = el.value("rotation").toDouble();
     bool spX = el.value("spiegelX").toBool(), spY = el.value("spiegelY").toBool();
-    bool isSteBu = (sid == QLatin1String("stecker") || sid == QLatin1String("buchse"));
 
     // Symbolweite Pin-Schriftgröße (PIN-LABEL-SCHRIFTGROESSE-01), Default 2.0mm.
     double pinSchriftMm = 2.0;
@@ -726,7 +725,7 @@ static void pdfPinBezeichnungenRendern(QPainter &p, const QVariantMap &el,
     const double BIG = 1000.0;
 
     for (const PbPin &pin : pins) {
-        if (isSteBu && pin.name == QLatin1String("2")) continue;
+        if (pin.steckkontakt) continue; // Steckkontakt: keine Beschriftung (SYM-STECKKONTAKT-01)
 
         QString label = pinBez.value(pin.name).toString();
         if (label.isEmpty()) label = pin.name;

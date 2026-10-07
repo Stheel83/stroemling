@@ -382,8 +382,7 @@ Item {
     function neuZeichnen() { drawCanvas.requestPaint() }
 
     // Prüft ob das Element mit Index idx an einer "logischen" Auto-Verbindung
-    // teilnimmt (Querverweis-Brücke, Klemmen-Durchleitung oder Stecker/Buchse
-    // Pin-2-Kopplung). Für EP-Statusanzeige (z.B. "Verbunden"-Badge bei Pin 2).
+    // teilnimmt (Querverweis-Brücke, Klemmen-Durchleitung oder Steckkopplung).
     function hatLogischeVerbindung(idx) {
         if (idx < 0) return false
         var netze = netzHandler.autoNetzeBerechnenCached()
@@ -392,6 +391,23 @@ Item {
             for (var s = 0; s < segs.length; s++) {
                 var sg = segs[s]
                 if (sg.logisch && (sg.elIdxA === idx || sg.elIdxB === idx)) return true
+            }
+        }
+        return false
+    }
+
+    // Wie hatLogischeVerbindung(), aber für genau einen Pin des Elements
+    // (SYM-STECKKONTAKT-01: je Steckkontakt eines Stecker-/Buchsen-Symbols).
+    function hatLogischeVerbindungPin(idx, pinName) {
+        if (idx < 0) return false
+        var netze = netzHandler.autoNetzeBerechnenCached()
+        for (var n = 0; n < netze.length; n++) {
+            var segs = netze[n].segmente
+            for (var s = 0; s < segs.length; s++) {
+                var sg = segs[s]
+                if (!sg.logisch) continue
+                if ((sg.elIdxA === idx && sg.pinNameA === pinName) ||
+                    (sg.elIdxB === idx && sg.pinNameB === pinName)) return true
             }
         }
         return false

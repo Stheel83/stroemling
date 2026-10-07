@@ -58,8 +58,12 @@ Item {
         && !_pinBezSkip[panel.el.symbolId || ""]
         && !(panel.el.betriebsmittelId > 0)
 
-    readonly property bool istSteckerOderBuchse:
-        panel.el && (panel.el.symbolId === "stecker" || panel.el.symbolId === "buchse")
+    // SYM-STECKKONTAKT-01: Symbol hat Steckkontakt-Pins (Rolle Stecker/Buchse
+    // im Symboleditor gesetzt) - gilt für stecker/buchse und eigene Symbole.
+    readonly property var steckKontakte:
+        panel.el && panel.el.typ === "symbol"
+        ? symbolDefinitionModel.steckkontaktInfo(panel.el.symbolId || "") : []
+    readonly property bool istSteckerOderBuchse: steckKontakte.length > 0
 
     // Symbole mit eigenem, generischem BMK-Textlabel – Klemme/Geräteanschluss/
     // Potenzial haben ihre eigene Textposition-Logik in ihren jeweiligen
@@ -86,14 +90,13 @@ Item {
         panel.canvas.eigenschaftAktualisieren("extraDaten", ed)
     }
 
-    // Pin 2 von Stecker/Buchse ist die fiktive Steckverbindung – keine eigene
+    // Steckkontakte sind die fiktive Steckverbindung – keine eigene
     // Beschriftung, Status stattdessen als "Gesteckt"/"Nicht gesteckt" (s.u.).
     function _pinsFuerBeschriftung(symbolId) {
         var pins = symbolDefinitionModel.pinsForSymbol(symbolId)
-        if (symbolId !== "stecker" && symbolId !== "buchse") return pins
         var r = []
         for (var i = 0; i < pins.length; i++)
-            if (pins[i].name !== "2") r.push(pins[i])
+            if (!pins[i].steckkontakt) r.push(pins[i])
         return r
     }
 
@@ -343,7 +346,7 @@ Item {
                         }
                     }
 
-                    // Steckverbindungsstatus – nur Stecker/Buchse (Pin 2 ist die fiktive
+                    // Steckverbindungsstatus – nur Symbole mit Steckkontakten (die sind die fiktive
                     // Steckverbindung, keine eigene Pin-Zeile, s. _pinsFuerBeschriftung).
                     // _refresh referenziert für AOT-Reaktivität (Muster wie panel.el).
                     Item {
@@ -351,9 +354,17 @@ Item {
                         visible: root.istSteckerOderBuchse
                         width: parent.width; height: visible ? 28 : 0
 
-                        readonly property bool verbunden:
-                            root.istSteckerOderBuchse && (panel._refresh * 0 === 0) && panel.canvas
-                            ? panel.canvas.hatLogischeVerbindung(panel.canvas.ausgewaehlt) : false
+                        // Gesteckt = ALLE Steckkontakte haben ihren Partner (ganz oder gar nicht,
+                        // kein "teilweise" – Nutzerentscheid SYM-STECKKONTAKT-01).
+                        readonly property bool verbunden: {
+                            if (!root.istSteckerOderBuchse || !(panel._refresh * 0 === 0) || !panel.canvas)
+                                return false
+                            for (var i = 0; i < root.steckKontakte.length; i++)
+                                if (!panel.canvas.hatLogischeVerbindungPin(panel.canvas.ausgewaehlt,
+                                                                           root.steckKontakte[i].name))
+                                    return false
+                            return true
+                        }
 
                         Text {
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }

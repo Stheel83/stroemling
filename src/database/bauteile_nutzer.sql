@@ -1851,17 +1851,17 @@ WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='LS-Schalter B16');
 
 -- ── FI-Schutzschalter 25A/30mA ──
 INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, strom_a, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id, ist_system)
-SELECT 'FI-Schutzschalter 25A/30mA', 'Siemens', '5SV3314-6', 25, 'DIN EN 61008-1', '-F', 'Typ A, 2-polig', 'fi', 1
+SELECT 'FI-Schutzschalter 25A/30mA', 'Siemens', '5SV3314-6', 25, 'DIN EN 61008-1', '-F', 'Typ A, 2-polig', 'fi_2pol', 1
 WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='FI-Schutzschalter 25A/30mA');
 
 -- ── Feinsicherung 5x20mm 2A ──
 INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, strom_a, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id, ist_system)
-SELECT 'Feinsicherung 5x20mm 2A', 'Wickmann', '19195000000', 2, 'DIN 41571', '-F', 'Glasrohrsicherung, träge', 'sicherung', 1
+SELECT 'Feinsicherung 5x20mm 2A', 'Wickmann', '19195000000', 2, 'DIN 41571', '-F', 'Glasrohrsicherung, träge', 'sicherung_einpolig', 1
 WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Feinsicherung 5x20mm 2A');
 
 -- ── Not-Halt-Taster ──
 INSERT INTO bauteil (bezeichnung, hersteller, artikelnummer, norm, bmk_vorlage, bemerkung, hauptfunktion_symbol_id, ist_system)
-SELECT 'Not-Halt-Taster', 'Eaton', 'M22-PV', 'DIN EN ISO 13850', '-S', 'Pilzkopf, rastend, Öffner', 'not_halt', 1
+SELECT 'Not-Halt-Taster', 'Eaton', 'M22-PV', 'DIN EN ISO 13850', '-S', 'Pilzkopf, rastend, Öffner', 'not_halt_nc_einpolig', 1
 WHERE NOT EXISTS (SELECT 1 FROM bauteil WHERE bezeichnung='Not-Halt-Taster');
 
 -- ── Taster grün (Ein) ──

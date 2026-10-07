@@ -98,7 +98,7 @@ Rectangle {
     // hier nicht gelistet sind (z.B. künftige Erweiterungen), landen alphabetisch danach.
     readonly property var kategoriePrioritaet: [
         "kontakte", "schutz", "antriebe", "passive", "signalgeraete",
-        "klemmen", "sps_pls", "sensoren", "installation", "erdung",
+        "klemmen", "sps_pls", "sensoren", "signalumwandlung", "installation", "erdung",
         "arduino", "kfz", "caravan", "waermepumpe"
     ]
 
@@ -219,6 +219,7 @@ Rectangle {
             "kfz":           "KFZ-Elektrik",
             "arduino":       "Arduino",
             "sensoren":      "Sensoren",
+            "signalumwandlung": "Signalumwandlung",
             "caravan":       "Caravan / Wohnwagen",
             "erdung":        "Erdung",
             "installation":  "Installation",

@@ -308,6 +308,32 @@ bool Database::checkAndApplyBibliothekSchema()
         }
     }
 
+    // Schema v9 (SYM-KOPIE-VON-06): die Builtin-Symbole fi/sicherung/not_halt wurden
+    // entfernt (Projekt-Migration 158) - Bauteile, die sie als Hauptfunktion-
+    // Symbol referenzierten, auf die Nachfolger umhaengen.
+    {
+        static const char *const umhaengen[][2] = {
+            { "fi", "fi_2pol" }, { "sicherung", "sicherung_einpolig" },
+            { "sicherung_3pol", "sicherung_dreipolig" }, { "not_halt", "not_halt_nc_einpolig" },
+            { "hupe", "horn_hupe" }, { "summer", "schnarre_summer" },
+        };
+        for (const auto &u : umhaengen) {
+            QSqlQuery uq(m_bibliothekDb);
+            uq.prepare("UPDATE bauteil SET hauptfunktion_symbol_id = :neu WHERE hauptfunktion_symbol_id = :alt");
+            uq.bindValue(":neu", QString::fromLatin1(u[1]));
+            uq.bindValue(":alt", QString::fromLatin1(u[0]));
+            QSqlQuery kq(m_bibliothekDb);
+            kq.prepare("UPDATE bauteil_kontakt SET symbol_id = :neu WHERE symbol_id = :alt");
+            kq.bindValue(":neu", QString::fromLatin1(u[1]));
+            kq.bindValue(":alt", QString::fromLatin1(u[0]));
+            if (!uq.exec() || !kq.exec()) {
+                qCWarning(lcDb) << "Bibliothek-Schema v9 Symbol-Umhaengen:" << uq.lastError().text() << kq.lastError().text();
+                m_bibliothekDb.rollback();
+                return false;
+            }
+        }
+    }
+
     // Einmaliges Backfill: bereits vor v8 vorhandene Seed-Bauteile nachträglich
     // als ist_system=1 markieren (der INSERT-Guard in seedStandardKlemmen()/
     // seedNutzerBauteile() prüft nur "bezeichnung existiert bereits" und

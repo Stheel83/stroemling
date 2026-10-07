@@ -13,7 +13,8 @@ Item {
 
     readonly property var _KONTAKT_SYMS: [
         "schliesser", "oeffner", "wechsler",
-        "taster_no", "taster_nc", "not_halt", "bimetall_nc"
+        "taster_no", "taster_nc", "bimetall_nc",
+        "not_halt_nc_einpolig", "not_halt_nc_zweipolig", "not_halt_nc_dreipolig", "not_halt_nc_vierpolig"
     ]
     readonly property bool _istKontakt: {
         if (!panel.el || panel.el.typ !== "symbol") return false

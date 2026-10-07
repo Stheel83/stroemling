@@ -442,6 +442,40 @@ private slots:
         QCOMPARE(alleSegmente(seit), logischeSegmente(seit));
     }
 
+    // SYM-KOPIE-VON-06 (Migration 158): uebernommene Symbole vorhanden, die
+    // sechs geloeschten Builtins weg, Steckkontakte der Schuko-/Drehstrom-Symbole gesetzt.
+    void test_15_symbolUebernahme158()
+    {
+        TmpProjekt tp("sk15"); QVERIFY(tp.db.isOpen());
+        QSqlQuery q(QSqlDatabase::database());
+        for (const char *gone : { "fi", "sicherung", "sicherung_3pol", "not_halt", "hupe", "summer",
+                                  "kopie_von_summer", "sicherung_dreipol" }) {
+            q.prepare("SELECT COUNT(*) FROM symbol_definition WHERE id = :i");
+            q.bindValue(":i", QString::fromLatin1(gone)); QVERIFY(q.exec() && q.next());
+            QVERIFY2(q.value(0).toInt() == 0, gone);
+            q.prepare("SELECT COUNT(*) FROM symbol WHERE code = :i");
+            q.bindValue(":i", QString::fromLatin1(gone)); QVERIFY(q.exec() && q.next());
+            QVERIFY2(q.value(0).toInt() == 0, gone);
+        }
+        for (const char *da : { "not_halt_nc_vierpolig", "sicherung_einpolig", "sicherung_dreipolig", "horn_hupe",
+                                "optokoppler", "motorschutzschalter", "schuko_stecker_pe_mittig", "drehstromsteckdose" }) {
+            q.prepare("SELECT ist_builtin, (SELECT COUNT(*) FROM symbol_pin WHERE symbol_id = :i), "
+                      "(SELECT COUNT(*) FROM symbol_primitiv WHERE symbol_id = :i) FROM symbol_definition WHERE id = :i");
+            q.bindValue(":i", QString::fromLatin1(da)); QVERIFY(q.exec());
+            QVERIFY2(q.next(), da);
+            QCOMPARE(q.value(0).toInt(), 1);
+            QVERIFY2(q.value(1).toInt() > 0 && q.value(2).toInt() > 0, da);
+        }
+        QVERIFY(q.exec("SELECT breite_mm, hoehe_mm FROM symbol_definition WHERE id = 'sicherungstrennschalter'") && q.next());
+        QCOMPARE(q.value(0).toInt(), 8); QCOMPARE(q.value(1).toInt(), 12);
+        QVERIFY(q.exec("SELECT kategorie FROM symbol_definition WHERE id = 'optokoppler'") && q.next());
+        QCOMPARE(q.value(0).toString(), QStringLiteral("Signalumwandlung"));
+        SymbolDefinitionModel m;
+        QCOMPARE(m.steckRolleForSymbol("drehstromstecker"), QStringLiteral("stecker"));
+        QCOMPARE(m.steckkontaktInfo("drehstromstecker").size(), 5);
+        QCOMPARE(m.steckkontaktInfo("schuko_steckdose_pe_mittig").size(), 3);
+    }
+
     void test_12_createProjektWendetNeueMigrationenSofortAn()
     {
         const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"

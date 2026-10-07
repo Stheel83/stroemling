@@ -2955,6 +2955,14 @@ static QList<SchemaMigration> alleMigrationen()
             R"(UPDATE symbol_definition SET kategorie='Signalübertragung' WHERE id IN ('optokoppler','spule','anzugverzoegerte_spule_relais','rueckfallverzoegerte_spule_relais','thermo_spule_relais','trafo','netzteil'))",
             R"(UPDATE symbol SET kategorie_pfad='signaluebertragung' WHERE code IN ('optokoppler','spule','anzugverzoegerte_spule_relais','rueckfallverzoegerte_spule_relais','thermo_spule_relais','trafo','netzteil'))",
         }},
+        { 160, "SYM-KOPIE-VON-07 (Projekt Pokestroems Aquarium): drei Nutzer-Kopien uebernommen - in allen dreien wurde ausschliesslich bmk_seite von 'auto' auf 'vertikal' geaendert (BMK/Freitext sitzt bei 0/180 Grad seitlich statt ueber dem Symbol), Pins/Primitive/Groesse/Kennbuchstaben/Rolle sind identisch zum Original (per Diff geprueft). Betrifft optokoppler (Kopie kopie_von_optokoppler), motor (kopie_von_motor) und motor_mit_pe (kopie_von_motor_mit_pe; die Kopie verwies via kopie_von_id auf motor, Name und Groesse 24x24 gehoeren aber zu motor_mit_pe). Platzierte Instanzen der Kopien (je eine Testinstanz auf Seite 1) werden auf die Originale umgehaengt, die Kopien danach geloescht. Die Kopien hatten keine ibn_kategorie (Kopier-Artefakt) - die Originale behalten ihre.", {
+            R"(UPDATE symbol_definition SET bmk_seite='vertikal' WHERE id IN ('optokoppler','motor','motor_mit_pe'))",
+            R"(UPDATE grafik_element SET symbol_id='optokoppler' WHERE symbol_id='kopie_von_optokoppler')",
+            R"(UPDATE grafik_element SET symbol_id='motor' WHERE symbol_id='kopie_von_motor')",
+            R"(UPDATE grafik_element SET symbol_id='motor_mit_pe' WHERE symbol_id='kopie_von_motor_mit_pe')",
+            R"(UPDATE projekt SET zuletzt_verwendete_symbole = REPLACE(REPLACE(REPLACE(zuletzt_verwendete_symbole, '"kopie_von_optokoppler"', '"optokoppler"'), '"kopie_von_motor_mit_pe"', '"motor_mit_pe"'), '"kopie_von_motor"', '"motor"') WHERE zuletzt_verwendete_symbole LIKE '%kopie_von_%')",
+            R"(DELETE FROM symbol_definition WHERE id IN ('kopie_von_optokoppler','kopie_von_motor','kopie_von_motor_mit_pe'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

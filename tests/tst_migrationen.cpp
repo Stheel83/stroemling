@@ -477,6 +477,11 @@ private slots:
         QCOMPARE(q.value(0).toInt(), 7);
         QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_definition WHERE kategorie IN ('Signalumwandlung')") && q.next());
         QCOMPARE(q.value(0).toInt(), 0);
+        // Migration 160: BMK-Ausrichtung 'vertikal' uebernommen, Kopien weg
+        QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_definition WHERE bmk_seite='vertikal' AND id IN ('optokoppler','motor','motor_mit_pe')") && q.next());
+        QCOMPARE(q.value(0).toInt(), 3);
+        QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_definition WHERE id LIKE 'kopie_von_%'") && q.next());
+        QCOMPARE(q.value(0).toInt(), 0);
         SymbolDefinitionModel m;
         QCOMPARE(m.steckRolleForSymbol("drehstromstecker"), QStringLiteral("stecker"));
         QCOMPARE(m.steckkontaktInfo("drehstromstecker").size(), 5);

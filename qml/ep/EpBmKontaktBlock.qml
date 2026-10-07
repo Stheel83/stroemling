@@ -11,17 +11,15 @@ Item {
 
     width: parent ? parent.width : 0
 
-    readonly property var _KONTAKT_SYMS: [
-        "schliesser", "oeffner", "wechsler",
-        "taster_no", "taster_nc", "bimetall_nc",
-        "not_halt_nc_einpolig", "not_halt_nc_zweipolig", "not_halt_nc_dreipolig", "not_halt_nc_vierpolig"
-    ]
+    // Kontaktsymbole: alle Symbole der Kategorie "Kontakte" (neue Kontakt-Symbole
+    // erscheinen damit automatisch, keine feste ID-Liste mehr) + bimetall_nc
+    // (Kategorie "Schutz", aber Hilfskontakt mit Anschlusskennzeichnung).
     readonly property bool _istKontakt: {
         if (!panel.el || panel.el.typ !== "symbol") return false
         var sid = panel.el.symbolId || ""
-        for (var k = 0; k < _KONTAKT_SYMS.length; k++)
-            if (sid === _KONTAKT_SYMS[k]) return true
-        return false
+        if (sid === "bimetall_nc") return true
+        var info = symbolDefinitionModel.symbolInfo(sid)
+        return !!info && info.kategorie === "Kontakte"
     }
     height:  _istKontakt ? kontaktCol.implicitHeight : 0
     visible: height > 0

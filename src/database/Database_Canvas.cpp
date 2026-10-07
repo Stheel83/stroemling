@@ -562,6 +562,7 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
                       "wurden zurückgerollt.\n" + msg);
         return false;
     }
+    ++m_grafikAenderungszaehler;
     return true;
 }
 

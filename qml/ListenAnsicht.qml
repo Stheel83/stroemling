@@ -20,8 +20,23 @@ Item {
     // nacheinander auf jede Seite mit Kabellinien gesetzt. Gelesen wird aus der DB – die
     // sichtbaren Canvases speichern bei jeder Änderung (Maus loslassen/Dialog), der
     // DB-Stand ist also aktuell.
+    // KABEL-VONNACH-AUTO-01: beim Öffnen der Listen automatisch aktualisieren, aber nur
+    // wenn seit der letzten Berechnung irgendeine Seite gespeichert wurde (Zähler in
+    // Database) oder das Projekt wechselte. Eine Änderung auf Seite A kann über
+    // Querverweise Kabel auf Seite B betreffen – deshalb gilt der Merker projektweit.
+    property int _vonNachProjekt: -1
+    property int _vonNachStand:   -1
+    function vonNachAktualisierenWennNoetig() {
+        if (projektId < 0) return
+        var zaehler = db.grafikAenderungszaehler()
+        if (projektId === _vonNachProjekt && zaehler === _vonNachStand) return
+        vonNachAlleSeitenBerechnen()
+    }
+
     function vonNachAlleSeitenBerechnen() {
         if (projektId < 0) return
+        _vonNachProjekt = projektId
+        _vonNachStand   = db.grafikAenderungszaehler()
         var seiten = db.kabelSeitenIds(projektId)
         if (!seiten || seiten.length === 0) return
         var cv = vonNachCanvasKomponente.createObject(panel, {projektId: projektId})
@@ -45,8 +60,8 @@ Item {
         }
     }
 
-    onProjektIdChanged: laden()
-    onVisibleChanged:   if (visible && projektId >= 0) laden()
+    onProjektIdChanged: { vonNachAktualisierenWennNoetig(); laden() }
+    onVisibleChanged:   if (visible && projektId >= 0) { vonNachAktualisierenWennNoetig(); laden() }
 
     // LISTEN-IDEEN-01: Stückliste/Querverweise/Aderliste/Bestellliste/
     // Adersummenliste liegen als rohe JS-Arrays vor (statt ListModel), analog

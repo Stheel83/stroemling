@@ -133,6 +133,9 @@ public:
 
     // Alle Grafikelemente einer Seite ersetzen (Transaktion, Delete + Insert)
     Q_INVOKABLE bool grafikSpeichern(int seiteId, const QVariantList &elemente);
+    // Zähler, der bei jedem erfolgreichen grafikSpeichern() steigt. Die Listenansicht
+    // vergleicht ihn mit dem Stand der letzten Von/Nach-Berechnung (KABEL-VONNACH-AUTO-01).
+    Q_INVOKABLE int grafikAenderungszaehler() const { return m_grafikAenderungszaehler; }
 
     // Alle Symbole für eine gegebene Norm zurückgeben ("IEC" oder "ANSI")
     Q_INVOKABLE QVariantList symboleNachNorm(const QString &norm);
@@ -1013,6 +1016,7 @@ private:
     void _spsKanalFelderInsElementUebernehmen(int kanalId);
 
     QSqlDatabase m_db;
+    int          m_grafikAenderungszaehler = 0;
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_makroDb;
     QSqlDatabase m_launcherDb;

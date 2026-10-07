@@ -41,42 +41,6 @@ Rectangle {
         // Header
         RowLayout {
             Text { text: qsTr("Pins:"); font.pixelSize: 12; font.weight: Font.Medium; color: root.editor.theme.textPrimary }
-            Text { text: "  " + qsTr("Name"); width: 56; font.pixelSize: 10; color: root.editor.theme.textMuted }
-            Text { text: qsTr("x (mm)");    width: 62; font.pixelSize: 10; color: root.editor.theme.textMuted }
-            Text { text: qsTr("y (mm)");    width: 62; font.pixelSize: 10; color: root.editor.theme.textMuted }
-            Text { text: qsTr("Richtung"); width: 96; font.pixelSize: 10; color: root.editor.theme.textMuted }
-            Text {
-                text: qsTr("Signaltyp")
-                width: 95; font.pixelSize: 10; color: root.editor.theme.textMuted
-                ToolTip.visible: sigHeaderHover.hovered
-                ToolTip.delay: 400
-                ToolTip.text: qsTr("Steuert u.a. die Farbdarstellung der angeschlossenen Ader/Leitung (z.B. \"power\" = L-Leiter, \"pe\"/\"n\" = Schutz-/Neutralleiter, \"dc_plus\"/\"dc_minus\" = Gleichspannung, \"input_*\"/\"output_*\" = SPS-Ein-/Ausgänge).")
-                HoverHandler { id: sigHeaderHover }
-            }
-            Text {
-                text: qsTr("Rolle")
-                width: 78; font.pixelSize: 10; color: root.editor.theme.textMuted
-                ToolTip.visible: rolleHeaderHover.hovered
-                ToolTip.delay: 400
-                ToolTip.text: qsTr("Pin-Rolle (NETZTEIL-ROLLE-01): überschreibt für genau diesen Pin die Symbol-Rolle. \"Quelle\" macht den Signaltyp dieses Pins zu einer festen Netz-Quelle (z.B. Ausgangspin eines SPS-Kanals) – ohne diese Überschreibung hat der gewählte Signaltyp keine Wirkung auf die Netzberechnung.")
-                HoverHandler { id: rolleHeaderHover }
-            }
-            Text {
-                text: qsTr("Kn.-Gr.")
-                width: 60; font.pixelSize: 10; color: root.editor.theme.textMuted
-                ToolTip.visible: knGrHeaderHover.hovered
-                ToolTip.delay: 400
-                ToolTip.text: qsTr("Knoten-Gruppe: Pins mit unterschiedlicher Zahl gelten in der Netzberechnung als getrennte Anschlüsse desselben Symbols (z.B. bei Widerstand/Kondensator/Spule nötig, damit beide Pole nicht intern kurzgeschlossen erscheinen). Gleiche Zahl (Default 0) = Pins gelten als intern verbunden, wie bei Klemme/Schalter.")
-                HoverHandler { id: knGrHeaderHover }
-            }
-            Text {
-                text: qsTr("Steck")
-                width: 40; font.pixelSize: 10; color: root.editor.theme.textMuted
-                ToolTip.visible: steckHeaderHover.hovered
-                ToolTip.delay: 400
-                ToolTip.text: qsTr("Steckkontakt: markiert Pins auf der Steckseite eines Steckers/einer Buchse (Symbol-Einstellung \"Steckverbinder\" im Kopf). Solche Pins verbinden sich nur mit dem gleichnamigen Steckkontakt des Gegenstücks, ohne gezeichnete Leitung und ohne Beschriftung. Funktioniert nur, wenn das Symbol als Stecker oder Buchse eingestellt ist.")
-                HoverHandler { id: steckHeaderHover }
-            }
             Item { Layout.fillWidth: true }
 
             Button {
@@ -116,6 +80,48 @@ Rectangle {
                 background: Rectangle { color: parent.hovered ? root.editor.theme.badge : "transparent"; radius: 4; border.color: root.editor.theme.accent; border.width: 1 }
                 contentItem: Text { text: parent.text; color: root.editor.theme.accent; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
+        }
+
+        // Spaltenköpfe: gleiche Breiten/Abstände wie die Zellen der Pin-Zeilen
+        // (Row spacing 4, leftPadding 4 im Delegate), sonst laufen sie auseinander.
+        Row {
+            spacing: 4; leftPadding: 4
+                Text { text: qsTr("Name"); width: 54; font.pixelSize: 10; color: root.editor.theme.textMuted }
+                Text { text: qsTr("x (mm)"); width: 58; font.pixelSize: 10; color: root.editor.theme.textMuted }
+                Text { text: qsTr("y (mm)"); width: 58; font.pixelSize: 10; color: root.editor.theme.textMuted }
+                Text { text: qsTr("Richtung"); width: 94; font.pixelSize: 10; color: root.editor.theme.textMuted }
+                Text {
+                    text: qsTr("Signaltyp")
+                    width: 140; font.pixelSize: 10; color: root.editor.theme.textMuted
+                    ToolTip.visible: sigHeaderHover.hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Steuert u.a. die Farbdarstellung der angeschlossenen Ader/Leitung (z.B. \"power\" = L-Leiter, \"pe\"/\"n\" = Schutz-/Neutralleiter, \"dc_plus\"/\"dc_minus\" = Gleichspannung, \"input_*\"/\"output_*\" = SPS-Ein-/Ausgänge).")
+                    HoverHandler { id: sigHeaderHover }
+                }
+                Text {
+                    text: qsTr("Rolle")
+                    width: 78; font.pixelSize: 10; color: root.editor.theme.textMuted
+                    ToolTip.visible: rolleHeaderHover.hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Pin-Rolle (NETZTEIL-ROLLE-01): überschreibt für genau diesen Pin die Symbol-Rolle. \"Quelle\" macht den Signaltyp dieses Pins zu einer festen Netz-Quelle (z.B. Ausgangspin eines SPS-Kanals) – ohne diese Überschreibung hat der gewählte Signaltyp keine Wirkung auf die Netzberechnung.")
+                    HoverHandler { id: rolleHeaderHover }
+                }
+                Text {
+                    text: qsTr("Kn.-Gr.")
+                    width: 60; font.pixelSize: 10; color: root.editor.theme.textMuted
+                    ToolTip.visible: knGrHeaderHover.hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Knoten-Gruppe: Pins mit unterschiedlicher Zahl gelten in der Netzberechnung als getrennte Anschlüsse desselben Symbols (z.B. bei Widerstand/Kondensator/Spule nötig, damit beide Pole nicht intern kurzgeschlossen erscheinen). Gleiche Zahl (Default 0) = Pins gelten als intern verbunden, wie bei Klemme/Schalter.")
+                    HoverHandler { id: knGrHeaderHover }
+                }
+                Text {
+                    text: qsTr("Steck")
+                    width: 40; font.pixelSize: 10; color: root.editor.theme.textMuted
+                    ToolTip.visible: steckHeaderHover.hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Steckkontakt: markiert Pins auf der Steckseite eines Steckers/einer Buchse (Symbol-Einstellung \"Steckverbinder\" im Kopf). Solche Pins verbinden sich nur mit dem gleichnamigen Steckkontakt des Gegenstücks, ohne gezeichnete Leitung und ohne Beschriftung. Funktioniert nur, wenn das Symbol als Stecker oder Buchse eingestellt ist.")
+                    HoverHandler { id: steckHeaderHover }
+                }
         }
 
         // SE-VERBRAUCHER-WARNUNG-01: proaktiver Hinweis statt der Fehlerklasse,

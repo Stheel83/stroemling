@@ -2951,6 +2951,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(DELETE FROM symbol_definition WHERE id IN ('kopie_von_leitungsschutzschalter','kopie_von_leitungsschutzschalter_2pol','kopie_von_leitungsschutzschalter_3pol','kopie_von_nh_sicherung','kopie_von_sicherung_mit_netzseitiger_kennzeichnung','kopie_von_sicherungstrennschalter','kopie_von_not_halt_nc','kopie_von_not_halt_nc_einpolig','kopie_von_not_halt_nc_zweipolig','kopie_von_sicherung_3pol','sicherung_dreipol','kopie_von_taster_nc','kopie_von_druckschalter_taster','kopie_von_summer'))",
             R"(DELETE FROM symbol WHERE code IN ('kopie_von_leitungsschutzschalter','kopie_von_leitungsschutzschalter_2pol','kopie_von_leitungsschutzschalter_3pol','kopie_von_nh_sicherung','kopie_von_sicherung_mit_netzseitiger_kennzeichnung','kopie_von_sicherungstrennschalter','kopie_von_not_halt_nc','kopie_von_not_halt_nc_einpolig','kopie_von_not_halt_nc_zweipolig','kopie_von_sicherung_3pol','sicherung_dreipol','kopie_von_taster_nc','kopie_von_druckschalter_taster','kopie_von_summer'))",
         }},
+        { 159, "SYM-KATEGORIE-SIGNALUEBERTRAGUNG-01: Kategorie 'Signalumwandlung' (Migration 158, nur optokoppler) heisst jetzt 'Signalübertragung' (Palette-Pfad signaluebertragung) und nimmt zusaetzlich aus 'Antriebe' die Spulen/Relais (spule, anzugverzoegerte_spule_relais, rueckfallverzoegerte_spule_relais, thermo_spule_relais), den Transformator (trafo) und das Netzteil (netzteil) auf. Reine Kategorie-Zuordnung (symbol_definition.kategorie + Legacy-symbol.kategorie_pfad), keine Geometrie-Aenderung. Nutzerentscheid.", {
+            R"(UPDATE symbol_definition SET kategorie='Signalübertragung' WHERE id IN ('optokoppler','spule','anzugverzoegerte_spule_relais','rueckfallverzoegerte_spule_relais','thermo_spule_relais','trafo','netzteil'))",
+            R"(UPDATE symbol SET kategorie_pfad='signaluebertragung' WHERE code IN ('optokoppler','spule','anzugverzoegerte_spule_relais','rueckfallverzoegerte_spule_relais','thermo_spule_relais','trafo','netzteil'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -3393,12 +3397,12 @@ bool Database::seedSymbolKatalog()
         { "motor",           "Motor",                   "antriebe",       "IEC,ANSI", 2 },
         { "motor_mit_pe",    "Motor mit PE",            "antriebe",       "IEC",      4 },
         { "motor_dc",        "Gleichstrommotor",        "antriebe",       "IEC,ANSI", 2 },
-        { "spule",           "Spule / Relais",          "antriebe",       "IEC",      2 },
-        { "rueckfallverzoegerte_spule_relais", "Rückfallverzögerte Spule / Relais", "antriebe", "IEC", 2 },
-        { "anzugverzoegerte_spule_relais",     "Anzugverzögerte Spule / Relais",    "antriebe", "IEC", 2 },
-        { "thermo_spule_relais",               "Thermo Spule / Relais",             "antriebe", "IEC", 2 },
-        { "trafo",           "Transformator",           "antriebe",       "IEC,ANSI", 4 },
-        { "netzteil",        "Netzteil",                "antriebe",       "IEC,ANSI", 4 },
+        { "spule",           "Spule / Relais",          "signaluebertragung",       "IEC",      2 },
+        { "rueckfallverzoegerte_spule_relais", "Rückfallverzögerte Spule / Relais", "signaluebertragung", "IEC", 2 },
+        { "anzugverzoegerte_spule_relais",     "Anzugverzögerte Spule / Relais",    "signaluebertragung", "IEC", 2 },
+        { "thermo_spule_relais",               "Thermo Spule / Relais",             "signaluebertragung", "IEC", 2 },
+        { "trafo",           "Transformator",           "signaluebertragung",       "IEC,ANSI", 4 },
+        { "netzteil",        "Netzteil",                "signaluebertragung",       "IEC,ANSI", 4 },
         { "ventil",          "Ventil",                  "antriebe",       "IEC,ANSI", 2 },
         { "analoges_ventil", "Regelventil",             "antriebe",       "IEC",      2 },
         // Passive Bauelemente
@@ -3498,7 +3502,7 @@ bool Database::seedSymbolKatalog()
         { "sicherungsschalter",          "Sicherungsschalter",                      "schutz", "IEC", 2 },
         { "sicherungstrennschalter",     "Sicherungstrennschalter",                 "schutz", "IEC", 2 },
         { "sicherungslasttrennschalter", "Sicherungslasttrennschalter",             "schutz", "IEC", 2 },
-        // SYM-KOPIE-VON-06 (Schema v158)
+        // SYM-KOPIE-VON-06 (Schema v158); Kategorie Signalübertragung seit v159
         { "not_halt_nc_einpolig", "Not-Halt (NC) einpolig", "kontakte", "IEC", 2 },
         { "not_halt_nc_zweipolig", "Not-Halt (NC) zweipolig", "kontakte", "IEC", 4 },
         { "not_halt_nc_dreipolig", "Not-Halt (NC) dreipolig", "kontakte", "IEC", 6 },
@@ -3520,7 +3524,7 @@ bool Database::seedSymbolKatalog()
         { "gong_einschlagwecker", "Gong / Einschlagwecker", "signalgeraete", "IEC", 2 },
         { "schnarre_summer", "Schnarre / Summer", "signalgeraete", "IEC", 2 },
         { "lampe_blinkend", "Lampe blinkend", "signalgeraete", "IEC", 2 },
-        { "optokoppler", "Optokoppler", "signalumwandlung", "IEC", 4 },
+        { "optokoppler", "Optokoppler", "signaluebertragung", "IEC", 4 },
         { "schuko_steckdose_pe_mittig", "Schuko Steckdose PE mittig", "klemmen", "IEC", 6 },
         { "schuko_steckdose_pe_rechts", "Schuko Steckdose PE rechts", "klemmen", "IEC", 6 },
         { "schuko_stecker_pe_mittig", "Schuko Stecker PE mittig", "klemmen", "IEC", 6 },

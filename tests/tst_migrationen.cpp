@@ -468,8 +468,15 @@ private slots:
         }
         QVERIFY(q.exec("SELECT breite_mm, hoehe_mm FROM symbol_definition WHERE id = 'sicherungstrennschalter'") && q.next());
         QCOMPARE(q.value(0).toInt(), 8); QCOMPARE(q.value(1).toInt(), 12);
-        QVERIFY(q.exec("SELECT kategorie FROM symbol_definition WHERE id = 'optokoppler'") && q.next());
-        QCOMPARE(q.value(0).toString(), QStringLiteral("Signalumwandlung"));
+        // Migration 159: Kategorie Signalübertragung (Optokoppler, Spulen, Trafo, Netzteil)
+        QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_definition WHERE kategorie = 'Signalübertragung' "
+                       "AND id IN ('optokoppler','spule','anzugverzoegerte_spule_relais',"
+                       "'rueckfallverzoegerte_spule_relais','thermo_spule_relais','trafo','netzteil')") && q.next());
+        QCOMPARE(q.value(0).toInt(), 7);
+        QVERIFY(q.exec("SELECT COUNT(*) FROM symbol WHERE kategorie_pfad = 'signaluebertragung'") && q.next());
+        QCOMPARE(q.value(0).toInt(), 7);
+        QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_definition WHERE kategorie IN ('Signalumwandlung')") && q.next());
+        QCOMPARE(q.value(0).toInt(), 0);
         SymbolDefinitionModel m;
         QCOMPARE(m.steckRolleForSymbol("drehstromstecker"), QStringLiteral("stecker"));
         QCOMPARE(m.steckkontaktInfo("drehstromstecker").size(), 5);

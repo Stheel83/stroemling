@@ -142,74 +142,9 @@ Rectangle {
             Text { text: "mm"; color: editor.theme.textMuted; font.pixelSize: 11 }
 
             Item { Layout.fillWidth: true }
-
-            // Vergleichs-Navigation (SE-VERGLEICH-01) — feste Stelle am rechten Ende
-            // von Zeile 1, immer sichtbar (ausgegraut solange weniger als 2 Symbole
-            // über das 📌-Icon in der Symbolliste markiert sind).
-            Text {
-                text: qsTr("Vergleich:"); color: editor.theme.textMuted; font.pixelSize: 11
-                ToolTip.visible: vglLabelHover.containsMouse; ToolTip.delay: 400
-                ToolTip.text: qsTr("Vergleichsliste: In der Symbolliste per 📌 mehrere Symbole markieren, dann hier mit ◀ ▶ zwischen ihnen wechseln (Position/Gesamtzahl). ✕ leert die Liste. Gilt nur für diese Sitzung.")
-                MouseArea { id: vglLabelHover; anchors.fill: parent; hoverEnabled: true }
-            }
-            Rectangle {
-                id: vglBox
-                readonly property bool aktiv: editor.vergleichsListe.length >= 2
-                implicitHeight: 28
-                implicitWidth: vglRow.implicitWidth + 10
-                radius: 4; color: editor.theme.inputBg; border.color: editor.theme.border
-                opacity: aktiv ? 1.0 : 0.5
-
-                RowLayout {
-                    id: vglRow
-                    anchors.centerIn: parent
-                    spacing: 2
-
-                    Rectangle {
-                        implicitWidth: 22; implicitHeight: 22; radius: 3
-                        color: vglBox.aktiv && vglZurueckHover.hovered ? editor.theme.badge : "transparent"
-                        border.color: editor.theme.border
-                        Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 16; font.bold: true; color: editor.theme.textPrimary }
-                        HoverHandler { id: vglZurueckHover }
-                        TapHandler { enabled: vglBox.aktiv; onTapped: editor.vergleichZurueck() }
-                        ToolTip.visible: vglZurueckHover.hovered; ToolTip.delay: 600
-                        ToolTip.text: qsTr("Vorheriges markiertes Symbol")
-                    }
-                    Text {
-                        Layout.minimumWidth: 34
-                        text: {
-                            var n = editor.vergleichsListe.length
-                            if (n === 0) return "0/0"
-                            var idx = editor.vergleichsListe.indexOf(editor.editSymbolId)
-                            return (idx >= 0 ? (idx + 1) : "–") + "/" + n
-                        }
-                        font.pixelSize: 11; color: editor.theme.textPrimary
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                    Rectangle {
-                        implicitWidth: 22; implicitHeight: 22; radius: 3
-                        color: vglBox.aktiv && vglVorHover.hovered ? editor.theme.badge : "transparent"
-                        border.color: editor.theme.border
-                        Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 16; font.bold: true; color: editor.theme.textPrimary }
-                        HoverHandler { id: vglVorHover }
-                        TapHandler { enabled: vglBox.aktiv; onTapped: editor.vergleichVor() }
-                        ToolTip.visible: vglVorHover.hovered; ToolTip.delay: 600
-                        ToolTip.text: qsTr("Nächstes markiertes Symbol")
-                    }
-                    Rectangle {
-                        implicitWidth: 22; implicitHeight: 22; radius: 3
-                        color: vglClearHover.hovered ? editor.theme.badge : "transparent"
-                        Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: editor.theme.textMuted }
-                        HoverHandler { id: vglClearHover }
-                        TapHandler { enabled: editor.vergleichsListe.length > 0; onTapped: editor.vergleichLeeren() }
-                        ToolTip.visible: vglClearHover.hovered; ToolTip.delay: 600
-                        ToolTip.text: qsTr("Vergleichsliste leeren")
-                    }
-                }
-            }
         }
 
-        // Zeile 2: Klassifikation + Aktionen — SE-HEADER-ZWEIZEILIG-01
+        // Zeile 2: Klassifikation — SE-HEADER-ZWEIZEILIG-01 (Aktionen seit SE-VERGLEICH-03 in Zeile 3)
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -400,6 +335,80 @@ Rectangle {
                     text: qsTr("(noch keine hinterlegt)")
                     color: editor.theme.textMuted; font.pixelSize: 10; font.italic: true
                     anchors.verticalCenter: kbNeuFeld.verticalCenter
+                }
+            }
+
+        }
+
+        // Zeile 3: Vergleichsliste (feste Stelle, links) + Aktionen — eigene Zeile,
+        // damit Zeile 1/2 bei schmalem Fenster nicht über den Rand wachsen
+        // (SE-VERGLEICH-03).
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            // Vergleichs-Navigation (SE-VERGLEICH-01) — feste Stelle (links in Zeile 3),
+            // immer sichtbar (ausgegraut solange weniger als 2 Symbole
+            // über das 📌-Icon in der Symbolliste markiert sind).
+            Text {
+                text: qsTr("Vergleich:"); color: editor.theme.textMuted; font.pixelSize: 11
+                ToolTip.visible: vglLabelHover.containsMouse; ToolTip.delay: 400
+                ToolTip.text: qsTr("Vergleichsliste: In der Symbolliste per 📌 mehrere Symbole markieren, dann hier mit ◀ ▶ zwischen ihnen wechseln (Position/Gesamtzahl). ✕ leert die Liste. Gilt nur für diese Sitzung.")
+                MouseArea { id: vglLabelHover; anchors.fill: parent; hoverEnabled: true }
+            }
+            Rectangle {
+                id: vglBox
+                readonly property bool aktiv: editor.vergleichsListe.length >= 2
+                implicitHeight: 28
+                implicitWidth: vglRow.implicitWidth + 10
+                radius: 4; color: editor.theme.inputBg; border.color: editor.theme.border
+                opacity: aktiv ? 1.0 : 0.5
+
+                RowLayout {
+                    id: vglRow
+                    anchors.centerIn: parent
+                    spacing: 2
+
+                    Rectangle {
+                        implicitWidth: 22; implicitHeight: 22; radius: 3
+                        color: vglBox.aktiv && vglZurueckHover.hovered ? editor.theme.badge : "transparent"
+                        border.color: editor.theme.border
+                        Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 16; font.bold: true; color: editor.theme.textPrimary }
+                        HoverHandler { id: vglZurueckHover }
+                        TapHandler { enabled: vglBox.aktiv; onTapped: editor.vergleichZurueck() }
+                        ToolTip.visible: vglZurueckHover.hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Vorheriges markiertes Symbol")
+                    }
+                    Text {
+                        Layout.minimumWidth: 34
+                        text: {
+                            var n = editor.vergleichsListe.length
+                            if (n === 0) return "0/0"
+                            var idx = editor.vergleichsListe.indexOf(editor.editSymbolId)
+                            return (idx >= 0 ? (idx + 1) : "–") + "/" + n
+                        }
+                        font.pixelSize: 11; color: editor.theme.textPrimary
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    Rectangle {
+                        implicitWidth: 22; implicitHeight: 22; radius: 3
+                        color: vglBox.aktiv && vglVorHover.hovered ? editor.theme.badge : "transparent"
+                        border.color: editor.theme.border
+                        Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 16; font.bold: true; color: editor.theme.textPrimary }
+                        HoverHandler { id: vglVorHover }
+                        TapHandler { enabled: vglBox.aktiv; onTapped: editor.vergleichVor() }
+                        ToolTip.visible: vglVorHover.hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Nächstes markiertes Symbol")
+                    }
+                    Rectangle {
+                        implicitWidth: 22; implicitHeight: 22; radius: 3
+                        color: vglClearHover.hovered ? editor.theme.badge : "transparent"
+                        Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 10; color: editor.theme.textMuted }
+                        HoverHandler { id: vglClearHover }
+                        TapHandler { enabled: editor.vergleichsListe.length > 0; onTapped: editor.vergleichLeeren() }
+                        ToolTip.visible: vglClearHover.hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Vergleichsliste leeren")
+                    }
                 }
             }
 

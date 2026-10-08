@@ -149,6 +149,8 @@ bool Database::openProjekt(const QString &path)
 {
     const QString localPath = QUrl(path).isLocalFile() ? QUrl(path).toLocalFile() : path;
 
+    m_letzterOeffnenPfad = localPath;
+
     // Bestehende Projektverbindung trennen
     if (m_projektOffen || m_db.isOpen()) {
         m_db.close();

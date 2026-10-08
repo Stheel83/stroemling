@@ -72,6 +72,10 @@ public:
 
     // Aktuelles Projekt als kompakte Kopie exportieren (VACUUM INTO)
     Q_INVOKABLE bool projektExportieren(const QString &destPfad);
+    // BACKUP-OEFFNEN-01
+    Q_INVOKABLE QVariantList projektBackups() const;
+    Q_INVOKABLE QString backupWiederherstellen(const QString &backupPfad);
+    Q_INVOKABLE QString letzterBackupOrdner() const;
 
     // Ist gerade eine Projektdatei geöffnet?
     bool    projektOffen()  const { return m_projektOffen; }
@@ -126,6 +130,8 @@ Q_SIGNALS:
     void projektOffenChanged();
     void registryGeaendert();
     void dbFehler(const QString &meldung);
+    // Wie dbFehler, aber der Dialog bietet zusätzlich "Backup-Ordner öffnen" an (BACKUP-OEFFNEN-01)
+    void dbFehlerMitBackup(const QString &meldung);
 
 public:
     // Grafikelemente einer Seite laden (gibt QVariantList aus QVariantMaps zurück)
@@ -939,6 +945,7 @@ private:
     // DB sichern via VACUUM INTO (funktioniert auch bei offener WAL-Verbindung).
     // verbindungsName: "" = Haupt-DB, "stroemling_wiki" = Wiki-DB.
     bool erstelleBackup(const QString &verbindungsName, const QString &prefix, int version);
+    QString m_letzterOeffnenPfad;  // Pfad des letzten openProjekt()-Versuchs (auch bei Fehlschlag)
 
     // Alle Views und Tabellen in FK-sicherer Reihenfolge löschen (nur Baseline-Migration)
     bool dropAllTables();

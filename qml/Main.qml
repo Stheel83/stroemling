@@ -2253,6 +2253,7 @@ ApplicationWindow {
         anchors.centerIn: parent
         standardButtons: Dialog.Ok
         property string meldung: ""
+        property string backupOrdner: ""   // gesetzt bei Migrationsfehlern (BACKUP-OEFFNEN-01)
 
         Label {
             width:     Math.min(500, dbFehlerDialog.availableWidth)
@@ -2260,12 +2261,28 @@ ApplicationWindow {
             wrapMode:  Text.WordWrap
             color:     appTheme.textPrimary
         }
+
+        footer: DialogButtonBox {
+            standardButtons: Dialog.Ok
+            Button {
+                visible: dbFehlerDialog.backupOrdner !== ""
+                text: qsTr("Backup-Ordner öffnen")
+                DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+                onClicked: Qt.openUrlExternally("file://" + dbFehlerDialog.backupOrdner)
+            }
+        }
     }
 
     Connections {
         target: db
         function onDbFehler(meldung) {
             dbFehlerDialog.meldung = meldung
+            dbFehlerDialog.backupOrdner = ""
+            dbFehlerDialog.open()
+        }
+        function onDbFehlerMitBackup(meldung) {
+            dbFehlerDialog.meldung = meldung
+            dbFehlerDialog.backupOrdner = db.letzterBackupOrdner()
             dbFehlerDialog.open()
         }
     }

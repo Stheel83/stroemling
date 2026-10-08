@@ -8,6 +8,10 @@
 #include <QJsonObject>
 #include <QBuffer>
 #include <QDir>
+#include <QCryptographicHash>
+#include <QHash>
+#include <QLocale>
+#include <QRegularExpression>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -3104,8 +3108,8 @@ bool Database::checkAndApplySchema()
         if (!ok) {
             m_db.rollback();
             if (brauchtFkAus) { QSqlQuery q(m_db); q.exec("PRAGMA foreign_keys = ON"); }
-            emit dbFehler(QString("Migration v%1 fehlgeschlagen. Die Datenbank wurde nicht verändert "
-                                  "(Backup vorhanden).").arg(mig.version));
+            emit dbFehlerMitBackup(QString("Migration v%1 fehlgeschlagen. Die Datenbank wurde nicht verändert "
+                                           "(Backup vorhanden).").arg(mig.version));
             return false;
         }
 
@@ -3181,6 +3185,104 @@ bool Database::applyMigrationStatements(const QStringList &statements)
 // Hält maximal 5 Backups je Prefix (älteste werden gelöscht).
 // Wird vor jeder ausstehenden Migration aufgerufen.
 // ============================================================
+// ── Backup-Hilfsfunktionen (BACKUP-STRATEGIE-01, siehe Konzept 26 §4) ──────
+namespace {
+
+constexpr int    BACKUP_ZUSTAENDE_PRO_VERSION = 2;
+constexpr int    BACKUP_VERSIONEN_BEHALTEN    = 6;
+constexpr qint64 BACKUP_MAX_BYTES             = 500LL * 1024 * 1024;
+
+struct BackupInfo {
+    QString   pfad;
+    int       version = 0;
+    QDateTime zeit;
+    qint64    groesse = 0;
+};
+
+// Alle <prefix>_v<N>_….db eines Ordners, neueste zuerst.
+QList<BackupInfo> backupsAuflisten(const QString &dir, const QString &prefix)
+{
+    const QRegularExpression re("^" + QRegularExpression::escape(prefix) + "_v(\\d+)_.*\\.db$");
+    QList<BackupInfo> liste;
+    const QFileInfoList dateien = QDir(dir).entryInfoList({prefix + "_v*.db"}, QDir::Files);
+    for (const QFileInfo &fi : dateien) {
+        const QRegularExpressionMatch m = re.match(fi.fileName());
+        if (!m.hasMatch()) continue;
+        liste.append({fi.absoluteFilePath(), m.captured(1).toInt(), fi.lastModified(), fi.size()});
+    }
+    std::sort(liste.begin(), liste.end(), [](const BackupInfo &a, const BackupInfo &b) {
+        return a.zeit != b.zeit ? a.zeit > b.zeit : a.pfad > b.pfad;
+    });
+    return liste;
+}
+
+QByteArray dateiHash(const QString &pfad)
+{
+    QFile f(pfad);
+    if (!f.open(QIODevice::ReadOnly)) return {};
+    QCryptographicHash h(QCryptographicHash::Sha256);
+    h.addData(&f);
+    return h.result();
+}
+
+// Aufbewahrung: je Version die 2 neuesten Zustände, nur die 6 höchsten Versionen,
+// danach Größenobergrenze (das jeweils neueste einer Version bleibt immer).
+void backupsAufraeumen(const QString &dir, const QString &prefix)
+{
+    const QList<BackupInfo> alle = backupsAuflisten(dir, prefix);
+    QList<int> versionen;
+    for (const BackupInfo &b : alle)
+        if (!versionen.contains(b.version)) versionen.append(b.version);
+    std::sort(versionen.begin(), versionen.end(), std::greater<int>());
+    const QSet<int> behalteneVersionen(versionen.begin(),
+        versionen.begin() + qMin<int>(versionen.size(), BACKUP_VERSIONEN_BEHALTEN));
+
+    QList<BackupInfo> behalten;              // neueste zuerst
+    QSet<int> neuesteSchonGesehen;
+    QHash<int, int> proVersion;
+    QSet<QString> neuesteProVersion;
+    for (const BackupInfo &b : alle) {
+        if (!behalteneVersionen.contains(b.version)
+            || proVersion[b.version] >= BACKUP_ZUSTAENDE_PRO_VERSION) {
+            if (QFile::remove(b.pfad))
+                qCInfo(lcDb) << "Altes Backup gelöscht:" << b.pfad;
+            continue;
+        }
+        proVersion[b.version]++;
+        if (!neuesteSchonGesehen.contains(b.version)) {
+            neuesteSchonGesehen.insert(b.version);
+            neuesteProVersion.insert(b.pfad);
+        }
+        behalten.append(b);
+    }
+
+    qint64 summe = 0;
+    for (const BackupInfo &b : behalten) summe += b.groesse;
+    for (int i = behalten.size() - 1; i >= 0 && summe > BACKUP_MAX_BYTES; --i) {
+        if (neuesteProVersion.contains(behalten[i].pfad)) continue;
+        if (QFile::remove(behalten[i].pfad)) {
+            summe -= behalten[i].groesse;
+            qCInfo(lcDb) << "Backup wegen Größenobergrenze gelöscht:" << behalten[i].pfad;
+        }
+    }
+}
+
+bool verzeichnisKopieren(const QString &quelle, const QString &ziel)
+{
+    if (!QDir().mkpath(ziel)) return false;
+    const QFileInfoList eintraege = QDir(quelle).entryInfoList(
+        QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QFileInfo &fi : eintraege) {
+        const QString z = ziel + "/" + fi.fileName();
+        if (fi.isDir() ? !verzeichnisKopieren(fi.absoluteFilePath(), z)
+                       : !QFile::copy(fi.absoluteFilePath(), z))
+            return false;
+    }
+    return true;
+}
+
+} // namespace
+
 bool Database::erstelleBackup(const QString &verbindungsName, const QString &prefix, int version)
 {
     QSqlDatabase db = verbindungsName.isEmpty()
@@ -3208,26 +3310,100 @@ bool Database::erstelleBackup(const QString &verbindungsName, const QString &pre
                      + "_" + datum + "_" + zeit + ".db";
     }
 
-    // VACUUM INTO erzeugt eine saubere Kopie einer offenen SQLite-DB (WAL-sicher)
-    QString escaped = backupPfad;
+    // VACUUM INTO erzeugt eine saubere Kopie einer offenen SQLite-DB (WAL-sicher).
+    // Zuerst unter Temp-Namen (".tmp" passt nicht auf die Backup-Liste), damit ein
+    // inhaltsgleiches Backup wieder verworfen werden kann.
+    const QString tmpPfad = backupPfad + ".tmp";
+    QFile::remove(tmpPfad);
+    QString escaped = tmpPfad;
     escaped.replace("'", "''");
     QSqlQuery q(db);
     if (!q.exec("VACUUM INTO '" + escaped + "'")) {
         qCWarning(lcDb) << "Backup fehlgeschlagen:" << backupPfad << q.lastError().text();
+        QFile::remove(tmpPfad);
+        return false;
+    }
+
+    // Duplikat-Erkennung: gleicher Inhalt wie das neueste Backup derselben Version?
+    for (const BackupInfo &b : backupsAuflisten(backupDir, prefix)) {
+        if (b.version != version) continue;
+        if (dateiHash(b.pfad) == dateiHash(tmpPfad)) {
+            QFile::remove(tmpPfad);
+            qCInfo(lcDb) << "Backup unverändert gegenüber" << b.pfad << "- kein neues angelegt";
+            return true;
+        }
+        break;  // nur das neueste derselben Version vergleichen
+    }
+
+    if (!QFile::rename(tmpPfad, backupPfad)) {
+        qCWarning(lcDb) << "Backup konnte nicht umbenannt werden:" << backupPfad;
+        QFile::remove(tmpPfad);
         return false;
     }
     qCInfo(lcDb) << "Backup erstellt:" << backupPfad;
 
-    // Älteste Backups löschen wenn mehr als 5 vorhanden
-    QDir bd(backupDir);
-    QStringList backups = bd.entryList({ prefix + "_v*.db" }, QDir::Files, QDir::Name);
-    while (backups.size() > 5) {
-        QString alt = backups.takeFirst();
-        if (bd.remove(alt))
-            qCInfo(lcDb) << "Altes Backup gelöscht:" << alt;
+    backupsAufraeumen(backupDir, prefix);
+    return true;
+}
+
+// BACKUP-OEFFNEN-01: Backups des geöffneten Projekts für den Wiederherstellen-Dialog.
+QVariantList Database::projektBackups() const
+{
+    QVariantList out;
+    if (!m_projektOffen) return out;
+    const QString dir = QFileInfo(m_db.databaseName()).absolutePath() + "/backups";
+    for (const BackupInfo &b : backupsAuflisten(dir, "stroemling")) {
+        QVariantMap m;
+        m["pfad"]    = b.pfad;
+        m["version"] = b.version;
+        m["zeit"]    = QLocale().toString(b.zeit, "dd.MM.yyyy HH:mm");
+        m["groesse"] = QLocale().formattedDataSize(b.groesse);
+        out.append(m);
+    }
+    return out;
+}
+
+// Legt aus einem Backup ein NEUES Projekt neben dem geöffneten an (Original bleibt
+// unberührt). Rückgabe: Pfad der neuen projekt.strl, bei Fehler "".
+QString Database::backupWiederherstellen(const QString &backupPfad)
+{
+    if (!m_projektOffen) return {};
+    const QFileInfo projektFi(m_db.databaseName());
+    const QString projektOrdner = projektFi.absolutePath();
+    const QFileInfo backupFi(backupPfad);
+    const QString backupDir = QDir(projektOrdner + "/backups").canonicalPath();
+    if (!backupFi.exists() || backupDir.isEmpty()
+        || backupFi.canonicalPath() != backupDir || backupFi.suffix() != "db") {
+        qCWarning(lcDb) << "Backup-Wiederherstellung abgelehnt (kein Backup dieses Projekts):" << backupPfad;
+        return {};
     }
 
-    return true;
+    const QDir ordnerDir(projektOrdner);
+    const QString eltern = QFileInfo(projektOrdner).dir().absolutePath();
+    const QString basis = ordnerDir.dirName() + "_Wiederherstellung_"
+                          + QDate::currentDate().toString("yyyy-MM-dd");
+    QString zielOrdner = eltern + "/" + basis;
+    for (int n = 2; QFileInfo::exists(zielOrdner); ++n)
+        zielOrdner = eltern + "/" + basis + "_" + QString::number(n);
+
+    if (!QDir().mkpath(zielOrdner)
+        || !QFile::copy(backupPfad, zielOrdner + "/projekt.strl")) {
+        qCWarning(lcDb) << "Backup-Wiederherstellung fehlgeschlagen:" << zielOrdner;
+        QDir(zielOrdner).removeRecursively();
+        return {};
+    }
+    const QString bilder = projektOrdner + "/bilder";
+    if (QFileInfo(bilder).isDir() && !verzeichnisKopieren(bilder, zielOrdner + "/bilder"))
+        qCWarning(lcDb) << "Bilder konnten nicht vollständig kopiert werden:" << bilder;
+    qCInfo(lcDb) << "Backup wiederhergestellt als neues Projekt:" << zielOrdner;
+    return zielOrdner + "/projekt.strl";
+}
+
+QString Database::letzterBackupOrdner() const
+{
+    if (m_letzterOeffnenPfad.isEmpty()) return {};
+    const QString dir = QFileInfo(m_letzterOeffnenPfad).absolutePath() + "/backups";
+    return QFileInfo(dir).isDir() ? dir : QString();
 }
 
 // ============================================================

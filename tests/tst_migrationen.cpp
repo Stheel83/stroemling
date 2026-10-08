@@ -523,6 +523,81 @@ private slots:
         QFile::remove(pfad); QFile::remove(pfad + "-wal"); QFile::remove(pfad + "-shm");
     }
 
+    void test_17_backupStrategieUndWiederherstellen()
+    {
+        // BACKUP-STRATEGIE-01 / BACKUP-OEFFNEN-01 (Konzept 26 §4)
+        const QString ordner = QDir::tempPath() + "/stroemling_test_backup_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVERIFY(QDir().mkpath(ordner + "/bilder"));
+        const QString pfad = ordner + "/projekt.strl";
+        {
+            QFile bild(ordner + "/bilder/x.png");
+            QVERIFY(bild.open(QIODevice::WriteOnly)); bild.write("png"); bild.close();
+        }
+        Database d;
+        QVERIFY(d.createProjekt(pfad, "Backup"));
+        d.closeProjekt();
+        QVERIFY(d.openProjekt(pfad));       // wendet alle Migrationen an (legt dabei eigene Backups an)
+        d.closeProjekt();
+        QDir(ordner + "/backups").removeRecursively();
+
+        // Vorhandene Fake-Backups: Versionen 100..108, je 3 Zustaende, verschieden alt.
+        QVERIFY(QDir().mkpath(ordner + "/backups"));
+        const QDateTime jetzt = QDateTime::currentDateTime();
+        for (int v = 100; v <= 108; ++v)
+            for (int n = 0; n < 3; ++n) {
+                QFile f(QString("%1/backups/stroemling_v%2_2026-01-0%3.db").arg(ordner).arg(v).arg(n + 1));
+                QVERIFY(f.open(QIODevice::WriteOnly)); f.write(QByteArray(10, char('a' + n))); 
+                QVERIFY(f.setFileTime(jetzt.addDays(-(v - 99) * 3 + n), QFileDevice::FileModificationTime));
+                f.close();
+            }
+
+        auto backupsMitVersion = [&](int v) {
+            return QDir(ordner + "/backups").entryList({QString("stroemling_v%1_*.db").arg(v)}, QDir::Files).size();
+        };
+        auto ausstehendMachen = [&]() {
+            QVERIFY(d.openProjekt(pfad));
+            QSqlQuery q(QSqlDatabase::database());
+            QVERIFY(q.exec("DELETE FROM schema_migration WHERE version >= 161"));
+            d.closeProjekt();
+        };
+        ausstehendMachen();                 // Zustand mit ausstehender Migration 161
+        QVERIFY(d.openProjekt(pfad));       // legt Backup v160 an
+        d.closeProjekt();
+        QCOMPARE(backupsMitVersion(160), 1);
+        // Hoechste 6 Versionen (160, 108..104), je hoechstens 2 Zustaende
+        for (int v = 100; v <= 103; ++v) QCOMPARE(backupsMitVersion(v), 0);
+        for (int v = 104; v <= 108; ++v) QCOMPARE(backupsMitVersion(v), 2);
+
+        // Fehlversuch-Szenario: gleicher Zustand nochmal -> kein neues Backup
+        ausstehendMachen();
+        QVERIFY(d.openProjekt(pfad));
+        d.closeProjekt();
+        QCOMPARE(backupsMitVersion(160), 1);
+
+        // Wiederherstellen als neues Projekt daneben
+        QVERIFY(d.openProjekt(pfad));
+        const QVariantList liste = d.projektBackups();
+        QVERIFY(!liste.isEmpty());
+        QCOMPARE(liste.first().toMap()["version"].toInt(), 160);
+        const QString neu = d.backupWiederherstellen(liste.first().toMap()["pfad"].toString());
+        QVERIFY(!neu.isEmpty());
+        QVERIFY(neu != pfad);
+        QVERIFY(QFile::exists(neu));
+        QVERIFY(QFile::exists(QFileInfo(neu).absolutePath() + "/bilder/x.png"));
+        QVERIFY(QFile::exists(pfad));
+        // Fremde Datei wird abgelehnt
+        QFile fremd(ordner + "/fremd.db");
+        QVERIFY(fremd.open(QIODevice::WriteOnly)); fremd.close();
+        QVERIFY(d.backupWiederherstellen(fremd.fileName()).isEmpty());
+        d.closeProjekt();
+        QVERIFY2(d.openProjekt(neu), "wiederhergestelltes Projekt muss sich oeffnen lassen");
+        d.closeProjekt();
+
+        QDir(QFileInfo(neu).absolutePath()).removeRecursively();
+        QDir(ordner).removeRecursively();
+    }
+
     void test_12_createProjektWendetNeueMigrationenSofortAn()
     {
         const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"

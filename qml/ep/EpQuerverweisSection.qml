@@ -93,8 +93,8 @@ Item {
             }
             MiniButton { theme: root.theme;
                 label: qsTr("mit BMK")
-                aktiv: panel.el && panel.el.extraDaten
-                       && panel.el.extraDaten.suchmodus === "bmk"
+                aktiv: !!(panel.el && panel.el.extraDaten
+                       && panel.el.extraDaten.suchmodus === "bmk")
                 breite: 84
                 onKlick: root.extraSetzen("suchmodus", "bmk")
             }
@@ -114,8 +114,8 @@ Item {
             }
             MiniButton { theme: root.theme;
                 label: qsTr("Eingang ←")
-                aktiv:  panel.el && panel.el.extraDaten
-                        && panel.el.extraDaten.richtung === "eingang"
+                aktiv:  !!(panel.el && panel.el.extraDaten
+                        && panel.el.extraDaten.richtung === "eingang")
                 breite: 84
                 onKlick: root.extraSetzen("richtung", "eingang")
             }

@@ -178,7 +178,7 @@ Item {
             }
 
             Button {
-                visible: panel.el && panel.el.extraDaten && panel.el.extraDaten.makroId > 0
+                visible: !!(panel.el && panel.el.extraDaten && panel.el.extraDaten.makroId > 0)
                 text: "×"
                 implicitWidth: 28; implicitHeight: 28
                 contentItem: Text {

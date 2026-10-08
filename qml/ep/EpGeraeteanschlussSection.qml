@@ -192,8 +192,8 @@ Item {
                 border.color: doppelAktiv ? root.theme.accent : root.theme.border
                 border.width: 1
 
-                readonly property bool doppelAktiv: panel.el && panel.el.extraDaten
-                                                    && panel.el.extraDaten.doppelbelegung === true
+                readonly property bool doppelAktiv: !!(panel.el && panel.el.extraDaten
+                                                    && panel.el.extraDaten.doppelbelegung === true)
 
                 Row {
                     anchors.centerIn: parent; spacing: 6

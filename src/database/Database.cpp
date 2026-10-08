@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QBuffer>
 #include <QDir>
+#include <QRegularExpression>
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
@@ -699,9 +700,18 @@ QVariantMap Database::datenbankAutobackup()
     auto sichereDb = [&](QSqlDatabase &db, const QString &prefix) -> bool {
         if (!db.isOpen()) return false;
 
+        // Nur reine Tages-Backups "<prefix>_<yyyy-MM-dd>.db" – NICHT die Vor-Migrations-
+        // Backups "<prefix>_v<N>_….db" aus erstelleBackup(), die im selben Ordner liegen
+        // (sonst würden sie von der Rotation gelöscht und täuschten "heute schon gesichert" vor).
+        const QRegularExpression tagesBackup(
+            "^" + QRegularExpression::escape(prefix) + "_\\d{4}-\\d{2}-\\d{2}\\.db$");
+        auto tagesBackups = [&]() {
+            return QDir(backupDir).entryList({prefix + "_*.db"}, QDir::Files, QDir::Name)
+                       .filter(tagesBackup);
+        };
+
         // Bereits heute gesichert?
-        QStringList vorhanden = QDir(backupDir).entryList(
-            {prefix + "_*.db"}, QDir::Files, QDir::Name);
+        QStringList vorhanden = tagesBackups();
         for (const QString &f : vorhanden)
             if (f.contains(heute)) return true;
 
@@ -716,7 +726,7 @@ QVariantMap Database::datenbankAutobackup()
         }
 
         // Rotation: älteste löschen wenn > 7
-        vorhanden = QDir(backupDir).entryList({prefix + "_*.db"}, QDir::Files, QDir::Name);
+        vorhanden = tagesBackups();
         while (vorhanden.size() > 7)
             QFile::remove(backupDir + "/" + vorhanden.takeFirst());
 

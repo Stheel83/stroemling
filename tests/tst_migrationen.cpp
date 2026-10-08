@@ -598,6 +598,36 @@ private slots:
         QDir(ordner).removeRecursively();
     }
 
+    void test_18_autobackupFasstMigrationsBackupsNichtAn()
+    {
+        // BACKUP-AUTOGLOB-01: datenbankAutobackup() ("wiki_*.db", max. 7) darf die
+        // Vor-Migrations-Backups "wiki_v<N>_….db" aus erstelleBackup() weder loeschen
+        // noch als "heute schon gesichert" werten.
+        const QString ordner = QDir::tempPath() + "/stroemling_test_autobackup_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVERIFY(QDir().mkpath(ordner + "/backups"));
+        Database d;
+        QVERIFY(d.openLauncher(ordner + "/launcher.db"));
+        QVERIFY(d.openWiki(ordner + "/wiki.db"));
+
+        const QString heute = QDate::currentDate().toString("yyyy-MM-dd");
+        QStringList migrationsBackups;
+        for (int v = 1; v <= 9; ++v) {
+            const QString n = QString("wiki_v%1_%2.db").arg(v).arg(heute);
+            QFile f(ordner + "/backups/" + n);
+            QVERIFY(f.open(QIODevice::WriteOnly)); f.write("x"); f.close();
+            migrationsBackups << n;
+        }
+        d.datenbankAutobackup();
+        QVERIFY2(QFile::exists(ordner + "/backups/wiki_" + heute + ".db"),
+                 "Tages-Backup muss trotz vorhandener wiki_v*-Dateien von heute angelegt werden");
+        for (const QString &n : migrationsBackups)
+            QVERIFY2(QFile::exists(ordner + "/backups/" + n), qPrintable(n + " wurde geloescht"));
+
+        d.closeProjekt();
+        QDir(ordner).removeRecursively();
+    }
+
     void test_12_createProjektWendetNeueMigrationenSofortAn()
     {
         const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"

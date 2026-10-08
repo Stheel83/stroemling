@@ -740,7 +740,9 @@
         {
           "titel": "Linus – die Kabelbrücke",
           "tags": "linus kabelbrücke ader leitung verbindung kupfer form-b",
-          "datei": "stroemlinge/linus.md"
+          "datei": "stroemlinge/linus.md",
+          "bild_qrc": ":/assets/linus_uebersicht.png",
+          "bild_dateiname": "linus_uebersicht.png"
         },
         {
           "titel": "Krizzo – der Kurzschluss",
@@ -752,17 +754,29 @@
         {
           "titel": "Errinka – der allgemeine Fehler",
           "tags": "errinka fehler warnung gelb nervös unbekannt",
-          "datei": "stroemlinge/errinka.md"
+          "datei": "stroemlinge/errinka.md",
+          "bild_qrc": ":/assets/errinka_uebersicht.png",
+          "bild_dateiname": "errinka_uebersicht.png"
         },
         {
           "titel": "Fusia – die Überlast",
           "tags": "fusia überlast sicherung erschöpft orange rost",
-          "datei": "stroemlinge/fusia.md"
+          "datei": "stroemlinge/fusia.md",
+          "bild_qrc": ":/assets/fusia_uebersicht_heil.png",
+          "bild_dateiname": "fusia_uebersicht_heil.png",
+          "bilder_weitere": [
+            {
+              "bild_qrc": ":/assets/fusia_uebersicht_kaputt.png",
+              "bild_dateiname": "fusia_uebersicht_kaputt.png"
+            }
+          ]
         },
         {
           "titel": "Stoppius – der Not-Aus",
           "tags": "stoppius not-aus notstop rot sicherheit held",
-          "datei": "stroemlinge/stoppius.md"
+          "datei": "stroemlinge/stoppius.md",
+          "bild_qrc": ":/assets/stoppius_uebersicht.png",
+          "bild_dateiname": "stoppius_uebersicht.png"
         },
         {
           "titel": "Rosi Röhrenaal – die Begleiterin",

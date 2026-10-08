@@ -630,8 +630,9 @@ private slots:
 
     void test_19_wikiV16EntferntStroemlingBilder()
     {
-        // Wiki-Schema v16: Bilder von Brauno/Blaubertha/Linus werden nicht mehr eingesaet
-        // und in bestehenden Wikis (v15) samt BLOB-Datei entfernt.
+        // Wiki-Schema v16: Bilder von Brauno/Blaubertha werden nicht mehr eingesaet
+        // (Linus hat seit Okt 2026 ein neues Bild; die Assets liegen im Test-Binary nicht vor, das Einsaeen
+        // der neuen Bilder ist daher nur im App-Build pruefbar) und in bestehenden Wikis (v15) samt BLOB-Datei entfernt.
         const QString ordner = QDir::tempPath() + "/stroemling_test_wiki16_"
                              + QString::number(QDateTime::currentMSecsSinceEpoch());
         QVERIFY(QDir().mkpath(ordner));
@@ -642,7 +643,7 @@ private slots:
             QSqlDatabase w = QSqlDatabase::database("stroemling_wiki");
             QSqlQuery q(w);
             QVERIFY(q.exec("SELECT COUNT(*) FROM wiki_bild wb JOIN wiki_artikel wa ON wa.id=wb.artikel_id "
-                           "WHERE wa.titel LIKE 'Brauno %' OR wa.titel LIKE 'Blaubertha %' OR wa.titel LIKE 'Linus %'") && q.next());
+                           "WHERE wa.titel LIKE 'Brauno %' OR wa.titel LIKE 'Blaubertha %'") && q.next());
             QCOMPARE(q.value(0).toInt(), 0);
             // Altbestand simulieren: Bild + BLOB fuer Brauno, Version zurueck auf 15
             QVERIFY(q.exec("INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung) "

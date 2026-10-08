@@ -78,7 +78,7 @@ Item {
             Repeater {
                 model: ["BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK","CL"]
                 delegate: Rectangle {
-                    property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData
+                    property bool aktiv: !!(panel.el && (panel.el.extraDaten || {}).aderfarbe === modelData)
                     property string sName: ({"BK":"Schwarz","BN":"Braun","RD":"Rot",
                         "OG":"Orange","YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett",
                         "GY":"Grau","WH":"Weiß","PK":"Rosa",
@@ -124,7 +124,7 @@ Item {
             Repeater {
                 model: ["", "BK","BN","RD","OG","YE","GN","BU","VT","GY","WH","PK"]
                 delegate: Rectangle {
-                    property bool aktiv: panel.el && (panel.el.extraDaten || {}).aderfarbe2 === modelData && modelData !== ""
+                    property bool aktiv: !!(panel.el && (panel.el.extraDaten || {}).aderfarbe2 === modelData && modelData !== "")
                     property string sName: modelData === "" ? qsTr("keine zweite Farbe")
                         : (({"BK":"Schwarz","BN":"Braun","RD":"Rot",
                         "OG":"Orange","YE":"Gelb","GN":"Grün","BU":"Blau","VT":"Violett",

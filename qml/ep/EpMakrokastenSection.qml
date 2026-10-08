@@ -95,7 +95,7 @@ Item {
         Item { height: 6 }
 
         Text {
-            visible: panel.el && panel.el.typ === "makrokasten"
+            visible: !!(panel.el && panel.el.typ === "makrokasten")
             leftPadding: 12
             text: {
                 var el = panel.el

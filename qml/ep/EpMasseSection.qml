@@ -40,7 +40,7 @@ Item {
         // Linie: Länge
         Column {
             width: parent.width; spacing: 0
-            visible: panel.el && panel.el.typ === "linie"
+            visible: !!(panel.el && panel.el.typ === "linie")
 
             MassField { theme: root.theme;
                 label: qsTr("Länge"); einheit: "mm"
@@ -68,7 +68,7 @@ Item {
         // Rechteck: X/Y/Breite/Höhe
         Column {
             width: parent.width; spacing: 0
-            visible: panel.el && panel.el.typ === "rechteck"
+            visible: !!(panel.el && panel.el.typ === "rechteck")
 
             MassField { theme: root.theme;
                 label: "X"; einheit: "mm"
@@ -109,7 +109,7 @@ Item {
         // Text: X/Y Ankerposition
         Column {
             width: parent.width; spacing: 0
-            visible: panel.el && panel.el.typ === "text"
+            visible: !!(panel.el && panel.el.typ === "text")
 
             MassField { theme: root.theme;
                 label: "X"; einheit: "mm"
@@ -134,7 +134,7 @@ Item {
         // Kreis: Mittelpunkt + Radius
         Column {
             width: parent.width; spacing: 0
-            visible: panel.el && panel.el.typ === "kreis"
+            visible: !!(panel.el && panel.el.typ === "kreis")
 
             MassField { theme: root.theme;
                 label: "X"; einheit: "mm"

@@ -628,6 +628,43 @@ private slots:
         QDir(ordner).removeRecursively();
     }
 
+    void test_19_wikiV16EntferntStroemlingBilder()
+    {
+        // Wiki-Schema v16: Bilder von Brauno/Blaubertha/Linus werden nicht mehr eingesaet
+        // und in bestehenden Wikis (v15) samt BLOB-Datei entfernt.
+        const QString ordner = QDir::tempPath() + "/stroemling_test_wiki16_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVERIFY(QDir().mkpath(ordner));
+        const QString wikiPfad = ordner + "/wiki.db";
+        {
+            Database d;
+            QVERIFY(d.openWiki(wikiPfad));
+            QSqlDatabase w = QSqlDatabase::database("stroemling_wiki");
+            QSqlQuery q(w);
+            QVERIFY(q.exec("SELECT COUNT(*) FROM wiki_bild wb JOIN wiki_artikel wa ON wa.id=wb.artikel_id "
+                           "WHERE wa.titel LIKE 'Brauno %' OR wa.titel LIKE 'Blaubertha %' OR wa.titel LIKE 'Linus %'") && q.next());
+            QCOMPARE(q.value(0).toInt(), 0);
+            // Altbestand simulieren: Bild + BLOB fuer Brauno, Version zurueck auf 15
+            QVERIFY(q.exec("INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, sortierung) "
+                           "SELECT id, 'brauno_uebersicht.png', 'image/png', '9999.png', 1 FROM wiki_artikel WHERE titel LIKE 'Brauno %'"));
+            QFile blob(ordner + "/wiki_blobs/9999.png");
+            QVERIFY(blob.open(QIODevice::WriteOnly)); blob.write("x"); blob.close();
+            QVERIFY(q.exec("DELETE FROM schema_version"));
+            QVERIFY(q.exec("INSERT INTO schema_version (version) VALUES (15)"));
+        }
+        QSqlDatabase::removeDatabase("stroemling_wiki");
+        {
+            Database d;
+            QVERIFY(d.openWiki(wikiPfad));
+            QSqlQuery q(QSqlDatabase::database("stroemling_wiki"));
+            QVERIFY(q.exec("SELECT COUNT(*) FROM wiki_bild WHERE dateiname='brauno_uebersicht.png'") && q.next());
+            QCOMPARE(q.value(0).toInt(), 0);
+            QVERIFY(!QFile::exists(ordner + "/wiki_blobs/9999.png"));
+        }
+        QSqlDatabase::removeDatabase("stroemling_wiki");
+        QDir(ordner).removeRecursively();
+    }
+
     void test_12_createProjektWendetNeueMigrationenSofortAn()
     {
         const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"

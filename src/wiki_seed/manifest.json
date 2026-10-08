@@ -702,16 +702,12 @@
         {
           "titel": "Brauno – Außenleiter L1",
           "tags": "brauno L1 außenleiter netzleiter IEC braun",
-          "datei": "stroemlinge/brauno.md",
-          "bild_qrc": ":/assets/brauno_uebersicht.png",
-          "bild_dateiname": "brauno_uebersicht.png"
+          "datei": "stroemlinge/brauno.md"
         },
         {
           "titel": "Blaubertha – Neutralleiter N",
           "tags": "blaubertha N neutralleiter netzleiter IEC blau rückleiter",
-          "datei": "stroemlinge/blaubertha.md",
-          "bild_qrc": ":/assets/blaubertha_uebersicht.png",
-          "bild_dateiname": "blaubertha_uebersicht.png"
+          "datei": "stroemlinge/blaubertha.md"
         },
         {
           "titel": "Grausel – Außenleiter L3",
@@ -744,9 +740,7 @@
         {
           "titel": "Linus – die Kabelbrücke",
           "tags": "linus kabelbrücke ader leitung verbindung kupfer form-b",
-          "datei": "stroemlinge/linus.md",
-          "bild_qrc": ":/assets/linus_uebersicht.png",
-          "bild_dateiname": "linus_uebersicht.png"
+          "datei": "stroemlinge/linus.md"
         },
         {
           "titel": "Krizzo – der Kurzschluss",

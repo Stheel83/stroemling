@@ -206,6 +206,28 @@ bool Database::checkAndApplyWikiSchema()
         }
     }
 
+    // v16: Bilder der Strömlinge Brauno, Blaubertha und Linus entfernt (Manifest säht sie
+    // nicht mehr ein; bereits angelegte wiki_bild-Zeilen + BLOB-Dateien hier löschen).
+    if (storedVersion >= 1 && storedVersion < 16) {
+        QSqlQuery qSel(m_wikiDb);
+        qSel.exec(R"(
+            SELECT wb.id, wb.blob_pfad FROM wiki_bild wb
+            JOIN wiki_artikel wa ON wa.id = wb.artikel_id
+            WHERE wa.ist_system = 1
+              AND (wa.titel LIKE 'Brauno %' OR wa.titel LIKE 'Blaubertha %' OR wa.titel LIKE 'Linus %')
+        )");
+        QList<QPair<int, QString>> zuLoeschen;
+        while (qSel.next())
+            zuLoeschen.append({qSel.value(0).toInt(), qSel.value(1).toString()});
+        for (const auto &b : zuLoeschen) {
+            if (!b.second.isEmpty()) QFile::remove(m_wikiBlobDir + "/" + b.second);
+            QSqlQuery qDel(m_wikiDb);
+            qDel.prepare("DELETE FROM wiki_bild WHERE id = :id");
+            qDel.bindValue(":id", b.first);
+            qDel.exec();
+        }
+    }
+
     if (!createWikiSchema() || !seedWikiStarterInhalte()) {
         m_wikiDb.rollback();
         return false;

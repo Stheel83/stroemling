@@ -272,85 +272,85 @@ Rectangle {
             Trennlinie {}
 
             // ABSCHNITT: VERBINDUNG → EpVerbindungSection.qml
-            EpVerbindungSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpVerbindungSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: STIL → EpStilSection.qml
-            EpStilSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpStilSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: FÜLLUNG → EpFuellungSection.qml
-            EpFuellungSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpFuellungSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: FORM → EpFormSection.qml
-            EpFormSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpFormSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: FORMAT-PINSEL → EpFormatPinselSection.qml
-            EpFormatPinselSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpFormatPinselSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: MEHRFACHAUSWAHL → EpMehrfachauswahlSection.qml
-            EpMehrfachauswahlSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpMehrfachauswahlSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: SYMBOL → EpSymbolSection.qml
-            EpSymbolSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpSymbolSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: ADERDEFINITION → EpAderdefinitionSection.qml
-            EpAderdefinitionSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpAderdefinitionSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: KLEMMEN-ANSCHLUSS
-            EpKlemmenAnschlussSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpKlemmenAnschlussSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: STECKVERBINDER → EpSteckverbinderSection.qml
-            EpSteckverbinderSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpSteckverbinderSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: BILD → EpBildSection.qml
-            EpBildSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpBildSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: TEXT-INHALT → EpTextInhaltSection.qml
-            EpTextInhaltSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpTextInhaltSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: NOTIZ → EpNotizSection.qml
-            EpNotizSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpNotizSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: MAßE → EpMasseSection.qml
-            EpMasseSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpMasseSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
             // ABSCHNITT: SPS/PLS-KANAL → EpSpsKanalSection.qml
-            EpSpsKanalSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpSpsKanalSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: BETRIEBSMITTEL → EpBetriebsmittelSection.qml
-            EpBetriebsmittelSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpBetriebsmittelSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: BAUTEIL (generische Zuordnung, BESTELLLISTE-02) → EpBauteilZuordnungSection.qml
-            EpBauteilZuordnungSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpBauteilZuordnungSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: INBETRIEBNAHME-STATUS (read-only) → EpIbnStatusSection.qml
             EpIbnStatusSection { panel: panel; theme: panel.theme }
 
             // ABSCHNITT: QUERVERWEIS → EpQuerverweisSection.qml
-            EpQuerverweisSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpQuerverweisSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: POTENZIAL → EpPotenzialSection.qml
-            EpPotenzialSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpPotenzialSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: TREFFPUNKT → EpTreffpunktSection.qml
-            EpTreffpunktSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpTreffpunktSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: GERÄTEANSCHLUSS → EpGeraeteanschlussSection.qml
-            EpGeraeteanschlussSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpGeraeteanschlussSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: GERÄTEKASTEN
-            EpGeraetekastenSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpGeraetekastenSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: STRUKTURKASTEN
-            EpStrukturkastenSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpStrukturkastenSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: MAKROKASTEN
-            EpMakrokastenSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpMakrokastenSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ABSCHNITT: SCHIRM
-            EpSchirmSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpSchirmSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
             // ================================================
             // ABSCHNITT: KABELDEFINITIONSLINIE
-            EpKabelDefinitionSection { canvas: canvas; panel: panel; theme: panel.theme }
+            EpKabelDefinitionSection { canvas: panel.canvas; panel: panel; theme: panel.theme }
 
 
         }

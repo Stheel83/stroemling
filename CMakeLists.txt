@@ -487,7 +487,7 @@ target_link_libraries(stroemling_app PRIVATE
 target_include_directories(stroemling_app PRIVATE src)
 
 string(TIMESTAMP BUILD_DATE "%Y-%m-%d")
-target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}" APP_VERSION="0.67")
+target_compile_definitions(stroemling_app PRIVATE BUILD_DATE="${BUILD_DATE}" APP_VERSION="0.69-dev")
 
 # Release-Builds (GitHub Actions: -DCMAKE_BUILD_TYPE=Release) markieren sich
 # selbst — steuert z.B. Entwickler-only-UI wie die Rosi-Testknöpfe für

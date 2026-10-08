@@ -488,6 +488,41 @@ private slots:
         QCOMPARE(m.steckkontaktInfo("schuko_steckdose_pe_mittig").size(), 3);
     }
 
+    void test_16_ledVentilFehlenMigration145Und161()
+    {
+        // Regression SYM-MIGRATION-LED-VENTIL-01: Projekt Stresstest hatte durch
+        // Migration 133 weder 'led' noch 'ventil' - Migration 145 scheiterte am FK
+        // symbol_bmk_kennbuchstabe -> symbol_definition, das Projekt liess sich nicht
+        // mehr oeffnen. Nachgestellt: led/ventil entfernen, 145..161 als "noch nicht
+        // angewendet" markieren, neu oeffnen.
+        const QString pfad = QDir::tempPath() + "/stroemling_test_ledventil_"
+                           + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".stroemling";
+        Database d;
+        QVERIFY(d.createProjekt(pfad, "LedVentil"));
+        {
+            QSqlQuery q(QSqlDatabase::database());
+            QVERIFY(q.exec("DELETE FROM symbol WHERE code IN ('led','ventil')"));
+            QVERIFY(q.exec("DELETE FROM symbol_definition WHERE id IN ('led','ventil')"));
+            QVERIFY(q.exec("DELETE FROM schema_migration WHERE version >= 145"));
+        }
+        d.closeProjekt();
+        QVERIFY2(d.openProjekt(pfad), "openProjekt() mit fehlendem led/ventil muss Migration 145 + 161 ueberstehen");
+        {
+            QSqlQuery q(QSqlDatabase::database());
+            QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_definition WHERE id IN ('led','ventil') AND ist_builtin=1") && q.next());
+            QCOMPARE(q.value(0).toInt(), 2);
+            QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_pin WHERE symbol_id IN ('led','ventil')") && q.next());
+            QCOMPARE(q.value(0).toInt(), 4);
+            QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_primitiv WHERE symbol_id IN ('led','ventil')") && q.next());
+            QCOMPARE(q.value(0).toInt(), 22);
+            QVERIFY(q.exec("SELECT COUNT(*) FROM symbol_bmk_kennbuchstabe WHERE (symbol_id='led' AND kennbuchstabe='V') "
+                           "OR (symbol_id='ventil' AND kennbuchstabe='YA')") && q.next());
+            QCOMPARE(q.value(0).toInt(), 2);
+        }
+        d.closeProjekt();
+        QFile::remove(pfad); QFile::remove(pfad + "-wal"); QFile::remove(pfad + "-shm");
+    }
+
     void test_12_createProjektWendetNeueMigrationenSofortAn()
     {
         const QString tmp = QDir::tempPath() + "/stroemling_test_sofort_"

@@ -243,7 +243,7 @@ Item {
                             Text {
                                 width:   parent.width - 32
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text:           qsTr("© Stephan Theelke · CC BY 4.0 · Erstellt mit ChatGPT und Google Gemini")
+                                text:           qsTr("© Stephan Theelke · CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) · Erstellt mit ChatGPT und Google Gemini. Die Bilder sind KI-gestützt entstanden; Urheberrecht und Lizenz gelten, soweit sie schutzfähig sind.")
                                 font.pixelSize: 10; color: root.theme.textMuted; wrapMode: Text.WordWrap
                                 horizontalAlignment: Text.AlignHCenter
                             }

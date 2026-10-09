@@ -529,6 +529,8 @@ qt_add_executable(stroemling_test
     src/database/Database.h
     src/models/SymbolDefinitionModel.cpp
     src/models/SymbolDefinitionModel.h
+    src/models/SeitenModel.cpp
+    src/models/SeitenModel.h
 )
 
 qt_add_resources(stroemling_test "database_seeds_test"

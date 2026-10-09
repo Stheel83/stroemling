@@ -7,6 +7,7 @@
 #include <QSet>
 #include "database/Database.h"
 #include "models/SymbolDefinitionModel.h"
+#include "models/SeitenModel.h"
 
 // Testet das Migrations-System auf einer temporären SQLite-Datei.
 // Ablauf: createProjekt (v40-Baseline) → closeProjekt → openProjekt
@@ -695,6 +696,52 @@ private slots:
         QFile::remove(tmp);
         QFile::remove(tmp + "-wal");
         QFile::remove(tmp + "-shm");
+    }
+
+    void test_20_seitenbaumLoeschenKaskadiert()
+    {
+        // SEITENBAUM-LOESCHEN-KASKADE-01: Ort/Anlage mit Seiten (samt Segmenten, Querverweisen,
+        // Betriebsmittel-/Klemmenleisten-Zuordnung) liess sich wegen NO-ACTION-FKs nicht loeschen.
+        TmpProjekt t("seitenbaumloeschen");
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("PRAGMA foreign_keys=ON"));
+        auto ins = [&](const QString &sql) {
+            QVERIFY2(q.exec(sql), qPrintable(sql + " -> " + q.lastError().text()));
+        };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int anlageId = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(anlageId));
+        const int ortId = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(ortId));
+        const int s1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'2','S2')").arg(ortId));
+        const int s2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO verbindung (projekt_id, bezeichnung) VALUES (1,'N1')"));
+        const int v = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO verbindung_segment (verbindung_id, seite_id) VALUES (%1,%2)").arg(v).arg(s1));
+        ins(QString("INSERT INTO querverweis (verbindung_id, von_seite_id, nach_seite_id) VALUES (%1,%2,%3)").arg(v).arg(s1).arg(s2));
+        ins(QString("INSERT INTO klemmenleiste (projekt_id, bezeichnung, ort_id) VALUES (1,'X1',%1)").arg(ortId));
+
+        SeitenModel m;
+        m.laden(1);
+        QVERIFY2(m.loeschen(1, ortId), "Ort mit Seiten muss loeschbar sein");
+        auto zaehle = [&](const QString &sql) { QSqlQuery c(QSqlDatabase::database()); c.exec(sql); c.next(); return c.value(0).toInt(); };
+        QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM ort WHERE id=%1").arg(ortId)), 0);
+        QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM seite WHERE id IN (%1,%2)").arg(s1).arg(s2)), 0);
+        QCOMPARE(zaehle("SELECT COUNT(*) FROM verbindung_segment WHERE verbindung_id=" + QString::number(v)), 0);
+        QCOMPARE(zaehle("SELECT COUNT(*) FROM querverweis WHERE verbindung_id=" + QString::number(v)), 0);
+        QCOMPARE(zaehle("SELECT COUNT(*) FROM klemmenleiste WHERE bezeichnung='X1' AND ort_id IS NULL"), 1);   // bleibt, nur Zuordnung weg
+
+        // Anlage mit Ort + Seite
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR2','O2')").arg(anlageId));
+        const int ort2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S')").arg(ort2));
+        const int s3 = q.lastInsertId().toInt();
+        m.laden(1);
+        QVERIFY2(m.loeschen(0, anlageId), "Anlage mit Orten/Seiten muss loeschbar sein");
+        QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM anlage WHERE id=%1").arg(anlageId)), 0);
+        QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM ort WHERE id=%1").arg(ort2)), 0);
+        QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM seite WHERE id=%1").arg(s3)), 0);
     }
 };
 

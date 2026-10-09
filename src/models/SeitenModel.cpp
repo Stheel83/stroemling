@@ -1,5 +1,6 @@
 #include "logging.h"
 #include "SeitenModel.h"
+#include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -433,31 +434,86 @@ int SeitenModel::seiteAnlegen(int ortId, const QString &blattnummer,
     return newId;
 }
 
-bool SeitenModel::loeschen(int knotenTyp, int id)
+// SEITENBAUM-LOESCHEN-KASKADE-01: seite.ort_id, ort.anlage_id, verbindung_segment.seite_id,
+// querverweis.*_seite_id, betriebsmittel.ort_id und klemmenleiste.ort_id sind NO ACTION
+// (keine ON DELETE CASCADE) – ein nacktes DELETE scheiterte still am FK, sobald abhängige
+// Zeilen existierten. Deshalb hier explizit, alles in einer Transaktion.
+static bool fuehreAus(const QString &sql, int id)
 {
-    // Bei Seiten zuerst alle Grafikelemente explizit löschen.
-    // Das ist ein Fallback für ältere DB-Schemata ohne ON DELETE CASCADE –
-    // bei neuen Schemas übernimmt CASCADE dasselbe.
-    if (knotenTyp == BaumKnoten::Seite) {
-        QSqlQuery del;
-        del.prepare("DELETE FROM grafik_element WHERE seite_id = :id");
-        del.bindValue(":id", id);
-        if (!del.exec())
-            qCWarning(lcModel) << "loeschen: grafik_element bereinigen fehlgeschlagen:" << del.lastError().text();
-    }
-
     QSqlQuery q;
-    QString tabelle;
-    switch (knotenTyp) {
-    case BaumKnoten::Anlage: tabelle = "anlage"; break;
-    case BaumKnoten::Ort:    tabelle = "ort";    break;
-    case BaumKnoten::Seite:  tabelle = "seite";  break;
-    default: return false;
-    }
-    q.prepare(QString("DELETE FROM %1 WHERE id = :id").arg(tabelle));
+    q.prepare(sql);
     q.bindValue(":id", id);
     if (!q.exec()) {
-        qCWarning(lcModel) << "loeschen Fehler:" << q.lastError().text();
+        qCWarning(lcModel) << "loeschen:" << sql << "->" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+static bool seiteEntfernen(int seiteId)
+{
+    return fuehreAus("UPDATE seite SET parent_id = NULL WHERE parent_id = :id", seiteId)
+        && fuehreAus("DELETE FROM querverweis WHERE von_seite_id = :id OR nach_seite_id = :id", seiteId)
+        && fuehreAus("DELETE FROM verbindung_segment WHERE seite_id = :id", seiteId)
+        && fuehreAus("DELETE FROM grafik_element WHERE seite_id = :id", seiteId)
+        && fuehreAus("DELETE FROM seite WHERE id = :id", seiteId);
+}
+
+static bool ortEntfernen(int ortId)
+{
+    QSqlQuery q;
+    q.prepare("SELECT id FROM seite WHERE ort_id = :id");
+    q.bindValue(":id", ortId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "loeschen: Seiten des Orts lesen:" << q.lastError().text();
+        return false;
+    }
+    QList<int> seiten;
+    while (q.next()) seiten.append(q.value(0).toInt());
+    for (int sid : seiten)
+        if (!seiteEntfernen(sid)) return false;
+    return fuehreAus("UPDATE betriebsmittel SET ort_id = NULL WHERE ort_id = :id", ortId)
+        && fuehreAus("UPDATE klemmenleiste SET ort_id = NULL WHERE ort_id = :id", ortId)
+        && fuehreAus("DELETE FROM ort WHERE id = :id", ortId);
+}
+
+static bool anlageEntfernen(int anlageId)
+{
+    QSqlQuery q;
+    q.prepare("SELECT id FROM ort WHERE anlage_id = :id");
+    q.bindValue(":id", anlageId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "loeschen: Orte der Anlage lesen:" << q.lastError().text();
+        return false;
+    }
+    QList<int> orte;
+    while (q.next()) orte.append(q.value(0).toInt());
+    for (int oid : orte)
+        if (!ortEntfernen(oid)) return false;
+    return fuehreAus("DELETE FROM anlage WHERE id = :id", anlageId);
+}
+
+bool SeitenModel::loeschen(int knotenTyp, int id)
+{
+    QSqlDatabase db = QSqlDatabase::database();
+    if (!db.transaction()) {
+        qCWarning(lcModel) << "loeschen: Transaktion:" << db.lastError().text();
+        return false;
+    }
+    bool ok = false;
+    switch (knotenTyp) {
+    case BaumKnoten::Anlage: ok = anlageEntfernen(id); break;
+    case BaumKnoten::Ort:    ok = ortEntfernen(id);    break;
+    case BaumKnoten::Seite:  ok = seiteEntfernen(id);  break;
+    default: break;
+    }
+    if (!ok) {
+        db.rollback();
+        return false;
+    }
+    if (!db.commit()) {
+        qCWarning(lcModel) << "loeschen: commit:" << db.lastError().text();
+        db.rollback();
         return false;
     }
     laden(m_projektId);

@@ -24,6 +24,64 @@ Item {
     property string _aktiveTab:     "seitenstruktur"   // "seitenstruktur" | "bauteile"
     property bool _nurSeitenFilter: true   // an: Anlage/Ort ohne Seiten ausgeblendet (SEITENSTRUKTUR-01)
 
+    // SEITENBAUM-ANLEGEN-01: zuletzt angeklickte Zeile bestimmt, was der „Anlegen"-Knopf im Kopf anlegt
+    property int _selTyp:   -1   // knotenTyp der gewählten Zeile (0 Anlage, 1 Ort, 2 Seite), -1 = nichts gewählt
+    property int _selId:    -1   // itemId dieser Zeile
+    property int _selOrtId: -1   // nur bei Seite: ihr Ort
+    // aus der Auswahl aufgelöste Ziele (-1 = unbekannt)
+    property int    _zielAnlageId: -1
+    property string _zielAnlageKz: ""
+    property int    _zielOrtId:    -1
+    property string _zielOrtKz:    ""
+
+    function _auswahlSetzen(typ, id, ortId) {
+        root._selTyp = typ
+        root._selId = id
+        root._selOrtId = ortId
+        root._auswahlAufloesen()
+    }
+
+    // Leitet Anlage/Ort-Ziele frisch aus dem Modell ab (Kürzel/Zuordnung können sich
+    // durch Bearbeiten/Verschieben ändern); verschwundene Knoten setzen die Auswahl zurück.
+    function _auswahlAufloesen() {
+        var anlageId = -1, anlageKz = "", ortId = -1, ortKz = ""
+        if (root._selTyp >= 0) {
+            var gesuchterOrt = root._selTyp === 1 ? root._selId : (root._selTyp === 2 ? root._selOrtId : -1)
+            var liste = seitenModel.strukturListe()
+            for (var i = 0; i < liste.length && anlageId < 0; i++) {
+                var a = liste[i]
+                if (root._selTyp === 0 && a.anlageId === root._selId) {
+                    anlageId = a.anlageId; anlageKz = a.anlageKuerzel
+                    break
+                }
+                for (var j = 0; j < a.orte.length; j++) {
+                    if (a.orte[j].ortId === gesuchterOrt) {
+                        anlageId = a.anlageId; anlageKz = a.anlageKuerzel
+                        ortId = a.orte[j].ortId; ortKz = a.orte[j].ortKuerzel
+                        break
+                    }
+                }
+            }
+            if (anlageId < 0) { root._selTyp = -1; root._selId = -1; root._selOrtId = -1 }
+        }
+        root._zielAnlageId = anlageId; root._zielAnlageKz = anlageKz
+        root._zielOrtId = ortId;       root._zielOrtKz = ortKz
+    }
+
+    // ebene: 0 = Anlage, 1 = Ort (in gewählter Anlage), 2 = Seite (im gewählten Ort)
+    function _anlegen(ebene) {
+        if (ebene === 0)      { dlgAnlage.fuerProjektId = root.projektId; dlgAnlage.open() }
+        else if (ebene === 1 && root._zielAnlageId >= 0) { dlgOrt.fuerAnlageId = root._zielAnlageId; dlgOrt.open() }
+        else if (ebene === 2 && root._zielOrtId >= 0)    { dlgSeite.fuerOrtId = root._zielOrtId; dlgSeite.open() }
+    }
+    // Ebene, die der Hauptknopf gerade anlegt
+    readonly property int _anlegenEbene: root._zielOrtId >= 0 ? 2 : (root._zielAnlageId >= 0 ? 1 : 0)
+    function _anlegenText(ebene) {
+        if (ebene === 2) return qsTr("+ Seite in +%1").arg(root._zielOrtKz)
+        if (ebene === 1) return qsTr("+ Ort in =%1").arg(root._zielAnlageKz)
+        return qsTr("+ Anlage")
+    }
+
     Settings {
         id: seitenBaumSettings
         category: "seitenbaum"
@@ -82,6 +140,7 @@ Item {
     }
 
     onProjektIdChanged: {
+        root._auswahlSetzen(-1, -1, -1)   // ids sind pro Projekt vergeben
         if (projektId >= 0)
             seitenModel.laden(projektId)
         bauteilePanel.reset()
@@ -150,10 +209,41 @@ Item {
                     }
                 }
                 Button {
-                    text: qsTr("+ Anlage"); flat: true
+                    text: root._anlegenText(root._anlegenEbene); flat: true
                     contentItem: Text { text: parent.text; color: theme.accent; font.pixelSize: 13 }
                     background: Rectangle { color: parent.hovered ? theme.badge : "transparent"; radius: 4 }
-                    onClicked: { dlgAnlage.fuerProjektId = root.projektId; dlgAnlage.open() }
+                    ToolTip.visible: hovered
+                    ToolTip.delay:   700
+                    ToolTip.text:    qsTr("Legt die nächste Ebene zur gewählten Zeile an. Zeile im Baum anklicken, um das Ziel zu ändern.")
+                    onClicked: root._anlegen(root._anlegenEbene)
+                }
+                Button {
+                    flat: true
+                    implicitWidth: 24
+                    contentItem: Text { text: "\u25BE"; color: theme.accent; font.pixelSize: 13
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.badge : "transparent"; radius: 4 }
+                    ToolTip.visible: hovered
+                    ToolTip.delay:   700
+                    ToolTip.text:    qsTr("Andere Ebene anlegen")
+                    onClicked: anlegenMenu.popup()
+                    Menu {
+                        id: anlegenMenu
+                        MenuItem {
+                            text: root._anlegenText(0)
+                            onTriggered: root._anlegen(0)
+                        }
+                        MenuItem {
+                            text: root._anlegenText(1)
+                            enabled: root._zielAnlageId >= 0
+                            onTriggered: root._anlegen(1)
+                        }
+                        MenuItem {
+                            text: root._anlegenText(2)
+                            enabled: root._zielOrtId >= 0
+                            onTriggered: root._anlegen(2)
+                        }
+                    }
                 }
             }
         }
@@ -279,6 +369,7 @@ Item {
                 Connections {
                     target: seitenModel
                     function onModelReset() {
+                        root._auswahlAufloesen()
                         Qt.callLater(function() {
                             treeView.expandRecursively()
                             treeView.forceLayout()
@@ -299,7 +390,11 @@ Item {
                     z: dragHandle.drag.active ? 10 : 0
                     opacity: dragHandle.drag.active ? 0.75 : 1.0
 
+                    property bool _istAuswahl: root._selTyp === model.knotenTyp && root._selId === model.itemId
+
                     onClicked: {
+                        root._auswahlSetzen(model.knotenTyp, model.itemId,
+                                            model.knotenTyp === 2 ? (model.ortId ?? -1) : -1)
                         if (model.knotenTyp === 2)
                             root.seiteGewaehlt(model.itemId,
                                                model.blattnummer  ?? "",
@@ -349,7 +444,7 @@ Item {
                     }
 
                     background: Rectangle {
-                        color: delegateItem.selected ? theme.hover : (delegateItem.hovered ? theme.hover : "transparent")
+                        color: (delegateItem._istAuswahl || delegateItem.selected || delegateItem.hovered) ? theme.hover : "transparent"
                     }
 
                     contentItem: RowLayout {
@@ -416,20 +511,6 @@ Item {
                         }
                         Row {
                             spacing: 4; visible: delegateItem.hovered && !dragHandle.drag.active
-                            Button {
-                                visible: model.knotenTyp === 0 || model.knotenTyp === 1
-                                width: 24; height: 24; flat: true
-                                contentItem: Text { text: "+"; color: theme.accent; font.pixelSize: 16;
-                                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
-                                ToolTip.visible: hovered
-                                ToolTip.text:    model.knotenTyp === 0 ? qsTr("Ort anlegen") : qsTr("Seite anlegen")
-                                ToolTip.delay:   700
-                                onClicked: {
-                                    if (model.knotenTyp === 0) { dlgOrt.fuerAnlageId = model.itemId; dlgOrt.open() }
-                                    else { dlgSeite.fuerOrtId = model.itemId; dlgSeite.open() }
-                                }
-                            }
                             Button {
                                 width: 24; height: 24; flat: true
                                 contentItem: Text { text: qsTr("\u270E"); color: theme.accent; font.pixelSize: 14;

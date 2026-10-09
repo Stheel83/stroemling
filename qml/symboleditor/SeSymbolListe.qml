@@ -64,6 +64,28 @@ Rectangle {
 
         Rectangle { Layout.fillWidth: true; height: 1; color: root.editor.theme.border }
 
+        // Anzahl-Zeile: Gesamt, eingebaut/eigene; bei aktivem Filter "x von N"
+        Text {
+            Layout.fillWidth: true
+            Layout.leftMargin: 8; Layout.rightMargin: 8
+            Layout.topMargin: 4;  Layout.bottomMargin: 4
+            elide: Text.ElideRight
+            font.pixelSize: 10
+            color: root.editor.theme.textMuted
+            text: {
+                var alle = root.editor.listenSymbole
+                var eingebaut = 0
+                for (var i = 0; i < alle.length; i++) if (alle[i].ist_builtin) eingebaut++
+                var info = qsTr("%1 eingebaut · %2 eigene").arg(eingebaut).arg(alle.length - eingebaut)
+                var gef = root.editor.gefilterteSymbole.length
+                return (gef !== alle.length
+                        ? qsTr("%1 von %2 Symbolen").arg(gef).arg(alle.length)
+                        : qsTr("%1 Symbole").arg(alle.length)) + " (" + info + ")"
+            }
+        }
+
+        Rectangle { Layout.fillWidth: true; height: 1; color: root.editor.theme.border }
+
         ScrollView {
             Layout.fillWidth:  true
             Layout.fillHeight: true

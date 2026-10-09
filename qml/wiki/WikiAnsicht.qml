@@ -17,6 +17,7 @@ Item {
     property int  _artIdx:     -1
     property var  _aktArtikel: ({})
     property bool _editModus:  false
+    property var  katEditId:   -1   // Kategorie im Umbenenn-Modus (-1 = keine)
 
     property string _editTitel:  ""
     property string _editInhalt: ""
@@ -362,7 +363,7 @@ Item {
                                  ? root.theme.accent + "33"
                                  : (katDelegHover.hovered ? root.theme.hover : "transparent")
 
-                        property bool _editModus: false
+                        readonly property bool _editModus: root.katEditId === modelData.id
 
                         Rectangle {
                             anchors.bottom: parent.bottom
@@ -411,21 +412,23 @@ Item {
                             Keys.onReturnPressed: {
                                 var n = text.trim()
                                 if (n.length > 0) db.wikiKategorieUmbenennen(modelData.id, n, modelData.beschreibung)
-                                katDeleg._editModus = false
+                                root.katEditId = -1
                                 root._kategorienLaden()
                             }
-                            Keys.onEscapePressed: katDeleg._editModus = false
+                            Keys.onEscapePressed: root.katEditId = -1
+                            onActiveFocusChanged: if (!activeFocus && katDeleg._editModus) root.katEditId = -1
                         }
 
                         HoverHandler { id: katDelegHover }
                         TapHandler {
                             onTapped: {
+                                if (root.katEditId !== modelData.id) root.katEditId = -1
                                 root._katIdx = index
                                 root._artikelLaden(modelData.id)
                             }
                             onDoubleTapped: {
                                 root._katIdx = index
-                                katDeleg._editModus = true
+                                root.katEditId = modelData.id
                             }
                         }
                     }

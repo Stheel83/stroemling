@@ -366,6 +366,25 @@ private slots:
         QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_voll.pdf", false, true, true));
     }
 
+    // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
+    // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
+    void kl_dump()
+    {
+        const QString proj = qEnvironmentVariable("STROEMLING_KL_PROJEKT");
+        const QString aus  = qEnvironmentVariable("STROEMLING_KL_AUSGABE");
+        if (proj.isEmpty() || aus.isEmpty()) QSKIP("STROEMLING_KL_PROJEKT/STROEMLING_KL_AUSGABE nicht gesetzt");
+        m_db->closeProjekt();
+        const QString bib = qEnvironmentVariable("STROEMLING_KL_BIB");
+        if (!bib.isEmpty()) QVERIFY(m_db->openBibliothek(bib));
+        QVERIFY(m_db->openProjekt(proj));
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const QVariantList l = m_db->klemmlistenauszug(pid);
+        QFile f(aus);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(QJsonDocument(QJsonArray::fromVariantList(l)).toJson(QJsonDocument::Indented));
+        qInfo() << "klemmlistenauszug-Zeilen:" << l.size();
+    }
+
     // ════════════════════════════════════════════════════════════
     // klemmlistenauszug
     // ════════════════════════════════════════════════════════════

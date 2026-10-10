@@ -293,25 +293,37 @@ QVariantList Database::klemmenStegbrueckenGruppen(int projektId) const
     return result;
 }
 
-// ============================================================
-// klemmlistenauszug
-// ============================================================
-// Verdrahtungsliste aller Klemmen im Projekt.
-// Gibt flache Liste mit Zeilen-Typen zurück:
-//   "leiste"   – Leistenheader (bmk, bezeichnung)
-//   "steg"     – Stegbrücke-Trennzeile (vonNr, bisNr, ebene, potenzial, hatKonflikt, signaltyp)
-//   "anschluss"– Verbindungszeile (klemmeNr, anschlussBez, seite, platziert,
-//                                  blattnummer, verbBez, signaltyp, querschnitt, farbeBez, farbeHex)
-// Von/Nach (Verbindung): Netz-Bezeichnung + Canvas-Seite aus verbindung_segment (geometrisches Matching).
-QVariantList Database::klemmlistenauszug(int projektId)
-{
-    QVariantList result;
+namespace {
 
+// ── klemmlistenauszug(): Phasen ─────────────────────────────────────────────
+// REFACTOR-CPP-07 (Okt 2026): die frühere ~420-Zeilen-Funktion ist in Ladephasen
+// (Platzierungen, Segmente, Kabeladern, Aderdefinitionen, Stegbrücken), das
+// geometrische Matching und den Zeilenaufbau zerlegt. Logik 1:1 unverändert,
+// abgesichert durch tests/tst_kernfunktionen.h (kl_01…kl_05).
+
+using PlatzMap = QHash<int, QList<QVariantMap>>;   // klemmeId → [{abez, sid, bl, px, py}]
+
+// Schnellzugriff "klemmeId|abez" → platziert / Blattnummer / Position
+struct PlatzIndex {
+    QSet<QString>               platzSet;
+    QHash<QString, QString>     platzBl;
+    QHash<QString, QVariantMap> platzPos;
+};
+
+// Konstante Angaben zu einer Klemme für den Zeilenaufbau
+struct KlemmeZeilenKontext {
+    int     leisteId = 0, klemmeId = 0, kSort = 0;
+    QString kNr, qs, farbBez, farbHex;
+    QString curLeisteStegsJson;   // JSON aller Stegbrücken der Leiste (Spalten-Darstellung im QML)
+};
+
+PlatzMap ladePlatzierungen(const QSqlDatabase &db)
+{
     // ── 1. Platzierte klemme_anschluss-Elemente ──────────────────────────────
     // klemmeId → [{abez, sid, bl, px, py}]  (bl=Blattnummer, px/py=Pinposition)
     QHash<int, QList<QVariantMap>> platz;
     {
-        QSqlQuery q(m_db);
+        QSqlQuery q(db);
         q.prepare(
             "SELECT CAST(json_extract(ge.extra_daten,'$.klemmeId') AS INTEGER),"
             "       ge.seite_id, COALESCE(s.blattnummer,''),"
@@ -348,10 +360,16 @@ QVariantList Database::klemmlistenauszug(int projektId)
         }
     }
 
+    return platz;
+}
+
+PlatzIndex baueIndex(const PlatzMap &platz)
+{
+    PlatzIndex pi;
     // Schnellzugriff: "klemmeId|abez" → platziert / blattnummer / position
-    QSet<QString>               platzSet;
-    QHash<QString,QString>      platzBl;
-    QHash<QString, QVariantMap> platzPos;
+    QSet<QString> &platzSet = pi.platzSet;
+    QHash<QString,QString> &platzBl = pi.platzBl;
+    QHash<QString, QVariantMap> &platzPos = pi.platzPos;
     for (auto it = platz.cbegin(); it != platz.cend(); ++it) {
         const QString kid = QString::number(it.key());
         for (const QVariantMap &p : it.value()) {
@@ -365,12 +383,16 @@ QVariantList Database::klemmlistenauszug(int projektId)
             platzPos[key] = pm;
         }
     }
+    return pi;
+}
 
+QHash<int, QList<QVariantMap>> ladeSegmenteJeSeite(const QSqlDatabase &db, int projektId)
+{
     // ── 2. Verbindungssegmente nach Seite ────────────────────────────────────
     // seite_id → [{x1,y1,x2,y2, vb(Netzbezeichnung), st(Signaltyp), vid(verbindung_id)}]
     QHash<int, QList<QVariantMap>> segmente;
     {
-        QSqlQuery q(m_db);
+        QSqlQuery q(db);
         q.prepare(
             "SELECT vs.seite_id,"
             "       CAST(json_extract(vs.punkte,'$[0].x') AS REAL),"
@@ -398,11 +420,15 @@ QVariantList Database::klemmlistenauszug(int projektId)
             }
         }
     }
+    return segmente;
+}
 
+QHash<int, QVariantMap> ladeKabelAderMap(const QSqlDatabase &db, int projektId)
+{
     // ── 2a. Kabel-Ader-Daten: verbindung_id → {farbe, nr} ──────────────────
     QHash<int, QVariantMap> kabelAderMap;
     {
-        QSqlQuery q(m_db);
+        QSqlQuery q(db);
         q.prepare(
             "SELECT ka.verbindung_id, COALESCE(ka.farbe,''), COALESCE(ka.farbe2,''), COALESCE(ka.bezeichnung,'')"
             " FROM kabel_ader ka"
@@ -421,7 +447,11 @@ QVariantList Database::klemmlistenauszug(int projektId)
             }
         }
     }
+    return kabelAderMap;
+}
 
+QHash<int, QList<QVariantMap>> ladeAderdefMap(const QSqlDatabase &db, int projektId)
+{
     // ── 2b. Aderdefinition-Symbole: seite_id → [{cx,cy,farbe,farbe2,nr}] ────
     QHash<int, QList<QVariantMap>> aderdefMap;
     {
@@ -437,7 +467,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
             " JOIN anlage a ON a.id = o.anlage_id"
             " WHERE ge.symbol_id = 'aderdefinition' AND a.projekt_id = %1"
         ).arg(projektId);
-        QSqlQuery q(m_db);
+        QSqlQuery q(db);
         if (q.exec(sql)) {
             while (q.next()) {
                 QVariantMap ad;
@@ -450,7 +480,15 @@ QVariantList Database::klemmlistenauszug(int projektId)
             }
         }
     }
+    return aderdefMap;
+}
 
+QHash<QString, QVariantMap> berechneVerbindungsInfo(
+        const PlatzMap &platz,
+        const QHash<int, QList<QVariantMap>> &segmente,
+        const QHash<int, QVariantMap> &kabelAderMap,
+        const QHash<int, QList<QVariantMap>> &aderdefMap)
+{
     // ── 3. Geometrisches Matching: Pinposition → Verbindung + Aderinfos ──────
     // Schlüssel "klemmeId|anschlussBezeichnung" → {bl, vb, st, af, an}
     auto punktAufSegment = [](double cx, double cy,
@@ -518,11 +556,15 @@ QVariantList Database::klemmlistenauszug(int projektId)
             verbInfo[key] = vm;
         }
     }
+    return verbInfo;
+}
 
+QHash<int, QList<QVariantMap>> ladeStegbruecken(const QSqlDatabase &db, int projektId)
+{
     // ── 4. Stegbrücken je Leiste ─────────────────────────────────────────────
     QHash<int, QList<QVariantMap>> stegMap;
     {
-        QSqlQuery q(m_db);
+        QSqlQuery q(db);
         q.prepare(
             "SELECT ks.klemmenleiste_id, ks.ebene,"
             "       kv.sortierung, kb.sortierung,"
@@ -553,8 +595,162 @@ QVariantList Database::klemmlistenauszug(int projektId)
             }
         }
     }
+    return stegMap;
+}
 
-    // ── 5. Klemmenleiste + Klemme-Hierarchie ────────────────────────────────
+// JSON aller Stegbrücken einer Leiste (für Spalten-Darstellung im QML)
+QString stegbrueckenJson(const QList<QVariantMap> &curStegs)
+{
+    QJsonArray lsArr;
+    for (const QVariantMap &s : curStegs) {
+        QJsonObject o;
+        o[QLatin1String("st")]  = s[QStringLiteral("signaltyp")].toString();
+        o[QLatin1String("pot")] = s[QStringLiteral("potenzial")].toString();
+        o[QLatin1String("eb")]  = s[QStringLiteral("ebene")].toInt();
+        o[QLatin1String("vn")]  = s[QStringLiteral("vonNr")].toString();
+        o[QLatin1String("bn")]  = s[QStringLiteral("bisNr")].toString();
+        o[QLatin1String("vs")]  = s[QStringLiteral("vonSort")].toInt();
+        o[QLatin1String("bs")]  = s[QStringLiteral("bisSort")].toInt();
+        lsArr.append(o);
+    }
+    return QString::fromUtf8(QJsonDocument(lsArr).toJson(QJsonDocument::Compact));
+}
+
+// Eine Verdrahtungszeile: Seite A links, Seite B rechts (ersteZeile: Klemmen-Nr nur in der ersten Zeile)
+QVariantMap paarZeile(const KlemmeZeilenKontext &k, const PlatzIndex &pi,
+                      const QHash<QString, QVariantMap> &verbInfo,
+                      const QString &bezA, const QString &bezB, int ebene, int ri, int rn,
+                      bool ersteZeile)
+{
+    const int     leisteId = k.leisteId, klemmeId = k.klemmeId, kSort = k.kSort;
+    const QString &kNr = k.kNr, &qs = k.qs, &farbBez = k.farbBez, &farbHex = k.farbHex;
+    const QString &curLeisteStegsJson = k.curLeisteStegsJson;
+    const QSet<QString> &platzSet = pi.platzSet;
+    const QHash<QString, QString> &platzBl = pi.platzBl;
+    const QHash<QString, QVariantMap> &platzPos = pi.platzPos;
+
+    // Verbindungsinfo für einen Anschluss
+    auto vi = [&](const QString &abez) -> QVariantMap {
+        return verbInfo.value(QString::number(klemmeId) + QLatin1Char('|') + abez);
+    };
+    // platziert = Element liegt im Canvas (unabhängig von Netzanschluss)
+    auto isPlatz = [&](const QString &abez) -> bool {
+        return !abez.isEmpty() &&
+               platzSet.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
+    };
+    // verbunden = geometrisch mit einem Verbindungssegment gematcht
+    auto isVerb = [&](const QString &abez) -> bool {
+        return !abez.isEmpty() &&
+               verbInfo.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
+    };
+
+
+        bool pA = isPlatz(bezA), pB = isPlatz(bezB);
+        bool vA = isVerb(bezA),  vB = isVerb(bezB);
+        QVariantMap viA = vA ? vi(bezA) : QVariantMap{};
+        QVariantMap viB = vB ? vi(bezB) : QVariantMap{};
+        const QString kidStr = QString::number(klemmeId);
+        const QVariantMap posA = pA ? platzPos.value(kidStr + QLatin1Char('|') + bezA) : QVariantMap{};
+        QVariantMap row;
+        row[QStringLiteral("typ")]             = QStringLiteral("anschluss");
+        row[QStringLiteral("leisteId")]        = leisteId;
+        row[QStringLiteral("klemmeId")]        = klemmeId;
+        row[QStringLiteral("klemmeNr")]        = ersteZeile ? kNr : QString();
+        row[QStringLiteral("ebene")]           = ebene;
+        row[QStringLiteral("anschlussVon")]    = bezA;
+        row[QStringLiteral("vonPlatziert")]    = pA;
+        row[QStringLiteral("vonBlattnummer")]  = pA ? platzBl.value(kidStr+"|"+bezA) : QString();
+        row[QStringLiteral("vonVerbBez")]      = vA ? viA[QStringLiteral("vb")].toString() : QString();
+        row[QStringLiteral("vonSignaltyp")]    = vA ? viA[QStringLiteral("st")].toString() : QString();
+        row[QStringLiteral("vonAderFarbe")]    = vA ? viA[QStringLiteral("af")].toString() : QString();
+        row[QStringLiteral("vonAderFarbe2")]   = vA ? viA[QStringLiteral("af2")].toString() : QString();
+        row[QStringLiteral("vonAderNr")]       = vA ? viA[QStringLiteral("an")].toString() : QString();
+        row[QStringLiteral("anschlussNach")]   = bezB;
+        row[QStringLiteral("nachPlatziert")]   = pB;
+        row[QStringLiteral("nachBlattnummer")] = pB ? platzBl.value(kidStr+"|"+bezB) : QString();
+        row[QStringLiteral("nachVerbBez")]     = vB ? viB[QStringLiteral("vb")].toString() : QString();
+        row[QStringLiteral("nachSignaltyp")]   = vB ? viB[QStringLiteral("st")].toString() : QString();
+        row[QStringLiteral("nachAderFarbe")]   = vB ? viB[QStringLiteral("af")].toString() : QString();
+        row[QStringLiteral("nachAderFarbe2")]  = vB ? viB[QStringLiteral("af2")].toString() : QString();
+        row[QStringLiteral("nachAderNr")]      = vB ? viB[QStringLiteral("an")].toString() : QString();
+        row[QStringLiteral("querschnitt")]      = qs;
+        row[QStringLiteral("farbeBez")]         = farbBez;
+        row[QStringLiteral("farbeHex")]         = farbHex;
+        row[QStringLiteral("klemmeSort")]       = kSort;
+        row[QStringLiteral("klemmeReiheIdx")]   = ri;
+        row[QStringLiteral("klemmeReihenAnz")]  = rn;
+        row[QStringLiteral("leisteStegJson")]   = curLeisteStegsJson;
+        row[QStringLiteral("vonSeiteId")]       = posA.value(QStringLiteral("sid"), 0).toInt();
+        row[QStringLiteral("vonWeltX")]         = posA.value(QStringLiteral("px"), 0.0).toDouble();
+        row[QStringLiteral("vonWeltY")]         = posA.value(QStringLiteral("py"), 0.0).toDouble();
+    return row;
+}
+
+void appendKlemmenZeilen(QVariantList &result, const KlemmeZeilenKontext &k, const PlatzIndex &pi,
+                         const QHash<QString, QVariantMap> &verbInfo, const PlatzMap &platz,
+                         bool hatBk, int ebAnz, int ptA, int ptB, bool haPE)
+{
+    const int klemmeId = k.klemmeId;
+    bool ersteZeile = true;
+    auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene, int ri, int rn) {
+        result.append(paarZeile(k, pi, verbInfo, bezA, bezB, ebene, ri, rn, ersteZeile));
+        ersteZeile = false;
+    };
+
+    if (hatBk) {
+        for (int e = 1; e <= ebAnz; ++e) {
+            QStringList aList, bList;
+            int idx = 1;
+            for (int a = 0; a < ptA; ++a, ++idx)
+                aList.append(QString("%1.%2").arg(e).arg(idx));
+            for (int b = 0; b < ptB; ++b, ++idx)
+                bList.append(QString("%1.%2").arg(e).arg(idx));
+            int paare = qMax(ptA, ptB);
+            for (int i = 0; i < paare; ++i)
+                addPaar(i < aList.size() ? aList[i] : QString(),
+                        i < bList.size() ? bList[i] : QString(), e, i, paare);
+        }
+        if (haPE)
+            addPaar(QStringLiteral("PE"), QString(), 0, 0, 1);
+    } else {
+        const QList<QVariantMap> &placed = platz.value(klemmeId);
+        if (!placed.isEmpty()) {
+            int n = placed.size();
+            for (int pidx = 0; pidx < n; ++pidx)
+                addPaar(placed[pidx][QStringLiteral("abez")].toString(), QString(), 0, pidx, n);
+        } else {
+            addPaar(QString(), QString(), 0, 0, 1);
+        }
+    }
+}
+
+} // namespace
+
+
+// ============================================================
+// klemmlistenauszug
+// ============================================================
+// Verdrahtungsliste aller Klemmen im Projekt.
+// Gibt flache Liste mit Zeilen-Typen zurück:
+//   "leiste"   – Leistenheader (bmk, bezeichnung)
+//   "steg"     – Stegbrücke-Trennzeile (vonNr, bisNr, ebene, potenzial, hatKonflikt, signaltyp)
+//   "anschluss"– Verbindungszeile (klemmeNr, anschlussBez, seite, platziert,
+//                                  blattnummer, verbBez, signaltyp, querschnitt, farbeBez, farbeHex)
+// Von/Nach (Verbindung): Netz-Bezeichnung + Canvas-Seite aus verbindung_segment (geometrisches Matching).
+QVariantList Database::klemmlistenauszug(int projektId)
+{
+    QVariantList result;
+
+    // ── 1–4. Daten laden + geometrisches Matching ────────────────────────────
+    const PlatzMap    platz     = ladePlatzierungen(m_db);
+    const PlatzIndex  platzIdx  = baueIndex(platz);
+    const auto segmente      = ladeSegmenteJeSeite(m_db, projektId);
+    const auto kabelAderMap  = ladeKabelAderMap(m_db, projektId);
+    const auto aderdefMap    = ladeAderdefMap(m_db, projektId);
+    // Pinposition → Verbindung + Aderinfos; Schlüssel "klemmeId|anschlussBezeichnung" → {bl, vb, st, af, an}
+    const auto verbInfo = berechneVerbindungsInfo(platz, segmente, kabelAderMap, aderdefMap);
+    const auto stegMap  = ladeStegbruecken(m_db, projektId);
+
     QSqlQuery q(m_db);
     q.prepare(
         "SELECT kl.id, kl.bezeichnung,"
@@ -592,21 +788,7 @@ QVariantList Database::klemmlistenauszug(int projektId)
         if (leisteId != lastLeistenId) {
             lastLeistenId = leisteId;
             curStegs = stegMap.value(leisteId);
-            // JSON aller Stegbrücken dieser Leiste (für Spalten-Darstellung im QML)
-            QJsonArray lsArr;
-            for (const QVariantMap &s : curStegs) {
-                QJsonObject o;
-                o[QLatin1String("st")]  = s[QStringLiteral("signaltyp")].toString();
-                o[QLatin1String("pot")] = s[QStringLiteral("potenzial")].toString();
-                o[QLatin1String("eb")]  = s[QStringLiteral("ebene")].toInt();
-                o[QLatin1String("vn")]  = s[QStringLiteral("vonNr")].toString();
-                o[QLatin1String("bn")]  = s[QStringLiteral("bisNr")].toString();
-                o[QLatin1String("vs")]  = s[QStringLiteral("vonSort")].toInt();
-                o[QLatin1String("bs")]  = s[QStringLiteral("bisSort")].toInt();
-                lsArr.append(o);
-            }
-            curLeisteStegsJson =
-                QString::fromUtf8(QJsonDocument(lsArr).toJson(QJsonDocument::Compact));
+            curLeisteStegsJson = stegbrueckenJson(curStegs);
 
             QVariantMap row;
             row[QStringLiteral("typ")]         = QStringLiteral("leiste");
@@ -617,106 +799,22 @@ QVariantList Database::klemmlistenauszug(int projektId)
             result.append(row);
         }
 
-        int    klemmeId = q.value(3).toInt();
-        QString kNr     = q.value(4).toString();
-        int    kSort    = q.value(5).toInt();
-        bool   hatBk    = !q.value(6).isNull();
-        int    ebAnz    = hatBk ? q.value(6).toInt() : 0;
-        int    ptA      = hatBk ? q.value(7).toInt() : 0;
-        int    ptB      = hatBk ? q.value(8).toInt() : 0;
-        bool   haPE     = hatBk && (q.value(9).toInt() != 0);
-        QString farbBez = q.value(10).toString();
-        QString farbHex = q.value(11).toString();
-        QString qs      = q.value(12).toString();
+        KlemmeZeilenKontext k;
+        k.leisteId  = leisteId;
+        k.klemmeId  = q.value(3).toInt();
+        k.kNr       = q.value(4).toString();
+        k.kSort     = q.value(5).toInt();
+        const bool hatBk = !q.value(6).isNull();
+        const int  ebAnz = hatBk ? q.value(6).toInt() : 0;
+        const int  ptA   = hatBk ? q.value(7).toInt() : 0;
+        const int  ptB   = hatBk ? q.value(8).toInt() : 0;
+        const bool haPE  = hatBk && (q.value(9).toInt() != 0);
+        k.farbBez   = q.value(10).toString();
+        k.farbHex   = q.value(11).toString();
+        k.qs        = q.value(12).toString();
+        k.curLeisteStegsJson = curLeisteStegsJson;
 
-
-        bool ersteZeile = true;
-
-        // Verbindungsinfo für einen Anschluss
-        auto vi = [&](const QString &abez) -> QVariantMap {
-            return verbInfo.value(QString::number(klemmeId) + QLatin1Char('|') + abez);
-        };
-        // platziert = Element liegt im Canvas (unabhängig von Netzanschluss)
-        auto isPlatz = [&](const QString &abez) -> bool {
-            return !abez.isEmpty() &&
-                   platzSet.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
-        };
-        // verbunden = geometrisch mit einem Verbindungssegment gematcht
-        auto isVerb = [&](const QString &abez) -> bool {
-            return !abez.isEmpty() &&
-                   verbInfo.contains(QString::number(klemmeId) + QLatin1Char('|') + abez);
-        };
-
-        // Paar-Zeile: Seite A links, Seite B rechts
-        // ri = 0-basierter Index innerhalb der Klemme; rn = Gesamtzahl Zeilen
-        auto addPaar = [&](const QString &bezA, const QString &bezB, int ebene, int ri, int rn) {
-            bool pA = isPlatz(bezA), pB = isPlatz(bezB);
-            bool vA = isVerb(bezA),  vB = isVerb(bezB);
-            QVariantMap viA = vA ? vi(bezA) : QVariantMap{};
-            QVariantMap viB = vB ? vi(bezB) : QVariantMap{};
-            const QString kidStr = QString::number(klemmeId);
-            const QVariantMap posA = pA ? platzPos.value(kidStr + QLatin1Char('|') + bezA) : QVariantMap{};
-            QVariantMap row;
-            row[QStringLiteral("typ")]             = QStringLiteral("anschluss");
-            row[QStringLiteral("leisteId")]        = leisteId;
-            row[QStringLiteral("klemmeId")]        = klemmeId;
-            row[QStringLiteral("klemmeNr")]        = ersteZeile ? kNr : QString();
-            row[QStringLiteral("ebene")]           = ebene;
-            row[QStringLiteral("anschlussVon")]    = bezA;
-            row[QStringLiteral("vonPlatziert")]    = pA;
-            row[QStringLiteral("vonBlattnummer")]  = pA ? platzBl.value(kidStr+"|"+bezA) : QString();
-            row[QStringLiteral("vonVerbBez")]      = vA ? viA[QStringLiteral("vb")].toString() : QString();
-            row[QStringLiteral("vonSignaltyp")]    = vA ? viA[QStringLiteral("st")].toString() : QString();
-            row[QStringLiteral("vonAderFarbe")]    = vA ? viA[QStringLiteral("af")].toString() : QString();
-            row[QStringLiteral("vonAderFarbe2")]   = vA ? viA[QStringLiteral("af2")].toString() : QString();
-            row[QStringLiteral("vonAderNr")]       = vA ? viA[QStringLiteral("an")].toString() : QString();
-            row[QStringLiteral("anschlussNach")]   = bezB;
-            row[QStringLiteral("nachPlatziert")]   = pB;
-            row[QStringLiteral("nachBlattnummer")] = pB ? platzBl.value(kidStr+"|"+bezB) : QString();
-            row[QStringLiteral("nachVerbBez")]     = vB ? viB[QStringLiteral("vb")].toString() : QString();
-            row[QStringLiteral("nachSignaltyp")]   = vB ? viB[QStringLiteral("st")].toString() : QString();
-            row[QStringLiteral("nachAderFarbe")]   = vB ? viB[QStringLiteral("af")].toString() : QString();
-            row[QStringLiteral("nachAderFarbe2")]  = vB ? viB[QStringLiteral("af2")].toString() : QString();
-            row[QStringLiteral("nachAderNr")]      = vB ? viB[QStringLiteral("an")].toString() : QString();
-            row[QStringLiteral("querschnitt")]      = qs;
-            row[QStringLiteral("farbeBez")]         = farbBez;
-            row[QStringLiteral("farbeHex")]         = farbHex;
-            row[QStringLiteral("klemmeSort")]       = kSort;
-            row[QStringLiteral("klemmeReiheIdx")]   = ri;
-            row[QStringLiteral("klemmeReihenAnz")]  = rn;
-            row[QStringLiteral("leisteStegJson")]   = curLeisteStegsJson;
-            row[QStringLiteral("vonSeiteId")]       = posA.value(QStringLiteral("sid"), 0).toInt();
-            row[QStringLiteral("vonWeltX")]         = posA.value(QStringLiteral("px"), 0.0).toDouble();
-            row[QStringLiteral("vonWeltY")]         = posA.value(QStringLiteral("py"), 0.0).toDouble();
-            result.append(row);
-            ersteZeile = false;
-        };
-
-        if (hatBk) {
-            for (int e = 1; e <= ebAnz; ++e) {
-                QStringList aList, bList;
-                int idx = 1;
-                for (int a = 0; a < ptA; ++a, ++idx)
-                    aList.append(QString("%1.%2").arg(e).arg(idx));
-                for (int b = 0; b < ptB; ++b, ++idx)
-                    bList.append(QString("%1.%2").arg(e).arg(idx));
-                int paare = qMax(ptA, ptB);
-                for (int i = 0; i < paare; ++i)
-                    addPaar(i < aList.size() ? aList[i] : QString(),
-                            i < bList.size() ? bList[i] : QString(), e, i, paare);
-            }
-            if (haPE)
-                addPaar(QStringLiteral("PE"), QString(), 0, 0, 1);
-        } else {
-            const QList<QVariantMap> &placed = platz.value(klemmeId);
-            if (!placed.isEmpty()) {
-                int n = placed.size();
-                for (int pi = 0; pi < n; ++pi)
-                    addPaar(placed[pi][QStringLiteral("abez")].toString(), QString(), 0, pi, n);
-            } else {
-                addPaar(QString(), QString(), 0, 0, 1);
-            }
-        }
+        appendKlemmenZeilen(result, k, platzIdx, verbInfo, platz, hatBk, ebAnz, ptA, ptB, haPE);
     }
     return result;
 }

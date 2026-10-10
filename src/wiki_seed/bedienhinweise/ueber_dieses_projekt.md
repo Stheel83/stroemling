@@ -8,7 +8,7 @@
 
 Strömling Design wurde am **08.04.2026** gestartet.
 
-Im Berufsalltag arbeite ich täglich mit **EPLAN P8 Electric** — einem
+Im Berufsalltag arbeite ich täglich mit **EPLAN Electric P8** — einem
 professionellen E-CAD-Tool, das keine Linux-Version hat und (auch preislich) für den
 Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich
 Linux (openSUSE mit KDE), und ich wollte ein Tool, das unter Linux läuft

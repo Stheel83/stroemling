@@ -512,6 +512,7 @@ enable_testing()
 
 qt_add_executable(stroemling_test
     tests/tst_migrationen.cpp
+    tests/tst_kernfunktionen.h
     src/logging.cpp
     src/logging.h
     src/database/Database.cpp
@@ -548,6 +549,7 @@ qt_add_resources(stroemling_test "database_seeds_test"
     FILES
         src/database/schema.sql
         src/database/symbole.sql
+        src/database/bauteile_nutzer.sql
 )
 
 qt_add_resources(stroemling_test "wiki_seed_res_test"

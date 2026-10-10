@@ -8,6 +8,7 @@
 #include "database/Database.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/SeitenModel.h"
+#include "tst_kernfunktionen.h"
 
 // Testet das Migrations-System auf einer temporären SQLite-Datei.
 // Ablauf: createProjekt (v40-Baseline) → closeProjekt → openProjekt
@@ -745,5 +746,14 @@ private slots:
     }
 };
 
-QTEST_GUILESS_MAIN(TstMigrationen)
+// Zwei Testklassen in einem Executable: Migrationen + Kernfunktionen (grafikSpeichern/klemmlistenauszug).
+int main(int argc, char *argv[])
+{
+    QCoreApplication app(argc, argv);
+    TstMigrationen   migrationen;
+    TstKernfunktionen kern;
+    int rc = QTest::qExec(&migrationen, argc, argv);
+    rc |= QTest::qExec(&kern, argc, argv);
+    return rc;
+}
 #include "tst_migrationen.moc"

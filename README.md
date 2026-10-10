@@ -3,19 +3,21 @@
 Open-Source E-CAD für Elektrotechnik — Schaltpläne, Klemmenplan, Kabelliste. Strömling Design orientiert sich an den Normen DIN EN 81346 und DIN 6771/EN ISO 7200 (Schriftfeld ist wahlweise im klassischen DIN-6771-Stil oder frei nach EN ISO 7200 im Normblatt-Editor gestaltbar), erhebt aber keinen Anspruch auf zertifizierte Normkonformität.
 
 **Stack:** Qt 6.5+ · QML · C++17 · SQLite  
-**Letzter Release:** v0.666 (Jul 2026) — siehe Download unten  
-**Stand (Quellcode):** Schema v91 · Jul 2026
+**Letzter Release:** v0.67 (10. Okt 2026) — siehe Download unten  
+**Stand (Quellcode):** Schema v161 · Okt 2026
 
 ## Download
 
 | Plattform | Link |
 |-----------|------|
-| Linux x64 | [AppImage herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-x86_64.AppImage) |
-| Windows x64 | [ZIP herunterladen](https://stheelke.de/downloads/Stroemling-Design-0.666-win64.zip) |
+| Linux x64 | [AppImage herunterladen](https://stheelke.de/downloads/Stroemling-Design-v0.67-x86_64.appimage) |
+| Windows x64 | [ZIP herunterladen](https://stheelke.de/downloads/Stroemling-Design-v0.67-windows-x64.zip) |
 
 Keine Installation nötig. Linux: `chmod +x` und starten. Windows: ZIP entpacken, `stroemling_app.exe` starten.
 
-> **Hinweis Linux:** Das AppImage wird nativ auf openSUSE Leap 16 gebaut und benötigt GLIBC ≥ 2.39 — spürbar kompatibler als frühere Releases (v0.5 brauchte noch GLIBC ≥ 2.42). Läuft damit u.a. auf Ubuntu 24.04+, Debian 13+, Fedora 40+ und aktuellem openSUSE. Auf älteren Systemen (Ubuntu 22.04, Debian 12, openSUSE Leap 15.x) weiterhin nicht lauffähig.
+Prüfsummen (SHA256) und eine Anleitung zum Vergleich stehen auf der [Website](https://stheelke.de/) beim Download.
+
+> **Hinweis Linux:** Das AppImage wird seit v0.67 automatisch über GitHub Actions gebaut und benötigt GLIBC ≥ 2.38 (getestet auf openSUSE Leap 16). Läuft damit u.a. auf Ubuntu 24.04+, Debian 13+, Fedora 40+ und aktuellem openSUSE. Auf älteren Systemen (Ubuntu 22.04, Debian 12, openSUSE Leap 15.x) weiterhin nicht lauffähig.
 
 > **Hinweis Windows:** Beim ersten Start meldet Windows SmartScreen „Der Herausgeber ist unbekannt", weil die .exe nicht mit einem kostenpflichtigen Code-Signing-Zertifikat signiert ist — kein Hinweis auf ein Problem mit dem Programm selbst. Auf „Weitere Informationen" und dann „Trotzdem ausführen" klicken.
 
@@ -23,7 +25,7 @@ Keine Installation nötig. Linux: `chmod +x` und starten. Windows: ZIP entpacken
 
 ## Entstehung
 
-Das Projekt entstand aus einem konkreten Bedürfnis: Im Beruf arbeite ich täglich mit EPLAN P8 Electric — einem professionellen E-CAD-Tool, das keine Linux-Version hat und für den Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich Linux (openSUSE mit KDE), und ich wollte ein E-CAD-Tool, das meinen persönlichen Anforderungen entspricht. QElectroTech kannte ich, aber auch das war nicht das, was ich mir vorgestellt hatte. Also habe ich angefangen, selbst etwas zu bauen — mit KI-Unterstützung, obwohl ich kein Programmierer bin.
+Das Projekt entstand aus einem konkreten Bedürfnis: Im Beruf arbeite ich täglich mit EPLAN Electric P8 — einem professionellen E-CAD-Tool, das keine Linux-Version hat und für den Privatgebrauch nicht in Frage kommt. Privat nutze ich ausschließlich Linux (openSUSE mit KDE), und ich wollte ein E-CAD-Tool, das meinen persönlichen Anforderungen entspricht. QElectroTech kannte ich, aber auch das war nicht das, was ich mir vorgestellt hatte. Also habe ich angefangen, selbst etwas zu bauen — mit KI-Unterstützung, obwohl ich kein Programmierer bin.
 
 Open Source deshalb, damit andere das Projekt leicht aufgreifen, forken oder weiterführen können — ohne auf mich angewiesen zu sein. Ob es für E-Techniker fachlich taugt, wird sich im Test mit Kollegen zeigen.
 
@@ -83,7 +85,8 @@ Projekte werden als eigenständige Ordner gespeichert:
 | Steckverbinder (Stecker/Buchsen, Kontakt-Zuordnung, Litzen-Verknüpfung) | ✅ |
 | Schirmung (Schirm-Symbol, SH-Kennzeichnung) | ✅ |
 | Cross-Projekt Copy/Paste (Elemente zwischen Projekten kopieren) | ✅ |
-| Automatische Listen (Stückliste, Klemmenplan, Kabelliste, Klemmlistenauszug, CSV-Export) | ✅ |
+| Automatische Listen (Stückliste, Klemmenplan, Kabelliste, Adersummenliste, Klemmlistenauszug; Sortierung, Filter, CSV- und PDF-Export) | ✅ |
+| Backups vor Migrationen, „Backup wiederherstellen“ in der Projekte-Ansicht | ✅ |
 | PDF-Export (Vektor-PDF, alle Elementtypen, Kreuzungslücken) | ✅ |
 | Design Rule Check (doppelte BMK, offene Pins, fehlende Verbindungen u.a.) | ✅ |
 | Fehlersuchmodus (Strompfad-Verfolgung, seitenübergreifend) | ✅ |

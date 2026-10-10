@@ -154,10 +154,7 @@ Rectangle {
             active:  root.aktiveAnsicht === "symbol_editor"
             tooltip: qsTr("Symboleditor: Eigene Schaltsymbole zeichnen und bearbeiten")
             onClicked: {
-                root.symbolEditorVorher    = root.aktiveAnsicht
-                root.symbolEditorId        = ""
-                root.symbolEditorVorlageId = ""
-                root.aktiveAnsicht         = "symbol_editor"
+                root.symbolEditorAngefordert()
                 achievementManager.ereignis("symbol_editor_geoeffnet")
             }
         }

@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QGuiApplication>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QDir>
@@ -749,7 +750,7 @@ private slots:
 // Zwei Testklassen in einem Executable: Migrationen + Kernfunktionen (grafikSpeichern/klemmlistenauszug).
 int main(int argc, char *argv[])
 {
-    QCoreApplication app(argc, argv);
+    QGuiApplication app(argc, argv);   // Schriften/QPainter fuer PDF-Export noetig
     TstMigrationen   migrationen;
     TstKernfunktionen kern;
     int rc = QTest::qExec(&migrationen, argc, argv);

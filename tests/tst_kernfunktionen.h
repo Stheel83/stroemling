@@ -289,6 +289,37 @@ private slots:
     }
 
     // ════════════════════════════════════════════════════════════
+    // PDF-Referenzexport (Hilfswerkzeug, kein Regressionstest)
+    // ════════════════════════════════════════════════════════════
+    // Exportiert eine KOPIE eines echten Projekts in allen Options-Kombinationen, damit vor/nach einem
+    // Umbau von Database_PDF.cpp die Ausgabe (gerendert) verglichen werden kann. Läuft nur, wenn gesetzt:
+    //   STROEMLING_PDF_PROJEKT  = Pfad der Projekt-KOPIE (.strl, per `sqlite3 .backup` erzeugt)
+    //   STROEMLING_PDF_BIB      = Pfad der Bibliothek-KOPIE
+    //   STROEMLING_PDF_AUSGABE  = Zielordner für die PDFs
+    // Echte Nutzerdaten werden nie ins Repo übernommen; die Eingaben liegen außerhalb des Repos.
+    void pdf_referenzexport()
+    {
+        const QString proj = qEnvironmentVariable("STROEMLING_PDF_PROJEKT");
+        const QString bib  = qEnvironmentVariable("STROEMLING_PDF_BIB");
+        const QString aus  = qEnvironmentVariable("STROEMLING_PDF_AUSGABE");
+        if (proj.isEmpty() || aus.isEmpty())
+            QSKIP("STROEMLING_PDF_PROJEKT/STROEMLING_PDF_AUSGABE nicht gesetzt");
+        QDir().mkpath(aus);
+        m_db->closeProjekt();
+        if (!bib.isEmpty())
+            QVERIFY2(m_db->openBibliothek(bib), "Bibliothek-Kopie konnte nicht geöffnet werden");
+        QVERIFY2(m_db->openProjekt(proj), "Projekt-Kopie konnte nicht geöffnet werden");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        QVERIFY(pid > 0);
+        for (int voll = 0; voll <= 1; ++voll)
+            for (int nb = 0; nb <= 1; ++nb)
+                for (int inf = 0; inf <= 1; ++inf) {
+                    const QString f = QString("%1/%2_nb%3_inf%4.pdf").arg(aus, voll ? "voll" : "seite").arg(nb).arg(inf);
+                    QVERIFY2(m_db->canvasPdfExportieren(pid, f, nb, voll, inf), qPrintable(f));
+                }
+    }
+
+    // ════════════════════════════════════════════════════════════
     // klemmlistenauszug
     // ════════════════════════════════════════════════════════════
 

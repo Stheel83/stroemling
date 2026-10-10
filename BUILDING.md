@@ -393,7 +393,7 @@ git push origin v0.67
 3. Titel und Beschreibung eintragen (z.B. Changelog)
 4. Dateien hochladen:
    - `Stroemling-Design-v0.67-windows-x64.zip` (Windows-Paket)
-   - `Stroemling-Design-v0.67-x86_64.appimage` (Linux-AppImage)
+   - `Stroemling-Design-v0.67-x86_64.AppImage` (Linux-AppImage)
 5. **Release veröffentlichen**
 
 Nutzer sehen auf der Projektseite unter „Releases" direkt die Download-Links.

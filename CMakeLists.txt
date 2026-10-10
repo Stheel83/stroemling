@@ -214,6 +214,7 @@ qt_add_qml_module(stroemling_app
         qml/canvas/CanvasMinimap.qml
 
         qml/symboleditor/SeSymbolListe.qml
+        qml/symboleditor/SeDialoge.qml
         qml/symboleditor/SeEditorHeader.qml
         qml/symboleditor/SeWerkzeugToolbar.qml
         qml/symboleditor/SeEigenschaftenPanel.qml

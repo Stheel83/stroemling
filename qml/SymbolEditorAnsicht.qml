@@ -125,7 +125,7 @@ Item {
     function verwerfenUndFortfahren(aktion) {
         if (_unsavedChanges) {
             _ausstehendeAktion = aktion
-            ungespeichertDialog.open()
+            seDialoge.verwerfenFragen()
         } else {
             aktion()
         }
@@ -168,8 +168,6 @@ Item {
     property var    listenSymbole:     []
     property string aktiveListenId:    ""
     property string listeFilter:       ""
-    property string loeschenSymbolId:  ""
-    property string loeschenSymbolName: ""
 
     // Vergleichs-Warteschlange (SE-VERGLEICH-01, Entwicklungsphase-Werkzeug):
     // rein sitzungsbasierte Merkliste (kein DB-Feld, kein Schema-Update) zum
@@ -592,8 +590,7 @@ Item {
         for (var pn = 0; pn < pins.length; pn++) {
             var pname = (pins[pn].name || "").trim()
             if (pname !== "" && pinNamenGesehen[pname]) {
-                speichernFehlerText.text = qsTr("Pin-Name «%1» ist mehrfach vergeben. Bitte eindeutige Namen verwenden.").arg(pname)
-                speichernFehlerDialog.open()
+                seDialoge.speichernFehlerZeigen(qsTr("Pin-Name «%1» ist mehrfach vergeben. Bitte eindeutige Namen verwenden.").arg(pname))
                 return
             }
             pinNamenGesehen[pname] = true
@@ -610,8 +607,7 @@ Item {
 
         if (editSymbolId === "") {
             if (!symbolDefinitionModel.symbolAnlegen(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm, vorlageId)) {
-                speichernFehlerText.text = qsTr("Symbol-ID bereits vergeben. Bitte anderen Namen wählen.")
-                speichernFehlerDialog.open()
+                seDialoge.speichernFehlerZeigen(qsTr("Symbol-ID bereits vergeben. Bitte anderen Namen wählen."))
                 return
             }
         } else {
@@ -764,100 +760,33 @@ Item {
     function repaintAll() { zeichneCanvas.requestPaint() }
     // ── Dialoge ────────────────────────────────────────────────────
 
-    property var textEingabePos: ({x: 0, y: 0})
+    SeDialoge {
+        id:    seDialoge
+        theme: root.theme
 
-    Dialog {
-        id:      textEingabeDialog
-        title:   qsTr("Text-Primitiv einfügen")
-        modal:   true
-        parent:  Overlay.overlay
-        anchors.centerIn: parent
-        width:   340
-        padding: 16
-
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-
-        ColumnLayout { spacing: 8; width: parent.width
-            Text { text: qsTr("Textinhalt:"); color: root.theme.textMuted; font.pixelSize: 11 }
-            TextField {
-                id: textFeld
-                Layout.fillWidth: true
-                placeholderText: "M, 3~, ..."
-                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-                color: root.theme.textPrimary; font.pixelSize: 13
-            }
-            Row {
-                spacing: 12
-                Text { text: qsTr("Fett:"); color: root.theme.textMuted; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
-                CheckBox { id: textFettCheck }
-            }
+        onTextBestaetigt: function(text, fett, x, y) {
+            root.addPrimitiv({typ: "text", x1: x, y1: y,
+                text_inhalt: text, schrift_relativ: 0.15,
+                schrift_fett: fett, text_align: "center", text_baseline: "middle",
+                linienart: "solid"})
         }
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        onAccepted: {
-            if (textFeld.text.length > 0)
-                root.addPrimitiv({typ: "text", x1: root.textEingabePos.x, y1: root.textEingabePos.y,
-                    text_inhalt: textFeld.text, schrift_relativ: 0.15,
-                    schrift_fett: textFettCheck.checked, text_align: "center", text_baseline: "middle",
-                    linienart: "solid"})
-            textFeld.text = ""
-        }
-    }
-
-    Dialog {
-        id: speichernFehlerDialog
-        title: qsTr("Fehler beim Speichern")
-        modal: true; parent: Overlay.overlay; anchors.centerIn: parent; width: 340; padding: 16
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-        contentItem: Text {
-            id: speichernFehlerText
-            color: root.theme.textSecondary; font.pixelSize: 12; wrapMode: Text.Wrap
-        }
-        standardButtons: Dialog.Ok
-    }
-
-    Dialog {
-        id:    loeschenConfirmDialog
-        title: qsTr("Symbol löschen")
-        modal: true; parent: Overlay.overlay; anchors.centerIn: parent; width: 340; padding: 16
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-        contentItem: Text {
-            text: qsTr("Symbol «%1» wirklich löschen?\nDieser Vorgang kann nicht rückgängig gemacht werden.").arg(root.loeschenSymbolName)
-            color: root.theme.textSecondary; font.pixelSize: 12; wrapMode: Text.Wrap
-        }
-        standardButtons: Dialog.Yes | Dialog.No
-        onAccepted: {
-            if (root.editSymbolId === root.loeschenSymbolId || root.aktiveListenId === root.loeschenSymbolId) {
+        onLoeschenBestaetigt: function(symbolId) {
+            if (root.editSymbolId === symbolId || root.aktiveListenId === symbolId) {
                 root.editSymbolId   = ""
                 root.vorlageId      = ""
                 root.aktiveListenId = ""
                 root.ladeDaten()
             }
-            symbolDefinitionModel.symbolLoeschen(root.loeschenSymbolId)
+            symbolDefinitionModel.symbolLoeschen(symbolId)
             root.symbollisteAktualisieren()
-            root.loeschenSymbolId   = ""
-            root.loeschenSymbolName = ""
         }
-    }
-
-    // SE-UNGESPEICHERT-WARNUNG-01: Rückfrage vor dem Verwerfen ungespeicherter
-    // Änderungen (Symbolwechsel, "+ Neu", "Als Vorlage kopieren", Kopie-Button,
-    // Abbrechen) - s. verwerfenUndFortfahren().
-    Dialog {
-        id:    ungespeichertDialog
-        title: qsTr("Ungespeicherte Änderungen")
-        modal: true; parent: Overlay.overlay; anchors.centerIn: parent; width: 340; padding: 16
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-        contentItem: Text {
-            text: qsTr("Dieses Symbol hat ungespeicherte Änderungen, die dabei verloren gehen. Trotzdem fortfahren?")
-            color: root.theme.textSecondary; font.pixelSize: 12; wrapMode: Text.Wrap
-        }
-        standardButtons: Dialog.Yes | Dialog.No
-        onAccepted: {
+        // SE-UNGESPEICHERT-WARNUNG-01 (Rückfrage in SeDialoge): s. verwerfenUndFortfahren().
+        onVerwerfenBestaetigt: {
             var aktion = root._ausstehendeAktion
             root._ausstehendeAktion = null
             if (aktion) aktion()
         }
-        onRejected: root._ausstehendeAktion = null
+        onVerwerfenAbgelehnt: root._ausstehendeAktion = null
     }
 
     // ── Hauptlayout ────────────────────────────────────────────────
@@ -871,9 +800,7 @@ Item {
             editor:            root
             Layout.fillHeight: true
             onLoeschenAngefordert: function(sid, sname) {
-                root.loeschenSymbolId   = sid
-                root.loeschenSymbolName = sname
-                loeschenConfirmDialog.open()
+                seDialoge.loeschenFragen(sid, sname)
             }
         }
 
@@ -1621,8 +1548,7 @@ Item {
                                     break
 
                                 case "text":
-                                    root.textEingabePos = {x:nx,y:ny}
-                                    textEingabeDialog.open()
+                                    seDialoge.textEingabeOeffnen(nx, ny)
                                     break
 
                                 case "pin":

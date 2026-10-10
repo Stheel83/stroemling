@@ -42,15 +42,6 @@ Item {
         return _kurzPfad(parts.join("/"))
     }
     function _istNeuesFormat(pfad) { return pfad.split("/").pop() === "projekt.strl" }
-    function _slug(name) {
-        return name.trim()
-                   .replace(/[\/\\:*?"<>|]/g, "_")
-                   .replace(/\s+/g, "-")
-                   .replace(/-+/g, "-")
-                   .replace(/^-+|-+$/g, "")
-                   .substring(0, 64)
-               || "Neues-Projekt"
-    }
 
     function _ladenMetaDaten() {
         _ladevorgang = true
@@ -75,193 +66,17 @@ Item {
         }
     }
 
-    // ── Neues Projekt (GIT-00: Ordner-pro-Projekt) ────────────────────────────
-    FolderDialog {
-        id: projektOrtDialog
-        title: qsTr("Speicherort wählen")
-        onAccepted: {
-            var p = selectedFolder.toString()
-            if (p.startsWith("file://")) p = p.substring(7)
-            neuProjektPopup._ort = p
-        }
+    // ── Neues Projekt / Fehler / Backup (ausgelagerte Dialoge) ───────
+    ProjektNeuDialog {
+        id:             neuProjektPopup
+        theme:          root.theme
+        onFehlgeschlagen: fehlerPopup.open()
     }
-
-    Popup {
-        id: neuProjektPopup
-        modal: true
-        padding: 0
-        anchors.centerIn: Overlay.overlay
-
-        property string _name: ""
-        property string _ort:  ""
-
-        onOpened: {
-            if (_ort === "") _ort = db.standardProjektOrdner()
-            _name = ""
-            nameInputField.text = ""
-            nameInputField.forceActiveFocus()
-        }
-
-        background: Rectangle {
-            color:        root.theme.surface
-            border.color: root.theme.border
-            radius:       8
-        }
-
-        contentItem: ColumnLayout {
-            width: 400
-            spacing: 0
-
-            // Header
-            Item {
-                Layout.fillWidth: true
-                height: 48
-                Text {
-                    anchors { left: parent.left; leftMargin: 24; verticalCenter: parent.verticalCenter }
-                    text:           qsTr("Neues Projekt anlegen")
-                    font.pixelSize: 14; font.weight: Font.Medium
-                    color:          root.theme.textPrimary
-                }
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    width: parent.width; height: 1
-                    color: root.theme.border
-                }
-            }
-
-            // Felder
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.margins:   24
-                spacing:          20
-
-                // Projektname
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 6
-                    Text { text: qsTr("Projektname"); font.pixelSize: 11; color: root.theme.textMuted }
-                    TextField {
-                        id:               nameInputField
-                        Layout.fillWidth: true
-                        placeholderText:  qsTr("z. B. Schaltschrank Halle 3")
-                        color:            root.theme.textPrimary; font.pixelSize: 13
-                        background: Rectangle {
-                            color:        root.theme.inputBg
-                            border.color: nameInputField.activeFocus ? root.theme.accent : root.theme.border
-                            radius:       4
-                        }
-                        onTextChanged: neuProjektPopup._name = text
-                        Keys.onReturnPressed: { if (neuProjektPopup._name.trim()) anlegenBtn.clicked() }
-                        Keys.onEscapePressed: neuProjektPopup.close()
-                    }
-                }
-
-                // Speicherort
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 6
-                    Text { text: qsTr("Speicherort"); font.pixelSize: 11; color: root.theme.textMuted }
-                    RowLayout {
-                        Layout.fillWidth: true; spacing: 8
-                        Text {
-                            Layout.fillWidth: true
-                            text:           neuProjektPopup._ort.replace(/^\/home\/[^/]+/, "~")
-                            font.pixelSize: 11; font.family: "monospace"
-                            color:          root.theme.textPrimary; elide: Text.ElideLeft
-                        }
-                        Rectangle {
-                            width: 28; height: 28; radius: 4
-                            color:        ortBtnMa.containsMouse ? root.theme.hover : root.theme.inputBg
-                            border.color: root.theme.border
-                            Text { anchors.centerIn: parent; text: "📂"; font.pixelSize: 13 }
-                            MouseArea {
-                                id:           ortBtnMa; anchors.fill: parent
-                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                onClicked: projektOrtDialog.open()
-                            }
-                        }
-                    }
-                }
-
-                // Pfad-Vorschau
-                Rectangle {
-                    Layout.fillWidth: true
-                    visible:          neuProjektPopup._name.trim() !== ""
-                    implicitHeight:   vorschauCol.implicitHeight + 16
-                    color:            root.theme.surfaceDeep
-                    radius:           4
-                    border.color:     root.theme.borderLight
-
-                    Column {
-                        id: vorschauCol
-                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }
-                        spacing: 2
-                        Text {
-                            width: parent.width
-                            text: neuProjektPopup._ort.replace(/^\/home\/[^/]+/, "~")
-                                  + "/" + root._slug(neuProjektPopup._name) + "/"
-                            font.pixelSize: 10; font.family: "monospace"
-                            color: root.theme.textMuted; wrapMode: Text.WrapAnywhere
-                        }
-                        Text {
-                            text:           "  projekt.strl"
-                            font.pixelSize: 10; font.family: "monospace"
-                            color:          root.theme.accent
-                        }
-                    }
-                }
-            }
-
-            // Footer-Buttons
-            Item {
-                Layout.fillWidth: true; height: 52
-                Rectangle {
-                    anchors.top: parent.top
-                    width: parent.width; height: 1; color: root.theme.border
-                }
-                RowLayout {
-                    anchors { fill: parent; leftMargin: 16; rightMargin: 16 }
-                    spacing: 8
-                    Item { Layout.fillWidth: true }
-                    Button {
-                        text: qsTr("Abbrechen"); implicitHeight: 32; implicitWidth: 95
-                        contentItem: Text {
-                            text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
-                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: parent.hovered ? root.theme.hover : root.theme.inputBg
-                            radius: 4; border.color: root.theme.border
-                        }
-                        onClicked: neuProjektPopup.close()
-                    }
-                    Button {
-                        id: anlegenBtn
-                        text: qsTr("Anlegen ›"); implicitHeight: 32; implicitWidth: 95
-                        enabled: neuProjektPopup._name.trim() !== ""
-                        contentItem: Text {
-                            text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
-                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                            opacity: parent.enabled ? 1.0 : 0.45
-                        }
-                        background: Rectangle {
-                            color:        parent.hovered && parent.enabled ? root.theme.accent : root.theme.inputBg
-                            radius:       4
-                            border.color: parent.enabled ? root.theme.accent : root.theme.border
-                        }
-                        onClicked: {
-                            var slug    = root._slug(neuProjektPopup._name)
-                            var ordner  = neuProjektPopup._ort + "/" + slug
-                            var pfad    = ordner + "/projekt.strl"
-                            var name    = neuProjektPopup._name
-                            neuProjektPopup.close()
-                            if (db.createProjekt(pfad, name))
-                                db.gitProjektInit(ordner)  // GIT-01: init + erster Commit
-                            else
-                                fehlerPopup.open()
-                        }
-                    }
-                }
-            }
-        }
+    ProjektFehlerPopup { id: fehlerPopup; theme: root.theme }
+    ProjektBackupPopup {
+        id:             backupPopup
+        theme:          root.theme
+        onFehlgeschlagen: fehlerPopup.open()
     }
 
     FileDialog {
@@ -288,105 +103,6 @@ Item {
             meldungManager.zeigen(ok
                 ? qsTr("Exportiert: ") + selectedFile.toString().split("/").pop()
                 : qsTr("Export fehlgeschlagen"), ok)
-        }
-    }
-
-    // ── Fehler-Popup ──────────────────────────────────────────────────
-    Popup {
-        id: fehlerPopup
-        property string backupOrdner: ""
-        onAboutToShow: backupOrdner = db.letzterBackupOrdner()
-        modal: true; anchors.centerIn: parent; padding: 20
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-        contentItem: Column {
-            spacing: 12
-            Text { text: qsTr("Projekt konnte nicht geöffnet werden."); color: root.theme.textPrimary; font.pixelSize: 13 }
-            Text { text: qsTr("Datei beschädigt, falsches Format oder Migration fehlgeschlagen."); color: root.theme.textMuted; font.pixelSize: 11 }
-            Row {
-                spacing: 8
-                Button {
-                    visible: fehlerPopup.backupOrdner !== ""
-                    text: qsTr("Backup-Ordner öffnen")
-                    onClicked: Qt.openUrlExternally("file://" + fehlerPopup.backupOrdner)
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; horizontalAlignment: Text.AlignHCenter; leftPadding: 8; rightPadding: 8 }
-                }
-                Button {
-                    text: qsTr("OK"); onClicked: fehlerPopup.close()
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; horizontalAlignment: Text.AlignHCenter }
-                }
-            }
-        }
-    }
-
-    // ── Backup wiederherstellen (BACKUP-OEFFNEN-01) ──────────────────
-    Popup {
-        id: backupPopup
-        property var backups: []
-        modal: true; anchors.centerIn: parent; padding: 20
-        width: 460
-        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
-        contentItem: ColumnLayout {
-            spacing: 10
-            Text { text: qsTr("Backup wiederherstellen"); color: root.theme.textPrimary; font.pixelSize: 14; font.bold: true }
-            Text {
-                Layout.fillWidth: true; wrapMode: Text.WordWrap
-                text: qsTr("Das gewählte Backup wird als neues Projekt neben diesem angelegt und geöffnet. Das aktuelle Projekt bleibt unverändert.")
-                color: root.theme.textMuted; font.pixelSize: 11
-            }
-            Text {
-                visible: backupPopup.backups.length === 0
-                text: qsTr("Für dieses Projekt gibt es noch keine Backups.")
-                color: root.theme.textMuted; font.pixelSize: 12
-            }
-            ListView {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(contentHeight, 240)
-                clip: true; spacing: 4
-                model: backupPopup.backups
-                delegate: Rectangle {
-                    width: ListView.view.width; height: 36; radius: 4
-                    color: bkMa.containsMouse ? root.theme.hover : root.theme.inputBg
-                    border.color: root.theme.border
-                    RowLayout {
-                        anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
-                        Text { text: modelData.zeit; color: root.theme.textPrimary; font.pixelSize: 12; Layout.fillWidth: true }
-                        Text { text: qsTr("Schema v") + modelData.version; color: root.theme.textMuted; font.pixelSize: 11 }
-                        Text { text: modelData.groesse; color: root.theme.textMuted; font.pixelSize: 11 }
-                    }
-                    MouseArea {
-                        id: bkMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            var neu = db.backupWiederherstellen(modelData.pfad)
-                            backupPopup.close()
-                            if (neu === "") {
-                                meldungManager.zeigen(qsTr("Backup konnte nicht wiederhergestellt werden"), false)
-                            } else if (db.openProjekt(neu)) {
-                                db.gitProjektInit(neu.substring(0, neu.lastIndexOf("/")))
-                                meldungManager.zeigen(qsTr("Backup als neues Projekt geöffnet"), true)
-                            } else {
-                                fehlerPopup.open()
-                            }
-                        }
-                    }
-                }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                Button {
-                    text: qsTr("Backup-Ordner öffnen")
-                    onClicked: Qt.openUrlExternally("file://" + db.projektOrdner + "/backups")
-                    background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"; radius: 4; border.color: root.theme.border }
-                    contentItem: Text { text: parent.text; color: root.theme.textMuted; horizontalAlignment: Text.AlignHCenter; leftPadding: 8; rightPadding: 8 }
-                }
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: qsTr("Abbrechen"); onClicked: backupPopup.close()
-                    background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg; radius: 4; border.color: root.theme.accent }
-                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; horizontalAlignment: Text.AlignHCenter }
-                }
-            }
         }
     }
 
@@ -822,7 +538,7 @@ Item {
                         }
                         MouseArea {
                             id: backupHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: { backupPopup.backups = db.projektBackups(); backupPopup.open() }
+                            onClicked: backupPopup.open()
                             ToolTip.visible: containsMouse; ToolTip.delay: 700
                             ToolTip.text: qsTr("Ein automatisches Vor-Migrations-Backup als neues Projekt neben diesem öffnen – das Original bleibt unverändert")
                         }

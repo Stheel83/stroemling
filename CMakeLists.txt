@@ -275,6 +275,9 @@ qt_add_qml_module(stroemling_app
         qml/sps/SpsKanalDialog.qml
         qml/FehlersuchAnsicht.qml
         qml/ProjektStartAnsicht.qml
+        qml/ProjektNeuDialog.qml
+        qml/ProjektFehlerPopup.qml
+        qml/ProjektBackupPopup.qml
         qml/fun/FunModusOverlay.qml
         qml/fun/FunSprite.qml
         qml/fun/FunSzeneDvd.qml

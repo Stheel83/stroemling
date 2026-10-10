@@ -1294,339 +1294,151 @@ ApplicationWindow {
             }
 
             // Klemmen-Editor Vollbild
-            Item {
-                anchors.fill: parent
-                visible:      root.aktiveAnsicht === "klemmen_editor"
+            BauteilEditorRahmen {
+                anchors.fill:       parent
+                visible:            root.aktiveAnsicht === "klemmen_editor"
+                theme:              appTheme
+                debug:              root.debugModeAktiv
+                editorName:         qsTr("Klemmen-Editor")
+                bauteilBezeichnung: bauteilAnsicht.selectedBauteilBezeichnung
+                onZurueck:          root.aktiveAnsicht = "bauteile"
 
-                DebugLabel { panelName: qsTr("Klemmen-Editor Ansicht"); visible: root.debugModeAktiv }
+                KlemmenEditor {
+                    Layout.fillWidth:     true
+                    Layout.fillHeight:    true
+                    theme:                appTheme
+                    debug:                root.debugModeAktiv
+                    bauteilId:            bauteilAnsicht.selectedBauteilId
+                    bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                    bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                    bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing:      0
-
-                    // Breadcrumb-Leiste
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height:           44
-                        color:            appTheme.sidebar
-
-                        DebugLabel { panelName: qsTr("Breadcrumb-Leiste"); visible: root.debugModeAktiv }
-
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
-                            spacing: 6
-
-                            Button {
-                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
-                                contentItem: Text {
-                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
-                                onClicked: root.aktiveAnsicht = "bauteile"
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           bauteilAnsicht.selectedBauteilBezeichnung
-                                font.pixelSize: 13; font.weight: Font.Medium
-                                color:          appTheme.textPrimary
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           qsTr("Klemmen-Editor")
-                                font.pixelSize: 12
-                                color:          appTheme.textMuted
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
+                    onBauteilGespeichert: function(id, bez) {
+                        bauteilAnsicht.selectedBauteilBezeichnung = bez
                     }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
 
-                    KlemmenEditor {
-                        Layout.fillWidth:     true
-                        Layout.fillHeight:    true
-                        theme:                appTheme
-                        debug:                root.debugModeAktiv
-                        bauteilId:            bauteilAnsicht.selectedBauteilId
-                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
-                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
-                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
-
-                        onBauteilGespeichert: function(id, bez) {
-                            bauteilAnsicht.selectedBauteilBezeichnung = bez
+                    onAnschlussPlatzieren: function(bkId, bez, modus) {
+                        if (root.aktivSeiteId < 0) {
+                            meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
+                            return
                         }
-
-                        onAnschlussPlatzieren: function(bkId, bez, modus) {
-                            if (root.aktivSeiteId < 0) {
-                                meldungManager.zeigen(qsTr("Bitte zuerst eine Seite auswählen."), false)
-                                return
-                            }
-                            root.aktiveAnsicht = "seiten"
-                            root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
-                            root.aktiverCanvas.paletteExtraDaten = {
-                                "bauteilKlemmeId":      bkId,
-                                "anschlussBezeichnung": bez,
-                                "platziermodus":        modus
-                            }
-                            root.aktiverCanvas.aktivesWerkzeug  = "symbol"
-                            root.aktiverCanvas.forceActiveFocus()
+                        root.aktiveAnsicht = "seiten"
+                        root.aktiverCanvas.paletteSymbolId  = "klemme_anschluss"
+                        root.aktiverCanvas.paletteExtraDaten = {
+                            "bauteilKlemmeId":      bkId,
+                            "anschlussBezeichnung": bez,
+                            "platziermodus":        modus
                         }
+                        root.aktiverCanvas.aktivesWerkzeug  = "symbol"
+                        root.aktiverCanvas.forceActiveFocus()
                     }
                 }
             }
 
             // Kabel-Editor Vollbild
-            Item {
-                anchors.fill: parent
-                visible:      root.aktiveAnsicht === "kabel_editor"
+            BauteilEditorRahmen {
+                anchors.fill:       parent
+                visible:            root.aktiveAnsicht === "kabel_editor"
+                theme:              appTheme
+                debug:              root.debugModeAktiv
+                editorName:         qsTr("Kabel-Editor")
+                bauteilBezeichnung: bauteilAnsicht.selectedBauteilBezeichnung
+                onZurueck:          root.aktiveAnsicht = "bauteile"
 
-                DebugLabel { panelName: qsTr("Kabel-Editor Ansicht"); visible: root.debugModeAktiv }
+                KabelEditor {
+                    Layout.fillWidth:     true
+                    Layout.fillHeight:    true
+                    theme:                appTheme
+                    debug:                root.debugModeAktiv
+                    bauteilId:            bauteilAnsicht.selectedBauteilId
+                    bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                    bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                    bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing:      0
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height:           44
-                        color:            appTheme.sidebar
-
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
-                            spacing: 6
-
-                            Button {
-                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
-                                contentItem: Text {
-                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
-                                onClicked: root.aktiveAnsicht = "bauteile"
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           bauteilAnsicht.selectedBauteilBezeichnung
-                                font.pixelSize: 13; font.weight: Font.Medium
-                                color:          appTheme.textPrimary
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           qsTr("Kabel-Editor")
-                                font.pixelSize: 12
-                                color:          appTheme.textMuted
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
-
-                    KabelEditor {
-                        Layout.fillWidth:     true
-                        Layout.fillHeight:    true
-                        theme:                appTheme
-                        debug:                root.debugModeAktiv
-                        bauteilId:            bauteilAnsicht.selectedBauteilId
-                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
-                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
-                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
-
-                        onBauteilGespeichert: function(id, bez) {
-                            bauteilAnsicht.selectedBauteilBezeichnung = bez
-                            bauteilModel.aktualisieren()
-                        }
+                    onBauteilGespeichert: function(id, bez) {
+                        bauteilAnsicht.selectedBauteilBezeichnung = bez
+                        bauteilModel.aktualisieren()
                     }
                 }
             }
 
             // Steckverbinder-Editor Vollbild
-            Item {
-                anchors.fill: parent
-                visible:      root.aktiveAnsicht === "steckverbinder_editor"
+            BauteilEditorRahmen {
+                anchors.fill:       parent
+                visible:            root.aktiveAnsicht === "steckverbinder_editor"
+                theme:              appTheme
+                debug:              root.debugModeAktiv
+                editorName:         qsTr("Steckverbinder-Editor")
+                bauteilBezeichnung: bauteilAnsicht.selectedBauteilBezeichnung
+                onZurueck:          root.aktiveAnsicht = "bauteile"
 
-                DebugLabel { panelName: qsTr("Steckverbinder-Editor Ansicht"); visible: root.debugModeAktiv }
+                SteckverbinderEditor {
+                    Layout.fillWidth:     true
+                    Layout.fillHeight:    true
+                    theme:                appTheme
+                    debug:                root.debugModeAktiv
+                    bauteilId:            bauteilAnsicht.selectedBauteilId
+                    bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                    bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                    bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing:      0
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height:           44
-                        color:            appTheme.sidebar
-
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
-                            spacing: 6
-
-                            Button {
-                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
-                                contentItem: Text {
-                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
-                                onClicked: root.aktiveAnsicht = "bauteile"
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           bauteilAnsicht.selectedBauteilBezeichnung
-                                font.pixelSize: 13; font.weight: Font.Medium
-                                color:          appTheme.textPrimary
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           qsTr("Steckverbinder-Editor")
-                                font.pixelSize: 12
-                                color:          appTheme.textMuted
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
-
-                    SteckverbinderEditor {
-                        Layout.fillWidth:     true
-                        Layout.fillHeight:    true
-                        theme:                appTheme
-                        debug:                root.debugModeAktiv
-                        bauteilId:            bauteilAnsicht.selectedBauteilId
-                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
-                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
-                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
-
-                        onBauteilGespeichert: function(id, bez) {
-                            bauteilAnsicht.selectedBauteilBezeichnung = bez
-                            bauteilModel.aktualisieren()
-                        }
+                    onBauteilGespeichert: function(id, bez) {
+                        bauteilAnsicht.selectedBauteilBezeichnung = bez
+                        bauteilModel.aktualisieren()
                     }
                 }
             }
 
             // Konfkabel-Editor Vollbild
-            Item {
-                anchors.fill: parent
-                visible:      root.aktiveAnsicht === "konfkabel_editor"
+            BauteilEditorRahmen {
+                anchors.fill:       parent
+                visible:            root.aktiveAnsicht === "konfkabel_editor"
+                theme:              appTheme
+                debug:              root.debugModeAktiv
+                editorName:         qsTr("Konf. Kabel-Editor")
+                bauteilBezeichnung: bauteilAnsicht.selectedBauteilBezeichnung
+                onZurueck:          root.aktiveAnsicht = "bauteile"
 
-                DebugLabel { panelName: qsTr("Konfkabel-Editor Ansicht"); visible: root.debugModeAktiv }
+                KonfkabelEditor {
+                    Layout.fillWidth:     true
+                    Layout.fillHeight:    true
+                    theme:                appTheme
+                    debug:                root.debugModeAktiv
+                    bauteilId:            bauteilAnsicht.selectedBauteilId
+                    bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                    bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                    bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing:      0
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height:           44
-                        color:            appTheme.sidebar
-
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
-                            spacing: 6
-
-                            Button {
-                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
-                                contentItem: Text {
-                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
-                                onClicked: root.aktiveAnsicht = "bauteile"
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           bauteilAnsicht.selectedBauteilBezeichnung
-                                font.pixelSize: 13; font.weight: Font.Medium
-                                color:          appTheme.textPrimary
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           qsTr("Konf. Kabel-Editor")
-                                font.pixelSize: 12
-                                color:          appTheme.textMuted
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
-
-                    KonfkabelEditor {
-                        Layout.fillWidth:     true
-                        Layout.fillHeight:    true
-                        theme:                appTheme
-                        debug:                root.debugModeAktiv
-                        bauteilId:            bauteilAnsicht.selectedBauteilId
-                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
-                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
-                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
-
-                        onBauteilGespeichert: function(id, bez) {
-                            bauteilAnsicht.selectedBauteilBezeichnung = bez
-                            bauteilModel.aktualisieren()
-                        }
+                    onBauteilGespeichert: function(id, bez) {
+                        bauteilAnsicht.selectedBauteilBezeichnung = bez
+                        bauteilModel.aktualisieren()
                     }
                 }
             }
 
             // Kontakt-Editor Vollbild
-            Item {
-                anchors.fill: parent
-                visible:      root.aktiveAnsicht === "kontakt_editor"
+            BauteilEditorRahmen {
+                anchors.fill:       parent
+                visible:            root.aktiveAnsicht === "kontakt_editor"
+                theme:              appTheme
+                debug:              root.debugModeAktiv
+                editorName:         qsTr("Kontakt-Editor")
+                bauteilBezeichnung: bauteilAnsicht.selectedBauteilBezeichnung
+                onZurueck:          root.aktiveAnsicht = "bauteile"
 
-                DebugLabel { panelName: qsTr("Kontakt-Editor Ansicht"); visible: root.debugModeAktiv }
+                KontaktEditor {
+                    Layout.fillWidth:     true
+                    Layout.fillHeight:    true
+                    theme:                appTheme
+                    debug:                root.debugModeAktiv
+                    bauteilId:            bauteilAnsicht.selectedBauteilId
+                    bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
+                    bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
+                    bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing:      0
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height:           44
-                        color:            appTheme.sidebar
-
-                        RowLayout {
-                            anchors { fill: parent; leftMargin: 12; rightMargin: 16 }
-                            spacing: 6
-
-                            Button {
-                                text: "← " + qsTr("Bauteile"); flat: true; implicitHeight: 28
-                                contentItem: Text {
-                                    text: parent.text; color: appTheme.accent; font.pixelSize: 12
-                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle { color: parent.hovered ? appTheme.badge : "transparent"; radius: 4 }
-                                onClicked: root.aktiveAnsicht = "bauteile"
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           bauteilAnsicht.selectedBauteilBezeichnung
-                                font.pixelSize: 13; font.weight: Font.Medium
-                                color:          appTheme.textPrimary
-                            }
-                            Text { text: "/"; color: appTheme.textMuted; font.pixelSize: 12 }
-                            Text {
-                                text:           qsTr("Kontakt-Editor")
-                                font.pixelSize: 12
-                                color:          appTheme.textMuted
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: appTheme.border }
-
-                    KontaktEditor {
-                        Layout.fillWidth:     true
-                        Layout.fillHeight:    true
-                        theme:                appTheme
-                        debug:                root.debugModeAktiv
-                        bauteilId:            bauteilAnsicht.selectedBauteilId
-                        bauteilBezeichnung:   bauteilAnsicht.selectedBauteilBezeichnung
-                        bauteilHersteller:    bauteilAnsicht.selectedBauteilHersteller
-                        bauteilArtikelnummer: bauteilAnsicht.selectedBauteilArtikelnummer
-
-                        onBauteilGespeichert: function(id, bez) {
-                            bauteilAnsicht.selectedBauteilBezeichnung = bez
-                            bauteilModel.aktualisieren()
-                        }
+                    onBauteilGespeichert: function(id, bez) {
+                        bauteilAnsicht.selectedBauteilBezeichnung = bez
+                        bauteilModel.aktualisieren()
                     }
                 }
             }

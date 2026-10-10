@@ -340,130 +340,13 @@ ApplicationWindow {
     }
 
     // ── Eigene Titelleiste ───────────────────────────────────────
-    Rectangle {
-        id:      appTitelleiste
+    AppTitelleiste {
+        id:          appTitelleiste
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        height:  36
-        color:   appTheme.sidebar
-
-        // Fenster verschieben per Drag (X11 + Wayland)
-        DragHandler {
-            target:          null
-            onActiveChanged: if (active) root.startSystemMove()
-        }
-
-        TapHandler {
-            onDoubleTapped: root.visibility === Window.Maximized
-                            ? root.showNormal() : root.showMaximized()
-        }
-
-        // Trennlinie unten
-        Rectangle {
-            anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-            height: 1
-            color:  appTheme.border
-        }
-
-        // App-Titel (zentriert)
-        Text {
-            anchors.centerIn: parent
-            text:             root.aktivProjektName !== ""
-                              ? "Strömling Design – " + root.aktivProjektName
-                              : "Strömling Design"
-            color:            appTheme.textMuted
-            font.pixelSize:   13
-            font.weight:      Font.Medium
-            elide:            Text.ElideRight
-            width:            parent.width - 220
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        // Fenster-Schaltflächen (rechts) – gezeichnete Icons, fontunabhängig
-        Row {
-            anchors { right: parent.right; rightMargin: 4; verticalCenter: parent.verticalCenter }
-            spacing: 2
-
-            // Minimieren (—)
-            Rectangle {
-                width: 28; height: 28; radius: 4
-                color: miniMa.containsMouse ? appTheme.hover : "transparent"
-                Rectangle {
-                    width: 12; height: 2; radius: 1
-                    anchors.centerIn: parent
-                    color: miniMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
-                }
-                MouseArea {
-                    id: miniMa; anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.showMinimized()
-                }
-            }
-
-            // Maximieren / Wiederherstellen (□ / ❐)
-            Rectangle {
-                width: 28; height: 28; radius: 4
-                color: maxMa.containsMouse ? appTheme.hover : "transparent"
-                Item {
-                    width: 12; height: 12
-                    anchors.centerIn: parent
-                    // Normal: einfaches Quadrat
-                    Rectangle {
-                        visible:      root.visibility !== Window.Maximized
-                        anchors.fill: parent
-                        color:   "transparent"
-                        border.color: maxMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
-                        border.width: 1.5
-                    }
-                    // Maximiert: zwei versetzte Quadrate (Restore-Icon)
-                    Rectangle {
-                        visible:      root.visibility === Window.Maximized
-                        x: 2; y: 0; width: 10; height: 10
-                        color:        "transparent"
-                        border.color: maxMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
-                        border.width: 1.5
-                    }
-                    Rectangle {
-                        visible:      root.visibility === Window.Maximized
-                        x: 0; y: 2; width: 10; height: 10
-                        color:        appTheme.sidebar
-                        border.color: maxMa.containsMouse ? appTheme.textPrimary : appTheme.textMuted
-                        border.width: 1.5
-                    }
-                }
-                MouseArea {
-                    id: maxMa; anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.visibility === Window.Maximized
-                               ? root.showNormal() : root.showMaximized()
-                }
-            }
-
-            // Schließen (×)
-            Rectangle {
-                width: 28; height: 28; radius: 4
-                color: closeMa.containsMouse ? "#c0392b" : "transparent"
-                Item {
-                    width: 12; height: 12
-                    anchors.centerIn: parent
-                    Rectangle {
-                        anchors.centerIn: parent; width: 14; height: 2; radius: 1
-                        color:    closeMa.containsMouse ? "#ffffff" : appTheme.textMuted
-                        rotation: 45
-                    }
-                    Rectangle {
-                        anchors.centerIn: parent; width: 14; height: 2; radius: 1
-                        color:    closeMa.containsMouse ? "#ffffff" : appTheme.textMuted
-                        rotation: -45
-                    }
-                }
-                MouseArea {
-                    id: closeMa; anchors.fill: parent; hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.close()
-                }
-            }
-        }
+        theme:       appTheme
+        projektName: root.aktivProjektName
     }
+
 
     // ── Layout ───────────────────────────────────────────────────
     RowLayout {
@@ -473,273 +356,31 @@ ApplicationWindow {
         // --------------------------------------------------------
         // Navigationsleiste (Linke Sidebar)
         // --------------------------------------------------------
-        Rectangle {
+        AppSidebar {
             id:                    sidebar
             Layout.preferredWidth: panelBreiten.sidebarBreite
             Layout.fillHeight:     true
-            color:                 appTheme.sidebar
+            theme:                 appTheme
+            debug:                 root.debugModeAktiv
+            aktiveAnsicht:         root.aktiveAnsicht
+            aktivProjektId:        root.aktivProjektId
+            aktivProjektName:      root.aktivProjektName
+            themes:                root.themes
+            themeName:             AppTheme.activeName
 
             onWidthChanged: if (width >= 150) panelBreiten.sidebarBreite = width
 
-            DebugLabel { panelName: qsTr("Navigationsleiste"); visible: root.debugModeAktiv }
-
-            ColumnLayout {
-                anchors {
-                    fill:    parent
-                    margins: 8
-                }
-                spacing: 2
-
-                Item { height: 4 }
-                LogoHeader {
-                    theme: appTheme
-                    Layout.fillWidth: true
-                }
-
-                Rectangle { height: 1; color: appTheme.border; Layout.fillWidth: true }
-                Item { height: 4 }
-
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "📁"
-                    label:   qsTr("Projekte")
-                    active:  root.aktiveAnsicht === "projekte"
-                    tooltip: qsTr("Neues Projekt anlegen oder vorhandenes öffnen")
-                    onClicked: root.aktiveAnsicht = "projekte"
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "📄"
-                    label:           qsTr("Seiten")
-                    active:          root.aktiveAnsicht === "seiten"
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("Seitenbaum: Seiten, Anlagen und Orte verwalten")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: root.aktiveAnsicht = "seiten"
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "📋"
-                    label:           qsTr("Listen")
-                    active:          root.aktiveAnsicht === "stueckliste"
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("Stückliste, Kabelliste, Klemmenplan und Querverweise")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: root.aktiveAnsicht = "stueckliste"
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "🖥"
-                    label:           qsTr("SPS/PLS")
-                    active:          root.aktiveAnsicht === "sps"
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("SPS/PLS-Konfiguration: Hardware, Baugruppen und I/O-Kanäle verwalten")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: root.aktiveAnsicht = "sps"
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "🔧"
-                    label:   qsTr("Bauteile")
-                    active:  root.aktiveAnsicht === "bauteile"
-                    tooltip: qsTr("Bauteilkatalog: Klemmen, Kabel und Geräte verwalten")
-                    onClicked: root.aktiveAnsicht = "bauteile"
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "✔"
-                    label:           qsTr("IBN")
-                    active:          root.aktiveAnsicht === "ibn"
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("Inbetriebnahme: Betriebsmittel prüfen und Messwerte erfassen")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: {
-                        root.aktiveAnsicht = "ibn"
-                        achievementManager.ereignis("ibn_geoeffnet")
-                    }
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "🔍"
-                    label:           qsTr("Fehlersuche")
-                    active:          root.aktiveAnsicht === "fehlersuche"
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("Fehlersuchmodus: Strompfad durch den Schaltplan nachverfolgen")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: root.aktiveAnsicht = "fehlersuche"
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "⚡"
-                    label:   qsTr("Kabelrechner")
-                    active:  root.aktiveAnsicht === "kabelrechner"
-                    tooltip: qsTr("Leitungsquerschnitt nach VDE 0298 / IEC 60364 berechnen")
-                    onClicked: {
-                        root.aktiveAnsicht = "kabelrechner"
-                        achievementManager.ereignis("kabelrechner_geoeffnet")
-                    }
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "🖨"
-                    label:           qsTr("PDF-Export")
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("Alle Seiten des Projekts als PDF exportieren")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: pdfExportDialog.open()
-                }
-                SidebarButton {
-                    theme:           appTheme
-                    icon:            "📐"
-                    label:           qsTr("Normblatt")
-                    active:          root.aktiveAnsicht === "normblatt"
-                    enabled:         root.aktivProjektId >= 0
-                    opacity:         enabled ? 1.0 : 0.4
-                    tooltip:         qsTr("Schriftfeld nach DIN 6771 gestalten und Normblatt-Vorlage wählen")
-                    tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-                    onClicked: root.aktiveAnsicht = "normblatt"
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "✏"
-                    label:   qsTr("Symbole")
-                    active:  root.aktiveAnsicht === "symbol_editor"
-                    tooltip: qsTr("Symboleditor: Eigene Schaltsymbole zeichnen und bearbeiten")
-                    onClicked: {
-                        root.symbolEditorVorher    = root.aktiveAnsicht
-                        root.symbolEditorId        = ""
-                        root.symbolEditorVorlageId = ""
-                        root.aktiveAnsicht         = "symbol_editor"
-                        achievementManager.ereignis("symbol_editor_geoeffnet")
-                    }
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "📚"
-                    label:   qsTr("Wiki")
-                    active:  root.aktiveAnsicht === "wiki"
-                    tooltip: qsTr("Erfahrungs-Wiki: Fachwissen nachschlagen und eigene Artikel erfassen")
-                    onClicked: {
-                        root.aktiveAnsicht = "wiki"
-                        achievementManager.ereignis("wiki_geoeffnet")
-                    }
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "🏆"
-                    label:   qsTr("Errungenschaften")
-                    active:  root.aktiveAnsicht === "achievements"
-                    tooltip: qsTr("Deine freigeschalteten Errungenschaften")
-                    onClicked: root.aktiveAnsicht = "achievements"
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "🔔"
-                    label:   qsTr("Meldungen")
-                    active:  root.aktiveAnsicht === "meldungen"
-                    tooltip: qsTr("Zuletzt angezeigte Meldungen dieser Session")
-                    onClicked: root.aktiveAnsicht = "meldungen"
-                }
-                SidebarButton {
-                    theme:   appTheme
-                    icon:    "⚙"
-                    label:   qsTr("Einstellungen")
-                    active:  root.aktiveAnsicht === "einstellungen"
-                    tooltip: qsTr("Theme, Darstellung und App-Einstellungen")
-                    onClicked: root.aktiveAnsicht = "einstellungen"
-                }
-
-                Item { Layout.fillHeight: true }
-
-                // ── Theme-Picker ──────────────────────────────────
-                Rectangle { height: 1; color: appTheme.border; Layout.fillWidth: true }
-                Item { height: 4 }
-                Text {
-                    text:        qsTr("Darstellung")
-                    font.pixelSize: 9
-                    color:       appTheme.textMuted
-                    leftPadding: 4
-                }
-                Item { height: 3 }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    Repeater {
-                        model: ["dunkel", "hell", "blueprint"]
-                        delegate: Rectangle {
-                            Layout.fillWidth: true
-                            height:       22
-                            radius:       3
-                            color:        AppTheme.activeName === modelData ? appTheme.activeItemAlt : "transparent"
-                            border.color: AppTheme.activeName === modelData ? appTheme.accent : appTheme.border
-                            border.width: 1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text:           root.themes[modelData].name
-                                font.pixelSize: 9
-                                color:          AppTheme.activeName === modelData ? appTheme.accent : appTheme.textMuted
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: AppTheme.setTheme(modelData)
-                            }
-                        }
-                    }
-                }
-                Item { height: 4 }
-
-                // ── Sprach-Picker ─────────────────────────────────
-                // Ausgeblendet bis L20 (GUI-Übersetzungen) umgesetzt ist:
-                // i18n/stroemling_en.ts enthält aktuell 0 echte Übersetzungen
-                // (205 Einträge, alle "unfinished"/leer). "Auto" würde bei
-                // englischem System-Locale denselben leeren EN-Übersetzer
-                // laden und für diese 205 Strings leeren Text statt des
-                // deutschen Quelltexts zeigen – daher der ganze Block
-                // ausgeblendet, nicht nur "EN". root.aktivSprache/
-                // langSettings bleiben unverändert (Settings-Wert "system"
-                // wirkt sich bei fehlendem Übersetzer nicht aus).
-                // konzept/projekt/08_roadmap.md L20
-
-                Rectangle { height: 1; color: appTheme.border; Layout.fillWidth: true }
-
-                Item {
-                    height:             48
-                    Layout.fillWidth:   true
-                    visible:            root.aktivProjektId >= 0
-
-                    Column {
-                        anchors {
-                            left:           parent.left
-                            leftMargin:     8
-                            verticalCenter: parent.verticalCenter
-                        }
-                        spacing: 2
-                        Text {
-                            text:           qsTr("Aktives Projekt")
-                            font.pixelSize: 10
-                            color:          appTheme.borderLight
-                        }
-                        Text {
-                            text:           root.aktivProjektName
-                            font.pixelSize: 12
-                            font.weight:    Font.Medium
-                            color:          appTheme.accent
-                            width:          180
-                            elide:          Text.ElideRight
-                        }
-                    }
-                }
+            onAnsichtGewaehlt: function(ansicht) { root.aktiveAnsicht = ansicht }
+            onPdfExportAngefordert: pdfExportDialog.open()
+            onThemeGewaehlt: function(name) { AppTheme.setTheme(name) }
+            onSymbolEditorAngefordert: {
+                root.symbolEditorVorher    = root.aktiveAnsicht
+                root.symbolEditorId        = ""
+                root.symbolEditorVorlageId = ""
+                root.aktiveAnsicht         = "symbol_editor"
             }
         }
+
 
         // Drag-Handle Sidebar ↔ Hauptbereich
         Rectangle {

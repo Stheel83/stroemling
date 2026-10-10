@@ -95,6 +95,8 @@ qt_add_qml_module(stroemling_app
 
         qml/components/SidebarButton.qml
         qml/components/BauteilEditorRahmen.qml
+        qml/components/AppSidebar.qml
+        qml/components/AppTitelleiste.qml
         qml/components/DebugLabel.qml
         qml/components/NavTextField.qml
         qml/components/InputField.qml

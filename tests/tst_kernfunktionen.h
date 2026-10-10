@@ -319,6 +319,53 @@ private slots:
                 }
     }
 
+    // Synthetisches Projekt für den PDF-Vergleich vor/nach Umbauten: deckt Symbol-Sonderfälle ab, die
+    // ein reales Projekt evtl. nicht enthält (klemme_anschluss in allen Rotationen/BMK-Sichtbarkeiten,
+    // Gegenstellen-Zeile, querverweis, potenzial, aderdefinition). Nur mit STROEMLING_PDF_SYNTH=<Ausgabeordner>.
+    void pdf_synthetik()
+    {
+        const QString aus = qEnvironmentVariable("STROEMLING_PDF_SYNTH");
+        if (aus.isEmpty()) QSKIP("STROEMLING_PDF_SYNTH nicht gesetzt");
+        QDir().mkpath(aus);
+        const int kl = ins("INSERT INTO klemmenleiste (projekt_id, bezeichnung) VALUES (1,'X1')");
+        const int k1 = ins(QString("INSERT INTO klemme (klemmenleiste_id, nummer, sortierung) VALUES (%1,'1',1)").arg(kl));
+        const int sid = neueSeite("1");
+        QVariantList els;
+        const int rots[4] = {0, 90, 180, 270};
+        for (int i = 0; i < 4; ++i) {
+            QVariantMap ka = symbol("klemme_anschluss", 20 + i * 40, 20,
+                {{"klemmeId", k1}, {"anschlussBezeichnung", QString("1.%1").arg(i + 1)},
+                 {"bmk", QString("=A+B-X1:%1").arg(i + 1)}, {"rotation", rots[i]},
+                 {"bmkOffsetX", i * 0.5}, {"bmkOffsetY", i * 0.25}});
+            ka["rotation"] = rots[i];
+            els << ka;
+        }
+        // BMK-Sichtbarkeits-Varianten (Anlage/Ort/Gerät einzeln aus)
+        els << symbol("klemme_anschluss", 20, 70, {{"klemmeId", k1}, {"anschlussBezeichnung", "PE"},
+                      {"bmk", "=A+B-X1:PE"}, {"anlageAnzeigen", false}, {"ortAnzeigen", true}, {"geraetAnzeigen", false}});
+        els << symbol("klemme_anschluss", 60, 70, {{"klemmeId", k1}, {"anschlussBezeichnung", "2.1"},
+                      {"bmk", "-X1:2"}, {"bmkSichtbar", false}});
+        for (int i = 0; i < 4; ++i) {
+            QVariantMap qv = symbol("querverweis", 20 + i * 40, 110, {{"signalname", QString("SIG%1").arg(i)}});
+            qv["rotation"] = rots[i];
+            els << qv;
+            QVariantMap pot = symbol("potenzial", 20 + i * 40, 150,
+                {{"bmk", QString("-P%1").arg(i)}, {"textReihenfolge", QVariantList{"freitext1", "freitext2"}},
+                 {"freitext1", "Text A"}, {"freitext2", "Text B"}, {"schriftgroesse", 2.5}});
+            pot["rotation"] = rots[i];
+            els << pot;
+            QVariantMap ad = symbol("aderdefinition", 20 + i * 40, 190,
+                {{"bezeichnung", QString("W%1").arg(i)}, {"aderfarbe", "rot"}, {"aderfarbe2", i % 2 ? "weiss" : ""},
+                 {"querschnitt_mm2", 1.5}, {"laenge_m", 2.5}});
+            ad["rotation"] = rots[i];
+            els << ad;
+        }
+        QVERIFY(m_db->grafikSpeichern(sid, els));
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_seite.pdf", true, false, true));
+        QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_voll.pdf", false, true, true));
+    }
+
     // ════════════════════════════════════════════════════════════
     // klemmlistenauszug
     // ════════════════════════════════════════════════════════════

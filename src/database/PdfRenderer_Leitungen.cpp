@@ -402,18 +402,62 @@ static QString pdfNaechsterStabilerPunkt(int elIdx, int vonIdx, const QString &p
     return {};
 }
 
-QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
-                                                        const QSqlDatabase &db,
-                                                        QVector<PdfKabelAderLabel> *aderLabelsOut,
-                                                        QHash<int, bool> *winkelUmkehrenOut)
-{
-    QVector<PdfLeitungsSegment> segs;
+// ── pdfLeitungenSammeln(): Phasen ───────────────────────────────────────────
+// REFACTOR-CPP-05 (Okt 2026): die frühere ~700-Zeilen-Funktion ist in benannte
+// Phasen zerlegt (Logik 1:1 unverändert, abgesichert per Referenz-PDF-Vergleich):
+//   1. ladeAderdefinitionspunkte / ladeRohSegmente   (DB → Rohdaten)
+//   2. baueSymbolGraph + kabellinienAderfarben       (Kabellinien-Fallback, Kreuzungslabel)
+//   3. direktFarben / wurzelnJeSegment / berechneEndfarben (ADP-Farbe, Winkel-/Querverweis-Gruppen)
+//   4. ladeTreffpunktKandidaten / ladeWinkelListe / propagiereBaenderung (Treffpunkt-Bänderung)
+//   5. pdfLeitungenSammeln: setzt die PdfLeitungsSegment zusammen
+namespace {
 
+struct Adp { double cx, cy; QString farbe; QString farbe2; };
+struct RawSeg { double x1, y1, x2, y2; int verbId; QString signaltyp; QString potenzial; };
+struct TpKandidat { int s1Idx, s2Idx, zielIdx; QPointF s1Welt; };
+struct PdfWinkelInfo {
+    int id; double x1, y1, x2, y2, rot; bool spX, spY;
+    int segAmP0 = -1, segAmP2 = -1;
+};
+
+// Symbol-Elemente der Seite + geometrisch gematchte Segment-Endpunkte (Stabiler-Punkt-Suche)
+struct SymbolGraph {
+    QVector<PdfSymElement> els, geraetekaesten;
+    QVector<int>     segElA, segElB;
+    QVector<QString> segPinA, segPinB;
+    QHash<int, QVector<QPair<int, QString>>> adj;   // elIdx → [(nachbarElIdx, pinNameDortDrüben)]
+};
+
+// Ergebnis der Treffpunkt-Bänderungs-Propagation (je raw[]-Segment)
+struct BandErgebnis {
+    QVector<bool>   segGebaendert, segZweifarbig, segUmkehrV, segFlipV, segMehrfach;
+    QVector<QColor> segFarbeAV, segFarbeBV, segFarbeA2V, segFarbeB2V;
+    QVector<double> segBreiteV;
+    QVector<int>    segArmAnzahlV;
+    QHash<int, bool> winkelUmkehren;   // key: winkelListe-Index
+};
+
+inline bool nahPunkt(double px, double py, const QPointF &w)
+{
+    return std::hypot(px - w.x(), py - w.y()) < 2.0;   // Canvas-Einheiten (0.5 mm)
+}
+
+// Erstes raw[]-Segment, dessen Endpunkt auf w liegt; -1 wenn keines.
+int segAnPunkt(const QVector<RawSeg> &raw, const QPointF &w)
+{
+    const int n = raw.size();
+    for (int i = 0; i < n; i++)
+        if (nahPunkt(raw[i].x1, raw[i].y1, w) || nahPunkt(raw[i].x2, raw[i].y2, w))
+            return i;
+    return -1;
+}
+
+QVector<Adp> ladeAderdefinitionspunkte(int seiteId, const QSqlDatabase &db)
+{
     // Aderdefinitionspunkte dieser Seite: cx,cy,aderfarbe. Analog aderdefMap
     // in Database_Klemmen.cpp (klemmlistenauszug) – Aderfarbe hat Vorrang vor
     // der Signaltyp-Farbe, s.u. (gleiche Priorität wie CanvasRenderHandler.qml
     // _segmentFarbeUndBreite()).
-    struct Adp { double cx, cy; QString farbe; QString farbe2; };
     QVector<Adp> adps;
     {
         QSqlQuery aq(db);
@@ -434,12 +478,15 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
             }
         }
     }
+    return adps;
+}
 
+QVector<RawSeg> ladeRohSegmente(int seiteId, const QSqlDatabase &db)
+{
     // Rohe Leitungssegmente (noch ohne Farbe) – Farbauflösung erfolgt erst
     // nach der Winkel-/Querverweis-Propagation weiter unten. `potenzial`
     // (= net.netKey im Live-Canvas, s. verbindungenSynchronisieren()) wird
     // für den KABEL-ADERFARBE-01-Fallback unten mitgeführt.
-    struct RawSeg { double x1, y1, x2, y2; int verbId; QString signaltyp; QString potenzial; };
     QVector<RawSeg> raw;
     {
         QSqlQuery q(db);
@@ -450,7 +497,7 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
             WHERE vs.seite_id = :sid
         )");
         q.bindValue(":sid", seiteId);
-        if (!q.exec()) return segs;
+        if (!q.exec()) return {};
         while (q.next()) {
             QJsonDocument doc = QJsonDocument::fromJson(q.value(0).toString().toUtf8());
             if (!doc.isArray() || doc.array().size() < 2) continue;
@@ -460,256 +507,272 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
                          q.value(1).toInt(), q.value(2).toString(), q.value(3).toString() });
         }
     }
+    return raw;
+}
+
+SymbolGraph baueSymbolGraph(int seiteId, const QSqlDatabase &db, const QVector<RawSeg> &raw)
+{
     const int n = raw.size();
-    if (n == 0) return segs;
-
-    // KABEL-ADERFARBE-01 (PDF-Parität, Aug 2026): Fallback-Aderfarbe aus der
-    // Kabellinien-Aderzuordnung (grafik_element.extra_daten.{adern,
-    // aderZuordnung} der Kabellinie selbst) für Segmente ohne eigenen
-    // Aderdefinitionspunkt — dieselbe Datenquelle wie im Canvas
-    // (CanvasRenderHandler.qml::_sammleKabelAderFarben()), NICHT die
-    // kabel_ader-DB-Tabelle (bleibt beim normalen "Kabellinie zeichnen +
-    // Adern eintragen"-Workflow leer, s. Konzeptdatei 05_leitungen_kabel.md
-    // §2.4 für die Root-Cause-Historie).
-    QVector<QColor> kabelSegFarbe(n), kabelSegFarbe2(n);
-    {
-        // Alle Symbol-Elemente der Seite laden (für die Stabiler-Punkt-Suche).
-        QVector<PdfSymElement> els, geraetekaesten;
-        QSqlQuery eq(db);
-        eq.prepare(R"(
-            SELECT symbol_id, x1, y1, x2, y2, rotation, spiegel_x, spiegel_y, extra_daten
-            FROM grafik_element WHERE seite_id = :sid AND typ = 'symbol'
-        )");
-        eq.bindValue(":sid", seiteId);
-        if (eq.exec()) {
-            while (eq.next()) {
-                PdfSymElement e;
-                e.symbolId = eq.value(0).toString();
-                e.x1 = eq.value(1).toDouble(); e.y1 = eq.value(2).toDouble();
-                e.x2 = eq.value(3).toDouble(); e.y2 = eq.value(4).toDouble();
-                e.rotation = eq.value(5).toDouble();
-                e.spiegelX = eq.value(6).toBool(); e.spiegelY = eq.value(7).toBool();
-                e.extraDaten = QJsonDocument::fromJson(eq.value(8).toString().toUtf8()).object();
-                els.append(e);
-            }
+    // Alle Symbol-Elemente der Seite laden (für die Stabiler-Punkt-Suche).
+    QVector<PdfSymElement> els, geraetekaesten;
+    QSqlQuery eq(db);
+    eq.prepare(R"(
+        SELECT symbol_id, x1, y1, x2, y2, rotation, spiegel_x, spiegel_y, extra_daten
+        FROM grafik_element WHERE seite_id = :sid AND typ = 'symbol'
+    )");
+    eq.bindValue(":sid", seiteId);
+    if (eq.exec()) {
+        while (eq.next()) {
+            PdfSymElement e;
+            e.symbolId = eq.value(0).toString();
+            e.x1 = eq.value(1).toDouble(); e.y1 = eq.value(2).toDouble();
+            e.x2 = eq.value(3).toDouble(); e.y2 = eq.value(4).toDouble();
+            e.rotation = eq.value(5).toDouble();
+            e.spiegelX = eq.value(6).toBool(); e.spiegelY = eq.value(7).toBool();
+            e.extraDaten = QJsonDocument::fromJson(eq.value(8).toString().toUtf8()).object();
+            els.append(e);
         }
-        QSqlQuery gq(db);
-        gq.prepare(R"(
-            SELECT x1, y1, x2, y2, extra_daten FROM grafik_element
-            WHERE seite_id = :sid AND typ = 'geraetekasten'
-        )");
-        gq.bindValue(":sid", seiteId);
-        if (gq.exec()) {
-            while (gq.next()) {
-                PdfSymElement gk;
-                gk.x1 = gq.value(0).toDouble(); gk.y1 = gq.value(1).toDouble();
-                gk.x2 = gq.value(2).toDouble(); gk.y2 = gq.value(3).toDouble();
-                gk.extraDaten = QJsonDocument::fromJson(gq.value(4).toString().toUtf8()).object();
-                geraetekaesten.append(gk);
-            }
-        }
-
-        // Pin-Definitionen (normiert 0..1) je vorkommendem Symbol-Typ bulk laden.
-        QSet<QString> symbolIds;
-        for (const PdfSymElement &e : els) symbolIds.insert(e.symbolId);
-        QHash<QString, QVector<QPair<QString, QPointF>>> pinDefs;
-        if (!symbolIds.isEmpty()) {
-            QStringList idList; for (const QString &s : symbolIds) idList << QStringLiteral("'%1'").arg(s);
-            QSqlQuery pq(db);
-            pq.exec(QStringLiteral("SELECT symbol_id, name, x, y FROM symbol_pin WHERE symbol_id IN (%1)")
-                    .arg(idList.join(',')));
-            while (pq.next())
-                pinDefs[pq.value(0).toString()].append({ pq.value(1).toString(),
-                    QPointF(pq.value(2).toDouble(), pq.value(3).toDouble()) });
-        }
-
-        // Weltposition jedes Pins jedes Elements berechnen.
-        struct ElPin { int elIdx; QString pinName; QPointF pos; };
-        QVector<ElPin> elPins;
-        for (int ei = 0; ei < els.size(); ei++) {
-            const PdfSymElement &e = els[ei];
-            for (const auto &pd : pinDefs.value(e.symbolId)) {
-                QPointF w = pdfPinWeltPos(e.x1, e.y1, e.x2, e.y2, e.rotation, e.spiegelX, e.spiegelY,
-                                          pd.second.x(), pd.second.y());
-                elPins.append({ ei, pd.first, w });
-            }
-        }
-
-        // Jeden raw[]-Segment-Endpunkt auf das nächste Pin (elIdx, pinName) matchen.
-        const double PIN_TOL2 = 2.0;
-        auto matchPin = [&](double px, double py) -> QPair<int, QString> {
-            for (const ElPin &ep : elPins)
-                if (std::hypot(px - ep.pos.x(), py - ep.pos.y()) < PIN_TOL2)
-                    return { ep.elIdx, ep.pinName };
-            return { -1, QString() };
-        };
-        QVector<int> segElA(n), segElB(n);
-        QVector<QString> segPinA(n), segPinB(n);
-        for (int i = 0; i < n; i++) {
-            auto a = matchPin(raw[i].x1, raw[i].y1);
-            auto b = matchPin(raw[i].x2, raw[i].y2);
-            segElA[i] = a.first;  segPinA[i] = a.second;
-            segElB[i] = b.first;  segPinB[i] = b.second;
-        }
-
-        // Adjazenz für den Stabiler-Punkt-Walk aufbauen (elIdx → [(nachbarElIdx, pinNameDortDrüben)]).
-        QHash<int, QVector<QPair<int, QString>>> adj;
-        for (int i = 0; i < n; i++) {
-            if (segElA[i] >= 0 && segElB[i] >= 0) {
-                adj[segElA[i]].append({ segElB[i], segPinB[i] });
-                adj[segElB[i]].append({ segElA[i], segPinA[i] });
-            }
-        }
-
-        // Lokaler Ader-Schlüssel je Segment, nur bei Bedarf berechnet (Kreuzungen
-        // sind i.d.R. eine kleine Teilmenge aller Segmente der Seite).
-        QHash<int, QString> aderKeyCache;
-        auto aderKeyFuerSeg = [&](int segIdx) -> QString {
-            auto it = aderKeyCache.find(segIdx);
-            if (it != aderKeyCache.end()) return it.value();
-            QString seiteA = pdfNaechsterStabilerPunkt(segElA[segIdx], segElB[segIdx], segPinA[segIdx],
-                                                        adj, els, geraetekaesten, 20);
-            QString seiteB = pdfNaechsterStabilerPunkt(segElB[segIdx], segElA[segIdx], segPinB[segIdx],
-                                                        adj, els, geraetekaesten, 20);
-            QStringList teile;
-            if (!seiteA.isEmpty()) teile << seiteA;
-            if (!seiteB.isEmpty()) teile << seiteB;
-            teile.sort();
-            QString key = teile.join(QStringLiteral("|"));
-            aderKeyCache[segIdx] = key;
-            return key;
-        };
-
-        // Kabellinien der Seite laden und geometrisch mit raw[] schneiden —
-        // 1:1-Port von kabelSchnittNetzeBerechnen()/maleKabelSchnitte() in
-        // CanvasGeometrie.qml/CanvasRenderHandler.qml.
-        //
-        // PDF-ADERNUMMER-POOL-01 (Aug 2026): fehlte bisher komplett die
-        // mittlere Prioritätsstufe des Canvas-Pendants
-        // (CanvasNetzberechnung.qml::_aderNrFuerKreuzung(): explizite
-        // aderZuordnung > gepoolte kabel_ader-Tabelle > lokaler si+1-
-        // Fallback) — hier gab es nur "explizit" und den lokalen
-        // Fallback, jede Kabellinie zählte deshalb unabhängig wieder bei 1
-        // los, exakt der vor PROPAGATION-04/07 im Canvas behobene Bug, nur
-        // nie in den PDF-Export übernommen. gepooltJeKabel cacht die
-        // bereits über kabelAderProjektweitSynchronisieren() persistierten
-        // aderKey→Adernnummer-Zuordnungen je kabelId (eine Seite kann
-        // mehrere Kabel enthalten, daher pro kabelId einmal geladen).
-        QHash<int, QHash<QString, int>> gepooltJeKabel;
-        auto gepoolteAderNrn = [&](int kabelId) -> const QHash<QString, int> & {
-            auto it = gepooltJeKabel.find(kabelId);
-            if (it != gepooltJeKabel.end()) return it.value();
-            QHash<QString, int> map;
-            if (kabelId > 0) {
-                QSqlQuery gq(db);
-                gq.prepare(R"(
-                    SELECT ader_key, ader_nr FROM kabel_ader
-                    WHERE kabel_id = :kid AND ader_key IS NOT NULL AND ader_key != ''
-                )");
-                gq.bindValue(":kid", kabelId);
-                if (gq.exec()) {
-                    while (gq.next()) map.insert(gq.value(0).toString(), gq.value(1).toInt());
-                }
-            }
-            return gepooltJeKabel.insert(kabelId, map).value();
-        };
-
-        QSqlQuery klq(db);
-        klq.prepare(R"(
-            SELECT x1, y1, x2, y2, extra_daten, kabel_id, strich_farbe FROM grafik_element
-            WHERE seite_id = :sid AND typ = 'kabellinie'
-        )");
-        klq.bindValue(":sid", seiteId);
-        if (klq.exec()) {
-            while (klq.next()) {
-                double kx1 = klq.value(0).toDouble(), ky1 = klq.value(1).toDouble();
-                double kx2 = klq.value(2).toDouble(), ky2 = klq.value(3).toDouble();
-                double kDxW = kx2 - kx1, kDyW = ky2 - ky1;
-                double kLenW = std::hypot(kDxW, kDyW);
-                if (kLenW < 0.5) continue;
-                QJsonObject ed = QJsonDocument::fromJson(klq.value(4).toString().toUtf8()).object();
-                QJsonArray adern = ed.value(QStringLiteral("adern")).toArray();
-                QString klStrichFarbeStr = klq.value(6).toString();
-                QColor  klStrichFarbe = (!klStrichFarbeStr.isEmpty() && QColor(klStrichFarbeStr).isValid())
-                                       ? QColor(klStrichFarbeStr) : QColor(0xe0, 0x70, 0x00);
-                double klNx = -kDyW / kLenW, klNy = kDxW / kLenW;
-                if (klNy > 0.0) { klNx = -klNx; klNy = -klNy; }
-                if (adern.isEmpty()) continue;
-                QJsonObject aderZuordnung = ed.value(QStringLiteral("aderZuordnung")).toObject();
-                const QHash<QString, int> &gepoolt = gepoolteAderNrn(klq.value(5).toInt());
-
-                struct Schnitt { double t; int segIdx; };
-                QVector<Schnitt> schnitte;
-                QSet<QString> gesehen;
-                for (int i = 0; i < n; i++) {
-                    const QString &pot = raw[i].potenzial;
-                    if (!pot.isEmpty() && gesehen.contains(pot)) continue;
-                    double dax = raw[i].x2 - raw[i].x1, day = raw[i].y2 - raw[i].y1;
-                    double D = kDxW * day - kDyW * dax;
-                    if (std::abs(D) < 0.001) continue;
-                    double t = ((raw[i].x1 - kx1) * day - (raw[i].y1 - ky1) * dax) / D;
-                    double s = ((raw[i].x1 - kx1) * kDyW - (raw[i].y1 - ky1) * kDxW) / D;
-                    if (t >= -0.005 && t <= 1.005 && s >= -0.005 && s <= 1.005) {
-                        schnitte.append({ std::clamp(t, 0.0, 1.0), i });
-                        if (!pot.isEmpty()) gesehen.insert(pot);
-                    }
-                }
-                std::sort(schnitte.begin(), schnitte.end(),
-                          [](const Schnitt &a, const Schnitt &b) { return a.t < b.t; });
-
-                for (int si = 0; si < schnitte.size(); si++) {
-                    int segIdx = schnitte[si].segIdx;
-                    int aderNr = si + 1;
-                    QString aderKey = aderKeyFuerSeg(segIdx);
-                    bool gefunden = false;
-                    int  z = 0;
-                    if (!aderKey.isEmpty() && aderZuordnung.contains(aderKey)) {
-                        z = aderZuordnung.value(aderKey).toInt(-1); gefunden = true;
-                    } else if (!raw[segIdx].potenzial.isEmpty() && aderZuordnung.contains(raw[segIdx].potenzial)) {
-                        z = aderZuordnung.value(raw[segIdx].potenzial).toInt(-1); gefunden = true;
-                    }
-                    if (gefunden && z == 0) continue; // explizit "keine Ader" - weder Farbe noch Label
-                    if (gefunden) {
-                        if (z > 0) aderNr = z;
-                    } else {
-                        auto git = aderKey.isEmpty() ? gepoolt.constEnd() : gepoolt.constFind(aderKey);
-                        if (git != gepoolt.constEnd()) aderNr = git.value();
-                    }
-                    QString farbe, farbe2;
-                    for (int ai = 0; ai < adern.size(); ai++) {
-                        QJsonObject ao = adern.at(ai).toObject();
-                        int nr = ao.contains(QStringLiteral("aderNr")) ? ao.value(QStringLiteral("aderNr")).toInt()
-                                                                        : (ai + 1);
-                        if (nr == aderNr) {
-                            farbe  = ao.value(QStringLiteral("farbe")).toString();
-                            farbe2 = ao.value(QStringLiteral("farbe2")).toString();
-                            break;
-                        }
-                    }
-                    // PDF-ADERBESCHRIFTUNG-POOL-01: Kreuzungslabel ("1  BK") mit
-                    // derselben Adernummer wie die Segmentfarbe unten - vorher
-                    // rechnete pdfKabelAderBeschriftungRendern() das Label separat
-                    // und einfacher (nur sci+1 pro Linie, nie gepoolt) aus, was zum
-                    // gemeldeten Auseinanderlaufen von Farbe und Beschriftung führte.
-                    if (aderLabelsOut) {
-                        double t = schnitte[si].t;
-                        QString label = QString::number(aderNr);
-                        if (!farbe.isEmpty()) label += QStringLiteral("  ") + farbe;
-                        aderLabelsOut->append({ kx1 + t * kDxW, ky1 + t * kDyW,
-                                                 klNx, klNy, label, klStrichFarbe });
-                    }
-                    if (farbe.isEmpty()) continue;
-                    kabelSegFarbe[segIdx] = pdfAderFarbeZuCanvas(farbe);
-                    if (!farbe2.isEmpty())
-                        kabelSegFarbe2[segIdx] = pdfAderFarbeZuCanvas(farbe2);
-                }
-            }
+    }
+    QSqlQuery gq(db);
+    gq.prepare(R"(
+        SELECT x1, y1, x2, y2, extra_daten FROM grafik_element
+        WHERE seite_id = :sid AND typ = 'geraetekasten'
+    )");
+    gq.bindValue(":sid", seiteId);
+    if (gq.exec()) {
+        while (gq.next()) {
+            PdfSymElement gk;
+            gk.x1 = gq.value(0).toDouble(); gk.y1 = gq.value(1).toDouble();
+            gk.x2 = gq.value(2).toDouble(); gk.y2 = gq.value(3).toDouble();
+            gk.extraDaten = QJsonDocument::fromJson(gq.value(4).toString().toUtf8()).object();
+            geraetekaesten.append(gk);
         }
     }
 
+    // Pin-Definitionen (normiert 0..1) je vorkommendem Symbol-Typ bulk laden.
+    QSet<QString> symbolIds;
+    for (const PdfSymElement &e : els) symbolIds.insert(e.symbolId);
+    QHash<QString, QVector<QPair<QString, QPointF>>> pinDefs;
+    if (!symbolIds.isEmpty()) {
+        QStringList idList; for (const QString &s : symbolIds) idList << QStringLiteral("'%1'").arg(s);
+        QSqlQuery pq(db);
+        pq.exec(QStringLiteral("SELECT symbol_id, name, x, y FROM symbol_pin WHERE symbol_id IN (%1)")
+                .arg(idList.join(',')));
+        while (pq.next())
+            pinDefs[pq.value(0).toString()].append({ pq.value(1).toString(),
+                QPointF(pq.value(2).toDouble(), pq.value(3).toDouble()) });
+    }
+
+    // Weltposition jedes Pins jedes Elements berechnen.
+    struct ElPin { int elIdx; QString pinName; QPointF pos; };
+    QVector<ElPin> elPins;
+    for (int ei = 0; ei < els.size(); ei++) {
+        const PdfSymElement &e = els[ei];
+        for (const auto &pd : pinDefs.value(e.symbolId)) {
+            QPointF w = pdfPinWeltPos(e.x1, e.y1, e.x2, e.y2, e.rotation, e.spiegelX, e.spiegelY,
+                                      pd.second.x(), pd.second.y());
+            elPins.append({ ei, pd.first, w });
+        }
+    }
+
+    // Jeden raw[]-Segment-Endpunkt auf das nächste Pin (elIdx, pinName) matchen.
+    const double PIN_TOL2 = 2.0;
+    auto matchPin = [&](double px, double py) -> QPair<int, QString> {
+        for (const ElPin &ep : elPins)
+            if (std::hypot(px - ep.pos.x(), py - ep.pos.y()) < PIN_TOL2)
+                return { ep.elIdx, ep.pinName };
+        return { -1, QString() };
+    };
+    QVector<int> segElA(n), segElB(n);
+    QVector<QString> segPinA(n), segPinB(n);
+    for (int i = 0; i < n; i++) {
+        auto a = matchPin(raw[i].x1, raw[i].y1);
+        auto b = matchPin(raw[i].x2, raw[i].y2);
+        segElA[i] = a.first;  segPinA[i] = a.second;
+        segElB[i] = b.first;  segPinB[i] = b.second;
+    }
+
+    // Adjazenz für den Stabiler-Punkt-Walk aufbauen (elIdx → [(nachbarElIdx, pinNameDortDrüben)]).
+    QHash<int, QVector<QPair<int, QString>>> adj;
+    for (int i = 0; i < n; i++) {
+        if (segElA[i] >= 0 && segElB[i] >= 0) {
+            adj[segElA[i]].append({ segElB[i], segPinB[i] });
+            adj[segElB[i]].append({ segElA[i], segPinA[i] });
+        }
+    }
+
+    SymbolGraph g;
+    g.els = els; g.geraetekaesten = geraetekaesten;
+    g.segElA = segElA; g.segElB = segElB; g.segPinA = segPinA; g.segPinB = segPinB;
+    g.adj = adj;
+    return g;
+}
+
+void kabellinienAderfarben(int seiteId, const QSqlDatabase &db, const QVector<RawSeg> &raw,
+                           const SymbolGraph &g,
+                           QVector<QColor> &kabelSegFarbe, QVector<QColor> &kabelSegFarbe2,
+                           QVector<PdfKabelAderLabel> *aderLabelsOut)
+{
+    const int n = raw.size();
+    const QVector<PdfSymElement> &els = g.els, &geraetekaesten = g.geraetekaesten;
+    const QVector<int> &segElA = g.segElA, &segElB = g.segElB;
+    const QVector<QString> &segPinA = g.segPinA, &segPinB = g.segPinB;
+    const auto &adj = g.adj;
+
+    // Lokaler Ader-Schlüssel je Segment, nur bei Bedarf berechnet (Kreuzungen
+    // sind i.d.R. eine kleine Teilmenge aller Segmente der Seite).
+    QHash<int, QString> aderKeyCache;
+    auto aderKeyFuerSeg = [&](int segIdx) -> QString {
+        auto it = aderKeyCache.find(segIdx);
+        if (it != aderKeyCache.end()) return it.value();
+        QString seiteA = pdfNaechsterStabilerPunkt(segElA[segIdx], segElB[segIdx], segPinA[segIdx],
+                                                    adj, els, geraetekaesten, 20);
+        QString seiteB = pdfNaechsterStabilerPunkt(segElB[segIdx], segElA[segIdx], segPinB[segIdx],
+                                                    adj, els, geraetekaesten, 20);
+        QStringList teile;
+        if (!seiteA.isEmpty()) teile << seiteA;
+        if (!seiteB.isEmpty()) teile << seiteB;
+        teile.sort();
+        QString key = teile.join(QStringLiteral("|"));
+        aderKeyCache[segIdx] = key;
+        return key;
+    };
+
+    // Kabellinien der Seite laden und geometrisch mit raw[] schneiden —
+    // 1:1-Port von kabelSchnittNetzeBerechnen()/maleKabelSchnitte() in
+    // CanvasGeometrie.qml/CanvasRenderHandler.qml.
+    //
+    // PDF-ADERNUMMER-POOL-01 (Aug 2026): fehlte bisher komplett die
+    // mittlere Prioritätsstufe des Canvas-Pendants
+    // (CanvasNetzberechnung.qml::_aderNrFuerKreuzung(): explizite
+    // aderZuordnung > gepoolte kabel_ader-Tabelle > lokaler si+1-
+    // Fallback) — hier gab es nur "explizit" und den lokalen
+    // Fallback, jede Kabellinie zählte deshalb unabhängig wieder bei 1
+    // los, exakt der vor PROPAGATION-04/07 im Canvas behobene Bug, nur
+    // nie in den PDF-Export übernommen. gepooltJeKabel cacht die
+    // bereits über kabelAderProjektweitSynchronisieren() persistierten
+    // aderKey→Adernnummer-Zuordnungen je kabelId (eine Seite kann
+    // mehrere Kabel enthalten, daher pro kabelId einmal geladen).
+    QHash<int, QHash<QString, int>> gepooltJeKabel;
+    auto gepoolteAderNrn = [&](int kabelId) -> const QHash<QString, int> & {
+        auto it = gepooltJeKabel.find(kabelId);
+        if (it != gepooltJeKabel.end()) return it.value();
+        QHash<QString, int> map;
+        if (kabelId > 0) {
+            QSqlQuery gq(db);
+            gq.prepare(R"(
+                SELECT ader_key, ader_nr FROM kabel_ader
+                WHERE kabel_id = :kid AND ader_key IS NOT NULL AND ader_key != ''
+            )");
+            gq.bindValue(":kid", kabelId);
+            if (gq.exec()) {
+                while (gq.next()) map.insert(gq.value(0).toString(), gq.value(1).toInt());
+            }
+        }
+        return gepooltJeKabel.insert(kabelId, map).value();
+    };
+
+    QSqlQuery klq(db);
+    klq.prepare(R"(
+        SELECT x1, y1, x2, y2, extra_daten, kabel_id, strich_farbe FROM grafik_element
+        WHERE seite_id = :sid AND typ = 'kabellinie'
+    )");
+    klq.bindValue(":sid", seiteId);
+    if (klq.exec()) {
+        while (klq.next()) {
+            double kx1 = klq.value(0).toDouble(), ky1 = klq.value(1).toDouble();
+            double kx2 = klq.value(2).toDouble(), ky2 = klq.value(3).toDouble();
+            double kDxW = kx2 - kx1, kDyW = ky2 - ky1;
+            double kLenW = std::hypot(kDxW, kDyW);
+            if (kLenW < 0.5) continue;
+            QJsonObject ed = QJsonDocument::fromJson(klq.value(4).toString().toUtf8()).object();
+            QJsonArray adern = ed.value(QStringLiteral("adern")).toArray();
+            QString klStrichFarbeStr = klq.value(6).toString();
+            QColor  klStrichFarbe = (!klStrichFarbeStr.isEmpty() && QColor(klStrichFarbeStr).isValid())
+                                   ? QColor(klStrichFarbeStr) : QColor(0xe0, 0x70, 0x00);
+            double klNx = -kDyW / kLenW, klNy = kDxW / kLenW;
+            if (klNy > 0.0) { klNx = -klNx; klNy = -klNy; }
+            if (adern.isEmpty()) continue;
+            QJsonObject aderZuordnung = ed.value(QStringLiteral("aderZuordnung")).toObject();
+            const QHash<QString, int> &gepoolt = gepoolteAderNrn(klq.value(5).toInt());
+
+            struct Schnitt { double t; int segIdx; };
+            QVector<Schnitt> schnitte;
+            QSet<QString> gesehen;
+            for (int i = 0; i < n; i++) {
+                const QString &pot = raw[i].potenzial;
+                if (!pot.isEmpty() && gesehen.contains(pot)) continue;
+                double dax = raw[i].x2 - raw[i].x1, day = raw[i].y2 - raw[i].y1;
+                double D = kDxW * day - kDyW * dax;
+                if (std::abs(D) < 0.001) continue;
+                double t = ((raw[i].x1 - kx1) * day - (raw[i].y1 - ky1) * dax) / D;
+                double s = ((raw[i].x1 - kx1) * kDyW - (raw[i].y1 - ky1) * kDxW) / D;
+                if (t >= -0.005 && t <= 1.005 && s >= -0.005 && s <= 1.005) {
+                    schnitte.append({ std::clamp(t, 0.0, 1.0), i });
+                    if (!pot.isEmpty()) gesehen.insert(pot);
+                }
+            }
+            std::sort(schnitte.begin(), schnitte.end(),
+                      [](const Schnitt &a, const Schnitt &b) { return a.t < b.t; });
+
+            for (int si = 0; si < schnitte.size(); si++) {
+                int segIdx = schnitte[si].segIdx;
+                int aderNr = si + 1;
+                QString aderKey = aderKeyFuerSeg(segIdx);
+                bool gefunden = false;
+                int  z = 0;
+                if (!aderKey.isEmpty() && aderZuordnung.contains(aderKey)) {
+                    z = aderZuordnung.value(aderKey).toInt(-1); gefunden = true;
+                } else if (!raw[segIdx].potenzial.isEmpty() && aderZuordnung.contains(raw[segIdx].potenzial)) {
+                    z = aderZuordnung.value(raw[segIdx].potenzial).toInt(-1); gefunden = true;
+                }
+                if (gefunden && z == 0) continue; // explizit "keine Ader" - weder Farbe noch Label
+                if (gefunden) {
+                    if (z > 0) aderNr = z;
+                } else {
+                    auto git = aderKey.isEmpty() ? gepoolt.constEnd() : gepoolt.constFind(aderKey);
+                    if (git != gepoolt.constEnd()) aderNr = git.value();
+                }
+                QString farbe, farbe2;
+                for (int ai = 0; ai < adern.size(); ai++) {
+                    QJsonObject ao = adern.at(ai).toObject();
+                    int nr = ao.contains(QStringLiteral("aderNr")) ? ao.value(QStringLiteral("aderNr")).toInt()
+                                                                    : (ai + 1);
+                    if (nr == aderNr) {
+                        farbe  = ao.value(QStringLiteral("farbe")).toString();
+                        farbe2 = ao.value(QStringLiteral("farbe2")).toString();
+                        break;
+                    }
+                }
+                // PDF-ADERBESCHRIFTUNG-POOL-01: Kreuzungslabel ("1  BK") mit
+                // derselben Adernummer wie die Segmentfarbe unten - vorher
+                // rechnete pdfKabelAderBeschriftungRendern() das Label separat
+                // und einfacher (nur sci+1 pro Linie, nie gepoolt) aus, was zum
+                // gemeldeten Auseinanderlaufen von Farbe und Beschriftung führte.
+                if (aderLabelsOut) {
+                    double t = schnitte[si].t;
+                    QString label = QString::number(aderNr);
+                    if (!farbe.isEmpty()) label += QStringLiteral("  ") + farbe;
+                    aderLabelsOut->append({ kx1 + t * kDxW, ky1 + t * kDyW,
+                                             klNx, klNy, label, klStrichFarbe });
+                }
+                if (farbe.isEmpty()) continue;
+                kabelSegFarbe[segIdx] = pdfAderFarbeZuCanvas(farbe);
+                if (!farbe2.isEmpty())
+                    kabelSegFarbe2[segIdx] = pdfAderFarbeZuCanvas(farbe2);
+            }
+        }
+    }
+}
+
+void direktFarben(const QVector<RawSeg> &raw, const QVector<Adp> &adps,
+                  QVector<QColor> &direktFarbe, QVector<QColor> &direktFarbe2)
+{
+    const int n = raw.size();
+    direktFarbe  = QVector<QColor>(n);
+    direktFarbe2 = QVector<QColor>(n);
     // Direkte ADP-Farbe je Segment (erster Treffer, wie bisher). farbe2 (falls
     // gesetzt) wird parallel mitgeführt für die Bifarb-Ader-Darstellung.
-    QVector<QColor> direktFarbe(n), direktFarbe2(n);
     for (int i = 0; i < n; i++) {
         if (raw[i].signaltyp == QLatin1String("konflikt")) continue;
         for (const Adp &ad : adps) {
@@ -721,7 +784,11 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
             }
         }
     }
+}
 
+QVector<int> wurzelnJeSegment(int seiteId, const QSqlDatabase &db, const QVector<RawSeg> &raw)
+{
+    const int n = raw.size();
     // Winkel-/Querverweis-transparente Propagation (VERBINDUNGSFARBE-01/03-
     // Port): Segmente, die über einen gemeinsamen winkel-/querverweis-Pin
     // verbunden sind, bilden eine Gruppe und teilen sich die erste in der
@@ -770,6 +837,17 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
         }
     }
 
+    QVector<int> wurzel(n);
+    for (int i = 0; i < n; i++) wurzel[i] = find(i);
+    return wurzel;
+}
+
+void berechneEndfarben(const QVector<RawSeg> &raw, const QVector<int> &wurzel,
+                       const QVector<QColor> &direktFarbe, const QVector<QColor> &direktFarbe2,
+                       const QVector<QColor> &kabelSegFarbe, const QVector<QColor> &kabelSegFarbe2,
+                       QVector<QColor> &endFarbe, QVector<QColor> &endFarbe2)
+{
+    const int n = raw.size();
     // PDF-WINKEL-ADERFARBE-01 (Aug 2026): gruppenFarbe wurde bisher NUR aus
     // direktFarbe (ADP-Treffer) gespeist — ein Segment, das seine Farbe nur
     // über den Kabellinien-Fallback (kabelSegFarbe, normaler "Kabellinie
@@ -783,25 +861,26 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
     // Lücken aus kabelSegFarbe auffüllen.
     QHash<int, QColor> gruppenFarbe, gruppenFarbe2; // Wurzel → erste gefundene Aderfarbe/-farbe2
     for (int i = 0; i < n; i++) {
-        if (direktFarbe[i].isValid() && !gruppenFarbe.contains(find(i)))
-            gruppenFarbe[find(i)] = direktFarbe[i];
-        if (direktFarbe2[i].isValid() && !gruppenFarbe2.contains(find(i)))
-            gruppenFarbe2[find(i)] = direktFarbe2[i];
+        if (direktFarbe[i].isValid() && !gruppenFarbe.contains(wurzel[i]))
+            gruppenFarbe[wurzel[i]] = direktFarbe[i];
+        if (direktFarbe2[i].isValid() && !gruppenFarbe2.contains(wurzel[i]))
+            gruppenFarbe2[wurzel[i]] = direktFarbe2[i];
     }
     for (int i = 0; i < n; i++) {
-        if (kabelSegFarbe[i].isValid() && !gruppenFarbe.contains(find(i)))
-            gruppenFarbe[find(i)] = kabelSegFarbe[i];
-        if (kabelSegFarbe2[i].isValid() && !gruppenFarbe2.contains(find(i)))
-            gruppenFarbe2[find(i)] = kabelSegFarbe2[i];
+        if (kabelSegFarbe[i].isValid() && !gruppenFarbe.contains(wurzel[i]))
+            gruppenFarbe[wurzel[i]] = kabelSegFarbe[i];
+        if (kabelSegFarbe2[i].isValid() && !gruppenFarbe2.contains(wurzel[i]))
+            gruppenFarbe2[wurzel[i]] = kabelSegFarbe2[i];
     }
 
-    QVector<QColor> endFarbe(n), endFarbe2(n);
+    endFarbe  = QVector<QColor>(n);
+    endFarbe2 = QVector<QColor>(n);
     for (int i = 0; i < n; i++) {
         QColor clr = pdfSignaltypFarbe(raw[i].signaltyp);
         QColor clr2;
         if (raw[i].signaltyp != QLatin1String("konflikt")) {
             if (direktFarbe[i].isValid())              clr = direktFarbe[i];
-            else if (gruppenFarbe.contains(find(i)))    clr = gruppenFarbe[find(i)];
+            else if (gruppenFarbe.contains(wurzel[i]))    clr = gruppenFarbe[wurzel[i]];
             else if (kabelSegFarbe[i].isValid()) {
                 // KABEL-ADERFARBE-01: kein Aderdefinitionspunkt getroffen –
                 // Fallback auf die Kabellinien-Aderfarbe dieses Segments.
@@ -810,12 +889,15 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
                     clr2 = kabelSegFarbe2[i];
             }
             if (direktFarbe2[i].isValid())              clr2 = direktFarbe2[i];
-            else if (gruppenFarbe2.contains(find(i)))    clr2 = gruppenFarbe2[find(i)];
+            else if (gruppenFarbe2.contains(wurzel[i]))    clr2 = gruppenFarbe2[wurzel[i]];
         }
         endFarbe[i]  = clr;
         endFarbe2[i] = clr2;
     }
+}
 
+QVector<TpKandidat> ladeTreffpunktKandidaten(int seiteId, const QSqlDatabase &db, const QVector<RawSeg> &raw)
+{
     // Treffpunkt-/Treffpunkt_L-Ziel-Arm-Bänderung (VERBINDUNGSFARBE-03/04-
     // Port, WINKEL-DREHER-01-PDF Sep 2026 erweitert um Mehrfach-Winkel-
     // Propagation, TREFFPUNKT-MEHRFARB-MARKER-01 Sep 2026 erweitert um
@@ -834,14 +916,6 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
     // seinem vorgelagerten) blieb die armAnzahl sonst zu niedrig eingefroren.
     // Ab armAnzahl>=3 "mehrfach"-Modus (einfarbige Linie + Zahl-Label,
     // s. PdfLeitungsSegment::mehrfach) statt 2-Band-Bänderung.
-    auto segAnPunkt = [&](const QPointF &w) -> int {
-        for (int i = 0; i < n; i++)
-            if (nah(raw[i].x1, raw[i].y1, w) || nah(raw[i].x2, raw[i].y2, w))
-                return i;
-        return -1;
-    };
-
-    struct TpKandidat { int s1Idx, s2Idx, zielIdx; QPointF s1Welt; };
     QVector<TpKandidat> kandidaten;
     {
         QSqlQuery tq(db);
@@ -866,23 +940,25 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
                     else if (pin.name == QLatin1String("s2"))   s2W = w;
                     else if (pin.name == QLatin1String("ziel")) zielW = w;
                 }
-                int s1i = segAnPunkt(s1W), s2i = segAnPunkt(s2W), zi = segAnPunkt(zielW);
+                int s1i = segAnPunkt(raw, s1W), s2i = segAnPunkt(raw, s2W), zi = segAnPunkt(raw, zielW);
                 if (s1i < 0 || s2i < 0 || zi < 0) continue;
                 kandidaten.append({ s1i, s2i, zi, s1W });
             }
         }
     }
+    return kandidaten;
+}
 
+void ladeWinkelListe(int seiteId, const QSqlDatabase &db, const QVector<RawSeg> &raw,
+                     QVector<PdfWinkelInfo> &winkelListe,
+                     QHash<int, QVector<QPair<int,int>>> &segAdj,
+                     QHash<int, QVector<int>> &segZuWinkel)
+{
     // WINKEL-DREHER-01-PDF: alle winkel-Elemente der Seite + welches
     // raw[]-Segment an welchem ihrer beiden Pins (lokal (0,0) bzw. (1,1))
     // anliegt — 1:1-Analogie zu net.segmente[].elIdxA/elIdxB +
     // _winkelAdjazenz() in CanvasGeometrie.qml, hier geometrisch statt über
     // einen elIdx-Graphen (PDF-Export hat keinen Live-Netzgraphen).
-    struct PdfWinkelInfo {
-        int id; double x1, y1, x2, y2, rot; bool spX, spY;
-        int segAmP0 = -1, segAmP2 = -1;
-    };
-    QVector<PdfWinkelInfo> winkelListe;
     {
         QSqlQuery wtq(db);
         wtq.prepare(R"(
@@ -900,8 +976,8 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
                 w.spX = wtq.value(6).toBool();   w.spY = wtq.value(7).toBool();
                 QPointF p0 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 0.0, 0.0);
                 QPointF p2 = pdfPinWeltPos(w.x1, w.y1, w.x2, w.y2, w.rot, w.spX, w.spY, 1.0, 1.0);
-                w.segAmP0 = segAnPunkt(p0);
-                w.segAmP2 = segAnPunkt(p2);
+                w.segAmP0 = segAnPunkt(raw, p0);
+                w.segAmP2 = segAnPunkt(raw, p2);
                 winkelListe.append(w);
             }
         }
@@ -910,14 +986,12 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
     // nur für Winkel mit BEIDEN Pins verbunden (für die eigentliche
     // BFS-Weiterverfolgung; ein totes Kettenende hat ohnehin nichts, wohin
     // weitergegangen werden könnte).
-    QHash<int, QVector<QPair<int,int>>> segAdj;
     // Zusätzlich: raw[]-Segmentindex → Liste ALLER berührenden winkel-Indizes,
     // auch wenn der jeweils ANDERE Pin unverbunden ist (totes Kettenende) —
     // WINKEL-DREHER-01-PDF-Nachbesserung (direkter Nachtrag, 1:1-Port der
     // entsprechenden QML-Nachbesserung): ohne das bliebe die Umkehr-
     // Entscheidung für einen Winkel am Ende einer Kette unberechnet
     // (fällt sonst stillschweigend auf "kein Tausch" zurück).
-    QHash<int, QVector<int>> segZuWinkel;
     for (int wi = 0; wi < winkelListe.size(); wi++) {
         const PdfWinkelInfo &w = winkelListe[wi];
         if (w.segAmP0 >= 0 && w.segAmP2 >= 0) {
@@ -927,7 +1001,16 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
         if (w.segAmP0 >= 0) segZuWinkel[w.segAmP0].append(wi);
         if (w.segAmP2 >= 0) segZuWinkel[w.segAmP2].append(wi);
     }
+}
 
+BandErgebnis propagiereBaenderung(const QVector<RawSeg> &raw,
+                                  const QVector<QColor> &endFarbe, const QVector<QColor> &endFarbe2,
+                                  const QVector<TpKandidat> &kandidaten,
+                                  const QVector<PdfWinkelInfo> &winkelListe,
+                                  const QHash<int, QVector<QPair<int,int>>> &segAdj,
+                                  const QHash<int, QVector<int>> &segZuWinkel)
+{
+    const int n = raw.size();
     // Pro Segment vorberechnete Bänderungsinfo (statt nur für das eine
     // zielIdx-Segment wie bisher) + pro Winkel die Umkehr-Entscheidung.
     QVector<bool>   segGebaendert(n, false), segZweifarbig(n, false), segUmkehrV(n, false), segFlipV(n, false);
@@ -1057,9 +1140,64 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
         }
     }
 
+    BandErgebnis res;
+    res.segGebaendert = segGebaendert; res.segZweifarbig = segZweifarbig;
+    res.segUmkehrV = segUmkehrV;       res.segFlipV = segFlipV;
+    res.segMehrfach = segMehrfach;     res.segArmAnzahlV = segArmAnzahlV;
+    res.segFarbeAV = segFarbeAV;       res.segFarbeBV = segFarbeBV;
+    res.segFarbeA2V = segFarbeA2V;     res.segFarbeB2V = segFarbeB2V;
+    res.segBreiteV = segBreiteV;       res.winkelUmkehren = winkelUmkehren;
+    return res;
+}
+
+} // namespace
+
+
+QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
+                                                        const QSqlDatabase &db,
+                                                        QVector<PdfKabelAderLabel> *aderLabelsOut,
+                                                        QHash<int, bool> *winkelUmkehrenOut)
+{
+    QVector<PdfLeitungsSegment> segs;
+
+    const QVector<Adp>    adps = ladeAderdefinitionspunkte(seiteId, db);
+    const QVector<RawSeg> raw  = ladeRohSegmente(seiteId, db);
+    const int n = raw.size();
+    if (n == 0) return segs;
+
+    // KABEL-ADERFARBE-01 (PDF-Parität, Aug 2026): Fallback-Aderfarbe aus der
+    // Kabellinien-Aderzuordnung (grafik_element.extra_daten.{adern, aderZuordnung}
+    // der Kabellinie selbst) für Segmente ohne eigenen Aderdefinitionspunkt —
+    // dieselbe Datenquelle wie im Canvas (CanvasRenderHandler.qml::
+    // _sammleKabelAderFarben()), NICHT die kabel_ader-DB-Tabelle (Details in den
+    // Kommentaren von kabellinienAderfarben()).
+    QVector<QColor> kabelSegFarbe(n), kabelSegFarbe2(n);
+    {
+        const SymbolGraph graph = baueSymbolGraph(seiteId, db, raw);
+        kabellinienAderfarben(seiteId, db, raw, graph, kabelSegFarbe, kabelSegFarbe2, aderLabelsOut);
+    }
+
+    QVector<QColor> direktFarbe, direktFarbe2;
+    direktFarben(raw, adps, direktFarbe, direktFarbe2);
+
+    const QVector<int> wurzel = wurzelnJeSegment(seiteId, db, raw);
+
+    QVector<QColor> endFarbe, endFarbe2;
+    berechneEndfarben(raw, wurzel, direktFarbe, direktFarbe2, kabelSegFarbe, kabelSegFarbe2,
+                      endFarbe, endFarbe2);
+
+    const QVector<TpKandidat> kandidaten = ladeTreffpunktKandidaten(seiteId, db, raw);
+    QVector<PdfWinkelInfo> winkelListe;
+    QHash<int, QVector<QPair<int,int>>> segAdj;
+    QHash<int, QVector<int>> segZuWinkel;
+    ladeWinkelListe(seiteId, db, raw, winkelListe, segAdj, segZuWinkel);
+
+    const BandErgebnis band = propagiereBaenderung(raw, endFarbe, endFarbe2, kandidaten,
+                                                   winkelListe, segAdj, segZuWinkel);
+
     if (winkelUmkehrenOut) {
         winkelUmkehrenOut->clear();
-        for (auto it = winkelUmkehren.constBegin(); it != winkelUmkehren.constEnd(); ++it)
+        for (auto it = band.winkelUmkehren.constBegin(); it != band.winkelUmkehren.constEnd(); ++it)
             winkelUmkehrenOut->insert(winkelListe[it.key()].id, it.value());
     }
 
@@ -1072,24 +1210,24 @@ QVector<PdfLeitungsSegment> pdfLeitungenSammeln(int seiteId, double pxPerMm,
         s.farbe2 = endFarbe2[i]; // nur gueltig wenn eine Bifarb-ADP getroffen wurde
         s.lw     = qMax(0.3, 1.5 * 0.25 * pxPerMm);
 
-        if (segGebaendert[i]) {
+        if (band.segGebaendert[i]) {
             s.gebaendert = true;
-            s.zweifarbig = segZweifarbig[i];
-            s.farbeA = segFarbeAV[i]; s.farbeB = segFarbeBV[i];
-            s.farbeA2 = segFarbeA2V[i]; s.farbeB2 = segFarbeB2V[i];
-            s.flip   = segFlipV[i];
-            s.segUmkehr = segUmkehrV[i];
-            s.lw = qMax(0.3, segBreiteV[i] * 0.25 * pxPerMm);
+            s.zweifarbig = band.segZweifarbig[i];
+            s.farbeA = band.segFarbeAV[i]; s.farbeB = band.segFarbeBV[i];
+            s.farbeA2 = band.segFarbeA2V[i]; s.farbeB2 = band.segFarbeB2V[i];
+            s.flip   = band.segFlipV[i];
+            s.segUmkehr = band.segUmkehrV[i];
+            s.lw = qMax(0.3, band.segBreiteV[i] * 0.25 * pxPerMm);
             s.color = s.farbeA; // Fallback für die Treffpunkt-Symbolfarbe (pdfSegmentFuerPunkt, s.u.)
-        } else if (segMehrfach[i]) {
+        } else if (band.segMehrfach[i]) {
             // TREFFPUNKT-MEHRFARB-MARKER-01: ≥3 verschmolzene Adern – keine
             // 2-Band-Bänderung (gebaendert bleibt false, pdfMaleGebaenderteLinie()
             // zeichnet dadurch automatisch eine einfarbige Linie), stattdessen
             // Zahl-Label in pdfLeitungenRendern().
             s.mehrfach  = true;
-            s.armAnzahl = segArmAnzahlV[i];
-            s.color     = segFarbeAV[i]; // erste der ≥3 beteiligten Farben, wie band.farbe=farben[0] im Canvas
-            s.lw        = qMax(0.3, segBreiteV[i] * 0.25 * pxPerMm);
+            s.armAnzahl = band.segArmAnzahlV[i];
+            s.color     = band.segFarbeAV[i]; // erste der ≥3 beteiligten Farben, wie band.farbe=farben[0] im Canvas
+            s.lw        = qMax(0.3, band.segBreiteV[i] * 0.25 * pxPerMm);
             // s.farbe2 (oben unconditional aus endFarbe2[i] gesetzt) hier
             // bewusst zurücksetzen: pdfMaleGebaenderteLinie() prüft
             // "!s.gebaendert && s.farbe2.isValid()" zuerst — ohne diesen Reset

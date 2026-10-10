@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../logos"
 
 // Navigationsleiste (linke Sidebar): Ansichts-Schaltflächen, Theme-Picker, aktives Projekt.
 // Zustandslos – Navigation und Seiteneffekte laufen über die Signale.

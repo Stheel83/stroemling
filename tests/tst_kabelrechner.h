@@ -97,7 +97,6 @@ private slots:
         QVERIFY2(du["mindestText"].toString().contains("323"), qPrintable(du["mindestText"].toString()));
         QVERIFY(!du["ok"].toBool());
         QVERIFY(!r["thermik"].toMap()["ok"].toBool());
-        QVERIFY(r["praxis"].toMap()["stimmtUeberein"].toBool() == false);
     }
 
     // Drehstrom: Fehlerschleife mit U_0 = U/√3. D50 ist bei 0,3 Ω nicht mehr abschaltbar,

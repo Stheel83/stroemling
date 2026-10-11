@@ -210,18 +210,6 @@ void KabelRechnerModel::berechnen()
     // keine Empfehlung, sondern ausdrücklich „kein Normquerschnitt ausreichend".
     const bool ueberTabelle = duUeber || thermUeber || abschUeber || thermFehlt;
 
-    // Praxisrichtwert I/6 (Cu, B2)
-    const double aPraxis     = m_strom / 6.0;
-    const double aPraxisNorm = naechsterNormquerschnitt(aPraxis);
-
-    QVariantMap praxisMap;
-    praxisMap["formel"] = QString("I / 6  =  %1 / 6  ≈  %2 mm²   →   %3")
-                              .arg(formatN(m_strom, 0))
-                              .arg(formatN(aPraxis, 1))
-                              .arg(formatQ(aPraxisNorm));
-    praxisMap["querschnittText"] = formatQ(aPraxisNorm);
-    praxisMap["stimmtUeberein"]  = !ueberTabelle && (std::abs(aPraxisNorm - aFinalNorm) < 1e-6);
-
     // Zusammenfassung für die Empfehlung
     static const QStringList verlegeartNamen = {"A1","A2","B1","B2","C","D","E","F","G"};
     const QString verlegeartStr = (m_verlegeart >= 0 && m_verlegeart < 9)
@@ -245,7 +233,6 @@ void KabelRechnerModel::berechnen()
     m_ergebnis["spannungsfall"]   = spannungsfallMap;
     m_ergebnis["thermik"]         = thermikMap;
     m_ergebnis["kurzschluss"]     = kurzschlussMap;
-    m_ergebnis["praxis"]          = praxisMap;
     m_ergebnis["warnungen"]       = warnungen;
 
     m_ergebnisGueltig = true;

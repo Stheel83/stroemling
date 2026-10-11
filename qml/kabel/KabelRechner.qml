@@ -478,56 +478,6 @@ Item {
                             }
                         }
 
-                        // ── Karte: Praxisrichtwert ────────────────────────
-                        Rectangle {
-                            width:  parent.width
-                            height: praxCol.implicitHeight + 24
-                            color:        theme.sidebar
-                            border.color: theme.border; border.width: 1
-                            radius: 8
-
-                            Column {
-                                id: praxCol
-                                anchors { left: parent.left; right: parent.right; leftMargin: 16; rightMargin: 16; top: parent.top; topMargin: 12 }
-                                spacing: 6
-
-                                Text {
-                                    text: qsTr("Praxisrichtwert  (Daumenregel Cu, B2)")
-                                    font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted
-                                }
-                                Text {
-                                    text: (erg && erg["praxis"]) ? erg["praxis"]["formel"] : "I / 6  =  … mm²"
-                                    font.pixelSize: 14; color: theme.textPrimary
-                                }
-                                Text {
-                                    width: parent.width
-                                    font.pixelSize: 10
-                                    color: theme.textMuted
-                                    wrapMode: Text.Wrap
-                                    text: qsTr("I/6 ist eine grobe, aus den Belastbarkeitstabellen (VDE 0298-4) abgeleitete Faustformel für Kupfer bei Verlegeart B2 – deckt die meisten Standard-Installationen ab, ersetzt aber nicht die Prüfung von Spannungsfall, Thermik und Abschaltbedingung.")
-                                }
-                                Row {
-                                    spacing: 6
-                                    property bool stimmtUeberein: (erg && erg["praxis"])
-                                                                   ? erg["praxis"]["stimmtUeberein"] : false
-                                    Text {
-                                        text: parent.stimmtUeberein ? "✓" : "△"
-                                        font.pixelSize: 14
-                                        color: parent.stimmtUeberein ? "#4caf50" : "#e0a000"
-                                    }
-                                    Text {
-                                        text: parent.parent.stimmtUeberein
-                                              ? qsTr("Praxiswert stimmt mit Berechnung überein")
-                                              : (erg && erg["ueberTabelle"]
-                                                 ? qsTr("Praxiswert reicht nicht: Berechnung verlangt mehr als der Tabellenbereich")
-                                                 : qsTr("Berechnung empfiehlt anderen Querschnitt"))
-                                        font.pixelSize: 12
-                                        color: parent.parent.stimmtUeberein ? "#4caf50" : theme.textMuted
-                                    }
-                                }
-                            }
-                        }
-
                         // ── Warnungen ─────────────────────────────────────
                         Repeater {
                             model: (erg && erg["warnungen"]) ? erg["warnungen"] : []

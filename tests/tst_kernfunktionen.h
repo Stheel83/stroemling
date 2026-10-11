@@ -335,6 +335,38 @@ private slots:
         QVERIFY(m_db->spsKanalKonflikt(1, bg, 6, "E", 0, 6, "BOOL", 0).isEmpty());
     }
 
+    void sps_03_alarmLoeschenUndCsvExport()
+    {
+        const int r = m_db->spsRackAnlegen(1, 90, "PLS", "PLS-Rack", "");
+        const int bg = m_db->spsBaugruppeAnlegen(r, 3, "AI", "AI 8", 8, 0);
+        QVERIFY(r > 0 && bg > 0);
+        const int k = m_db->spsKanalAnlegen(1, bg, 0, "E", 0, 0, "REAL", "TIC-001", "Reaktor");
+        QVERIFY(k > 0);
+
+        QVERIFY(m_db->spsKanalAktualisieren(k, {{"pls_alarm_hi", 450.0}, {"pls_alarm_hh", 480.0},
+                                                 {"pls_einheit", "°C"}}));
+        QCOMPARE(einWert(QString("SELECT pls_alarm_hi FROM sps_kanal WHERE id=%1").arg(k)).toDouble(), 450.0);
+
+        // Alarm löschen (leeres Feld im Dialog = null)
+        QVERIFY(m_db->spsKanalAktualisieren(k, {{"pls_alarm_hi", QVariant()}, {"pls_alarm_hh", QVariant()}}));
+        QVERIFY(einWert(QString("SELECT pls_alarm_hi FROM sps_kanal WHERE id=%1").arg(k)).isNull());
+        QVERIFY(einWert(QString("SELECT pls_alarm_hh FROM sps_kanal WHERE id=%1").arg(k)).isNull());
+        QCOMPARE(einWert(QString("SELECT pls_einheit FROM sps_kanal WHERE id=%1").arg(k)).toString(), QString("°C"));
+
+        // CSV: Rack/Slot/Kanal als eigene Spalten, Signal-Art, keine rohe Element-ID
+        const QString csv = m_projPfad + "_io.csv";
+        QVERIFY(m_db->spsIOListeCsvSpeichern(1, csv));
+        QFile f(csv);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QString inhalt = QString::fromUtf8(f.readAll());
+        f.close();
+        QFile::remove(csv);
+        QVERIFY(inhalt.contains("\"Rack\";\"Slot\";\"Kanal\""));
+        QVERIFY(!inhalt.contains("Element-ID"));
+        QVERIFY2(inhalt.contains("\"PLS\";\"90\";\"3\";\"1\";\"AI 8\";\"AI\";\"AI\";\"R90 S3 K1\""),
+                 qPrintable(inhalt));
+    }
+
     void gs_07_kabellinieUndAderzuordnungWerdenNachgezogen()
     {
         const int sid = neueSeite("1"), anderes = neueSeite("2");

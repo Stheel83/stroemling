@@ -814,7 +814,7 @@ Item {
                     }
 
                     Label {
-                        text: qsTr("CSV-Format: Adresse, System, Typ, Variable/Tag, Kommentar,\nEinheit, Bereich, Alarme (LL/LO/HI/HH), Protokoll, Element-ID\n\nKompatibel mit Excel (UTF-8 BOM, Semikolon-getrennt).")
+                        text: qsTr("Spalten: System, Rack, Slot, Kanal, Baugruppe, Baugruppen-Typ, Signal (DI/DO/AI/AO),\nAdresse, Datentyp, Variable/Tag, Kommentar, Einheit, Bereich, Alarme, Protokoll,\nBMK und Seite des Schaltplan-Elements.\n\nSystemneutrales Format (kein Hersteller-Tool-Import). Excel-kompatibel (UTF-8 BOM, Semikolon-getrennt).")
                         color: root.theme.textMuted
                         font.pixelSize: 11
                         wrapMode: Text.WordWrap

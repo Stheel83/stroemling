@@ -237,12 +237,38 @@ Dialog {
             }
         }
 
+        // PLS-Felder: leeres Feld = Wert löschen (null). Früher wurden leere Felder
+        // nicht mitgeschickt, ein einmal gesetzter Alarm ließ sich dadurch nie entfernen.
+        function zahlOderNull(feld) {
+            var t = feld.text.trim().replace(",", ".")
+            if (t === "") return null
+            var v = parseFloat(t)
+            return isNaN(v) ? null : v
+        }
+        var plsFelder = {}
+        if (root.istPls) {
+            plsFelder = {
+                "pls_einheit":     plsEinheitField.text.trim() || null,
+                "pls_protokoll":   plsProtokollCombo.currentText,
+                "pls_bereich_min": zahlOderNull(plsMinField),
+                "pls_bereich_max": zahlOderNull(plsMaxField),
+                "pls_alarm_ll":    zahlOderNull(plsAlllField),
+                "pls_alarm_lo":    zahlOderNull(plsAlloField),
+                "pls_alarm_hi":    zahlOderNull(plsAlhiField),
+                "pls_alarm_hh":    zahlOderNull(plsAlhhField)
+            }
+        }
+
         if (_istNeu) {
             var newId = db.spsKanalAnlegen(root.projektId, bgId, kNr,
                                             typ, byteNr, bitNr, dtype,
                                             kanalVarField.text.trim(),
                                             kanalKomField.text.trim())
             if (newId < 0) { root.fehler(qsTr("Kanal konnte nicht angelegt werden (Adresse bereits vergeben?)")); return }
+            // Einheit/Bereich/Alarme gehören nicht zur Anlege-Signatur - sonst gingen
+            // sie beim Neuanlegen eines PLS-Kanals stillschweigend verloren.
+            if (root.istPls && !db.spsKanalAktualisieren(newId, plsFelder))
+                root.fehler(qsTr("Kanal angelegt, PLS-Felder konnten aber nicht gespeichert werden"))
             root.gespeichert(newId)
         } else {
             var felder = {
@@ -254,15 +280,8 @@ Dialog {
                 "kommentar":     kanalKomField.text.trim()
             }
             if (root.istPls) {
-                felder["kanal_nr"]       = kNr
-                felder["pls_einheit"]    = plsEinheitField.text.trim() || null
-                felder["pls_protokoll"]  = plsProtokollCombo.currentText
-                if (plsMinField.text.trim()) felder["pls_bereich_min"] = parseFloat(plsMinField.text.replace(",","."))
-                if (plsMaxField.text.trim()) felder["pls_bereich_max"] = parseFloat(plsMaxField.text.replace(",","."))
-                if (plsAlllField.text.trim()) felder["pls_alarm_ll"] = parseFloat(plsAlllField.text.replace(",","."))
-                if (plsAlloField.text.trim()) felder["pls_alarm_lo"] = parseFloat(plsAlloField.text.replace(",","."))
-                if (plsAlhiField.text.trim()) felder["pls_alarm_hi"] = parseFloat(plsAlhiField.text.replace(",","."))
-                if (plsAlhhField.text.trim()) felder["pls_alarm_hh"] = parseFloat(plsAlhhField.text.replace(",","."))
+                felder["kanal_nr"] = kNr
+                for (var key in plsFelder) felder[key] = plsFelder[key]
             }
             if (!db.spsKanalAktualisieren(_editId, felder)) {
                 root.fehler(qsTr("Kanal konnte nicht gespeichert werden (Adresse bereits belegt?)"))

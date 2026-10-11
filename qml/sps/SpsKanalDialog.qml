@@ -164,12 +164,14 @@ Dialog {
         }
     }
 
-    function oeffnenNeu() {
+    // vorgabeKanalNr (optional, 0-basiert): vorbelegte Kanal-Nr. bei PLS, wenn aus
+    // einem Platzhalter der Kanalliste einer Baugruppe geöffnet wird.
+    function oeffnenNeu(vorgabeKanalNr) {
         _istNeu = true; _editId = -1
         kanalAdressTypCombo.currentIndex = 0
         kanalByteNrSpin.value = 0; kanalBitNrSpin.value = 0
         kanalDatentypCombo.currentIndex = 0
-        kanalNrSpin.value = 0
+        kanalNrSpin.value = (vorgabeKanalNr !== undefined && vorgabeKanalNr >= 0) ? vorgabeKanalNr : 0
         kanalVarField.text = ""; kanalKomField.text = ""
         plsEinheitField.text = ""; plsMinField.text = ""; plsMaxField.text = ""
         plsAlllField.text = ""; plsAlloField.text = ""

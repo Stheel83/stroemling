@@ -35,6 +35,62 @@ Item {
         return bgTyp
     }
 
+    // SPS-BELEGUNG-01: Belegung je Baugruppe. Als Property-Bindings mit Argumenten
+    // geschrieben, damit sie sich bei Änderung von Kanälen/Baugruppen/Auswahl neu
+    // auswerten (reine Funktionsaufrufe ohne Property-Argumente würden nur einmal laufen).
+    readonly property var _keinIoTypen: ["CPU", "PS", "CP", "FM", "andere"]
+
+    function _belegungBerechnen(kanaele) {
+        var m = {}
+        for (var i = 0; i < kanaele.length; i++) {
+            var k = kanaele[i]
+            if (k.baugruppe_id == null) continue
+            var b = m[k.baugruppe_id] || (m[k.baugruppe_id] = { element: 0, beschriftet: 0, frei: 0, angelegt: 0 })
+            b.angelegt++
+            if (k.grafik_element_id) b.element++
+            else if ((k.variablenname || "") !== "" || (k.kommentar || "") !== "") b.beschriftet++
+            else b.frei++
+        }
+        return m
+    }
+
+    // Eine Zeile je Kanal-Nr. 0..kanaele-1 der Baugruppe; nicht angelegte Nummern
+    // erscheinen als leere Platzhalter (leer: true), Kanäle außerhalb des Bereichs
+    // werden hinten angehängt (ausserhalb: true). Baugruppen ohne I/O (CPU, PS, ...)
+    // bekommen keine Platzhalter.
+    function _bgKanalZeilenBerechnen(bgId, kanaele, baugruppen) {
+        if (bgId < 0) return []
+        var bg = null
+        for (var i = 0; i < baugruppen.length; i++)
+            if (baugruppen[i].id === bgId) { bg = baugruppen[i]; break }
+        if (!bg) return []
+        var n = _keinIoTypen.indexOf(bg.typ) >= 0 ? 0 : bg.kanaele
+        var jeNr = {}, rest = []
+        for (var j = 0; j < kanaele.length; j++) {
+            var k = kanaele[j]
+            if (k.baugruppe_id !== bgId) continue
+            if (k.kanal_nr != null && k.kanal_nr >= 0 && k.kanal_nr < n)
+                (jeNr[k.kanal_nr] = jeNr[k.kanal_nr] || []).push(k)
+            else
+                rest.push(k)
+        }
+        var out = []
+        for (var nr = 0; nr < n; nr++) {
+            if (jeNr[nr]) {
+                for (var q = 0; q < jeNr[nr].length; q++)
+                    out.push({ kanal: jeNr[nr][q], nr: nr, leer: false, ausserhalb: false })
+            } else {
+                out.push({ kanal: null, nr: nr, leer: true, ausserhalb: false })
+            }
+        }
+        for (var r = 0; r < rest.length; r++)
+            out.push({ kanal: rest[r], nr: rest[r].kanal_nr, leer: false, ausserhalb: true })
+        return out
+    }
+
+    property var _belegungMap: _belegungBerechnen(_kanaele)
+    property var _bgKanalZeilen: _bgKanalZeilenBerechnen(_ausgewaehlterBaugruppeId, _kanaele, _baugruppen)
+
     function _ladeRacks() {
         if (root.projektId < 0) { _racks = []; return }
         _racks = db.spsRackListe(root.projektId)
@@ -62,6 +118,12 @@ Item {
     function _ladeKanaele() {
         if (root.projektId < 0) { _kanaele = []; return }
         _kanaele = db.spsKanalListe(root.projektId)
+    }
+
+    function _ausgewaehlteBaugruppeInfo() {
+        for (var i = 0; i < _baugruppen.length; i++)
+            if (_baugruppen[i].id === _ausgewaehlterBaugruppeId) return _baugruppen[i]
+        return null
     }
 
     function _ausgewaehlterRackInfo() {
@@ -450,6 +512,7 @@ Item {
                                 Label { text: "Typ";  color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 50 }
                                 Label { text: qsTr("Bezeichnung"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
                                 Label { text: qsTr("Kanäle"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 55 }
+                                Label { text: qsTr("Belegt"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 70 }
                                 Label { text: qsTr("Startbyte"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
                                 Label { text: qsTr("Platziert"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 60 }
                                 Item { Layout.preferredWidth: 54 }
@@ -462,6 +525,8 @@ Item {
                             id: bgListView
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            Layout.preferredHeight: 100
+                            Layout.minimumHeight: 90
                             model: root._baugruppen
                             clip: true
 
@@ -507,6 +572,26 @@ Item {
                                     }
                                     Label { text: modelData.bezeichnung; color: root.theme.textPrimary; elide: Text.ElideRight; Layout.fillWidth: true }
                                     Label { text: modelData.kanaele;     color: root.theme.textMuted; Layout.preferredWidth: 55; horizontalAlignment: Text.AlignHCenter }
+                                    Label {
+                                        // Belegt = Kanäle mit zugewiesenem Schaltplan-Element / Kanäle der Baugruppe
+                                        readonly property var _b: root._belegungMap[bgDelegate.modelData.id]
+                                        readonly property bool _io: root._keinIoTypen.indexOf(bgDelegate.modelData.typ) < 0
+                                        text: !_io ? "–" : ((_b ? _b.element : 0) + " / " + bgDelegate.modelData.kanaele)
+                                        color: !_io ? root.theme.textMuted
+                                               : ((_b ? _b.element : 0) >= bgDelegate.modelData.kanaele && bgDelegate.modelData.kanaele > 0
+                                                  ? "#4caf50" : root.theme.textPrimary)
+                                        Layout.preferredWidth: 70
+                                        horizontalAlignment: Text.AlignHCenter
+                                        ToolTip.visible: _belegMa.containsMouse && _io
+                                        ToolTip.delay: 300
+                                        ToolTip.text: {
+                                            var b = _b || { element: 0, beschriftet: 0, frei: 0, angelegt: 0 }
+                                            var offen = Math.max(0, bgDelegate.modelData.kanaele - b.angelegt)
+                                            return qsTr("%1 mit Element · %2 beschriftet · %3 frei · %4 nicht angelegt")
+                                                .arg(b.element).arg(b.beschriftet).arg(b.frei).arg(offen)
+                                        }
+                                        MouseArea { id: _belegMa; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
+                                    }
                                     Label {
                                         text: (root._ausgewaehlterSystemTyp === "SPS") ? modelData.adress_byte_start : "–"
                                         color: root.theme.textMuted
@@ -562,6 +647,190 @@ Item {
                                       : qsTr("Keine Baugruppen – [+] zum Anlegen")
                                 color: root.theme.textMuted
                                 visible: root._baugruppen.length === 0
+                            }
+                        }
+
+                        Rectangle { Layout.fillWidth: true; height: 1; color: root.theme.border; visible: kanalPanel.visible }
+
+                        // ── Kanäle der ausgewählten Baugruppe (SPS-BELEGUNG-01) ──
+                        ColumnLayout {
+                            id: kanalPanel
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.preferredHeight: 100
+                            Layout.minimumHeight: 120
+                            visible: root._ausgewaehlteBaugruppeInfo() !== null
+                            spacing: 0
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 32
+                                color: root.theme.surfaceDeep
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 10
+
+                                    Label {
+                                        text: {
+                                            var b = root._ausgewaehlteBaugruppeInfo()
+                                            return b ? qsTr("Kanäle von Slot %1 – %2").arg(b.slot).arg(b.bezeichnung || b.typ) : ""
+                                        }
+                                        color: root.theme.textPrimary
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                    Repeater {
+                                        model: {
+                                            var z = root._bgKanalZeilen
+                                            var el = 0, be = 0, fr = 0, le = 0
+                                            for (var i = 0; i < z.length; i++) {
+                                                var k = z[i].kanal
+                                                if (z[i].leer) le++
+                                                else if (k.grafik_element_id) el++
+                                                else if ((k.variablenname || "") !== "" || (k.kommentar || "") !== "") be++
+                                                else fr++
+                                            }
+                                            return [
+                                                { farbe: "#4caf50", text: qsTr("%1 mit Element").arg(el) },
+                                                { farbe: "#e0a800", text: qsTr("%1 beschriftet").arg(be) },
+                                                { farbe: "#8a8a8a", text: qsTr("%1 frei").arg(fr) },
+                                                { farbe: "transparent", text: qsTr("%1 nicht angelegt").arg(le) }
+                                            ]
+                                        }
+                                        delegate: Row {
+                                            required property var modelData
+                                            spacing: 4
+                                            Rectangle {
+                                                width: 9; height: 9; radius: 5
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                color: modelData.farbe
+                                                border.color: modelData.farbe === "transparent" ? root.theme.textMuted : modelData.farbe
+                                            }
+                                            Label { text: modelData.text; color: root.theme.textMuted; font.pixelSize: 11 }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 24
+                                color: root.theme.surfaceDeep
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    spacing: 0
+                                    Item { Layout.preferredWidth: 22 }
+                                    Label { text: qsTr("Kanal"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 50 }
+                                    Label { text: qsTr("Adresse"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 100 }
+                                    Label { text: qsTr("Signal"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 50 }
+                                    Label { text: qsTr("Variable / Tag"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 130 }
+                                    Label { text: qsTr("Kommentar"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
+                                    Label { text: qsTr("Element"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 130 }
+                                }
+                            }
+
+                            ListView {
+                                id: bgKanalListView
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                model: root._bgKanalZeilen
+                                clip: true
+                                ScrollBar.vertical: ScrollBar {}
+
+                                delegate: Rectangle {
+                                    id: bkDelegate
+                                    required property var modelData
+                                    required property int index
+                                    readonly property var kanal: modelData.kanal
+                                    readonly property string status: modelData.leer ? "leer"
+                                        : (kanal.grafik_element_id ? "element"
+                                           : (((kanal.variablenname || "") !== "" || (kanal.kommentar || "") !== "") ? "beschriftet" : "frei"))
+                                    width: ListView.view.width
+                                    height: 28
+                                    color: bkMa.containsMouse ? root.theme.hover
+                                           : (index % 2 ? root.theme.surface : root.theme.surfaceDeep)
+
+                                    MouseArea {
+                                        id: bkMa
+                                        anchors.fill: parent; hoverEnabled: true
+                                        onDoubleClicked: {
+                                            if (bkDelegate.kanal) kanalDialog.oeffnenEdit(bkDelegate.kanal)
+                                            else                  kanalDialog.oeffnenNeu(bkDelegate.modelData.nr)
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        spacing: 0
+
+                                        Item {
+                                            Layout.preferredWidth: 22
+                                            Layout.fillHeight: true
+                                            Rectangle {
+                                                anchors.centerIn: parent
+                                                width: 10; height: 10; radius: 5
+                                                color: bkDelegate.status === "element" ? "#4caf50"
+                                                     : bkDelegate.status === "beschriftet" ? "#e0a800"
+                                                     : bkDelegate.status === "frei" ? "#8a8a8a" : "transparent"
+                                                border.color: bkDelegate.status === "leer" ? root.theme.textMuted : color
+                                            }
+                                        }
+                                        Label {
+                                            text: "K" + (bkDelegate.modelData.nr + 1)
+                                            color: bkDelegate.modelData.ausserhalb ? "#f44336" : root.theme.textMuted
+                                            font.family: "monospace"
+                                            Layout.preferredWidth: 50
+                                        }
+                                        Label {
+                                            text: bkDelegate.kanal ? (bkDelegate.kanal.adresse || "?") : "–"
+                                            color: bkDelegate.kanal ? root.theme.accent : root.theme.textMuted
+                                            font.family: "monospace"
+                                            font.bold: !!bkDelegate.kanal
+                                            Layout.preferredWidth: 100
+                                        }
+                                        Label {
+                                            text: bkDelegate.kanal ? root._kanalTyp(bkDelegate.kanal) : ""
+                                            color: root.theme.textMuted
+                                            font.pixelSize: 11
+                                            Layout.preferredWidth: 50
+                                        }
+                                        Label {
+                                            text: bkDelegate.kanal ? (bkDelegate.kanal.variablenname || "")
+                                                                   : qsTr("nicht angelegt – Doppelklick")
+                                            color: bkDelegate.kanal ? root.theme.textPrimary : root.theme.textMuted
+                                            font.italic: !bkDelegate.kanal
+                                            elide: Text.ElideRight
+                                            Layout.preferredWidth: 130
+                                        }
+                                        Label {
+                                            text: bkDelegate.kanal ? (bkDelegate.kanal.kommentar || "") : ""
+                                            color: root.theme.textMuted
+                                            elide: Text.ElideRight
+                                            Layout.fillWidth: true
+                                        }
+                                        Label {
+                                            property string _bmk: {
+                                                if (!bkDelegate.kanal) return ""
+                                                var ed = bkDelegate.kanal.element_extra_daten
+                                                if (!ed) return ""
+                                                try { return JSON.parse(ed).bmk || "" } catch(e) { return "" }
+                                            }
+                                            text: !bkDelegate.kanal || !bkDelegate.kanal.grafik_element_id ? ""
+                                                  : ((_bmk || "–") + (bkDelegate.kanal.seite_name ? " · " + bkDelegate.kanal.seite_name : ""))
+                                            color: root.theme.accent
+                                            font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                            Layout.preferredWidth: 130
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

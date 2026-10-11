@@ -10,11 +10,34 @@ Item {
     property var  theme
     property bool debug: false
 
-    property string modus:    "genau"     // "schnell" | "genau"
     property string material: "cu"        // "cu" | "al"
 
-    readonly property bool    istGenau: modus === "genau"
     readonly property var     erg:      kabelRechnerModel.ergebnis
+
+    // Anwendungsfall-Vorlagen (Praxiswerte), aus dem C++-Modell
+    readonly property var     vorlagen: kabelRechnerModel.vorlagen()
+    // true, solange eine Vorlage Felder setzt – verhindert das Zurückspringen auf "Eigene Eingabe"
+    property bool             vorlageWirdAngewendet: false
+
+    function vorlageAnwenden(idx) {
+        if (idx <= 0 || idx > vorlagen.length) return
+        var v = vorlagen[idx - 1]
+        vorlageWirdAngewendet = true
+        // Betriebsart zuerst: ihr Handler überschreibt das Spannungsfeld
+        betriebsartBox.currentIndex = v.betriebsart
+        spannungZeile.feldText      = String(v.spannung).replace(".", ",")
+        stromZeile.feldText         = String(v.strom).replace(".", ",")
+        laengeZeile.feldText        = String(v.laenge).replace(".", ",")
+        duMaxZeile.feldText         = String(v.duMaxProzent).replace(".", ",")
+        verlegeartBox.currentIndex  = v.verlegeart
+        schutzOrganTypBox.currentIndex = v.schutzOrganTyp
+        schutzOrganStromFeld.text   = String(v.schutzOrganStrom).replace(".", ",")
+        vorlageWirdAngewendet = false
+    }
+    function vorlageManuellGeaendert() {
+        if (!vorlageWirdAngewendet && vorlageBox.currentIndex !== 0)
+            vorlageBox.currentIndex = 0
+    }
 
     DebugLabel { panelName: qsTr("Kabelrechner"); visible: root.debug }
 
@@ -39,37 +62,6 @@ Item {
                     color:          theme.textPrimary
                 }
 
-                Item { Layout.fillWidth: true }
-
-                // Modus-Toggle
-                Rectangle {
-                    width: 188; height: 30
-                    radius: 6
-                    color:        theme.inputBg
-                    border.color: theme.border; border.width: 1
-
-                    Row {
-                        anchors.fill: parent
-
-                        Rectangle {
-                            width: 93; height: parent.height; radius: 5
-                            color: root.modus === "schnell" ? theme.accent : "transparent"
-                            ToolTip.visible: schnellMa.containsMouse; ToolTip.delay: 600
-                            ToolTip.text: qsTr("Schnell: Querschnitt aus Strom + Länge (Daumenregel)")
-                            Text { anchors.centerIn: parent; text: qsTr("⚡ Schnell"); font.pixelSize: 12; color: root.modus === "schnell" ? "white" : theme.textMuted }
-                            MouseArea { id: schnellMa; anchors.fill: parent; hoverEnabled: true; onClicked: root.modus = "schnell"; cursorShape: Qt.PointingHandCursor }
-                        }
-                        Rectangle { width: 1; height: parent.height; color: theme.border }
-                        Rectangle {
-                            width: 94; height: parent.height; radius: 5
-                            color: root.modus === "genau" ? theme.accent : "transparent"
-                            ToolTip.visible: genauMa.containsMouse; ToolTip.delay: 600
-                            ToolTip.text: qsTr("Genau: Vollständige Berechnung nach VDE 0298 / IEC 60364 (Verlegeart, Häufung, Schutzorgan)")
-                            Text { anchors.centerIn: parent; text: qsTr("🔬 Genau"); font.pixelSize: 12; color: root.modus === "genau" ? "white" : theme.textMuted }
-                            MouseArea { id: genauMa; anchors.fill: parent; hoverEnabled: true; onClicked: root.modus = "genau"; cursorShape: Qt.PointingHandCursor }
-                        }
-                    }
-                }
             }
         }
 
@@ -100,9 +92,29 @@ Item {
                         // ── Elektrische Parameter ────────────────────────
                         KrAbschnitt { titel: qsTr("ELEKTRISCHE PARAMETER"); theme: root.theme }
 
-                        // Betriebsart (nur Genau)
+                        // Anwendungsfall (Praxis-Vorlagen); ohne hinterlegte Vorlagen ausgeblendet
                         RowLayout {
-                            visible: root.istGenau
+                            visible: root.vorlagen.length > 0
+                            width: parent.width; height: 32; spacing: 8
+                            Text { text: qsTr("Anwendung"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
+                            ComboBox {
+                                id: vorlageBox
+                                Layout.fillWidth: true; font.pixelSize: 12
+                                model: {
+                                    var m = [qsTr("Eigene Eingabe")]
+                                    for (var i = 0; i < root.vorlagen.length; ++i) m.push(root.vorlagen[i].name)
+                                    return m
+                                }
+                                background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
+                                contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
+                                                    leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                                onActivated: root.vorlageAnwenden(currentIndex)
+                            }
+                            Item { Layout.preferredWidth: 28 }
+                        }
+
+                        // Betriebsart
+                        RowLayout {
                             width: parent.width; height: 32; spacing: 8
                             Text { text: qsTr("Betriebsart"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
                             ComboBox {
@@ -121,21 +133,20 @@ Item {
                             Item { Layout.preferredWidth: 28 }
                         }
 
-                        KrZeile { id: stromZeile; label: qsTr("Strom I"); wert: "13"; einheit: "A"; theme: root.theme }
+                        KrZeile { id: stromZeile; onFeldTextChanged: root.vorlageManuellGeaendert(); label: qsTr("Strom I"); wert: "13"; einheit: "A"; theme: root.theme }
 
                         KrZeile {
-                            id: spannungZeile
-                            visible: root.istGenau
+                            id: spannungZeile; onFeldTextChanged: root.vorlageManuellGeaendert();
                             label: qsTr("Spannung U"); wert: "230"; einheit: "V"; theme: root.theme
                         }
 
                         KrZeile {
                             id: cosPhiZeile
-                            visible: root.istGenau && betriebsartBox.currentIndex !== 2
+                            visible: betriebsartBox.currentIndex !== 2
                             label: "cos φ"; wert: "1,00"; einheit: ""; theme: root.theme
                         }
                         Text {
-                            visible: root.istGenau && betriebsartBox.currentIndex !== 2
+                            visible: betriebsartBox.currentIndex !== 2
                             width: parent.width
                             leftPadding: 88
                             rightPadding: 28
@@ -146,12 +157,10 @@ Item {
                         }
 
                         KrZeile {
-                            id: duMaxZeile
-                            visible: root.istGenau
+                            id: duMaxZeile; onFeldTextChanged: root.vorlageManuellGeaendert();
                             label: qsTr("ΔU max"); wert: "3"; einheit: "%"; theme: root.theme
                         }
                         Text {
-                            visible: root.istGenau
                             width: parent.width
                             leftPadding: 88
                             rightPadding: 28
@@ -166,7 +175,7 @@ Item {
                         // ── Leitung ──────────────────────────────────────
                         KrAbschnitt { titel: qsTr("LEITUNG"); theme: root.theme }
 
-                        KrZeile { id: laengeZeile; label: qsTr("Länge L"); wert: "25"; einheit: "m"; theme: root.theme }
+                        KrZeile { id: laengeZeile; onFeldTextChanged: root.vorlageManuellGeaendert(); label: qsTr("Länge L"); wert: "25"; einheit: "m"; theme: root.theme }
 
                         // Material-Toggle
                         RowLayout {
@@ -195,9 +204,8 @@ Item {
                             Item { Layout.preferredWidth: 28 }
                         }
 
-                        // Verlegeart (nur Genau)
+                        // Verlegeart
                         RowLayout {
-                            visible: root.istGenau
                             width: parent.width; height: 32; spacing: 8
                             Text { text: qsTr("Verlegeart"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
                             ComboBox {
@@ -218,7 +226,6 @@ Item {
                         }
                         // Verlegeart-Erklärung
                         Text {
-                            visible: root.istGenau
                             width: parent.width
                             leftPadding: 88
                             rightPadding: 28
@@ -242,15 +249,14 @@ Item {
                             }
                         }
 
-                        Item { height: 8; visible: root.istGenau }
+                        Item { height: 8 }
 
-                        // ── Umgebung (nur Genau) ─────────────────────────
-                        KrAbschnitt { visible: root.istGenau; titel: qsTr("UMGEBUNG"); theme: root.theme }
+                        // ── Umgebung ─────────────────────────
+                        KrAbschnitt { titel: qsTr("UMGEBUNG"); theme: root.theme }
 
-                        KrZeile { id: temperaturZeile; visible: root.istGenau; label: qsTr("Temperatur"); wert: "30"; einheit: "°C"; theme: root.theme }
+                        KrZeile { id: temperaturZeile; label: qsTr("Temperatur"); wert: "30"; einheit: "°C"; theme: root.theme }
 
                         RowLayout {
-                            visible: root.istGenau
                             width: parent.width; height: 32; spacing: 8
                             Text { text: qsTr("Häufung"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
                             ComboBox {
@@ -264,13 +270,12 @@ Item {
                             Item { Layout.preferredWidth: 28 }
                         }
 
-                        Item { height: 8; visible: root.istGenau }
+                        Item { height: 8 }
 
-                        // ── Schutzorgan (nur Genau) ──────────────────────
-                        KrAbschnitt { visible: root.istGenau; titel: qsTr("SCHUTZORGAN"); theme: root.theme }
+                        // ── Schutzorgan ──────────────────────
+                        KrAbschnitt { titel: qsTr("SCHUTZORGAN"); theme: root.theme }
 
                         RowLayout {
-                            visible: root.istGenau
                             width: parent.width; height: 32; spacing: 8
                             Text { text: qsTr("Typ / I_n"); font.pixelSize: 12; color: theme.textPrimary; Layout.preferredWidth: 80 }
                             ComboBox {
@@ -309,23 +314,16 @@ Item {
                                 kabelRechnerModel.material = (root.material === "cu") ? 0 : 1
                                 kabelRechnerModel.strom    = parseFloat(stromZeile.feldText.replace(",", ".")) || 0
                                 kabelRechnerModel.laenge   = parseFloat(laengeZeile.feldText.replace(",", ".")) || 0
-                                if (root.istGenau) {
-                                    kabelRechnerModel.betriebsart      = betriebsartBox.currentIndex
-                                    kabelRechnerModel.spannung         = parseFloat(spannungZeile.feldText.replace(",", ".")) || 230
-                                    kabelRechnerModel.cosPhi           = parseFloat(cosPhiZeile.feldText.replace(",", ".")) || 1
-                                    kabelRechnerModel.duMaxProzent     = parseFloat(duMaxZeile.feldText.replace(",", ".")) || 3
-                                    kabelRechnerModel.verlegeart       = verlegeartBox.currentIndex
-                                    kabelRechnerModel.temperatur       = parseFloat(temperaturZeile.feldText.replace(",", ".")) || 30
-                                    kabelRechnerModel.haefung          = haefungBox.currentIndex
-                                    kabelRechnerModel.schutzOrganTyp   = schutzOrganTypBox.currentIndex
-                                    kabelRechnerModel.schutzOrganStrom = parseFloat(schutzOrganStromFeld.text.replace(",", ".")) || 16
-                                    kabelRechnerModel.berechnen()
-                                } else {
-                                    // Schnellmodus rechnet immer mit fixen 3% ΔU, unabhängig davon,
-                                    // was zuletzt im Genau-Modus ins duMaxZeile-Feld eingetragen wurde.
-                                    kabelRechnerModel.duMaxProzent = 3
-                                    kabelRechnerModel.berechnenSchnell()
-                                }
+                                kabelRechnerModel.betriebsart      = betriebsartBox.currentIndex
+                                kabelRechnerModel.spannung         = parseFloat(spannungZeile.feldText.replace(",", ".")) || 230
+                                kabelRechnerModel.cosPhi           = parseFloat(cosPhiZeile.feldText.replace(",", ".")) || 1
+                                kabelRechnerModel.duMaxProzent     = parseFloat(duMaxZeile.feldText.replace(",", ".")) || 3
+                                kabelRechnerModel.verlegeart       = verlegeartBox.currentIndex
+                                kabelRechnerModel.temperatur       = parseFloat(temperaturZeile.feldText.replace(",", ".")) || 30
+                                kabelRechnerModel.haefung          = haefungBox.currentIndex
+                                kabelRechnerModel.schutzOrganTyp   = schutzOrganTypBox.currentIndex
+                                kabelRechnerModel.schutzOrganStrom = parseFloat(schutzOrganStromFeld.text.replace(",", ".")) || 16
+                                kabelRechnerModel.berechnen()
                             }
                         }
 
@@ -393,11 +391,10 @@ Item {
                             }
                         }
 
-                        // ── Karte: Berechnungsdetails (nur Genau) ─────────
+                        // ── Karte: Berechnungsdetails ─────────
                         Rectangle {
                             width:   parent.width
                             height:  detCol.implicitHeight + 24
-                            visible: root.istGenau
                             color:        theme.sidebar
                             border.color: theme.border; border.width: 1
                             radius: 8
@@ -471,16 +468,6 @@ Item {
                                     text: qsTr("Praxisrichtwert  (Daumenregel Cu, B2)")
                                     font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted
                                 }
-                                // Schnellmodus: versteckte Annahmen explizit machen
-                                Text {
-                                    visible: !root.istGenau
-                                    width: parent.width
-                                    font.pixelSize: 10
-                                    color: theme.textMuted
-                                    wrapMode: Text.Wrap
-                                    text: qsTr("Schnellmodus rechnet mit festen Annahmen: %1, Verlegeart B2, 230 V AC, cos φ = 1,0, ΔU max 3 %. Weicht dein Fall davon ab (andere Spannung, Verlegeart, Häufung, spannungsempfindliche Last) → Genau-Modus verwenden.")
-                                          .arg(root.material === "cu" ? qsTr("Kupfer") : qsTr("Aluminium"))
-                                }
                                 Text {
                                     text: (erg && erg["praxis"]) ? erg["praxis"]["formel"] : "I / 6  =  … mm²"
                                     font.pixelSize: 14; color: theme.textPrimary
@@ -490,15 +477,7 @@ Item {
                                     font.pixelSize: 10
                                     color: theme.textMuted
                                     wrapMode: Text.Wrap
-                                    text: qsTr("I/6 ist eine grobe, aus den Belastbarkeitstabellen (VDE 0298-4) abgeleitete Faustformel für Kupfer bei Verlegeart B2 – deckt die meisten Standard-Installationen ab, ersetzt aber nicht die Prüfung von Spannungsfall, Thermik und Abschaltbedingung im Genau-Modus.")
-                                }
-                                // L_max (Schnellmodus)
-                                Text {
-                                    visible: !root.istGenau && erg && erg["praxis"] && erg["praxis"]["lMaxText"]
-                                    text: qsTr("Max. Leitungslänge bei %1 % ΔU: %2")
-                                              .arg("3")
-                                              .arg((erg && erg["praxis"]) ? (erg["praxis"]["lMaxText"] || "") : "")
-                                    font.pixelSize: 12; color: theme.textMuted
+                                    text: qsTr("I/6 ist eine grobe, aus den Belastbarkeitstabellen (VDE 0298-4) abgeleitete Faustformel für Kupfer bei Verlegeart B2 – deckt die meisten Standard-Installationen ab, ersetzt aber nicht die Prüfung von Spannungsfall, Thermik und Abschaltbedingung.")
                                 }
                                 Row {
                                     spacing: 6
@@ -510,15 +489,13 @@ Item {
                                         color: parent.stimmtUeberein ? "#4caf50" : "#e0a000"
                                     }
                                     Text {
-                                        text: root.istGenau
-                                              ? (parent.parent.stimmtUeberein
-                                                 ? qsTr("Praxiswert stimmt mit Genauberechnung überein")
-                                                 : (erg && erg["ueberTabelle"]
-                                                    ? qsTr("Praxiswert reicht nicht: Genauberechnung verlangt mehr als der Tabellenbereich")
-                                                    : qsTr("Genauberechnung empfiehlt anderen Querschnitt")))
-                                              : qsTr("Für sicherheitsrelevante Anwendungen Genaumodus verwenden")
+                                        text: parent.parent.stimmtUeberein
+                                              ? qsTr("Praxiswert stimmt mit Berechnung überein")
+                                              : (erg && erg["ueberTabelle"]
+                                                 ? qsTr("Praxiswert reicht nicht: Berechnung verlangt mehr als der Tabellenbereich")
+                                                 : qsTr("Berechnung empfiehlt anderen Querschnitt"))
                                         font.pixelSize: 12
-                                        color: (root.istGenau && parent.parent.stimmtUeberein) ? "#4caf50" : theme.textMuted
+                                        color: parent.parent.stimmtUeberein ? "#4caf50" : theme.textMuted
                                     }
                                 }
                             }

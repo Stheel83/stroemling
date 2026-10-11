@@ -76,8 +76,10 @@ public:
     // Genauberechnung: alle drei Kriterien (Spannungsfall, Thermik, Kurzschluss)
     Q_INVOKABLE void berechnen();
 
-    // Schnellberechnung: Daumenregel I/6 (Cu, B2, 230 V AC)
-    Q_INVOKABLE void berechnenSchnell();
+    // Anwendungsfall-Vorlagen (Praxiswerte): Liste von Maps mit name, betriebsart,
+    // spannung, strom, laenge, duMaxProzent, verlegeart, schutzOrganTyp, schutzOrganStrom.
+    // Die Vorlage füllt nur die Eingabefelder; gerechnet wird immer mit berechnen().
+    Q_INVOKABLE QVariantList vorlagen() const;
 
 signals:
     void eingabeGeaendert();

@@ -245,68 +245,15 @@ void KabelRechnerModel::berechnen()
     emit ergebnisGeaendert();
 }
 
-// ─── Schnellberechnung ────────────────────────────────────────────────────────
+// ─── Anwendungsfall-Vorlagen ──────────────────────────────────────────────────
 
-void KabelRechnerModel::berechnenSchnell()
+QVariantList KabelRechnerModel::vorlagen() const
 {
-    m_ergebnis.clear();
-    m_ergebnisGueltig = false;
-
-    if (m_strom <= 0.0 || m_laenge <= 0.0) {
-        emit ergebnisGeaendert();
-        return;
-    }
-
-    // Daumenregel I/6 (gilt streng nur für Cu, B2)
-    const double aPraxis     = m_strom / 6.0;
-    const double aPraxisNorm = naechsterNormquerschnitt(aPraxis);
-
-    const double gamma    = (m_material == 0) ? gammaCu : gammaAl;
-    const double spannung = 230.0; // Standardannahme für Schnellmodus
-    const double duMax    = spannung * m_duMaxProzent / 100.0;
-
-    // Maximale Leitungslänge beim ermittelten Querschnitt bei 3 % Spannungsfall
-    // L_max = (γ · A · ΔU_max) / (2 · I)
-    const double lMax = (gamma * aPraxisNorm * duMax) / (2.0 * m_strom);
-    const bool   lOk  = (m_laenge <= lMax + 1e-6);
-
-    QStringList warnungen;
-    warnungen << tr("⚡ Schnellmodus: Richtwert für Cu, B2, 230 V AC. Für sicherheitsrelevante Anwendungen Genaumodus verwenden.");
-    if (!lOk)
-        warnungen << QString(tr("Leitungslänge %1 m überschreitet L_max von %2 m bei %3 % Spannungsfall."))
-                       .arg(formatN(m_laenge, 0))
-                       .arg(formatN(lMax, 0))
-                       .arg(formatN(m_duMaxProzent, 0));
-    if (m_material == 1)
-        warnungen << tr("Daumenregel I/6 gilt für Kupfer. Für Aluminium Genaumodus verwenden.");
-
-    QVariantMap praxisMap;
-    praxisMap["formel"] = QString("I / 6  =  %1 / 6  ≈  %2 mm²   →   %3")
-                              .arg(formatN(m_strom, 0))
-                              .arg(formatN(aPraxis, 1))
-                              .arg(formatQ(aPraxisNorm));
-    praxisMap["querschnittText"] = formatQ(aPraxisNorm);
-    praxisMap["lMaxText"]        = formatN(lMax, 0) + " m";
-    praxisMap["lOk"]             = lOk;
-    praxisMap["stimmtUeberein"]  = true; // kein Vergleich im Schnellmodus
-
-    const QString materialStr   = (m_material == 0) ? tr("Kupfer") : tr("Aluminium");
-    const QString zusammenfassung = materialStr + " · "
-                                  + tr("Standardannahmen (B2, 230 V AC)");
-
-    QVariantMap inaktiv;
-    inaktiv["aktiv"] = false;
-
-    m_ergebnis["gueltig"]         = true;
-    m_ergebnis["querschnittMm2"]  = aPraxisNorm;
-    m_ergebnis["querschnittText"] = formatQ(aPraxisNorm);
-    m_ergebnis["zusammenfassung"] = zusammenfassung;
-    m_ergebnis["spannungsfall"]   = inaktiv;
-    m_ergebnis["thermik"]         = inaktiv;
-    m_ergebnis["kurzschluss"]     = inaktiv;
-    m_ergebnis["praxis"]          = praxisMap;
-    m_ergebnis["warnungen"]       = warnungen;
-
-    m_ergebnisGueltig = true;
-    emit ergebnisGeaendert();
+    // Noch leer: die Liste der Praxisvorlagen wird mit dem Nutzer abgestimmt
+    // (KABELRECHNER-VORLAGEN-01). Ein Eintrag sieht so aus:
+    //   { "name", tr("Steckdosenkreis"), "betriebsart", 0, "spannung", 230.0,
+    //     "strom", 16.0, "laenge", 20.0, "duMaxProzent", 3.0, "verlegeart", 3,
+    //     "schutzOrganTyp", 0, "schutzOrganStrom", 16.0 }
+    // Indizes: betriebsart 0=AC 1=Drehstrom 2=DC · verlegeart 0..8=A1..G · typ 0=B 1=C 2=D
+    return {};
 }

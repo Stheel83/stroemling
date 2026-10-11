@@ -203,7 +203,12 @@ Item {
                             ComboBox {
                                 id: verlegeartBox
                                 Layout.fillWidth: true; font.pixelSize: 12
-                                model: ["A1", "A2", "B1", "B2", "C", "D", "E", "F", "G"]
+                                // Kurzcode + Kategorie (Norm-Gruppen DIN VDE 0298-4); Details in der Erklärung darunter
+                                model: [qsTr("A1 · Gedämmte Wand"), qsTr("A2 · Gedämmte Wand"),
+                                        qsTr("B1 · Rohr auf Wand"), qsTr("B2 · Rohr auf Wand"),
+                                        qsTr("C · Direkt auf Wand"), qsTr("D · Im Erdboden"),
+                                        qsTr("E · Frei in Luft"),
+                                        qsTr("F · Luft, mit Berührung"), qsTr("G · Luft, mit Abstand")]
                                 currentIndex: 3
                                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                                 contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;

@@ -54,6 +54,18 @@ void KabelRechnerModel::berechnen()
     if (m_material == 1)
         warnungen << tr("Aluminium: Norm-Mindestquerschnitt 10 mm². Kleinere Al-Querschnitte sind nicht zulässig.");
 
+    // Größter Tabellenquerschnitt: Anforderungen darüber lassen sich mit den
+    // hinterlegten Tabellen nicht mehr als Normquerschnitt ausdrücken.
+    const double tabMax = normReihe.back();
+    // Mindestquerschnitt für die Detailzeile: oberhalb der Tabelle den echten
+    // (aufgerundeten) Bedarf zeigen statt den auf tabMax abgeschnittenen Wert.
+    auto mindestAnzeige = [&](double raw) {
+        if (raw > tabMax + 1e-9)
+            return QString("≈ %1 (> %2)").arg(formatQ(std::ceil(raw))).arg(formatQ(tabMax));
+        return formatQ(naechsterNormquerschnitt(raw));
+    };
+    QStringList ueberGruende; // Kriterien, die über die Tabelle hinausgehen
+
     // ── 1. Spannungsfall ──────────────────────────────────────────────────────
     const double duMax  = spannung * m_duMaxProzent / 100.0;
     const double aDU_raw = (faktor * m_laenge * m_strom * cosPhi_eff) / (gamma * duMax);
@@ -61,11 +73,23 @@ void KabelRechnerModel::berechnen()
     const double duProzent = (faktor * m_laenge * m_strom * cosPhi_eff)
                              / (gamma * aDU_norm * spannung) * 100.0;
 
+    const bool duUeber = (aDU_raw > tabMax + 1e-9);
+    if (duUeber) {
+        ueberGruende << tr("Spannungsfall: ΔU ≤ %1 % verlangt ≈ %2")
+                            .arg(formatN(m_duMaxProzent, 1))
+                            .arg(formatQ(std::ceil(aDU_raw)));
+        warnungen << tr("Spannungsfall: Für ΔU ≤ %1 % wären ≈ %2 nötig – Leitung kürzen, "
+                        "ΔU-Grenze prüfen oder Spannung erhöhen.")
+                         .arg(formatN(m_duMaxProzent, 1))
+                         .arg(formatQ(std::ceil(aDU_raw)));
+    }
+
     QVariantMap spannungsfallMap;
     spannungsfallMap["aktiv"]      = true;
-    spannungsfallMap["mindestText"]= formatQ(aDU_norm);
-    spannungsfallMap["kenngroesse"]= QString("ΔU = %1 %")
-                                        .arg(formatN(duProzent, 1));
+    spannungsfallMap["mindestText"]= mindestAnzeige(aDU_raw);
+    spannungsfallMap["kenngroesse"]= duUeber
+        ? QString("ΔU = %1 % bei %2").arg(formatN(duProzent, 1)).arg(formatQ(aDU_norm))
+        : QString("ΔU = %1 %").arg(formatN(duProzent, 1));
     spannungsfallMap["ok"]         = (duProzent <= m_duMaxProzent + 1e-6);
 
     // ── 2. Thermik ────────────────────────────────────────────────────────────
@@ -87,17 +111,24 @@ void KabelRechnerModel::berechnen()
             break;
         }
     }
-    if (aThermisch < 0.0) {
+    const bool thermUeber = (aThermisch < 0.0);
+    if (thermUeber) {
         aThermisch = normReihe.back();
         double Ir50 = referenzstrom(m_material, normReihe.back(), m_verlegeart);
         IzBeiMin = (Ir50 > 0.0) ? Ir50 * fTemp * fGroup : 0.0;
-        warnungen << tr("Thermik: 50 mm² reicht für den angegebenen Strom nicht aus.");
+        warnungen << tr("Thermik: %1 reicht für den angegebenen Strom nicht aus – "
+                        "größerer Querschnitt oder Parallelverlegung nötig.").arg(formatQ(tabMax));
+        ueberGruende << tr("Thermik: I_z = %1 A bei %2 < I_b = %3 A")
+                            .arg(formatN(IzBeiMin, 0)).arg(formatQ(tabMax)).arg(formatN(m_strom, 0));
     }
 
     QVariantMap thermikMap;
     thermikMap["aktiv"]       = true;
-    thermikMap["mindestText"] = formatQ(aThermisch);
-    thermikMap["kenngroesse"] = QString("I_z = %1 A").arg(formatN(IzBeiMin, 1));
+    thermikMap["mindestText"] = thermUeber ? QString("> %1").arg(formatQ(tabMax))
+                                           : formatQ(aThermisch);
+    thermikMap["kenngroesse"] = thermUeber
+        ? QString("I_z = %1 A bei %2").arg(formatN(IzBeiMin, 1)).arg(formatQ(tabMax))
+        : QString("I_z = %1 A").arg(formatN(IzBeiMin, 1));
     thermikMap["ok"]          = (IzBeiMin >= m_strom - 1e-6);
 
     // ── 3. Abschaltbedingung (nur AC) ─────────────────────────────────────────
@@ -105,6 +136,8 @@ void KabelRechnerModel::berechnen()
     double aAbschalt = 0.0;
     double IkBeiMin  = 0.0;
     bool   abschaltOk = true;
+    bool   abschUeber = false;
+    QString abschMindest;
 
     if (abschaltAktiv && m_schutzOrganStrom > 0.0) {
         // B=5×I_n, C=10×I_n, D=20×I_n
@@ -118,10 +151,18 @@ void KabelRechnerModel::berechnen()
         if (rMax <= 0.0) {
             aAbschalt = normReihe.back();
             abschaltOk = false;
+            abschUeber = true;
+            abschMindest = QString("> %1").arg(formatQ(tabMax));
+            ueberGruende << tr("Abschaltbedingung: mit der angenommenen Netzimpedanz nicht erreichbar");
             warnungen << tr("Abschaltbedingung: Netznachbildung zu hochohmig für das gewählte Schutzorgan.");
         } else {
             const double aMin = (2.0 * m_laenge) / (gamma * rMax);
             aAbschalt = naechsterNormquerschnitt(aMin);
+            abschMindest = mindestAnzeige(aMin);
+            if (aMin > tabMax + 1e-9) {
+                abschUeber = true;
+                ueberGruende << tr("Abschaltbedingung: verlangt ≈ %1").arg(formatQ(std::ceil(aMin)));
+            }
             const double rL = (2.0 * m_laenge) / (gamma * aAbschalt);
             IkBeiMin = spannung / (rL + rNetz);
             abschaltOk = (IkBeiMin >= IkBenötigt - 1e-6);
@@ -133,7 +174,7 @@ void KabelRechnerModel::berechnen()
     QVariantMap kurzschlussMap;
     kurzschlussMap["aktiv"] = abschaltAktiv;
     if (abschaltAktiv) {
-        kurzschlussMap["mindestText"] = formatQ(aAbschalt);
+        kurzschlussMap["mindestText"] = abschMindest.isEmpty() ? formatQ(aAbschalt) : abschMindest;
         kurzschlussMap["kenngroesse"] = QString("I_k = %1 A").arg(formatN(IkBeiMin, 0));
         kurzschlussMap["ok"]          = abschaltOk;
     } else {
@@ -145,6 +186,9 @@ void KabelRechnerModel::berechnen()
     // ── 4. Gesamtergebnis ─────────────────────────────────────────────────────
     const double aFinalRaw  = std::max({aDU_raw, aThermisch, aAbschalt});
     const double aFinalNorm = naechsterNormquerschnitt(aFinalRaw);
+    // Mindestens ein Kriterium verlangt mehr als der größte Tabellenquerschnitt →
+    // keine Empfehlung, sondern ausdrücklich „kein Normquerschnitt ausreichend".
+    const bool ueberTabelle = duUeber || thermUeber || abschUeber;
 
     // Praxisrichtwert I/6 (Cu, B2)
     const double aPraxis     = m_strom / 6.0;
@@ -156,7 +200,7 @@ void KabelRechnerModel::berechnen()
                               .arg(formatN(aPraxis, 1))
                               .arg(formatQ(aPraxisNorm));
     praxisMap["querschnittText"] = formatQ(aPraxisNorm);
-    praxisMap["stimmtUeberein"]  = (std::abs(aPraxisNorm - aFinalNorm) < 1e-6);
+    praxisMap["stimmtUeberein"]  = !ueberTabelle && (std::abs(aPraxisNorm - aFinalNorm) < 1e-6);
 
     // Zusammenfassung für die Empfehlung
     static const QStringList verlegeartNamen = {"A1","A2","B1","B2","C","D1","D2","E","F"};
@@ -170,8 +214,11 @@ void KabelRechnerModel::berechnen()
                                   + " · " + formatN(spannung, 0) + " V";
 
     m_ergebnis["gueltig"]         = true;
-    m_ergebnis["querschnittMm2"]  = aFinalNorm;
-    m_ergebnis["querschnittText"] = formatQ(aFinalNorm);
+    m_ergebnis["ueberTabelle"]    = ueberTabelle;
+    m_ergebnis["ueberTabelleGrund"] = ueberGruende.join("\n");
+    m_ergebnis["querschnittMm2"]  = ueberTabelle ? 0.0 : aFinalNorm;
+    m_ergebnis["querschnittText"] = ueberTabelle ? QString("> %1").arg(formatQ(tabMax))
+                                                 : formatQ(aFinalNorm);
     m_ergebnis["zusammenfassung"] = zusammenfassung;
     m_ergebnis["spannungsfall"]   = spannungsfallMap;
     m_ergebnis["thermik"]         = thermikMap;

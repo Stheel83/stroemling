@@ -360,8 +360,11 @@ Item {
                                 spacing: 4
 
                                 Text {
-                                    text: qsTr("Empfohlener Querschnitt")
-                                    font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted
+                                    text: (erg && erg["ueberTabelle"])
+                                          ? qsTr("Kein Normquerschnitt ausreichend")
+                                          : qsTr("Empfohlener Querschnitt")
+                                    font.pixelSize: 11; font.weight: Font.Medium
+                                    color: (erg && erg["ueberTabelle"]) ? "#e0a000" : theme.textMuted
                                 }
                                 Text {
                                     text: (erg && erg["gueltig"]) ? erg["querschnittText"] : "—"
@@ -372,6 +375,13 @@ Item {
                                           ? erg["zusammenfassung"]
                                           : qsTr("Eingaben prüfen und Berechnen klicken")
                                     font.pixelSize: 12; color: theme.textMuted
+                                }
+                                Text {
+                                    visible: !!(erg && erg["ueberTabelle"])
+                                    width: parent.width
+                                    wrapMode: Text.WordWrap
+                                    text: (erg && erg["ueberTabelleGrund"]) ? erg["ueberTabelleGrund"] : ""
+                                    font.pixelSize: 12; color: "#e0a000"
                                 }
                             }
                         }
@@ -496,7 +506,9 @@ Item {
                                         text: root.istGenau
                                               ? (parent.parent.stimmtUeberein
                                                  ? qsTr("Praxiswert stimmt mit Genauberechnung überein")
-                                                 : qsTr("Genauberechnung empfiehlt anderen Querschnitt"))
+                                                 : (erg && erg["ueberTabelle"]
+                                                    ? qsTr("Praxiswert reicht nicht: Genauberechnung verlangt mehr als der Tabellenbereich")
+                                                    : qsTr("Genauberechnung empfiehlt anderen Querschnitt")))
                                               : qsTr("Für sicherheitsrelevante Anwendungen Genaumodus verwenden")
                                         font.pixelSize: 12
                                         color: (root.istGenau && parent.parent.stimmtUeberein) ? "#4caf50" : theme.textMuted

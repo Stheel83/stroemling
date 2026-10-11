@@ -360,7 +360,9 @@ Item {
                                 spacing: 4
 
                                 Text {
-                                    text: (erg && erg["ueberTabelle"])
+                                    text: (erg && erg["thermikFehlt"])
+                                          ? qsTr("Keine Empfehlung möglich")
+                                          : (erg && erg["ueberTabelle"])
                                           ? qsTr("Kein Normquerschnitt ausreichend")
                                           : qsTr("Empfohlener Querschnitt")
                                     font.pixelSize: 11; font.weight: Font.Medium

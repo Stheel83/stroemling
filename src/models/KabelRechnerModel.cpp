@@ -51,8 +51,9 @@ void KabelRechnerModel::berechnen()
     if (m_betriebsart == 2)
         warnungen << tr("DC-Betrieb: Schutzorgan auf DC-Lichtbogenlöschung prüfen (z. B. IEC 60947-2).");
 
-    if (m_material == 1 && m_verlegeart >= 7)
-        warnungen << tr("Aluminium: Für Verlegeart F/G sind keine Belastbarkeitswerte hinterlegt – Thermik nicht bewertbar.");
+    // Al hat für F/G keine hinterlegten Belastbarkeiten → Thermik nicht bewertbar.
+    // Dann nur diese eine Meldung (Empfehlungskarte), nicht zusätzlich „reicht nicht".
+    const bool thermFehlt = (m_material == 1 && m_verlegeart >= 7);
 
     if (m_material == 1)
         warnungen << tr("Aluminium: Norm-Mindestquerschnitt 10 mm². Kleinere Al-Querschnitte sind nicht zulässig.");
@@ -114,11 +115,13 @@ void KabelRechnerModel::berechnen()
             break;
         }
     }
-    const bool thermUeber = (aThermisch < 0.0);
-    if (thermUeber) {
+    const bool thermUeber = (aThermisch < 0.0) && !thermFehlt;
+    if (aThermisch < 0.0) {
         aThermisch = normReihe.back();
         double Ir50 = referenzstrom(m_material, normReihe.back(), m_verlegeart);
         IzBeiMin = (Ir50 > 0.0) ? Ir50 * fTemp * fGroup : 0.0;
+    }
+    if (thermUeber) {
         warnungen << tr("Thermik: %1 reicht für den angegebenen Strom nicht aus – "
                         "größerer Querschnitt oder Parallelverlegung nötig.").arg(formatQ(tabMax));
         ueberGruende << tr("Thermik: I_z = %1 A bei %2 < I_b = %3 A")
@@ -133,6 +136,13 @@ void KabelRechnerModel::berechnen()
         ? QString("I_z = %1 A bei %2").arg(formatN(IzBeiMin, 1)).arg(formatQ(tabMax))
         : QString("I_z = %1 A").arg(formatN(IzBeiMin, 1));
     thermikMap["ok"]          = (IzBeiMin >= m_strom - 1e-6);
+    if (thermFehlt) {
+        thermikMap["mindestText"] = "—";
+        thermikMap["kenngroesse"] = tr("nicht hinterlegt");
+        thermikMap["ok"]          = false;
+        ueberGruende << tr("Aluminium: Für Verlegeart F/G sind keine Belastbarkeitswerte hinterlegt – "
+                           "Thermik nicht bewertbar.");
+    }
 
     // ── 3. Abschaltbedingung (nur AC) ─────────────────────────────────────────
     const bool abschaltAktiv = (m_betriebsart != 2);
@@ -191,7 +201,7 @@ void KabelRechnerModel::berechnen()
     const double aFinalNorm = naechsterNormquerschnitt(aFinalRaw);
     // Mindestens ein Kriterium verlangt mehr als der größte Tabellenquerschnitt →
     // keine Empfehlung, sondern ausdrücklich „kein Normquerschnitt ausreichend".
-    const bool ueberTabelle = duUeber || thermUeber || abschUeber;
+    const bool ueberTabelle = duUeber || thermUeber || abschUeber || thermFehlt;
 
     // Praxisrichtwert I/6 (Cu, B2)
     const double aPraxis     = m_strom / 6.0;
@@ -220,7 +230,9 @@ void KabelRechnerModel::berechnen()
     m_ergebnis["ueberTabelle"]    = ueberTabelle;
     m_ergebnis["ueberTabelleGrund"] = ueberGruende.join("\n");
     m_ergebnis["querschnittMm2"]  = ueberTabelle ? 0.0 : aFinalNorm;
-    m_ergebnis["querschnittText"] = ueberTabelle ? QString("> %1").arg(formatQ(tabMax))
+    m_ergebnis["thermikFehlt"]    = thermFehlt;
+    m_ergebnis["querschnittText"] = thermFehlt ? QString("—")
+                                  : ueberTabelle ? QString("> %1").arg(formatQ(tabMax))
                                                  : formatQ(aFinalNorm);
     m_ergebnis["zusammenfassung"] = zusammenfassung;
     m_ergebnis["spannungsfall"]   = spannungsfallMap;

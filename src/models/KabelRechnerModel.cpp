@@ -51,6 +51,12 @@ void KabelRechnerModel::berechnen()
     if (m_betriebsart == 2)
         warnungen << tr("DC-Betrieb: Schutzorgan auf DC-Lichtbogenlöschung prüfen (z. B. IEC 60947-2).");
 
+    // Verlegeart D (Erdverlegung): Werte stammen aus einer älteren Tabelle und sind nicht
+    // gegen DIN VDE 0298-4 geprüft → Ergebnis nur als Anhaltswert.
+    if (m_verlegeart == 5)
+        warnungen << tr("Verlegeart D (Erdverlegung): Die Belastbarkeitswerte sind nicht gegen die "
+                        "Norm geprüft – Ergebnis nur als Anhaltswert verwenden.");
+
     // Al hat für F/G keine hinterlegten Belastbarkeiten → Thermik nicht bewertbar.
     // Dann nur diese eine Meldung (Empfehlungskarte), nicht zusätzlich „reicht nicht".
     const bool thermFehlt = (m_material == 1 && m_verlegeart >= 7);

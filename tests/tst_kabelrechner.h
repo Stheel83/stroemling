@@ -179,6 +179,19 @@ private slots:
         QCOMPARE(r["leistungText"].toString(), QString("120 W"));
     }
 
+    // Verlegeart D: ungeprüfte Werte → Warnung; andere Verlegearten ohne diese Warnung
+    void verlegeart_d_warnung()
+    {
+        KabelRechnerModel m;
+        auto hatDWarnung = [](const QVariantMap &r) {
+            for (const QVariant &w : r["warnungen"].toList())
+                if (w.toString().contains("Verlegeart D")) return true;
+            return false;
+        };
+        QVERIFY(hatDWarnung(rechne(m, 0, 230.0, 16.0, 1.0, 20.0, 3.0, 5, 0, 16.0)));
+        QVERIFY(!hatDWarnung(rechne(m, 0, 230.0, 16.0, 1.0, 20.0, 3.0, 3, 0, 16.0)));
+    }
+
     // Zwei belastete Adern (AC einphasig, DC) haben höhere Belastbarkeit als drei (Drehstrom):
     // B2, 1,5 mm²: 16,5 A (2 Adern) gegen 15 A (3 Adern). Gleicher Strom, kurze Leitung.
     void zwei_belastete_adern()

@@ -272,6 +272,15 @@ void KabelRechnerModel::berechnen()
                                   + " · " + formatN(spannung, 0) + " V";
 
     m_ergebnis["gueltig"]         = true;
+    // Aufgenommene Wirkleistung zur Übersicht (nicht Wellenleistung bei Motoren):
+    // P = U·I·cosφ (AC), √3·U·I·cosφ (Drehstrom), U·I (DC; cosPhi_eff = 1)
+    const double leistungW = ((m_betriebsart == 1) ? std::sqrt(3.0) : 1.0)
+                             * spannung * m_strom * cosPhi_eff;
+    m_ergebnis["leistungW"]    = leistungW;
+    m_ergebnis["leistungText"] = (leistungW < 1000.0)
+        ? QString("%1 W").arg(formatN(leistungW, 0))
+        : QString("%1 kW").arg(formatN(leistungW / 1000.0, 1));
+
     m_ergebnis["ueberTabelle"]    = ueberTabelle;
     m_ergebnis["ueberTabelleGrund"] = ueberGruende.join("\n");
     m_ergebnis["querschnittMm2"]  = ueberTabelle ? 0.0 : aFinalNorm;

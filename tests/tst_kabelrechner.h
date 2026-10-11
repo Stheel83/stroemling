@@ -155,6 +155,23 @@ private slots:
         QVERIFY(!r["ueberlast"].toMap()["ok"].toBool());
     }
 
+    // Aufgenommene Wirkleistung: AC U·I·cosφ, Drehstrom √3·U·I·cosφ, DC U·I
+    void leistungsanzeige()
+    {
+        KabelRechnerModel m;
+        QVariantMap r = rechne(m, 1, 400.0, 16.0, 1.0, 20.0, 3.0, 3, 1, 16.0);   // Wallbox
+        QCOMPARE(r["leistungText"].toString(), QString("11,1 kW"));
+        r = rechne(m, 0, 230.0, 16.0, 1.0, 25.0, 3.0, 3, 0, 16.0);               // Steckdosenkreis
+        QCOMPARE(r["leistungText"].toString(), QString("3,7 kW"));
+        r = rechne(m, 2, 12.0, 10.0, 1.0, 5.0, 3.0, 4, 0, 10.0);                 // Bordnetz
+        QCOMPARE(r["leistungText"].toString(), QString("120 W"));
+        r = rechne(m, 1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 1, 16.0);              // Motor 5,5 kW (Wellenleistung)
+        QCOMPARE(r["leistungText"].toString(), QString("6,5 kW"));
+        // cos φ wird bei DC ignoriert
+        r = rechne(m, 2, 12.0, 10.0, 0.5, 5.0, 3.0, 4, 0, 10.0);
+        QCOMPARE(r["leistungText"].toString(), QString("120 W"));
+    }
+
     // Zwei belastete Adern (AC einphasig, DC) haben höhere Belastbarkeit als drei (Drehstrom):
     // B2, 1,5 mm²: 16,5 A (2 Adern) gegen 15 A (3 Adern). Gleicher Strom, kurze Leitung.
     void zwei_belastete_adern()

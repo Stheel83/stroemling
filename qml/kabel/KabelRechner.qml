@@ -409,6 +409,18 @@ Item {
                                     font.pixelSize: 12; color: theme.textMuted
                                 }
                                 Text {
+                                    visible: !!(erg && erg["gueltig"])
+                                    text: qsTr("Wirkleistung aufgenommen ≈ %1").arg((erg && erg["leistungText"]) ? erg["leistungText"] : "")
+                                    font.pixelSize: 12; color: theme.textPrimary
+                                }
+                                Text {
+                                    visible: !!(erg && erg["gueltig"])
+                                    width: parent.width
+                                    wrapMode: Text.Wrap
+                                    text: qsTr("Hinweis: Auf dem Motortypenschild steht immer die abgegebene Wellenleistung. Die aufgenommene elektrische Leistung ist wegen des Wirkungsgrads höher.")
+                                    font.pixelSize: 10; color: theme.textMuted
+                                }
+                                Text {
                                     visible: !!(erg && erg["ueberTabelle"])
                                     width: parent.width
                                     wrapMode: Text.WordWrap

@@ -68,6 +68,11 @@ zeigen die **Berechnungsdetails**, welches Kriterium den Querschnitt bestimmt:
 
 Der größte der Mindestquerschnitte gewinnt.
 
+Zur Übersicht zeigt die Empfehlungskarte die **aufgenommene Wirkleistung**
+(P = U · I · cos φ, bei Drehstrom mit √3). Bei Motoren ist sie höher als die
+Angabe auf dem Typenschild, denn dort steht immer die **abgegebene
+Wellenleistung** – die Differenz sind die Verluste (Wirkungsgrad).
+
 ### Wenn kein Normquerschnitt reicht
 
 Verlangt eines der Kriterien mehr als 50 mm² (der Rechner kennt Querschnitte bis

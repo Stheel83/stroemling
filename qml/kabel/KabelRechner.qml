@@ -21,6 +21,25 @@ Item {
     // true, solange eine Vorlage Felder setzt – verhindert das Zurückspringen auf "Eigene Eingabe"
     property bool             vorlageWirdAngewendet: false
 
+    // Übernimmt alle Eingabefelder ins Modell und rechnet (Button + nach Vorlagenwahl)
+    function berechneJetzt() {
+        kabelRechnerModel.material = (root.material === "cu") ? 0 : 1
+        kabelRechnerModel.strom    = parseFloat(stromZeile.feldText.replace(",", ".")) || 0
+        kabelRechnerModel.laenge   = parseFloat(laengeZeile.feldText.replace(",", ".")) || 0
+        kabelRechnerModel.betriebsart      = betriebsartBox.currentIndex
+        kabelRechnerModel.spannung         = parseFloat(spannungZeile.feldText.replace(",", ".")) || 230
+        kabelRechnerModel.cosPhi           = parseFloat(cosPhiZeile.feldText.replace(",", ".")) || 1
+        kabelRechnerModel.duMaxProzent     = parseFloat(duMaxZeile.feldText.replace(",", ".")) || 3
+        kabelRechnerModel.verlegeart       = verlegeartBox.currentIndex
+        kabelRechnerModel.temperatur       = parseFloat(temperaturZeile.feldText.replace(",", ".")) || 30
+        kabelRechnerModel.haefung          = haefungBox.currentIndex
+        kabelRechnerModel.schutzOrganTyp   = schutzOrganTypBox.currentIndex
+        kabelRechnerModel.schutzOrganStrom = parseFloat(schutzOrganStromFeld.text.replace(",", ".")) || 16
+        var rn = parseFloat(netzImpedanzZeile.feldText.replace(",", "."))
+        kabelRechnerModel.netzImpedanz     = isNaN(rn) ? 0.3 : rn
+        kabelRechnerModel.berechnen()
+    }
+
     function vorlageAnwenden(idx) {
         if (idx <= 0 || idx > vorlagen.length) return
         var v = vorlagen[idx - 1]
@@ -37,6 +56,7 @@ Item {
         schutzOrganStromFeld.text   = String(v.schutzOrganStrom).replace(".", ",")
         netzImpedanzZeile.feldText  = "0,30"
         vorlageWirdAngewendet = false
+        berechneJetzt()
     }
     function vorlageManuellGeaendert() {
         if (!vorlageWirdAngewendet && vorlageBox.currentIndex !== 0)
@@ -335,23 +355,7 @@ Item {
                                 radius: 6
                                 Behavior on color { ColorAnimation { duration: 100 } }
                             }
-                            onClicked: {
-                                kabelRechnerModel.material = (root.material === "cu") ? 0 : 1
-                                kabelRechnerModel.strom    = parseFloat(stromZeile.feldText.replace(",", ".")) || 0
-                                kabelRechnerModel.laenge   = parseFloat(laengeZeile.feldText.replace(",", ".")) || 0
-                                kabelRechnerModel.betriebsart      = betriebsartBox.currentIndex
-                                kabelRechnerModel.spannung         = parseFloat(spannungZeile.feldText.replace(",", ".")) || 230
-                                kabelRechnerModel.cosPhi           = parseFloat(cosPhiZeile.feldText.replace(",", ".")) || 1
-                                kabelRechnerModel.duMaxProzent     = parseFloat(duMaxZeile.feldText.replace(",", ".")) || 3
-                                kabelRechnerModel.verlegeart       = verlegeartBox.currentIndex
-                                kabelRechnerModel.temperatur       = parseFloat(temperaturZeile.feldText.replace(",", ".")) || 30
-                                kabelRechnerModel.haefung          = haefungBox.currentIndex
-                                kabelRechnerModel.schutzOrganTyp   = schutzOrganTypBox.currentIndex
-                                kabelRechnerModel.schutzOrganStrom = parseFloat(schutzOrganStromFeld.text.replace(",", ".")) || 16
-                                var rn = parseFloat(netzImpedanzZeile.feldText.replace(",", "."))
-                                kabelRechnerModel.netzImpedanz     = isNaN(rn) ? 0.3 : rn
-                                kabelRechnerModel.berechnen()
-                            }
+                            onClicked: root.berechneJetzt()
                         }
 
                         Item { height: 20 }
@@ -414,7 +418,7 @@ Item {
                                     font.pixelSize: 12; color: theme.textPrimary
                                 }
                                 Text {
-                                    visible: !!(erg && erg["gueltig"])
+                                    visible: !!(erg && erg["gueltig"] && erg["leistungHinweis"])
                                     width: parent.width
                                     wrapMode: Text.Wrap
                                     text: qsTr("Hinweis: Auf dem Motortypenschild steht immer die abgegebene Wellenleistung. Die aufgenommene elektrische Leistung ist wegen des Wirkungsgrads höher.")

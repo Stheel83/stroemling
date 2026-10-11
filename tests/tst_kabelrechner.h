@@ -167,6 +167,13 @@ private slots:
         QCOMPARE(r["leistungText"].toString(), QString("120 W"));
         r = rechne(m, 1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 1, 16.0);              // Motor 5,5 kW (Wellenleistung)
         QCOMPARE(r["leistungText"].toString(), QString("6,5 kW"));
+        // Wellenleistungs-Hinweis nur bei cos φ < 1 und nicht DC
+        r = rechne(m, 1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 1, 16.0);
+        QVERIFY(r["leistungHinweis"].toBool());
+        r = rechne(m, 1, 400.0, 16.0, 1.0, 20.0, 3.0, 3, 1, 16.0);   // ohmsch (Wallbox)
+        QVERIFY(!r["leistungHinweis"].toBool());
+        r = rechne(m, 2, 12.0, 10.0, 0.5, 5.0, 3.0, 4, 0, 10.0);     // DC
+        QVERIFY(!r["leistungHinweis"].toBool());
         // cos φ wird bei DC ignoriert
         r = rechne(m, 2, 12.0, 10.0, 0.5, 5.0, 3.0, 4, 0, 10.0);
         QCOMPARE(r["leistungText"].toString(), QString("120 W"));

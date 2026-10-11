@@ -277,6 +277,9 @@ void KabelRechnerModel::berechnen()
     const double leistungW = ((m_betriebsart == 1) ? std::sqrt(3.0) : 1.0)
                              * spannung * m_strom * cosPhi_eff;
     m_ergebnis["leistungW"]    = leistungW;
+    // Hinweis „Typenschild = Wellenleistung" nur bei motorähnlicher Last (cos φ < 1, nicht DC);
+    // bei ohmscher Last (Heizung, Steckdose) und DC wäre er irreführend.
+    m_ergebnis["leistungHinweis"] = (m_betriebsart != 2 && m_cosPhi < 0.999);
     m_ergebnis["leistungText"] = (leistungW < 1000.0)
         ? QString("%1 W").arg(formatN(leistungW, 0))
         : QString("%1 kW").arg(formatN(leistungW / 1000.0, 1));

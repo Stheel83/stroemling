@@ -24,7 +24,7 @@
         },
         {
           "titel": "Kabelrechner",
-          "tags": "kabel querschnitt VDE berechnung strom",
+          "tags": "kabel querschnitt VDE berechnung strom vorlage netzimpedanz verlegeart",
           "datei": "bedienhinweise/kabelrechner.md"
         },
         {

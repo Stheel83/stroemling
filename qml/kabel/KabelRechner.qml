@@ -33,6 +33,7 @@ Item {
         verlegeartBox.currentIndex  = v.verlegeart
         schutzOrganTypBox.currentIndex = v.schutzOrganTyp
         schutzOrganStromFeld.text   = String(v.schutzOrganStrom).replace(".", ",")
+        netzImpedanzZeile.feldText  = "0,30"
         vorlageWirdAngewendet = false
     }
     function vorlageManuellGeaendert() {
@@ -297,6 +298,22 @@ Item {
                             Text { text: "A"; font.pixelSize: 12; color: theme.textMuted; Layout.preferredWidth: 28 }
                         }
 
+                        KrZeile {
+                            id: netzImpedanzZeile; onFeldTextChanged: root.vorlageManuellGeaendert();
+                            visible: betriebsartBox.currentIndex !== 2
+                            label: qsTr("R_netz"); wert: "0,30"; einheit: "Ω"; theme: root.theme
+                        }
+                        Text {
+                            visible: betriebsartBox.currentIndex !== 2
+                            width: parent.width
+                            leftPadding: 88
+                            rightPadding: 28
+                            font.pixelSize: 10
+                            color: theme.textMuted
+                            wrapMode: Text.Wrap
+                            text: qsTr("Netzimpedanz am Einspeisepunkt für die Abschaltbedingung. 0,30 Ω ist eine Annahme, kein Normwert – näher am Transformator ist sie kleiner. Wenn bekannt: gemessenen Wert eintragen.")
+                        }
+
                         Item { height: 16 }
 
                         // ── Berechnen ────────────────────────────────────
@@ -329,6 +346,8 @@ Item {
                                 kabelRechnerModel.haefung          = haefungBox.currentIndex
                                 kabelRechnerModel.schutzOrganTyp   = schutzOrganTypBox.currentIndex
                                 kabelRechnerModel.schutzOrganStrom = parseFloat(schutzOrganStromFeld.text.replace(",", ".")) || 16
+                                var rn = parseFloat(netzImpedanzZeile.feldText.replace(",", "."))
+                                kabelRechnerModel.netzImpedanz     = isNaN(rn) ? 0.3 : rn
                                 kabelRechnerModel.berechnen()
                             }
                         }

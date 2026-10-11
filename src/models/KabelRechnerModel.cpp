@@ -155,10 +155,10 @@ void KabelRechnerModel::berechnen()
     if (abschaltAktiv && m_schutzOrganStrom > 0.0) {
         // B=5×I_n, C=10×I_n, D=20×I_n
         const int charFaktor = (m_schutzOrganTyp == 0) ? 5 : (m_schutzOrganTyp == 1) ? 10 : 20;
-        // Annahme (kein Normwert): Netzimpedanz am Einspeisepunkt 0,3 Ω. Näher am
-        // Transformator ist sie kleiner → große Schutzorgane (v. a. D) werden damit
-        // pauschal zu streng bewertet.
-        const double rNetz      = 0.3; // Ω
+        // Netzimpedanz am Einspeisepunkt: Eingabefeld, Default 0,3 Ω (Annahme, kein
+        // Normwert). Näher am Transformator ist sie kleiner → große Schutzorgane
+        // (v. a. D) sind dann eher abschaltbar; bei Messwert den Messwert eintragen.
+        const double rNetz      = std::max(0.0, m_netzImpedanz); // Ω
         // Fehlerschleife läuft gegen Erde: maßgeblich ist die Leiter-Erde-Spannung U_0,
         // bei Drehstrom also U/√3 (400 V → 231 V), nicht die Außenleiterspannung.
         const double u0         = (m_betriebsart == 1) ? spannung / std::sqrt(3.0) : spannung;
@@ -172,8 +172,8 @@ void KabelRechnerModel::berechnen()
             abschaltOk = false;
             abschUeber = true;
             abschMindest = QString("> %1").arg(formatQ(tabMax));
-            ueberGruende << tr("Abschaltbedingung: mit der angenommenen Netzimpedanz (0,3 Ω) nicht erreichbar");
-            warnungen << tr("Abschaltbedingung: Netznachbildung zu hochohmig für das gewählte Schutzorgan.");
+            ueberGruende << tr("Abschaltbedingung: bei Netzimpedanz %1 Ω nicht erreichbar – Schutzorgan verkleinern oder Netzimpedanz prüfen").arg(formatN(rNetz, 2));
+            warnungen << tr("Abschaltbedingung: Netzimpedanz %1 Ω ist für das gewählte Schutzorgan zu hochohmig.").arg(formatN(rNetz, 2));
         } else {
             const double aMin = (2.0 * m_laenge) / (gamma * rMax);
             aAbschalt = naechsterNormquerschnitt(aMin);
@@ -194,7 +194,8 @@ void KabelRechnerModel::berechnen()
     kurzschlussMap["aktiv"] = abschaltAktiv;
     if (abschaltAktiv) {
         kurzschlussMap["mindestText"] = abschMindest.isEmpty() ? formatQ(aAbschalt) : abschMindest;
-        kurzschlussMap["kenngroesse"] = QString("I_k = %1 A").arg(formatN(IkBeiMin, 0));
+        kurzschlussMap["kenngroesse"] = QString("I_k = %1 A bei R_netz %2 Ω")
+                                          .arg(formatN(IkBeiMin, 0)).arg(formatN(m_netzImpedanz, 2));
         kurzschlussMap["ok"]          = abschaltOk;
     } else {
         kurzschlussMap["mindestText"] = "—";

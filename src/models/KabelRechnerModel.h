@@ -34,6 +34,8 @@ class KabelRechnerModel : public QObject
     // schutzOrganTyp: 0 = B, 1 = C, 2 = D
     Q_PROPERTY(int    schutzOrganTyp   READ schutzOrganTyp   WRITE setSchutzOrganTyp   NOTIFY eingabeGeaendert)
     Q_PROPERTY(double schutzOrganStrom READ schutzOrganStrom WRITE setSchutzOrganStrom NOTIFY eingabeGeaendert)
+    // Netzimpedanz am Einspeisepunkt in Ω (Abschaltbedingung); Default 0,3 Ω = Annahme
+    Q_PROPERTY(double netzImpedanz     READ netzImpedanz     WRITE setNetzImpedanz     NOTIFY eingabeGeaendert)
     // maximaler Spannungsfall in % (Standard: 3 %)
     Q_PROPERTY(double duMaxProzent     READ duMaxProzent     WRITE setDuMaxProzent     NOTIFY eingabeGeaendert)
 
@@ -55,6 +57,7 @@ public:
     int    haefung()          const { return m_haefung; }
     int    schutzOrganTyp()   const { return m_schutzOrganTyp; }
     double schutzOrganStrom() const { return m_schutzOrganStrom; }
+    double netzImpedanz()     const { return m_netzImpedanz; }
     double duMaxProzent()     const { return m_duMaxProzent; }
 
     bool        ergebnisGueltig() const { return m_ergebnisGueltig; }
@@ -71,13 +74,15 @@ public:
     void setHaefung(int v)            { if (m_haefung != v)          { m_haefung = v;           emit eingabeGeaendert(); } }
     void setSchutzOrganTyp(int v)     { if (m_schutzOrganTyp != v)   { m_schutzOrganTyp = v;   emit eingabeGeaendert(); } }
     void setSchutzOrganStrom(double v){ if (m_schutzOrganStrom != v) { m_schutzOrganStrom = v; emit eingabeGeaendert(); } }
+    void setNetzImpedanz(double v)    { if (m_netzImpedanz != v)     { m_netzImpedanz = v;      emit eingabeGeaendert(); } }
     void setDuMaxProzent(double v)    { if (m_duMaxProzent != v)     { m_duMaxProzent = v;      emit eingabeGeaendert(); } }
 
     // Genauberechnung: alle drei Kriterien (Spannungsfall, Thermik, Kurzschluss)
     Q_INVOKABLE void berechnen();
 
     // Anwendungsfall-Vorlagen (Praxiswerte): Liste von Maps mit name, betriebsart,
-    // spannung, strom, cosPhi, laenge, duMaxProzent, verlegeart, schutzOrganTyp, schutzOrganStrom.
+    // spannung, strom, cosPhi, laenge, duMaxProzent, verlegeart, schutzOrganTyp, schutzOrganStrom
+    // (die Netzimpedanz setzt die QML-Seite auf den Default 0,3 Ω zurück).
     // Die Vorlage füllt nur die Eingabefelder; gerechnet wird immer mit berechnen().
     Q_INVOKABLE QVariantList vorlagen() const;
 
@@ -97,6 +102,7 @@ private:
     int    m_haefung          = 0;
     int    m_schutzOrganTyp   = 1;    // C
     double m_schutzOrganStrom = 16.0;
+    double m_netzImpedanz     = 0.3;   // Ω
     double m_duMaxProzent     = 3.0;
 
     bool        m_ergebnisGueltig = false;

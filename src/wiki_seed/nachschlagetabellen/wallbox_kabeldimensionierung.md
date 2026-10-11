@@ -57,7 +57,7 @@ Charakteristik C mit I_n = Ladepunkt-Nennstrom, ΔU max = 3 %.
 | Kriterium | Ergebnis |
 |---|---|
 | Spannungsfall | 1,5 mm² ausreichend (ΔU ≈ 1,65 %) |
-| Thermik | **2,5 mm²** nötig (I_z = 21 A bei B2, 1,5 mm² reicht mit 15,5 A nicht) |
+| Thermik | **2,5 mm²** nötig (I_z = 20 A bei B2, 1,5 mm² reicht mit 15 A nicht) |
 | Abschaltbedingung (C16) | 1,5 mm² ausreichend |
 | **Empfohlener Querschnitt** | **2,5 mm²** (Thermik entscheidet) |
 | Praxisrichtwert I/6 | 16/6 ≈ 2,7 → 4 mm² (hier großzügiger als die exakte Berechnung) |
@@ -67,7 +67,7 @@ Charakteristik C mit I_n = Ladepunkt-Nennstrom, ΔU max = 3 %.
 | Kriterium | Ergebnis |
 |---|---|
 | Spannungsfall | 2,5 mm² ausreichend (ΔU ≈ 1,98 %) |
-| Thermik | **6 mm²** nötig (I_z = 36 A bei B2, 4 mm² reicht mit 28 A nicht) |
+| Thermik | **6 mm²** nötig (I_z = 34 A bei B2, 4 mm² reicht mit 27 A nicht) |
 | Abschaltbedingung (C32) | 1,5 mm² ausreichend |
 | **Empfohlener Querschnitt** | **6 mm²** (Thermik entscheidet) |
 | Praxisrichtwert I/6 | 32/6 ≈ 5,3 → 6 mm² (stimmt hier mit der exakten Berechnung überein) |

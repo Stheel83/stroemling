@@ -249,11 +249,37 @@ void KabelRechnerModel::berechnen()
 
 QVariantList KabelRechnerModel::vorlagen() const
 {
-    // Noch leer: die Liste der Praxisvorlagen wird mit dem Nutzer abgestimmt
-    // (KABELRECHNER-VORLAGEN-01). Ein Eintrag sieht so aus:
-    //   { "name", tr("Steckdosenkreis"), "betriebsart", 0, "spannung", 230.0,
-    //     "strom", 16.0, "laenge", 20.0, "duMaxProzent", 3.0, "verlegeart", 3,
-    //     "schutzOrganTyp", 0, "schutzOrganStrom", 16.0 }
-    // Indizes: betriebsart 0=AC 1=Drehstrom 2=DC · verlegeart 0..8=A1..G · typ 0=B 1=C 2=D
-    return {};
+    // Praxisübliche Ausgangswerte für typische Stromkreise. Die Vorlage füllt nur die
+    // Eingabefelder; Querschnitt/Prüfung kommen immer aus berechnen(). Länge ist eine
+    // typische Annahme und im Rechner anzupassen.
+    // Indizes: betriebsart 0=AC 1=Drehstrom 2=DC · verlegeart 0..8=A1..G (3=B2, 4=C)
+    //          schutzOrganTyp 0=B 1=C 2=D
+    struct V {
+        const char *name; int betriebsart; double spannung; double strom; double laenge;
+        double duMax; int verlegeart; int typ; double inSchutz;
+    };
+    static const V tabelle[] = {
+        { QT_TR_NOOP("Lichtkreis (10 A)"),          0, 230.0, 10.0, 20.0, 3.0, 3, 0, 10.0 },
+        { QT_TR_NOOP("Steckdosenkreis (16 A)"),     0, 230.0, 16.0, 25.0, 3.0, 3, 0, 16.0 },
+        { QT_TR_NOOP("Herd / Backofen (3~, 16 A)"), 1, 400.0, 16.0, 15.0, 3.0, 3, 0, 16.0 },
+        { QT_TR_NOOP("Durchlauferhitzer (3~, 32 A)"), 1, 400.0, 32.0, 15.0, 3.0, 3, 0, 32.0 },
+        { QT_TR_NOOP("Wallbox 11 kW (3~, 16 A)"),   1, 400.0, 16.0, 20.0, 3.0, 3, 1, 16.0 },
+        { QT_TR_NOOP("Bordnetz 12 V DC (10 A)"),    2,  12.0, 10.0,  5.0, 3.0, 4, 0, 10.0 },
+    };
+
+    QVariantList liste;
+    for (const V &v : tabelle) {
+        QVariantMap m;
+        m["name"]             = tr(v.name);
+        m["betriebsart"]      = v.betriebsart;
+        m["spannung"]         = v.spannung;
+        m["strom"]            = v.strom;
+        m["laenge"]           = v.laenge;
+        m["duMaxProzent"]     = v.duMax;
+        m["verlegeart"]       = v.verlegeart;
+        m["schutzOrganTyp"]   = v.typ;
+        m["schutzOrganStrom"] = v.inSchutz;
+        liste << m;
+    }
+    return liste;
 }

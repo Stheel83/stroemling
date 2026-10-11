@@ -6,7 +6,7 @@ führt zu unzulässiger Erwärmung und Isolationsschädigung. Das gilt sowohl
 für mehradrige **Leitungen/Kabel** (NYM, LiYCY …) als auch für einzelne
 **Aderleitungen** in der Schaltschrankverdrahtung (H07V-K, H05V-K).
 
-> **Normen:** DIN VDE 0298-4:2013-06 · DIN VDE 0100-430 (Schutz bei Überlast) · DIN EN 60204-1 (Schaltschrankverdrahtung)
+> **Normen:** DIN VDE 0298-4 · Werte gegen Tabellenbuch (DIN VDE 0298-4:03-08, 25 °C ×0,94) geprüft · DIN VDE 0100-430 (Schutz bei Überlast) · DIN EN 60204-1 (Schaltschrankverdrahtung)
 
 ---
 
@@ -41,24 +41,24 @@ Standardwert der Tabellen unten: 30 °C. Bei abweichender Temperatur:
 
 Strombelastbarkeit I_z in Ampere (Dauerbelastung, 30 °C Umgebung):
 
-| Querschnitt | A1¹ | A2² | B1³ | B2⁴ | C⁵  | E/F⁶ |
+| Querschnitt | A1¹ | A2² | B1³ | B2⁴ | C⁵  | E⁶ |
 |:-----------:|:---:|:---:|:---:|:---:|:---:|:----:|
-| 1,5 mm²     | 13  | 13  | 15  | 15  | 17  | 19   |
-| 2,5 mm²     | 17  | 17  | 20  | 20  | 23  | 26   |
-| 4,0 mm²     | 23  | 23  | 27  | 25  | 30  | 35   |
-| 6,0 mm²     | 29  | 29  | 34  | 32  | 38  | 44   |
-| 10 mm²      | 39  | 38  | 46  | 43  | 52  | 60   |
-| 16 mm²      | 52  | 51  | 61  | 57  | 69  | 79   |
-| 25 mm²      | 68  | 66  | 80  | 75  | 90  | 101  |
-| 35 mm²      | 84  | 83  | 99  | 92  | 111 | 126  |
-| 50 mm²      | 100 | 99  | 118 | 110 | 133 | 152  |
+| 1,5 mm²     | 13,5 | 13 | 15,5 | 15 | 17,5 | 18,5 |
+| 2,5 mm²     | 18 | 17,5 | 21 | 20 | 24 | 25 |
+| 4,0 mm²     | 24 | 23 | 28 | 27 | 32 | 34 |
+| 6,0 mm²     | 31 | 29 | 36 | 34 | 41 | 43 |
+| 10 mm²      | 42 | 39 | 50 | 46 | 57 | 60 |
+| 16 mm²      | 56 | 52 | 68 | 62 | 76 | 80 |
+| 25 mm²      | 73 | 68 | 89 | 80 | 96 | 101 |
+| 35 mm²      | 89 | 83 | 110 | 99 | 119 | 126 |
+| 50 mm²      | 108 | 99 | 134 | 118 | 144 | 153 |
 
 ¹ A1: Einader-Leitung in Rohr in Wärmedämmung  
 ² A2: Mehrader-Leitung in Rohr in Wärmedämmung  
 ³ B1: Einader-Leitung in Rohr auf/in Wand  
 ⁴ B2: Mehrader-Leitung in Rohr auf/in Wand  
 ⁵ C: Kabel direkt auf Wand (keine Wärmedämmung)  
-⁶ E/F: Kabel frei in Luft, auf Kabelbahn, mehradrig  
+⁶ E: mehradriges Kabel frei in Luft, auf Kabelbahn (Wandabstand ≥ 0,3 · d). Einadrige Kabel frei in Luft (F mit Berührung, G mit Abstand) gelten erst ab 25 mm², z. B. 25 mm²: F 110 A / G 130 A  
 
 ### Häufungsfaktor bei Bündelung (Verlegeart B–F)
 
@@ -102,7 +102,7 @@ typischerweise den nächsthöheren Querschnitt.
 2. Häufungsfaktor (3 Leitungen): 0,70
 3. Gesamtfaktor: 0,94 × 0,70 = 0,658
 4. Erforderliche Basisbelastbarkeit: 16 A / 0,658 = **24,3 A**
-5. Tabelle B2: 4 mm² = 25 A → **4 mm² ausreichend**
+5. Tabelle B2: 4 mm² = 27 A → **4 mm² ausreichend**
 
 ---
 

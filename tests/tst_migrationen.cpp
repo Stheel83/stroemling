@@ -10,6 +10,7 @@
 #include "models/SymbolDefinitionModel.h"
 #include "models/SeitenModel.h"
 #include "tst_kernfunktionen.h"
+#include "tst_kabelrechner.h"
 
 // Testet das Migrations-System auf einer temporären SQLite-Datei.
 // Ablauf: createProjekt (v40-Baseline) → closeProjekt → openProjekt
@@ -747,14 +748,16 @@ private slots:
     }
 };
 
-// Zwei Testklassen in einem Executable: Migrationen + Kernfunktionen (grafikSpeichern/klemmlistenauszug).
+// Drei Testklassen in einem Executable: Migrationen, Kernfunktionen (grafikSpeichern/klemmlistenauszug), Kabelrechner.
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);   // Schriften/QPainter fuer PDF-Export noetig
     TstMigrationen   migrationen;
     TstKernfunktionen kern;
+    TstKabelrechner   kabel;
     int rc = QTest::qExec(&migrationen, argc, argv);
     rc |= QTest::qExec(&kern, argc, argv);
+    rc |= QTest::qExec(&kabel, argc, argv);
     return rc;
 }
 #include "tst_migrationen.moc"

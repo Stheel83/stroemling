@@ -519,6 +519,10 @@ enable_testing()
 qt_add_executable(stroemling_test
     tests/tst_migrationen.cpp
     tests/tst_kernfunktionen.h
+    tests/tst_kabelrechner.h
+    src/models/KabelRechnerModel.cpp
+    src/models/KabelRechnerModel.h
+    src/utils/KabelTabellen.h
     src/logging.cpp
     src/logging.h
     src/database/Database.cpp

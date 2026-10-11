@@ -866,8 +866,17 @@ public:
     // I/O-Liste als CSV (UTF-8 mit BOM, Semikolon-getrennt)
     Q_INVOKABLE bool         spsIOListeCsvSpeichern(int projektId, const QString &pfad);
 
-    // Element-IDs die mehr als einem Kanal zugewiesen sind (Adress-Konflikt)
+    // Element-IDs mit SPS-Konflikt (Canvas-Markierung): Element mit mehr als einem
+    // Kanal ODER Element, dessen Kanal eine Adresse mit einem anderen Kanal teilt
+    // (SPS-INTEGRITAET-01, Geltungsbereich der Adresse: je Rack).
     Q_INVOKABLE QVariantList spsKonfliktElementIds(int projektId);
+
+    // Vorab-Prüfung für die Dialoge: kollidiert diese Adresse mit einem anderen Kanal?
+    // ausschlussId = der gerade bearbeitete Kanal (0 beim Anlegen).
+    // Rückgabe: {} wenn frei, sonst {kanalId, adresse, variablenname}.
+    Q_INVOKABLE QVariantMap  spsKanalKonflikt(int projektId, int baugruppeId, int kanalNr,
+                                               const QString &adressTyp, int byteNr, int bitNr,
+                                               const QString &datentyp, int ausschlussId);
 
     // ── DRC (Design Rule Check) ──────────────────────────────────────────────
     // Gibt alle BMK-Werte zurück, die im Projekt mehrfach vorkommen.
@@ -909,6 +918,12 @@ public:
     // D-12 (KABEL-VERWAIST-01): Kabel-Datensatz ohne jedes Kabellinie-Grafikelement.
     // Rückgabe: [{kabelId, kabelName}]
     Q_INVOKABLE QVariantList drcKabelOhneKabellinie(int projektId);
+    // D-14 (SPS-INTEGRITAET-01): SPS/PLS-Prüfungen. Jeder Befund trägt ein Feld `art`:
+    // rack_nr_doppelt, slot_doppelt, adresse_doppelt, adresse_ausserhalb,
+    // kanal_ohne_baugruppe, element_mehrere_kanaele, kanal_typ_passt_nicht,
+    // kanal_ohne_element, symbol_ohne_kanal, pls_grenzen.
+    // Gemeinsame Felder: {art, adresse, tag, detail, elementId, seiteId, seiteName}
+    Q_INVOKABLE QVariantList drcSpsPruefung(int projektId);
 
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.

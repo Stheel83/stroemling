@@ -33,6 +33,46 @@ Item {
 
     ListModel { id: ergebnisModel }
 
+    // D-14: Meldungstexte der SPS/PLS-Befunde (Felder: art, adresse, tag, detail, seiteName)
+    function _spsBefundText(f) {
+        var wo  = f.adresse || f.tag || "?"
+        var seite = f.seiteName ? qsTr("Seite: %1").arg(f.seiteName) : ""
+        function mit(a, b) { return b ? a + " – " + b : a }
+        switch (f.art) {
+        case "rack_nr_doppelt":
+            return { meldung: qsTr("SPS/PLS: Rack-Nr. %1 mehrfach vergeben").arg(f.adresse),
+                     detail:  f.detail }
+        case "slot_doppelt":
+            return { meldung: qsTr("SPS/PLS: Slot %1 mehrfach belegt").arg(f.adresse),
+                     detail:  f.detail }
+        case "adresse_doppelt":
+            return { meldung: qsTr("SPS/PLS: Adresse %1 doppelt belegt").arg(wo),
+                     detail:  mit(qsTr("Kollidiert mit %1").arg(f.detail), seite) }
+        case "adresse_ausserhalb":
+            return { meldung: qsTr("SPS/PLS: Adresse %1 außerhalb der Baugruppe").arg(wo),
+                     detail:  mit(f.detail, seite) }
+        case "kanal_ohne_baugruppe":
+            return { meldung: qsTr("SPS/PLS: Kanal %1 ohne Baugruppe").arg(wo),
+                     detail:  mit(qsTr("Baugruppe gelöscht? Im SPS/PLS-Tab neu zuordnen"), seite) }
+        case "element_mehrere_kanaele":
+            return { meldung: qsTr("SPS/PLS: Element mit mehreren Kanälen (%1)").arg(f.adresse),
+                     detail:  mit(f.detail, seite) }
+        case "kanal_typ_passt_nicht":
+            return { meldung: qsTr("SPS/PLS: Kanal-Typ passt nicht zum Symbol (%1)").arg(wo),
+                     detail:  mit(f.detail, seite) }
+        case "kanal_ohne_element":
+            return { meldung: qsTr("SPS/PLS: Kanal %1 ohne Element im Schaltplan").arg(f.adresse + (f.tag ? " (" + f.tag + ")" : "")),
+                     detail:  qsTr("Hat Tag/Kommentar, ist aber keinem Symbol zugewiesen") }
+        case "symbol_ohne_kanal":
+            return { meldung: qsTr("SPS/PLS: Symbol %1 ohne Kanal").arg(f.tag || f.detail),
+                     detail:  mit(qsTr("Kein SPS/PLS-Kanal zugewiesen"), seite) }
+        case "pls_grenzen":
+            return { meldung: qsTr("PLS: Grenzwerte unplausibel (%1)").arg(wo),
+                     detail:  f.detail }
+        }
+        return { meldung: qsTr("SPS/PLS: %1").arg(f.art), detail: "" }
+    }
+
     function pruefen() {
         ergebnisModel.clear()
 
@@ -177,6 +217,20 @@ Item {
                 "detail":    qsTr("Seite: %1 – automatisch vorgeschlagen, im Eigenschaften-Panel prüfen").arg(pb.seiteName),
                 "seiteId":   pb.seiteId,
                 "elementId": pb.elementId
+            })
+        }
+
+        // D-14 (SPS-INTEGRITAET-01): SPS/PLS-Sammelprüfung
+        var d14 = db.drcSpsPruefung(root.projektId)
+        for (var sp = 0; sp < d14.length; sp++) {
+            var sf = d14[sp]
+            var spsText = root._spsBefundText(sf)
+            ergebnisModel.append({
+                "typ":       "sps_" + sf.art,
+                "meldung":   spsText.meldung,
+                "detail":    spsText.detail,
+                "seiteId":   sf.seiteId,
+                "elementId": sf.elementId
             })
         }
 

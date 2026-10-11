@@ -237,6 +237,104 @@ private slots:
         QVERIFY(!einWert(QString("SELECT grafik_element_id FROM sps_kanal WHERE id=%1").arg(k)).isNull());
     }
 
+    // ── SPS-INTEGRITAET-01 ───────────────────────────────────────
+    static bool hatArt(const QVariantList &l, const QString &art)
+    {
+        for (const QVariant &v : l)
+            if (v.toMap()["art"].toString() == art) return true;
+        return false;
+    }
+
+    void sps_01_eindeutigkeitUndKollisionen()
+    {
+        const int r0 = m_db->spsRackAnlegen(1, 70, "SPS", "Rack A", "");
+        QVERIFY(r0 > 0);
+        QCOMPARE(m_db->spsRackAnlegen(1, 70, "SPS", "Rack doppelt", ""), -1);
+        const int r1 = m_db->spsRackAnlegen(1, 71, "SPS", "Rack B", "");
+        QVERIFY(r1 > 0);
+        QVERIFY2(!m_db->spsRackAktualisieren(r1, 70, "SPS", "Rack B", "", ""),
+                 "Rack-Nr. 70 darf nicht ein zweites Mal vergeben werden");
+        QVERIFY(m_db->spsRackAktualisieren(r1, 71, "SPS", "Rack B neu", "", ""));  // unverändert: ok
+
+        const int bg = m_db->spsBaugruppeAnlegen(r0, 1, "DI", "DI 16", 16, 0);
+        QVERIFY(bg > 0);
+        QCOMPARE(m_db->spsBaugruppeAnlegen(r0, 1, "DO", "Slot doppelt", 16, 2), -1);
+        const int bg2 = m_db->spsBaugruppeAnlegen(r0, 2, "DO", "DO 16", 16, 0);
+        QVERIFY(bg2 > 0);
+        QVERIFY(!m_db->spsBaugruppeAktualisieren(bg2, 1, "DO", "DO 16", "", 16, "BOOL", 0, ""));
+
+        const int k0 = m_db->spsKanalAnlegen(1, bg, 0, "E", 0, 0, "BOOL", "Start", "");
+        QVERIFY(k0 > 0);
+        QCOMPARE(m_db->spsKanalAnlegen(1, bg, 0, "E", 0, 0, "BOOL", "", ""), -1);       // gleiche Adresse
+        QCOMPARE(m_db->spsKanalAnlegen(1, bg, 0, "E", 0, -1, "WORD", "", ""), -1);      // EW0 überlappt E0.0
+        QVERIFY(m_db->spsKanalAnlegen(1, bg, 1, "E", 0, 1, "BOOL", "", "") > 0);        // E0.1 frei
+        QVERIFY(m_db->spsKanalAnlegen(1, bg2, 0, "A", 0, 0, "BOOL", "", "") > 0);       // A0.0 ist ein anderer Adressraum
+        // anderes Rack: gleiche Adresse E0.0 erlaubt (eigener Adressraum)
+        const int bgB = m_db->spsBaugruppeAnlegen(r1, 1, "DI", "DI B", 16, 0);
+        QVERIFY(bgB > 0);
+        QVERIFY(m_db->spsKanalAnlegen(1, bgB, 0, "E", 0, 0, "BOOL", "", "") > 0);
+
+        // Vorab-Prüfung liefert den Partner
+        const QVariantMap konflikt = m_db->spsKanalKonflikt(1, bg, 5, "E", 0, 0, "BOOL", 0);
+        QCOMPARE(konflikt["kanalId"].toInt(), k0);
+        QCOMPARE(konflikt["adresse"].toString(), QString("E0.0"));
+        QCOMPARE(konflikt["variablenname"].toString(), QString("Start"));
+        QVERIFY(m_db->spsKanalKonflikt(1, bg, 5, "E", 1, 0, "BOOL", 0).isEmpty());
+
+        // Ändern auf belegte Adresse wird abgewiesen, Kommentar ändern bleibt möglich
+        const int k1 = m_db->spsKanalAnlegen(1, bg, 2, "E", 0, 2, "BOOL", "", "");
+        QVERIFY(k1 > 0);
+        QVERIFY(!m_db->spsKanalAktualisieren(k1, {{"bit_nr", 0}}));
+        QVERIFY(m_db->spsKanalAktualisieren(k1, {{"kommentar", "ok"}, {"bit_nr", 2}}));
+    }
+
+    void sps_02_konfliktMengeUndDrc()
+    {
+        const int r = m_db->spsRackAnlegen(1, 80, "SPS", "Rack C", "");
+        const int bg = m_db->spsBaugruppeAnlegen(r, 1, "DI", "DI 8", 8, 0);
+        QVERIFY(r > 0 && bg > 0);
+
+        const int sid = neueSeite("SPS");
+        QVERIFY(m_db->grafikSpeichern(sid, {symbol("sps_di_einpolig", 0, 0),
+                                             symbol("sps_di_einpolig", 20, 0),
+                                             symbol("sps_do_einpolig", 40, 0)}));
+        const QVariantList l = m_db->grafikLaden(sid);
+        const int e0 = l[0].toMap()["id"].toInt(), e1 = l[1].toMap()["id"].toInt();
+        const int e2 = l[2].toMap()["id"].toInt();
+
+        // Altbestand: direkte INSERTs umgehen die Sperre (so entstehen Duplikate in alten Projekten)
+        const int a = ins(QString("INSERT INTO sps_kanal (projekt_id,baugruppe_id,kanal_nr,adress_typ,byte_nr,bit_nr,datentyp,variablenname,grafik_element_id) "
+                                  "VALUES (1,%1,0,'E',0,0,'BOOL','Sensor_A',%2)").arg(bg).arg(e0));
+        const int b = ins(QString("INSERT INTO sps_kanal (projekt_id,baugruppe_id,kanal_nr,adress_typ,byte_nr,bit_nr,datentyp,variablenname,grafik_element_id) "
+                                  "VALUES (1,%1,1,'E',0,0,'BOOL','Sensor_B',%2)").arg(bg).arg(e1));
+        const int weit = ins(QString("INSERT INTO sps_kanal (projekt_id,baugruppe_id,kanal_nr,adress_typ,byte_nr,bit_nr,datentyp) "
+                                     "VALUES (1,%1,2,'E',5,0,'BOOL')").arg(bg));
+        const int typfalsch = ins(QString("INSERT INTO sps_kanal (projekt_id,baugruppe_id,kanal_nr,adress_typ,byte_nr,bit_nr,datentyp,grafik_element_id) "
+                                          "VALUES (1,%1,3,'E',0,3,'BOOL',%2)").arg(bg).arg(e2));
+        const int ohneBg = ins("INSERT INTO sps_kanal (projekt_id,adress_typ,byte_nr,bit_nr,datentyp,variablenname) "
+                               "VALUES (1,'E',9,0,'BOOL','Waise')");
+        const int ohneEl = ins(QString("INSERT INTO sps_kanal (projekt_id,baugruppe_id,kanal_nr,adress_typ,byte_nr,bit_nr,datentyp,variablenname) "
+                                       "VALUES (1,%1,4,'E',0,4,'BOOL','Tag_ohne_Symbol')").arg(bg));
+        QVERIFY(a > 0 && b > 0 && weit > 0 && typfalsch > 0 && ohneBg > 0 && ohneEl > 0);
+
+        // Canvas-Markierung: beide kollidierenden Elemente, nicht das dritte
+        QSet<int> ids;
+        for (const QVariant &v : m_db->spsKonfliktElementIds(1)) ids.insert(v.toInt());
+        QVERIFY(ids.contains(e0));
+        QVERIFY(ids.contains(e1));
+        QVERIFY(!ids.contains(e2));
+
+        const QVariantList drc = m_db->drcSpsPruefung(1);
+        QVERIFY2(hatArt(drc, "adresse_doppelt"),       "Adresskollision nicht gemeldet");
+        QVERIFY2(hatArt(drc, "adresse_ausserhalb"),    "Adresse außerhalb der Baugruppe nicht gemeldet");
+        QVERIFY2(hatArt(drc, "kanal_typ_passt_nicht"), "DO-Symbol an DI-Kanal nicht gemeldet");
+        QVERIFY2(hatArt(drc, "kanal_ohne_baugruppe"),  "Kanal ohne Baugruppe nicht gemeldet");
+        QVERIFY2(hatArt(drc, "kanal_ohne_element"),    "Kanal mit Tag ohne Element nicht gemeldet");
+
+        // Gegenprobe: eine freie Adresse im selben Rack kollidiert nicht
+        QVERIFY(m_db->spsKanalKonflikt(1, bg, 6, "E", 0, 6, "BOOL", 0).isEmpty());
+    }
+
     void gs_07_kabellinieUndAderzuordnungWerdenNachgezogen()
     {
         const int sid = neueSeite("1"), anderes = neueSeite("2");

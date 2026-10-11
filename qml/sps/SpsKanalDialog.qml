@@ -214,6 +214,28 @@ Dialog {
         var kNr    = root.istPls ? kanalNrSpin.value : -1
         var typ    = root.istPls ? "E" : kanalAdressTypCombo.currentText
         var dtype  = root.istPls ? "REAL" : kanalDatentypCombo.currentText
+        if (root.istPls) {
+            // Richtung folgt dem Baugruppen-Typ (AO/DO = Ausgang) - früher stand hier
+            // fest "E", das beim Bearbeiten jeden PLS-Ausgangskanal zum Eingang machte.
+            for (var bi = 0; bi < root.baugruppen.length; bi++)
+                if (root.baugruppen[bi].id === bgId) {
+                    var bt = root.baugruppen[bi].typ
+                    typ = (bt === "AO" || bt === "DO") ? "A" : "E"
+                    break
+                }
+        }
+
+        // SPS-INTEGRITAET-01: kollidierende Adresse mit konkretem Partner melden.
+        // Beim Bearbeiten übernimmt die DB-Schicht die Prüfung (sie blockiert nur
+        // echte Adressänderungen, Altbestand-Duplikate bleiben bearbeitbar).
+        if (_istNeu) {
+            var konflikt = db.spsKanalKonflikt(root.projektId, bgId, kNr, typ, byteNr, bitNr, dtype, 0)
+            if (konflikt && konflikt.kanalId > 0) {
+                root.fehler(qsTr("Adresse %1 ist bereits belegt%2").arg(konflikt.adresse)
+                            .arg(konflikt.variablenname ? " (" + konflikt.variablenname + ")" : ""))
+                return
+            }
+        }
 
         if (_istNeu) {
             var newId = db.spsKanalAnlegen(root.projektId, bgId, kNr,
@@ -243,7 +265,7 @@ Dialog {
                 if (plsAlhhField.text.trim()) felder["pls_alarm_hh"] = parseFloat(plsAlhhField.text.replace(",","."))
             }
             if (!db.spsKanalAktualisieren(_editId, felder)) {
-                root.fehler(qsTr("Kanal konnte nicht gespeichert werden"))
+                root.fehler(qsTr("Kanal konnte nicht gespeichert werden (Adresse bereits belegt?)"))
                 return
             }
             root.gespeichert(-1)

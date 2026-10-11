@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Database_SpsAdressen.h"
 #include <cmath>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -16,6 +17,7 @@
 #include <QUrl>
 #include <QDateTime>
 #include <QMap>
+#include <QHash>
 #include <algorithm>
 
 // NKZ-03: betriebsmittel.funktion/einbauort/anlage_uebergeordnet/standort_uebergeordnet
@@ -857,6 +859,237 @@ QVariantList Database::drcKabelOhneKabellinie(int projektId)
         fund["kabelName"] = q.value(1).toString();
         ergebnis << fund;
     }
+    return ergebnis;
+}
+
+// ============================================================
+// drcSpsPruefung (D-14, SPS-INTEGRITAET-01)
+// Sammelprüfung für SPS/PLS. Geltungsbereich der Adress-Eindeutigkeit und
+// Überlappungsregeln: Database_SpsAdressen.h (identisch zur Anlege-/Änderungs-
+// sperre und zur Canvas-Markierung).
+// ============================================================
+QVariantList Database::drcSpsPruefung(int projektId)
+{
+    QVariantList ergebnis;
+    auto fund = [&ergebnis](const QString &art, const QString &adresse, const QString &tag,
+                            const QString &detail, int elementId = -1, int seiteId = -1,
+                            const QString &seiteName = QString()) {
+        QVariantMap f;
+        f["art"]       = art;
+        f["adresse"]   = adresse;
+        f["tag"]       = tag;
+        f["detail"]    = detail;
+        f["elementId"] = elementId;
+        f["seiteId"]   = seiteId;
+        f["seiteName"] = seiteName;
+        ergebnis << f;
+    };
+
+    // ── Racks mit gleicher Nummer / Slots doppelt belegt (Altbestand) ──
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT rack_nr, COUNT(*), group_concat(bezeichnung, ', ') FROM sps_rack "
+                  "WHERE projekt_id=:pid GROUP BY rack_nr HAVING COUNT(*) > 1 ORDER BY rack_nr");
+        q.bindValue(":pid", projektId);
+        if (q.exec())
+            while (q.next())
+                fund("rack_nr_doppelt", QStringLiteral("R%1").arg(q.value(0).toInt()), QString(),
+                     QStringLiteral("%1× (%2)").arg(q.value(1).toInt()).arg(q.value(2).toString()));
+        else qCWarning(lcDb) << "drcSpsPruefung rack:" << q.lastError().text();
+    }
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT r.rack_nr, b.slot, COUNT(*), group_concat(b.bezeichnung, ', ') "
+                  "FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
+                  "WHERE r.projekt_id=:pid GROUP BY b.rack_id, b.slot HAVING COUNT(*) > 1 "
+                  "ORDER BY r.rack_nr, b.slot");
+        q.bindValue(":pid", projektId);
+        if (q.exec())
+            while (q.next())
+                fund("slot_doppelt", QStringLiteral("R%1 S%2").arg(q.value(0).toInt()).arg(q.value(1).toInt()),
+                     QString(), QStringLiteral("%1× (%2)").arg(q.value(2).toInt()).arg(q.value(3).toString()));
+        else qCWarning(lcDb) << "drcSpsPruefung slot:" << q.lastError().text();
+    }
+
+    // ── Kanäle ──
+    QHash<int, QString> adressen;
+    for (const QVariant &kv : spsKanalListe(projektId)) {
+        const QVariantMap k = kv.toMap();
+        adressen.insert(k["id"].toInt(), k["adresse"].toString());
+    }
+
+    struct Zeile {
+        SpsAdressen::Kanal k;
+        QString tag, kommentar, bgTyp, symbolId, seiteName;
+        int     bgKanaele = 0, bgStart = 0, elementId = 0, seiteId = -1;
+        QVariant bMin, bMax, aLL, aLO, aHI, aHH;
+    };
+    QVector<Zeile> zeilen;
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT sk.id, sk.baugruppe_id, sb.rack_id, sr.system_typ, sk.adress_typ, "
+                  "sk.byte_nr, sk.bit_nr, sk.datentyp, sk.kanal_nr, "
+                  "COALESCE(sk.variablenname,''), COALESCE(sk.kommentar,''), "
+                  "sb.typ, sb.kanaele, sb.adress_byte_start, "
+                  "sk.grafik_element_id, ge.seite_id, COALESCE(se.bezeichnung,''), ge.symbol_id, "
+                  "sk.pls_bereich_min, sk.pls_bereich_max, sk.pls_alarm_ll, sk.pls_alarm_lo, "
+                  "sk.pls_alarm_hi, sk.pls_alarm_hh "
+                  "FROM sps_kanal sk "
+                  "LEFT JOIN sps_baugruppe sb ON sb.id = sk.baugruppe_id "
+                  "LEFT JOIN sps_rack sr ON sr.id = sb.rack_id "
+                  "LEFT JOIN grafik_element ge ON ge.id = sk.grafik_element_id "
+                  "LEFT JOIN seite se ON se.id = ge.seite_id "
+                  "WHERE sk.projekt_id=:pid ORDER BY sr.rack_nr, sb.slot, sk.kanal_nr, sk.id");
+        q.bindValue(":pid", projektId);
+        if (!q.exec()) {
+            qCWarning(lcDb) << "drcSpsPruefung kanaele:" << q.lastError().text();
+            return ergebnis;
+        }
+        while (q.next()) {
+            Zeile z;
+            z.k.id          = q.value(0).toInt();
+            z.k.baugruppeId = q.value(1).isNull() ? 0 : q.value(1).toInt();
+            z.k.rackId      = q.value(2).isNull() ? 0 : q.value(2).toInt();
+            z.k.pls         = q.value(3).toString() == QLatin1String("PLS");
+            z.k.adressTyp   = q.value(4).toString();
+            z.k.byteNr      = q.value(5).toInt();
+            z.k.bitNr       = q.value(6).toInt();
+            z.k.datentyp    = q.value(7).toString();
+            z.k.kanalNr     = q.value(8).isNull() ? -1 : q.value(8).toInt();
+            z.tag           = q.value(9).toString();
+            z.kommentar     = q.value(10).toString();
+            z.bgTyp         = q.value(11).toString();
+            z.bgKanaele     = q.value(12).toInt();
+            z.bgStart       = q.value(13).toInt();
+            z.elementId     = q.value(14).isNull() ? 0 : q.value(14).toInt();
+            z.seiteId       = q.value(15).isNull() ? -1 : q.value(15).toInt();
+            z.seiteName     = q.value(16).toString();
+            z.symbolId      = q.value(17).toString();
+            z.bMin = q.value(18); z.bMax = q.value(19);
+            z.aLL  = q.value(20); z.aLO  = q.value(21);
+            z.aHI  = q.value(22); z.aHH  = q.value(23);
+            zeilen.append(z);
+        }
+    }
+
+    auto elementFund = [&](const QString &art, const Zeile &z, const QString &detail) {
+        fund(art, adressen.value(z.k.id), z.tag, detail,
+             z.elementId > 0 ? z.elementId : -1, z.seiteId, z.seiteName);
+    };
+
+    // Adresse doppelt: je spätere Kanalzeile einmal, mit dem ersten Partner
+    for (int j = 0; j < zeilen.size(); ++j)
+        for (int i = 0; i < j; ++i)
+            if (SpsAdressen::ueberlappen(zeilen[i].k, zeilen[j].k)) {
+                const QString partner = adressen.value(zeilen[i].k.id)
+                    + (zeilen[i].tag.isEmpty() ? QString() : QStringLiteral(" (%1)").arg(zeilen[i].tag));
+                elementFund("adresse_doppelt", zeilen[j], partner);
+                break;
+            }
+
+    for (const Zeile &z : zeilen) {
+        const bool ioAdresse = (z.k.adressTyp == QLatin1String("E") || z.k.adressTyp == QLatin1String("A"));
+
+        // Kanal ohne Baugruppe (z.B. nach Löschen der Baugruppe: ON DELETE SET NULL)
+        if (z.k.baugruppeId == 0 && ioAdresse) {
+            elementFund("kanal_ohne_baugruppe", z, QString());
+            continue;
+        }
+
+        // Adresse außerhalb des Bereichs der Baugruppe
+        if (z.k.baugruppeId > 0) {
+            if (z.k.pls) {
+                if (z.k.kanalNr >= z.bgKanaele && z.bgKanaele > 0)
+                    elementFund("adresse_ausserhalb", z,
+                                QStringLiteral("Baugruppe hat nur %1 Kanäle").arg(z.bgKanaele));
+            } else if (ioAdresse) {
+                int von = 0, bis = 0;
+                if (SpsAdressen::bereich(z.bgTyp, z.bgKanaele, z.bgStart, z.k.adressTyp, von, bis)) {
+                    const int laenge = std::max(SpsAdressen::bytes(z.k.datentyp), 1);
+                    if (z.k.byteNr < von || z.k.byteNr + laenge - 1 > bis)
+                        elementFund("adresse_ausserhalb", z,
+                                    QStringLiteral("Bereich der Baugruppe: %1%2 – %1%3")
+                                        .arg(z.k.adressTyp).arg(von).arg(bis));
+                }
+            }
+        }
+
+        // PLS-Grenzen: Bereich und Alarmreihenfolge
+        if (z.k.pls) {
+            QString fehler;
+            if (!z.bMin.isNull() && !z.bMax.isNull() && z.bMin.toDouble() >= z.bMax.toDouble())
+                fehler = QStringLiteral("Bereich min ≥ max");
+            else {
+                double letzter = 0; bool hat = false;
+                for (const QVariant &a : {z.aLL, z.aLO, z.aHI, z.aHH}) {
+                    if (a.isNull()) continue;
+                    if (hat && a.toDouble() < letzter) { fehler = QStringLiteral("Alarmgrenzen nicht aufsteigend (LL ≤ LO ≤ HI ≤ HH)"); break; }
+                    letzter = a.toDouble(); hat = true;
+                }
+            }
+            if (!fehler.isEmpty()) elementFund("pls_grenzen", z, fehler);
+        }
+
+        // Kanal mit Tag/Kommentar aber ohne Schaltplan-Element (reine Reserve-
+        // kanäle ohne Beschriftung werden bewusst nicht gemeldet)
+        if (z.elementId == 0 && (!z.tag.isEmpty() || !z.kommentar.isEmpty()))
+            elementFund("kanal_ohne_element", z, z.kommentar);
+
+        // Symbol-Typ passt nicht zum Kanal-Typ (DI/DO/AI/AO)
+        if (z.elementId > 0 && (z.symbolId.startsWith("sps_") || z.symbolId.startsWith("pls_"))) {
+            const QString erwartet = z.symbolId.split('_').value(1).toUpper();
+            if (QStringList{"DI", "DO", "AI", "AO"}.contains(erwartet)) {
+                QString ist = z.bgTyp.toUpper();
+                if (ist == QLatin1String("DIO")) ist = (z.k.adressTyp == QLatin1String("A")) ? "DO" : "DI";
+                if (ist == QLatin1String("AIO")) ist = (z.k.adressTyp == QLatin1String("A")) ? "AO" : "AI";
+                if (!ist.isEmpty() && ist != erwartet)
+                    elementFund("kanal_typ_passt_nicht", z,
+                                QStringLiteral("Symbol %1, Kanal %2").arg(erwartet, ist));
+            }
+        }
+    }
+
+    // ── Element mit mehr als einem Kanal ──
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT ge.id, ge.seite_id, COALESCE(se.bezeichnung,''), COUNT(*) "
+                  "FROM sps_kanal sk JOIN grafik_element ge ON ge.id=sk.grafik_element_id "
+                  "LEFT JOIN seite se ON se.id=ge.seite_id "
+                  "WHERE sk.projekt_id=:pid GROUP BY ge.id HAVING COUNT(*) > 1");
+        q.bindValue(":pid", projektId);
+        if (q.exec()) {
+            while (q.next()) {
+                QStringList adr;
+                for (const Zeile &z : zeilen)
+                    if (z.elementId == q.value(0).toInt()) adr << adressen.value(z.k.id);
+                fund("element_mehrere_kanaele", adr.join(QStringLiteral(", ")), QString(),
+                     QStringLiteral("%1 Kanäle").arg(q.value(3).toInt()),
+                     q.value(0).toInt(), q.value(1).toInt(), q.value(2).toString());
+            }
+        } else qCWarning(lcDb) << "drcSpsPruefung mehrfach:" << q.lastError().text();
+    }
+
+    // ── Einzelkanal-Symbole ohne Kanal ──
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT ge.id, ge.seite_id, s.bezeichnung, ge.symbol_id, "
+                  "COALESCE(json_extract(ge.extra_daten,'$.bmk'),'') "
+                  "FROM grafik_element ge "
+                  "JOIN seite s ON s.id=ge.seite_id JOIN ort o ON o.id=s.ort_id "
+                  "JOIN anlage a ON a.id=o.anlage_id "
+                  "WHERE a.projekt_id=:pid AND ge.typ='symbol' AND ge.symbol_id IN "
+                  "('sps_di_einpolig','sps_di_zweipolig','sps_do_einpolig','sps_do_zweipolig',"
+                  " 'sps_ai_einpolig','sps_ai_zweipolig','sps_ao_einpolig','sps_ao_zweipolig') "
+                  "AND NOT EXISTS (SELECT 1 FROM sps_kanal sk WHERE sk.grafik_element_id=ge.id) "
+                  "ORDER BY s.blattnummer, ge.id");
+        q.bindValue(":pid", projektId);
+        if (q.exec()) {
+            while (q.next())
+                fund("symbol_ohne_kanal", QString(), q.value(4).toString(), q.value(3).toString(),
+                     q.value(0).toInt(), q.value(1).toInt(), q.value(2).toString());
+        } else qCWarning(lcDb) << "drcSpsPruefung symbole:" << q.lastError().text();
+    }
+
     return ergebnis;
 }
 

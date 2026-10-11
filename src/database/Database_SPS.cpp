@@ -1,5 +1,6 @@
 #include "Database.h"
 #include "Database_CsvHelfer.h"
+#include "Database_SpsAdressen.h"
 #include <cmath>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -43,6 +44,18 @@ QVariantList Database::spsRackListe(int projektId)
 int Database::spsRackAnlegen(int projektId, int rackNr, const QString &systemTyp,
                               const QString &bezeichnung, const QString &hersteller)
 {
+    {
+        // SPS-INTEGRITAET-01: Rack-Nr. je Projekt eindeutig (kein UNIQUE-Index in
+        // der Baseline, daher hier erzwungen).
+        QSqlQuery d(m_db);
+        d.prepare("SELECT 1 FROM sps_rack WHERE projekt_id=:pid AND rack_nr=:nr");
+        d.bindValue(":pid", projektId);
+        d.bindValue(":nr",  rackNr);
+        if (d.exec() && d.next()) {
+            qCWarning(lcDb) << "spsRackAnlegen: Rack-Nr." << rackNr << "bereits vergeben";
+            return -1;
+        }
+    }
     QSqlQuery q(m_db);
     q.prepare("INSERT INTO sps_rack (projekt_id, rack_nr, system_typ, bezeichnung, hersteller) "
               "VALUES (:pid, :nr, :typ, :bez, :her)");
@@ -59,6 +72,20 @@ bool Database::spsRackAktualisieren(int id, int rackNr, const QString &systemTyp
                                      const QString &bezeichnung, const QString &beschreibung,
                                      const QString &hersteller)
 {
+    {
+        // Nur prüfen, wenn sich die Rack-Nr. wirklich ändert - ein bereits
+        // vorhandenes Duplikat (Altbestand) darf weiter bearbeitet werden.
+        QSqlQuery d(m_db);
+        d.prepare("SELECT 1 FROM sps_rack r WHERE r.rack_nr=:nr AND r.id<>:id "
+                  "AND r.projekt_id=(SELECT projekt_id FROM sps_rack WHERE id=:id) "
+                  "AND :nr<>(SELECT rack_nr FROM sps_rack WHERE id=:id)");
+        d.bindValue(":nr", rackNr);
+        d.bindValue(":id", id);
+        if (d.exec() && d.next()) {
+            qCWarning(lcDb) << "spsRackAktualisieren: Rack-Nr." << rackNr << "bereits vergeben";
+            return false;
+        }
+    }
     QSqlQuery q(m_db);
     q.prepare("UPDATE sps_rack SET rack_nr=:nr, system_typ=:typ, bezeichnung=:bez, "
               "beschreibung=:desc, hersteller=:her WHERE id=:id");
@@ -116,6 +143,17 @@ QVariantList Database::spsBaugruppeListe(int rackId)
 int Database::spsBaugruppeAnlegen(int rackId, int slot, const QString &typ,
                                    const QString &bezeichnung, int kanaele, int adressByteStart)
 {
+    {
+        // SPS-INTEGRITAET-01: ein Slot je Rack nur einmal belegbar.
+        QSqlQuery d(m_db);
+        d.prepare("SELECT 1 FROM sps_baugruppe WHERE rack_id=:rid AND slot=:slot");
+        d.bindValue(":rid",  rackId);
+        d.bindValue(":slot", slot);
+        if (d.exec() && d.next()) {
+            qCWarning(lcDb) << "spsBaugruppeAnlegen: Slot" << slot << "bereits belegt";
+            return -1;
+        }
+    }
     QSqlQuery q(m_db);
     q.prepare("INSERT INTO sps_baugruppe (rack_id, slot, typ, bezeichnung, kanaele, adress_byte_start) "
               "VALUES (:rid, :slot, :typ, :bez, :kan, :abs)");
@@ -134,6 +172,18 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
                                           int kanaele, const QString &datentypStandard,
                                           int adressByteStart, const QString &kommentar)
 {
+    {
+        QSqlQuery d(m_db);
+        d.prepare("SELECT 1 FROM sps_baugruppe b WHERE b.slot=:slot AND b.id<>:id "
+                  "AND b.rack_id=(SELECT rack_id FROM sps_baugruppe WHERE id=:id) "
+                  "AND :slot<>(SELECT slot FROM sps_baugruppe WHERE id=:id)");
+        d.bindValue(":slot", slot);
+        d.bindValue(":id",   id);
+        if (d.exec() && d.next()) {
+            qCWarning(lcDb) << "spsBaugruppeAktualisieren: Slot" << slot << "bereits belegt";
+            return false;
+        }
+    }
     QSqlQuery q(m_db);
     q.prepare("UPDATE sps_baugruppe SET slot=:slot, typ=:typ, bezeichnung=:bez, artikel_nr=:art, "
               "kanaele=:kan, datentyp_standard=:dts, adress_byte_start=:abs, kommentar=:kom "
@@ -272,6 +322,13 @@ int Database::spsKanalAnlegen(int projektId, int baugruppeId, int kanalNr,
                                const QString &datentyp, const QString &variablenname,
                                const QString &kommentar)
 {
+    // SPS-INTEGRITAET-01: kollidierende Adresse (je Rack) wird nicht angelegt.
+    if (!spsKanalKonflikt(projektId, baugruppeId, kanalNr, adressTyp, byteNr, bitNr,
+                          datentyp, 0).isEmpty()) {
+        qCWarning(lcDb) << "spsKanalAnlegen: Adresse bereits belegt (Baugruppe" << baugruppeId
+                        << adressTyp << byteNr << "." << bitNr << datentyp << ")";
+        return -1;
+    }
     QSqlQuery q(m_db);
     q.prepare("INSERT INTO sps_kanal "
               "(projekt_id, baugruppe_id, kanal_nr, adress_typ, byte_nr, bit_nr, "
@@ -321,6 +378,33 @@ bool Database::spsKanalAktualisieren(int id, const QVariantMap &felder)
         }
     }
     if (setClauses.isEmpty()) return true;
+
+    // SPS-INTEGRITAET-01: nur prüfen, wenn sich die Adress-Identität ändert -
+    // ein schon vorhandenes Duplikat (Altbestand) darf weiter bearbeitet werden.
+    if (felder.contains("adress_typ") || felder.contains("byte_nr") || felder.contains("bit_nr")
+        || felder.contains("datentyp") || felder.contains("kanal_nr")) {
+        QSqlQuery c(m_db);
+        c.prepare("SELECT projekt_id, baugruppe_id, kanal_nr, adress_typ, byte_nr, bit_nr, datentyp "
+                  "FROM sps_kanal WHERE id=:id");
+        c.bindValue(":id", id);
+        if (c.exec() && c.next()) {
+            const int     pid  = c.value(0).toInt();
+            const int     bg   = c.value(1).isNull() ? 0 : c.value(1).toInt();
+            const int     knr  = felder.contains("kanal_nr") ? felder["kanal_nr"].toInt()
+                                 : (c.value(2).isNull() ? -1 : c.value(2).toInt());
+            const QString typ  = felder.contains("adress_typ") ? felder["adress_typ"].toString() : c.value(3).toString();
+            const int     byt  = felder.contains("byte_nr") ? felder["byte_nr"].toInt() : c.value(4).toInt();
+            const int     bit  = felder.contains("bit_nr")  ? felder["bit_nr"].toInt()  : c.value(5).toInt();
+            const QString dty  = felder.contains("datentyp") ? felder["datentyp"].toString() : c.value(6).toString();
+            const bool geaendert = knr != (c.value(2).isNull() ? -1 : c.value(2).toInt())
+                                   || typ != c.value(3).toString() || byt != c.value(4).toInt()
+                                   || bit != c.value(5).toInt() || dty != c.value(6).toString();
+            if (geaendert && !spsKanalKonflikt(pid, bg, knr, typ, byt, bit, dty, id).isEmpty()) {
+                qCWarning(lcDb) << "spsKanalAktualisieren: Adresse bereits belegt (Kanal" << id << ")";
+                return false;
+            }
+        }
+    }
 
     QSqlQuery q(m_db);
     q.prepare(QStringLiteral("UPDATE sps_kanal SET %1 WHERE id=:id").arg(setClauses.join(",")));
@@ -435,16 +519,68 @@ bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
     return true;
 }
 
+QVariantMap Database::spsKanalKonflikt(int projektId, int baugruppeId, int kanalNr,
+                                        const QString &adressTyp, int byteNr, int bitNr,
+                                        const QString &datentyp, int ausschlussId)
+{
+    SpsAdressen::Kanal k;
+    k.id          = ausschlussId;
+    k.baugruppeId = baugruppeId > 0 ? baugruppeId : 0;
+    k.adressTyp   = adressTyp;
+    k.byteNr      = byteNr;
+    k.bitNr       = bitNr;
+    k.datentyp    = datentyp;
+    k.kanalNr     = kanalNr;
+    SpsAdressen::baugruppeAufloesen(m_db, k);
+
+    for (const SpsAdressen::Kanal &o : SpsAdressen::laden(m_db, projektId)) {
+        if (!SpsAdressen::ueberlappen(k, o)) continue;
+        QVariantMap m;
+        m["kanalId"] = o.id;
+        m["adresse"] = spsKanalAdresse(o.id);
+        QSqlQuery q(m_db);
+        q.prepare("SELECT COALESCE(variablenname,'') FROM sps_kanal WHERE id=:id");
+        q.bindValue(":id", o.id);
+        m["variablenname"] = (q.exec() && q.next()) ? q.value(0).toString() : QString();
+        return m;
+    }
+    return {};
+}
+
 QVariantList Database::spsKonfliktElementIds(int projektId)
 {
-    QVariantList result;
+    QSet<int> ids;
+
+    // (1) Element mit mehr als einem Kanal
     QSqlQuery q(m_db);
     q.prepare("SELECT grafik_element_id FROM sps_kanal "
               "WHERE projekt_id = :pid AND grafik_element_id IS NOT NULL "
               "GROUP BY grafik_element_id HAVING COUNT(*) > 1");
     q.bindValue(":pid", projektId);
-    if (!q.exec()) { qCWarning(lcDb) << "spsKonfliktElementIds:" << q.lastError().text(); return result; }
-    while (q.next()) result.append(q.value(0).toInt());
+    if (!q.exec()) { qCWarning(lcDb) << "spsKonfliktElementIds:" << q.lastError().text(); return {}; }
+    while (q.next()) ids.insert(q.value(0).toInt());
+
+    // (2) Kanal teilt seine Adresse mit einem anderen Kanal (SPS-INTEGRITAET-01)
+    const QVector<SpsAdressen::Kanal> alle = SpsAdressen::laden(m_db, projektId);
+    QSet<int> konfliktKanaele;
+    for (int i = 0; i < alle.size(); ++i)
+        for (int j = i + 1; j < alle.size(); ++j)
+            if (SpsAdressen::ueberlappen(alle[i], alle[j])) {
+                konfliktKanaele.insert(alle[i].id);
+                konfliktKanaele.insert(alle[j].id);
+            }
+    if (!konfliktKanaele.isEmpty()) {
+        QSqlQuery e(m_db);
+        e.prepare("SELECT id, grafik_element_id FROM sps_kanal "
+                  "WHERE projekt_id=:pid AND grafik_element_id IS NOT NULL");
+        e.bindValue(":pid", projektId);
+        if (e.exec())
+            while (e.next())
+                if (konfliktKanaele.contains(e.value(0).toInt())) ids.insert(e.value(1).toInt());
+    }
+
+    QVariantList result;
+    for (int id : ids) result.append(id);
     return result;
 }
 

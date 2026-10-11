@@ -340,24 +340,19 @@ Item {
     }
 
     // ── CSV-Import (SPS-IMPORT-01) ────────────────────────────────
-    SpsImportDialog {
-        id: importDialog
-        theme: root.theme
-        projektId: root.projektId
-        onImportiert: function(bericht) {
-            // Ziel-Rack: das erste neu angelegte, sonst das erste betroffene. Ist es das
-            // bereits gewählte Rack, bleibt auch die Baugruppen-Auswahl erhalten.
-            var ziel = -1
-            if ((bericht.racksNeu || []).length > 0) ziel = bericht.racksNeu[0]
-            else if ((bericht.racksBetroffen || []).length > 0) ziel = bericht.racksBetroffen[0]
-            root._ladeRacks()
-            if (ziel < 0) return
-            for (var i = 0; i < root._racks.length; i++) {
-                var r = root._racks[i]
-                if (r.rack_nr === ziel && r.id !== root._ausgewaehlterRackId) {
-                    root._waehleRack(r)
-                    break
-                }
+    // Nach dem Import: Ziel-Rack = erstes neu angelegtes, sonst erstes betroffenes. Ist es
+    // bereits das gewählte Rack, bleibt auch die Baugruppen-Auswahl erhalten.
+    function _importAbgeschlossen(bericht) {
+        var ziel = -1
+        if ((bericht.racksNeu || []).length > 0) ziel = bericht.racksNeu[0]
+        else if ((bericht.racksBetroffen || []).length > 0) ziel = bericht.racksBetroffen[0]
+        _ladeRacks()
+        if (ziel < 0) return
+        for (var i = 0; i < _racks.length; i++) {
+            var r = _racks[i]
+            if (r.rack_nr === ziel && r.id !== _ausgewaehlterRackId) {
+                _waehleRack(r)
+                break
             }
         }
     }
@@ -439,7 +434,7 @@ Item {
                 }
             }
             TabButton {
-                text: qsTr("Export")
+                text: qsTr("Import / Export")
                 background: Rectangle {
                     color: root.theme.accent
                     opacity: tabBar.currentIndex === 2 ? 0.12 : 0
@@ -1040,8 +1035,8 @@ Item {
                                 background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
                                     radius: 4; border.color: root.theme.border }
                                 ToolTip.visible: hovered
-                                ToolTip.text: qsTr("Kanäle (und fehlende Racks/Baugruppen) aus einer CSV-Datei übernehmen")
-                                onClicked: importDialog.oeffnen()
+                                ToolTip.text: qsTr("Zum Import: Kanäle (und fehlende Racks/Baugruppen) aus einer CSV-Datei übernehmen")
+                                onClicked: { tabBar.currentIndex = 2; austauschTab.importAnzeigen() }
                             }
                             RoundButton {
                                 text: "+"
@@ -1228,13 +1223,15 @@ Item {
                 }
             }
 
-            // ── Tab 2: Export (SPS-EXPORT-02, konfigurierbar) ─────
-            SpsExportTab {
+            // ── Tab 2: Import / Export ────────────────────────────
+            SpsAustauschTab {
+                id: austauschTab
                 theme: root.theme
                 projektId: root.projektId
                 racks: root._racks
-                projektName: root.projektName
                 kanalAnzahl: root._kanaele.length
+                projektName: root.projektName
+                onImportiert: function(bericht) { root._importAbgeschlossen(bericht) }
             }
         }
 

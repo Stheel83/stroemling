@@ -5,7 +5,7 @@
 #include "utils/KabelTabellen.h"
 
 // Regressionstests für den Kabelquerschnitt-Rechner (KabelRechnerModel / KabelTabellen):
-//   - die 11 Anwendungsfall-Vorlagen liefern die dokumentierten Querschnitte
+//   - die 17 Anwendungsfall-Vorlagen liefern die dokumentierten Querschnitte
 //   - Bedarf > 50 mm² → keine Empfehlung (statt stillem Abschneiden)
 //   - Abschaltbedingung mit U_0 und eingebbarer Netzimpedanz
 //   - Tabellen-Stichproben (A1/B2/E korrigiert, F/G ab 25 mm²)
@@ -33,7 +33,7 @@ private slots:
     {
         KabelRechnerModel m;
         const QVariantList v = m.vorlagen();
-        QCOMPARE(v.size(), 11);
+        QCOMPARE(v.size(), 17);
         const QStringList keys = { "name", "betriebsart", "spannung", "strom", "cosPhi", "laenge",
                                    "duMaxProzent", "verlegeart", "schutzOrganTyp", "schutzOrganStrom" };
         for (const QVariant &e : v) {
@@ -55,6 +55,12 @@ private slots:
             { "Durchlauferhitzer (3~, 32 A)",   6.0 },
             { "Wallbox 11 kW (3~, 16 A)",       2.5 },
             { "Bordnetz 12 V DC (10 A)",        6.0 },
+            { "Waschmaschine / Trockner (16 A)", 2.5 },
+            { "Unterverteilung (3~, 32 A)",      6.0 },
+            { "CEE-Steckdose 16 A (3~)",         2.5 },
+            { "CEE-Steckdose 32 A (3~)",         6.0 },
+            { "Kühlbox / Pumpe 12 V DC (5 A)",   4.0 },
+            { "Steuerstromkreis 24 V DC (5 A)",  2.5 },
             { "Drehstrommotor 0,75 kW (1,9 A)", 1.5 },
             { "Drehstrommotor 2,2 kW (4,7 A)",  1.5 },
             { "Drehstrommotor 5,5 kW (11 A)",   1.5 },

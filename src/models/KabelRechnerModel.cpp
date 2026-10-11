@@ -268,17 +268,27 @@ QVariantList KabelRechnerModel::vorlagen() const
     // Motoren: Nennstrom 4-poliger Normmotor 400 V, cos φ ≈ 0,85 (Volllast); LS-Charakteristik C
     // (D würde die Abschaltbedingung bei Netzimpedanz 0,3 Ω ab ~20 A nicht mehr erfüllen). Richtwerte – bei realem Motor Typenschild (I_N, cos φ) eintragen.
     static const V tabelle[] = {
-        { QT_TR_NOOP("Lichtkreis (10 A)"),            0, 230.0, 10.0, 1.00, 20.0, 3.0, 3, 0, 10.0 },
-        { QT_TR_NOOP("Steckdosenkreis (16 A)"),       0, 230.0, 16.0, 1.00, 25.0, 3.0, 3, 0, 16.0 },
-        { QT_TR_NOOP("Herd / Backofen (3~, 16 A)"),   1, 400.0, 16.0, 1.00, 15.0, 3.0, 3, 0, 16.0 },
-        { QT_TR_NOOP("Durchlauferhitzer (3~, 32 A)"), 1, 400.0, 32.0, 1.00, 15.0, 3.0, 3, 0, 32.0 },
-        { QT_TR_NOOP("Wallbox 11 kW (3~, 16 A)"),     1, 400.0, 16.0, 1.00, 20.0, 3.0, 3, 1, 16.0 },
-        { QT_TR_NOOP("Bordnetz 12 V DC (10 A)"),      2,  12.0, 10.0, 1.00,  5.0, 3.0, 4, 0, 10.0 },
-        { QT_TR_NOOP("Drehstrommotor 0,75 kW (1,9 A)"), 1, 400.0,  1.9, 0.85, 20.0, 3.0, 4, 1,  4.0 },
-        { QT_TR_NOOP("Drehstrommotor 2,2 kW (4,7 A)"),  1, 400.0,  4.7, 0.85, 20.0, 3.0, 4, 1,  6.0 },
-        { QT_TR_NOOP("Drehstrommotor 5,5 kW (11 A)"),   1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 1, 16.0 },
-        { QT_TR_NOOP("Drehstrommotor 11 kW (21 A)"),    1, 400.0, 21.0, 0.85, 20.0, 3.0, 4, 1, 25.0 },
-        { QT_TR_NOOP("Drehstrommotor 22 kW (41 A)"),    1, 400.0, 41.0, 0.85, 20.0, 3.0, 4, 1, 50.0 },
+        // Haushalt / Gebäude
+        { QT_TR_NOOP("Lichtkreis (10 A)"),               0, 230.0, 10.0, 1.00, 20.0, 3.0, 3, 0, 10.0 },
+        { QT_TR_NOOP("Steckdosenkreis (16 A)"),          0, 230.0, 16.0, 1.00, 25.0, 3.0, 3, 0, 16.0 },
+        { QT_TR_NOOP("Waschmaschine / Trockner (16 A)"), 0, 230.0, 16.0, 1.00, 15.0, 3.0, 3, 0, 16.0 },
+        { QT_TR_NOOP("Herd / Backofen (3~, 16 A)"),      1, 400.0, 16.0, 1.00, 15.0, 3.0, 3, 0, 16.0 },
+        { QT_TR_NOOP("Durchlauferhitzer (3~, 32 A)"),    1, 400.0, 32.0, 1.00, 15.0, 3.0, 3, 0, 32.0 },
+        { QT_TR_NOOP("Wallbox 11 kW (3~, 16 A)"),        1, 400.0, 16.0, 1.00, 20.0, 3.0, 3, 1, 16.0 },
+        { QT_TR_NOOP("Unterverteilung (3~, 32 A)"),      1, 400.0, 32.0, 1.00, 15.0, 3.0, 3, 0, 32.0 },
+        // Werkstatt
+        { QT_TR_NOOP("CEE-Steckdose 16 A (3~)"),         1, 400.0, 16.0, 1.00, 20.0, 3.0, 3, 1, 16.0 },
+        { QT_TR_NOOP("CEE-Steckdose 32 A (3~)"),         1, 400.0, 32.0, 1.00, 20.0, 3.0, 3, 1, 32.0 },
+        // Motoren
+        { QT_TR_NOOP("Drehstrommotor 0,75 kW (1,9 A)"),  1, 400.0,  1.9, 0.85, 20.0, 3.0, 4, 1,  4.0 },
+        { QT_TR_NOOP("Drehstrommotor 2,2 kW (4,7 A)"),   1, 400.0,  4.7, 0.85, 20.0, 3.0, 4, 1,  6.0 },
+        { QT_TR_NOOP("Drehstrommotor 5,5 kW (11 A)"),    1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 1, 16.0 },
+        { QT_TR_NOOP("Drehstrommotor 11 kW (21 A)"),     1, 400.0, 21.0, 0.85, 20.0, 3.0, 4, 1, 25.0 },
+        { QT_TR_NOOP("Drehstrommotor 22 kW (41 A)"),     1, 400.0, 41.0, 0.85, 20.0, 3.0, 4, 1, 50.0 },
+        // Gleichspannung (Schutzorgan-Felder ohne Wirkung, DC hat keine Abschaltbedingung)
+        { QT_TR_NOOP("Bordnetz 12 V DC (10 A)"),         2,  12.0, 10.0, 1.00,  5.0, 3.0, 4, 0, 10.0 },
+        { QT_TR_NOOP("Kühlbox / Pumpe 12 V DC (5 A)"),   2,  12.0,  5.0, 1.00,  6.0, 3.0, 4, 0, 10.0 },
+        { QT_TR_NOOP("Steuerstromkreis 24 V DC (5 A)"),  2,  24.0,  5.0, 1.00, 10.0, 3.0, 3, 0, 10.0 },
     };
 
     QVariantList liste;

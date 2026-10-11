@@ -526,7 +526,7 @@ Item {
                                        : (rackMa.containsMouse ? root.theme.hover : root.theme.surface)
 
                                 ColumnLayout {
-                                    anchors { left: parent.left; right: parent.right; leftMargin: 10; rightMargin: 4 }
+                                    anchors { left: parent.left; right: parent.right; leftMargin: 10; rightMargin: 60 }
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 2
 
@@ -554,12 +554,22 @@ Item {
                                     onDoubleClicked: rackDialog.oeffnenEdit(rackDelegate.modelData)
                                 }
 
+                                // SPS-BEARBEITEN-01: Aktionen dauerhaft sichtbar (nicht nur bei Hover) -
+                                // Bearbeiten war vorher nur per Doppelklick erreichbar und nicht auffindbar.
+                                RoundButton {
+                                    anchors { right: parent.right; rightMargin: 30; verticalCenter: parent.verticalCenter }
+                                    text: "✎"
+                                    width: 24; height: 24
+                                    font.pixelSize: 12
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Rack bearbeiten")
+                                    onClicked: rackDialog.oeffnenEdit(rackDelegate.modelData)
+                                }
                                 RoundButton {
                                     anchors { right: parent.right; rightMargin: 4; verticalCenter: parent.verticalCenter }
                                     text: "✕"
-                                    width: 22; height: 22
+                                    width: 24; height: 24
                                     font.pixelSize: 11
-                                    visible: rackMa.containsMouse
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Rack löschen (mit Rückfrage)")
                                     onClicked: root._rackLoeschenFragen(rackDelegate.modelData)
@@ -630,7 +640,7 @@ Item {
                                 Label { text: qsTr("Belegt"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 70 }
                                 Label { text: qsTr("Startbyte"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
                                 Label { text: qsTr("Platziert"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 60 }
-                                Item { Layout.preferredWidth: 54 }
+                                Item { Layout.preferredWidth: 76 }
                             }
                         }
 
@@ -720,10 +730,17 @@ Item {
                                         elide: Text.ElideRight
                                     }
                                     RoundButton {
+                                        text: "✎"
+                                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                        font.pixelSize: 12
+                                        ToolTip.visible: hovered
+                                        ToolTip.text: qsTr("Baugruppe bearbeiten")
+                                        onClicked: bgDialog.oeffnenEdit(bgDelegate.modelData)
+                                    }
+                                    RoundButton {
                                         text: "⚡"
-                                        width: 22; height: 22
+                                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                         font.pixelSize: 11
-                                        visible: bgMa.containsMouse
                                         ToolTip.visible: hovered
                                         ToolTip.text: qsTr("Kanäle automatisch anlegen")
                                         onClicked: {
@@ -739,9 +756,8 @@ Item {
                                     }
                                     RoundButton {
                                         text: "✕"
-                                        width: 22; height: 22
+                                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                         font.pixelSize: 11
-                                        visible: bgMa.containsMouse
                                         ToolTip.visible: hovered
                                         ToolTip.text: qsTr("Baugruppe löschen")
                                         onClicked: root._baugruppeLoeschenFragen(bgDelegate.modelData)
@@ -840,7 +856,8 @@ Item {
                                     Label { text: qsTr("Signal"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 50 }
                                     Label { text: qsTr("Variable / Tag"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 130 }
                                     Label { text: qsTr("Kommentar"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
-                                    Label { text: qsTr("Element"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 130 }
+                                    Label { text: qsTr("Element"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 108 }
+                                    Item { Layout.preferredWidth: 52 }
                                 }
                             }
 
@@ -912,7 +929,7 @@ Item {
                                         }
                                         Label {
                                             text: bkDelegate.kanal ? (bkDelegate.kanal.variablenname || "")
-                                                                   : qsTr("nicht angelegt – Doppelklick")
+                                                                   : qsTr("nicht angelegt – [+] zum Anlegen")
                                             color: bkDelegate.kanal ? root.theme.textPrimary : root.theme.textMuted
                                             font.italic: !bkDelegate.kanal
                                             elide: Text.ElideRight
@@ -940,13 +957,24 @@ Item {
                                         }
                                         RoundButton {
                                             text: "→"
-                                            width: 22; height: 22
+                                            Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                             font.pixelSize: 11
                                             enabled: root._kannSpringen(bkDelegate.kanal)
                                             opacity: bkDelegate.kanal && bkDelegate.kanal.grafik_element_id ? 1.0 : 0.0
                                             ToolTip.visible: hovered && enabled
                                             ToolTip.text: qsTr("Zum Element im Schaltplan springen")
                                             onClicked: root._springeZuKanal(bkDelegate.kanal)
+                                        }
+                                        RoundButton {
+                                            text: bkDelegate.kanal ? "✎" : "+"
+                                            Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                            font.pixelSize: 12
+                                            ToolTip.visible: hovered
+                                            ToolTip.text: bkDelegate.kanal ? qsTr("Kanal bearbeiten") : qsTr("Kanal anlegen")
+                                            onClicked: {
+                                                if (bkDelegate.kanal) kanalDialog.oeffnenEdit(bkDelegate.kanal)
+                                                else                  kanalDialog.oeffnenNeu(bkDelegate.modelData.nr)
+                                            }
                                         }
                                     }
                                 }
@@ -1021,8 +1049,8 @@ Item {
                             Label { text: qsTr("Kommentar"); color: root.theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true }
                             Label { text: qsTr("Einheit"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 55 }
                             Label { text: qsTr("Bereich"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 90 }
-                            Label { text: qsTr("Element"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 120 }
-                            Item { Layout.preferredWidth: 28 }
+                            Label { text: qsTr("Element"); color: root.theme.textMuted; font.pixelSize: 11; Layout.preferredWidth: 96 }
+                            Item { Layout.preferredWidth: 76 }
                         }
                     }
 
@@ -1137,7 +1165,7 @@ Item {
                                 }
                                 RoundButton {
                                     text: "→"
-                                    width: 22; height: 22
+                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                     font.pixelSize: 11
                                     enabled: root._kannSpringen(kanalDelegate.modelData)
                                     opacity: kanalDelegate.modelData.grafik_element_id ? 1.0 : 0.0
@@ -1146,10 +1174,17 @@ Item {
                                     onClicked: root._springeZuKanal(kanalDelegate.modelData)
                                 }
                                 RoundButton {
+                                    text: "✎"
+                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                    font.pixelSize: 12
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Kanal bearbeiten")
+                                    onClicked: kanalDialog.oeffnenEdit(kanalDelegate.modelData)
+                                }
+                                RoundButton {
                                     text: "✕"
-                                    width: 22; height: 22
+                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                     font.pixelSize: 11
-                                    visible: kanalMa.containsMouse
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Kanal löschen")
                                     onClicked: root._kanalLoeschenFragen(kanalDelegate.modelData)

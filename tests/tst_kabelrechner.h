@@ -55,7 +55,7 @@ private slots:
             { "Durchlauferhitzer (3~, 32 A)",   6.0 },
             { "Wallbox 11 kW (3~, 16 A)",       2.5 },
             { "Bordnetz 12 V DC (10 A)",        6.0 },
-            { "Waschmaschine / Trockner (16 A)", 2.5 },
+            { "Waschmaschine / Trockner (16 A)", 1.5 },
             { "Unterverteilung (3~, 32 A)",      6.0 },
             { "CEE-Steckdose 16 A (3~)",         2.5 },
             { "CEE-Steckdose 32 A (3~)",         6.0 },
@@ -155,6 +155,22 @@ private slots:
         QVERIFY(!r["ueberlast"].toMap()["ok"].toBool());
     }
 
+    // Zwei belastete Adern (AC einphasig, DC) haben höhere Belastbarkeit als drei (Drehstrom):
+    // B2, 1,5 mm²: 16,5 A (2 Adern) gegen 15 A (3 Adern). Gleicher Strom, kurze Leitung.
+    void zwei_belastete_adern()
+    {
+        KabelRechnerModel m;
+        QVariantMap ac = rechne(m, 0, 230.0, 16.0, 1.0, 5.0, 3.0, 3, 0, 16.0);
+        QCOMPARE(ac["querschnittMm2"].toDouble(), 1.5);
+        QCOMPARE(ac["thermik"].toMap()["kenngroesse"].toString(), QString("I_z = 16,5 A"));
+        QVariantMap dreh = rechne(m, 1, 400.0, 16.0, 1.0, 5.0, 3.0, 3, 0, 16.0);
+        QCOMPARE(dreh["querschnittMm2"].toDouble(), 2.5);
+        QCOMPARE(dreh["thermik"].toMap()["kenngroesse"].toString(), QString("I_z = 20,0 A"));
+        // DC rechnet wie AC einphasig mit 2 belasteten Adern
+        QVariantMap dc = rechne(m, 2, 24.0, 16.0, 1.0, 1.0, 3.0, 3, 0, 16.0);
+        QCOMPARE(dc["thermik"].toMap()["kenngroesse"].toString(), QString("I_z = 16,5 A"));
+    }
+
     // Al + Verlegeart F/G: Thermik nicht bewertbar → eine Meldung, keine Empfehlung
     void aluminium_verlegeart_fg()
     {
@@ -185,6 +201,13 @@ private slots:
         QCOMPARE(referenzstrom(1, 10.0, 7), 0.0);    // Al: F nicht hinterlegt
         QCOMPARE(referenzstrom(0, 3.0, 3), 0.0);     // kein Normquerschnitt
         QCOMPARE(referenzstrom(0, 6.0, 9), 0.0);     // Verlegeart außerhalb
+        // 2 belastete Adern: höhere Werte, wo tabelliert; sonst Rückfall auf 3 Adern
+        QCOMPARE(referenzstrom(0, 50.0, 1, 2), 110.0);   // A2
+        QCOMPARE(referenzstrom(0, 50.0, 1, 3), 99.0);
+        QCOMPARE(referenzstrom(0, 25.0, 7, 2), 131.0);   // F
+        QCOMPARE(referenzstrom(0, 50.0, 8, 2), 197.0);   // G: nur 3 Adern tabelliert → Rückfall
+        QCOMPARE(referenzstrom(0, 50.0, 5, 2), 122.0);   // D: Rückfall
+        QCOMPARE(referenzstrom(1, 50.0, 1, 2), 77.0);    // Al: Rückfall
         QCOMPARE(naechsterNormquerschnitt(7.0), 10.0);
         QVERIFY(qFuzzyCompare(temperaturfaktor(40.0), 0.87));
     }

@@ -57,6 +57,9 @@ zeigen die **Berechnungsdetails**, welches Kriterium den Querschnitt bestimmt:
 
 - **Spannungsfall** – ΔU in % beim Normquerschnitt
 - **Thermik** – Strombelastbarkeit I_z nach Verlegeart, Temperatur und Häufung
+  Bei Drehstrom zählen drei belastete Adern, bei Wechselstrom (L + N) und
+  Gleichstrom zwei – dafür gelten höhere Tabellenwerte. Beispiel Verlegeart B2,
+  1,5 mm²: 16,5 A bei zwei, 15 A bei drei belasteten Adern.
 - **Überlast** – Das Schutzorgan muss zur Leitung passen: Nennstrom I_n ≤ I_z.
   Ist I_n größer als der Betriebsstrom, bestimmt I_n den Mindestquerschnitt
   (z. B. 25-A-Schutzorgan → mindestens ein Querschnitt mit I_z ≥ 25 A).

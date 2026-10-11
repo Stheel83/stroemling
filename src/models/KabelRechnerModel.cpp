@@ -100,13 +100,17 @@ void KabelRechnerModel::berechnen()
     if (m_temperatur < 10.0 || m_temperatur > 60.0)
         warnungen << tr("Umgebungstemperatur außerhalb des Tabellenbereichs (10– 60 °C).");
 
+    // Belastete Adern: Drehstrom 3 (N bei symmetrischer Last unbelastet), AC einphasig und
+    // DC 2 – die Tabellenwerte für 2 belastete Adern sind höher (weniger Eigenerwärmung).
+    const int aderZahl = (m_betriebsart == 1) ? 3 : 2;
+
     const double fTemp  = temperaturfaktor(m_temperatur);
     const double fGroup = haefungsfaktor(m_haefung);
 
     double aThermisch = -1.0;
     double IzBeiMin   = 0.0;
     for (double q : normReihe) {
-        double Ir = referenzstrom(m_material, q, m_verlegeart);
+        double Ir = referenzstrom(m_material, q, m_verlegeart, aderZahl);
         if (Ir <= 0.0) continue; // nicht anwendbar (z. B. Al < 10 mm²)
         double Iz = Ir * fTemp * fGroup;
         if (Iz >= m_strom - 1e-6) {
@@ -118,7 +122,7 @@ void KabelRechnerModel::berechnen()
     const bool thermUeber = (aThermisch < 0.0) && !thermFehlt;
     if (aThermisch < 0.0) {
         aThermisch = normReihe.back();
-        double Ir50 = referenzstrom(m_material, normReihe.back(), m_verlegeart);
+        double Ir50 = referenzstrom(m_material, normReihe.back(), m_verlegeart, aderZahl);
         IzBeiMin = (Ir50 > 0.0) ? Ir50 * fTemp * fGroup : 0.0;
     }
     if (thermUeber) {
@@ -160,7 +164,7 @@ void KabelRechnerModel::berechnen()
                              .arg(formatN(m_schutzOrganStrom, 0)).arg(formatN(m_strom, 0));
         double gefunden = -1.0;
         for (double q : normReihe) {
-            const double Ir = referenzstrom(m_material, q, m_verlegeart);
+            const double Ir = referenzstrom(m_material, q, m_verlegeart, aderZahl);
             if (Ir <= 0.0) continue;
             const double Iz = Ir * fTemp * fGroup;
             if (Iz >= m_schutzOrganStrom - 1e-6) { gefunden = q; IzUeberlast = Iz; break; }
@@ -168,7 +172,7 @@ void KabelRechnerModel::berechnen()
         ueberlastUeber = (gefunden < 0.0);
         if (ueberlastUeber) {
             aUeberlast = tabMax;
-            const double Ir50 = referenzstrom(m_material, tabMax, m_verlegeart);
+            const double Ir50 = referenzstrom(m_material, tabMax, m_verlegeart, aderZahl);
             IzUeberlast = (Ir50 > 0.0) ? Ir50 * fTemp * fGroup : 0.0;
             if (!thermUeber) { // sonst steht die Ursache schon bei der Thermik
                 warnungen << tr("Überlast: Schutzorgan I_n = %1 A übersteigt I_z = %2 A bei %3 – "

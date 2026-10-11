@@ -440,6 +440,13 @@ private slots:
         QFile::remove(pfad);
         QVERIFY(!roh.startsWith("\xEF\xBB\xBF"));
         QVERIFY(roh.startsWith("Addr,Tag"));
+
+        // PDF nutzt dieselbe Aufbereitung (SPS-EXPORT-03)
+        const QString pdf = m_projPfad + "_io.pdf";
+        QVERIFY(m_db->spsExportPdfSpeichern(1, "Testprojekt", pdf, konfig));
+        QVERIFY(QFileInfo(pdf).size() > 500);
+        QFile::remove(pdf);
+        QVERIFY(!m_db->spsExportPdfSpeichern(1, "Testprojekt", pdf, R"({"spalten":[]})"));
     }
 
     void gs_07_kabellinieUndAderzuordnungWerdenNachgezogen()

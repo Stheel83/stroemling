@@ -1226,6 +1226,7 @@ ApplicationWindow {
                 visible:      root.aktiveAnsicht === "sps"
                 theme:        appTheme
                 projektId:    root.aktivProjektId
+                projektName:  root.aktivProjektName
                 debug:        root.debugModeAktiv
                 onSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
                     root.aktiveAnsicht = "seiten"

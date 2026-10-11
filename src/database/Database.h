@@ -875,6 +875,10 @@ public:
     Q_INVOKABLE QVariantMap  spsExportVorschau(int projektId, const QString &konfigJson, int maxZeilen);
     Q_INVOKABLE bool         spsExportCsvSpeichern(int projektId, const QString &pfad,
                                                    const QString &konfigJson);
+    // PDF (SPS-EXPORT-03): gleiche Spalten/Filter/Reihenfolge wie das CSV, Aufbau über
+    // listePdfSpeichern(); Trennzeichen/Anführung/BOM/Kopfzeile-Option gelten nur für CSV.
+    Q_INVOKABLE bool         spsExportPdfSpeichern(int projektId, const QString &projektName,
+                                                   const QString &pfad, const QString &konfigJson);
 
     // Element-IDs mit SPS-Konflikt (Canvas-Markierung): Element mit mehr als einem
     // Kanal ODER Element, dessen Kanal eine Adresse mit einem anderen Kanal teilt
@@ -1047,6 +1051,8 @@ private:
     // Stelle (Kanal) gepflegt werden müssen.
     void _spsKanalFelderInsElementUebernehmen(int kanalId);
     QVariantMap spsExportErzeugen(int projektId, const QString &konfigJson, int maxZeilen);
+    bool spsExportZeilen(int projektId, const QString &konfigJson, QStringList &titel,
+                         QList<QStringList> &zeilen, QString &fehler);
 
     QSqlDatabase m_db;
     int          m_grafikAenderungszaehler = 0;

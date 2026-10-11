@@ -18,6 +18,7 @@ Item {
     property int   projektId: -1
     property var   racks: []         // db.spsRackListe(...) – für den Rack-Filter
     property int   kanalAnzahl: 0
+    property string projektName: ""
 
     // ── Globale Ablage (Vorlagen + zuletzt bearbeiteter Stand) ───
     Settings {
@@ -34,6 +35,7 @@ Item {
     property string _vorschauText: ""
     property string _vorschauFehler: ""
     property int    _vorschauZeilen: 0
+    property int    _aktiveSpalten: 0
 
     readonly property var _trennOptionen: [
         { text: qsTr("Semikolon ( ; )"),   wert: ";" },
@@ -160,6 +162,7 @@ Item {
         _vorschauText   = v.text || ""
         _vorschauFehler = v.fehler || ""
         _vorschauZeilen = v.zeilen || 0
+        _aktiveSpalten  = _konfigObjekt().spalten.length
         einst.zuletzt = json
     }
 
@@ -245,6 +248,18 @@ Item {
         onExportAngefordert: function(pfad) {
             var ok = db.spsExportCsvSpeichern(root.projektId, pfad, JSON.stringify(root._konfigObjekt()))
             exportDialog.erfolgReagieren(ok)
+        }
+    }
+
+    LaPdfExportDialog {
+        id: pdfDialog
+        theme: root.theme
+        dateiname: "io_liste.pdf"
+        titelText: qsTr("I/O-Liste als PDF exportieren")
+        onExportAngefordert: function(pfad) {
+            var ok = db.spsExportPdfSpeichern(root.projektId, root.projektName, pfad,
+                                              JSON.stringify(root._konfigObjekt()))
+            pdfDialog.erfolgReagieren(ok)
         }
     }
 
@@ -588,9 +603,34 @@ Item {
                 }
             }
 
+            Text {
+                visible: root._aktiveSpalten > 10
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: "#e0a800"
+                font.pixelSize: 11
+                text: qsTr("%1 Spalten ausgewählt – im PDF (A4 quer) wird es eng. Für das PDF besser eine Vorlage mit wenigen Spalten verwenden.").arg(root._aktiveSpalten)
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Item { Layout.fillWidth: true }
+            Button {
+                text: qsTr("Als PDF exportieren …")
+                implicitHeight: 34
+                implicitWidth: 200
+                enabled: root.projektId >= 0 && root._vorschauFehler === "" && root._vorschauZeilen > 0
+                contentItem: Text { text: parent.text; font.pixelSize: 13
+                    color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle {
+                    color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                    radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                onClicked: pdfDialog.open()
+            }
             Button {
                 text: qsTr("Als CSV exportieren …")
-                Layout.alignment: Qt.AlignRight
                 implicitHeight: 34
                 implicitWidth: 200
                 enabled: root.projektId >= 0 && root._vorschauFehler === "" && root._vorschauZeilen > 0
@@ -601,6 +641,7 @@ Item {
                     color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
                     radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
                 onClicked: exportDialog.open()
+            }
             }
         }
     }

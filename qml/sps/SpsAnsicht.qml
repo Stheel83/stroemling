@@ -9,6 +9,7 @@ Item {
     property int projektId: -1
     property var theme
     property bool debug: false
+    property string projektName: ""
 
     // SPS-SPRUNG-01: Sprung vom Kanal zum Schaltplan-Element (Signatur wie die
     // übrigen Sprungsignale, Main.qml leitet an seiteOeffnenUndZentrieren weiter)
@@ -1196,6 +1197,7 @@ Item {
                 theme: root.theme
                 projektId: root.projektId
                 racks: root._racks
+                projektName: root.projektName
                 kanalAnzahl: root._kanaele.length
             }
         }

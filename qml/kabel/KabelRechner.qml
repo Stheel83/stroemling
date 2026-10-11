@@ -412,7 +412,7 @@ Item {
                                 RowLayout {
                                     width: parent.width
                                     Text { text: qsTr("Kriterium");        font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted; Layout.preferredWidth: 130 }
-                                    Text { text: qsTr("Min. Querschnitt"); font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted; Layout.preferredWidth: 120 }
+                                    Text { text: qsTr("Min. Querschnitt"); font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted; Layout.preferredWidth: 180 }
                                     Text { text: qsTr("Kenngröße");        font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted; Layout.fillWidth: true }
                                     Text { text: "OK";                     font.pixelSize: 11; font.weight: Font.Medium; color: theme.textMuted; Layout.preferredWidth: 32 }
                                 }
@@ -605,7 +605,7 @@ Item {
         RowLayout {
             anchors.fill: parent
             Text { text: kriterium; font.pixelSize: 13; color: theme.textPrimary; Layout.preferredWidth: 130 }
-            Text { text: mindest;   font.pixelSize: 13; color: theme.textPrimary; Layout.preferredWidth: 120 }
+            Text { text: mindest;   font.pixelSize: 13; color: theme.textPrimary; Layout.preferredWidth: 180 }
             Text { text: kenngr;    font.pixelSize: 13; color: theme.textMuted;   Layout.fillWidth: true }
             Text { text: ok ? "✓" : "✗"; font.pixelSize: 14; color: ok ? "#4caf50" : "#f44336"; Layout.preferredWidth: 32 }
         }

@@ -144,6 +144,52 @@ void KabelRechnerModel::berechnen()
                            "Thermik nicht bewertbar.");
     }
 
+    // ── 2b. Überlast: I_b ≤ I_n ≤ I_z ─────────────────────────────────────────
+    // Das Schutzorgan schützt die Leitung nur dann gegen Überlast, wenn sein Nennstrom
+    // die Strombelastbarkeit nicht übersteigt. Maßgeblich wird damit max(I_b, I_n).
+    const bool ueberlastAktiv = (m_schutzOrganStrom > 0.0) && !thermFehlt;
+    double aUeberlast   = 0.0;
+    double IzUeberlast  = 0.0;
+    bool   ueberlastUeber = false;
+    QVariantMap ueberlastMap;
+    ueberlastMap["aktiv"] = ueberlastAktiv;
+    if (ueberlastAktiv) {
+        if (m_schutzOrganStrom < m_strom - 1e-6)
+            warnungen << tr("Schutzorgan I_n = %1 A ist kleiner als der Betriebsstrom I_b = %2 A – "
+                            "es würde im Betrieb auslösen.")
+                             .arg(formatN(m_schutzOrganStrom, 0)).arg(formatN(m_strom, 0));
+        double gefunden = -1.0;
+        for (double q : normReihe) {
+            const double Ir = referenzstrom(m_material, q, m_verlegeart);
+            if (Ir <= 0.0) continue;
+            const double Iz = Ir * fTemp * fGroup;
+            if (Iz >= m_schutzOrganStrom - 1e-6) { gefunden = q; IzUeberlast = Iz; break; }
+        }
+        ueberlastUeber = (gefunden < 0.0);
+        if (ueberlastUeber) {
+            aUeberlast = tabMax;
+            const double Ir50 = referenzstrom(m_material, tabMax, m_verlegeart);
+            IzUeberlast = (Ir50 > 0.0) ? Ir50 * fTemp * fGroup : 0.0;
+            if (!thermUeber) { // sonst steht die Ursache schon bei der Thermik
+                warnungen << tr("Überlast: Schutzorgan I_n = %1 A übersteigt I_z = %2 A bei %3 – "
+                                "kleineres Schutzorgan oder größerer Querschnitt nötig.")
+                                 .arg(formatN(m_schutzOrganStrom, 0)).arg(formatN(IzUeberlast, 0))
+                                 .arg(formatQ(tabMax));
+                ueberGruende << tr("Überlast: I_n = %1 A > I_z = %2 A bei %3")
+                                    .arg(formatN(m_schutzOrganStrom, 0)).arg(formatN(IzUeberlast, 0))
+                                    .arg(formatQ(tabMax));
+            }
+        } else {
+            aUeberlast = gefunden;
+        }
+        ueberlastMap["mindestText"] = ueberlastUeber ? QString("> %1").arg(formatQ(tabMax))
+                                                     : formatQ(aUeberlast);
+        ueberlastMap["kenngroesse"] = ueberlastUeber
+            ? QString("I_n = %1 A > I_z = %2 A").arg(formatN(m_schutzOrganStrom, 0)).arg(formatN(IzUeberlast, 0))
+            : QString("I_n = %1 A ≤ I_z = %2 A").arg(formatN(m_schutzOrganStrom, 0)).arg(formatN(IzUeberlast, 0));
+        ueberlastMap["ok"]          = !ueberlastUeber;
+    }
+
     // ── 3. Abschaltbedingung (nur AC) ─────────────────────────────────────────
     const bool abschaltAktiv = (m_betriebsart != 2);
     double aAbschalt = 0.0;
@@ -204,11 +250,11 @@ void KabelRechnerModel::berechnen()
     }
 
     // ── 4. Gesamtergebnis ─────────────────────────────────────────────────────
-    const double aFinalRaw  = std::max({aDU_raw, aThermisch, aAbschalt});
+    const double aFinalRaw  = std::max({aDU_raw, aThermisch, aUeberlast, aAbschalt});
     const double aFinalNorm = naechsterNormquerschnitt(aFinalRaw);
     // Mindestens ein Kriterium verlangt mehr als der größte Tabellenquerschnitt →
     // keine Empfehlung, sondern ausdrücklich „kein Normquerschnitt ausreichend".
-    const bool ueberTabelle = duUeber || thermUeber || abschUeber || thermFehlt;
+    const bool ueberTabelle = duUeber || thermUeber || ueberlastUeber || abschUeber || thermFehlt;
 
     // Zusammenfassung für die Empfehlung
     static const QStringList verlegeartNamen = {"A1","A2","B1","B2","C","D","E","F","G"};
@@ -232,6 +278,7 @@ void KabelRechnerModel::berechnen()
     m_ergebnis["zusammenfassung"] = zusammenfassung;
     m_ergebnis["spannungsfall"]   = spannungsfallMap;
     m_ergebnis["thermik"]         = thermikMap;
+    m_ergebnis["ueberlast"]       = ueberlastMap;
     m_ergebnis["kurzschluss"]     = kurzschlussMap;
     m_ergebnis["warnungen"]       = warnungen;
 

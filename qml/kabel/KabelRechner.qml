@@ -466,6 +466,17 @@ Item {
                                 }
                                 KrDetailZeile {
                                     width: parent.width
+                                    visible: !!(erg && erg["ueberlast"] && erg["ueberlast"]["aktiv"])
+                                    kriterium: qsTr("Überlast")
+                                    mindest: (erg && erg["ueberlast"] && erg["ueberlast"]["aktiv"])
+                                             ? erg["ueberlast"]["mindestText"] : "—"
+                                    kenngr:  (erg && erg["ueberlast"] && erg["ueberlast"]["aktiv"])
+                                             ? erg["ueberlast"]["kenngroesse"] : ""
+                                    ok:      (erg && erg["ueberlast"]) ? erg["ueberlast"]["ok"] : true
+                                    theme:   root.theme
+                                }
+                                KrDetailZeile {
+                                    width: parent.width
                                     kriterium: qsTr("Kurzschluss")
                                     mindest: (erg && erg["kurzschluss"] && erg["kurzschluss"]["aktiv"])
                                              ? erg["kurzschluss"]["mindestText"] : "—"

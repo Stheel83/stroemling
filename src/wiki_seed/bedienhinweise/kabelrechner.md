@@ -57,16 +57,19 @@ zeigen die **Berechnungsdetails**, welches Kriterium den Querschnitt bestimmt:
 
 - **Spannungsfall** – ΔU in % beim Normquerschnitt
 - **Thermik** – Strombelastbarkeit I_z nach Verlegeart, Temperatur und Häufung
+- **Überlast** – Das Schutzorgan muss zur Leitung passen: Nennstrom I_n ≤ I_z.
+  Ist I_n größer als der Betriebsstrom, bestimmt I_n den Mindestquerschnitt
+  (z. B. 25-A-Schutzorgan → mindestens ein Querschnitt mit I_z ≥ 25 A).
 - **Kurzschluss** (Abschaltbedingung, nur AC/Drehstrom) – erreichbarer
   Kurzschlussstrom I_k gegen den Auslösestrom des Schutzorgans
 
-Der größte der drei Mindestquerschnitte gewinnt.
+Der größte der Mindestquerschnitte gewinnt.
 
 ### Wenn kein Normquerschnitt reicht
 
 Verlangt eines der Kriterien mehr als 50 mm² (der Rechner kennt Querschnitte bis
 50 mm², Kupfer), steht dort **„Kein Normquerschnitt ausreichend"** mit dem
-tatsächlichen Bedarf. Typische Auswege: Leitung kürzen, höhere Spannung,
+tatsächlichen Bedarf bzw. der Ursache (z. B. Schutzorgan zu groß für die Leitung). Typische Auswege: Leitung kürzen, höhere Spannung,
 ΔU-Grenze prüfen (nur wenn zulässig) oder Parallelverlegung. Bei Aluminium mit
 Verlegeart F/G sind keine Belastbarkeitswerte hinterlegt – dort kommt
 „Keine Empfehlung möglich".

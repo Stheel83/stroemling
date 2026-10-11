@@ -64,8 +64,8 @@ private slots:
             { "Drehstrommotor 0,75 kW (1,9 A)", 1.5 },
             { "Drehstrommotor 2,2 kW (4,7 A)",  1.5 },
             { "Drehstrommotor 5,5 kW (11 A)",   1.5 },
-            { "Drehstrommotor 11 kW (21 A)",    2.5 },
-            { "Drehstrommotor 22 kW (41 A)",    6.0 },
+            { "Drehstrommotor 11 kW (21 A)",    4.0 },
+            { "Drehstrommotor 22 kW (41 A)",   10.0 },
         };
         KabelRechnerModel m;
         const QVariantList liste = m.vorlagen();
@@ -118,12 +118,41 @@ private slots:
         r = rechne(m, 1, 400.0, 41.0, 0.85, 20.0, 3.0, 4, 2, 50.0, 0.1);
         QVERIFY(r["kurzschluss"].toMap()["ok"].toBool());
         QVERIFY(!r["ueberTabelle"].toBool());
-        QCOMPARE(r["querschnittMm2"].toDouble(), 6.0);
+        QCOMPARE(r["kurzschluss"].toMap()["mindestText"].toString(), QString("6 mm²"));
+        // Gesamt 10 mm²: Überlast verlangt I_z ≥ I_n = 50 A (C-Belastbarkeit 10 mm² = 57 A)
+        QCOMPARE(r["querschnittMm2"].toDouble(), 10.0);
 
         // DC: keine Abschaltbedingung
         r = rechne(m, 2, 12.0, 10.0, 1.0, 5.0, 3.0, 4, 0, 10.0);
         QVERIFY(r["kurzschluss"].toMap()["ok"].toBool());
         QCOMPARE(r["kurzschluss"].toMap()["mindestText"].toString(), QString("—"));
+    }
+
+    // Überlastbedingung I_b ≤ I_n ≤ I_z: B25 auf Verlegeart B2 verlangt I_z ≥ 25 A → 4 mm² (27 A),
+    // obwohl für 10 A Betriebsstrom 1,5 mm² thermisch reichen würden.
+    void ueberlast_in_kleiner_iz()
+    {
+        KabelRechnerModel m;
+        QVariantMap r = rechne(m, 0, 230.0, 10.0, 1.0, 20.0, 3.0, 3, 0, 25.0);
+        QCOMPARE(r["thermik"].toMap()["mindestText"].toString(), QString("1,5 mm²"));
+        const QVariantMap ul = r["ueberlast"].toMap();
+        QVERIFY(ul["aktiv"].toBool());
+        QCOMPARE(ul["mindestText"].toString(), QString("4 mm²"));
+        QVERIFY(ul["ok"].toBool());
+        QCOMPARE(r["querschnittMm2"].toDouble(), 4.0);
+
+        // I_n < I_b: Warnung, Querschnitt richtet sich nach dem Betriebsstrom
+        r = rechne(m, 0, 230.0, 16.0, 1.0, 20.0, 3.0, 3, 0, 10.0);
+        bool warnung = false;
+        for (const QVariant &w : r["warnungen"].toList())
+            if (w.toString().contains("kleiner als der Betriebsstrom")) warnung = true;
+        QVERIFY(warnung);
+        QCOMPARE(r["querschnittMm2"].toDouble(), 2.5);
+
+        // I_n über I_z bei 50 mm² → keine Empfehlung
+        r = rechne(m, 0, 230.0, 50.0, 1.0, 5.0, 5.0, 3, 0, 160.0);
+        QVERIFY(r["ueberTabelle"].toBool());
+        QVERIFY(!r["ueberlast"].toMap()["ok"].toBool());
     }
 
     // Al + Verlegeart F/G: Thermik nicht bewertbar → eine Meldung, keine Empfehlung

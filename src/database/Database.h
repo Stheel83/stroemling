@@ -880,7 +880,8 @@ public:
     Q_INVOKABLE QVariantMap  spsImportLesen(const QString &pfad);
     // Trockenlauf bzw. Ausführung (eine Transaktion). konfigJson s. Database_SpsImport.cpp.
     // Bericht: {fehler, neueRacks, neueBaugruppen, neueKanaele, aktualisiert, uebersprungen,
-    //           fehlerhaft, zeilenGesamt, meldungen:[{zeile,text,fehler}], ausgefuehrt}
+    //           fehlerhaft, zeilenGesamt, meldungen:[{zeile,text,fehler}], ausgefuehrt,
+    //           racksNeu:[rack_nr], racksBetroffen:[rack_nr]}
     Q_INVOKABLE QVariantMap  spsImportPruefen(int projektId, const QString &pfad, const QString &konfigJson);
     Q_INVOKABLE QVariantMap  spsImportAusfuehren(int projektId, const QString &pfad, const QString &konfigJson);
 

@@ -344,9 +344,21 @@ Item {
         id: importDialog
         theme: root.theme
         projektId: root.projektId
-        onImportiert: {
-            root._ausgewaehlterBaugruppeId = -1
+        onImportiert: function(bericht) {
+            // Ziel-Rack: das erste neu angelegte, sonst das erste betroffene. Ist es das
+            // bereits gewählte Rack, bleibt auch die Baugruppen-Auswahl erhalten.
+            var ziel = -1
+            if ((bericht.racksNeu || []).length > 0) ziel = bericht.racksNeu[0]
+            else if ((bericht.racksBetroffen || []).length > 0) ziel = bericht.racksBetroffen[0]
             root._ladeRacks()
+            if (ziel < 0) return
+            for (var i = 0; i < root._racks.length; i++) {
+                var r = root._racks[i]
+                if (r.rack_nr === ziel && r.id !== root._ausgewaehlterRackId) {
+                    root._waehleRack(r)
+                    break
+                }
+            }
         }
     }
 

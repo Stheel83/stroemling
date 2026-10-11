@@ -496,6 +496,8 @@ private slots:
 
         QVariantMap r = m_db->spsImportAusfuehren(1, a, kA);
         QVERIFY2(r["ausgefuehrt"].toBool(), qPrintable(r["fehler"].toString()));
+        QCOMPARE(r["racksNeu"].toList().size(), 1);
+        QCOMPARE(r["racksNeu"].toList()[0].toInt(), 120);
         QCOMPARE(einWert("SELECT system_typ FROM sps_rack WHERE rack_nr=120").toString(), QString("PLS"));
         QCOMPARE(einWert("SELECT typ FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
                          "WHERE r.rack_nr=120 AND b.slot=4").toString(), QString("AI"));
@@ -522,6 +524,8 @@ private slots:
         QCOMPARE(p["aktualisiert"].toInt(), 0);
         p = m_db->spsImportAusfuehren(1, a2, konfigJson(sp2, "PLS", "ueberschreiben"));
         QCOMPARE(p["aktualisiert"].toInt(), 1);
+        QVERIFY(p["racksNeu"].toList().isEmpty());
+        QCOMPARE(p["racksBetroffen"].toList()[0].toInt(), 120);
         QCOMPARE(einWert("SELECT kommentar FROM sps_kanal WHERE variablenname='TIC-100'").toString(),
                  QString("Neu kommentiert"));
 

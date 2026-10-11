@@ -14,7 +14,8 @@ Dialog {
     required property var theme
     property int projektId: -1
 
-    signal importiert()
+    // bericht: Ergebnis von spsImportAusfuehren (u.a. racksNeu/racksBetroffen)
+    signal importiert(var bericht)
 
     modal: true
     parent: Overlay.overlay
@@ -373,9 +374,14 @@ Dialog {
                 onClicked: {
                     var b = db.spsImportAusfuehren(root.projektId, root._pfad, root._konfigJson())
                     if (b.ausgefuehrt) {
+                        var ort = ""
+                        if ((b.racksNeu || []).length > 0)
+                            ort = qsTr(" – neu: Rack %1").arg(b.racksNeu.join(", "))
+                        else if ((b.racksBetroffen || []).length > 0)
+                            ort = qsTr(" – Rack %1").arg(b.racksBetroffen.join(", "))
                         meldungManager.zeigen(qsTr("Import abgeschlossen: %1 neue Kanäle, %2 aktualisiert")
-                                              .arg(b.neueKanaele).arg(b.aktualisiert), true)
-                        root.importiert()
+                                              .arg(b.neueKanaele).arg(b.aktualisiert) + ort, true)
+                        root.importiert(b)
                         root.close()
                     } else {
                         root._bericht = b

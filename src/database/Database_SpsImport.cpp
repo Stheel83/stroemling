@@ -612,6 +612,20 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
     bericht["zeilenGesamt"]     = zeilen.size() + 0;
     bericht["meldungen"]        = meldungen;
     bericht["ausgefuehrt"]      = false;
+    {
+        // Rack-Nummern für die Oberfläche: neu angelegt / von Kanalimport oder Update betroffen
+        QSet<int> neu, betr;
+        for (const RackPlan &rp : racksPlan) if (rp.neu) neu.insert(rp.nr);
+        for (const KanalPlan &kp : kanaele) betr.insert(kp.z.rackNr);
+        QList<int> n = neu.values(), b = betr.values();
+        std::sort(n.begin(), n.end());
+        std::sort(b.begin(), b.end());
+        QVariantList nl, bl;
+        for (int v : n) nl << v;
+        for (int v : b) bl << v;
+        bericht["racksNeu"]       = nl;
+        bericht["racksBetroffen"] = bl;
+    }
 
     if (!ausfuehren) return bericht;
     if (nNeuR + nNeuB + nNeuK + nUpd == 0) return bericht;

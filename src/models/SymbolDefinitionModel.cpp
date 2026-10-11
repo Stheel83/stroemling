@@ -175,6 +175,27 @@ bool SymbolDefinitionModel::steckRolleSetzen(const QString &symbolId, const QStr
     return true;
 }
 
+bool SymbolDefinitionModel::istMikrocontroller(const QString &symbolId) const
+{
+    QSqlQuery q;
+    q.prepare("SELECT ist_mikrocontroller FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.bindValue(":id", symbolId);
+    return q.exec() && q.next() && q.value(0).toInt() != 0;
+}
+
+bool SymbolDefinitionModel::istMikrocontrollerSetzen(const QString &symbolId, bool wert)
+{
+    QSqlQuery q;
+    q.prepare("UPDATE symbol_definition SET ist_mikrocontroller = :w WHERE id = :id");
+    q.bindValue(":w",  wert ? 1 : 0);
+    q.bindValue(":id", symbolId);
+    if (!q.exec()) {
+        qCWarning(lcModel) << "istMikrocontrollerSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
 QVariantList SymbolDefinitionModel::steckkontaktInfo(const QString &symbolId) const
 {
     QVariantList result;
@@ -232,7 +253,7 @@ QVariantList SymbolDefinitionModel::steckkontaktInfo(const QString &symbolId) co
 QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
 {
     QSqlQuery q;
-    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm, steck_rolle FROM symbol_definition WHERE id = :id LIMIT 1");
+    q.prepare("SELECT name, kategorie, breite_mm, hoehe_mm, rolle, ist_builtin, bmk_seite, kopie_von_id, pin_schrift_mm, steck_rolle, ist_mikrocontroller FROM symbol_definition WHERE id = :id LIMIT 1");
     q.bindValue(":id", symbolId);
     if (q.exec() && q.next()) {
         QVariantMap m;
@@ -246,6 +267,7 @@ QVariantMap SymbolDefinitionModel::symbolInfo(const QString &symbolId) const
         m["kopieVonId"]   = q.value(7).toString();
         m["pinSchriftMm"] = q.value(8).toDouble();
         m["steckRolle"]   = q.value(9).toString();
+        m["istMikrocontroller"] = q.value(10).toInt() != 0;
         return m;
     }
     return {};

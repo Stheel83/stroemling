@@ -79,6 +79,7 @@ Item {
             panel._aderSummenlisteDaten = []
             klemmenplanModel.clear(); klaModel.clear()
             panel._kabelDaten = []; panel._svDaten = []; panel._bpDaten = []
+            panel.mcDaten = []
             return
         }
         panel._stuecklisteDaten = db.stueckliste(projektId)
@@ -101,6 +102,7 @@ Item {
         panel._bpDaten = db.steckverbinderBelegungsplan(projektId)
 
         panel._bestellisteDaten = db.bestellliste(projektId)
+        panel.mcDaten = db.mikrocontrollerPinbelegung(projektId)
     }
 
     // Adersummenliste separat neu ladbar (Umschalter "je Anlage/Ort", ohne
@@ -127,6 +129,7 @@ Item {
     property var _kabelExpanded: ({})
     property var _svDaten:       []
     property var _bpDaten:       []
+    property var mcDaten:        []     // MCU-PINBELEGUNG-01
 
     // ── Sortier-/Filterzustand je flacher Liste (LISTEN-IDEEN-01) ─────
     property string slSortFeld: ""; property bool slSortAsc: true
@@ -135,6 +138,8 @@ Item {
     property string boSortFeld: ""; property bool boSortAsc: true
     property string asSortFeld: ""; property bool asSortAsc: true
     property string svSortFeld: ""; property bool svSortAsc: true
+    property string mcSortFeld: ""; property bool mcSortAsc: true
+    property bool   mcNurBelegt: false
 
     property string slFilter: ""
     property string qvFilter: ""
@@ -142,6 +147,7 @@ Item {
     property string boFilter: ""
     property string asFilter: ""
     property string svFilter: ""
+    property string mcFilter: ""
     property string klFilter: ""
 
     // Klick auf Spaltenkopf: gleiches Feld erneut → Richtung umdrehen,
@@ -198,6 +204,10 @@ Item {
     readonly property var svAnzeige: _listeGefiltertSortiert(_svDaten, svFilter,
         ["bmk", "gkBezeichnung", "bauteilBez", "hersteller", "blattnr", "anlageUO", "ortUO", "anlageKz", "ortKz"],
         svSortFeld, svSortAsc)
+    readonly property var mcAnzeige: _listeGefiltertSortiert(
+        mcNurBelegt ? mcDaten.filter(function (r) { return !r.istFrei }) : mcDaten, mcFilter,
+        ["boardBmk", "boardName", "pin", "netz", "verbundenBmk", "verbundenSymbol", "verbundenPin", "defineName", "blattnr"],
+        mcSortFeld, mcSortAsc)
     readonly property var klAnzeige: _listeGefiltertSortiert(_kabelDaten, klFilter,
         ["bezeichnung", "kabeltyp", "vonOrt", "nachOrt"], "", true)
 
@@ -317,6 +327,14 @@ Item {
         { header: "++Ort",       w: 65,  field: "ortUO" },         { header: "=Anlage",     w: 55,  field: "anlageKz" },
         { header: "+Ort",        w: 55,  field: "ortKz" },         { header: "Canvas Pos.", w: 70 }
     ]
+    property var mcCols: [
+        { header: qsTr("Board-BMK"),   w: 85,  field: "boardBmk" },     { header: qsTr("Board"),     w: 130, field: "boardName" },
+        { header: qsTr("Pin"),         w: 60,  field: "pin" },          { header: qsTr("Netz"),      w: 100, field: "netz" },
+        { header: qsTr("Verbunden mit"), w: 105, field: "verbundenBmk" }, { header: qsTr("Bauteil"),  w: 140, field: "verbundenSymbol" },
+        { header: qsTr("Anschluss"),   w: 85,  field: "verbundenPin" }, { header: "#define",       w: 130, field: "defineName" },
+        { header: qsTr("Wert"),        w: 50,  field: "defineWert" },  { header: qsTr("Seite"),    w: 55,  field: "blattnr" },
+        { header: qsTr("Canvas Pos."), w: 70 }
+    ]
     property var bpCols: [
         { header: qsTr("Pin"),        w: 45  }, { header: qsTr("Typ"),       w: 90  },
         { header: qsTr("Symbol-BMK"), w: 100 }, { header: qsTr("Signal"),    w: 130 },
@@ -356,6 +374,7 @@ Item {
         property string bpCols: ""
         property string boCols: ""
         property string asCols: ""
+        property string mcCols: ""
     }
 
     function _spaltenLaden(propName) {
@@ -380,7 +399,7 @@ Item {
         _spaltenLaden("alCols"); _spaltenLaden("kpCols")
         _spaltenLaden("klCols"); _spaltenLaden("svCols")
         _spaltenLaden("bpCols"); _spaltenLaden("boCols")
-        _spaltenLaden("asCols")
+        _spaltenLaden("asCols"); _spaltenLaden("mcCols")
     }
 
     Rectangle { anchors.fill: parent; color: theme.surface }
@@ -585,6 +604,7 @@ Item {
                         { label: qsTr("Klemmlistenauszug  (") + panel._klaAnschlussZaehler         + ")", tab: 4 },
                         { label: qsTr("Steckverbinder  (")    + panel._svDaten.length              + ")", tab: 6 },
                         { label: qsTr("Belegungsplan  (")     + panel._bpKontaktAnzahl             + ")", tab: 7 },
+                        { label: qsTr("Pinbelegung  (")       + panel.mcDaten.length               + ")", tab: 10 },
                         { label: qsTr("Querverweise  (")      + panel._querverweisDaten.length     + ")", tab: 1 }
                     ]
                     delegate: Rectangle {
@@ -625,6 +645,7 @@ Item {
             LaTabBelegungsplan     { panel: panel; theme: panel.theme }
             LaTabBestellliste      { panel: panel; theme: panel.theme }
             LaTabAderSummenliste   { panel: panel; theme: panel.theme }
+            LaTabMikrocontroller   { panel: panel; theme: panel.theme }
         }
     }
 

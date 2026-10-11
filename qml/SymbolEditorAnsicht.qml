@@ -37,6 +37,7 @@ Item {
     property int    hoeheMm:       16
     property string rolleText:     "durchleiter"
     property string steckRolleText: ""   // SYM-STECKKONTAKT-01: "" | "stecker" | "buchse"
+    property bool   istMikrocontroller: false   // MCU-PINBELEGUNG-01: Mikrokontroller-Board
     // BMK-Label-Position (SYMBOL-BMKSEITE-EDITOR-01): "auto" (0°/180°→oben,
     // 90°/270°→seitlich) oder "vertikal" (umgekehrt — für Symbole deren
     // Grundausrichtung bei 0° bereits vertikal ist, z.B. Kontakte nach
@@ -230,6 +231,7 @@ Item {
             hoeheMm       = vInfo.hoeheMm   || 16
             rolleText     = vInfo.rolle     || "durchleiter"
             steckRolleText = vInfo.steckRolle || ""
+            istMikrocontroller = vInfo.istMikrocontroller || false
             bmkSeiteText  = vInfo.bmkSeite  || "auto"
             pinSchriftMm  = vInfo.pinSchriftMm || 2.0
             bmkKennbuchstaben = symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(vorlageId)
@@ -262,6 +264,7 @@ Item {
             hoeheMm       = 16
             rolleText     = "durchleiter"
             steckRolleText = ""
+            istMikrocontroller = false
             bmkSeiteText  = "auto"
             pinSchriftMm  = 2.0
             bmkKennbuchstaben = []
@@ -276,6 +279,7 @@ Item {
             hoeheMm       = info.hoeheMm   || 16
             rolleText     = info.rolle     || "durchleiter"
             steckRolleText = info.steckRolle || ""
+            istMikrocontroller = info.istMikrocontroller || false
             bmkSeiteText  = info.bmkSeite  || "auto"
             pinSchriftMm  = info.pinSchriftMm || 2.0
             bmkKennbuchstaben = symbolDefinitionModel.bmkKennbuchstabenFuerSymbol(editSymbolId)
@@ -614,6 +618,7 @@ Item {
             symbolDefinitionModel.symbolAktualisieren(sid, nameText, kategorieText, breiteMm, hoeheMm, rolleText, bmkSeiteText, pinSchriftMm)
         }
         symbolDefinitionModel.steckRolleSetzen(sid, steckRolleText)
+        symbolDefinitionModel.istMikrocontrollerSetzen(sid, istMikrocontroller)
         symbolDefinitionModel.bmkKennbuchstabenSpeichern(sid, bmkKennbuchstaben)
 
         symbolDefinitionModel.primitivAlleLoeschen(sid)

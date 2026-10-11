@@ -33,6 +33,7 @@ qt_add_executable(stroemling_app
     src/database/Database_SPS.cpp
     src/database/Database_SpsExport.cpp
     src/database/Database_SpsImport.cpp
+    src/database/Database_Mikrocontroller.cpp
     src/database/Database_PDF.cpp
     src/database/PdfRenderer.h
     src/database/PdfRenderer_Basis.cpp
@@ -203,6 +204,7 @@ qt_add_qml_module(stroemling_app
         qml/la/LaTabBelegungsplan.qml
         qml/la/LaTabBestellliste.qml
         qml/la/LaTabAderSummenliste.qml
+        qml/la/LaTabMikrocontroller.qml
         qml/la/LaPdfExportDialog.qml
 
         qml/canvas/WerkzeugButton.qml
@@ -545,6 +547,7 @@ qt_add_executable(stroemling_test
     src/database/Database_SPS.cpp
     src/database/Database_SpsExport.cpp
     src/database/Database_SpsImport.cpp
+    src/database/Database_Mikrocontroller.cpp
     src/database/Database_PDF.cpp
     src/database/PdfRenderer.h
     src/database/PdfRenderer_Basis.cpp

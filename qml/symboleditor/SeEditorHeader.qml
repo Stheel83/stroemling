@@ -246,6 +246,24 @@ Rectangle {
             }
 
             Text {
+                text: qsTr("Mikrokontroller:"); color: editor.theme.textMuted; font.pixelSize: 11
+                ToolTip.visible: mcuHover.containsMouse; ToolTip.delay: 400
+                ToolTip.text: qsTr("Markiert das Symbol als Mikrokontroller-Board (Arduino, ESP32, Raspberry Pi ...).\nIn der Listen-Ansicht (Pinbelegung) werden die Pins solcher Symbole mit den angeschlossenen Bauteilen ausgegeben.\nSensoren/Peripherie bleiben unmarkiert.")
+                MouseArea { id: mcuHover; anchors.fill: parent; hoverEnabled: true }
+            }
+            CheckBox {
+                id: mcuCheck
+                text: qsTr("Board")
+                checked: editor.istMikrocontroller
+                onToggled: editor.istMikrocontroller = checked
+                implicitHeight: 28
+                contentItem: Text {
+                    text: mcuCheck.text; color: editor.theme.textPrimary; font.pixelSize: 12
+                    leftPadding: mcuCheck.indicator.width + 6; verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            Text {
                 text: qsTr("Kennbuchstaben:"); color: editor.theme.textMuted; font.pixelSize: 11
                 ToolTip.visible: kbHover.containsMouse; ToolTip.delay: 400
                 ToolTip.text: qsTr("BMK-Kennbuchstaben nach DIN EN 81346 (z.B. \"M\" fuer Motor, \"K\"/\"Q\" fuer eine Spule die je nach Geraet Schuetz oder Leistungsschalter ist). Mehrere moeglich - der markierte (farbig) wird beim Platzieren automatisch vorbelegt, die uebrigen erscheinen als Umschalt-Chips im Eigenschaften-Panel. Klick auf einen Chip macht ihn zum Standard, × entfernt ihn. Keine Eintraege = kein Vorschlag. Wirkt auch bei eingebauten Symbolen (reine Klassifikations-Metadatur, keine Geometrie).")

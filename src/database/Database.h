@@ -902,6 +902,15 @@ public:
                                                const QString &adressTyp, int byteNr, int bitNr,
                                                const QString &datentyp, int ausschlussId);
 
+    // ── Mikrokontroller-Pinbelegung (MCU-PINBELEGUNG-01, Database_Mikrocontroller.cpp) ──
+    // Eine Zeile je Board-Pin × angeschlossenem Pin (freie Pins: eine Zeile mit istFrei).
+    // [{elementId, boardBmk, boardName, pin, netz, verbundenBmk, verbundenSymbol, verbundenPin,
+    //   istFrei, defineName, defineWert, seiteId, blattnr, seiteBez, weltX, weltY}]
+    Q_INVOKABLE QVariantList mikrocontrollerPinbelegung(int projektId);
+    // #define-Block je Board (Textausgabe zum Kopieren in den Sketch)
+    Q_INVOKABLE QString      mikrocontrollerCode(int projektId);
+    Q_INVOKABLE bool         mikrocontrollerPinbelegungCsvSpeichern(int projektId, const QString &pfad);
+
     // ── DRC (Design Rule Check) ──────────────────────────────────────────────
     // Gibt alle BMK-Werte zurück, die im Projekt mehrfach vorkommen.
     // Rückgabe: [{bmk, anzahl, ids:[...]}]

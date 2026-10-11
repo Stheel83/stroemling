@@ -44,6 +44,9 @@ public:
     // Setzt die Steckverbinder-Rolle (wirkt auch bei eingebauten Symbolen -
     // reine Klassifikations-Metadatur, wie bmkKennbuchstabenSpeichern).
     Q_INVOKABLE bool steckRolleSetzen(const QString &symbolId, const QString &rolle);
+    // MCU-PINBELEGUNG-01: Symbol ist ein Mikrokontroller-Board (Pinbelegungsliste)
+    Q_INVOKABLE bool istMikrocontroller(const QString &symbolId) const;
+    Q_INVOKABLE bool istMikrocontrollerSetzen(const QString &symbolId, bool wert);
 
     // Steckkontakt-Pins des Symbols: [{name, x, y, primitive:[idx…]}].
     // primitive = Reihenfolge-Indizes der flächigen Primitive (Rechteck, Kreis,

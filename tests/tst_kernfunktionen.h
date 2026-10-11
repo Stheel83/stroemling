@@ -564,6 +564,76 @@ private slots:
             QFile::remove(m_projPfad + "_" + n);
     }
 
+    // ── MCU-PINBELEGUNG-01 ───────────────────────────────────────
+    // Weltposition eines Symbol-Pins (Rotation 0, ohne Spiegelung) – gleiche Formel wie im DRC
+    QPointF pinWelt(const QString &symbolId, const QString &pin, double x1, double y1, double x2, double y2)
+    {
+        QSqlQuery q(QSqlDatabase::database());
+        q.prepare("SELECT x, y FROM symbol_pin WHERE symbol_id=:s AND name=:n");
+        q.bindValue(":s", symbolId);
+        q.bindValue(":n", pin);
+        if (!q.exec() || !q.next()) return {};
+        return QPointF(x1 + q.value(0).toDouble() * (x2 - x1), y1 + q.value(1).toDouble() * (y2 - y1));
+    }
+    int netzAnlegen(int seiteId, const QPointF &a, const QPointF &b, const QString &name)
+    {
+        const int v = ins(QString("INSERT INTO verbindung (projekt_id, bezeichnung) VALUES (1,'%1')").arg(name));
+        const QString pkt = QString("[{\"x\":%1,\"y\":%2},{\"x\":%3,\"y\":%4}]")
+                                .arg(a.x()).arg(a.y()).arg(b.x()).arg(b.y());
+        ins(QString("INSERT INTO verbindung_segment (verbindung_id, seite_id, punkte) VALUES (%1,%2,'%3')")
+                .arg(v).arg(seiteId).arg(pkt));
+        return v;
+    }
+
+    void mcu_01_pinbelegung()
+    {
+        // Migration 162: nur die drei Boards sind markiert, Sensoren nicht
+        QCOMPARE(einWert("SELECT ist_mikrocontroller FROM symbol_definition WHERE id='ard_uno'").toInt(), 1);
+        QCOMPARE(einWert("SELECT ist_mikrocontroller FROM symbol_definition WHERE id='ard_hcsr04'").toInt(), 0);
+
+        const int sid = neueSeite("MCU");
+        QVariantMap board = symbol("ard_uno", 0, 0, {{"bmk", "A1"}});
+        board["x2"] = 32.0; board["y2"] = 64.0;
+        QVariantMap sensor = symbol("ard_hcsr04", 100, 0, {{"bmk", "B1"}});
+        sensor["x2"] = 116.0; sensor["y2"] = 20.0;
+        QVariantMap led = symbol("ard_pir", 100, 40, {{"bmk", "B2"}});
+        led["x2"] = 116.0; led["y2"] = 56.0;
+        QVERIFY(m_db->grafikSpeichern(sid, {board, sensor, led}));
+
+        // D7 ↔ HC-SR04 TRIG, A0 ↔ PIR OUT, D3 bleibt frei
+        netzAnlegen(sid, pinWelt("ard_uno", "D7", 0, 0, 32, 64), pinWelt("ard_hcsr04", "TRIG", 100, 0, 116, 20), "N_TRIG");
+        netzAnlegen(sid, pinWelt("ard_uno", "A0", 0, 0, 32, 64), pinWelt("ard_pir", "OUT", 100, 40, 116, 56), "N_PIR");
+
+        const QVariantList z = m_db->mikrocontrollerPinbelegung(1);
+        QVERIFY(!z.isEmpty());
+        QVariantMap d7, a0, d3;
+        for (const QVariant &v : z) {
+            const QVariantMap m = v.toMap();
+            if (m["boardBmk"].toString() != "A1") continue;
+            if (m["pin"].toString() == "D7") d7 = m;
+            if (m["pin"].toString() == "A0") a0 = m;
+            if (m["pin"].toString() == "D3") d3 = m;
+        }
+        QCOMPARE(d7["verbundenBmk"].toString(), QString("B1"));
+        QCOMPARE(d7["verbundenPin"].toString(), QString("TRIG"));
+        QCOMPARE(d7["netz"].toString(), QString("N_TRIG"));
+        QCOMPARE(d7["defineName"].toString(), QString("B1_TRIG"));
+        QCOMPARE(d7["defineWert"].toString(), QString("7"));
+        QCOMPARE(a0["verbundenBmk"].toString(), QString("B2"));
+        QCOMPARE(a0["defineWert"].toString(), QString("A0"));
+        QVERIFY(d3["istFrei"].toBool());
+        QVERIFY(d3["defineName"].toString().isEmpty());
+        // die Sensoren sind keine Boards: keine eigenen Zeilen
+        for (const QVariant &v : z) QVERIFY(v.toMap()["boardBmk"].toString() != "B1");
+
+        const QString code = m_db->mikrocontrollerCode(1);
+        QVERIFY2(code.contains("#define B1_TRIG 7"), qPrintable(code));
+        QVERIFY(code.contains("#define B2_OUT A0"));
+
+        // Editor-Flag setzbar (eigenes Board-Symbol)
+        QVERIFY(!einWert("SELECT 1 FROM symbol_definition WHERE id='ard_dht' AND ist_mikrocontroller=1").isValid());
+    }
+
     void gs_07_kabellinieUndAderzuordnungWerdenNachgezogen()
     {
         const int sid = neueSeite("1"), anderes = neueSeite("2");

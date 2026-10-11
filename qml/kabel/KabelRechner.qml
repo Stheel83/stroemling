@@ -231,7 +231,7 @@ Item {
                                     qsTr("Einzelkabel direkt in Erde"),
                                     qsTr("Mehrere Kabel in Erde oder im Rohr"),
                                     qsTr("Freie Verlegung (Kabelrinne, Luftraum)"),
-                                    qsTr("Freie Verlegung horizontal auf Oberfläche")
+                                    qsTr("Einadrige Kabel in Luft, mit Berührung (ab 25 mm²)")
                                 ]
                                 return bez[idx] || ""
                             }

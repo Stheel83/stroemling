@@ -20,7 +20,9 @@ Dialog {
     parent: Overlay.overlay
     anchors.centerIn: parent
     width:  Math.min(820, parent ? parent.width - 40 : 820)
-    height: Math.min(640, parent ? parent.height - 40 : 640)
+    // Höhe folgt dem Inhalt (vorher fest 640: das Layout verteilte die wenigen
+    // sichtbaren Elemente vor dem Laden einer Datei über die ganze Dialoghöhe).
+    height: Math.min(implicitHeight, parent ? parent.height - 40 : implicitHeight)
     padding: 16
     title: qsTr("SPS/PLS-Daten aus CSV importieren")
 
@@ -180,8 +182,7 @@ Dialog {
         Rectangle {
             visible: zuordnung.count > 0
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 120
+            Layout.preferredHeight: Math.min(220, 8 + zuordnung.count * 32)
             color: root.theme.surface
             border.color: root.theme.border
             radius: 4

@@ -133,6 +133,102 @@ Item {
         _kanaele = db.spsKanalListe(root.projektId)
     }
 
+    // ── Löschen mit Rückfrage (SPS-LOESCHEN-01) ───────────────────
+    // _loeschAktion: { typ: "rack"|"baugruppe"|"kanal", id: int }
+    property var _loeschAktion: null
+
+    function _kanaeleDerBaugruppen(bgIds) {
+        var r = []
+        for (var i = 0; i < _kanaele.length; i++)
+            if (bgIds.indexOf(_kanaele[i].baugruppe_id) >= 0) r.push(_kanaele[i])
+        return r
+    }
+
+    function _kanalHatInhalt(k) {
+        return !!k.grafik_element_id || (k.variablenname || "") !== "" || (k.kommentar || "") !== ""
+    }
+
+    function _kanalLoeschenFragen(k) {
+        // Leere, unverknüpfte Kanäle (z.B. frisch per ⚡ angelegt) ohne Rückfrage löschen
+        if (!_kanalHatInhalt(k)) { _loeschenAusfuehren("kanal", k.id, false); return }
+        _loeschAktion = { typ: "kanal", id: k.id }
+        var t = qsTr("Kanal %1 wirklich löschen?").arg(k.adresse || "?")
+        if (k.variablenname) t += "\n" + qsTr("Variable / Tag: %1").arg(k.variablenname)
+        if (k.grafik_element_id)
+            t += "\n\n" + qsTr("Die Verknüpfung mit dem Schaltplan-Element wird aufgelöst.")
+        loeschDialog.titel = qsTr("Kanal löschen")
+        loeschDialog.text = t
+        loeschDialog.gefahr = !!k.grafik_element_id
+        loeschDialog.optionText = ""
+        loeschDialog.open()
+    }
+
+    function _baugruppeLoeschenFragen(bg) {
+        var kanaele = _kanaeleDerBaugruppen([bg.id])
+        _loeschAktion = { typ: "baugruppe", id: bg.id }
+        loeschDialog.titel = qsTr("Baugruppe löschen")
+        loeschDialog.text = _loeschText(qsTr("Baugruppe \"%1\" (Slot %2)").arg(bg.bezeichnung || bg.typ).arg(bg.slot),
+                                         0, kanaele)
+        loeschDialog.gefahr = kanaele.length > 0
+        loeschDialog.optionText = kanaele.length > 0 ? qsTr("Kanäle ebenfalls löschen") : ""
+        loeschDialog.optionWert = false
+        loeschDialog.open()
+    }
+
+    function _rackLoeschenFragen(rack) {
+        var bgs = db.spsBaugruppeListe(rack.id)
+        var ids = bgs.map(function(b) { return b.id })
+        var kanaele = _kanaeleDerBaugruppen(ids)
+        _loeschAktion = { typ: "rack", id: rack.id }
+        loeschDialog.titel = qsTr("Rack löschen")
+        loeschDialog.text = _loeschText(qsTr("Rack \"%1\" (%2, R%3)").arg(rack.bezeichnung || ("Rack " + rack.rack_nr))
+                                         .arg(rack.system_typ).arg(rack.rack_nr), bgs.length, kanaele)
+        loeschDialog.gefahr = bgs.length > 0 || kanaele.length > 0
+        loeschDialog.optionText = kanaele.length > 0 ? qsTr("Kanäle ebenfalls löschen") : ""
+        loeschDialog.optionWert = false
+        loeschDialog.open()
+    }
+
+    // Gemeinsamer Hinweistext. Wichtig: ohne Haken bleiben die Kanäle ERHALTEN
+    // (sps_kanal.baugruppe_id ist ON DELETE SET NULL) - sie verlieren nur die Baugruppe.
+    function _loeschText(was, anzahlBaugruppen, kanaele) {
+        var mitElement = 0
+        for (var i = 0; i < kanaele.length; i++) if (kanaele[i].grafik_element_id) mitElement++
+        var t = qsTr("%1 wirklich löschen?").arg(was)
+        if (anzahlBaugruppen > 0)
+            t += "\n\n" + qsTr("%1 Baugruppe(n) werden mitgelöscht.").arg(anzahlBaugruppen)
+        if (kanaele.length > 0) {
+            t += "\n\n" + qsTr("%1 Kanal/Kanäle gehören dazu, davon %2 mit Schaltplan-Element.").arg(kanaele.length).arg(mitElement)
+            t += "\n" + qsTr("Ohne Haken bleiben sie erhalten, haben dann aber keine Baugruppe mehr (DRC meldet sie).")
+        }
+        return t
+    }
+
+    function _loeschenAusfuehren(typ, id, kanaeleMitLoeschen) {
+        if (typ === "kanal") {
+            if (db.spsKanalLoeschen(id)) {
+                if (_ausgewaehlterKanalId === id) _ausgewaehlterKanalId = -1
+                _ladeKanaele()
+            }
+            return
+        }
+        var bgIds = [id]
+        if (typ === "rack")
+            bgIds = db.spsBaugruppeListe(id).map(function(b) { return b.id })
+        if (kanaeleMitLoeschen) {
+            var ks = _kanaeleDerBaugruppen(bgIds)
+            for (var i = 0; i < ks.length; i++) db.spsKanalLoeschen(ks[i].id)
+        }
+        if (typ === "rack") {
+            if (db.spsRackLoeschen(id)) { _ausgewaehlterRackId = -1; _ausgewaehlterBaugruppeId = -1; _ladeRacks() }
+        } else {
+            if (db.spsBaugruppeLoeschen(id)) {
+                if (_ausgewaehlterBaugruppeId === id) _ausgewaehlterBaugruppeId = -1
+                _ladeBaugruppen()
+            }
+        }
+    }
+
     function _ausgewaehlteBaugruppeInfo() {
         for (var i = 0; i < _baugruppen.length; i++)
             if (_baugruppen[i].id === _ausgewaehlterBaugruppeId) return _baugruppen[i]
@@ -241,6 +337,17 @@ Item {
         theme: root.theme
         bg: root._pendingAutoAnlegenBg
         onBestaetigt: root._kanaeleAutoAnlegen(root._pendingAutoAnlegenBg)
+    }
+
+    // ── Löschen-Rückfrage ─────────────────────────────────────────
+    SpsLoeschenDialog {
+        id: loeschDialog
+        theme: root.theme
+        onBestaetigt: function(option) {
+            if (root._loeschAktion)
+                root._loeschenAusfuehren(root._loeschAktion.typ, root._loeschAktion.id, option)
+            root._loeschAktion = null
+        }
     }
 
     // ── Kanal-Dialog ──────────────────────────────────────────────
@@ -454,13 +561,8 @@ Item {
                                     font.pixelSize: 11
                                     visible: rackMa.containsMouse
                                     ToolTip.visible: hovered
-                                    ToolTip.text: qsTr("Rack löschen (alle Baugruppen + Kanäle)")
-                                    onClicked: {
-                                        if (db.spsRackLoeschen(rackDelegate.modelData.id)) {
-                                            root._ausgewaehlterRackId = -1
-                                            root._ladeRacks()
-                                        }
-                                    }
+                                    ToolTip.text: qsTr("Rack löschen (mit Rückfrage)")
+                                    onClicked: root._rackLoeschenFragen(rackDelegate.modelData)
                                 }
                             }
                         }
@@ -642,13 +744,7 @@ Item {
                                         visible: bgMa.containsMouse
                                         ToolTip.visible: hovered
                                         ToolTip.text: qsTr("Baugruppe löschen")
-                                        onClicked: {
-                                            if (db.spsBaugruppeLoeschen(bgDelegate.modelData.id)) {
-                                                if (root._ausgewaehlterBaugruppeId === bgDelegate.modelData.id)
-                                                    root._ausgewaehlterBaugruppeId = -1
-                                                root._ladeBaugruppen()
-                                            }
-                                        }
+                                        onClicked: root._baugruppeLoeschenFragen(bgDelegate.modelData)
                                     }
                                 }
                             }
@@ -1056,13 +1152,7 @@ Item {
                                     visible: kanalMa.containsMouse
                                     ToolTip.visible: hovered
                                     ToolTip.text: qsTr("Kanal löschen")
-                                    onClicked: {
-                                        if (db.spsKanalLoeschen(kanalDelegate.modelData.id)) {
-                                            if (root._ausgewaehlterKanalId === kanalDelegate.modelData.id)
-                                                root._ausgewaehlterKanalId = -1
-                                            root._ladeKanaele()
-                                        }
-                                    }
+                                    onClicked: root._kanalLoeschenFragen(kanalDelegate.modelData)
                                 }
                             }
                         }

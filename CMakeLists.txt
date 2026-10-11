@@ -283,6 +283,7 @@ qt_add_qml_module(stroemling_app
         qml/sps/SpsRackDialog.qml
         qml/sps/SpsBaugruppeDialog.qml
         qml/sps/SpsAutoAnlegenDialog.qml
+        qml/sps/SpsLoeschenDialog.qml
         qml/sps/SpsKanalDialog.qml
         qml/FehlersuchAnsicht.qml
         qml/ProjektStartAnsicht.qml

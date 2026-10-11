@@ -12,6 +12,8 @@ Item {
 
     property string material: "cu"        // "cu" | "al"
 
+    // Breite des Eingabe-Panels (links); Inhalt = Breite - 2 × 16 px Rand
+    readonly property int     panelBreite: 400
     readonly property var     erg:      kabelRechnerModel.ergebnis
 
     // Anwendungsfall-Vorlagen (Praxiswerte), aus dem C++-Modell
@@ -75,20 +77,20 @@ Item {
             Layout.fillHeight: true
             spacing: 0
 
-            // ── Eingabe-Panel (links, 300 px) ─────────────────────────────
+            // ── Eingabe-Panel (links, Breite = root.panelBreite) ───────────
             Rectangle {
-                Layout.preferredWidth: 300
+                Layout.preferredWidth: root.panelBreite
                 Layout.fillHeight:     true
                 color: theme.sidebar
 
                 ScrollView {
                     anchors.fill:  parent
-                    contentWidth:  300
+                    contentWidth:  root.panelBreite
                     clip:          true
 
                     Column {
                         x: 16; y: 16
-                        width:   268
+                        width:   root.panelBreite - 32
                         spacing: 3
 
                         // ── Elektrische Parameter ────────────────────────
@@ -113,7 +115,7 @@ Item {
                                 onActivated: root.vorlageAnwenden(currentIndex)
                                 // Liste so breit wie das Eingabe-Panel (ab Label), damit lange Namen lesbar sind
                                 popup.x: -88
-                                popup.width: 268
+                                popup.width: root.panelBreite - 32
                             }
                             Item { Layout.preferredWidth: 28 }
                         }
@@ -224,7 +226,7 @@ Item {
                                         qsTr("F · Luft, mit Berührung"), qsTr("G · Luft, mit Abstand")]
                                 currentIndex: 3
                                 popup.x: -88
-                                popup.width: 268
+                                popup.width: root.panelBreite - 32
                                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                                 contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
                                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }

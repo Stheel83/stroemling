@@ -51,6 +51,9 @@ void KabelRechnerModel::berechnen()
     if (m_betriebsart == 2)
         warnungen << tr("DC-Betrieb: Schutzorgan auf DC-Lichtbogenlöschung prüfen (z. B. IEC 60947-2).");
 
+    if (m_material == 1 && m_verlegeart >= 7)
+        warnungen << tr("Aluminium: Für Verlegeart F/G sind keine Belastbarkeitswerte hinterlegt – Thermik nicht bewertbar.");
+
     if (m_material == 1)
         warnungen << tr("Aluminium: Norm-Mindestquerschnitt 10 mm². Kleinere Al-Querschnitte sind nicht zulässig.");
 
@@ -203,7 +206,7 @@ void KabelRechnerModel::berechnen()
     praxisMap["stimmtUeberein"]  = !ueberTabelle && (std::abs(aPraxisNorm - aFinalNorm) < 1e-6);
 
     // Zusammenfassung für die Empfehlung
-    static const QStringList verlegeartNamen = {"A1","A2","B1","B2","C","D1","D2","E","F"};
+    static const QStringList verlegeartNamen = {"A1","A2","B1","B2","C","D","E","F","G"};
     const QString verlegeartStr = (m_verlegeart >= 0 && m_verlegeart < 9)
                                    ? verlegeartNamen[m_verlegeart] : "?";
     const QString materialStr   = (m_material == 0) ? tr("Kupfer") : tr("Aluminium");

@@ -203,7 +203,7 @@ Item {
                             ComboBox {
                                 id: verlegeartBox
                                 Layout.fillWidth: true; font.pixelSize: 12
-                                model: ["A1", "A2", "B1", "B2", "C", "D1", "D2", "E", "F"]
+                                model: ["A1", "A2", "B1", "B2", "C", "D", "E", "F", "G"]
                                 currentIndex: 3
                                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                                 contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
@@ -223,15 +223,15 @@ Item {
                             text: {
                                 var idx = verlegeartBox.currentIndex
                                 var bez = [
-                                    qsTr("Einzelader in wärmegedämmter Wand"),
-                                    qsTr("Mehradriges Kabel in wärmegedämmter Wand"),
-                                    qsTr("Einzelader auf Holzwand / in Rohr auf Holzwand"),
-                                    qsTr("Mehradriges Kabel auf Holzwand / in Rohr"),
-                                    qsTr("Direkt auf Wand oder Decke"),
-                                    qsTr("Einzelkabel direkt in Erde"),
-                                    qsTr("Mehrere Kabel in Erde oder im Rohr"),
-                                    qsTr("Freie Verlegung (Kabelrinne, Luftraum)"),
-                                    qsTr("Einadrige Kabel in Luft, mit Berührung (ab 25 mm²)")
+                                    qsTr("Aderleitungen im Rohr in wärmegedämmter Wand"),
+                                    qsTr("Mehradriges Kabel / Mantelleitung im Rohr in wärmegedämmter Wand"),
+                                    qsTr("Aderleitungen im Rohr auf einer Wand"),
+                                    qsTr("Mehradriges Kabel / Mantelleitung im Rohr auf einer Wand"),
+                                    qsTr("Ein- oder mehradriges Kabel direkt auf einer Wand"),
+                                    qsTr("Mehradriges Kabel im Rohr oder Kabelschacht im Erdboden"),
+                                    qsTr("Mehradriges Kabel frei in Luft, Wandabstand ≥ 0,3 · d"),
+                                    qsTr("Einadrige Kabel mit Berührung frei in Luft (ab 25 mm²)"),
+                                    qsTr("Einadrige Kabel mit Abstand d frei in Luft (ab 25 mm²)")
                                 ]
                                 return bez[idx] || ""
                             }

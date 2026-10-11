@@ -26,7 +26,7 @@ class KabelRechnerModel : public QObject
     Q_PROPERTY(double laenge           READ laenge           WRITE setLaenge           NOTIFY eingabeGeaendert)
     // material: 0 = Kupfer, 1 = Aluminium
     Q_PROPERTY(int    material         READ material         WRITE setMaterial         NOTIFY eingabeGeaendert)
-    // verlegeart: 0..8 = A1, A2, B1, B2, C, D1, D2, E, F
+    // verlegeart: 0..8 = A1, A2, B1, B2, C, D, E, F, G
     Q_PROPERTY(int    verlegeart       READ verlegeart       WRITE setVerlegeart       NOTIFY eingabeGeaendert)
     Q_PROPERTY(double temperatur       READ temperatur       WRITE setTemperatur       NOTIFY eingabeGeaendert)
     // haefung: 0 = 1 Leitung, 1 = 2, 2 = 3, 3 = 4, 4 = 5, 5 = 6+

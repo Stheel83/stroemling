@@ -21,6 +21,10 @@ Dialog {
     required property var    theme
     property string          dateiname: "liste.pdf"   // Vorschlag für Dateiname
     property string          titelText: qsTr("Als PDF exportieren")
+    // SPS-EXPORT-02: auch für andere Dateiarten nutzbar (z.B. CSV im SPS/PLS-Export)
+    property string          dateiEndung:    ".pdf"
+    property string          speichernTitel: qsTr("PDF speichern unter")
+    property string          erfolgText:     qsTr("PDF gespeichert.")
 
     // Aufrufer verbindet sich hierauf, führt db.listePdfSpeichern() aus und
     // ruft anschließend erfolgReagieren(ok) auf.
@@ -28,7 +32,7 @@ Dialog {
 
     function erfolgReagieren(ok) {
         if (ok) {
-            meldungManager.zeigen(qsTr("PDF gespeichert."), true)
+            meldungManager.zeigen(root.erfolgText, true)
             root.accept()
         } else {
             statusText.text = qsTr("Export fehlgeschlagen. Pfad prüfen.")
@@ -48,7 +52,7 @@ Dialog {
     // Eigener Pfad-Picker – identisch zu PdfExportDialog.qml/IbnPdfExportDialog.qml
     Dialog {
         id: speicherDialog
-        title:  qsTr("PDF speichern unter")
+        title:  root.speichernTitel
         modal:  true
         parent: Overlay.overlay
         anchors.centerIn: parent
@@ -152,7 +156,7 @@ Dialog {
                         var p = ("" + _pfadFeld.text).trim()
                         if (p.startsWith("file:///")) p = p.substring(7)
                         else if (p.startsWith("file://")) p = p.substring(7)
-                        if (!p.endsWith(".pdf")) p = p + ".pdf"
+                        if (!p.endsWith(root.dateiEndung)) p = p + root.dateiEndung
                         speicherDialog.selectedFile = "file:///" + p.replace(/^\/+/, "")
                         speicherDialog.accept()
                     }

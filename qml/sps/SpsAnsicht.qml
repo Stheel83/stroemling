@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Dialogs
 import "../components"
 
 Item {
@@ -363,18 +362,6 @@ Item {
             _ladeKanaele()
         }
         onFehler: function(meldung) { meldungManager.zeigen(meldung, false) }
-    }
-
-    // ── Export-Dialoge ────────────────────────────────────────────
-    FileDialog {
-        id: exportDialog
-        fileMode: FileDialog.SaveFile
-        nameFilters: ["CSV-Dateien (*.csv)", "Alle Dateien (*)"]
-        defaultSuffix: "csv"
-        onAccepted: {
-            var ok = db.spsIOListeCsvSpeichern(root.projektId, selectedFile)
-            meldungManager.zeigen(ok ? qsTr("I/O-Liste exportiert") : qsTr("Export fehlgeschlagen"), ok)
-        }
     }
 
     // ── Haupt-Layout ──────────────────────────────────────────────
@@ -1204,51 +1191,12 @@ Item {
                 }
             }
 
-            // ── Tab 2: Export ─────────────────────────────────────
-            Item {
-                ColumnLayout {
-                    anchors.centerIn: parent
-                    spacing: 20
-                    width: Math.min(parent.width - 80, 500)
-
-                    Label {
-                        text: qsTr("Export")
-                        font.pixelSize: 18
-                        font.bold: true
-                        color: root.theme.textPrimary
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    Label {
-                        text: qsTr("Alle %1 Kanäle des Projekts als I/O-Liste exportieren.").arg(root._kanaele.length)
-                        color: root.theme.textMuted
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    Button {
-                        text: qsTr("I/O-Liste als CSV exportieren")
-                        Layout.alignment: Qt.AlignHCenter
-                        enabled: root._kanaele.length > 0
-                        onClicked: exportDialog.open()
-                        background: Rectangle {
-                            color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
-                            radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border
-                        }
-                        contentItem: Text { text: parent.text; color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted;
-                                            font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    }
-
-                    Label {
-                        text: qsTr("Spalten: System, Rack, Slot, Kanal, Baugruppe, Baugruppen-Typ, Signal (DI/DO/AI/AO),\nAdresse, Datentyp, Variable/Tag, Kommentar, Einheit, Bereich, Alarme, Protokoll,\nBMK und Seite des Schaltplan-Elements.\n\nSystemneutrales Format (kein Hersteller-Tool-Import). Excel-kompatibel (UTF-8 BOM, Semikolon-getrennt).")
-                        color: root.theme.textMuted
-                        font.pixelSize: 11
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
+            // ── Tab 2: Export (SPS-EXPORT-02, konfigurierbar) ─────
+            SpsExportTab {
+                theme: root.theme
+                projektId: root.projektId
+                racks: root._racks
+                kanalAnzahl: root._kanaele.length
             }
         }
 

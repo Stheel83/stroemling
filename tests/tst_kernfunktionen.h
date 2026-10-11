@@ -379,6 +379,69 @@ private slots:
                  qPrintable(inhalt));
     }
 
+    void sps_04_konfigurierbarerExport()
+    {
+        const int r = m_db->spsRackAnlegen(1, 95, "PLS", "Messwarte", "ACME");
+        const int bg = m_db->spsBaugruppeAnlegen(r, 2, "AI", "AI 4", 4, 0);
+        const int bgDo = m_db->spsBaugruppeAnlegen(r, 3, "DO", "DO 4", 4, 0);
+        QVERIFY(r > 0 && bg > 0 && bgDo > 0);
+        const int k1 = m_db->spsKanalAnlegen(1, bg, 0, "E", 0, 0, "REAL", "TIC;001", "Temp \"Reaktor\"");
+        QVERIFY(m_db->spsKanalAktualisieren(k1, {{"pls_bereich_min", 0.0}, {"pls_bereich_max", 99.5}}));
+        QVERIFY(m_db->spsKanalAnlegen(1, bgDo, 0, "A", 0, 0, "REAL", "Ventil", "") > 0);
+
+        // Feldkatalog enthält Standard- und Zusatzfelder
+        QVariantList kat = m_db->spsExportFeldKatalog();
+        QVERIFY(kat.size() > 22);
+
+        // eigene Spalten, Reihenfolge, Titel, Komma-Trenner, Dezimalpunkt, Rack-/Signalfilter
+        const QString konfig = R"({"spalten":[
+            {"feld":"adresse","titel":"Addr"},
+            {"feld":"variablenname","titel":"Tag"},
+            {"feld":"bereich_max","titel":"Max"},
+            {"feld":"fest","titel":"Quelle","wert":"Strömling"},
+            {"feld":"hersteller","titel":"Hersteller"}],
+            "trennzeichen":",","dezimal":".","kopfzeile":true,"bom":false,"anfuehrung":"bei_bedarf",
+            "filter":{"system":"PLS","rack":"95","signal":"AI","belegung":"alle"}})";
+        const QVariantMap v = m_db->spsExportVorschau(1, konfig, 10);
+        QVERIFY2(v["fehler"].toString().isEmpty(), qPrintable(v["fehler"].toString()));
+        QCOMPARE(v["zeilen"].toInt(), 1);   // nur der AI-Kanal
+        const QStringList z = v["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QCOMPARE(z.size(), 2);
+        QCOMPARE(z[0], QString("Addr,Tag,Max,Quelle,Hersteller"));
+        // Semikolon im Tag erzwingt bei "bei_bedarf" nur bei Komma-Trenner kein Quoting,
+        // Dezimalpunkt statt Komma, fester Text, Hersteller aus dem Rack
+        QCOMPARE(z[1], QString("R95 S2 K1,TIC;001,99.5,Strömling,ACME"));
+
+        // Trenner im Wert wird gequotet; Dezimalkomma
+        const QString k2 = R"({"spalten":[{"feld":"variablenname"},{"feld":"kommentar"},{"feld":"bereich_max"}],
+            "trennzeichen":";","dezimal":",","kopfzeile":false,"anfuehrung":"bei_bedarf",
+            "filter":{"rack":"95","signal":"AI"}})";
+        const QVariantMap v2 = m_db->spsExportVorschau(1, k2, -1);
+        QCOMPARE(v2["text"].toString(), QString("\"TIC;001\";\"Temp \"\"Reaktor\"\"\";99,5\n"));
+
+        // Filter „ohne Element" findet beide Kanäle, Vorschau begrenzt die Ausgabe, zählt aber alle
+        const QString k3 = R"({"spalten":[{"feld":"adresse"}],"kopfzeile":false,
+            "filter":{"rack":"95","belegung":"ohne_element"}})";
+        const QVariantMap v3 = m_db->spsExportVorschau(1, k3, 1);
+        QCOMPARE(v3["zeilen"].toInt(), 2);
+        QCOMPARE(v3["text"].toString().split('\n', Qt::SkipEmptyParts).size(), 1);
+
+        // Ungültig: keine Spalten / kein JSON
+        QVERIFY(!m_db->spsExportVorschau(1, R"({"spalten":[]})", 5)["fehler"].toString().isEmpty());
+        QVERIFY(!m_db->spsExportVorschau(1, "kein json", 5)["fehler"].toString().isEmpty());
+
+        // Datei ohne BOM
+        const QString pfad = m_projPfad + "_cfg.csv";
+        QVERIFY(m_db->spsExportCsvSpeichern(1, pfad, konfig));
+        QFile f(pfad);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QByteArray roh = f.readAll();
+        f.close();
+        QFile::remove(pfad);
+        QVERIFY(!roh.startsWith("\xEF\xBB\xBF"));
+        QVERIFY(roh.startsWith("Addr,Tag"));
+    }
+
     void gs_07_kabellinieUndAderzuordnungWerdenNachgezogen()
     {
         const int sid = neueSeite("1"), anderes = neueSeite("2");

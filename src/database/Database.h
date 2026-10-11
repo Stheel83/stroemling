@@ -863,8 +863,18 @@ public:
     // Vollständige I/O-Liste für Export/Anzeige
     Q_INVOKABLE QVariantList spsIOListe(int projektId);
 
-    // I/O-Liste als CSV (UTF-8 mit BOM, Semikolon-getrennt)
+    // I/O-Liste als CSV mit der Standard-Konfiguration (UTF-8 mit BOM, Semikolon-getrennt)
     Q_INVOKABLE bool         spsIOListeCsvSpeichern(int projektId, const QString &pfad);
+
+    // SPS-EXPORT-02: frei konfigurierbarer CSV-Export (Database_SpsExport.cpp).
+    // konfigJson: {spalten:[{feld,titel,wert?}], trennzeichen, dezimal, kopfzeile, bom,
+    //              anfuehrung:"immer"|"bei_bedarf", filter:{system,rack,signal,belegung}}
+    Q_INVOKABLE QVariantList spsExportFeldKatalog();    // [{feld, titel, gruppe, standard}]
+    Q_INVOKABLE QString      spsExportStandardKonfig(); // JSON
+    // {text, zeilen (Gesamtzahl nach Filter), fehler}; maxZeilen < 0 = alle
+    Q_INVOKABLE QVariantMap  spsExportVorschau(int projektId, const QString &konfigJson, int maxZeilen);
+    Q_INVOKABLE bool         spsExportCsvSpeichern(int projektId, const QString &pfad,
+                                                   const QString &konfigJson);
 
     // Element-IDs mit SPS-Konflikt (Canvas-Markierung): Element mit mehr als einem
     // Kanal ODER Element, dessen Kanal eine Adresse mit einem anderen Kanal teilt
@@ -1036,6 +1046,7 @@ private:
     // des verknüpften grafik_element übernehmen, damit beide nur an einer
     // Stelle (Kanal) gepflegt werden müssen.
     void _spsKanalFelderInsElementUebernehmen(int kanalId);
+    QVariantMap spsExportErzeugen(int projektId, const QString &konfigJson, int maxZeilen);
 
     QSqlDatabase m_db;
     int          m_grafikAenderungszaehler = 0;

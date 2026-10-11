@@ -247,7 +247,9 @@ static const QLatin1String _spsKanalSelectBase(
     "sb.typ AS baugruppe_typ, se.blattnummer AS seite_blatt, "
     "sb.bezeichnung AS baugruppe_bezeichnung, "
     "ge.seite_id AS element_seite_id, "
-    "(ge.x1 + ge.x2) / 2.0 AS element_welt_x, (ge.y1 + ge.y2) / 2.0 AS element_welt_y "
+    "(ge.x1 + ge.x2) / 2.0 AS element_welt_x, (ge.y1 + ge.y2) / 2.0 AS element_welt_y, "
+    "sb.artikel_nr AS baugruppe_artikel_nr, sr.bezeichnung AS rack_bezeichnung, "
+    "sr.hersteller AS rack_hersteller "
     "FROM sps_kanal sk "
     "LEFT JOIN sps_baugruppe  sb ON sb.id = sk.baugruppe_id "
     "LEFT JOIN sps_rack       sr ON sr.id = sb.rack_id "
@@ -286,6 +288,9 @@ static QVariantMap _spsKanalRow(QSqlQuery &q)
     m["baugruppe_typ"]          = q.value(26).isNull() ? QVariant() : q.value(26).toString();
     m["seite_blatt"]            = q.value(27).isNull() ? QVariant() : q.value(27).toString();
     m["baugruppe_bezeichnung"]  = q.value(28).isNull() ? QVariant() : q.value(28).toString();
+    m["artikel_nr"]        = q.value(32).isNull() ? QVariant() : q.value(32).toString();
+    m["rack_bezeichnung"]  = q.value(33).isNull() ? QVariant() : q.value(33).toString();
+    m["hersteller"]        = q.value(34).isNull() ? QVariant() : q.value(34).toString();
     // Sprungziel (SPS-SPRUNG-01): gleiche Mittelpunktsformel wie die übrigen Sprungabfragen
     m["seite_id"] = q.value(29).isNull() ? QVariant() : q.value(29).toInt();
     m["welt_x"]   = q.value(30).isNull() ? QVariant() : q.value(30).toDouble();
@@ -494,70 +499,8 @@ QVariantList Database::spsIOListe(int projektId)
 
 bool Database::spsIOListeCsvSpeichern(int projektId, const QString &pfad)
 {
-    // SPS-EXPORT-01: systemneutrale Adressliste. Rack/Slot/Kanal stehen als eigene
-    // Spalten (PLS-Sicht), die formatierte Adresse zusätzlich; kein Hersteller-
-    // oder Engineering-Tool-Format (TIA/CODESYS/...), da sich das nicht ohne
-    // Hardware/Zielsystem verifizieren lässt. Element-Verknüpfung als BMK + Seite
-    // statt roher DB-ID.
-    QVariantList kanaele = spsIOListe(projektId);
-    QFile file;
-    QTextStream out;
-    if (!CsvHelfer::dateiOeffnenMitBom(pfad, file, out, "spsIOListeCsvSpeichern"))
-        return false;
-    out << "\"System\";\"Rack\";\"Slot\";\"Kanal\";\"Baugruppe\";\"Baugruppen-Typ\";\"Signal\";"
-           "\"Adresse\";\"Datentyp\";\"Variable / Tag\";\"Kommentar\";"
-           "\"Einheit\";\"Bereich Min\";\"Bereich Max\";"
-           "\"Alarm LL\";\"Alarm LO\";\"Alarm HI\";\"Alarm HH\";"
-           "\"Protokoll\";\"BMK\";\"Seite\";\"Seitenbezeichnung\"\n";
-
-    auto csv = CsvHelfer::escapeImmer;
-    auto feld = [&](const QVariant &v, bool letztes = false) {
-        out << '"' << csv(v) << (letztes ? "\"\n" : "\";");
-    };
-
-    for (const QVariant &kv : kanaele) {
-        const QVariantMap k = kv.toMap();
-        const bool hatBg = !k["baugruppe_id"].isNull();
-        const QString adressTyp = k["adress_typ"].toString();
-
-        // Signal-Art: DIO/AIO werden über die Richtung aufgelöst, Kanäle ohne
-        // Baugruppe (M/T/Z) zeigen ihren Adress-Typ.
-        QString signal = k["baugruppe_typ"].toString().toUpper();
-        if (signal == QLatin1String("DIO")) signal = (adressTyp == QLatin1String("A")) ? "DO" : "DI";
-        if (signal == QLatin1String("AIO")) signal = (adressTyp == QLatin1String("A")) ? "AO" : "AI";
-        if (!hatBg) signal = adressTyp;
-
-        QString bmk;
-        const QByteArray ed = k["element_extra_daten"].toString().toUtf8();
-        if (!ed.isEmpty())
-            bmk = QJsonDocument::fromJson(ed).object().value("bmk").toString();
-
-        feld(hatBg ? k["system_typ"] : QVariant());
-        feld(hatBg ? k["rack_nr"] : QVariant());
-        feld(hatBg ? k["slot"] : QVariant());
-        feld(k["kanal_nr"].isNull() ? QVariant() : QVariant(k["kanal_nr"].toInt() + 1));
-        feld(k["baugruppe_bezeichnung"]);
-        feld(k["baugruppe_typ"]);
-        feld(signal);
-        feld(k["adresse"]);
-        feld(k["datentyp"]);
-        feld(k["variablenname"]);
-        feld(k["kommentar"]);
-        feld(k["pls_einheit"]);
-        feld(k["pls_bereich_min"]);
-        feld(k["pls_bereich_max"]);
-        feld(k["pls_alarm_ll"]);
-        feld(k["pls_alarm_lo"]);
-        feld(k["pls_alarm_hi"]);
-        feld(k["pls_alarm_hh"]);
-        feld(k["pls_protokoll"]);
-        feld(bmk);
-        feld(k["seite_blatt"]);
-        feld(k["seite_name"], true);
-    }
-    file.close();
-    qCInfo(lcDb) << "SPS/PLS I/O-Liste exportiert:" << file.fileName() << "(" << kanaele.size() << "Kanäle)";
-    return true;
+    // Standard-Konfiguration des frei konfigurierbaren Exports (Database_SpsExport.cpp)
+    return spsExportCsvSpeichern(projektId, pfad, spsExportStandardKonfig());
 }
 
 QVariantMap Database::spsKanalKonflikt(int projektId, int baugruppeId, int kanalNr,

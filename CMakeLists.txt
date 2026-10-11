@@ -31,6 +31,7 @@ qt_add_executable(stroemling_app
     src/database/Database_IBN.cpp
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
+    src/database/Database_SpsExport.cpp
     src/database/Database_PDF.cpp
     src/database/PdfRenderer.h
     src/database/PdfRenderer_Basis.cpp
@@ -284,6 +285,7 @@ qt_add_qml_module(stroemling_app
         qml/sps/SpsBaugruppeDialog.qml
         qml/sps/SpsAutoAnlegenDialog.qml
         qml/sps/SpsLoeschenDialog.qml
+        qml/sps/SpsExportTab.qml
         qml/sps/SpsKanalDialog.qml
         qml/FehlersuchAnsicht.qml
         qml/ProjektStartAnsicht.qml
@@ -538,6 +540,7 @@ qt_add_executable(stroemling_test
     src/database/Database_IBN.cpp
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
+    src/database/Database_SpsExport.cpp
     src/database/Database_PDF.cpp
     src/database/PdfRenderer.h
     src/database/PdfRenderer_Basis.cpp

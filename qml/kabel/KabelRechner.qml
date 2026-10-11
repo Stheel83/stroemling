@@ -27,6 +27,7 @@ Item {
         betriebsartBox.currentIndex = v.betriebsart
         spannungZeile.feldText      = String(v.spannung).replace(".", ",")
         stromZeile.feldText         = String(v.strom).replace(".", ",")
+        cosPhiZeile.feldText        = String(v.cosPhi.toFixed(2)).replace(".", ",")
         laengeZeile.feldText        = String(v.laenge).replace(".", ",")
         duMaxZeile.feldText         = String(v.duMaxProzent).replace(".", ",")
         verlegeartBox.currentIndex  = v.verlegeart
@@ -144,7 +145,7 @@ Item {
                         }
 
                         KrZeile {
-                            id: cosPhiZeile
+                            id: cosPhiZeile; onFeldTextChanged: root.vorlageManuellGeaendert();
                             visible: betriebsartBox.currentIndex !== 2
                             label: "cos φ"; wert: "1,00"; einheit: ""; theme: root.theme
                         }

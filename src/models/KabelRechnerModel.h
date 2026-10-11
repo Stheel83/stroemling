@@ -77,7 +77,7 @@ public:
     Q_INVOKABLE void berechnen();
 
     // Anwendungsfall-Vorlagen (Praxiswerte): Liste von Maps mit name, betriebsart,
-    // spannung, strom, laenge, duMaxProzent, verlegeart, schutzOrganTyp, schutzOrganStrom.
+    // spannung, strom, cosPhi, laenge, duMaxProzent, verlegeart, schutzOrganTyp, schutzOrganStrom.
     // Die Vorlage füllt nur die Eingabefelder; gerechnet wird immer mit berechnen().
     Q_INVOKABLE QVariantList vorlagen() const;
 

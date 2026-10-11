@@ -109,6 +109,9 @@ Item {
                                 contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
                                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                                 onActivated: root.vorlageAnwenden(currentIndex)
+                                // Liste so breit wie das Eingabe-Panel (ab Label), damit lange Namen lesbar sind
+                                popup.x: -88
+                                popup.width: 268
                             }
                             Item { Layout.preferredWidth: 28 }
                         }
@@ -218,6 +221,8 @@ Item {
                                         qsTr("E · Frei in Luft"),
                                         qsTr("F · Luft, mit Berührung"), qsTr("G · Luft, mit Abstand")]
                                 currentIndex: 3
+                                popup.x: -88
+                                popup.width: 268
                                 background: Rectangle { color: theme.inputBg; border.color: theme.border; radius: 4 }
                                 contentItem: Text { text: parent.displayText; color: theme.textPrimary; font.pixelSize: 12;
                                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }

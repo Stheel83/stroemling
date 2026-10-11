@@ -1227,6 +1227,11 @@ ApplicationWindow {
                 theme:        appTheme
                 projektId:    root.aktivProjektId
                 debug:        root.debugModeAktiv
+                onSprungAngefordert: function(seiteId, blattnr, seiteBez, wx, wy) {
+                    root.aktiveAnsicht = "seiten"
+                    var p = root.fokussiertesPanel === 2 ? panel2 : panel1
+                    p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
+                }
             }
 
             // ── Fehlersuchmodus ────────────────────────────────────────

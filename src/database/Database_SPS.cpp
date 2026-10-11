@@ -245,7 +245,9 @@ static const QLatin1String _spsKanalSelectBase(
     "sr.id AS rack_id, sr.rack_nr, sr.system_typ, sb.slot, "
     "ge.extra_daten AS element_extra_daten, se.bezeichnung AS seite_name, "
     "sb.typ AS baugruppe_typ, se.blattnummer AS seite_blatt, "
-    "sb.bezeichnung AS baugruppe_bezeichnung "
+    "sb.bezeichnung AS baugruppe_bezeichnung, "
+    "ge.seite_id AS element_seite_id, "
+    "(ge.x1 + ge.x2) / 2.0 AS element_welt_x, (ge.y1 + ge.y2) / 2.0 AS element_welt_y "
     "FROM sps_kanal sk "
     "LEFT JOIN sps_baugruppe  sb ON sb.id = sk.baugruppe_id "
     "LEFT JOIN sps_rack       sr ON sr.id = sb.rack_id "
@@ -284,6 +286,10 @@ static QVariantMap _spsKanalRow(QSqlQuery &q)
     m["baugruppe_typ"]          = q.value(26).isNull() ? QVariant() : q.value(26).toString();
     m["seite_blatt"]            = q.value(27).isNull() ? QVariant() : q.value(27).toString();
     m["baugruppe_bezeichnung"]  = q.value(28).isNull() ? QVariant() : q.value(28).toString();
+    // Sprungziel (SPS-SPRUNG-01): gleiche Mittelpunktsformel wie die übrigen Sprungabfragen
+    m["seite_id"] = q.value(29).isNull() ? QVariant() : q.value(29).toInt();
+    m["welt_x"]   = q.value(30).isNull() ? QVariant() : q.value(30).toDouble();
+    m["welt_y"]   = q.value(31).isNull() ? QVariant() : q.value(31).toDouble();
     // Formatierte Adresse berechnen
     int rackNr  = q.value(21).isNull() ? 0 : q.value(21).toInt();
     int slot    = q.value(23).isNull() ? 0 : q.value(23).toInt();

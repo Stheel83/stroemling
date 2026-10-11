@@ -11,6 +11,19 @@ Item {
     property var theme
     property bool debug: false
 
+    // SPS-SPRUNG-01: Sprung vom Kanal zum Schaltplan-Element (Signatur wie die
+    // übrigen Sprungsignale, Main.qml leitet an seiteOeffnenUndZentrieren weiter)
+    signal sprungAngefordert(int seiteId, string blattnr, string seiteBez, real wx, real wy)
+
+    function _kannSpringen(k) {
+        return !!k && !!k.grafik_element_id && k.seite_id != null && k.welt_x != null
+    }
+
+    function _springeZuKanal(k) {
+        if (!_kannSpringen(k)) return
+        root.sprungAngefordert(k.seite_id, k.seite_blatt || "", k.seite_name || "", k.welt_x, k.welt_y)
+    }
+
     // ── Auswahl-State ────────────────────────────────────────────
     property int _ausgewaehlterRackId:      -1
     property int _ausgewaehlterRackNr:       0
@@ -827,7 +840,17 @@ Item {
                                             color: root.theme.accent
                                             font.pixelSize: 11
                                             elide: Text.ElideRight
-                                            Layout.preferredWidth: 130
+                                            Layout.preferredWidth: 108
+                                        }
+                                        RoundButton {
+                                            text: "→"
+                                            width: 22; height: 22
+                                            font.pixelSize: 11
+                                            enabled: root._kannSpringen(bkDelegate.kanal)
+                                            opacity: bkDelegate.kanal && bkDelegate.kanal.grafik_element_id ? 1.0 : 0.0
+                                            ToolTip.visible: hovered && enabled
+                                            ToolTip.text: qsTr("Zum Element im Schaltplan springen")
+                                            onClicked: root._springeZuKanal(bkDelegate.kanal)
                                         }
                                     }
                                 }
@@ -1010,11 +1033,21 @@ Item {
                                     color: _bmk ? root.theme.accent : root.theme.borderLight
                                     font.pixelSize: 11
                                     elide: Text.ElideRight
-                                    Layout.preferredWidth: 120
+                                    Layout.preferredWidth: 96
                                     ToolTip.visible: _bmk && elemLabelMa.containsMouse
                                     ToolTip.text: _bmk + (modelData.seite_name ? "  (" + modelData.seite_name + ")" : "")
                                     ToolTip.delay: 400
                                     MouseArea { id: elemLabelMa; anchors.fill: parent; hoverEnabled: true }
+                                }
+                                RoundButton {
+                                    text: "→"
+                                    width: 22; height: 22
+                                    font.pixelSize: 11
+                                    enabled: root._kannSpringen(kanalDelegate.modelData)
+                                    opacity: kanalDelegate.modelData.grafik_element_id ? 1.0 : 0.0
+                                    ToolTip.visible: hovered && enabled
+                                    ToolTip.text: qsTr("Zum Element im Schaltplan springen")
+                                    onClicked: root._springeZuKanal(kanalDelegate.modelData)
                                 }
                                 RoundButton {
                                     text: "✕"

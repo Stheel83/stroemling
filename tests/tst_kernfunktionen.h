@@ -317,6 +317,18 @@ private slots:
                                        "VALUES (1,%1,4,'E',0,4,'BOOL','Tag_ohne_Symbol')").arg(bg));
         QVERIFY(a > 0 && b > 0 && weit > 0 && typfalsch > 0 && ohneBg > 0 && ohneEl > 0);
 
+        // Sprungziel (SPS-SPRUNG-01): Seite + Elementmittelpunkt kommen mit der Kanalliste
+        bool gefunden = false;
+        for (const QVariant &kv : m_db->spsKanalListe(1)) {
+            const QVariantMap k = kv.toMap();
+            if (k["id"].toInt() != a) continue;
+            gefunden = true;
+            QCOMPARE(k["seite_id"].toInt(), sid);
+            QCOMPARE(k["welt_x"].toDouble(), 4.0);   // Symbol x=0..8
+            QCOMPARE(k["welt_y"].toDouble(), 4.0);
+        }
+        QVERIFY(gefunden);
+
         // Canvas-Markierung: beide kollidierenden Elemente, nicht das dritte
         QSet<int> ids;
         for (const QVariant &v : m_db->spsKonfliktElementIds(1)) ids.insert(v.toInt());

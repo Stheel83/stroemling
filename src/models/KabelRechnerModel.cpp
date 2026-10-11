@@ -155,18 +155,24 @@ void KabelRechnerModel::berechnen()
     if (abschaltAktiv && m_schutzOrganStrom > 0.0) {
         // B=5×I_n, C=10×I_n, D=20×I_n
         const int charFaktor = (m_schutzOrganTyp == 0) ? 5 : (m_schutzOrganTyp == 1) ? 10 : 20;
-        const double rNetz      = 0.3; // Ω, Normwert nach VDE 0100-410
+        // Annahme (kein Normwert): Netzimpedanz am Einspeisepunkt 0,3 Ω. Näher am
+        // Transformator ist sie kleiner → große Schutzorgane (v. a. D) werden damit
+        // pauschal zu streng bewertet.
+        const double rNetz      = 0.3; // Ω
+        // Fehlerschleife läuft gegen Erde: maßgeblich ist die Leiter-Erde-Spannung U_0,
+        // bei Drehstrom also U/√3 (400 V → 231 V), nicht die Außenleiterspannung.
+        const double u0         = (m_betriebsart == 1) ? spannung / std::sqrt(3.0) : spannung;
         const double IkBenötigt = charFaktor * m_schutzOrganStrom;
 
         // Mindest-Querschnitt aus Bedingung I_k >= I_k_benötigt analytisch:
-        // A >= 2·L / (γ · (U/I_k_ben - R_netz))
-        const double rMax = spannung / IkBenötigt - rNetz;
+        // A >= 2·L / (γ · (U_0/I_k_ben - R_netz))
+        const double rMax = u0 / IkBenötigt - rNetz;
         if (rMax <= 0.0) {
             aAbschalt = normReihe.back();
             abschaltOk = false;
             abschUeber = true;
             abschMindest = QString("> %1").arg(formatQ(tabMax));
-            ueberGruende << tr("Abschaltbedingung: mit der angenommenen Netzimpedanz nicht erreichbar");
+            ueberGruende << tr("Abschaltbedingung: mit der angenommenen Netzimpedanz (0,3 Ω) nicht erreichbar");
             warnungen << tr("Abschaltbedingung: Netznachbildung zu hochohmig für das gewählte Schutzorgan.");
         } else {
             const double aMin = (2.0 * m_laenge) / (gamma * rMax);
@@ -177,7 +183,7 @@ void KabelRechnerModel::berechnen()
                 ueberGruende << tr("Abschaltbedingung: verlangt ≈ %1").arg(formatQ(std::ceil(aMin)));
             }
             const double rL = (2.0 * m_laenge) / (gamma * aAbschalt);
-            IkBeiMin = spannung / (rL + rNetz);
+            IkBeiMin = u0 / (rL + rNetz);
             abschaltOk = (IkBeiMin >= IkBenötigt - 1e-6);
             if (!abschaltOk)
                 warnungen << tr("Abschaltbedingung nicht erfüllt: I_k zu gering. Querschnitt erhöhen oder Netzimpedanz prüfen.");
@@ -258,8 +264,8 @@ QVariantList KabelRechnerModel::vorlagen() const
         const char *name; int betriebsart; double spannung; double strom; double cosPhi;
         double laenge; double duMax; int verlegeart; int typ; double inSchutz;
     };
-    // Motoren: Nennstrom 4-poliger Normmotor 400 V, cos φ ≈ 0,85 (Volllast); LS-Charakteristik D
-    // wegen Anlaufstrom. Richtwerte – bei realem Motor Typenschild (I_N, cos φ) eintragen.
+    // Motoren: Nennstrom 4-poliger Normmotor 400 V, cos φ ≈ 0,85 (Volllast); LS-Charakteristik C
+    // (D würde die Abschaltbedingung bei Netzimpedanz 0,3 Ω ab ~20 A nicht mehr erfüllen). Richtwerte – bei realem Motor Typenschild (I_N, cos φ) eintragen.
     static const V tabelle[] = {
         { QT_TR_NOOP("Lichtkreis (10 A)"),            0, 230.0, 10.0, 1.00, 20.0, 3.0, 3, 0, 10.0 },
         { QT_TR_NOOP("Steckdosenkreis (16 A)"),       0, 230.0, 16.0, 1.00, 25.0, 3.0, 3, 0, 16.0 },
@@ -267,11 +273,11 @@ QVariantList KabelRechnerModel::vorlagen() const
         { QT_TR_NOOP("Durchlauferhitzer (3~, 32 A)"), 1, 400.0, 32.0, 1.00, 15.0, 3.0, 3, 0, 32.0 },
         { QT_TR_NOOP("Wallbox 11 kW (3~, 16 A)"),     1, 400.0, 16.0, 1.00, 20.0, 3.0, 3, 1, 16.0 },
         { QT_TR_NOOP("Bordnetz 12 V DC (10 A)"),      2,  12.0, 10.0, 1.00,  5.0, 3.0, 4, 0, 10.0 },
-        { QT_TR_NOOP("Drehstrommotor 0,75 kW (1,9 A)"), 1, 400.0,  1.9, 0.85, 20.0, 3.0, 4, 2,  4.0 },
-        { QT_TR_NOOP("Drehstrommotor 2,2 kW (4,7 A)"),  1, 400.0,  4.7, 0.85, 20.0, 3.0, 4, 2,  6.0 },
-        { QT_TR_NOOP("Drehstrommotor 5,5 kW (11 A)"),   1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 2, 16.0 },
-        { QT_TR_NOOP("Drehstrommotor 11 kW (21 A)"),    1, 400.0, 21.0, 0.85, 20.0, 3.0, 4, 2, 25.0 },
-        { QT_TR_NOOP("Drehstrommotor 22 kW (41 A)"),    1, 400.0, 41.0, 0.85, 20.0, 3.0, 4, 2, 50.0 },
+        { QT_TR_NOOP("Drehstrommotor 0,75 kW (1,9 A)"), 1, 400.0,  1.9, 0.85, 20.0, 3.0, 4, 1,  4.0 },
+        { QT_TR_NOOP("Drehstrommotor 2,2 kW (4,7 A)"),  1, 400.0,  4.7, 0.85, 20.0, 3.0, 4, 1,  6.0 },
+        { QT_TR_NOOP("Drehstrommotor 5,5 kW (11 A)"),   1, 400.0, 11.0, 0.85, 20.0, 3.0, 4, 1, 16.0 },
+        { QT_TR_NOOP("Drehstrommotor 11 kW (21 A)"),    1, 400.0, 21.0, 0.85, 20.0, 3.0, 4, 1, 25.0 },
+        { QT_TR_NOOP("Drehstrommotor 22 kW (41 A)"),    1, 400.0, 41.0, 0.85, 20.0, 3.0, 4, 1, 50.0 },
     };
 
     QVariantList liste;

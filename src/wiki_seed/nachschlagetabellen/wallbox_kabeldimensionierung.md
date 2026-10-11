@@ -68,7 +68,7 @@ Charakteristik C mit I_n = Ladepunkt-Nennstrom, ΔU max = 3 %.
 |---|---|
 | Spannungsfall | 2,5 mm² ausreichend (ΔU ≈ 1,98 %) |
 | Thermik | **6 mm²** nötig (I_z = 34 A bei B2, 4 mm² reicht mit 27 A nicht) |
-| Abschaltbedingung (C32) | 1,5 mm² ausreichend |
+| Abschaltbedingung (C32) | 2,5 mm² nötig (I_k ≥ 320 A gegen 230 V Leiter-Erde) |
 | **Empfohlener Querschnitt** | **6 mm²** (Thermik entscheidet) |
 | Praxisrichtwert I/6 | 32/6 ≈ 5,3 → 6 mm² (stimmt hier mit der exakten Berechnung überein) |
 

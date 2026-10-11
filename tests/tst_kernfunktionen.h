@@ -449,6 +449,117 @@ private slots:
         QVERIFY(!m_db->spsExportPdfSpeichern(1, "Testprojekt", pdf, R"({"spalten":[]})"));
     }
 
+    // ── SPS-IMPORT-01 ────────────────────────────────────────────
+    QString csvSchreiben(const QString &name, const QString &inhalt)
+    {
+        const QString pfad = m_projPfad + "_" + name;
+        QFile f(pfad);
+        f.open(QIODevice::WriteOnly);
+        f.write(inhalt.toUtf8());
+        f.close();
+        return pfad;
+    }
+    static QString konfigJson(const QStringList &spalten, const QString &system, const QString &modus,
+                              bool hw = true)
+    {
+        QJsonArray sp;
+        for (const QString &s : spalten) sp.append(s);
+        QJsonObject o{{"spalten", sp}, {"systemStandard", system}, {"vorhandene", modus},
+                      {"hardwareAnlegen", hw}, {"kopfzeile", true}, {"dezimal", ","}};
+        return QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact));
+    }
+
+    void sps_05_csvImport()
+    {
+        // (A) Eigenes Export-Format: Spalten werden über die Titel automatisch erkannt (PLS)
+        const QString a = csvSchreiben("imp_a.csv",
+            "System;Rack;Slot;Kanal;Baugruppe;Baugruppen-Typ;Signal;Adresse;Datentyp;Variable / Tag;Kommentar;Einheit;Bereich Min;Bereich Max\n"
+            "PLS;120;4;1;AI Karte;AI;AI;R120 S4 K1;REAL;TIC-100;Reaktor;\xC2\xB0" "C;0;500\n"
+            "PLS;120;4;2;AI Karte;AI;AI;R120 S4 K2;REAL;PIC-100;Druck;bar;0;\"16,5\"\n"
+            "PLS;120;5;1;;;DO;;;XV-1;Ventil;;;\n");
+        const QVariantMap l = m_db->spsImportLesen(a);
+        QVERIFY2(l["fehler"].toString().isEmpty(), qPrintable(l["fehler"].toString()));
+        QCOMPARE(l["zeilen"].toInt(), 3);
+        const QStringList vs = l["vorschlag"].toStringList();
+        QCOMPARE(vs[1], QString("rack"));
+        QCOMPARE(vs[9], QString("variablenname"));
+        QCOMPARE(vs[12], QString("bereich_min"));
+
+        const QString kA = konfigJson(vs, "PLS", "auffuellen");
+        QVariantMap p = m_db->spsImportPruefen(1, a, kA);
+        QCOMPARE(p["neueRacks"].toInt(), 1);
+        QCOMPARE(p["neueBaugruppen"].toInt(), 2);
+        QCOMPARE(p["neueKanaele"].toInt(), 3);
+        QCOMPARE(p["fehlerhaft"].toInt(), 0);
+        // Trockenlauf schreibt nichts
+        QCOMPARE(einWert("SELECT COUNT(*) FROM sps_rack WHERE rack_nr=120").toInt(), 0);
+
+        QVariantMap r = m_db->spsImportAusfuehren(1, a, kA);
+        QVERIFY2(r["ausgefuehrt"].toBool(), qPrintable(r["fehler"].toString()));
+        QCOMPARE(einWert("SELECT system_typ FROM sps_rack WHERE rack_nr=120").toString(), QString("PLS"));
+        QCOMPARE(einWert("SELECT typ FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
+                         "WHERE r.rack_nr=120 AND b.slot=4").toString(), QString("AI"));
+        QCOMPARE(einWert("SELECT kanaele FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
+                         "WHERE r.rack_nr=120 AND b.slot=4").toInt(), 2);
+        QCOMPARE(einWert("SELECT typ FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
+                         "WHERE r.rack_nr=120 AND b.slot=5").toString(), QString("DO"));
+        QCOMPARE(einWert("SELECT pls_bereich_max FROM sps_kanal WHERE variablenname='PIC-100'").toDouble(), 16.5);
+        QCOMPARE(einWert("SELECT pls_einheit FROM sps_kanal WHERE variablenname='TIC-100'").toString(),
+                 QString::fromUtf8("\xC2\xB0" "C"));
+        QCOMPARE(einWert("SELECT adress_typ FROM sps_kanal WHERE variablenname='XV-1'").toString(), QString("A"));
+
+        // Erneuter Import: alles vorhanden -> nichts neu, nichts geändert
+        p = m_db->spsImportPruefen(1, a, kA);
+        QCOMPARE(p["neueKanaele"].toInt(), 0);
+        QCOMPARE(p["aktualisiert"].toInt(), 0);
+        QCOMPARE(p["uebersprungen"].toInt(), 3);
+
+        // Überschreiben ändert Felder, Auffüllen lässt Bestehendes stehen
+        const QString a2 = csvSchreiben("imp_a2.csv",
+            "Rack;Slot;Kanal;Variable / Tag;Kommentar\n120;4;1;TIC-100;Neu kommentiert\n");
+        const QStringList sp2 = {"rack", "slot", "kanal", "variablenname", "kommentar"};
+        p = m_db->spsImportPruefen(1, a2, konfigJson(sp2, "PLS", "auffuellen"));
+        QCOMPARE(p["aktualisiert"].toInt(), 0);
+        p = m_db->spsImportAusfuehren(1, a2, konfigJson(sp2, "PLS", "ueberschreiben"));
+        QCOMPARE(p["aktualisiert"].toInt(), 1);
+        QCOMPARE(einWert("SELECT kommentar FROM sps_kanal WHERE variablenname='TIC-100'").toString(),
+                 QString("Neu kommentiert"));
+
+        // (B) SPS mit Adresstexten (Siemens + IEC), Standard-System SPS
+        const QString b = csvSchreiben("imp_b.csv",
+            "Rack,Slot,Adresse,Tag\n"
+            "130,2,E0.0,Start\n130,2,%IX0.1,Stop\n130,3,A0.0,Motor\n130,4,EW4,Pegel\n");
+        const QStringList spB = {"rack", "slot", "adresse", "variablenname"};
+        r = m_db->spsImportAusfuehren(1, b, konfigJson(spB, "SPS", "ueberspringen"));
+        QVERIFY2(r["ausgefuehrt"].toBool(), qPrintable(r["fehler"].toString()));
+        QCOMPARE(r["neueKanaele"].toInt(), 4);
+        QCOMPARE(einWert("SELECT b.typ FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
+                         "WHERE r.rack_nr=130 AND b.slot=2").toString(), QString("DI"));
+        QCOMPARE(einWert("SELECT b.typ FROM sps_baugruppe b JOIN sps_rack r ON r.id=b.rack_id "
+                         "WHERE r.rack_nr=130 AND b.slot=4").toString(), QString("AI"));
+        QCOMPARE(einWert("SELECT byte_nr||'.'||bit_nr FROM sps_kanal WHERE variablenname='Stop'").toString(),
+                 QString("0.1"));
+        QCOMPARE(einWert("SELECT datentyp FROM sps_kanal WHERE variablenname='Pegel'").toString(), QString("WORD"));
+        // fortlaufende Kanalnummern je Richtung
+        QCOMPARE(einWert("SELECT kanal_nr FROM sps_kanal WHERE variablenname='Stop'").toInt(), 1);
+
+        // (C) Überlappung und CSV-interne Duplikate werden als Fehler gemeldet, nichts wird geschrieben
+        const QString c = csvSchreiben("imp_c.csv",
+            "Rack,Slot,Adresse,Tag\n130,2,EW0,Ueberlappt\n130,5,E8.0,Neu\n130,5,E8.0,Doppelt\n");
+        p = m_db->spsImportPruefen(1, c, konfigJson(spB, "SPS", "auffuellen"));
+        QCOMPARE(p["fehlerhaft"].toInt(), 2);
+        QCOMPARE(p["neueKanaele"].toInt(), 1);
+
+        // Hardware-Anlegen aus: unbekanntes Rack ist ein Fehler
+        const QString d = csvSchreiben("imp_d.csv", "Rack,Slot,Adresse,Tag\n999,1,E0.0,X\n");
+        p = m_db->spsImportPruefen(1, d, konfigJson(spB, "SPS", "auffuellen", false));
+        QCOMPARE(p["fehlerhaft"].toInt(), 1);
+        QCOMPARE(p["neueKanaele"].toInt(), 0);
+
+        for (const QString &n : {"imp_a.csv", "imp_a2.csv", "imp_b.csv", "imp_c.csv", "imp_d.csv"})
+            QFile::remove(m_projPfad + "_" + n);
+    }
+
     void gs_07_kabellinieUndAderzuordnungWerdenNachgezogen()
     {
         const int sid = neueSeite("1"), anderes = neueSeite("2");

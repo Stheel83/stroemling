@@ -339,6 +339,17 @@ Item {
         onBestaetigt: root._kanaeleAutoAnlegen(root._pendingAutoAnlegenBg)
     }
 
+    // ── CSV-Import (SPS-IMPORT-01) ────────────────────────────────
+    SpsImportDialog {
+        id: importDialog
+        theme: root.theme
+        projektId: root.projektId
+        onImportiert: {
+            root._ausgewaehlterBaugruppeId = -1
+            root._ladeRacks()
+        }
+    }
+
     // ── Löschen-Rückfrage ─────────────────────────────────────────
     SpsLoeschenDialog {
         id: loeschDialog
@@ -1006,6 +1017,19 @@ Item {
                                 text: kanaeleSpalte._gefiltert.length + " " + qsTr("Kanäle")
                                 color: root.theme.textMuted
                                 font.pixelSize: 11
+                            }
+                            Button {
+                                text: qsTr("CSV importieren …")
+                                implicitHeight: 26
+                                enabled: root.projektId >= 0
+                                contentItem: Text { text: parent.text; font.pixelSize: 11
+                                    color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                                    radius: 4; border.color: root.theme.border }
+                                ToolTip.visible: hovered
+                                ToolTip.text: qsTr("Kanäle (und fehlende Racks/Baugruppen) aus einer CSV-Datei übernehmen")
+                                onClicked: importDialog.oeffnen()
                             }
                             RoundButton {
                                 text: "+"

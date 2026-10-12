@@ -100,13 +100,19 @@ Item {
         var abs = []
         for (var i = 0; i < abschnittModel.count; i++)
             abs.push({ typ: abschnittModel.get(i).typ, aktiv: abschnittModel.get(i).aktiv })
-        return { abschnitte: abs, titelzusatz: root.titelzusatz, logo: root.logoAn,
+        var seiten = []
+        for (var j = 0; j < seitenModel.count; j++)
+            if (seitenModel.get(j).gewaehlt) seiten.push(seitenModel.get(j).schluessel)
+        return { abschnitte: abs, seiten: seiten, titelzusatz: root.titelzusatz, logo: root.logoAn,
                  normblatt: root.normblattAn, infostreifen: root.infostreifenAn,
                  vollCanvas: root.vollCanvasAn,
                  spsVorlage: root.spsVorlageName }
     }
 
-    function _zustandLaden(z) {
+    // mitSeiten=true: auch die gespeicherte Seitenauswahl anwenden (Vorlagen). Für "zuletzt benutzt" nein -
+    // dort gilt die dauerhafte Seiten-Voreinstellung (Flag). Seiten werden über Anlage|Ort|Blatt zugeordnet,
+    // da Vorlagen projektübergreifend sind; passt keine Seite, bleibt die Voreinstellung.
+    function _zustandLaden(z, mitSeiten) {
         if (!z) z = {}
         _abschnitteSetzen(z.abschnitte || _standardAbschnitte())
         root.titelzusatz     = z.titelzusatz || ""
@@ -116,6 +122,21 @@ Item {
         root.vollCanvasAn    = !!z.vollCanvas
         root.spsVorlageName = z.spsVorlage || ""
         _spsAuswahlSetzen()
+        if (mitSeiten && z.seiten) _seitenAuswahlAnwenden(z.seiten)
+    }
+
+    function _seitenAuswahlAnwenden(schluessel) {
+        var treffer = 0
+        for (var i = 0; i < seitenModel.count; i++)
+            if (schluessel.indexOf(seitenModel.get(i).schluessel) >= 0) treffer++
+        if (treffer === 0 && schluessel.length > 0) {
+            meldungManager.zeigen(qsTr("Die Seitenauswahl der Vorlage passt nicht zu den Seiten dieses Projekts – "
+                                       + "es gilt die Seiten-Voreinstellung."), false)
+            return
+        }
+        for (var j = 0; j < seitenModel.count; j++)
+            seitenModel.setProperty(j, "gewaehlt", schluessel.indexOf(seitenModel.get(j).schluessel) >= 0)
+        _seitenZaehlen()
     }
 
     // Wählt den SPS-Eintrag passend zu spsVorlageName (die Liste wird erst beim Öffnen per Loader gefüllt).
@@ -150,7 +171,8 @@ Item {
             var s = liste[i]
             var t = "=" + s.anlage + " +" + s.ort + "   " + qsTr("Blatt %1").arg(s.blatt)
             if (s.bezeichnung) t += "  –  " + s.bezeichnung
-            seitenModel.append({ sid: s.id, label: t, gewaehlt: s.inDokuPdf })
+            seitenModel.append({ sid: s.id, label: t, gewaehlt: s.inDokuPdf,
+                                 schluessel: s.anlage + "|" + s.ort + "|" + s.blatt })
         }
         _seitenZaehlen()
     }
@@ -250,8 +272,8 @@ Item {
         var z = null
         if (einst.zuletzt) { try { z = JSON.parse(einst.zuletzt) } catch (e2) { z = null } }
         _spsVorhanden = db.spsRackListe(root.projektId).length > 0
-        _zustandLaden(z)
         _seitenNeuLaden()
+        _zustandLaden(z, false)
         vorlageCombo.currentIndex = 0
     }
 
@@ -360,6 +382,12 @@ Item {
         contentItem: ColumnLayout {
             spacing: 10
             Text { text: qsTr("Name der Vorlage"); color: root.theme.textMuted; font.pixelSize: 11 }
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("Die Vorlage enthält Abschnitte, Optionen und die aktuelle Seitenauswahl.")
+                color: root.theme.textMuted; font.pixelSize: 11
+            }
             TextField {
                 id: nameFeld
                 Layout.fillWidth: true
@@ -442,9 +470,9 @@ Item {
                             if (i === 0) {
                                 var z = null
                                 try { z = einst.zuletzt ? JSON.parse(einst.zuletzt) : null } catch (e) { z = null }
-                                root._zustandLaden(z)
+                                root._zustandLaden(z, false)
                             } else {
-                                root._zustandLaden(root._vorlagen[i - 1].zustand)
+                                root._zustandLaden(root._vorlagen[i - 1].zustand, true)
                             }
                         }
                     }

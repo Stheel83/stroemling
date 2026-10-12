@@ -118,6 +118,10 @@ public:
     // Wiki-Datenbank öffnen (separate Datei, überlebt Schema-Upgrades)
     bool openWiki(const QString &path);
 
+    // Vorlagen-Bibliothek (vorlagen.db, projektübergreifend) – BLATTVORLAGEN-03
+    bool openVorlagen(const QString &path);
+    QString vorlagenPfad() const { return m_vorlagenPfad; }
+
     // Makro-Datenbank öffnen (projektübergreifend, separate Datei)
     bool openMakro(const QString &path);
 
@@ -430,6 +434,18 @@ public:
     // Logo der Vorlage (Bearbeiter-Logo, hat Vorrang vor dem Projekt-Logo) – BLATTVORLAGEN-01b
     Q_INVOKABLE bool         normblattVorlageLogoSpeichern(int vorlageId, const QString &pfad);
     Q_INVOKABLE bool         normblattVorlageLogoLoeschen(int vorlageId);
+    // Vorlagen-Bibliothek: Quelle app-weiter Vorlagen; das Projekt hält immer eine eigene Kopie.
+    // [{uid,name,beschreibung,art,breiteMm,hoeheMm,version,geaendertAm,hatLogo,felder,imProjekt(id|0)}]
+    Q_INVOKABLE QVariantList vorlagenBibliothekListe();
+    // Projektvorlage in die Bibliothek legen (neu, oder die verknüpfte Bibliotheksvorlage aktualisieren). Gibt uid zurück.
+    Q_INVOKABLE QString      vorlageInBibliothekSpeichern(int vorlageId);
+    // Bibliotheksvorlage als neue Projektvorlage übernehmen (-1 bei Fehler / schon im Projekt)
+    Q_INVOKABLE int          vorlageAusBibliothekUebernehmen(const QString &uid);
+    // Projektvorlage mit dem Stand der Bibliothek überschreiben (Name bleibt)
+    Q_INVOKABLE bool         vorlageAusBibliothekAktualisieren(int vorlageId);
+    // {status: lokal|aktuell|bibliothekNeuer|lokalGeaendert|beides|bibliothekFehlt, bibliothekName, bibliothekVersion, projektVersion}
+    Q_INVOKABLE QVariantMap  vorlageBibliothekStatus(int vorlageId);
+    Q_INVOKABLE bool         vorlageAusBibliothekLoeschen(const QString &uid);
     // Daten fürs Deckblatt im Dokumentations-PDF; leere Map = keine Deckblattvorlage
     QVariantMap deckblattDatenLaden(int projektId, int vorlageId, const QString &titelzusatz, bool mitLogo);
     Q_INVOKABLE QVariantList normblattFelderLaden(int vorlageId);
@@ -1115,6 +1131,11 @@ private:
     int          m_grafikAenderungszaehler = 0;
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_makroDb;
+    QSqlDatabase m_vorlagenDb;
+    QString      m_vorlagenPfad;
+    bool normblattFelderSchreiben(int vorlageId, const QVariantList &felder);
+    bool bibliothekVorlageLesen(const QString &uid, QVariantMap &kopf, QVariantList &felder,
+                                QByteArray &logo, QString &logoMime);
     QSqlDatabase m_launcherDb;
     QSqlDatabase m_bibliothekDb;
     bool         m_projektOffen  = false;

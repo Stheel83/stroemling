@@ -260,6 +260,7 @@ int main(int argc, char *argv[])
     QString wikiPath        = dataDir + "/wiki.db";
     QString makroPath       = dataDir + "/makros.db";       // Makro-Bibliothek (projektübergreifend)
     QString bibliothekPath  = dataDir + "/bibliothek.db";   // Bauteil-Bibliothek (projektübergreifend)
+    QString vorlagenPath    = dataDir + "/vorlagen.db";     // Blattvorlagen-Bibliothek (projektübergreifend)
 
     // Datenbankverbindungen aufbauen
     Database db;
@@ -279,6 +280,10 @@ int main(int argc, char *argv[])
         qCCritical(lcApp) << "Bibliothek-DB konnte nicht geöffnet werden:" << db.lastError();
         return 1;
     }
+
+    // Vorlagen-Bibliothek ist optional: ohne sie laufen Editor und Export, nur Bibliothek-Funktionen fehlen
+    if (!db.openVorlagen(vorlagenPath))
+        qCWarning(lcApp) << "Vorlagen-Bibliothek nicht verfügbar:" << db.lastError();
 
     // BACKUP-01 Ebene 1: einmal täglich makros.db + wiki.db sichern
     db.datenbankAutobackup();

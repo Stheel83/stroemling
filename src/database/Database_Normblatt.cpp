@@ -247,7 +247,7 @@ QVariantList Database::normblattVorlagenListe()
     QSqlQuery q(m_db);
     if (!q.exec("SELECT id, name, beschreibung, ist_standard, breite_mm, hoehe_mm, "
                 "rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, art, "
-                "(logo_data IS NOT NULL) AS hat_logo "
+                "(logo_data IS NOT NULL) AS hat_logo, COALESCE(bibliothek_uid,'') AS bib_uid "
                 "FROM normblatt_vorlage ORDER BY name")) {
         qCWarning(lcDb) << "normblattVorlagenListe:" << q.lastError().text();
         return {};
@@ -267,6 +267,7 @@ QVariantList Database::normblattVorlagenListe()
         m[QStringLiteral("randUntenMm")]  = q.value("rand_unten_mm");
         m[QStringLiteral("art")]          = q.value("art");
         m[QStringLiteral("hatLogo")]      = q.value("hat_logo").toInt() != 0;
+        m[QStringLiteral("bibliothekUid")] = q.value("bib_uid");
         result.append(m);
     }
     return result;
@@ -446,12 +447,22 @@ bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felde
         qCWarning(lcDb) << "normblattFelderSpeichern: Transaction fehlgeschlagen";
         return false;
     }
+    if (!normblattFelderSchreiben(vorlageId, felder)) {
+        m_db.rollback();
+        return false;
+    }
+    m_db.commit();
+    return true;
+}
+
+// Felder einer Vorlage ersetzen – ohne eigene Transaktion (Aufrufer klammert, z.B. Bibliotheks-Übernahme).
+bool Database::normblattFelderSchreiben(int vorlageId, const QVariantList &felder)
+{
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM normblatt_feld WHERE vorlage_id = :vid");
     q.bindValue(":vid", vorlageId);
     if (!q.exec()) {
         qCWarning(lcDb) << "normblattFelderSpeichern DELETE:" << q.lastError().text();
-        m_db.rollback();
         return false;
     }
     q.prepare(R"(INSERT INTO normblatt_feld
@@ -475,11 +486,9 @@ bool Database::normblattFelderSpeichern(int vorlageId, const QVariantList &felde
         q.bindValue(":rei",    i);
         if (!q.exec()) {
             qCWarning(lcDb) << "normblattFelderSpeichern INSERT:" << q.lastError().text();
-            m_db.rollback();
             return false;
         }
     }
-    m_db.commit();
     return true;
 }
 

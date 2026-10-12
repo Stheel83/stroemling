@@ -28,6 +28,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Kabel.cpp
     src/database/Database_Klemmen.cpp
     src/database/Database_Makro.cpp
+    src/database/Database_Vorlagen.cpp
     src/database/Database_Zwischenablage.cpp
     src/database/Database_IBN.cpp
     src/database/Database_Wiki.cpp
@@ -270,6 +271,7 @@ qt_add_qml_module(stroemling_app
         qml/nb/NormblattEditorCanvas.qml
         qml/nb/NormblattFeldPalette.qml
         qml/nb/NormblattFeldProperties.qml
+        qml/nb/NormblattBibliothekPopup.qml
         qml/nb/NormblattAusrichtenPanel.qml
         qml/wiki/WikiAnsicht.qml
         qml/wiki/WikiFormatierungsToolbar.qml
@@ -545,6 +547,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Kabel.cpp
     src/database/Database_Klemmen.cpp
     src/database/Database_Makro.cpp
+    src/database/Database_Vorlagen.cpp
     src/database/Database_Zwischenablage.cpp
     src/database/Database_IBN.cpp
     src/database/Database_Wiki.cpp

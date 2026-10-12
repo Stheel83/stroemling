@@ -83,3 +83,19 @@ Eine so erstellte Vorlage wählst du danach in jeder Seite über
   gedacht für dein Firmenlogo, das in jedem Projekt gleich bleibt. Das Kunden-Logo des Projekts gehört dagegen zum Feldtyp „Kunden-Logo“.
 - **Neue Deckblatt-Vorlage:** Beim Anlegen (＋) die Art „Deckblatt (A4 hoch)“ wählen. Sie erscheint im PDF-Export beim
   Abschnitt Deckblatt unter „Vorlage“ und nicht in der Schriftfeld-Auswahl einer Seite.
+
+---
+
+## Vorlagenbibliothek
+
+Mit **Bibliothek …** in der Kopfzeile öffnest du die Vorlagenbibliothek. Sie gilt für alle Projekte auf diesem Rechner –
+so gestaltest du dein Firmen-Deckblatt oder dein Schriftfeld einmal und nutzt es in jedem Projekt.
+
+- **In Bibliothek speichern:** legt die gewählte Vorlage (mit Feldern und Logo) in der Bibliothek ab. Ist sie schon verknüpft,
+  wird die Bibliotheksvorlage aktualisiert.
+- **Übernehmen:** kopiert eine Bibliotheksvorlage in das aktuelle Projekt. Das Projekt behält diese Kopie – es ist also auch
+  ohne Bibliothek vollständig.
+- **Abgleich:** Eine übernommene Vorlage merkt sich ihren Stand. Das Fenster zeigt, ob die Bibliothek eine neuere Version hat
+  oder du lokal etwas geändert hast. Aktualisieren ist immer eine ausdrückliche Aktion; sind beide Seiten geändert, fragt das
+  Programm nach, bevor lokale Änderungen überschrieben werden. Der Name der Vorlage bleibt dabei lokal.
+- **Löschen** entfernt nur den Bibliothekseintrag; Kopien in Projekten bleiben bestehen.

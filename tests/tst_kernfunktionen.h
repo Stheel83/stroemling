@@ -1262,6 +1262,86 @@ private slots:
         QCOMPARE(i.value("werk").toString(), QString(""));
     }
 
+    // BLATTVORLAGEN-03: app-weite Vorlagenbibliothek (vorlagen.db) mit Abgleich.
+    void blattvorlagen_03_bibliothek()
+    {
+        neueSeite("L1");
+        const QString bibPfad = QDir::tempPath() + "/stroemling_vorlagen_test_" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".db";
+        QFile::remove(bibPfad);
+        QVERIFY(m_db->openVorlagen(bibPfad));
+        QVERIFY(m_db->vorlagenBibliothekListe().isEmpty());
+
+        QVariantMap v; v["name"] = "Firma X"; v["breiteMm"] = 210.0; v["hoeheMm"] = 297.0; v["art"] = "deckblatt";
+        const int vid = m_db->normblattVorlageSpeichern(v);
+        QVERIFY(vid > 0);
+        auto feld = [](const QString &inhalt, double x) {
+            return QVariantMap{{"feldtyp", "fest"}, {"xMm", x}, {"yMm", 10.0}, {"breiteMm", 50.0}, {"hoeheMm", 10.0},
+                               {"label", ""}, {"inhalt", inhalt}, {"quelleSpalte", ""},
+                               {"schriftgroesse", 3.5}, {"fett", 0}, {"rahmen", 1}, {"reihenfolge", 0}};
+        };
+        QVERIFY(m_db->normblattFelderSpeichern(vid, {feld("A", 10), feld("B", 70)}));
+        const QString logo = QDir::tempPath() + "/stroemling_bv3_logo.png";
+        { QImage img(40, 20, QImage::Format_RGB32); img.fill(Qt::red); QVERIFY(img.save(logo)); }
+        QVERIFY(m_db->normblattVorlageLogoSpeichern(vid, logo));
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid).value("status").toString(), QString("lokal"));
+
+        // In die Bibliothek legen
+        const QString uid = m_db->vorlageInBibliothekSpeichern(vid);
+        QVERIFY(!uid.isEmpty());
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid).value("status").toString(), QString("aktuell"));
+        QVariantList bib = m_db->vorlagenBibliothekListe();
+        QCOMPARE(bib.size(), 1);
+        QCOMPARE(bib[0].toMap().value("felder").toInt(), 2);
+        QCOMPARE(bib[0].toMap().value("version").toInt(), 1);
+        QCOMPARE(bib[0].toMap().value("imProjekt").toInt(), vid);
+        QVERIFY(bib[0].toMap().value("hatLogo").toBool());
+
+        // Umbenennen ist keine inhaltliche Aenderung; Feldaenderung schon
+        QVariantMap u; u["id"] = vid; u["name"] = "Firma X neu"; u["breiteMm"] = 210.0; u["hoeheMm"] = 297.0;
+        QCOMPARE(m_db->normblattVorlageSpeichern(u), vid);
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid).value("status").toString(), QString("aktuell"));
+        QVERIFY(m_db->normblattFelderSpeichern(vid, {feld("A", 10), feld("B", 80)}));
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid).value("status").toString(), QString("lokalGeaendert"));
+
+        // Erneut speichern: gleiche uid, Version 2
+        QCOMPARE(m_db->vorlageInBibliothekSpeichern(vid), uid);
+        QCOMPARE(m_db->vorlagenBibliothekListe()[0].toMap().value("version").toInt(), 2);
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid).value("status").toString(), QString("aktuell"));
+
+        // Schon im Projekt -> Uebernehmen verweigert; nach Loeschen wieder moeglich
+        QCOMPARE(m_db->vorlageAusBibliothekUebernehmen(uid), -1);
+        QVERIFY(m_db->normblattVorlageLoeschen(vid));
+        const int vid2 = m_db->vorlageAusBibliothekUebernehmen(uid);
+        QVERIFY(vid2 > 0);
+        QCOMPARE(m_db->normblattFelderLaden(vid2).size(), 2);
+        QCOMPARE(m_db->normblattFelderLaden(vid2)[1].toMap().value("xMm").toInt(), 80);
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid2).value("status").toString(), QString("aktuell"));
+        bool art = false, logoDa = false;
+        for (const QVariant &x : m_db->normblattVorlagenListe())
+            if (x.toMap().value("id").toInt() == vid2) {
+                art = x.toMap().value("art").toString() == "deckblatt";
+                logoDa = x.toMap().value("hatLogo").toBool();
+            }
+        QVERIFY(art);
+        QVERIFY(logoDa);
+
+        // Bibliothek neuer (Projektstand zurueckgesetzt), dann beides geaendert, dann aktualisieren
+        { QSqlQuery qq(QSqlDatabase::database());
+          QVERIFY(qq.exec("UPDATE normblatt_vorlage SET bibliothek_version = 1 WHERE id = " + QString::number(vid2))); }
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid2).value("status").toString(), QString("bibliothekNeuer"));
+        QVERIFY(m_db->normblattFelderSpeichern(vid2, {feld("Z", 5)}));
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid2).value("status").toString(), QString("beides"));
+        QVERIFY(m_db->vorlageAusBibliothekAktualisieren(vid2));
+        QCOMPARE(m_db->normblattFelderLaden(vid2).size(), 2);
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid2).value("status").toString(), QString("aktuell"));
+
+        // Aus der Bibliothek geloescht -> Projektkopie bleibt, Status meldet es
+        QVERIFY(m_db->vorlageAusBibliothekLoeschen(uid));
+        QVERIFY(m_db->vorlagenBibliothekListe().isEmpty());
+        QCOMPARE(m_db->vorlageBibliothekStatus(vid2).value("status").toString(), QString("bibliothekFehlt"));
+        QCOMPARE(m_db->normblattFelderLaden(vid2).size(), 2);
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

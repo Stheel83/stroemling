@@ -3016,6 +3016,11 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE projekt DROP COLUMN logo_data)",
             R"(ALTER TABLE projekt DROP COLUMN logo_mime)",
         }},
+        { 167, "BLATTVORLAGEN-03: Verknuepfung einer Projektvorlage mit der app-weiten Vorlagenbibliothek (vorlagen.db): normblatt_vorlage.bibliothek_uid, bibliothek_version (Stand beim letzten Abgleich) und bibliothek_hash (Inhalts-Hash beim letzten Abgleich, erkennt lokale Aenderungen).", {
+            R"(ALTER TABLE normblatt_vorlage ADD COLUMN bibliothek_uid TEXT)",
+            R"(ALTER TABLE normblatt_vorlage ADD COLUMN bibliothek_version INTEGER)",
+            R"(ALTER TABLE normblatt_vorlage ADD COLUMN bibliothek_hash TEXT)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

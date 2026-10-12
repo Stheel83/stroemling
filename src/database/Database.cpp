@@ -746,6 +746,7 @@ QVariantMap Database::datenbankAutobackup()
 
     bool makroOk = sichereDb(m_makroDb, "makros");
     bool wikiOk  = sichereDb(m_wikiDb,  "wiki");
+    sichereDb(m_vorlagenDb, "vorlagen");   // BLATTVORLAGEN-03
 
     QStringList alle = QDir(backupDir).entryList({"makros_*.db"}, QDir::Files, QDir::Name);
     QString letztesSicherung;

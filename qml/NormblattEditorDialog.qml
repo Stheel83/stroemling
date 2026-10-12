@@ -268,6 +268,20 @@ Item {
             if (_vorlagen[i].id === id) { _vorlIdx = i; break }
     }
 
+    // Vorlagenbibliothek: ungespeicherte Felder zuerst schreiben, nach Änderungen Liste neu lesen
+    NormblattBibliothekPopup {
+        id: bibliothekPopup
+        theme: root.theme
+        vorlage: root._vorlage
+        onSpeichernAngefordert: { if (root._vorlage) db.normblattFelderSpeichern(root._vorlage.id, root._felder) }
+        onVorlagenGeaendert: function(waehleId) {
+            root._vorlagen = db.normblattVorlagenListe()
+            for (var i = 0; i < root._vorlagen.length; i++)
+                if (root._vorlagen[i].id === waehleId) { root._vorlIdx = i; break }
+            root._felderLaden()
+        }
+    }
+
     FileDialog {
         id: logoDialog
         title: qsTr("Logo der Vorlage wählen (max. 5 MB)")
@@ -573,6 +587,19 @@ Item {
                     onClicked: { db.normblattVorlageLogoLoeschen(root._vorlage.id); root._vorlagenNeuLesen() } }
                 ToolTip.visible: logoDelMA.containsMouse; ToolTip.delay: 600
                 ToolTip.text: qsTr("Logo der Vorlage entfernen")
+            }
+
+            Rectangle {
+                visible: !root._neuModus && !root._einstellungenModus
+                width: bibBtnText.implicitWidth + 20; height: 32; radius: 5
+                color: bibBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                border.color: root.theme.border; border.width: 1
+                Text { id: bibBtnText; anchors.centerIn: parent; text: qsTr("Bibliothek …")
+                       color: root.theme.textPrimary; font.pixelSize: 12 }
+                MouseArea { id: bibBtnMA; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor; onClicked: bibliothekPopup.oeffnen() }
+                ToolTip.visible: bibBtnMA.containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("App-weite Vorlagenbibliothek: Vorlage speichern, übernehmen, abgleichen")
             }
 
             Item { Layout.fillWidth: true }

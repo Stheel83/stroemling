@@ -10,6 +10,7 @@
 //   PdfRenderer_Elemente    übrige Element-Typen + Dispatcher pdfElementRendern()
 //   PdfRenderer_Normblatt   Normblatt, Infostreifen, Revisions-Wasserzeichen, Bounding-Box
 //   PdfRenderer_Tabelle     generische Tabelle mit Seitenumbruch (Listen-PDF, Dokumentations-PDF)
+//   PdfRenderer_Deckblatt   Deckblatt + Inhaltsverzeichnis (A4 hoch), Fußzeile "Seite x von y"
 //   Database_PDF.cpp        öffentliche Database-Methoden (canvasPdfExportieren/-SeiteExportieren)
 // ============================================================
 #include <QColor>
@@ -22,6 +23,9 @@
 #include <QVariantMap>
 #include <QVector>
 #include <QPageLayout>
+#include <QImage>
+#include <QList>
+#include <QPair>
 #include <QStringList>
 #include <QVariantList>
 
@@ -167,3 +171,27 @@ QPageLayout pdfTabellenSeitenLayout();
 int pdfTabelleRendern(QPainter &p, QPdfWriter &w, const QString &titel, const QString &untertitel,
                       const QStringList &spalten, const QVariantList &zeilen, bool ersteSeiteNeu,
                       int seitenNrStart = 1, int seitenGesamt = 0);
+
+// ── PdfRenderer_Deckblatt ────────────────────────────────────
+// Seitenlayout für Deckblatt/Inhaltsverzeichnis: A4 hoch, 15 mm Rand.
+QPageLayout pdfHochSeitenLayout();
+// Fußzeile "Seite x von y" rechtsbündig in den untersten fussHoehePx des beschreibbaren Bereichs.
+void pdfFusszeileZeichnen(QPainter &p, QPdfWriter &w, double fussHoehePx, int seite, int gesamt);
+
+struct PdfDeckblattDaten {
+    QString projektName;
+    QString titelzusatz;                       // optional, unter dem Projektnamen
+    QList<QPair<QString, QString>> felder;     // Beschriftung/Wert; leere Werte werden ausgelassen
+    QImage  logo;                              // optional
+    QString stand;                             // Ausgabedatum, bereits formatiert
+};
+// Zeichnet genau eine Seite.
+void pdfDeckblattRendern(QPainter &p, QPdfWriter &w, const PdfDeckblattDaten &d, bool ersteSeiteNeu);
+
+// ebene 0 = Abschnitt, 1 = Anlage/Ort (ohne Seitenzahl), 2 = Schaltplan-Seite; seite <= 0: keine Seitenzahl.
+struct PdfTocEintrag { int ebene = 0; QString text; int seite = 0; };
+// Zeilen je Verzeichnisseite - konstant, damit die Seitenzahl des Verzeichnisses vor dem Rendern feststeht.
+int pdfTocZeilenProSeite();
+// Rückgabe: Anzahl gerenderter Seiten = max(1, ceil(Einträge / pdfTocZeilenProSeite())).
+int pdfInhaltsverzeichnisRendern(QPainter &p, QPdfWriter &w, const QList<PdfTocEintrag> &eintraege,
+                                 bool ersteSeiteNeu, int seitenNrStart, int seitenGesamt);

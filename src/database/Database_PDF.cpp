@@ -13,6 +13,7 @@
 #include <limits>
 #include <QUrl>
 #include <QDateTime>
+#include <QDate>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -195,15 +196,26 @@ bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mit
 // Optionen-JSON:
 //   { "mitNormblatt": true, "vollCanvas": false, "mitInfostreifen": false,
 //     "seiteIds": [..]            // optional; Standard: alle Seiten mit in_doku_pdf = 1
-//     "abschnitte": [ {"typ":"schaltplan"},
+//     "abschnitte": [ {"typ":"deckblatt", "titelzusatz":"...", "logo":true},
+//                     {"typ":"inhaltsverzeichnis"},
+//                     {"typ":"schaltplan"},
 //                     {"typ":"sps_io", "konfig": { SPS-Export-Konfiguration, s. spsExportZeilen() }} ] }
 // Reihenfolge der Abschnitte = Reihenfolge im PDF. Alle Abschnitte rendern in denselben Writer.
 // Zwei Durchläufe: Dry-Run in einen Puffer ermittelt die Gesamtseitenzahl für "Seite x von y"
-// (und liefert in DOKU-PDF-03 die Seitenzahlen des Inhaltsverzeichnisses).
+// und die Startseite jedes Abschnitts (Seitenzahlen des Inhaltsverzeichnisses). Das Verzeichnis
+// selbst hat eine vorab feststehende Seitenzahl (feste Zeilen je Seite), so verschiebt es sich nicht.
 namespace {
 struct DokuAbschnitt {
     QString     typ;
-    QString     spsKonfig;   // nur sps_io: JSON-Text der Export-Konfiguration
+    QString     spsKonfig;    // nur sps_io: JSON-Text der Export-Konfiguration
+    QString     titelzusatz;  // nur deckblatt
+    bool        logo = true;  // nur deckblatt
+};
+// Verzeichniseintrag mit Verweis auf die Startseite des Abschnitts + Versatz (Schaltplan: Index der Seite).
+struct DokuTocPlan {
+    PdfTocEintrag e;
+    int abschnitt = -1;
+    int versatz   = -1;   // < 0: ohne Seitenzahl
 };
 struct DokuOptionen {
     bool mitNormblatt = true, vollCanvas = false, mitInfostreifen = false;
@@ -243,7 +255,10 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
             da.typ = a.value("typ").toString();
             if (da.typ == QLatin1String("sps_io")) {
                 da.spsKonfig = QString::fromUtf8(QJsonDocument(a.value("konfig").toObject()).toJson(QJsonDocument::Compact));
-            } else if (da.typ != QLatin1String("schaltplan")) {
+            } else if (da.typ == QLatin1String("deckblatt")) {
+                da.titelzusatz = a.value("titelzusatz").toString();
+                da.logo        = a.value("logo").toBool(true);
+            } else if (da.typ != QLatin1String("schaltplan") && da.typ != QLatin1String("inhaltsverzeichnis")) {
                 qCWarning(lcDb) << "dokuPdfExportieren: unbekannter Abschnittstyp" << da.typ;
                 return false;
             }
@@ -251,31 +266,102 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         }
     }
 
+    PdfDeckblattDaten deckblatt;
     {
         QSqlQuery q(m_db);
-        q.prepare("SELECT name FROM projekt WHERE id = :pid");
+        q.prepare("SELECT name, projektnummer, auftraggeber, auftragnehmer, bearbeiter, werk, abteilung, "
+                  "norm, erstellt_am FROM projekt WHERE id = :pid");
         q.bindValue(":pid", projektId);
-        if (q.exec() && q.next()) opt.projektName = q.value(0).toString();
+        if (q.exec() && q.next()) {
+            opt.projektName = q.value(0).toString();
+            deckblatt.projektName = opt.projektName;
+            auto feld = [&](const QString &b, int sp) { deckblatt.felder.append({b, q.value(sp).toString()}); };
+            feld(QObject::tr("Projektnummer"), 1);
+            feld(QObject::tr("Auftraggeber"),  2);
+            feld(QObject::tr("Auftragnehmer"), 3);
+            feld(QObject::tr("Bearbeiter"),    4);
+            feld(QObject::tr("Werk"),          5);
+            feld(QObject::tr("Abteilung"),     6);
+            feld(QObject::tr("Norm"),          7);
+            const QDateTime erst = QDateTime::fromString(q.value(8).toString(), Qt::ISODate);
+            deckblatt.felder.append({QObject::tr("Projekt angelegt"),
+                                     erst.isValid() ? erst.date().toString(QStringLiteral("dd.MM.yyyy")) : QString()});
+        }
+        deckblatt.stand = QDate::currentDate().toString(QStringLiteral("dd.MM.yyyy"));
     }
+    const QImage logoBild = [&] {
+        QImage img;
+        const QString url = projektLogoDataUrl(projektId);
+        const int komma = url.indexOf(u',');
+        if (komma > 0) img.loadFromData(QByteArray::fromBase64(url.mid(komma + 1).toLatin1()));
+        return img;
+    }();
 
     // Abschnitte ohne Inhalt weglassen (Schaltplan ohne Seiten)
     for (int i = opt.abschnitte.size() - 1; i >= 0; --i)
         if (opt.abschnitte[i].typ == QLatin1String("schaltplan") && opt.seiteIds.isEmpty())
             opt.abschnitte.removeAt(i);
+    // Verzeichnis nur, wenn es etwas aufzulisten gibt
+    {
+        bool inhalt = false;
+        for (const DokuAbschnitt &a : opt.abschnitte)
+            if (a.typ == QLatin1String("schaltplan") || a.typ == QLatin1String("sps_io")) inhalt = true;
+        if (!inhalt)
+            for (int i = opt.abschnitte.size() - 1; i >= 0; --i)
+                if (opt.abschnitte[i].typ == QLatin1String("inhaltsverzeichnis")) opt.abschnitte.removeAt(i);
+    }
     if (opt.abschnitte.isEmpty()) {
         qCWarning(lcDb) << "dokuPdfExportieren: nichts zu exportieren";
         return false;
     }
 
+    // Verzeichnisplan: Struktur steht vorab fest, nur die Seitenzahlen kommen aus dem Dry-Run
+    QList<DokuTocPlan> tocPlan;
+    for (int i = 0; i < opt.abschnitte.size(); ++i) {
+        const DokuAbschnitt &a = opt.abschnitte[i];
+        if (a.typ == QLatin1String("sps_io")) {
+            tocPlan.append({{0, QObject::tr("SPS/PLS – I/O-Liste"), 0}, i, 0});
+        } else if (a.typ == QLatin1String("schaltplan")) {
+            tocPlan.append({{0, QObject::tr("Schaltplan"), 0}, i, 0});
+            QString letzteAnlage, letzterOrt;
+            for (int j = 0; j < opt.seiteIds.size(); ++j) {
+                QSqlQuery q(m_db);
+                q.prepare("SELECT a.kuerzel, COALESCE(a.bezeichnung,''), o.kuerzel, COALESCE(o.bezeichnung,''), "
+                          "s.blattnummer, COALESCE(s.bezeichnung,''), COALESCE(s.revision_kennung,'') "
+                          "FROM seite s JOIN ort o ON s.ort_id = o.id JOIN anlage a ON o.anlage_id = a.id "
+                          "WHERE s.id = :sid");
+                q.bindValue(":sid", opt.seiteIds[j]);
+                if (!q.exec() || !q.next()) continue;
+                const QString anlage = q.value(0).toString(), ort = q.value(2).toString();
+                if (anlage != letzteAnlage || ort != letzterOrt) {
+                    QString kopf = QStringLiteral("=") + anlage;
+                    if (!q.value(1).toString().isEmpty()) kopf += QStringLiteral(" ") + q.value(1).toString();
+                    kopf += QStringLiteral("   +") + ort;
+                    if (!q.value(3).toString().isEmpty()) kopf += QStringLiteral(" ") + q.value(3).toString();
+                    tocPlan.append({{1, kopf, 0}, -1, -1});
+                    letzteAnlage = anlage; letzterOrt = ort;
+                }
+                QString text = QObject::tr("Blatt %1").arg(q.value(4).toString());
+                if (!q.value(5).toString().isEmpty()) text += QStringLiteral("  –  ") + q.value(5).toString();
+                if (!q.value(6).toString().isEmpty()) text += QObject::tr("  (Rev. %1)").arg(q.value(6).toString());
+                tocPlan.append({{2, text, 0}, i, j});
+            }
+        }
+    }
+
     // Start-Layout des Writers = Layout des ersten Abschnitts
     QPageLayout startLayout = pdfTabellenSeitenLayout();
-    if (opt.abschnitte.first().typ == QLatin1String("schaltplan")) {
+    const QString ersterTyp = opt.abschnitte.first().typ;
+    if (ersterTyp == QLatin1String("deckblatt") || ersterTyp == QLatin1String("inhaltsverzeichnis")) {
+        startLayout = pdfHochSeitenLayout();
+    } else if (ersterTyp == QLatin1String("schaltplan")) {
         startLayout = QPageLayout(
             QPageSize(pdfSchaltplanSeitenGroesseMm(opt.seiteIds.first(), opt.vollCanvas), QPageSize::Millimeter),
             QPageLayout::Portrait, QMarginsF(0, 0, 0, 0));
     }
 
     // Ein Durchlauf; gesamtSeiten = 0 im Dry-Run. Gibt die Seitenzahl zurück, -1 bei Fehler.
+    QList<int> starts(opt.abschnitte.size(), 0);   // Startseite je Abschnitt (aus dem Dry-Run)
     auto durchlauf = [&](QPdfWriter &writer, int gesamtSeiten) -> int {
         writer.setCreator(QStringLiteral("Stroemling Design"));
         writer.setTitle(opt.projektName);
@@ -291,7 +377,22 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         for (int i = 0; i < opt.abschnitte.size(); ++i) {
             const DokuAbschnitt &a = opt.abschnitte[i];
             const bool neu = i > 0;   // erste Seite des Dokuments: Layout steht schon im Writer
-            if (a.typ == QLatin1String("schaltplan")) {
+            starts[i] = seiten + 1;
+            if (a.typ == QLatin1String("deckblatt")) {
+                PdfDeckblattDaten d = deckblatt;
+                d.titelzusatz = a.titelzusatz;
+                if (a.logo) d.logo = logoBild;
+                pdfDeckblattRendern(painter, writer, d, neu);
+                seiten += 1;
+            } else if (a.typ == QLatin1String("inhaltsverzeichnis")) {
+                QList<PdfTocEintrag> eintraege;
+                for (const DokuTocPlan &t : tocPlan) {
+                    PdfTocEintrag e = t.e;
+                    if (t.versatz >= 0 && t.abschnitt >= 0) e.seite = starts[t.abschnitt] + t.versatz;
+                    eintraege.append(e);
+                }
+                seiten += pdfInhaltsverzeichnisRendern(painter, writer, eintraege, neu, seiten + 1, gesamtSeiten);
+            } else if (a.typ == QLatin1String("schaltplan")) {
                 seiten += pdfSchaltplanSeitenRendern(painter, writer, opt.seiteIds,
                                                      opt.mitNormblatt, opt.vollCanvas, opt.mitInfostreifen, neu);
             } else {   // sps_io

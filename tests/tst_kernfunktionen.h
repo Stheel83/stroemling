@@ -888,6 +888,42 @@ private slots:
                                           R"({"seiteIds":[],"abschnitte":[{"typ":"schaltplan"}]})"));
     }
 
+    // DOKU-PDF-03: Deckblatt + Inhaltsverzeichnis (Seitenzahl des Verzeichnisses steht vorab fest)
+    void doku_pdf_03_deckblattVerzeichnis()
+    {
+        neueSeite("D31");
+        neueSeite("D32");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const QString dir = QDir::tempPath();
+        const QString nurPlan = dir + "/stroemling_dokupdf3_plan.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, nurPlan, R"({"mitNormblatt":false,"abschnitte":[{"typ":"schaltplan"}]})"));
+        const int plan = pdfSeitenAnzahl(nurPlan);
+        QVERIFY(plan >= 1);
+
+        const QString f1 = dir + "/stroemling_dokupdf3_a.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f1,
+            R"({"mitNormblatt":false,"abschnitte":[{"typ":"deckblatt","titelzusatz":"Prüfstand 3"},
+                {"typ":"inhaltsverzeichnis"},{"typ":"schaltplan"}]})"));
+        QVERIFY(pdfSeitenAnzahl(f1) >= 1 + 1 + plan);
+
+        // Viele Blätter → Verzeichnis läuft über mehrere Seiten
+        for (int i = 0; i < 60; ++i) neueSeite(QString("V%1").arg(i));
+        const QString f2 = dir + "/stroemling_dokupdf3_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2,
+            R"({"mitNormblatt":false,"abschnitte":[{"typ":"deckblatt"},{"typ":"inhaltsverzeichnis"},{"typ":"schaltplan"}]})"));
+        const QString f2plan = dir + "/stroemling_dokupdf3_b_plan.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2plan, R"({"mitNormblatt":false,"abschnitte":[{"typ":"schaltplan"}]})"));
+        const int plan2 = pdfSeitenAnzahl(f2plan);
+        QVERIFY(plan2 >= 61);
+        const int ueber = pdfSeitenAnzahl(f2) - plan2 - 1;   // Rest = Verzeichnisseiten
+        QVERIFY2(ueber >= 2, qPrintable(QString("Verzeichnisseiten: %1").arg(ueber)));
+
+        // Verzeichnis ohne Inhalt entfällt, Deckblatt allein ist erlaubt
+        const QString f3 = dir + "/stroemling_dokupdf3_c.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f3, R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"},{"typ":"inhaltsverzeichnis"}]})"));
+        QCOMPARE(pdfSeitenAnzahl(f3), 1);
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

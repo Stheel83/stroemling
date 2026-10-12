@@ -92,8 +92,6 @@ int pdfTabelleRendern(QPainter &p, QPdfWriter &w, const QString &titel, const QS
 
     const int seiten = qMax(1, doc.pageCount());
     const int gesamt = seitenGesamt > 0 ? seitenGesamt : seitenNrStart - 1 + seiten;
-    QFont fussFont(QStringLiteral("Arial"));
-    fussFont.setPointSizeF(8.0);
     for (int s = 0; s < seiten; ++s) {
         if (s > 0) w.newPage();
         const QRectF ausschnitt(0, s * hoehe, breite, hoehe);
@@ -105,12 +103,7 @@ int pdfTabelleRendern(QPainter &p, QPdfWriter &w, const QString &titel, const QS
         doc.documentLayout()->draw(&p, ctx);
         p.restore();
 
-        p.save();
-        p.setFont(fussFont);
-        p.setPen(QColor(0x55, 0x55, 0x55));
-        p.drawText(QRectF(0, w.height() - fussH, breite, fussH), Qt::AlignRight | Qt::AlignVCenter,
-                   QObject::tr("Seite %1 von %2").arg(seitenNrStart + s).arg(gesamt));
-        p.restore();
+        pdfFusszeileZeichnen(p, w, fussH, seitenNrStart + s, gesamt);
     }
     return seiten;
 }

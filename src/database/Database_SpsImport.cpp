@@ -441,6 +441,36 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
 
     int nNeuK = 0, nUpd = 0, nSkip = 0;
 
+    // Kanal-Vorschau für die Oberfläche: je CSV-Zeile die geplante Aktion (neu/update/skip)
+    QVariantList kanalVorschau;
+    auto feldTitel = [](const QString &f) -> QString {
+        static const QMap<QString, QString> m = {
+            {"variablenname", "Variable"}, {"kommentar", "Kommentar"},
+            {"pls_einheit", "Einheit"}, {"pls_protokoll", "Protokoll"},
+            {"pls_bereich_min", "Bereich Min"}, {"pls_bereich_max", "Bereich Max"},
+            {"pls_alarm_ll", "Alarm LL"}, {"pls_alarm_lo", "Alarm LO"},
+            {"pls_alarm_hi", "Alarm HI"}, {"pls_alarm_hh", "Alarm HH"},
+            {"pls_hart_adresse", "HART-Adresse"}};
+        return m.value(f, f);
+    };
+    auto vorschau = [&](const Zeile &z, const QString &aktion, const QString &detail) {
+        QString adr;
+        if (z.system == "PLS" || z.adressTyp.isEmpty())
+            adr = QStringLiteral("R%1 S%2 K%3").arg(z.rackNr).arg(z.hatSlot ? z.slot : 0)
+                      .arg(z.kanalNr >= 0 ? z.kanalNr + 1 : 0);
+        else
+            adr = z.adressTyp + QLatin1Char(' ') + QString::number(z.byteNr)
+                  + (z.bitNr >= 0 ? QStringLiteral(".%1").arg(z.bitNr) : QString());
+        QVariantMap v;
+        v["zeile"]  = z.nr;
+        v["system"] = z.system;
+        v["adresse"] = adr;
+        v["variable"] = z.felder.value("variablenname").toString();
+        v["aktion"] = aktion;
+        v["detail"] = detail;
+        kanalVorschau.append(v);
+    };
+
     auto signalVon = [&](const Zeile &z) -> QString {
         if (!z.signal.isEmpty()) return z.signal;
         if (z.bgTyp == "DI" || z.bgTyp == "DO" || z.bgTyp == "AI" || z.bgTyp == "AO") return z.bgTyp;
@@ -530,7 +560,11 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
                 const int oid = bekannt[exakt].id;
                 if (oid <= 0) { meldung(z.nr, QStringLiteral("Adresse kommt in der CSV doppelt vor"), true); continue; }
                 // vorhandener Kanal → je nach Modus
-                if (modus == "ueberspringen") { ++nSkip; continue; }
+                if (modus == "ueberspringen") {
+                    ++nSkip;
+                    vorschau(z, QStringLiteral("skip"), QStringLiteral("vorhanden – wird übersprungen"));
+                    continue;
+                }
                 const QVariantMap kb = kanalById.value(oid);
                 QVariantMap aenderung;
                 for (auto it = z.felder.constBegin(); it != z.felder.constEnd(); ++it) {
@@ -540,7 +574,20 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
                     if (alt.toString() == it.value().toString()) continue;
                     aenderung[it.key()] = it.value();
                 }
-                if (aenderung.isEmpty()) { ++nSkip; continue; }
+                if (aenderung.isEmpty()) {
+                    ++nSkip;
+                    vorschau(z, QStringLiteral("skip"), QStringLiteral("unverändert"));
+                    continue;
+                }
+                {
+                    QStringList d;
+                    for (auto it = aenderung.constBegin(); it != aenderung.constEnd(); ++it) {
+                        const QString alt = kb.value(it.key()).toString();
+                        d << QStringLiteral("%1: %2 → %3").arg(feldTitel(it.key()),
+                                 alt.isEmpty() ? QStringLiteral("(leer)") : alt, it.value().toString());
+                    }
+                    vorschau(z, QStringLiteral("update"), d.join(QStringLiteral("; ")));
+                }
                 KanalPlan kp; kp.z = z; kp.z.felder = aenderung; kp.existId = oid; kp.aktion = "update";
                 kanaele.append(kp);
                 ++nUpd;
@@ -552,6 +599,7 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
             }
         }
 
+        vorschau(z, QStringLiteral("neu"), QString());
         KanalPlan kp; kp.z = z; kp.bgIdx = bi; kp.aktion = "neu";
         kanaele.append(kp);
         SpsAdressen::Kanal merk = c;
@@ -611,6 +659,7 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
     bericht["fehlerhaft"]       = nFehler;
     bericht["zeilenGesamt"]     = zeilen.size() + 0;
     bericht["meldungen"]        = meldungen;
+    bericht["kanalVorschau"]    = kanalVorschau;
     bericht["ausgefuehrt"]      = false;
     {
         // Rack-Nummern für die Oberfläche: neu angelegt / von Kanalimport oder Update betroffen

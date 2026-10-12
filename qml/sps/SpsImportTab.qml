@@ -24,6 +24,8 @@ Item {
     property int    _datenzeilen: 0
     property var    _bericht: ({})
     property var    _feldOptionen: []   // [{feld, text}] importierbare Felder
+    property int    _pruefAnsicht: 0    // 0 = Kanäle (Vorschau), 1 = Hinweise/Fehler
+    property bool   _skipZeigen: false  // unveränderte/übersprungene Kanäle in der Vorschau
 
     ListModel { id: zuordnung }         // spalte (Titel), beispiel, feld
 
@@ -376,6 +378,42 @@ Item {
                 }
             }
 
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 0
+                readonly property int nMeld: (root._bericht.meldungen || []).length
+                Repeater {
+                    model: [
+                        { text: qsTr("Kanäle (%1)").arg((root._bericht.kanalVorschau || []).length), idx: 0 },
+                        { text: qsTr("Hinweise / Fehler (%1)").arg(parent.nMeld), idx: 1 }
+                    ]
+                    delegate: Button {
+                        required property var modelData
+                        readonly property bool aktiv: root._pruefAnsicht === modelData.idx
+                        text: modelData.text
+                        implicitHeight: 28
+                        implicitWidth: 170
+                        contentItem: Text { text: parent.text; font.pixelSize: 12
+                            color: parent.aktiv ? "#ffffff" : root.theme.textPrimary
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle {
+                            color: parent.aktiv ? root.theme.accent : (parent.hovered ? root.theme.inputBg : "transparent")
+                            border.color: parent.aktiv ? root.theme.accent : root.theme.border
+                            radius: 4 }
+                        onClicked: root._pruefAnsicht = modelData.idx
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                CheckBox {
+                    visible: root._pruefAnsicht === 0
+                    text: qsTr("Unveränderte anzeigen")
+                    checked: root._skipZeigen
+                    onToggled: root._skipZeigen = checked
+                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 11
+                        leftPadding: parent.indicator.width + 6; verticalAlignment: Text.AlignVCenter }
+                }
+            }
+
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -383,17 +421,55 @@ Item {
                 border.color: root.theme.border
                 radius: 4
 
+                // Kanal-Vorschau (nach Aktion gefiltert)
+                readonly property var kanalListe: {
+                    var l = root._bericht.kanalVorschau || []
+                    if (root._skipZeigen) return l
+                    var r = []
+                    for (var i = 0; i < l.length; i++) if (l[i].aktion !== "skip") r.push(l[i])
+                    return r
+                }
+
                 Text {
                     anchors.centerIn: parent
-                    visible: (root._bericht.meldungen || []).length === 0
-                    text: root._bericht.neueKanaele !== undefined ? qsTr("Keine Hinweise oder Fehler")
-                                                                  : ""
+                    visible: root._pruefAnsicht === 1 ? (root._bericht.meldungen || []).length === 0
+                                                      : parent.kanalListe.length === 0
+                    text: {
+                        if (root._bericht.neueKanaele === undefined) return ""
+                        if (root._pruefAnsicht === 1) return qsTr("Keine Hinweise oder Fehler")
+                        return qsTr("Keine neuen oder geänderten Kanäle")
+                    }
                     color: root.theme.textMuted; font.pixelSize: 12
                 }
 
                 ListView {
                     anchors.fill: parent
                     anchors.margins: 6
+                    visible: root._pruefAnsicht === 0
+                    clip: true
+                    spacing: 2
+                    model: parent.kanalListe
+                    ScrollBar.vertical: ScrollBar {}
+                    delegate: Text {
+                        required property var modelData
+                        width: ListView.view.width
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: 11
+                        color: modelData.aktion === "neu" ? "#4caf50"
+                             : modelData.aktion === "update" ? "#e0a800" : root.theme.textMuted
+                        text: qsTr("Zeile %1: ").arg(modelData.zeile)
+                              + (modelData.aktion === "neu" ? qsTr("NEU  ")
+                                 : modelData.aktion === "update" ? qsTr("ÄNDERN  ") : qsTr("ÜBERSPRUNGEN  "))
+                              + modelData.adresse
+                              + (modelData.variable !== "" ? "  ·  " + modelData.variable : "")
+                              + (modelData.detail !== "" ? "  –  " + modelData.detail : "")
+                    }
+                }
+
+                ListView {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    visible: root._pruefAnsicht === 1
                     clip: true
                     spacing: 2
                     model: root._bericht.meldungen || []

@@ -439,7 +439,7 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
     QMap<int, int> rackSynth;           // rack_nr → synthetische rackId für neue Racks
     QMap<int, int> bgSynth;             // bgs-Index → synthetische baugruppeId
 
-    int nNeuK = 0, nUpd = 0, nSkip = 0;
+    int nNeuK = 0, nUpd = 0, nSkip = 0, nAbw = 0;
 
     // Kanal-Vorschau für die Oberfläche: je CSV-Zeile die geplante Aktion (neu/update/skip)
     QVariantList kanalVorschau;
@@ -567,16 +567,30 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
                 }
                 const QVariantMap kb = kanalById.value(oid);
                 QVariantMap aenderung;
+                QStringList abweichungen;   // Modus "auffuellen": Wert im Programm vorhanden, CSV weicht ab
                 for (auto it = z.felder.constBegin(); it != z.felder.constEnd(); ++it) {
                     const QVariant alt = kb.value(it.key());
                     const bool altLeer = alt.isNull() || !alt.isValid() || alt.toString().isEmpty();
-                    if (modus == "auffuellen" && !altLeer) continue;
+                    if (modus == "auffuellen" && !altLeer) {
+                        if (alt.toString() != it.value().toString())
+                            abweichungen << QStringLiteral("%1: Programm \"%2\" ≠ CSV \"%3\"")
+                                                .arg(feldTitel(it.key()), alt.toString(), it.value().toString());
+                        continue;
+                    }
                     if (alt.toString() == it.value().toString()) continue;
                     aenderung[it.key()] = it.value();
                 }
+                const QString abwText = abweichungen.isEmpty() ? QString()
+                    : QStringLiteral("CSV weicht ab, wird im Modus \"Nur leere Felder auffüllen\" nicht übernommen – %1")
+                          .arg(abweichungen.join(QStringLiteral("; ")));
                 if (aenderung.isEmpty()) {
                     ++nSkip;
-                    vorschau(z, QStringLiteral("skip"), QStringLiteral("unverändert"));
+                    if (!abweichungen.isEmpty()) {
+                        ++nAbw;
+                        vorschau(z, QStringLiteral("abweichung"), abwText);
+                    } else {
+                        vorschau(z, QStringLiteral("skip"), QStringLiteral("unverändert"));
+                    }
                     continue;
                 }
                 {
@@ -586,6 +600,7 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
                         d << QStringLiteral("%1: %2 → %3").arg(feldTitel(it.key()),
                                  alt.isEmpty() ? QStringLiteral("(leer)") : alt, it.value().toString());
                     }
+                    if (!abwText.isEmpty()) { d << abwText; ++nAbw; }
                     vorschau(z, QStringLiteral("update"), d.join(QStringLiteral("; ")));
                 }
                 KanalPlan kp; kp.z = z; kp.z.felder = aenderung; kp.existId = oid; kp.aktion = "update";
@@ -656,6 +671,7 @@ QVariantMap Database::spsImportPlanen(int projektId, const QString &pfad, const 
     bericht["neueKanaele"]      = nNeuK;
     bericht["aktualisiert"]     = nUpd;
     bericht["uebersprungen"]    = nSkip;
+    bericht["abweichend"]       = nAbw;
     bericht["fehlerhaft"]       = nFehler;
     bericht["zeilenGesamt"]     = zeilen.size() + 0;
     bericht["meldungen"]        = meldungen;

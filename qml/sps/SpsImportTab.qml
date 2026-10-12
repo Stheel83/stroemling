@@ -370,6 +370,8 @@ Item {
                         return qsTr("Nach dem Laden einer Datei erscheint hier, was der Import tun würde.")
                     var t = qsTr("%1 neue Kanäle · %2 aktualisiert · %3 unverändert/übersprungen")
                                 .arg(b.neueKanaele).arg(b.aktualisiert).arg(b.uebersprungen)
+                    if ((b.abweichend || 0) > 0)
+                        t += "\n" + qsTr("%1 Kanal/Kanäle weichen von der CSV ab, werden aber nicht überschrieben – Option „Felder aus der CSV überschreiben“ wählen, um sie zu übernehmen.").arg(b.abweichend)
                     if (b.neueRacks > 0 || b.neueBaugruppen > 0)
                         t += qsTr(" · neu angelegt: %1 Rack(s), %2 Baugruppe(n)").arg(b.neueRacks).arg(b.neueBaugruppen)
                     if (b.fehlerhaft > 0)
@@ -456,10 +458,12 @@ Item {
                         wrapMode: Text.WordWrap
                         font.pixelSize: 11
                         color: modelData.aktion === "neu" ? "#4caf50"
-                             : modelData.aktion === "update" ? "#e0a800" : root.theme.textMuted
+                             : modelData.aktion === "update" ? "#e0a800"
+                             : modelData.aktion === "abweichung" ? "#e07a00" : root.theme.textMuted
                         text: qsTr("Zeile %1: ").arg(modelData.zeile)
                               + (modelData.aktion === "neu" ? qsTr("NEU  ")
-                                 : modelData.aktion === "update" ? qsTr("ÄNDERN  ") : qsTr("ÜBERSPRUNGEN  "))
+                                 : modelData.aktion === "update" ? qsTr("ÄNDERN  ")
+                                 : modelData.aktion === "abweichung" ? qsTr("ABWEICHUNG  ") : qsTr("ÜBERSPRUNGEN  "))
                               + modelData.adresse
                               + (modelData.variable !== "" ? "  ·  " + modelData.variable : "")
                               + (modelData.detail !== "" ? "  –  " + modelData.detail : "")

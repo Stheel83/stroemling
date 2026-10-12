@@ -150,15 +150,10 @@ QtObject {
                 var _fw = s(_f.breiteMm)
                 var _fh = s(_f.hoeheMm)
                 if (_f.feldtyp === "logo") {
-                    if (cv.normblattLogoUrl && cv._drawCanvas.isImageLoaded(cv.normblattLogoUrl)) {
-                        ctx.save()
-                        ctx.beginPath(); ctx.rect(_fx+1, _fy+1, _fw-2, _fh-2); ctx.clip()
-                        var _pad = s(2)
-                        ctx.drawImage(cv.normblattLogoUrl, _fx+_pad, _fy+_pad, _fw-2*_pad, _fh-2*_pad)
-                        ctx.restore()
-                    }
+                    logoZeichnen(_fx, _fy, _fw, _fh)
                 } else {
-                    zelle(_f.label || "", _feldWert(_f), _fx, _fy, _fw, _fh)
+                    zelle(_f.label || "", _feldWert(_f), _fx, _fy, _fw, _fh,
+                          _f.schriftgroesse > 0 ? _f.schriftgroesse : 3.5, !!_f.fett)
                 }
                 if (_f.rahmen) {
                     ctx.strokeStyle = "#2a5080"
@@ -179,18 +174,44 @@ QtObject {
         }
 
         // Hilfsfunktionen (für alle Vorlagen verfügbar)
-        function zelle(label, wert, x, y, w, h) {
+        // sgMm/fett nur für eigene Felder (BLATTVORLAGEN-01a); ohne Angabe: das alte
+        // Standard-Schriftfeld (automatische Größe aus der Zeilenhöhe, fett).
+        function zelle(label, wert, x, y, w, h, sgMm, fett) {
             ctx.save()
             ctx.beginPath(); ctx.rect(x + 1, y + 1, w - 2, h - 2); ctx.clip()
-            // Positionen proportional zur Zeilenhöhe h – funktioniert für 8mm und 13mm
-            var lFs = Math.max(5, Math.min(h * 0.22, s(2.8)))
-            ctx.font = lFs + "px sans-serif"; ctx.fillStyle = "#5a7aa0"
             ctx.textBaseline = "top"
-            ctx.fillText(label, x + s(1.0), y + h * 0.08)
-            var vFs = Math.max(7, Math.min(h * 0.38, s(4.5)))
-            ctx.font = "600 " + vFs + "px sans-serif"; ctx.fillStyle = "#c8ddf0"
-            ctx.fillText(wert || "", x + s(1.2), y + h * 0.42)
+            // Positionen proportional zur Zeilenhöhe h – funktioniert für 8mm und 13mm
+            if (label) {
+                var lFs = Math.max(5, Math.min(h * 0.22, s(2.8)))
+                ctx.font = lFs + "px sans-serif"; ctx.fillStyle = "#5a7aa0"
+                ctx.fillText(label, x + s(1.0), y + h * 0.08)
+            }
+            var eigen = sgMm !== undefined
+            var vFs = eigen ? Math.max(4, s(sgMm)) : Math.max(7, Math.min(h * 0.38, s(4.5)))
+            ctx.font = ((eigen ? fett : true) ? "600 " : "") + vFs + "px sans-serif"
+            ctx.fillStyle = "#c8ddf0"
+            // ohne Label (nur eigene Felder) direkt unter der Oberkante
+            var vy = (eigen && !label) ? y + s(1.0) : y + h * 0.42
+            ctx.fillText(wert || "", x + s(1.2), vy)
             ctx.restore()
+        }
+        // Logo in die Zelle: 2 mm Innenabstand, Seitenverhältnis erhalten, zentriert
+        function logoZeichnen(x, y, w, h) {
+            if (!cv.normblattLogoUrl || !cv._drawCanvas.isImageLoaded(cv.normblattLogoUrl)) return false
+            var pad = s(2)
+            var bw = w - 2 * pad, bh = h - 2 * pad
+            if (bw <= 0 || bh <= 0) return false
+            var dw = bw, dh = bh
+            var asp = nd.logoAspekt || 0
+            if (asp > 0) {
+                if (bw / bh > asp) dw = bh * asp
+                else               dh = bw / asp
+            }
+            ctx.save()
+            ctx.beginPath(); ctx.rect(x + 1, y + 1, w - 2, h - 2); ctx.clip()
+            ctx.drawImage(cv.normblattLogoUrl, x + pad + (bw - dw) / 2, y + pad + (bh - dh) / 2, dw, dh)
+            ctx.restore()
+            return true
         }
         function formatText() {
             var b = nd.breiteMm || 297, h = nd.hoeheMm || 210
@@ -275,16 +296,8 @@ QtObject {
             zelle("PROJEKTNR.",   nd.projektnummer || "", cX[2], rowY[0], cX[3]-cX[2], rowH)
             zelle("BLATT",        nd.blattnummer   || "", cX[3], rowY[0], cX[4]-cX[3], rowH)
 
-            if (cv.normblattLogoUrl && cv._drawCanvas.isImageLoaded(cv.normblattLogoUrl)) {
-                ctx.save()
-                var lx = cX[0], ly = rowY[1], lw = cX[1]-cX[0], lh = rowH
-                ctx.beginPath(); ctx.rect(lx+1, ly+1, lw-2, lh-2); ctx.clip()
-                var pad = s(2)
-                ctx.drawImage(cv.normblattLogoUrl, lx+pad, ly+pad, lw-2*pad, lh-2*pad)
-                ctx.restore()
-            } else {
+            if (!logoZeichnen(cX[0], rowY[1], cX[1]-cX[0], rowH))
                 zelle("AUFTRAGNEHMER", nd.auftragnehmer || "", cX[0], rowY[1], cX[1]-cX[0], rowH)
-            }
             zelle("BEZEICHNUNG",  nd.bezeichnung  || "", cX[1], rowY[1], cX[2]-cX[1], rowH)
             zelle("FORMAT",       formatText(),          cX[2], rowY[1], cX[3]-cX[2], rowH)
             zelle("DATUM",        datumText(),           cX[3], rowY[1], cX[4]-cX[3], rowH)

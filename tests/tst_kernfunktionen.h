@@ -4,6 +4,7 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDir>
+#include <QProcess>
 #include <QFile>
 #include <QDateTime>
 #include <QJsonDocument>
@@ -1021,6 +1022,82 @@ private slots:
         QCOMPARE(pdfSeitenAnzahl(mitListe), pdfSeitenAnzahl(nurPlan) + 1);
         QVERIFY(!m_db->dokuPdfExportieren(pid, dir + "/stroemling_dokupdf5_x.pdf",
                                           R"({"abschnitte":[{"typ":"liste","liste":"gibtsnicht"}]})"));
+    }
+
+    // BLATTVORLAGEN-01a: eigene Normblatt-Felder im PDF auf Canvas-Niveau (alle Feldtypen, Logo, Schriftgröße/Fett)
+    // und das Logo in der Auftragnehmer-Zelle des Standard-Schriftfelds.
+    void blattvorlagen_01_renderer()
+    {
+        const int sid = neueSeite("BV1");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const QString dir = QDir::tempPath();
+
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+        auto bildAnzahl = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdfimages", {"-list", pdf});
+            if (!pr.waitForFinished(20000)) return -1;
+            const QStringList z = QString::fromUtf8(pr.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+            return int(z.size()) - 2;   // zwei Kopfzeilen
+        };
+        {
+            QProcess pr;
+            pr.start("pdftotext", {"-v"});
+            if (!pr.waitForFinished(5000) || pr.exitStatus() != QProcess::NormalExit)
+                QSKIP("pdftotext nicht verfügbar");
+        }
+
+        // Logo 200x50 (Seitenverhältnis 4:1)
+        const QString logoPfad = dir + "/stroemling_bv1_logo.png";
+        { QImage img(200, 50, QImage::Format_RGB32); img.fill(Qt::red); QVERIFY(img.save(logoPfad)); }
+        QVERIFY(m_db->projektLogoSpeichern(pid, logoPfad));
+        const QVariantMap nd0 = m_db->normblattDatenLaden(sid);
+        QVERIFY(nd0.contains("logoDataUrl"));
+        QVERIFY2(qAbs(nd0.value("logoAspekt").toDouble() - 4.0) < 0.01, "logoAspekt");
+
+        // Standard-Schriftfeld: Logo ersetzt die Auftragnehmer-Zelle
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, "", false, "din6771", 0));
+        const QString std = dir + "/stroemling_bv1_std.pdf";
+        QVERIFY(schaltplanPdf(pid, std, true, false, false));
+        QVERIFY(!pdfText(std).contains("AUFTRAGNEHMER"));
+        if (bildAnzahl(std) >= 0) QCOMPARE(bildAnzahl(std), 1);
+
+        // Eigene Felder
+        QVariantMap v; v["name"] = "BV1"; v["breiteMm"] = 297.0; v["hoeheMm"] = 210.0;
+        const int vid = m_db->normblattVorlageSpeichern(v);
+        QVERIFY(vid > 0);
+        auto feld = [](const QString &typ, double x, double y, const QVariantMap &extra) {
+            QVariantMap f{{"feldtyp", typ}, {"xMm", x}, {"yMm", y}, {"breiteMm", 80.0}, {"hoeheMm", 20.0},
+                          {"label", ""}, {"inhalt", ""}, {"quelleSpalte", ""},
+                          {"schriftgroesse", 3.5}, {"fett", 0}, {"rahmen", 1}, {"reihenfolge", 0}};
+            for (auto it = extra.begin(); it != extra.end(); ++it) f[it.key()] = it.value();
+            return f;
+        };
+        QVariantList felder;
+        felder << feld("fest", 30, 30, {{"inhalt", "Titel-Hallo-Welt"}, {"schriftgroesse", 8.0}, {"fett", 1}})
+               << feld("projekt", 30, 55, {{"label", "PROJEKT"}, {"quelleSpalte", "name"}})
+               << feld("seite", 30, 80, {{"label", "ANLAGE"}, {"quelleSpalte", "anlage_kuerzel"}})
+               << feld("datum", 30, 105, {{"label", "DATUM"}})
+               << feld("format", 30, 130, {{"label", "FORMAT"}})
+               << feld("logo", 120, 30, {{"hoeheMm", 40.0}});
+        QVERIFY(m_db->normblattFelderSpeichern(vid, felder));
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, "", false, "din6771", vid));
+
+        const QString eig = dir + "/stroemling_bv1_eigen.pdf";
+        QVERIFY(schaltplanPdf(pid, eig, true, false, false));
+        const QString text = pdfText(eig);
+        QVERIFY2(text.contains("Titel-Hallo-Welt"), qPrintable(text));
+        QVERIFY2(text.contains("A4 QF"), qPrintable(text));
+        QVERIFY2(text.contains("PROJEKT") && text.contains("ANLAGE") && text.contains("DATUM"), qPrintable(text));
+        const QString anlageKz = einWert("SELECT a.kuerzel FROM anlage a JOIN ort o ON o.anlage_id=a.id "
+                                         "JOIN seite s ON s.ort_id=o.id WHERE s.id=" + QString::number(sid)).toString();
+        if (!anlageKz.isEmpty()) QVERIFY2(text.contains(anlageKz), "Anlagen-Kürzel fehlt");
+        if (bildAnzahl(eig) >= 0) QCOMPARE(bildAnzahl(eig), 1);
     }
 
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-

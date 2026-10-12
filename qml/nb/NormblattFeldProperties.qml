@@ -36,6 +36,7 @@ Item {
         sbY.value  = Math.round(feld.yMm      || 0)
         sbB.value  = Math.round(feld.breiteMm || 50)
         sbH.value  = Math.round(feld.hoeheMm  || 13)
+        sbSchrift.value  = Math.round((feld.schriftgroesse > 0 ? feld.schriftgroesse : 3.5) * 10)
         cbFett.checked   = (feld.fett   || 0) !== 0
         cbRahmen.checked = (feld.rahmen !== undefined && feld.rahmen !== null)
                            ? feld.rahmen !== 0 : true
@@ -278,6 +279,27 @@ Item {
             }
 
             AbsTitel { text: qsTr("STIL") }
+
+            FeldLabel { text: qsTr("Schriftgröße (mm)") }
+            SpinBox {
+                // intern in 1/10 mm (SpinBox ist ganzzahlig)
+                id: sbSchrift; from: 10; to: 300; stepSize: 5; editable: true
+                Layout.preferredWidth: 120
+                textFromValue: function(v, loc) { return Number(v / 10).toLocaleString(loc, "f", 1) }
+                valueFromText: function(t, loc) {
+                    var n = Number.fromLocaleString(loc, t)
+                    return isNaN(n) ? value : Math.round(n * 10)
+                }
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: TextInput {
+                    text: sbSchrift.textFromValue(sbSchrift.value, sbSchrift.locale)
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                    horizontalAlignment: TextInput.AlignHCenter
+                    verticalAlignment: TextInput.AlignVCenter
+                    validator: sbSchrift.validator
+                }
+                onValueModified: root._emit("schriftgroesse", value / 10)
+            }
 
             CheckBox {
                 id: cbFett

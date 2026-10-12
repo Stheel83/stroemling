@@ -30,6 +30,87 @@
 #include <QPageLayout>
 
 
+// ── Feldwerte (gemeinsame Quelle für Standard-Schriftfeld und eigene Felder) ─
+// Spiegelt datumText()/vollkz()/formatText() in CanvasRenderHandler.qml.
+static QString nbDatumText(const QVariantMap &nb)
+{
+    QString raw = nb.value("erstelltAm").toString();
+    if (raw.length() >= 10) {
+        QStringList parts = raw.left(10).split('-');
+        if (parts.size() == 3) return parts[2] + "." + parts[1] + "." + parts[0];
+    }
+    return raw;
+}
+
+static QString nbVollKz(const QVariantMap &nb)
+{
+    QString auo = nb.value("anlageUO").toString();
+    QString ouo = nb.value("ortUO").toString();
+    QString a = nb.value("anlageKuerzel").toString();
+    QString o = nb.value("ortKuerzel").toString();
+    QString bn = nb.value("blattnummer").toString();
+    QString kz;
+    if (!auo.isEmpty()) kz += "==" + auo;
+    if (!ouo.isEmpty()) kz += "++" + ouo;
+    if (!a.isEmpty())   kz += "=" + a;
+    if (!o.isEmpty())   kz += "+" + o;
+    if (!kz.isEmpty()) kz += "/";
+    return kz + bn;
+}
+
+static QString nbFormatText(double b, double h)
+{
+    double mx = qMax(b,h), mn = qMin(b,h);
+    QString fmt;
+    if      (qAbs(mx-420)<5 && qAbs(mn-297)<5) fmt="A3";
+    else if (qAbs(mx-297)<5 && qAbs(mn-210)<5) fmt="A4";
+    else if (qAbs(mx-594)<5 && qAbs(mn-420)<5) fmt="A2";
+    else fmt=QString::number(qRound(b))+"x"+QString::number(qRound(h));
+    return fmt + (b > h ? " QF" : " HF");
+}
+
+// Wert eines benutzerdefinierten Feldes (feldtyp fest|datum|vollkennzeichen|format|projekt|seite)
+static QString nbFeldWert(const QVariantMap &f, const QVariantMap &nb, double bMm, double hMm)
+{
+    const QString ft = f.value("feldtyp", "fest").toString();
+    if (ft == "fest")            return f.value("inhalt").toString();
+    if (ft == "datum")           return nbDatumText(nb);
+    if (ft == "vollkennzeichen") return nbVollKz(nb);
+    if (ft == "format")          return nbFormatText(bMm, hMm);
+    const QString qs = f.value("quelleSpalte").toString();
+    static const QHash<QString, QString> schluessel = {
+        {"name", "projektName"},          {"projektnummer", "projektnummer"},
+        {"auftraggeber", "auftraggeber"}, {"auftragnehmer", "auftragnehmer"},
+        {"bearbeiter", "bearbeiter"},     {"norm", "norm"},
+        {"blattnummer", "blattnummer"},   {"bezeichnung", "bezeichnung"},
+        {"anlage_kuerzel", "anlageKuerzel"}, {"ort_kuerzel", "ortKuerzel"},
+    };
+    return nb.value(schluessel.value(qs)).toString();
+}
+
+// Logo (Data-URL aus normblattDatenLaden) in die Zelle zeichnen: 2 mm Innenabstand,
+// Seitenverhältnis erhalten, zentriert. Gibt false zurück, wenn kein Logo vorhanden ist.
+static bool nbLogoZeichnen(QPainter &p, const QVariantMap &nb, const QRectF &zelle, double pxPerMm)
+{
+    const QString url = nb.value("logoDataUrl").toString();
+    const int komma = url.indexOf(u',');
+    if (komma <= 0) return false;
+    QImage img;
+    img.loadFromData(QByteArray::fromBase64(url.mid(komma + 1).toLatin1()));
+    if (img.isNull()) return false;
+    const double pad = 2.0 * pxPerMm;
+    const QRectF box = zelle.adjusted(pad, pad, -pad, -pad);
+    if (box.width() <= 0 || box.height() <= 0) return false;
+    QSizeF sz = QSizeF(img.size()).scaled(box.size(), Qt::KeepAspectRatio);
+    p.save();
+    p.setClipRect(zelle);
+    p.drawImage(QRectF(box.center().x() - sz.width() / 2, box.center().y() - sz.height() / 2,
+                       sz.width(), sz.height()), img);
+    p.restore();
+    return true;
+}
+
+
 // Normblatt-Rahmen und Schriftfeld rendern (Koordinaten in Device-Pixeln via pxPerMm)
 void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
 {
@@ -71,49 +152,51 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
     // Benutzerdefinierte Felder (Phase 2)
     QVariantList felder = nb.value("felder").toList();
     if (!felder.isEmpty()) {
+        // Papier ist weiß: Texte dunkel; nur bei dunkel eingestelltem Seitenhintergrund hell
+        // (Canvas-Farben #5a7aa0 / #c8ddf0 sind für den dunklen Bildschirm gewählt).
+        const QColor bgC(bg);
+        const bool dunkel = !bg.isEmpty() && bgC.isValid() && bgC.lightness() < 128;
+        const QColor labelFarbe = dunkel ? QColor(0x5a, 0x7a, 0xa0) : QColor(0x55, 0x55, 0x55);
+        const QColor wertFarbe  = dunkel ? QColor(0xc8, 0xdd, 0xf0) : QColor(0x11, 0x11, 0x11);
         for (const QVariant &fv : felder) {
             QVariantMap f = fv.toMap();
             double fx = mm(f.value("xMm").toDouble());
             double fy = mm(f.value("yMm").toDouble());
             double fw = mm(f.value("breiteMm").toDouble());
             double fh = mm(f.value("hoeheMm").toDouble());
-            // Zelle: Label oben, Wert mittig
-            QString feldtyp = f.value("feldtyp").toString();
-            QString inhalt;
-            if (feldtyp == "fest") {
-                inhalt = f.value("inhalt").toString();
-            } else if (feldtyp == "logo") {
-                // Logo überspringen in v1
-                continue;
+            const QRectF zelle(fx, fy, fw, fh);
+            const QString feldtyp = f.value("feldtyp").toString();
+            if (feldtyp == "logo") {
+                nbLogoZeichnen(p, nb, zelle, pxPerMm);
             } else {
-                QString qs = f.value("quelleSpalte").toString();
-                QMap<QString,QString> qmap;
-                qmap["name"]          = nb.value("projektName").toString();
-                qmap["projektnummer"] = nb.value("projektnummer").toString();
-                qmap["auftraggeber"]  = nb.value("auftraggeber").toString();
-                qmap["auftragnehmer"] = nb.value("auftragnehmer").toString();
-                qmap["bearbeiter"]    = nb.value("bearbeiter").toString();
-                qmap["norm"]          = nb.value("norm").toString();
-                qmap["blattnummer"]   = nb.value("blattnummer").toString();
-                qmap["bezeichnung"]   = nb.value("bezeichnung").toString();
-                inhalt = qmap.value(qs);
+                const QString label = f.value("label").toString();
+                p.save();
+                p.setClipRect(zelle.adjusted(mm(0.2), mm(0.2), -mm(0.2), -mm(0.2)));
+                p.setBrush(Qt::NoBrush);
+                // Label (klein, oben)
+                if (!label.isEmpty()) {
+                    double lFs = qMax(mm(1.5), qMin(fh * 0.22, mm(2.8)));
+                    QFont lf; lf.setFamily("sans-serif"); lf.setPixelSize(qMax(1,qRound(lFs)));
+                    p.setFont(lf); p.setPen(labelFarbe);
+                    p.drawText(QRectF(fx+mm(1), fy+fh*0.08, fw-mm(2), lFs*1.4),
+                               Qt::AlignLeft|Qt::AlignTop, label);
+                }
+                // Wert: Schriftgröße (mm) und Fett aus dem Feld, ohne Label direkt unter der Oberkante
+                const double sg = f.value("schriftgroesse").toDouble();
+                double vFs = mm(sg > 0 ? sg : 3.5);
+                QFont vf; vf.setFamily("sans-serif"); vf.setPixelSize(qMax(1,qRound(vFs)));
+                vf.setBold(f.value("fett").toInt() != 0);
+                p.setFont(vf); p.setPen(wertFarbe);
+                const double vy = label.isEmpty() ? fy + mm(1.0) : fy + fh*0.42;
+                p.drawText(QRectF(fx+mm(1.2), vy, fw-mm(2), fy + fh - vy),
+                           Qt::AlignLeft|Qt::AlignTop, nbFeldWert(f, nb, bMm, hMm));
+                p.restore();
             }
             if (f.value("rahmen").toBool()) {
                 p.setPen(QPen(QColor(0x2a, 0x50, 0x80), mm(0.25)));
                 p.setBrush(Qt::NoBrush);
-                p.drawRect(QRectF(fx, fy, fw, fh));
+                p.drawRect(zelle);
             }
-            // Label
-            double lFs = qMax(mm(1.5), qMin(fh * 0.22, mm(2.8)));
-            QFont lf; lf.setFamily("sans-serif"); lf.setPixelSize(qMax(1,qRound(lFs)));
-            p.setFont(lf); p.setPen(QColor(0x5a,0x7a,0xa0));
-            p.drawText(QRectF(fx+mm(1), fy+fh*0.08, fw-mm(2), lFs*1.4), Qt::AlignLeft|Qt::AlignTop,
-                       f.value("label").toString());
-            // Wert
-            double vFs = qMax(mm(2.5), qMin(fh * 0.38, mm(4.5)));
-            QFont vf; vf.setFamily("sans-serif"); vf.setPixelSize(qMax(1,qRound(vFs))); vf.setBold(true);
-            p.setFont(vf); p.setPen(QColor(0xc8,0xdd,0xf0));
-            p.drawText(QRectF(fx+mm(1.2), fy+fh*0.42, fw-mm(2), fh*0.55), Qt::AlignLeft|Qt::AlignTop, inhalt);
         }
         return;  // Benutzerdefinierte Felder gesetzt, fertig
     }
@@ -122,41 +205,9 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
     QString vorlage = nb.value("titelblattVorlage", "din6771").toString();
     if (vorlage == "rahmen") return;  // nur Rahmen, kein Schriftfeld
 
-    // Hilfsfunktion: Datum formatieren
-    auto datumText = [&]() -> QString {
-        QString raw = nb.value("erstelltAm").toString();
-        if (raw.length() >= 10) {
-            QStringList parts = raw.left(10).split('-');
-            if (parts.size() == 3) return parts[2] + "." + parts[1] + "." + parts[0];
-        }
-        return raw;
-    };
-    // Vollkennzeichen
-    auto vollkz = [&]() -> QString {
-        QString auo = nb.value("anlageUO").toString();
-        QString ouo = nb.value("ortUO").toString();
-        QString a = nb.value("anlageKuerzel").toString();
-        QString o = nb.value("ortKuerzel").toString();
-        QString bn = nb.value("blattnummer").toString();
-        QString kz;
-        if (!auo.isEmpty()) kz += "==" + auo;
-        if (!ouo.isEmpty()) kz += "++" + ouo;
-        if (!a.isEmpty())   kz += "=" + a;
-        if (!o.isEmpty())   kz += "+" + o;
-        if (!kz.isEmpty()) kz += "/";
-        return kz + bn;
-    };
-    // Seitenformat
-    auto formatText = [&]() -> QString {
-        double b = bMm, h = hMm;
-        double mx = qMax(b,h), mn = qMin(b,h);
-        QString fmt;
-        if      (qAbs(mx-420)<5 && qAbs(mn-297)<5) fmt="A3";
-        else if (qAbs(mx-297)<5 && qAbs(mn-210)<5) fmt="A4";
-        else if (qAbs(mx-594)<5 && qAbs(mn-420)<5) fmt="A2";
-        else fmt=QString::number(qRound(b))+"x"+QString::number(qRound(h));
-        return fmt + (b > h ? " QF" : " HF");
-    };
+    auto datumText  = [&]() { return nbDatumText(nb); };
+    auto vollkz     = [&]() { return nbVollKz(nb); };
+    auto formatText = [&]() { return nbFormatText(bMm, hMm); };
 
     // Hilfsfunktion: Zelle (Label oben, Wert mittig)
     auto zelle = [&](const QString &label, const QString &wert,
@@ -227,7 +278,8 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
         zelle("PROJEKTNR.",   nb.value("projektnummer").toString(), cX[2],rY[0],cX[3]-cX[2],rowH);
         zelle("BLATT",        nb.value("blattnummer").toString(),   cX[3],rY[0],cX[4]-cX[3],rowH);
 
-        zelle("AUFTRAGNEHMER",nb.value("auftragnehmer").toString(), cX[0],rY[1],cX[1]-cX[0],rowH);
+        if (!nbLogoZeichnen(p, nb, QRectF(cX[0], rY[1], cX[1]-cX[0], rowH), pxPerMm))
+            zelle("AUFTRAGNEHMER",nb.value("auftragnehmer").toString(), cX[0],rY[1],cX[1]-cX[0],rowH);
         zelle("BEZEICHNUNG",  nb.value("bezeichnung").toString(),   cX[1],rY[1],cX[2]-cX[1],rowH);
         zelle("FORMAT",       formatText(),                         cX[2],rY[1],cX[3]-cX[2],rowH);
         zelle("DATUM",        datumText(),                          cX[3],rY[1],cX[4]-cX[3],rowH);

@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QImageReader>
 #include <QSet>
 #include <QTextStream>
 #include <QUrl>
@@ -105,9 +106,17 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         if (ql.exec() && ql.next()) {
             QByteArray logoData = ql.value(0).toByteArray();
             QString    logoMime = ql.value(1).toString();
-            if (!logoData.isEmpty() && !logoMime.isEmpty())
+            if (!logoData.isEmpty() && !logoMime.isEmpty()) {
                 m[QStringLiteral("logoDataUrl")] = QStringLiteral("data:") + logoMime
                     + QStringLiteral(";base64,") + QString::fromLatin1(logoData.toBase64());
+                // Seitenverhältnis (Breite/Höhe) aus dem Bild-Header – der Canvas kann die
+                // Bildgröße nicht abfragen und würde das Logo sonst auf die Zelle strecken.
+                QBuffer buf(&logoData);
+                buf.open(QIODevice::ReadOnly);
+                const QSize sz = QImageReader(&buf).size();
+                if (sz.isValid() && sz.height() > 0)
+                    m[QStringLiteral("logoAspekt")] = double(sz.width()) / sz.height();
+            }
         }
     }
     m[QStringLiteral("erstelltAm")]       = q.value("erstellt_am");

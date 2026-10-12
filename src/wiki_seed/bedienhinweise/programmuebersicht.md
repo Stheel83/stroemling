@@ -39,7 +39,7 @@ Schaltplan danach suchst.
 | ✔ | IBN | Inbetriebnahme: Betriebsmittel prüfen, Messwerte erfassen |
 | 🔍 | Fehlersuche | Strompfad durch den Schaltplan nachverfolgen |
 | ⚡ | Kabelrechner | Leitungsquerschnitt nach VDE/IEC berechnen |
-| 🖨 | PDF-Export | Alle Seiten des Projekts als PDF exportieren |
+| 🖨 | PDF-Export | Dokumentations-PDF zusammenstellen: Deckblatt, Verzeichnis, Schaltplan, SPS/PLS, Listen |
 | 📐 | Normblatt | Schriftfeld nach DIN 6771 gestalten und Vorlage wählen |
 | ✏ | Symbole | Eigene Schaltsymbole erstellen und bearbeiten |
 | 📚 | Wiki | Erfahrungs-Wiki: Fachwissen nachschlagen und eigene Artikel |

@@ -147,7 +147,7 @@ Item {
                     // ── Allgemein ────────────────────────────────
                     ShortcutSectionHeader { text: "Allgemein" }
                     ShortcutZeile { kuerzel: "Ctrl+P";       aktion: "Kommandopalette oeffnen" }
-                    ShortcutZeile { kuerzel: "Ctrl+Shift+P"; aktion: "PDF-Export" }
+                    ShortcutZeile { kuerzel: "Ctrl+Shift+P"; aktion: "PDF-Export (Dokumentations-PDF)" }
                     ShortcutZeile { kuerzel: "F1";           aktion: "Diese Uebersicht" }
                     ShortcutZeile { kuerzel: "Ctrl+Shift+Alt+D"; aktion: "Debug-Modus umschalten" }
                 }

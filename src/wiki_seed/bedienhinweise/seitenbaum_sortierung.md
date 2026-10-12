@@ -40,3 +40,10 @@ müsste dagegen aus zwei Informationen gleichzeitig bestehen:
 Das macht die Geste mehrdeutig und fehleranfällig, besonders bei vielen Orten
 mit ähnlicher Tiefe im Baum. Der Dialog macht die Entscheidung explizit:
 erst Anlage wählen, dann Ort – ohne versehentliche Fehlplatzierungen.
+
+## Seite aus dem PDF-Export ausnehmen
+
+Im „Seite bearbeiten"-Dialog gibt es die Option **„In Dokumentations-PDF
+aufnehmen"**. Ist sie aus, ist die Seite in der Ansicht „PDF-Export" nicht
+vorausgewählt (z. B. für Notizseiten oder Entwürfe). Im Export lässt sie sich
+trotzdem gezielt dazuwählen – siehe „PDF-Export".

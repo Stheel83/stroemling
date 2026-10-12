@@ -42,6 +42,7 @@ ApplicationWindow {
         "achievements":        "Errungenschaften (Achievements)",
         "meldungen":           "Meldungen: Toast statt Dialog",
         "sps":                 "SPS/PLS-Integration",
+        "doku_pdf":            "PDF-Export",
         "steckverbinder_editor": "Steckverbinder und konfektionierte Kabel anlegen",
         "konfkabel_editor":    "Steckverbinder und konfektionierte Kabel anlegen",
         "kontakt_editor":      "Steckverbinder und konfektionierte Kabel anlegen",

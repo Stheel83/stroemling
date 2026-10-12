@@ -124,6 +124,9 @@ Item {
         case "vollkennzeichen": return "#5c2a80"
         case "format":          return "#1e6a78"
         case "logo":            return "#783820"
+        case "logo_kunde":      return "#80502a"
+        case "textblock":       return "#3d6080"
+        case "linie":           return "#505868"
         default:                return "#3a3a58"
         }
     }
@@ -136,6 +139,9 @@ Item {
         case "vollkennzeichen": return "K"
         case "format":          return "F"
         case "logo":            return "L"
+        case "logo_kunde":      return "KL"
+        case "textblock":       return "¶"
+        case "linie":           return "—"
         default:                return "?"
         }
     }

@@ -129,7 +129,7 @@ QtObject {
         if (_felder && _felder.length > 0) {
             var _feldWert = function(f) {
                 var ft = f.feldtyp || "fest"
-                if (ft === "fest")            return platzhalter(f.inhalt || "")
+                if (ft === "fest" || ft === "textblock") return platzhalter(f.inhalt || "")
                 if (ft === "datum")           return datumText()
                 if (ft === "vollkennzeichen") return vollkz()
                 if (ft === "format")          return formatText()
@@ -152,6 +152,18 @@ QtObject {
                 var _fh = s(_f.hoeheMm)
                 if (_f.feldtyp === "logo") {
                     logoZeichnen(_fx, _fy, _fw, _fh)
+                } else if (_f.feldtyp === "logo_kunde") {
+                    logoZeichnen(_fx, _fy, _fw, _fh, cv.normblattKundenLogoUrl, nd.kundenLogoAspekt)
+                } else if (_f.feldtyp === "linie") {
+                    // entlang der längeren Seite, mittig; "fett" = 0,5 mm statt 0,25 mm
+                    ctx.save()
+                    ctx.strokeStyle = "#8aa8d0"
+                    ctx.lineWidth   = Math.max(0.5, s(_f.fett ? 0.5 : 0.25))
+                    ctx.beginPath()
+                    if (_fw >= _fh) { ctx.moveTo(_fx, _fy + _fh / 2); ctx.lineTo(_fx + _fw, _fy + _fh / 2) }
+                    else            { ctx.moveTo(_fx + _fw / 2, _fy); ctx.lineTo(_fx + _fw / 2, _fy + _fh) }
+                    ctx.stroke()
+                    ctx.restore()
                 } else {
                     zelle(_f.label || "", _feldWert(_f), _fx, _fy, _fw, _fh,
                           _f.schriftgroesse > 0 ? _f.schriftgroesse : 3.5, !!_f.fett)
@@ -195,39 +207,46 @@ QtObject {
             var vy = (eigen && !label) ? y + s(1.0) : y + h * 0.42
             if (eigen) {
                 // Umbruch an Wortgrenzen (wie der PDF-Renderer), Zeilenabstand 1,2
-                var maxW = w - s(2.2), zeile = ""
-                var worte = (wert || "").toString().split(" ")
-                for (var wi = 0; wi < worte.length; wi++) {
-                    var probe = zeile ? zeile + " " + worte[wi] : worte[wi]
-                    if (zeile && ctx.measureText(probe).width > maxW) {
-                        ctx.fillText(zeile, x + s(1.2), vy)
-                        vy += vFs * 1.2
-                        zeile = worte[wi]
-                    } else {
-                        zeile = probe
+                var maxW = w - s(2.2)
+                var absaetze = (wert || "").toString().split("\n")
+                for (var ai = 0; ai < absaetze.length; ai++) {
+                    var zeile = ""
+                    var worte = absaetze[ai].split(" ")
+                    for (var wi = 0; wi < worte.length; wi++) {
+                        var probe = zeile ? zeile + " " + worte[wi] : worte[wi]
+                        if (zeile && ctx.measureText(probe).width > maxW) {
+                            ctx.fillText(zeile, x + s(1.2), vy)
+                            vy += vFs * 1.2
+                            zeile = worte[wi]
+                        } else {
+                            zeile = probe
+                        }
                     }
+                    ctx.fillText(zeile, x + s(1.2), vy)
+                    vy += vFs * 1.2
                 }
-                ctx.fillText(zeile, x + s(1.2), vy)
             } else {
                 ctx.fillText(wert || "", x + s(1.2), vy)
             }
             ctx.restore()
         }
         // Logo in die Zelle: 2 mm Innenabstand, Seitenverhältnis erhalten, zentriert
-        function logoZeichnen(x, y, w, h) {
-            if (!cv.normblattLogoUrl || !cv._drawCanvas.isImageLoaded(cv.normblattLogoUrl)) return false
+        // url/aspekt: Standard = Vorlagen-/Projekt-Logo; logo_kunde übergibt das Kunden-Logo
+        function logoZeichnen(x, y, w, h, url, aspekt) {
+            if (url === undefined) { url = cv.normblattLogoUrl; aspekt = nd.logoAspekt }
+            if (!url || !cv._drawCanvas.isImageLoaded(url)) return false
             var pad = s(2)
             var bw = w - 2 * pad, bh = h - 2 * pad
             if (bw <= 0 || bh <= 0) return false
             var dw = bw, dh = bh
-            var asp = nd.logoAspekt || 0
+            var asp = aspekt || 0
             if (asp > 0) {
                 if (bw / bh > asp) dw = bh * asp
                 else               dh = bw / asp
             }
             ctx.save()
             ctx.beginPath(); ctx.rect(x + 1, y + 1, w - 2, h - 2); ctx.clip()
-            ctx.drawImage(cv.normblattLogoUrl, x + pad + (bw - dw) / 2, y + pad + (bh - dh) / 2, dw, dh)
+            ctx.drawImage(url, x + pad + (bw - dw) / 2, y + pad + (bh - dh) / 2, dw, dh)
             ctx.restore()
             return true
         }

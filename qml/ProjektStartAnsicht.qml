@@ -43,6 +43,10 @@ Item {
     }
     function _istNeuesFormat(pfad) { return pfad.split("/").pop() === "projekt.strl" }
 
+    // Kunden-Logo wirkt sofort (kein Speichern-Knopf nötig); erscheint im Feldtyp „Kunden-Logo“ der Blattvorlagen
+    property int    _projektId: -1
+    property string _kundenLogoUrl: ""
+
     function _ladenMetaDaten() {
         _ladevorgang = true
         var info = db.ersteProjektInfo()
@@ -51,6 +55,8 @@ Item {
         agField.text     = info.auftraggeber   || ""
         anField.text     = info.auftragnehmer  || ""
         bearField.text   = info.bearbeiter     || ""
+        _projektId       = info.id !== undefined ? info.id : -1
+        _kundenLogoUrl   = _projektId >= 0 ? db.projektKundenLogoDataUrl(_projektId) : ""
         _ladevorgang = false
         _geaendert   = false
     }
@@ -77,6 +83,18 @@ Item {
         id:             backupPopup
         theme:          root.theme
         onFehlgeschlagen: fehlerPopup.open()
+    }
+
+    FileDialog {
+        id: kundenLogoDialog
+        title:       qsTr("Kunden-Logo wählen (max. 5 MB)")
+        nameFilters: [qsTr("Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.webp)")]
+        onAccepted: {
+            if (db.projektKundenLogoSpeichern(root._projektId, selectedFile.toString()))
+                root._kundenLogoUrl = db.projektKundenLogoDataUrl(root._projektId)
+            else
+                meldungManager.zeigen(qsTr("Logo konnte nicht gespeichert werden"), false)
+        }
     }
 
     FileDialog {
@@ -379,6 +397,37 @@ Item {
                         color: root.theme.textPrimary
                         background: Rectangle { color: root.theme.inputBg; border.color: bearField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
                         onTextChanged: if (!root._ladevorgang) root._geaendert = true
+                    }
+
+                    Text { text: qsTr("Kunden-Logo"); font.pixelSize: 12; color: root.theme.textMuted }
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 10
+                        Rectangle {
+                            Layout.preferredWidth: 96; Layout.preferredHeight: 48
+                            color: root.theme.inputBg; border.color: root.theme.border; radius: 4
+                            Image {
+                                anchors { fill: parent; margins: 3 }
+                                source: root._kundenLogoUrl
+                                fillMode: Image.PreserveAspectFit
+                                visible: root._kundenLogoUrl !== ""
+                            }
+                            Text {
+                                anchors.centerIn: parent; visible: root._kundenLogoUrl === ""
+                                text: qsTr("kein Logo"); font.pixelSize: 11; color: root.theme.textMuted
+                            }
+                        }
+                        Button {
+                            text: root._kundenLogoUrl === "" ? qsTr("Wählen …") : qsTr("Ändern …")
+                            onClicked: kundenLogoDialog.open()
+                        }
+                        Button {
+                            text: qsTr("Entfernen")
+                            visible: root._kundenLogoUrl !== ""
+                            onClicked: {
+                                if (db.projektKundenLogoLoeschen(root._projektId)) root._kundenLogoUrl = ""
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
                     }
                 }
 

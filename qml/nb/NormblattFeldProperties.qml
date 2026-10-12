@@ -14,7 +14,7 @@ Item {
     signal feldLoeschen(int idx)
     signal amRandAusgerichtet(string modus)
 
-    readonly property var _typen:    ["fest","projekt","seite","datum","vollkennzeichen","format","logo"]
+    readonly property var _typen:    ["fest","projekt","seite","datum","vollkennzeichen","format","logo","logo_kunde","textblock","linie"]
     readonly property var _pSpalten: ["name","projektnummer","auftraggeber","auftragnehmer","bearbeiter","norm","werk","abteilung"]
     readonly property var _sSpalten: ["blattnummer","bezeichnung","anlage_kuerzel","ort_kuerzel"]
 
@@ -32,6 +32,7 @@ Item {
         cmbTyp.currentIndex    = ti >= 0 ? ti : 0
         tfLabel.text           = feld.label  || ""
         tfInhalt.text          = feld.inhalt || ""
+        taInhalt.text          = feld.inhalt || ""
         sbX.value  = Math.round(feld.xMm      || 0)
         sbY.value  = Math.round(feld.yMm      || 0)
         sbB.value  = Math.round(feld.breiteMm || 50)
@@ -149,6 +150,24 @@ Item {
 
             AbsTitel { text: qsTr("BESCHRIFTUNG") }
 
+            FeldLabel {
+                text: qsTr("Text (mehrzeilig, Platzhalter möglich)")
+                visible: root.feld !== null && root.feld.feldtyp === "textblock"
+                height: visible ? implicitHeight : 0
+            }
+            ScrollView {
+                visible: root.feld !== null && root.feld.feldtyp === "textblock"
+                height: visible ? 90 : 0
+                width: col.width - col.padding * 2
+                TextArea {
+                    id: taInhalt
+                    wrapMode: TextArea.Wrap
+                    background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                    color: root.theme.textPrimary; font.pixelSize: 12
+                    onEditingFinished: root._emit("inhalt", text)
+                }
+            }
+
             FeldLabel { text: qsTr("Label (Titelzeile)") }
             TextField {
                 id: tfLabel
@@ -251,7 +270,7 @@ Item {
                 FeldLabel { text: qsTr("Höhe (mm)") }
 
                 SpinBox {
-                    id: sbB; from: 10; to: 1000; stepSize: 1; editable: true
+                    id: sbB; from: 1; to: 1000; stepSize: 1; editable: true
                     Layout.preferredWidth: (parent.width - 6) / 2
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                     contentItem: TextInput {
@@ -264,7 +283,7 @@ Item {
                     onValueModified: root._emit("breiteMm", value)
                 }
                 SpinBox {
-                    id: sbH; from: 5; to: 500; stepSize: 1; editable: true
+                    id: sbH; from: 1; to: 500; stepSize: 1; editable: true
                     Layout.preferredWidth: (parent.width - 6) / 2
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                     contentItem: TextInput {

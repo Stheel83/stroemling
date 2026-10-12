@@ -74,12 +74,17 @@ Item {
 
     property var    normblattDaten:   null
     property string normblattLogoUrl: ""
+    property string normblattKundenLogoUrl: ""   // Feldtyp logo_kunde (Kunden-Logo des Projekts)
 
     property bool minimapSichtbar: false
 
     onNormblattLogoUrlChanged: {
         if (normblattLogoUrl)
             drawCanvas.loadImage(normblattLogoUrl)
+    }
+    onNormblattKundenLogoUrlChanged: {
+        if (normblattKundenLogoUrl)
+            drawCanvas.loadImage(normblattKundenLogoUrl)
     }
 
     readonly property real gridPx: gridMm * mmToPx
@@ -1076,6 +1081,7 @@ Item {
         if (seiteId >= 0) {
             normblattDaten   = db.normblattDatenLaden(seiteId)
             normblattLogoUrl = normblattDaten ? (normblattDaten.logoDataUrl || "") : ""
+            normblattKundenLogoUrl = normblattDaten ? (normblattDaten.kundenLogoDataUrl || "") : ""
             revisionStatus   = normblattDaten ? (normblattDaten.revisionStatus  || "") : ""
             revisionKennung  = normblattDaten ? (normblattDaten.revisionKennung || "") : ""
             repaintAll()
@@ -1128,6 +1134,7 @@ Item {
             // Normblatt-Daten laden (enthält auch revisionStatus/revisionKennung)
             root.normblattDaten    = db.normblattDatenLaden(seiteId)
             root.normblattLogoUrl  = root.normblattDaten ? (root.normblattDaten.logoDataUrl || "") : ""
+            root.normblattKundenLogoUrl = root.normblattDaten ? (root.normblattDaten.kundenLogoDataUrl || "") : ""
             root.revisionStatus    = root.normblattDaten ? (root.normblattDaten.revisionStatus  || "") : ""
             root.revisionKennung   = root.normblattDaten ? (root.normblattDaten.revisionKennung || "") : ""
             // Querverweis-Partner-Cache aufbauen
@@ -1164,6 +1171,7 @@ Item {
         } else {
             root.normblattDaten   = null
             root.normblattLogoUrl = ""
+            root.normblattKundenLogoUrl = ""
             root.revisionStatus   = ""
             root.revisionKennung  = ""
             root.repaintAll()

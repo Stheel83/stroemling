@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import "nb"
 import "components"
 
@@ -21,6 +22,7 @@ Item {
     property bool _neuModus:   false
     property string _neuName:  ""
     property int  _neuFormatIdx: 0
+    property string _neuArt: "schriftfeld"   // "schriftfeld" | "deckblatt" (A4 hoch, Ränder 0)
     property bool _einstellungenModus: false
     property string _einstellungenName: ""
     property int  _einstellungenFormatIdx: 0
@@ -196,11 +198,13 @@ Item {
             feldtyp:       feldtyp,
             xMm:           Math.round((_vorlage.breiteMm || 297) / 2 - 25),
             yMm:           Math.round((_vorlage.hoeheMm  || 210) / 2 - 6),
-            breiteMm:      50, hoeheMm: 13,
+            breiteMm:      feldtyp === "linie" ? 80 : feldtyp === "textblock" ? 80 : feldtyp === "logo_kunde" ? 50 : 50,
+            hoeheMm:       feldtyp === "linie" ? 1  : feldtyp === "textblock" ? 30 : feldtyp === "logo_kunde" ? 28 : 13,
             label:         _defaultLabel(feldtyp),
             inhalt:        "",
             quelleSpalte:  _defaultQuelle(feldtyp),
-            schriftgroesse: 3.5, fett: 0, rahmen: 1,
+            schriftgroesse: 3.5, fett: 0,
+            rahmen:        (feldtyp === "linie" || feldtyp === "textblock") ? 0 : 1,
             reihenfolge:   _felder.length
         }
         var neu = _felder.slice(); neu.push(f); _felder = neu
@@ -246,8 +250,9 @@ Item {
 
     function _defaultLabel(typ) {
         var m = { "fest":"TEXT","projekt":"PROJEKT","seite":"SEITE",
-                  "datum":"DATUM","vollkennzeichen":"KENNZEICHEN","format":"FORMAT","logo":"LOGO" }
-        return m[typ] || typ.toUpperCase()
+                  "datum":"DATUM","vollkennzeichen":"KENNZEICHEN","format":"FORMAT","logo":"LOGO",
+                  "logo_kunde":"KUNDEN-LOGO", "textblock":"", "linie":"" }
+        return m[typ] !== undefined ? m[typ] : typ.toUpperCase()
     }
     function _defaultQuelle(typ) {
         if (typ === "projekt") return "name"
@@ -255,15 +260,37 @@ Item {
         return ""
     }
 
+    // Liste neu lesen, gewählte Vorlage beibehalten (z.B. nach Logo-Änderung)
+    function _vorlagenNeuLesen() {
+        var id = _vorlage ? _vorlage.id : -1
+        _vorlagen = db.normblattVorlagenListe()
+        for (var i = 0; i < _vorlagen.length; i++)
+            if (_vorlagen[i].id === id) { _vorlIdx = i; break }
+    }
+
+    FileDialog {
+        id: logoDialog
+        title: qsTr("Logo der Vorlage wählen (max. 5 MB)")
+        nameFilters: [qsTr("Bilder (*.png *.jpg *.jpeg *.bmp *.gif *.webp)")]
+        onAccepted: {
+            if (root._vorlage && db.normblattVorlageLogoSpeichern(root._vorlage.id, selectedFile.toString()))
+                root._vorlagenNeuLesen()
+            else
+                meldungManager.zeigen(qsTr("Logo konnte nicht gespeichert werden"), false)
+        }
+    }
+
     // ── Vorlage-Verwaltung ────────────────────────────────────
     function _vorlageNeuErstellen() {
         var name = _neuName.trim()
         if (!name) return
         var fmt = formatModel.get(Math.max(0, _neuFormatIdx))
+        var deck = _neuArt === "deckblatt"
         var id = db.normblattVorlageSpeichern({
-            name: name, breiteMm: fmt.breite, hoeheMm: fmt.hoehe,
-            randLinksMm: 20, randRechtsMm: 10,
-            randObenMm: 10,  randUntenMm: 10
+            name: name, art: _neuArt,
+            breiteMm: deck ? 210 : fmt.breite, hoeheMm: deck ? 297 : fmt.hoehe,
+            randLinksMm: deck ? 0 : 20, randRechtsMm: deck ? 0 : 10,
+            randObenMm:  deck ? 0 : 10, randUntenMm:  deck ? 0 : 10
         })
         _neuModus = false
         _vorlagen = db.normblattVorlagenListe()
@@ -368,11 +395,22 @@ Item {
                 color: root.theme.textPrimary; font.pixelSize: 13
                 Keys.onReturnPressed:  root._vorlageNeuErstellen()
                 Keys.onEscapePressed:  root._neuModus = false
-                onVisibleChanged: if (visible) { root._neuName = qsTr("Neue Vorlage"); root._neuFormatIdx = 0; forceActiveFocus() }
+                onVisibleChanged: if (visible) { root._neuName = qsTr("Neue Vorlage"); root._neuFormatIdx = 0; root._neuArt = "schriftfeld"; forceActiveFocus() }
+            }
+            ComboBox {
+                id: cmbNeuArt
+                visible: root._neuModus
+                Layout.preferredWidth: 170; Layout.preferredHeight: 32
+                model: [qsTr("Schriftfeld"), qsTr("Deckblatt (A4 hoch)")]
+                currentIndex: root._neuArt === "deckblatt" ? 1 : 0
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+                contentItem: Text { leftPadding: 8; text: cmbNeuArt.displayText; color: root.theme.textPrimary
+                    font.pixelSize: 12; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                onActivated: function(i) { root._neuArt = i === 1 ? "deckblatt" : "schriftfeld" }
             }
             ComboBox {
                 id: cmbNeuFormat
-                visible: root._neuModus
+                visible: root._neuModus && root._neuArt !== "deckblatt"
                 Layout.preferredWidth: 190; Layout.preferredHeight: 32
                 model: formatModel; textRole: "text"
                 currentIndex: root._neuFormatIdx
@@ -450,7 +488,8 @@ Item {
                 visible: !root._neuModus && !root._einstellungenModus
                 Layout.preferredWidth: 220; Layout.preferredHeight: 32
                 model: root._vorlagen.map(function(v) {
-                    return v.name + qsTr(" (%1×%2 mm)").arg(Math.round(v.breiteMm || 297)).arg(Math.round(v.hoeheMm || 210))
+                    return v.name + (v.art === "deckblatt" ? qsTr(" – Deckblatt") : "")
+                           + qsTr(" (%1×%2 mm)").arg(Math.round(v.breiteMm || 297)).arg(Math.round(v.hoeheMm || 210))
                 })
                 currentIndex: root._vorlIdx
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
@@ -508,6 +547,32 @@ Item {
                 MouseArea { id: delVorlMA; anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor; onClicked: root._vorlageLoeschen() }
                 ToolTip.visible: delVorlMA.containsMouse; ToolTip.text: qsTr("Vorlage löschen"); ToolTip.delay: 600
+            }
+            Rectangle {
+                visible: !root._neuModus && !root._einstellungenModus && root._vorlage !== null
+                width: logoBtnText.implicitWidth + 20; height: 32; radius: 5
+                color: logoBtnMA.containsMouse ? root.theme.hover : root.theme.inputBg
+                border.color: root.theme.border; border.width: 1
+                Text { id: logoBtnText; anchors.centerIn: parent; color: root.theme.textPrimary; font.pixelSize: 12
+                       text: root._vorlage && root._vorlage.hatLogo ? qsTr("Logo ändern …") : qsTr("Logo …") }
+                MouseArea { id: logoBtnMA; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor; onClicked: logoDialog.open() }
+                ToolTip.visible: logoBtnMA.containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("Eigenes Logo dieser Vorlage (Feldtyp „Logo“) wählen")
+            }
+            Rectangle {
+                visible: !root._neuModus && !root._einstellungenModus && root._vorlage !== null
+                         && root._vorlage.hatLogo === true
+                width: 32; height: 32; radius: 5
+                color: logoDelMA.containsMouse ? "#602020" : root.theme.inputBg
+                border.color: logoDelMA.containsMouse ? "#a03030" : root.theme.border; border.width: 1
+                Text { anchors.centerIn: parent; text: "⌫"; font.pixelSize: 14
+                       color: logoDelMA.containsMouse ? "#f0a0a0" : root.theme.textMuted }
+                MouseArea { id: logoDelMA; anchors.fill: parent; hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { db.normblattVorlageLogoLoeschen(root._vorlage.id); root._vorlagenNeuLesen() } }
+                ToolTip.visible: logoDelMA.containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("Logo der Vorlage entfernen")
             }
 
             Item { Layout.fillWidth: true }

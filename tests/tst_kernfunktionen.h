@@ -1171,6 +1171,86 @@ private slots:
                                           R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
     }
 
+    // BLATTVORLAGEN-02: Kunden-Logo je Projekt, Feldtypen logo_kunde/linie/textblock, Deckblatt-Art per API.
+    void blattvorlagen_02_kundenlogoFeldtypen()
+    {
+        neueSeite("K1");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const QString dir = QDir::tempPath();
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+        auto bilder = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdfimages", {"-list", pdf});
+            if (!pr.waitForFinished(20000)) return -1;
+            return int(QString::fromUtf8(pr.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts).size()) - 2;
+        };
+
+        // Seed (Migration 165): Standard-Deckblatt hat Trennlinie und Kunden-Logo-Feld
+        int stdId = 0;
+        for (const QVariant &v : m_db->normblattVorlagenListe())
+            if (v.toMap().value("art").toString() == "deckblatt") stdId = v.toMap().value("id").toInt();
+        QVERIFY(stdId > 0);
+        QStringList typen;
+        for (const QVariant &f : m_db->normblattFelderLaden(stdId)) typen << f.toMap().value("feldtyp").toString();
+        QVERIFY(typen.contains("linie"));
+        QVERIFY(typen.contains("logo_kunde"));
+
+        // Kunden-Logo: Standard-Deckblatt zeigt es als zweites Bild; Projekt-Logo bleibt getrennt
+        QVERIFY(m_db->projektKundenLogoDataUrl(pid).isEmpty());
+        const QString lp = dir + "/stroemling_bv2_kunde.png";
+        { QImage img(100, 50, QImage::Format_RGB32); img.fill(Qt::darkGreen); QVERIFY(img.save(lp)); }
+        QVERIFY(m_db->projektKundenLogoSpeichern(pid, lp));
+        QVERIFY(m_db->projektKundenLogoDataUrl(pid).startsWith("data:image/png;base64,"));
+        QVERIFY(!m_db->projektKundenLogoSpeichern(pid, dir + "/gibtsnicht.png"));
+        const QVariantMap d = m_db->deckblattDatenLaden(pid, stdId, QString(), true);
+        QVERIFY(d.contains("kundenLogoDataUrl"));
+        QVERIFY(qAbs(d.value("kundenLogoAspekt").toDouble() - 2.0) < 0.01);
+        QVERIFY(!m_db->deckblattDatenLaden(pid, stdId, QString(), false).contains("kundenLogoDataUrl"));
+        const QString f1 = dir + "/stroemling_bv2_a.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f1, R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
+        if (bilder(f1) >= 0) QCOMPARE(bilder(f1), 1);          // nur Kunden-Logo (kein Projekt-/Vorlagen-Logo gesetzt)
+        QVERIFY(m_db->projektKundenLogoLoeschen(pid));
+        QVERIFY(m_db->projektKundenLogoDataUrl(pid).isEmpty());
+
+        // Eigene Deckblattvorlage per API: Art wird gespeichert; textblock mit Zeilenumbruch + Platzhalter
+        QVariantMap v; v["name"] = "Mein Deckblatt"; v["breiteMm"] = 210.0; v["hoeheMm"] = 297.0;
+        v["art"] = "deckblatt";
+        const int vid = m_db->normblattVorlageSpeichern(v);
+        QVERIFY(vid > 0);
+        auto feld = [](const QString &typ, double x, double y, double b, double h, const QString &inhalt) {
+            return QVariantMap{{"feldtyp", typ}, {"xMm", x}, {"yMm", y}, {"breiteMm", b}, {"hoeheMm", h},
+                               {"label", ""}, {"inhalt", inhalt}, {"quelleSpalte", ""},
+                               {"schriftgroesse", 4.0}, {"fett", 1}, {"rahmen", 0}, {"reihenfolge", 0}};
+        };
+        QVERIFY(m_db->normblattFelderSpeichern(vid, {
+            feld("textblock", 20, 40, 120, 40, "Erste-Zeile\nZweite-Zeile fuer {projekt.name}"),
+            feld("linie", 20, 90, 170, 1, ""),
+            feld("linie", 100, 100, 1, 50, ""),
+            feld("logo_kunde", 20, 160, 50, 30, "")}));
+        bool gefunden = false;
+        for (const QVariant &x : m_db->normblattVorlagenListe())
+            if (x.toMap().value("id").toInt() == vid) gefunden = x.toMap().value("art").toString() == "deckblatt";
+        QVERIFY(gefunden);
+        // Update ohne art-Schluessel laesst die Art unveraendert
+        QVariantMap u; u["id"] = vid; u["name"] = "Mein Deckblatt 2"; u["breiteMm"] = 210.0; u["hoeheMm"] = 297.0;
+        QCOMPARE(m_db->normblattVorlageSpeichern(u), vid);
+        for (const QVariant &x : m_db->normblattVorlagenListe())
+            if (x.toMap().value("id").toInt() == vid) QCOMPARE(x.toMap().value("art").toString(), QString("deckblatt"));
+
+        const QString f2 = dir + "/stroemling_bv2_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2,
+            QString(R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt","vorlageId":%1}]})").arg(vid)));
+        const QString t = pdfText(f2);
+        QVERIFY2(t.contains("Erste-Zeile"), qPrintable(t));
+        QVERIFY2(t.contains("Zweite-Zeile fuer KernTest"), qPrintable(t));
+        if (bilder(f2) >= 0) QCOMPARE(bilder(f2), 0);          // Kunden-Logo geloescht
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

@@ -68,3 +68,18 @@ Eine so erstellte Vorlage wählst du danach in jeder Seite über
 - **Deckblatt:** Das Deckblatt des Dokumentations-PDFs ist eine Blattvorlage der Art „Deckblatt“ (A4 hoch).
   Mitgeliefert ist „Standard-Deckblatt“; per „Kopieren“ legst du eine eigene Variante an und wählst sie im
   PDF-Export beim Abschnitt Deckblatt unter „Vorlage“.
+
+---
+
+## Neue Feldtypen und Logos
+
+| Feldtyp | Zweck |
+|---|---|
+| **Kunden-Logo** | Zeigt das Kunden-Logo des Projekts (Projektseite → Projektdaten → „Kunden-Logo“). Ohne Logo bleibt die Fläche leer. |
+| **Textblock** | Mehrzeiliger fester Text mit Platzhaltern; Zeilenumbrüche bleiben erhalten. |
+| **Linie** | Trennlinie entlang der längeren Seite des Feldes; „Fett“ macht sie dicker. Für eine senkrechte Linie das Feld schmal und hoch ziehen. |
+
+- **Logo der Vorlage:** Oben in der Kopfzeile „Logo …“ wählt ein eigenes Logo für die Vorlage (Feldtyp „Logo“) –
+  gedacht für dein Firmenlogo, das in jedem Projekt gleich bleibt. Ohne Vorlagen-Logo wird das Logo des Projekts verwendet.
+- **Neue Deckblatt-Vorlage:** Beim Anlegen (＋) die Art „Deckblatt (A4 hoch)“ wählen. Sie erscheint im PDF-Export beim
+  Abschnitt Deckblatt unter „Vorlage“ und nicht in der Schriftfeld-Auswahl einer Seite.

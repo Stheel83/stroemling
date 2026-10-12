@@ -14,7 +14,10 @@ Item {
         { typ: "datum",           label: qsTr("Datum"),          badge: "D", farbe: "#7a5820" },
         { typ: "vollkennzeichen", label: qsTr("Vollkennzeichen"),badge: "K", farbe: "#5c2a80" },
         { typ: "format",          label: qsTr("Format"),         badge: "F", farbe: "#1e6a78" },
-        { typ: "logo",            label: qsTr("Logo"),           badge: "L", farbe: "#783820" }
+        { typ: "logo",            label: qsTr("Logo"),           badge: "L", farbe: "#783820" },
+        { typ: "logo_kunde",      label: qsTr("Kunden-Logo"),    badge: "KL", farbe: "#80502a" },
+        { typ: "textblock",       label: qsTr("Textblock"),      badge: "¶", farbe: "#3d6080" },
+        { typ: "linie",           label: qsTr("Linie"),          badge: "—", farbe: "#505868" }
     ]
 
     Column {

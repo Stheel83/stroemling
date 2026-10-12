@@ -547,6 +547,10 @@ public:
 
     // Logo eines Projekts als Base64-Data-URL zurückgeben ("" wenn keines gesetzt).
     Q_INVOKABLE QString projektLogoDataUrl(int projektId);
+    // Kunden-Logo je Projekt (Feldtyp logo_kunde) – BLATTVORLAGEN-02
+    Q_INVOKABLE bool    projektKundenLogoSpeichern(int projektId, const QString &pfad);
+    Q_INVOKABLE QString projektKundenLogoDataUrl(int projektId);
+    Q_INVOKABLE bool    projektKundenLogoLoeschen(int projektId);
 
     // Logo eines Projekts löschen.
     Q_INVOKABLE bool projektLogoLoeschen(int projektId);

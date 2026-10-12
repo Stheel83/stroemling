@@ -93,7 +93,7 @@ static QString nbPlatzhalter(QString t, const QVariantMap &nb)
 static QString nbFeldWert(const QVariantMap &f, const QVariantMap &nb, double bMm, double hMm)
 {
     const QString ft = f.value("feldtyp", "fest").toString();
-    if (ft == "fest")            return nbPlatzhalter(f.value("inhalt").toString(), nb);
+    if (ft == "fest" || ft == "textblock") return nbPlatzhalter(f.value("inhalt").toString(), nb);
     if (ft == "datum")           return nbDatumText(nb);
     if (ft == "vollkennzeichen") return nbVollKz(nb);
     if (ft == "format")          return nbFormatText(bMm, hMm);
@@ -111,9 +111,10 @@ static QString nbFeldWert(const QVariantMap &f, const QVariantMap &nb, double bM
 
 // Logo (Data-URL aus normblattDatenLaden) in die Zelle zeichnen: 2 mm Innenabstand,
 // Seitenverhältnis erhalten, zentriert. Gibt false zurück, wenn kein Logo vorhanden ist.
-static bool nbLogoZeichnen(QPainter &p, const QVariantMap &nb, const QRectF &zelle, double pxPerMm)
+static bool nbLogoZeichnen(QPainter &p, const QVariantMap &nb, const QRectF &zelle, double pxPerMm,
+                           const QString &schluessel = QStringLiteral("logoDataUrl"))
 {
-    const QString url = nb.value("logoDataUrl").toString();
+    const QString url = nb.value(schluessel).toString();
     const int komma = url.indexOf(u',');
     if (komma <= 0) return false;
     QImage img;
@@ -192,6 +193,16 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
             const QString feldtyp = f.value("feldtyp").toString();
             if (feldtyp == "logo") {
                 nbLogoZeichnen(p, nb, zelle, pxPerMm);
+            } else if (feldtyp == "logo_kunde") {
+                nbLogoZeichnen(p, nb, zelle, pxPerMm, QStringLiteral("kundenLogoDataUrl"));
+            } else if (feldtyp == "linie") {
+                // Linie entlang der längeren Seite, mittig; "fett" = 0,5 mm statt 0,25 mm
+                p.save();
+                p.setPen(QPen(dunkel ? QColor(0x8a, 0xa8, 0xd0) : QColor(0x1a, 0x35, 0x60),
+                              mm(f.value("fett").toInt() != 0 ? 0.5 : 0.25), Qt::SolidLine, Qt::FlatCap));
+                if (fw >= fh) p.drawLine(QPointF(fx, fy + fh / 2), QPointF(fx + fw, fy + fh / 2));
+                else          p.drawLine(QPointF(fx + fw / 2, fy), QPointF(fx + fw / 2, fy + fh));
+                p.restore();
             } else {
                 const QString label = f.value("label").toString();
                 p.save();

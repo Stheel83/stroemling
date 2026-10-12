@@ -80,6 +80,6 @@ Eine so erstellte Vorlage wählst du danach in jeder Seite über
 | **Linie** | Trennlinie entlang der längeren Seite des Feldes; „Fett“ macht sie dicker. Für eine senkrechte Linie das Feld schmal und hoch ziehen. |
 
 - **Logo der Vorlage:** Oben in der Kopfzeile „Logo …“ wählt ein eigenes Logo für die Vorlage (Feldtyp „Logo“) –
-  gedacht für dein Firmenlogo, das in jedem Projekt gleich bleibt. Ohne Vorlagen-Logo wird das Logo des Projekts verwendet.
+  gedacht für dein Firmenlogo, das in jedem Projekt gleich bleibt. Das Kunden-Logo des Projekts gehört dagegen zum Feldtyp „Kunden-Logo“.
 - **Neue Deckblatt-Vorlage:** Beim Anlegen (＋) die Art „Deckblatt (A4 hoch)“ wählen. Sie erscheint im PDF-Export beim
   Abschnitt Deckblatt unter „Vorlage“ und nicht in der Schriftfeld-Auswahl einer Seite.

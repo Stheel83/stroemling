@@ -3012,6 +3012,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(INSERT INTO normblatt_feld (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm, label, inhalt, quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge) SELECT (SELECT id FROM normblatt_vorlage WHERE name='Standard-Deckblatt' AND art='deckblatt' LIMIT 1), 'linie', 15, 146, 180, 1, '', '', '', 3.5, 0, 0, 12 WHERE (SELECT id FROM normblatt_vorlage WHERE name='Standard-Deckblatt' AND art='deckblatt' LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM normblatt_feld WHERE vorlage_id = (SELECT id FROM normblatt_vorlage WHERE name='Standard-Deckblatt' AND art='deckblatt' LIMIT 1) AND feldtyp = 'linie'))",
             R"(INSERT INTO normblatt_feld (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm, label, inhalt, quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge) SELECT (SELECT id FROM normblatt_vorlage WHERE name='Standard-Deckblatt' AND art='deckblatt' LIMIT 1), 'logo_kunde', 15, 15, 55, 28, '', '', '', 3.5, 0, 0, 13 WHERE (SELECT id FROM normblatt_vorlage WHERE name='Standard-Deckblatt' AND art='deckblatt' LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM normblatt_feld WHERE vorlage_id = (SELECT id FROM normblatt_vorlage WHERE name='Standard-Deckblatt' AND art='deckblatt' LIMIT 1) AND feldtyp = 'logo_kunde'))",
         }},
+        { 166, "BLATTVORLAGEN-02b: altes Projekt-Logo (projekt.logo_data/-mime) entfernt - seit Juli 2026 ohne Oberflaeche, ersetzt durch Vorlagen-Logo (Feldtyp logo) und Kunden-Logo (Feldtyp logo_kunde).", {
+            R"(ALTER TABLE projekt DROP COLUMN logo_data)",
+            R"(ALTER TABLE projekt DROP COLUMN logo_mime)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

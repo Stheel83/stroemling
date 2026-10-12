@@ -1055,17 +1055,13 @@ private slots:
         // Logo 200x50 (Seitenverhältnis 4:1)
         const QString logoPfad = dir + "/stroemling_bv1_logo.png";
         { QImage img(200, 50, QImage::Format_RGB32); img.fill(Qt::red); QVERIFY(img.save(logoPfad)); }
-        QVERIFY(m_db->projektLogoSpeichern(pid, logoPfad));
-        const QVariantMap nd0 = m_db->normblattDatenLaden(sid);
-        QVERIFY(nd0.contains("logoDataUrl"));
-        QVERIFY2(qAbs(nd0.value("logoAspekt").toDouble() - 4.0) < 0.01, "logoAspekt");
 
-        // Standard-Schriftfeld: Logo ersetzt die Auftragnehmer-Zelle
+        // Standard-Schriftfeld: ohne Vorlage kein Logo, Auftragnehmer-Zelle bleibt
         QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, "", false, "din6771", 0));
         const QString std = dir + "/stroemling_bv1_std.pdf";
         QVERIFY(schaltplanPdf(pid, std, true, false, false));
-        QVERIFY(!pdfText(std).contains("AUFTRAGNEHMER"));
-        if (bildAnzahl(std) >= 0) QCOMPARE(bildAnzahl(std), 1);
+        QVERIFY(pdfText(std).contains("AUFTRAGNEHMER"));
+        if (bildAnzahl(std) >= 0) QCOMPARE(bildAnzahl(std), 0);
 
         // Eigene Felder
         QVariantMap v; v["name"] = "BV1"; v["breiteMm"] = 297.0; v["hoeheMm"] = 210.0;
@@ -1086,7 +1082,11 @@ private slots:
                << feld("format", 30, 130, {{"label", "FORMAT"}})
                << feld("logo", 120, 30, {{"hoeheMm", 40.0}});
         QVERIFY(m_db->normblattFelderSpeichern(vid, felder));
+        QVERIFY(m_db->normblattVorlageLogoSpeichern(vid, logoPfad));
         QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, "", false, "din6771", vid));
+        const QVariantMap nd0 = m_db->normblattDatenLaden(sid);
+        QVERIFY(nd0.contains("logoDataUrl"));
+        QVERIFY2(qAbs(nd0.value("logoAspekt").toDouble() - 4.0) < 0.01, "logoAspekt");
 
         const QString eig = dir + "/stroemling_bv1_eigen.pdf";
         QVERIFY(schaltplanPdf(pid, eig, true, false, false));
@@ -1140,24 +1140,18 @@ private slots:
         QVERIFY2(!t.contains("{"), qPrintable(t));                // alle Platzhalter ersetzt
         if (bilder(f1) >= 0) QCOMPARE(bilder(f1), 0);            // logo:false
 
-        // Projekt-Logo, dann Vorlagen-Logo mit Vorrang (zwei Bilder gesamt nur, wenn beide gezeichnet wuerden – hier eins)
-        const QString logo = dir + "/stroemling_bv1b_logo.png";
-        { QImage img(120, 60, QImage::Format_RGB32); img.fill(Qt::blue); QVERIFY(img.save(logo)); }
-        QVERIFY(m_db->projektLogoSpeichern(pid, logo));
-        const QString f2 = dir + "/stroemling_bv1b_b.pdf";
-        QVERIFY(m_db->dokuPdfExportieren(pid, f2, R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
-        if (bilder(f2) >= 0) QCOMPARE(bilder(f2), 1);
-        const QVariantMap d1 = m_db->deckblattDatenLaden(pid, vid, QString(), true);
-        const QString projUrl = d1.value("logoDataUrl").toString();
-        QVERIFY(!projUrl.isEmpty());
+        // Logo der Vorlage: ohne Logo kein Bild, mit Logo eines, nach Loeschen wieder keins
+        QVERIFY(!m_db->deckblattDatenLaden(pid, vid, QString(), true).contains("logoDataUrl"));
         const QString logo2 = dir + "/stroemling_bv1b_logo2.png";
         { QImage img(80, 80, QImage::Format_RGB32); img.fill(Qt::green); QVERIFY(img.save(logo2)); }
         QVERIFY(m_db->normblattVorlageLogoSpeichern(vid, logo2));
-        const QString vorlUrl = m_db->deckblattDatenLaden(pid, vid, QString(), true).value("logoDataUrl").toString();
-        QVERIFY(!vorlUrl.isEmpty());
-        QVERIFY(vorlUrl != projUrl);
+        QVERIFY(m_db->deckblattDatenLaden(pid, vid, QString(), true).contains("logoDataUrl"));
+        QVERIFY(!m_db->deckblattDatenLaden(pid, vid, QString(), false).contains("logoDataUrl"));   // logo:false
+        const QString f2 = dir + "/stroemling_bv1b_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2, R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
+        if (bilder(f2) >= 0) QCOMPARE(bilder(f2), 1);
         QVERIFY(m_db->normblattVorlageLogoLoeschen(vid));
-        QCOMPARE(m_db->deckblattDatenLaden(pid, vid, QString(), true).value("logoDataUrl").toString(), projUrl);
+        QVERIFY(!m_db->deckblattDatenLaden(pid, vid, QString(), true).contains("logoDataUrl"));
 
         // Deckblatt + Verzeichnis + Plan: Seitenzahl = 1 + Verzeichnis + Plan
         const QString f3 = dir + "/stroemling_bv1b_c.pdf";
@@ -1249,6 +1243,23 @@ private slots:
         QVERIFY2(t.contains("Erste-Zeile"), qPrintable(t));
         QVERIFY2(t.contains("Zweite-Zeile fuer KernTest"), qPrintable(t));
         if (bilder(f2) >= 0) QCOMPARE(bilder(f2), 0);          // Kunden-Logo geloescht
+    }
+
+    // Werk/Abteilung/Norm sind editierbar (Projektseite) und stehen in ersteProjektInfo()/Platzhaltern.
+    void projekt_meta_werkAbteilungNorm()
+    {
+        const int sid = neueSeite("M1");
+        QVERIFY(m_db->projektMetaDatenSpeichern("P", "1", "AG", "AN", "Bea", " Werk 7 ", "Abt X", "VDE"));
+        QVariantMap i = m_db->ersteProjektInfo();
+        QCOMPARE(i.value("werk").toString(), QString("Werk 7"));
+        QCOMPARE(i.value("abteilung").toString(), QString("Abt X"));
+        QCOMPARE(i.value("norm").toString(), QString("VDE"));
+        QCOMPARE(m_db->normblattDatenLaden(sid).value("werk").toString(), QString("Werk 7"));
+        // leere Norm faellt auf den Spaltenstandard zurueck (NOT NULL)
+        QVERIFY(m_db->projektMetaDatenSpeichern("P", "1", "AG", "AN", "Bea", "", "", "  "));
+        i = m_db->ersteProjektInfo();
+        QCOMPARE(i.value("norm").toString(), QString("IEC"));
+        QCOMPARE(i.value("werk").toString(), QString(""));
     }
 
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-

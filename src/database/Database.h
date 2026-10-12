@@ -102,12 +102,15 @@ public:
     // Metadaten des ersten (einzigen) Projekts in der aktuellen DB
     Q_INVOKABLE QVariantMap ersteProjektInfo() const;
 
-    // Projektmetadaten speichern (Name, Nummer, AG, AN, Bearbeiter)
+    // Projektmetadaten speichern (Name, Nummer, AG, AN, Bearbeiter, Werk, Abteilung, Norm)
     Q_INVOKABLE bool projektMetaDatenSpeichern(const QString &name,
                                                const QString &nummer,
                                                const QString &auftraggeber,
                                                const QString &auftragnehmer,
-                                               const QString &bearbeiter);
+                                               const QString &bearbeiter,
+                                               const QString &werk,
+                                               const QString &abteilung,
+                                               const QString &norm);
 
     // Hauptdatenbank öffnen oder neu anlegen (legacy – ruft openProjekt auf)
     bool open(const QString &path);
@@ -542,18 +545,10 @@ public:
                                           const QString &auftragnehmer,
                                           const QString &bearbeiter);
 
-    // Logo eines Projekts aus einer Bilddatei laden und in DB speichern.
-    Q_INVOKABLE bool projektLogoSpeichern(int projektId, const QString &pfad);
-
-    // Logo eines Projekts als Base64-Data-URL zurückgeben ("" wenn keines gesetzt).
-    Q_INVOKABLE QString projektLogoDataUrl(int projektId);
     // Kunden-Logo je Projekt (Feldtyp logo_kunde) – BLATTVORLAGEN-02
     Q_INVOKABLE bool    projektKundenLogoSpeichern(int projektId, const QString &pfad);
     Q_INVOKABLE QString projektKundenLogoDataUrl(int projektId);
     Q_INVOKABLE bool    projektKundenLogoLoeschen(int projektId);
-
-    // Logo eines Projekts löschen.
-    Q_INVOKABLE bool projektLogoLoeschen(int projektId);
 
     // Klemmen einer Klemmenleiste für den Bauteil-Bereich im Seitenbaum.
     // Gibt [{id, nummer, sortierung, bauteilId, bauteilKlemmeId, bezeichnung, leisteBmk}] zurück.

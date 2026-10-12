@@ -127,13 +127,12 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("werk")]             = q.value("werk");
     m[QStringLiteral("abteilung")]        = q.value("abteilung");
 
-    // Logos als Data-URL — separater Query damit der BLOB-Join nicht bei jeder
-    // Seite lädt wenn kein Logo gesetzt ist. logo = Projekt-Logo (Altbestand), wird unten vom
-    // Vorlagen-Logo überschrieben; logoKunde = Kunden-Logo des Projekts (Feldtyp logo_kunde).
+    // Logos als Data-URL — separater Query damit der BLOB-Join nicht bei jeder Seite lädt.
+    // kundenLogo = Kunden-Logo des Projekts (Feldtyp logo_kunde); logo = Logo der Vorlage (unten).
     {
         QSqlQuery ql(m_db);
         ql.prepare(R"(
-            SELECT p.logo_data, p.logo_mime, p.kunden_logo_data, p.kunden_logo_mime
+            SELECT p.kunden_logo_data, p.kunden_logo_mime
             FROM seite s
             JOIN ort o ON s.ort_id = o.id
             JOIN anlage a ON o.anlage_id = a.id
@@ -142,13 +141,11 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         )");
         ql.bindValue(":sid", seiteId);
         if (ql.exec() && ql.next()) {
-            logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
-                      ql.value(0).toByteArray(), ql.value(1).toString());
             logoInMap(m, QStringLiteral("kundenLogoDataUrl"), QStringLiteral("kundenLogoAspekt"),
-                      ql.value(2).toByteArray(), ql.value(3).toString());
+                      ql.value(0).toByteArray(), ql.value(1).toString());
         }
     }
-    // Logo der zugewiesenen Vorlage (Bearbeiter-Logo) hat Vorrang vor dem Projekt-Logo (BLATTVORLAGEN-01b)
+    // Logo der zugewiesenen Vorlage (Bearbeiter-Logo, Feldtyp logo)
     {
         QSqlQuery qv(m_db);
         qv.prepare(R"(SELECT nv.logo_data, nv.logo_mime FROM seite s
@@ -395,20 +392,15 @@ QVariantMap Database::deckblattDatenLaden(int projektId, int vorlageId, const QS
         m[QStringLiteral("erstelltAm")]    = qp.value(8);
     }
     if (mitLogo) {
-        // logo: Vorlagen-Logo, sonst Projekt-Logo (Altbestand); logo_kunde: Kunden-Logo des Projekts
-        if (!qv.value(3).toByteArray().isEmpty())
-            logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
-                      qv.value(3).toByteArray(), qv.value(4).toString());
+        // logo: Logo der Vorlage; logo_kunde: Kunden-Logo des Projekts
+        logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
+                  qv.value(3).toByteArray(), qv.value(4).toString());
         QSqlQuery ql(m_db);
-        ql.prepare("SELECT logo_data, logo_mime, kunden_logo_data, kunden_logo_mime FROM projekt WHERE id = :pid");
+        ql.prepare("SELECT kunden_logo_data, kunden_logo_mime FROM projekt WHERE id = :pid");
         ql.bindValue(":pid", projektId);
-        if (ql.exec() && ql.next()) {
-            if (!m.contains(QStringLiteral("logoDataUrl")))
-                logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
-                          ql.value(0).toByteArray(), ql.value(1).toString());
+        if (ql.exec() && ql.next())
             logoInMap(m, QStringLiteral("kundenLogoDataUrl"), QStringLiteral("kundenLogoAspekt"),
-                      ql.value(2).toByteArray(), ql.value(3).toString());
-        }
+                      ql.value(0).toByteArray(), ql.value(1).toString());
     }
     return m;
 }
@@ -515,19 +507,6 @@ bool Database::projektMetaSpeichern(int projektId,
     return true;
 }
 
-bool Database::projektLogoSpeichern(int projektId, const QString &pfad)
-{
-    QByteArray data; QString mime;
-    if (!logoDateiLesen(pfad, data, mime, "projektLogoSpeichern")) return false;
-    QSqlQuery q(m_db);
-    q.prepare("UPDATE projekt SET logo_data = :d, logo_mime = :m WHERE id = :id");
-    q.bindValue(":d",  data);
-    q.bindValue(":m",  mime);
-    q.bindValue(":id", projektId);
-    if (!q.exec()) { qCWarning(lcDb) << "projektLogoSpeichern:" << q.lastError().text(); return false; }
-    return true;
-}
-
 // Kunden-Logo je Projekt (BLATTVORLAGEN-02): Feldtyp logo_kunde in Blattvorlagen
 bool Database::projektKundenLogoSpeichern(int projektId, const QString &pfad)
 {
@@ -563,28 +542,6 @@ bool Database::projektKundenLogoLoeschen(int projektId)
     q.prepare("UPDATE projekt SET kunden_logo_data = NULL, kunden_logo_mime = NULL WHERE id = :id");
     q.bindValue(":id", projektId);
     if (!q.exec()) { qCWarning(lcDb) << "projektKundenLogoLoeschen:" << q.lastError().text(); return false; }
-    return true;
-}
-
-QString Database::projektLogoDataUrl(int projektId)
-{
-    QSqlQuery q(m_db);
-    q.prepare("SELECT logo_data, logo_mime FROM projekt WHERE id = :id");
-    q.bindValue(":id", projektId);
-    if (!q.exec() || !q.next()) return {};
-    QByteArray data = q.value(0).toByteArray();
-    QString    mime = q.value(1).toString();
-    if (data.isEmpty() || mime.isEmpty()) return {};
-    return QStringLiteral("data:") + mime + QStringLiteral(";base64,")
-           + QString::fromLatin1(data.toBase64());
-}
-
-bool Database::projektLogoLoeschen(int projektId)
-{
-    QSqlQuery q(m_db);
-    q.prepare("UPDATE projekt SET logo_data = NULL, logo_mime = NULL WHERE id = :id");
-    q.bindValue(":id", projektId);
-    if (!q.exec()) { qCWarning(lcDb) << "projektLogoLoeschen:" << q.lastError().text(); return false; }
     return true;
 }
 

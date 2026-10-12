@@ -499,7 +499,8 @@ QVariantMap Database::ersteProjektInfo() const
     QVariantMap m;
     if (!m_projektOffen) return m;
     QSqlQuery q(m_db);
-    if (q.exec("SELECT id, name, projektnummer, auftraggeber, auftragnehmer, bearbeiter "
+    if (q.exec("SELECT id, name, projektnummer, auftraggeber, auftragnehmer, bearbeiter, "
+               "COALESCE(werk,''), COALESCE(abteilung,''), norm "
                "FROM projekt ORDER BY id DESC LIMIT 1") && q.next()) {
         m["id"]            = q.value(0).toInt();
         m["name"]          = q.value(1).toString();
@@ -507,6 +508,9 @@ QVariantMap Database::ersteProjektInfo() const
         m["auftraggeber"]  = q.value(3).toString();
         m["auftragnehmer"] = q.value(4).toString();
         m["bearbeiter"]    = q.value(5).toString();
+        m["werk"]          = q.value(6).toString();
+        m["abteilung"]     = q.value(7).toString();
+        m["norm"]          = q.value(8).toString();
     }
     return m;
 }
@@ -518,12 +522,16 @@ bool Database::projektMetaDatenSpeichern(const QString &name,
                                           const QString &nummer,
                                           const QString &auftraggeber,
                                           const QString &auftragnehmer,
-                                          const QString &bearbeiter)
+                                          const QString &bearbeiter,
+                                          const QString &werk,
+                                          const QString &abteilung,
+                                          const QString &norm)
 {
     if (!m_projektOffen) return false;
     QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET name=:n, projektnummer=:nr, "
               "auftraggeber=:ag, auftragnehmer=:an, bearbeiter=:b, "
+              "werk=:w, abteilung=:abt, norm=:no, "
               "geaendert_am=datetime('now') "
               "WHERE id=(SELECT MAX(id) FROM projekt)");
     q.bindValue(":n",  name.trimmed());
@@ -531,6 +539,9 @@ bool Database::projektMetaDatenSpeichern(const QString &name,
     q.bindValue(":ag", auftraggeber.trimmed());
     q.bindValue(":an", auftragnehmer.trimmed());
     q.bindValue(":b",  bearbeiter.trimmed());
+    q.bindValue(":w",  werk.trimmed());
+    q.bindValue(":abt", abteilung.trimmed());
+    q.bindValue(":no", norm.trimmed().isEmpty() ? QStringLiteral("IEC") : norm.trimmed());   // Spalte ist NOT NULL
     if (!q.exec()) {
         qCWarning(lcDb) << "projektMetaDatenSpeichern:" << q.lastError().text();
         return false;

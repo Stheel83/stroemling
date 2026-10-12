@@ -313,8 +313,7 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
         zelle("PROJEKTNR.",   nb.value("projektnummer").toString(), cX[2],rY[0],cX[3]-cX[2],rowH);
         zelle("BLATT",        nb.value("blattnummer").toString(),   cX[3],rY[0],cX[4]-cX[3],rowH);
 
-        if (!nbLogoZeichnen(p, nb, QRectF(cX[0], rY[1], cX[1]-cX[0], rowH), pxPerMm))
-            zelle("AUFTRAGNEHMER",nb.value("auftragnehmer").toString(), cX[0],rY[1],cX[1]-cX[0],rowH);
+        zelle("AUFTRAGNEHMER",nb.value("auftragnehmer").toString(), cX[0],rY[1],cX[1]-cX[0],rowH);
         zelle("BEZEICHNUNG",  nb.value("bezeichnung").toString(),   cX[1],rY[1],cX[2]-cX[1],rowH);
         zelle("FORMAT",       formatText(),                         cX[2],rY[1],cX[3]-cX[2],rowH);
         zelle("DATUM",        datumText(),                          cX[3],rY[1],cX[4]-cX[3],rowH);

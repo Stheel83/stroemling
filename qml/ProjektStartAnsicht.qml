@@ -55,6 +55,9 @@ Item {
         agField.text     = info.auftraggeber   || ""
         anField.text     = info.auftragnehmer  || ""
         bearField.text   = info.bearbeiter     || ""
+        werkField.text   = info.werk           || ""
+        abtField.text    = info.abteilung      || ""
+        normField.text   = info.norm           || ""
         _projektId       = info.id !== undefined ? info.id : -1
         _kundenLogoUrl   = _projektId >= 0 ? db.projektKundenLogoDataUrl(_projektId) : ""
         _ladevorgang = false
@@ -396,6 +399,30 @@ Item {
                         id: bearField; Layout.fillWidth: true; font.pixelSize: 13
                         color: root.theme.textPrimary
                         background: Rectangle { color: root.theme.inputBg; border.color: bearField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
+                        onTextChanged: if (!root._ladevorgang) root._geaendert = true
+                    }
+
+                    Text { text: qsTr("Werk"); font.pixelSize: 12; color: root.theme.textMuted }
+                    TextField {
+                        id: werkField; Layout.fillWidth: true; font.pixelSize: 13
+                        color: root.theme.textPrimary
+                        background: Rectangle { color: root.theme.inputBg; border.color: werkField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
+                        onTextChanged: if (!root._ladevorgang) root._geaendert = true
+                    }
+
+                    Text { text: qsTr("Abteilung"); font.pixelSize: 12; color: root.theme.textMuted }
+                    TextField {
+                        id: abtField; Layout.fillWidth: true; font.pixelSize: 13
+                        color: root.theme.textPrimary
+                        background: Rectangle { color: root.theme.inputBg; border.color: abtField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
+                        onTextChanged: if (!root._ladevorgang) root._geaendert = true
+                    }
+
+                    Text { text: qsTr("Norm"); font.pixelSize: 12; color: root.theme.textMuted }
+                    TextField {
+                        id: normField; Layout.fillWidth: true; font.pixelSize: 13
+                        color: root.theme.textPrimary
+                        background: Rectangle { color: root.theme.inputBg; border.color: normField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
                         onTextChanged: if (!root._ladevorgang) root._geaendert = true
                     }
 
@@ -793,7 +820,8 @@ Item {
                                 if (!root._geaendert) return
                                 var info = db.ersteProjektInfo()
                                 if (db.projektMetaDatenSpeichern(nameField.text, nummerField.text,
-                                                                  agField.text, anField.text, bearField.text)) {
+                                                                  agField.text, anField.text, bearField.text,
+                                                                  werkField.text, abtField.text, normField.text)) {
                                     root._geaendert = false
                                     root.projektMetaGeaendert(info.id || 0)
                                 }

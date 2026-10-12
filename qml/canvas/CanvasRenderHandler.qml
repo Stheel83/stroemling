@@ -347,8 +347,7 @@ QtObject {
             zelle("PROJEKTNR.",   nd.projektnummer || "", cX[2], rowY[0], cX[3]-cX[2], rowH)
             zelle("BLATT",        nd.blattnummer   || "", cX[3], rowY[0], cX[4]-cX[3], rowH)
 
-            if (!logoZeichnen(cX[0], rowY[1], cX[1]-cX[0], rowH))
-                zelle("AUFTRAGNEHMER", nd.auftragnehmer || "", cX[0], rowY[1], cX[1]-cX[0], rowH)
+            zelle("AUFTRAGNEHMER", nd.auftragnehmer || "", cX[0], rowY[1], cX[1]-cX[0], rowH)
             zelle("BEZEICHNUNG",  nd.bezeichnung  || "", cX[1], rowY[1], cX[2]-cX[1], rowH)
             zelle("FORMAT",       formatText(),          cX[2], rowY[1], cX[3]-cX[2], rowH)
             zelle("DATUM",        datumText(),           cX[3], rowY[1], cX[4]-cX[3], rowH)

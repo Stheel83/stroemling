@@ -49,6 +49,7 @@ void Database::close()
     if (m_makroDb.isValid())      m_makroDb.close();
     if (m_launcherDb.isValid())   m_launcherDb.close();
     if (m_bibliothekDb.isValid()) m_bibliothekDb.close();
+    if (m_vorlagenDb.isValid())   m_vorlagenDb.close();
 }
 
 // ============================================================
@@ -673,6 +674,7 @@ QVariantMap Database::datenbankInfos() const
     m["wikiDb"]            = wikiPfad;
     m["makrosDb"]          = m_makroPfad;
     m["bibliothekDb"]      = m_bibliothekPfad;
+    m["vorlagenDb"]        = m_vorlagenPfad;
     QStringList backupDateien = backupDir.isEmpty()
         ? QStringList()
         : QDir(backupDir).entryList({"makros_*.db"}, QDir::Files, QDir::Name);

@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 // Sektion "Datenbankpfade": alle App-Datenbanken (Zentrale DB, Wiki, Makro- und
-// Bauteil-Bibliothek) sowie das Backup-Verzeichnis liegen fest im selben
+// Bauteil- und Vorlagen-Bibliothek) sowie das Backup-Verzeichnis liegen fest im selben
 // App-Datenverzeichnis (QStandardPaths::AppLocalDataLocation) - der Nutzer kann
 // keine abweichenden Pfade konfigurieren. Daher: Ordnerpfad einmal oben, darunter
 // nur noch die Dateinamen (Kopieren-Button pro Zeile für den vollen Pfad).
@@ -138,7 +138,7 @@ ColumnLayout {
         Layout.fillWidth:   true
         Layout.leftMargin:  12
         Layout.rightMargin: 12
-        height:             5 * 44
+        height:             6 * 44
         color:              root.theme.surface
         radius:             6
         border.color:       root.theme.border
@@ -152,6 +152,7 @@ ColumnLayout {
                     { label: qsTr("Wiki-Datenbank"),     key: "wikiDb",       icon: "📚" },
                     { label: qsTr("Makro-Bibliothek"),   key: "makrosDb",     icon: "⚙" },
                     { label: qsTr("Bauteil-Bibliothek"), key: "bibliothekDb", icon: "🧩" },
+                    { label: qsTr("Vorlagen-Bibliothek"), key: "vorlagenDb",   icon: "📄" },
                     { label: qsTr("Backup-Verzeichnis"), key: "backupDir",    icon: "💾" }
                 ]
 
@@ -160,7 +161,7 @@ ColumnLayout {
                     height: 44
 
                     Rectangle {
-                        visible:        index < 4
+                        visible:        index < 5
                         anchors.bottom: parent.bottom
                         width:          parent.width; height: 1
                         color:          root.theme.divider

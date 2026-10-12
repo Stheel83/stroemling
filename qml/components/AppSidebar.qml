@@ -139,11 +139,11 @@ Rectangle {
         SidebarButton {
             theme:           root.theme
             icon:            "📐"
-            label:           qsTr("Normblatt")
+            label:           qsTr("Blattvorlagen")
             active:          root.aktiveAnsicht === "normblatt"
             enabled:         root.aktivProjektId >= 0
             opacity:         enabled ? 1.0 : 0.4
-            tooltip:         qsTr("Schriftfeld nach DIN 6771 gestalten und Normblatt-Vorlage wählen")
+            tooltip:         qsTr("Schriftfelder und Deckblätter gestalten, Vorlagenbibliothek verwalten")
             tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
             onClicked: root.ansichtGewaehlt("normblatt")
         }

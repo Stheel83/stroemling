@@ -109,7 +109,7 @@ ColumnLayout {
 
     // Titelblatt-Vorlage (nur wenn Normblatt aktiv)
     Text {
-        text: qsTr("Titelblatt-Vorlage")
+        text: qsTr("Schriftfeld-Vorlage")
         color: root.theme.textMuted; font.pixelSize: 12
         visible: chkNormblatt.checked
     }
@@ -184,7 +184,7 @@ ColumnLayout {
         }
     }
     Text {
-        text: qsTr("Keine Vorlagen vorhanden. Über 'Normblatt' in der Seitenleiste anlegen.")
+        text: qsTr("Keine Vorlagen vorhanden. Über „Blattvorlagen“ in der Seitenleiste anlegen.")
         visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
                  && root._normblattVorlagen.length === 0
         color: root.theme.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap

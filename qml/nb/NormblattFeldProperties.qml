@@ -420,7 +420,7 @@ Item {
                     onClicked: root.feldLoeschen(root.feldIdx)
                 }
                 ToolTip.visible: loeschMA.containsMouse; ToolTip.delay: 600
-                ToolTip.text: qsTr("Dieses Normblatt-Feld entfernen")
+                ToolTip.text: qsTr("Dieses Feld entfernen")
             }
         }
     }

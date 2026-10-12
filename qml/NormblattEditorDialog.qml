@@ -393,7 +393,7 @@ Item {
             spacing: 8
 
             Text {
-                text: qsTr("Titelblatt-Vorlagen")
+                text: qsTr("Blattvorlagen")
                 color: root.theme.textPrimary; font.pixelSize: 15; font.weight: Font.Medium
             }
             Item { width: 8 }
@@ -725,10 +725,10 @@ Item {
                 MouseArea { id: speichernMA; anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor; onClicked: root._speichern() }
                 ToolTip.visible: speichernMA.containsMouse; ToolTip.delay: 600
-                ToolTip.text: qsTr("Normblatt-Vorlage speichern")
+                ToolTip.text: qsTr("Vorlage speichern")
             }
         }
     }
 
-    DebugLabel { panelName: qsTr("Normblatt-Editor"); visible: root.debug }
+    DebugLabel { panelName: qsTr("Blattvorlagen-Editor"); visible: root.debug }
 }

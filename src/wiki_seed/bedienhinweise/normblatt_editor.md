@@ -1,17 +1,17 @@
 # Normblatt-Vorlagen selbst gestalten
 
-Neben den drei mitgelieferten Schriftfeldvorlagen (`din6771`, `kompakt`,
-`rahmen`) kannst du eigene Titelblattvorlagen visuell zusammenstellen –
-Felder frei positionieren, Größe anpassen, mit einer Datenquelle
-verknüpfen.
+Unter **Blattvorlagen** in der Seitenleiste gestaltest du eigene **Schriftfelder** (Titelblatt einer
+Zeichnungsseite) und **Deckblätter** (für das Dokumentations-PDF) visuell – Felder frei positionieren,
+Größe anpassen, mit einer Datenquelle verknüpfen. Neben den drei mitgelieferten Schriftfeldvorlagen
+(`din6771`, `kompakt`, `rahmen`) sind eigene Vorlagen frei gestaltbar.
 
 ---
 
 ## Einstieg
 
-Im „Seite bearbeiten"-Dialog (Seitenbaum) bei der Vorlage-Auswahl
-„Benutzerdefiniert" wählen → Button „Vorlage bearbeiten …" öffnet den
-Vollbild-Editor.
+Seitenleiste → **Blattvorlagen** öffnet den Vollbild-Editor. Eine Schriftfeld-Vorlage weist du einer Seite im
+„Seite bearbeiten“-Dialog (Seitenbaum) unter „Schriftfeld-Vorlage“ → „Benutzerdefiniert“ zu; ein Deckblatt wählst
+du im PDF-Export beim Abschnitt Deckblatt.
 
 ## Layout des Editors
 
@@ -19,7 +19,7 @@ Drei Spalten:
 
 | Spalte | Inhalt |
 |---|---|
-| Palette (links) | Feldtypen zum Anklicken: Fest, Projekt, Seite, Datum, Vollkennzeichen, Format, Logo |
+| Palette (links) | Feldtypen zum Anklicken: Fest, Projekt, Seite, Datum, Vollkennzeichen, Format, Logo, Kunden-Logo, Textblock, Linie |
 | Vorschau (Mitte) | Skalierte Darstellung der Seite mit allen bereits platzierten Feldern |
 | Eigenschaften (rechts) | Feldtyp, Label, Quelle, Breite/Höhe, X/Y – für das gerade ausgewählte Feld |
 

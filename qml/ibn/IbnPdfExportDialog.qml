@@ -5,7 +5,7 @@ import QtCore
 
 // PRUEFPROTOKOLL-PDF-DIALOG-01: ersetzt den nativen FileDialog (funktioniert
 // nicht zuverlässig im AppImage) durch denselben eigenen Pfad-Picker wie
-// DokuPdfDialog.qml (Dokumentations-PDF) - Seiten-Auswahl/Normblatt-
+// DokuPdfAnsicht.qml (Dokumentations-PDF) - Seiten-Auswahl/Normblatt-
 // Optionen dort sind für das Prüfprotokoll irrelevant und bewusst nicht
 // übernommen, nur Pfadauswahl + Überschreiben-Bestätigung.
 Dialog {

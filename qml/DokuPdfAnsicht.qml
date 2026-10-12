@@ -5,35 +5,18 @@ import QtCore
 import "components"
 import "la"
 
-// DOKU-PDF-04: Dokumentations-PDF – ersetzt den alten Schaltplan-PDF-Dialog.
-// Das PDF wird aus Abschnitten zusammengesetzt (Deckblatt, Inhaltsverzeichnis,
-// Schaltplan, SPS/PLS-I/O-Liste); Reihenfolge und Auswahl sind einstellbar,
-// Zusammenstellungen lassen sich als Vorlage speichern (global, QML-Settings).
-// Der eigentliche Aufbau passiert in Database::dokuPdfExportieren()
-// (konzept/features/51_dokumentations_pdf.md).
-Dialog {
+// DOKU-PDF-04/-05: Dokumentations-PDF als eigene Ansicht (gleiche Zweispalten-Gestaltung wie der
+// SPS/PLS-Export-Tab). Das PDF wird aus Abschnitten zusammengesetzt (Deckblatt, Inhaltsverzeichnis,
+// Schaltplan, SPS/PLS-I/O-Liste); Reihenfolge und Auswahl sind einstellbar, Zusammenstellungen
+// lassen sich als Vorlage speichern (global, QML-Settings). Der eigentliche Aufbau passiert in
+// Database::dokuPdfExportieren() (konzept/features/51_dokumentations_pdf.md).
+Item {
     id: root
-
-    modal:  true
-    parent: Overlay.overlay
-    anchors.centerIn: parent
-    width:  680
-    padding: 20
 
     required property var theme
     required property int projektId
     required property int seiteId
     property bool         debug: false
-
-    title: qsTr("Dokumentations-PDF")
-
-    background: Rectangle {
-        color:        root.theme.sidebar
-        border.color: root.theme.border
-        border.width: 1; radius: 6
-        // im Hintergrund statt als Kind des Dialogs: dessen contentItem ist ein Layout
-        DebugLabel { panelName: qsTr("Dokumentations-PDF-Dialog"); visible: root.debug && root.visible }
-    }
 
     // ── Persistenz: globale Vorlagen + zuletzt benutzte Zusammenstellung ──
     Settings {
@@ -260,7 +243,9 @@ Dialog {
         vorlageCombo.currentIndex = 0
     }
 
-    onAboutToShow: {
+    // Beim Einblenden den Zustand frisch laden (zuletzt benutzte Zusammenstellung, Seiten-Flags, SPS-Vorlagen)
+    function oeffnen() {
+        if (root.projektId < 0) return
         try { _vorlagen = JSON.parse(einst.vorlagen) || [] } catch (e) { _vorlagen = [] }
         var z = null
         if (einst.zuletzt) { try { z = JSON.parse(einst.zuletzt) } catch (e2) { z = null } }
@@ -269,6 +254,10 @@ Dialog {
         _seitenNeuLaden()
         vorlageCombo.currentIndex = 0
     }
+
+    onVisibleChanged: if (visible) oeffnen()
+    onProjektIdChanged: if (visible) oeffnen()
+    Component.onCompleted: if (visible) oeffnen()
 
     // ── Wiederverwendbare Bedienelemente ─────────────────────────
     // wert = anzuzeigender Zustand (Bindung bleibt auch nach einem Klick erhalten, sonst würde
@@ -352,7 +341,6 @@ Dialog {
             if (ok) {
                 einst.zuletzt = JSON.stringify(root._zustand())
                 achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": root.gewaehlteSeiten })
-                root.accept()
             }
         }
     }
@@ -404,186 +392,255 @@ Dialog {
         }
     }
 
-    // ── Inhalt ───────────────────────────────────────────────────
-    contentItem: ColumnLayout {
-        spacing: 10
+    // ── Oberfläche ───────────────────────────────────────────────
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
 
-        // Zusammenstellung (Vorlagen)
-        RowLayout {
-            Layout.fillWidth: true; spacing: 6
-            Text { text: qsTr("Zusammenstellung"); color: root.theme.textMuted; font.pixelSize: 11 }
-            Auswahl {
-                id: vorlageCombo
-                Layout.fillWidth: true
-                model: [qsTr("(zuletzt benutzt)")].concat(root._vorlagen.map(function(v) { return v.name }))
-                onActivated: function(i) {
-                    if (i === 0) {
-                        var z = null
-                        try { z = einst.zuletzt ? JSON.parse(einst.zuletzt) : null } catch (e) { z = null }
-                        root._zustandLaden(z)
-                    } else {
-                        root._zustandLaden(root._vorlagen[i - 1].zustand)
-                    }
-                }
-            }
-            KleinerButton { text: qsTr("Als Vorlage speichern …"); onClicked: nameDialog.open() }
-            KleinerButton {
-                text: qsTr("Löschen"); enabled: vorlageCombo.currentIndex > 0
-                onClicked: root._vorlageLoeschen()
-            }
-        }
-
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
-
-        // Abschnitte
-        Text { text: qsTr("Abschnitte (Reihenfolge = Reihenfolge im PDF)"); color: root.theme.textMuted; font.pixelSize: 11 }
-
-        Repeater {
-            model: abschnittModel
-            delegate: RowLayout {
-                id: zeile
-                required property int index
-                required property string typ
-                required property string titel
-                required property bool aktiv
-                Layout.fillWidth: true
-                spacing: 6
-
-                Kaestchen {
-                    Layout.fillWidth: true
-                    beschriftung: zeile.titel
-                    wert: zeile.aktiv
-                    enabled: zeile.typ !== "sps_io" || root._spsVorhanden
-                    onUmgeschaltet: function(neu) {
-                        abschnittModel.setProperty(zeile.index, "aktiv", neu)
-                        root.abschnittVersion++
-                    }
-                }
-                Text {
-                    visible: zeile.typ === "sps_io" && !root._spsVorhanden
-                    text: qsTr("keine SPS/PLS-Daten im Projekt")
-                    color: root.theme.textMuted; font.pixelSize: 11
-                }
-                KleinerButton {
-                    text: "▲"; enabled: zeile.index > 0
-                    onClicked: { abschnittModel.move(zeile.index, zeile.index - 1, 1); root.abschnittVersion++ }
-                }
-                KleinerButton {
-                    text: "▼"; enabled: zeile.index < abschnittModel.count - 1
-                    onClicked: { abschnittModel.move(zeile.index, zeile.index + 1, 1); root.abschnittVersion++ }
-                }
-            }
-        }
-
-        // Deckblatt-Optionen
-        RowLayout {
-            Layout.fillWidth: true; spacing: 8
-            visible: root._abschnittAktiv("deckblatt")
-            Text { text: qsTr("Deckblatt: Titelzusatz"); color: root.theme.textMuted; font.pixelSize: 11 }
-            TextField {
-                Layout.fillWidth: true
-                placeholderText: qsTr("z. B. Schaltplan Steuerung Anlage 2 (optional)")
-                text: root.titelzusatz
-                onTextEdited: root.titelzusatz = text
-                color: root.theme.textPrimary; font.pixelSize: 12
-                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
-            }
-            Kaestchen {
-                beschriftung: qsTr("Logo")
-                wert: root.logoAn
-                onUmgeschaltet: function(neu) { root.logoAn = neu }
-            }
-        }
-
-        // SPS-Optionen
-        RowLayout {
-            Layout.fillWidth: true; spacing: 8
-            visible: root._abschnittAktiv("sps_io") && root._spsVorhanden
-            Text { text: qsTr("SPS/PLS: Spalten und Filter wie"); color: root.theme.textMuted; font.pixelSize: 11 }
-            Auswahl {
-                Layout.fillWidth: true
-                model: root._spsEintraege.map(function(e) { return e.name })
-                currentIndex: root._spsAuswahl
-                onActivated: function(i) { root._spsAuswahl = i; root.spsVorlageName = root._spsEintraege[i].name }
-            }
-        }
-
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
-
-        // Schaltplan: Seitenauswahl + Optionen
-        ColumnLayout {
+        // Kopfleiste
+        Rectangle {
             Layout.fillWidth: true
-            spacing: 6
-            visible: root._abschnittAktiv("schaltplan")
-
-            RowLayout {
-                Layout.fillWidth: true; spacing: 6
-                Text {
-                    text: qsTr("Schaltplan-Seiten (%1 von %2)").arg(root.gewaehlteSeiten).arg(seitenModel.count)
-                    color: root.theme.textMuted; font.pixelSize: 11
-                    Layout.fillWidth: true
-                }
-                KleinerButton { text: qsTr("Alle");  onClicked: root._alleSeiten(true) }
-                KleinerButton { text: qsTr("Keine"); onClicked: root._alleSeiten(false) }
-                KleinerButton {
-                    text: qsTr("Nur aktuelle"); enabled: root.seiteId > 0
-                    onClicked: root._nurAktuelleSeite()
-                }
-                KleinerButton {
-                    text: qsTr("Als Voreinstellung speichern")
-                    onClicked: root._alsFlagUebernehmen()
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Schreibt die Auswahl dauerhaft in die Seiten (Option „In Dokumentations-PDF aufnehmen“).")
-                }
+            implicitHeight: 44
+            color: root.theme.surfaceDeep
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left; anchors.leftMargin: 14
+                text: qsTr("Dokumentations-PDF")
+                color: root.theme.textPrimary; font.pixelSize: 15; font.bold: true
             }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right; anchors.rightMargin: 14
+                text: qsTr("Deckblatt, Verzeichnis, Schaltplan und SPS/PLS in einem PDF")
+                color: root.theme.textMuted; font.pixelSize: 12
+            }
+        }
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
 
-            Rectangle {
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.margins: 12
+            spacing: 14
+
+            // ── Links: Zusammenstellung + Abschnitte ─────────────
+            ColumnLayout {
                 Layout.fillWidth: true
-                implicitHeight: 150
-                color: root.theme.inputBg
-                radius: 4; border.color: root.theme.border
-                clip: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
+                spacing: 8
 
-                ListView {
-                    id: seitenListe
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    model: seitenModel
-                    clip: true
-                    ScrollBar.vertical: ScrollBar { }
-                    delegate: Kaestchen {
-                        required property int index
-                        required property string label
-                        required property bool gewaehlt
-                        width: seitenListe.width - 10
-                        implicitHeight: 24
-                        beschriftung: label
-                        wert: gewaehlt
-                        onUmgeschaltet: function(neu) { seitenModel.setProperty(index, "gewaehlt", neu); root._seitenZaehlen() }
+                Text { text: qsTr("Zusammenstellung"); color: root.theme.textPrimary; font.bold: true; font.pixelSize: 13 }
+
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 6
+                    Auswahl {
+                        id: vorlageCombo
+                        Layout.fillWidth: true
+                        model: [qsTr("(zuletzt benutzt)")].concat(root._vorlagen.map(function(v) { return v.name }))
+                        onActivated: function(i) {
+                            if (i === 0) {
+                                var z = null
+                                try { z = einst.zuletzt ? JSON.parse(einst.zuletzt) : null } catch (e) { z = null }
+                                root._zustandLaden(z)
+                            } else {
+                                root._zustandLaden(root._vorlagen[i - 1].zustand)
+                            }
+                        }
                     }
-                    Text {
-                        anchors.centerIn: parent
-                        visible: seitenModel.count === 0
-                        text: qsTr("Das Projekt hat noch keine Seiten.")
-                        color: root.theme.textMuted; font.pixelSize: 12
+                    KleinerButton { text: qsTr("Speichern unter …"); onClicked: nameDialog.open() }
+                    KleinerButton {
+                        text: qsTr("Löschen"); enabled: vorlageCombo.currentIndex > 0
+                        onClicked: root._vorlageLoeschen()
                     }
                 }
+
+                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
+
+                Text {
+                    text: qsTr("Abschnitte")
+                    color: root.theme.textPrimary; font.bold: true; font.pixelSize: 13
+                }
+                Text {
+                    text: qsTr("Die Reihenfolge der Liste ist die Reihenfolge im PDF.")
+                    color: root.theme.textMuted; font.pixelSize: 11
+                }
+
+                Repeater {
+                    model: abschnittModel
+                    delegate: ColumnLayout {
+                        id: zeile
+                        required property int index
+                        required property string typ
+                        required property string titel
+                        required property bool aktiv
+                        Layout.fillWidth: true
+                        spacing: 4
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Kaestchen {
+                                Layout.fillWidth: true
+                                beschriftung: zeile.titel
+                                wert: zeile.aktiv
+                                enabled: zeile.typ !== "sps_io" || root._spsVorhanden
+                                onUmgeschaltet: function(neu) {
+                                    abschnittModel.setProperty(zeile.index, "aktiv", neu)
+                                    root.abschnittVersion++
+                                }
+                            }
+                            Text {
+                                visible: zeile.typ === "sps_io" && !root._spsVorhanden
+                                text: qsTr("keine SPS/PLS-Daten im Projekt")
+                                color: root.theme.textMuted; font.pixelSize: 11
+                            }
+                            KleinerButton {
+                                text: "▲"; enabled: zeile.index > 0
+                                onClicked: { abschnittModel.move(zeile.index, zeile.index - 1, 1); root.abschnittVersion++ }
+                            }
+                            KleinerButton {
+                                text: "▼"; enabled: zeile.index < abschnittModel.count - 1
+                                onClicked: { abschnittModel.move(zeile.index, zeile.index + 1, 1); root.abschnittVersion++ }
+                            }
+                        }
+
+                        // Optionen des Abschnitts, eingerückt direkt darunter
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 24
+                            spacing: 8
+                            visible: zeile.aktiv && zeile.typ === "deckblatt"
+                            Text { text: qsTr("Titelzusatz"); color: root.theme.textMuted; font.pixelSize: 11 }
+                            TextField {
+                                Layout.fillWidth: true
+                                implicitHeight: 28
+                                placeholderText: qsTr("z. B. Schaltplan Steuerung Anlage 2 (optional)")
+                                text: root.titelzusatz
+                                onTextEdited: root.titelzusatz = text
+                                color: root.theme.textPrimary; font.pixelSize: 12
+                                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                            }
+                            Kaestchen {
+                                beschriftung: qsTr("Logo")
+                                wert: root.logoAn
+                                onUmgeschaltet: function(neu) { root.logoAn = neu }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 24
+                            spacing: 8
+                            visible: zeile.aktiv && zeile.typ === "sps_io" && root._spsVorhanden
+                            Text { text: qsTr("Spalten und Filter wie"); color: root.theme.textMuted; font.pixelSize: 11 }
+                            Auswahl {
+                                Layout.fillWidth: true
+                                model: root._spsEintraege.map(function(e) { return e.name })
+                                currentIndex: root._spsAuswahl
+                                onActivated: function(i) { root._spsAuswahl = i; root.spsVorlageName = root._spsEintraege[i].name }
+                            }
+                        }
+
+                        Text {
+                            Layout.leftMargin: 24
+                            visible: zeile.aktiv && zeile.typ === "schaltplan"
+                            text: qsTr("%1 von %2 Seiten ausgewählt (rechts ändern)").arg(root.gewaehlteSeiten).arg(seitenModel.count)
+                            color: root.theme.textMuted; font.pixelSize: 11
+                        }
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
             }
 
-            RowLayout {
-                Layout.fillWidth: true; spacing: 16
+            Rectangle { Layout.fillHeight: true; Layout.preferredWidth: 1; color: root.theme.border }
+
+            // ── Rechts: Schaltplan-Seiten + Optionen ─────────────
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
+                spacing: 8
+                enabled: root._abschnittAktiv("schaltplan")
+                opacity: enabled ? 1.0 : 0.45
+
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 6
+                    Text {
+                        text: qsTr("Schaltplan-Seiten (%1 von %2)").arg(root.gewaehlteSeiten).arg(seitenModel.count)
+                        color: root.theme.textPrimary; font.bold: true; font.pixelSize: 13
+                        Layout.fillWidth: true
+                    }
+                    KleinerButton { text: qsTr("Alle");  onClicked: root._alleSeiten(true) }
+                    KleinerButton { text: qsTr("Keine"); onClicked: root._alleSeiten(false) }
+                    KleinerButton {
+                        text: qsTr("Nur aktuelle"); enabled: root.seiteId > 0
+                        onClicked: root._nurAktuelleSeite()
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: root.theme.inputBg
+                    radius: 4; border.color: root.theme.border
+                    clip: true
+
+                    ListView {
+                        id: seitenListe
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        model: seitenModel
+                        clip: true
+                        ScrollBar.vertical: ScrollBar { }
+                        delegate: Kaestchen {
+                            required property int index
+                            required property string label
+                            required property bool gewaehlt
+                            width: seitenListe.width - 10
+                            implicitHeight: 26
+                            beschriftung: label
+                            wert: gewaehlt
+                            onUmgeschaltet: function(neu) { seitenModel.setProperty(index, "gewaehlt", neu); root._seitenZaehlen() }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: seitenModel.count === 0
+                            text: qsTr("Das Projekt hat noch keine Seiten.")
+                            color: root.theme.textMuted; font.pixelSize: 12
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    KleinerButton {
+                        text: qsTr("Auswahl als Voreinstellung der Seiten speichern")
+                        onClicked: root._alsFlagUebernehmen()
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Schreibt die Auswahl dauerhaft in die Seiten (Option „In Dokumentations-PDF aufnehmen“ im Seite-bearbeiten-Dialog).")
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
+
                 Kaestchen {
+                    Layout.fillWidth: true
                     beschriftung: qsTr("Normblatt einschließen")
                     wert: root.normblattAn && !root.vollCanvasAn
                     enabled: !root.vollCanvasAn
                     onUmgeschaltet: function(neu) { root.normblattAn = neu }
                 }
                 Kaestchen {
+                    Layout.fillWidth: true
                     beschriftung: qsTr("Infostreifen für Seiten ohne Schriftfeld")
                     wert: root.infostreifenAn
                     onUmgeschaltet: function(neu) { root.infostreifenAn = neu }
                 }
                 Kaestchen {
+                    Layout.fillWidth: true
                     beschriftung: qsTr("Ganzes Canvas (ohne Normblatt)")
                     wert: root.vollCanvasAn
                     onUmgeschaltet: function(neu) { root.vollCanvasAn = neu }
@@ -591,46 +648,56 @@ Dialog {
             }
         }
 
-        // Hinweis, warum Exportieren gesperrt ist
-        Text {
-            Layout.fillWidth: true
-            visible: !root.exportMoeglich
-            wrapMode: Text.WordWrap
-            color: root.theme.accent; font.pixelSize: 11
-            text: {
-                var aktiv = root.abschnittVersion < 0
-                for (var i = 0; i < abschnittModel.count; i++) if (abschnittModel.get(i).aktiv) aktiv = true
-                if (!aktiv) return qsTr("Mindestens ein Abschnitt muss ausgewählt sein.")
-                if (root._abschnittAktiv("schaltplan") && root.gewaehlteSeiten === 0)
-                    return qsTr("Für den Schaltplan ist keine Seite ausgewählt.")
-                return qsTr("Der SPS/PLS-Abschnitt braucht SPS/PLS-Daten im Projekt.")
-            }
-        }
-
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
 
-        RowLayout {
-            Layout.fillWidth: true; spacing: 8
-            Button {
-                text: qsTr("Abbrechen"); Layout.fillWidth: true; implicitHeight: 32
-                onClicked: root.reject()
-                contentItem: Text { text: parent.text; color: root.theme.textSecondary; font.pixelSize: 12
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
-                    radius: 4; border.color: root.theme.border }
-            }
-            Button {
-                text: qsTr("Exportieren …"); Layout.fillWidth: true; implicitHeight: 32
-                enabled: root.exportMoeglich
-                onClicked: pfadDialog.open()
-                contentItem: Text { text: parent.text; font.pixelSize: 12
-                    color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle {
-                    color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
-                    radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+        // ── Fußleiste: Hinweis + Export ──────────────────────────
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 52
+            color: root.theme.surfaceDeep
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 12; anchors.rightMargin: 12
+                spacing: 12
+
+                Text {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                    color: root.exportMoeglich ? root.theme.textMuted : root.theme.accent
+                    font.pixelSize: 12
+                    text: {
+                        var aktiv = root.abschnittVersion < 0
+                        var n = 0
+                        for (var i = 0; i < abschnittModel.count; i++)
+                            if (abschnittModel.get(i).aktiv) { aktiv = true; n++ }
+                        if (!aktiv) return qsTr("Mindestens ein Abschnitt muss ausgewählt sein.")
+                        if (root._abschnittAktiv("schaltplan") && root.gewaehlteSeiten === 0)
+                            return qsTr("Für den Schaltplan ist keine Seite ausgewählt.")
+                        if (root._abschnittAktiv("sps_io") && !root._spsVorhanden)
+                            return qsTr("Der SPS/PLS-Abschnitt braucht SPS/PLS-Daten im Projekt.")
+                        return qsTr("%1 Abschnitte, %2 Schaltplan-Seiten").arg(n).arg(
+                            root._abschnittAktiv("schaltplan") ? root.gewaehlteSeiten : 0)
+                    }
+                }
+
+                Button {
+                    text: qsTr("Exportieren …")
+                    implicitWidth: 200; implicitHeight: 32
+                    enabled: root.exportMoeglich
+                    onClicked: pfadDialog.open()
+                    contentItem: Text { text: parent.text; font.pixelSize: 12
+                        color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                        radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                }
             }
         }
     }
 
+    DebugLabel { panelName: qsTr("Dokumentations-PDF-Ansicht"); visible: root.debug && root.visible }
 }

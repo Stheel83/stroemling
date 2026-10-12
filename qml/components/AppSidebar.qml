@@ -20,7 +20,6 @@ Rectangle {
 
     signal ansichtGewaehlt(string ansicht)
     signal symbolEditorAngefordert()
-    signal pdfExportAngefordert()
     signal themeGewaehlt(string name)
 
     DebugLabel { panelName: qsTr("Navigationsleiste"); visible: root.debug }
@@ -130,11 +129,12 @@ Rectangle {
             theme:           root.theme
             icon:            "🖨"
             label:           qsTr("PDF-Export")
+            active:          root.aktiveAnsicht === "doku_pdf"
             enabled:         root.aktivProjektId >= 0
             opacity:         enabled ? 1.0 : 0.4
-            tooltip:         qsTr("Alle Seiten des Projekts als PDF exportieren")
+            tooltip:         qsTr("Dokumentations-PDF zusammenstellen: Deckblatt, Verzeichnis, Schaltplan, SPS/PLS")
             tooltipDisabled: qsTr("Zuerst ein Projekt öffnen")
-            onClicked: root.pdfExportAngefordert()
+            onClicked: root.ansichtGewaehlt("doku_pdf")
         }
         SidebarButton {
             theme:           root.theme

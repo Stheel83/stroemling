@@ -324,15 +324,7 @@ ApplicationWindow {
         sequence:    "Ctrl+Shift+P"
         context:     Qt.ApplicationShortcut
         enabled:     root.aktivProjektId >= 0
-        onActivated: pdfExportDialog.open()
-    }
-
-    DokuPdfDialog {
-        id:        pdfExportDialog
-        theme:     appTheme
-        projektId: root.aktivProjektId
-        seiteId:   root.aktivSeiteId
-        debug:     root.debugModeAktiv
+        onActivated: root.aktiveAnsicht = "doku_pdf"
     }
 
     onSuchPanelOffenChanged: {
@@ -371,7 +363,6 @@ ApplicationWindow {
             onWidthChanged: if (width >= 150) panelBreiten.sidebarBreite = width
 
             onAnsichtGewaehlt: function(ansicht) { root.aktiveAnsicht = ansicht }
-            onPdfExportAngefordert: pdfExportDialog.open()
             onThemeGewaehlt: function(name) { AppTheme.setTheme(name) }
             onSymbolEditorAngefordert: {
                 root.symbolEditorVorher    = root.aktiveAnsicht
@@ -1233,6 +1224,16 @@ ApplicationWindow {
                     var p = root.fokussiertesPanel === 2 ? panel2 : panel1
                     p.seiteOeffnenUndZentrieren(seiteId, blattnr, seiteBez, wx, wy)
                 }
+            }
+
+            // ── Dokumentations-PDF ─────────────────────────────────────
+            DokuPdfAnsicht {
+                anchors.fill: parent
+                visible:      root.aktiveAnsicht === "doku_pdf"
+                theme:        appTheme
+                projektId:    root.aktivProjektId
+                seiteId:      root.aktivSeiteId
+                debug:        root.debugModeAktiv
             }
 
             // ── Fehlersuchmodus ────────────────────────────────────────

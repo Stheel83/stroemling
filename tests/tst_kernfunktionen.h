@@ -763,6 +763,24 @@ private slots:
         QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_voll.pdf", false, true, true));
     }
 
+    // Referenz-PDF der generischen Listen-Tabelle (listePdfSpeichern) für Vorher/Nachher-Vergleiche bei Umbauten
+    // des Tabellen-Renderers (DOKU-PDF-02). Nur mit STROEMLING_LISTE_PDF_AUSGABE=<Ordner>.
+    void liste_pdf_referenz()
+    {
+        const QString aus = qEnvironmentVariable("STROEMLING_LISTE_PDF_AUSGABE");
+        if (aus.isEmpty()) QSKIP("STROEMLING_LISTE_PDF_AUSGABE nicht gesetzt");
+        QDir().mkpath(aus);
+        const QStringList spalten = {"BMK", "Typ", "Bezeichnung", "Seite", "Bemerkung"};
+        QVariantList zeilen;
+        for (int i = 0; i < 150; ++i)
+            zeilen.append(QVariant(QStringList{QString("-K%1").arg(i), "Schütz <3-polig> & Co.",
+                                               QString("Zeile %1 äöüß").arg(i), QString::number(i % 9 + 1),
+                                               i % 7 == 0 ? "ein längerer Bemerkungstext, der in der Zelle umbrechen kann, wenn er nur lang genug ist" : ""}));
+        QVERIFY(m_db->listePdfSpeichern("Testliste", "Projekt Ü", spalten, zeilen, aus + "/liste_lang.pdf"));
+        QVERIFY(m_db->listePdfSpeichern("Kurz", "", {"A", "B"}, {QVariant(QStringList{"1", "2"})}, aus + "/liste_kurz.pdf"));
+        QVERIFY(m_db->listePdfSpeichern("Leer", "P", spalten, {}, aus + "/liste_leer.pdf"));
+    }
+
     // DOKU-PDF-01: Seiten-Flag in_doku_pdf steuert den Schaltplan-Export "alle Seiten"; Einzelseite ignoriert es.
     static int pdfSeitenAnzahl(const QString &pfad)
     {
@@ -816,6 +834,58 @@ private slots:
         QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 0"));
         QVERIFY(!m_db->canvasPdfExportieren(pid, dir + "/stroemling_dokupdf_leer.pdf", false, false, false));
         QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 1"));
+    }
+
+    // DOKU-PDF-02: Kombi-PDF aus Abschnitten (Schaltplan + SPS-I/O-Liste) in einem Writer
+    void doku_pdf_02_kombi()
+    {
+        neueSeite("DK1");
+        neueSeite("DK2");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+
+        // SPS-Rack mit genug Kanälen, dass die Tabelle mehrere Seiten braucht
+        const int r  = m_db->spsRackAnlegen(pid, 96, "PLS", "Doku", "ACME");
+        const int bg = m_db->spsBaugruppeAnlegen(r, 1, "AI", "AI 64", 64, 0);
+        QVERIFY(r > 0 && bg > 0);
+        for (int i = 0; i < 64; ++i)
+            QVERIFY(m_db->spsKanalAnlegen(pid, bg, i, "E", 0, 0, "REAL", QString("TIC%1").arg(i), "Test") > 0);
+        const QString sps = R"({"typ":"sps_io","konfig":{"spalten":[{"feld":"adresse"},{"feld":"variablenname"}],
+            "filter":{"rack":"96"}}})";
+        const QString dir = QDir::tempPath();
+
+        const QString nurPlan = dir + "/stroemling_dokupdf_plan.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, nurPlan, R"({"abschnitte":[{"typ":"schaltplan"}],"mitNormblatt":false})"));
+        const int planSeiten = pdfSeitenAnzahl(nurPlan);
+        QVERIFY(planSeiten >= 2);
+
+        const QString nurSps = dir + "/stroemling_dokupdf_sps.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, nurSps, "{\"abschnitte\":[" + sps + "]}"));
+        const int spsSeiten = pdfSeitenAnzahl(nurSps);
+        QVERIFY(spsSeiten >= 2);   // 64 Zeilen passen nicht auf eine Seite
+
+        const QString kombi = dir + "/stroemling_dokupdf_kombi.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, kombi,
+            "{\"mitNormblatt\":false,\"abschnitte\":[{\"typ\":\"schaltplan\"}," + sps + "]}"));
+        QCOMPARE(pdfSeitenAnzahl(kombi), planSeiten + spsSeiten);
+
+        // Reihenfolge umkehrbar, gleiche Seitenzahl
+        const QString umgekehrt = dir + "/stroemling_dokupdf_umgekehrt.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, umgekehrt,
+            "{\"mitNormblatt\":false,\"abschnitte\":[" + sps + ",{\"typ\":\"schaltplan\"}]}"));
+        QCOMPARE(pdfSeitenAnzahl(umgekehrt), planSeiten + spsSeiten);
+
+        // Explizite Seitenauswahl überschreibt das Flag
+        const int ersteId = einWert("SELECT id FROM seite ORDER BY id LIMIT 1").toInt();
+        const QString eine = dir + "/stroemling_dokupdf_eine.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, eine,
+            QString("{\"seiteIds\":[%1],\"mitNormblatt\":false,\"abschnitte\":[{\"typ\":\"schaltplan\"}]}").arg(ersteId)));
+        QCOMPARE(pdfSeitenAnzahl(eine), 1);
+
+        // Fehlerfälle: unbekannter Typ, kaputtes JSON, leerer Schaltplan ohne weiteren Abschnitt
+        QVERIFY(!m_db->dokuPdfExportieren(pid, dir + "/stroemling_dokupdf_x.pdf", R"({"abschnitte":[{"typ":"gibtsnicht"}]})"));
+        QVERIFY(!m_db->dokuPdfExportieren(pid, dir + "/stroemling_dokupdf_x.pdf", "{kein json"));
+        QVERIFY(!m_db->dokuPdfExportieren(pid, dir + "/stroemling_dokupdf_x.pdf",
+                                          R"({"seiteIds":[],"abschnitte":[{"typ":"schaltplan"}]})"));
     }
 
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-

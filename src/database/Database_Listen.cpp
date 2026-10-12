@@ -1,5 +1,6 @@
 #include "Database.h"
 #include "Database_CsvHelfer.h"
+#include "PdfRenderer.h"
 #include <cmath>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -16,10 +17,8 @@
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
-#include <QPrinter>
-#include <QPageLayout>
-#include <QPageSize>
-#include <QTextDocument>
+#include <QPainter>
+#include <QPdfWriter>
 #include <algorithm>
 
 QVariantList Database::alleSeitenFlach(int projektId)
@@ -1196,56 +1195,18 @@ bool Database::listePdfSpeichern(const QString &titel, const QString &projektNam
     QString localPath = QUrl(pfad).toLocalFile();
     if (localPath.isEmpty()) localPath = pfad;
 
-    auto esc = [](const QString &s) -> QString {
-        QString r = s;
-        r.replace(u'&', QLatin1String("&amp;"));
-        r.replace(u'<', QLatin1String("&lt;"));
-        r.replace(u'>', QLatin1String("&gt;"));
-        return r;
-    };
+    QPdfWriter writer(localPath);
+    writer.setCreator(QStringLiteral("Stroemling Design"));
+    writer.setTitle(titel);
+    writer.setPageLayout(pdfTabellenSeitenLayout());
 
-    QString html;
-    html.reserve(32 * 1024);
-    html += QStringLiteral(R"(<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>
-  body  { font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; color: #222; margin: 0; }
-  h1    { font-size: 13pt; color: #1a3560; margin: 0 0 2px 0; }
-  .subtitle { font-size: 9pt; color: #555; margin-bottom: 10px; }
-  table { width: 100%; border-collapse: collapse; }
-  th    { text-align: left; background: #eef2f7; padding: 4px 6px; font-size: 8pt;
-          color: #1a3560; border-bottom: 1px solid #1a3560; }
-  td    { padding: 3px 6px; font-size: 8.5pt; border-bottom: 1px solid #e0e0e0; }
-  tr:nth-child(even) td { background: #f7f7f7; }
-</style></head><body>)");
-
-    html += QStringLiteral("<h1>") + esc(titel) + QStringLiteral("</h1>");
-    if (!projektName.isEmpty())
-        html += QStringLiteral("<div class='subtitle'>") + esc(projektName) + QStringLiteral("</div>");
-
-    html += QStringLiteral("<table><thead><tr>");
-    for (const QString &s : spalten)
-        html += QStringLiteral("<th>") + esc(s) + QStringLiteral("</th>");
-    html += QStringLiteral("</tr></thead><tbody>");
-
-    for (const QVariant &zv : zeilen) {
-        const QVariantList zeile = zv.toList();
-        html += QStringLiteral("<tr>");
-        for (const QVariant &cv : zeile)
-            html += QStringLiteral("<td>") + esc(cv.toString()) + QStringLiteral("</td>");
-        html += QStringLiteral("</tr>");
+    QPainter painter(&writer);
+    if (!painter.isActive()) {
+        qCWarning(lcDb) << "listePdfSpeichern: QPainter konnte nicht gestartet werden";
+        return false;
     }
-    html += QStringLiteral("</tbody></table></body></html>");
-
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setOutputFileName(localPath);
-    printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
-    printer.setPageMargins(QMarginsF(12, 12, 12, 12), QPageLayout::Millimeter);
-
-    QTextDocument doc;
-    doc.setHtml(html);
-    doc.print(&printer);
+    pdfTabelleRendern(painter, writer, titel, projektName, spalten, zeilen, false);
+    painter.end();
 
     return QFile::exists(localPath);
 }

@@ -9,6 +9,7 @@
 //   PdfRenderer_Symbol      Symbol-Element (Beschriftung, Pin-Bezeichnungen, Querverweise)
 //   PdfRenderer_Elemente    übrige Element-Typen + Dispatcher pdfElementRendern()
 //   PdfRenderer_Normblatt   Normblatt, Infostreifen, Revisions-Wasserzeichen, Bounding-Box
+//   PdfRenderer_Tabelle     generische Tabelle mit Seitenumbruch (Listen-PDF, Dokumentations-PDF)
 //   Database_PDF.cpp        öffentliche Database-Methoden (canvasPdfExportieren/-SeiteExportieren)
 // ============================================================
 #include <QColor>
@@ -20,6 +21,11 @@
 #include <QString>
 #include <QVariantMap>
 #include <QVector>
+#include <QPageLayout>
+#include <QStringList>
+#include <QVariantList>
+
+class QPdfWriter;
 
 // Verbindungssegment für die Winkel/Treffpunkt-Farbübernahme (s.u.) und für
 // pdfLeitungenRendern. Koordinaten in Canvas-Einheiten (1 Einheit = 0.25 mm),
@@ -149,3 +155,15 @@ void pdfRevisionswasserzeichenRendern(QPainter &p, const QVariantMap &nb,
                                        double bMm, double hMm, double pxPerMm);
 PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,
                         const QSqlDatabase &db);
+
+// ── PdfRenderer_Tabelle ──────────────────────────────────────
+// Seitenlayout für Tabellen-Abschnitte: A4 quer, 12 mm Rand.
+QPageLayout pdfTabellenSeitenLayout();
+// Rendert Titel/Untertitel/Kopfzeile/Zeilen ab der aktuellen Writer-Position, mit Seitenumbruch.
+// ersteSeiteNeu=true: setzt pdfTabellenSeitenLayout() und beginnt eine neue Seite (Anhängen hinter
+// einen anderen Abschnitt); false: der Writer hat das Layout schon (erste Seite des Dokuments).
+// Fußzeile "Seite x von y": x zählt ab seitenNrStart; y = seitenGesamt, bei 0 das Ende dieses Abschnitts.
+// Rückgabe: Anzahl gerenderter Seiten.
+int pdfTabelleRendern(QPainter &p, QPdfWriter &w, const QString &titel, const QString &untertitel,
+                      const QStringList &spalten, const QVariantList &zeilen, bool ersteSeiteNeu,
+                      int seitenNrStart = 1, int seitenGesamt = 0);

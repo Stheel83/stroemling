@@ -41,6 +41,7 @@ qt_add_executable(stroemling_app
     src/database/PdfRenderer_Symbol.cpp
     src/database/PdfRenderer_Elemente.cpp
     src/database/PdfRenderer_Normblatt.cpp
+    src/database/PdfRenderer_Tabelle.cpp
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp
@@ -555,6 +556,7 @@ qt_add_executable(stroemling_test
     src/database/PdfRenderer_Symbol.cpp
     src/database/PdfRenderer_Elemente.cpp
     src/database/PdfRenderer_Normblatt.cpp
+    src/database/PdfRenderer_Tabelle.cpp
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
     src/database/Database_DRC.cpp

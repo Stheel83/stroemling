@@ -566,6 +566,11 @@ private slots:
             d.closeProjekt();
         };
         ausstehendMachen();                 // Zustand mit ausstehender Migration 161
+        // Snapshot des "ausstehend"-Zustands: spaetere Migrationen aendern Daten (Spalten, Seeds), ein
+        // zweites ausstehendMachen() ergaebe daher einen anderen Zustand als beim ersten Mal.
+        const QString snapshot = pfad + ".pending";
+        QFile::remove(snapshot);
+        QVERIFY(QFile::copy(pfad, snapshot));
         QVERIFY(d.openProjekt(pfad));       // legt Backup v160 an
         d.closeProjekt();
         QCOMPARE(backupsMitVersion(160), 1);
@@ -574,7 +579,8 @@ private slots:
         for (int v = 104; v <= 108; ++v) QCOMPARE(backupsMitVersion(v), 2);
 
         // Fehlversuch-Szenario: gleicher Zustand nochmal -> kein neues Backup
-        ausstehendMachen();
+        QFile::remove(pfad); QFile::remove(pfad + "-wal"); QFile::remove(pfad + "-shm");
+        QVERIFY(QFile::copy(snapshot, pfad));
         QVERIFY(d.openProjekt(pfad));
         d.closeProjekt();
         QCOMPARE(backupsMitVersion(160), 1);

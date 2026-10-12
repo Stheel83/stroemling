@@ -47,6 +47,8 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                p.auftragnehmer,
                p.bearbeiter,
                p.norm,
+               p.werk,
+               p.abteilung,
                p.erstellt_am,
                COALESCE(s.rand_links_mm,  nv.rand_links_mm,  20) AS rand_links_mm,
                COALESCE(s.rand_rechts_mm, nv.rand_rechts_mm, 10) AS rand_rechts_mm,
@@ -89,6 +91,8 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("auftragnehmer")]    = q.value("auftragnehmer");
     m[QStringLiteral("bearbeiter")]       = q.value("bearbeiter");
     m[QStringLiteral("norm")]             = q.value("norm");
+    m[QStringLiteral("werk")]             = q.value("werk");
+    m[QStringLiteral("abteilung")]        = q.value("abteilung");
 
     // Logo als Data-URL — separater Query damit der BLOB-Join nicht bei jeder
     // Seite lädt wenn kein Logo gesetzt ist.
@@ -112,6 +116,27 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                 // Seitenverhältnis (Breite/Höhe) aus dem Bild-Header – der Canvas kann die
                 // Bildgröße nicht abfragen und würde das Logo sonst auf die Zelle strecken.
                 QBuffer buf(&logoData);
+                buf.open(QIODevice::ReadOnly);
+                const QSize sz = QImageReader(&buf).size();
+                if (sz.isValid() && sz.height() > 0)
+                    m[QStringLiteral("logoAspekt")] = double(sz.width()) / sz.height();
+            }
+        }
+    }
+    // Logo der zugewiesenen Vorlage (Bearbeiter-Logo) hat Vorrang vor dem Projekt-Logo (BLATTVORLAGEN-01b)
+    {
+        QSqlQuery qv(m_db);
+        qv.prepare(R"(SELECT nv.logo_data, nv.logo_mime FROM seite s
+                      JOIN normblatt_vorlage nv ON nv.id = s.normblatt_id
+                      WHERE s.id = :sid AND nv.logo_data IS NOT NULL)");
+        qv.bindValue(":sid", seiteId);
+        if (qv.exec() && qv.next()) {
+            QByteArray d = qv.value(0).toByteArray();
+            const QString mime = qv.value(1).toString();
+            if (!d.isEmpty() && !mime.isEmpty()) {
+                m[QStringLiteral("logoDataUrl")] = QStringLiteral("data:") + mime
+                    + QStringLiteral(";base64,") + QString::fromLatin1(d.toBase64());
+                QBuffer buf(&d);
                 buf.open(QIODevice::ReadOnly);
                 const QSize sz = QImageReader(&buf).size();
                 if (sz.isValid() && sz.height() > 0)
@@ -208,7 +233,8 @@ QVariantList Database::normblattVorlagenListe()
 {
     QSqlQuery q(m_db);
     if (!q.exec("SELECT id, name, beschreibung, ist_standard, breite_mm, hoehe_mm, "
-                "rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm "
+                "rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, art, "
+                "(logo_data IS NOT NULL) AS hat_logo "
                 "FROM normblatt_vorlage ORDER BY name")) {
         qCWarning(lcDb) << "normblattVorlagenListe:" << q.lastError().text();
         return {};
@@ -226,6 +252,8 @@ QVariantList Database::normblattVorlagenListe()
         m[QStringLiteral("randRechtsMm")] = q.value("rand_rechts_mm");
         m[QStringLiteral("randObenMm")]   = q.value("rand_oben_mm");
         m[QStringLiteral("randUntenMm")]  = q.value("rand_unten_mm");
+        m[QStringLiteral("art")]          = q.value("art");
+        m[QStringLiteral("hatLogo")]      = q.value("hat_logo").toInt() != 0;
         result.append(m);
     }
     return result;
@@ -243,14 +271,15 @@ int Database::normblattVorlageSpeichern(const QVariantMap &v)
             rand_links_mm  = :rl,
             rand_rechts_mm = :rr,
             rand_oben_mm   = :ro,
-            rand_unten_mm  = :ru
+            rand_unten_mm  = :ru,
+            art            = COALESCE(:art, art)
             WHERE id = :id)");
         q.bindValue(":id",    v.value(QStringLiteral("id")));
     } else {
         q.prepare(R"(INSERT INTO normblatt_vorlage
             (name, beschreibung, breite_mm, hoehe_mm,
-             rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm)
-            VALUES (:name, :beschr, :bMm, :hMm, :rl, :rr, :ro, :ru))");
+             rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, art)
+            VALUES (:name, :beschr, :bMm, :hMm, :rl, :rr, :ro, :ru, COALESCE(:art, 'schriftfeld')))");
     }
     q.bindValue(":name",   v.value(QStringLiteral("name")));
     q.bindValue(":beschr", v.value(QStringLiteral("beschreibung")));
@@ -260,6 +289,8 @@ int Database::normblattVorlageSpeichern(const QVariantMap &v)
     q.bindValue(":rr",     v.value(QStringLiteral("randRechtsMm"), 10.0));
     q.bindValue(":ro",     v.value(QStringLiteral("randObenMm"),   10.0));
     q.bindValue(":ru",     v.value(QStringLiteral("randUntenMm"),  10.0));
+    q.bindValue(":art",    v.contains(QStringLiteral("art")) ? v.value(QStringLiteral("art"))
+                                                              : QVariant(QMetaType(QMetaType::QString)));
     if (!q.exec()) {
         qCWarning(lcDb) << "normblattVorlageSpeichern:" << q.lastError().text();
         return -1;
@@ -279,6 +310,93 @@ bool Database::normblattVorlageLoeschen(int vorlageId)
         return false;
     }
     return true;
+}
+
+bool Database::normblattVorlageLogoSpeichern(int vorlageId, const QString &pfad)
+{
+    const QString lokal = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+    QFile f(lokal);
+    if (!f.open(QIODevice::ReadOnly)) return false;
+    const QByteArray data = f.readAll();
+    QImage img;
+    if (!img.loadFromData(data)) return false;
+    const QString ext = QFileInfo(lokal).suffix().toLower();
+    const QString mime = ext == QLatin1String("svg") ? QStringLiteral("image/svg+xml")
+                       : ext == QLatin1String("jpg") || ext == QLatin1String("jpeg") ? QStringLiteral("image/jpeg")
+                       : QStringLiteral("image/png");
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE normblatt_vorlage SET logo_data = :d, logo_mime = :m WHERE id = :id");
+    q.bindValue(":d", data);
+    q.bindValue(":m", mime);
+    q.bindValue(":id", vorlageId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "normblattVorlageLogoSpeichern:" << q.lastError().text();
+        return false;
+    }
+    return q.numRowsAffected() > 0;
+}
+
+bool Database::normblattVorlageLogoLoeschen(int vorlageId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE normblatt_vorlage SET logo_data = NULL, logo_mime = NULL WHERE id = :id");
+    q.bindValue(":id", vorlageId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "normblattVorlageLogoLoeschen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// Daten für ein Deckblatt aus einer Vorlage der Art 'deckblatt' (BLATTVORLAGEN-01b). Gleiche Schlüssel
+// wie normblattDatenLaden(), damit pdfNormblattRendern() beides zeichnen kann. vorlageId <= 0:
+// erste Deckblattvorlage (ist_standard zuerst). Leere Map = keine Vorlage vorhanden.
+QVariantMap Database::deckblattDatenLaden(int projektId, int vorlageId, const QString &titelzusatz, bool mitLogo)
+{
+    QSqlQuery qv(m_db);
+    if (vorlageId > 0) {
+        qv.prepare("SELECT id, breite_mm, hoehe_mm, logo_data, logo_mime FROM normblatt_vorlage WHERE id = :id");
+        qv.bindValue(":id", vorlageId);
+    } else {
+        qv.prepare("SELECT id, breite_mm, hoehe_mm, logo_data, logo_mime FROM normblatt_vorlage "
+                   "WHERE art = 'deckblatt' ORDER BY ist_standard DESC, id LIMIT 1");
+    }
+    if (!qv.exec() || !qv.next()) return {};
+    const int vid = qv.value(0).toInt();
+
+    QVariantMap m;
+    m[QStringLiteral("breiteMm")]   = qv.value(1);
+    m[QStringLiteral("hoeheMm")]    = qv.value(2);
+    m[QStringLiteral("ohneRahmen")] = true;
+    m[QStringLiteral("felder")]     = normblattFelderLaden(vid);
+    m[QStringLiteral("titelzusatz")] = titelzusatz;
+
+    QSqlQuery qp(m_db);
+    qp.prepare("SELECT name, projektnummer, auftraggeber, auftragnehmer, bearbeiter, werk, abteilung, norm, erstellt_am "
+               "FROM projekt WHERE id = :pid");
+    qp.bindValue(":pid", projektId);
+    if (qp.exec() && qp.next()) {
+        m[QStringLiteral("projektName")]   = qp.value(0);
+        m[QStringLiteral("projektnummer")] = qp.value(1);
+        m[QStringLiteral("auftraggeber")]  = qp.value(2);
+        m[QStringLiteral("auftragnehmer")] = qp.value(3);
+        m[QStringLiteral("bearbeiter")]    = qp.value(4);
+        m[QStringLiteral("werk")]          = qp.value(5);
+        m[QStringLiteral("abteilung")]     = qp.value(6);
+        m[QStringLiteral("norm")]          = qp.value(7);
+        m[QStringLiteral("erstelltAm")]    = qp.value(8);
+    }
+    if (mitLogo) {
+        QString url;
+        const QByteArray d = qv.value(3).toByteArray();
+        if (!d.isEmpty() && !qv.value(4).toString().isEmpty())
+            url = QStringLiteral("data:") + qv.value(4).toString() + QStringLiteral(";base64,")
+                + QString::fromLatin1(d.toBase64());
+        else
+            url = projektLogoDataUrl(projektId);
+        if (!url.isEmpty()) m[QStringLiteral("logoDataUrl")] = url;
+    }
+    return m;
 }
 
 QVariantList Database::normblattFelderLaden(int vorlageId)

@@ -1100,6 +1100,77 @@ private slots:
         if (bildAnzahl(eig) >= 0) QCOMPARE(bildAnzahl(eig), 1);
     }
 
+    // BLATTVORLAGEN-01b: Deckblatt aus Blattvorlage (Seed 'Standard-Deckblatt', Platzhalter, Vorlagen-Logo).
+    void blattvorlagen_01b_deckblatt()
+    {
+        neueSeite("BD1");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const QString dir = QDir::tempPath();
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+        auto bilder = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdfimages", {"-list", pdf});
+            if (!pr.waitForFinished(20000)) return -1;
+            return int(QString::fromUtf8(pr.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts).size()) - 2;
+        };
+
+        // Seed: genau eine Deckblattvorlage, A4 hoch, mit Feldern; Schriftfeld-Vorlagen haben art 'schriftfeld'
+        QVariantList deck;
+        for (const QVariant &v : m_db->normblattVorlagenListe())
+            if (v.toMap().value("art").toString() == "deckblatt") deck << v;
+        QCOMPARE(deck.size(), 1);
+        const int vid = deck.first().toMap().value("id").toInt();
+        QCOMPARE(deck.first().toMap().value("breiteMm").toInt(), 210);
+        QVERIFY(m_db->normblattFelderLaden(vid).size() >= 10);
+
+        const QString f1 = dir + "/stroemling_bv1b_a.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f1,
+            R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt","titelzusatz":"Pruefstand-Drei","logo":false}]})"));
+        QCOMPARE(pdfSeitenAnzahl(f1), 1);
+        QString t = pdfText(f1);
+        QVERIFY2(t.contains("Dokumentation"), qPrintable(t));
+        QVERIFY2(t.contains("Pruefstand-Drei"), qPrintable(t));
+        QVERIFY2(t.contains("KernTest"), qPrintable(t));          // {projekt.name}
+        QVERIFY2(t.contains("erstellt mit"), qPrintable(t));
+        QVERIFY2(!t.contains("{"), qPrintable(t));                // alle Platzhalter ersetzt
+        if (bilder(f1) >= 0) QCOMPARE(bilder(f1), 0);            // logo:false
+
+        // Projekt-Logo, dann Vorlagen-Logo mit Vorrang (zwei Bilder gesamt nur, wenn beide gezeichnet wuerden – hier eins)
+        const QString logo = dir + "/stroemling_bv1b_logo.png";
+        { QImage img(120, 60, QImage::Format_RGB32); img.fill(Qt::blue); QVERIFY(img.save(logo)); }
+        QVERIFY(m_db->projektLogoSpeichern(pid, logo));
+        const QString f2 = dir + "/stroemling_bv1b_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2, R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
+        if (bilder(f2) >= 0) QCOMPARE(bilder(f2), 1);
+        const QVariantMap d1 = m_db->deckblattDatenLaden(pid, vid, QString(), true);
+        const QString projUrl = d1.value("logoDataUrl").toString();
+        QVERIFY(!projUrl.isEmpty());
+        const QString logo2 = dir + "/stroemling_bv1b_logo2.png";
+        { QImage img(80, 80, QImage::Format_RGB32); img.fill(Qt::green); QVERIFY(img.save(logo2)); }
+        QVERIFY(m_db->normblattVorlageLogoSpeichern(vid, logo2));
+        const QString vorlUrl = m_db->deckblattDatenLaden(pid, vid, QString(), true).value("logoDataUrl").toString();
+        QVERIFY(!vorlUrl.isEmpty());
+        QVERIFY(vorlUrl != projUrl);
+        QVERIFY(m_db->normblattVorlageLogoLoeschen(vid));
+        QCOMPARE(m_db->deckblattDatenLaden(pid, vid, QString(), true).value("logoDataUrl").toString(), projUrl);
+
+        // Deckblatt + Verzeichnis + Plan: Seitenzahl = 1 + Verzeichnis + Plan
+        const QString f3 = dir + "/stroemling_bv1b_c.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f3,
+            R"({"abschnitte":[{"typ":"deckblatt"},{"typ":"inhaltsverzeichnis"},{"typ":"schaltplan"}]})"));
+        QVERIFY(pdfSeitenAnzahl(f3) >= 3);
+
+        // Vorlage geloescht -> Export scheitert sauber
+        QVERIFY(m_db->normblattVorlageLoeschen(vid));
+        QVERIFY(!m_db->dokuPdfExportieren(pid, dir + "/stroemling_bv1b_d.pdf",
+                                          R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

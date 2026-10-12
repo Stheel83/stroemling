@@ -15,7 +15,7 @@ Item {
     signal amRandAusgerichtet(string modus)
 
     readonly property var _typen:    ["fest","projekt","seite","datum","vollkennzeichen","format","logo"]
-    readonly property var _pSpalten: ["name","projektnummer","auftraggeber","auftragnehmer","bearbeiter","norm"]
+    readonly property var _pSpalten: ["name","projektnummer","auftraggeber","auftragnehmer","bearbeiter","norm","werk","abteilung"]
     readonly property var _sSpalten: ["blattnummer","bezeichnung","anlage_kuerzel","ort_kuerzel"]
 
     // Inputs werden bei Feldwechsel (neues feldIdx) zurückgesetzt

@@ -178,15 +178,10 @@ QPageLayout pdfHochSeitenLayout();
 // Fußzeile "Seite x von y" rechtsbündig in den untersten fussHoehePx des beschreibbaren Bereichs.
 void pdfFusszeileZeichnen(QPainter &p, QPdfWriter &w, double fussHoehePx, int seite, int gesamt);
 
-struct PdfDeckblattDaten {
-    QString projektName;
-    QString titelzusatz;                       // optional, unter dem Projektnamen
-    QList<QPair<QString, QString>> felder;     // Beschriftung/Wert; leere Werte werden ausgelassen
-    QImage  logo;                              // optional
-    QString stand;                             // Ausgabedatum, bereits formatiert
-};
-// Zeichnet genau eine Seite.
-void pdfDeckblattRendern(QPainter &p, QPdfWriter &w, const PdfDeckblattDaten &d, bool ersteSeiteNeu);
+// Deckblatt aus einer Blattvorlage (Daten: Database::deckblattDatenLaden()). Zeichnet genau eine Seite in der
+// Vorlagengröße, Koordinaten absolut ab der Seitenecke (Seitenränder 0).
+void pdfDeckblattRendern(QPainter &p, QPdfWriter &w, const QVariantMap &nb, bool ersteSeiteNeu);
+QPageLayout pdfDeckblattSeitenLayout(double bMm, double hMm);
 
 // ebene 0 = Abschnitt, 1 = Anlage/Ort (ohne Seitenzahl), 2 = Schaltplan-Seite; seite <= 0: keine Seitenzahl.
 struct PdfTocEintrag { int ebene = 0; QString text; int seite = 0; };

@@ -55,3 +55,16 @@ an. „Löschen" entfernt eine Vorlage nur, solange keine Seite sie verwendet
 
 Eine so erstellte Vorlage wählst du danach in jeder Seite über
 „Benutzerdefiniert" plus Vorlagenname aus.
+
+---
+
+## Schrift, Platzhalter und Deckblatt
+
+- **Schriftgröße und Fett:** Im Eigenschaften-Panel stellst du die Schriftgröße (in mm) und „Fett“ je Feld ein. Das gilt
+  für die Anzeige im Schaltplan und im PDF. Lange Texte werden an Wortgrenzen umgebrochen.
+- **Platzhalter in festen Texten:** `{projekt.name}`, `{projekt.projektnummer}`, `{projekt.auftraggeber}`,
+  `{projekt.auftragnehmer}`, `{projekt.bearbeiter}`, `{projekt.norm}`, `{projekt.werk}`, `{projekt.abteilung}`,
+  `{datum}` (Projekt angelegt), `{heute}` (Ausgabedatum) und `{titelzusatz}` (Eingabe beim PDF-Export).
+- **Deckblatt:** Das Deckblatt des Dokumentations-PDFs ist eine Blattvorlage der Art „Deckblatt“ (A4 hoch).
+  Mitgeliefert ist „Standard-Deckblatt“; per „Kopieren“ legst du eine eigene Variante an und wählst sie im
+  PDF-Export beim Abschnitt Deckblatt unter „Vorlage“.

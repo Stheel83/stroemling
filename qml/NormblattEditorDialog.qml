@@ -282,6 +282,7 @@ Item {
         var neuId = db.normblattVorlageSpeichern({
             name:         _vorlage.name + qsTr(" (Kopie)"),
             beschreibung: _vorlage.beschreibung,
+            art:          _vorlage.art,
             breiteMm:     _vorlage.breiteMm,     hoeheMm:      _vorlage.hoeheMm,
             randLinksMm:  _vorlage.randLinksMm,  randRechtsMm: _vorlage.randRechtsMm,
             randObenMm:   _vorlage.randObenMm,   randUntenMm:  _vorlage.randUntenMm

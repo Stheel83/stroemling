@@ -129,7 +129,7 @@ QtObject {
         if (_felder && _felder.length > 0) {
             var _feldWert = function(f) {
                 var ft = f.feldtyp || "fest"
-                if (ft === "fest")            return f.inhalt || ""
+                if (ft === "fest")            return platzhalter(f.inhalt || "")
                 if (ft === "datum")           return datumText()
                 if (ft === "vollkennzeichen") return vollkz()
                 if (ft === "format")          return formatText()
@@ -139,7 +139,8 @@ QtObject {
                     "auftraggeber": nd.auftraggeber, "auftragnehmer": nd.auftragnehmer,
                     "bearbeiter": nd.bearbeiter,    "norm": nd.norm,
                     "blattnummer": nd.blattnummer,  "bezeichnung": nd.bezeichnung,
-                    "anlage_kuerzel": nd.anlageKuerzel, "ort_kuerzel": nd.ortKuerzel
+                    "anlage_kuerzel": nd.anlageKuerzel, "ort_kuerzel": nd.ortKuerzel,
+                    "werk": nd.werk,                "abteilung": nd.abteilung
                 }
                 return (qmap[qs] || "").toString()
             }
@@ -192,7 +193,24 @@ QtObject {
             ctx.fillStyle = "#c8ddf0"
             // ohne Label (nur eigene Felder) direkt unter der Oberkante
             var vy = (eigen && !label) ? y + s(1.0) : y + h * 0.42
-            ctx.fillText(wert || "", x + s(1.2), vy)
+            if (eigen) {
+                // Umbruch an Wortgrenzen (wie der PDF-Renderer), Zeilenabstand 1,2
+                var maxW = w - s(2.2), zeile = ""
+                var worte = (wert || "").toString().split(" ")
+                for (var wi = 0; wi < worte.length; wi++) {
+                    var probe = zeile ? zeile + " " + worte[wi] : worte[wi]
+                    if (zeile && ctx.measureText(probe).width > maxW) {
+                        ctx.fillText(zeile, x + s(1.2), vy)
+                        vy += vFs * 1.2
+                        zeile = worte[wi]
+                    } else {
+                        zeile = probe
+                    }
+                }
+                ctx.fillText(zeile, x + s(1.2), vy)
+            } else {
+                ctx.fillText(wert || "", x + s(1.2), vy)
+            }
             ctx.restore()
         }
         // Logo in die Zelle: 2 mm Innenabstand, Seitenverhältnis erhalten, zentriert
@@ -232,6 +250,20 @@ QtObject {
             if (o)   kz += "+" + o
             if (kz) kz += "/"
             return kz + bn
+        }
+        // Platzhalter in festen Texten (siehe PdfRenderer_Normblatt.cpp nbPlatzhalter)
+        function platzhalter(t) {
+            if (t.indexOf("{") < 0) return t
+            var m = {
+                "{projekt.name}": nd.projektName, "{projekt.projektnummer}": nd.projektnummer,
+                "{projekt.auftraggeber}": nd.auftraggeber, "{projekt.auftragnehmer}": nd.auftragnehmer,
+                "{projekt.bearbeiter}": nd.bearbeiter, "{projekt.norm}": nd.norm,
+                "{projekt.werk}": nd.werk, "{projekt.abteilung}": nd.abteilung,
+                "{titelzusatz}": nd.titelzusatz, "{datum}": datumText(),
+                "{heute}": Qt.formatDate(new Date(), "dd.MM.yyyy")
+            }
+            for (var k in m) t = t.split(k).join((m[k] || "").toString())
+            return t
         }
         function datumText() {
             var raw = (nd.erstelltAm || "").toString()

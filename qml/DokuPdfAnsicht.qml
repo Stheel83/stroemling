@@ -54,6 +54,9 @@ Item {
     property int    gewaehlteSeiten: 0
     property int    abschnittVersion: 0   // Zähler: ListModel.get() löst in Bindings keine Neuberechnung aus
     property string spsVorlageName: ""
+    // Deckblatt: Blattvorlage (Art "deckblatt") per Name, projektübergreifend wie spsVorlageName
+    property string deckblattVorlageName: ""
+    property var    _deckblattVorlagen: []
 
     readonly property var _abschnittTitel: ({
         "deckblatt":          qsTr("Deckblatt"),
@@ -140,7 +143,7 @@ Item {
         return { abschnitte: abs, seiten: seiten, titelzusatz: root.titelzusatz, logo: root.logoAn,
                  normblatt: root.normblattAn, infostreifen: root.infostreifenAn,
                  vollCanvas: root.vollCanvasAn, adersummeJeAnlageOrt: root.adersummeJeAnlageOrt,
-                 spsVorlage: root.spsVorlageName }
+                 spsVorlage: root.spsVorlageName, deckblattVorlage: root.deckblattVorlageName }
     }
 
     // mitSeiten=true: auch die gespeicherte Seitenauswahl anwenden (Vorlagen). Für "zuletzt benutzt" nein -
@@ -156,6 +159,7 @@ Item {
         root.vollCanvasAn    = !!z.vollCanvas
         root.adersummeJeAnlageOrt = !!z.adersummeJeAnlageOrt
         root.spsVorlageName = z.spsVorlage || ""
+        root.deckblattVorlageName = z.deckblattVorlage || ""
         _spsAuswahlSetzen()
         if (mitSeiten && z.seiten) _seitenAuswahlAnwenden(z.seiten)
     }
@@ -241,7 +245,8 @@ Item {
             var a = abschnittModel.get(i)
             if (!a.aktiv) continue
             if (a.typ === "deckblatt")
-                abs.push({ typ: "deckblatt", titelzusatz: root.titelzusatz, logo: root.logoAn })
+                abs.push({ typ: "deckblatt", titelzusatz: root.titelzusatz, logo: root.logoAn,
+                           vorlageId: _deckblattVorlageId() })
             else if (a.typ === "sps_io")
                 abs.push({ typ: "sps_io", konfig: _spsEintraege[_spsAuswahl].konfig })
             else if (root._istListe(a.typ)) {
@@ -306,6 +311,16 @@ Item {
         vorlageCombo.currentIndex = 0
     }
 
+    function _deckblattVorlagenLaden() {
+        _deckblattVorlagen = db.normblattVorlagenListe().filter(function(v) { return v.art === "deckblatt" })
+    }
+    // Id der gewählten Vorlage; 0 = die erste Deckblattvorlage (C++ wählt)
+    function _deckblattVorlageId() {
+        for (var i = 0; i < _deckblattVorlagen.length; i++)
+            if (_deckblattVorlagen[i].name === root.deckblattVorlageName) return _deckblattVorlagen[i].id
+        return 0
+    }
+
     // Beim Einblenden den Zustand frisch laden (zuletzt benutzte Zusammenstellung, Seiten-Flags, SPS-Vorlagen)
     function oeffnen() {
         if (root.projektId < 0) return
@@ -313,6 +328,7 @@ Item {
         var z = null
         if (einst.zuletzt) { try { z = JSON.parse(einst.zuletzt) } catch (e2) { z = null } }
         _spsVorhanden = db.spsRackListe(root.projektId).length > 0
+        _deckblattVorlagenLaden()
         _listenKatalog = db.listenPdfKatalog()
         _listenAnzahlLaden()
         _seitenNeuLaden()
@@ -599,6 +615,14 @@ Item {
                             Layout.leftMargin: 24
                             spacing: 8
                             visible: zeile.aktiv && zeile.typ === "deckblatt"
+                            Text { text: qsTr("Vorlage"); color: root.theme.textMuted; font.pixelSize: 11 }
+                            Auswahl {
+                                Layout.preferredWidth: 200
+                                model: root._deckblattVorlagen.map(function(v) { return v.name })
+                                currentIndex: Math.max(0, root._deckblattVorlagen.map(function(v) { return v.name })
+                                                          .indexOf(root.deckblattVorlageName))
+                                onActivated: function(i) { root.deckblattVorlageName = root._deckblattVorlagen[i].name }
+                            }
                             Text { text: qsTr("Titelzusatz"); color: root.theme.textMuted; font.pixelSize: 11 }
                             TextField {
                                 Layout.fillWidth: true

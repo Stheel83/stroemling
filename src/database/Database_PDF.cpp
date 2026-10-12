@@ -177,7 +177,7 @@ QVariantList Database::dokuPdfSeitenListe(int projektId)
 // Optionen-JSON:
 //   { "mitNormblatt": true, "vollCanvas": false, "mitInfostreifen": false,
 //     "seiteIds": [..]            // optional; Standard: alle Seiten mit in_doku_pdf = 1
-//     "abschnitte": [ {"typ":"deckblatt", "titelzusatz":"...", "logo":true},
+//     "abschnitte": [ {"typ":"deckblatt", "titelzusatz":"...", "logo":true, "vorlageId":0},
 //                     {"typ":"inhaltsverzeichnis"},
 //                     {"typ":"schaltplan"},
 //                     {"typ":"sps_io", "konfig": { SPS-Export-Konfiguration, s. spsExportZeilen() }},
@@ -192,6 +192,7 @@ struct DokuAbschnitt {
     QString     spsKonfig;    // nur sps_io: JSON-Text der Export-Konfiguration
     QString     titelzusatz;  // nur deckblatt
     bool        logo = true;  // nur deckblatt
+    int         vorlageId = 0;   // nur deckblatt: Blattvorlage (Art 'deckblatt'); 0 = erste/Standard
     QString     liste;        // nur liste: Id aus listenPdfKatalog()
     bool        jeAnlageOrt = false;   // nur liste "adersummenliste"
     QVariantMap tabelle;      // nur liste: aufbereitete Tabelle {titel, spalten, zeilen}
@@ -243,6 +244,7 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
             } else if (da.typ == QLatin1String("deckblatt")) {
                 da.titelzusatz = a.value("titelzusatz").toString();
                 da.logo        = a.value("logo").toBool(true);
+                da.vorlageId   = a.value("vorlageId").toInt(0);
             } else if (da.typ == QLatin1String("liste")) {
                 da.liste       = a.value("liste").toString();
                 da.jeAnlageOrt = a.value("jeAnlageOrt").toBool(false);
@@ -261,36 +263,21 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         }
     }
 
-    PdfDeckblattDaten deckblatt;
     {
         QSqlQuery q(m_db);
-        q.prepare("SELECT name, projektnummer, auftraggeber, auftragnehmer, bearbeiter, werk, abteilung, "
-                  "norm, erstellt_am FROM projekt WHERE id = :pid");
+        q.prepare("SELECT name FROM projekt WHERE id = :pid");
         q.bindValue(":pid", projektId);
-        if (q.exec() && q.next()) {
-            opt.projektName = q.value(0).toString();
-            deckblatt.projektName = opt.projektName;
-            auto feld = [&](const QString &b, int sp) { deckblatt.felder.append({b, q.value(sp).toString()}); };
-            feld(QObject::tr("Projektnummer"), 1);
-            feld(QObject::tr("Auftraggeber"),  2);
-            feld(QObject::tr("Auftragnehmer"), 3);
-            feld(QObject::tr("Bearbeiter"),    4);
-            feld(QObject::tr("Werk"),          5);
-            feld(QObject::tr("Abteilung"),     6);
-            feld(QObject::tr("Norm"),          7);
-            const QDateTime erst = QDateTime::fromString(q.value(8).toString(), Qt::ISODate);
-            deckblatt.felder.append({QObject::tr("Projekt angelegt"),
-                                     erst.isValid() ? erst.date().toString(QStringLiteral("dd.MM.yyyy")) : QString()});
-        }
-        deckblatt.stand = QDate::currentDate().toString(QStringLiteral("dd.MM.yyyy"));
+        if (q.exec() && q.next()) opt.projektName = q.value(0).toString();
     }
-    const QImage logoBild = [&] {
-        QImage img;
-        const QString url = projektLogoDataUrl(projektId);
-        const int komma = url.indexOf(u',');
-        if (komma > 0) img.loadFromData(QByteArray::fromBase64(url.mid(komma + 1).toLatin1()));
-        return img;
-    }();
+
+    // Deckblatt-Abschnitte: Vorlage muss existieren (sonst Abbruch statt stillem Weglassen)
+    for (const DokuAbschnitt &a : opt.abschnitte) {
+        if (a.typ == QLatin1String("deckblatt")
+            && deckblattDatenLaden(projektId, a.vorlageId, QString(), false).isEmpty()) {
+            qCWarning(lcDb) << "dokuPdfExportieren: keine Deckblattvorlage" << a.vorlageId;
+            return false;
+        }
+    }
 
     // Abschnitte ohne Inhalt weglassen (Schaltplan ohne Seiten)
     for (int i = opt.abschnitte.size() - 1; i >= 0; --i)
@@ -355,7 +342,11 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
     // Start-Layout des Writers = Layout des ersten Abschnitts
     QPageLayout startLayout = pdfTabellenSeitenLayout();
     const QString ersterTyp = opt.abschnitte.first().typ;
-    if (ersterTyp == QLatin1String("deckblatt") || ersterTyp == QLatin1String("inhaltsverzeichnis")) {
+    if (ersterTyp == QLatin1String("deckblatt")) {
+        const QVariantMap d0 = deckblattDatenLaden(projektId, opt.abschnitte.first().vorlageId, QString(), false);
+        startLayout = pdfDeckblattSeitenLayout(d0.value("breiteMm", 210.0).toDouble(),
+                                               d0.value("hoeheMm", 297.0).toDouble());
+    } else if (ersterTyp == QLatin1String("inhaltsverzeichnis")) {
         startLayout = pdfHochSeitenLayout();
     } else if (ersterTyp == QLatin1String("schaltplan")) {
         startLayout = QPageLayout(
@@ -382,10 +373,8 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
             const bool neu = i > 0;   // erste Seite des Dokuments: Layout steht schon im Writer
             starts[i] = seiten + 1;
             if (a.typ == QLatin1String("deckblatt")) {
-                PdfDeckblattDaten d = deckblatt;
-                d.titelzusatz = a.titelzusatz;
-                if (a.logo) d.logo = logoBild;
-                pdfDeckblattRendern(painter, writer, d, neu);
+                pdfDeckblattRendern(painter, writer,
+                                    deckblattDatenLaden(projektId, a.vorlageId, a.titelzusatz, a.logo), neu);
                 seiten += 1;
             } else if (a.typ == QLatin1String("inhaltsverzeichnis")) {
                 QList<PdfTocEintrag> eintraege;

@@ -36,7 +36,7 @@ der Liste ist die Reihenfolge im PDF.
 
 | Abschnitt | Was er enthält |
 |---|---|
-| **Deckblatt** | Projektname, optionaler Titelzusatz, Logo, Projektnummer, Auftraggeber, Auftragnehmer, Bearbeiter, Werk, Abteilung, Norm, Anlagedatum und Ausgabedatum |
+| **Deckblatt** | Aus einer Blattvorlage (Auswahl „Vorlage“). Die mitgelieferte „Standard-Deckblatt“-Vorlage zeigt Projektname, optionalen Titelzusatz, Logo, Projektnummer, Auftraggeber, Auftragnehmer, Bearbeiter, Werk, Abteilung, Norm, Anlagedatum und Ausgabedatum |
 | **Inhaltsverzeichnis** | Alle übrigen Abschnitte mit Seitenzahl; beim Schaltplan nach Anlage und Ort gegliedert, mit jedem Blatt |
 | **Schaltplan** | Die ausgewählten Seiten (siehe unten) |
 | **SPS/PLS – I/O-Liste** | Die I/O-Liste mit den Spalten und Filtern einer SPS-Export-Vorlage |

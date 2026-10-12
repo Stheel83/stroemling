@@ -1,7 +1,8 @@
 // ============================================================
 // PdfRenderer_Deckblatt.cpp – Deckblatt und Inhaltsverzeichnis des
-// Dokumentations-PDFs (DOKU-PDF-03). Zeichnet direkt mit QPainter in mm,
-// A4 hoch mit 15 mm Rand (pdfHochSeitenLayout()).
+// Dokumentations-PDFs. Das Deckblatt kommt seit BLATTVORLAGEN-01b aus einer
+// Blattvorlage (pdfNormblattRendern); das Inhaltsverzeichnis zeichnet direkt
+// mit QPainter in mm, A4 hoch mit 15 mm Rand (pdfHochSeitenLayout()).
 // ============================================================
 #include "PdfRenderer.h"
 
@@ -52,72 +53,25 @@ void pdfFusszeileZeichnen(QPainter &p, QPdfWriter &w, double fussHoehePx, int se
     p.restore();
 }
 
-void pdfDeckblattRendern(QPainter &p, QPdfWriter &w, const PdfDeckblattDaten &d, bool ersteSeiteNeu)
+void pdfDeckblattRendern(QPainter &p, QPdfWriter &w, const QVariantMap &nb, bool ersteSeiteNeu)
 {
+    const double bMm = nb.value("breiteMm", 210.0).toDouble();
+    const double hMm = nb.value("hoeheMm", 297.0).toDouble();
     if (ersteSeiteNeu) {
-        w.setPageLayout(pdfHochSeitenLayout());
+        w.setPageLayout(pdfDeckblattSeitenLayout(bMm, hMm));
         w.newPage();
     }
-    const double mm = w.logicalDpiY() / 25.4;
-    const double breite = w.width();
-
+    const double pxPerMm = w.logicalDpiX() / 25.4;
     p.save();
-
-    // Logo oben rechts, höchstens 55 x 28 mm
-    if (!d.logo.isNull()) {
-        const QSizeF max(55 * mm, 28 * mm);
-        QSizeF s = QSizeF(d.logo.size()).scaled(max, Qt::KeepAspectRatio);
-        p.drawImage(QRectF(breite - s.width(), 0, s.width(), s.height()), d.logo);
-    }
-
-    // Titelblock
-    p.setPen(QColor(0x55, 0x55, 0x55));
-    p.setFont(arial(13.0));
-    p.drawText(QRectF(0, 70 * mm, breite, 8 * mm), Qt::AlignLeft | Qt::AlignVCenter,
-               QObject::tr("Dokumentation"));
-
-    p.setPen(kAkzent);
-    p.setFont(arial(30.0, true));
-    const QRectF nameBox(0, 80 * mm, breite, 40 * mm);
-    QRectF nameBR;
-    p.drawText(nameBox, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, d.projektName, &nameBR);
-
-    double y = nameBR.bottom() + 4 * mm;
-    if (!d.titelzusatz.trimmed().isEmpty()) {
-        p.setFont(arial(15.0));
-        QRectF zBR;
-        p.drawText(QRectF(0, y, breite, 30 * mm), Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap,
-                   d.titelzusatz, &zBR);
-        y = zBR.bottom() + 4 * mm;
-    }
-
-    QPen linie(kAkzent);
-    linie.setWidthF(0.6 * mm);
-    p.setPen(linie);
-    p.drawLine(QPointF(0, y + 2 * mm), QPointF(breite, y + 2 * mm));
-
-    // Felder (leere weglassen)
-    double fy = qMax(y + 14 * mm, 150.0 * mm);
-    const double labelBreite = 48 * mm;
-    for (const auto &f : d.felder) {
-        if (f.second.trimmed().isEmpty()) continue;
-        p.setPen(QColor(0x66, 0x66, 0x66));
-        p.setFont(arial(10.0));
-        p.drawText(QRectF(0, fy, labelBreite, 7 * mm), Qt::AlignLeft | Qt::AlignTop, f.first);
-        p.setPen(QColor(0x22, 0x22, 0x22));
-        p.setFont(arial(11.0));
-        QRectF vBR;
-        p.drawText(QRectF(labelBreite, fy, breite - labelBreite, 20 * mm),
-                   Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, f.second, &vBR);
-        fy += qMax(7.0 * mm, vBR.height() + 1.5 * mm);
-    }
-
-    // Fuß
-    p.setPen(QColor(0x88, 0x88, 0x88));
-    p.setFont(arial(8.0));
-    p.drawText(QRectF(0, w.height() - 8 * mm, breite, 8 * mm), Qt::AlignLeft | Qt::AlignVCenter,
-               QObject::tr("Stand: %1  ·  erstellt mit Strömling Design").arg(d.stand));
+    p.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
+    pdfNormblattRendern(p, nb, pxPerMm);
     p.restore();
+}
+
+QPageLayout pdfDeckblattSeitenLayout(double bMm, double hMm)
+{
+    return QPageLayout(QPageSize(QSizeF(bMm, hMm), QPageSize::Millimeter),
+                       QPageLayout::Portrait, QMarginsF(0, 0, 0, 0));
 }
 
 int pdfInhaltsverzeichnisRendern(QPainter &p, QPdfWriter &w, const QList<PdfTocEintrag> &eintraege,

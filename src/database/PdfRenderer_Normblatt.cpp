@@ -13,6 +13,7 @@
 #include <limits>
 #include <QUrl>
 #include <QDateTime>
+#include <QDate>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -69,11 +70,30 @@ static QString nbFormatText(double b, double h)
     return fmt + (b > h ? " QF" : " HF");
 }
 
+// Platzhalter in festen Texten (BLATTVORLAGEN-01b): {projekt.name}, {projekt.projektnummer}, {projekt.auftraggeber},
+// {projekt.auftragnehmer}, {projekt.bearbeiter}, {projekt.norm}, {projekt.werk}, {projekt.abteilung},
+// {datum} (Projekt angelegt), {heute} (Ausgabedatum), {titelzusatz} (Option des Deckblatt-Abschnitts).
+static QString nbPlatzhalter(QString t, const QVariantMap &nb)
+{
+    if (!t.contains('{')) return t;
+    static const QList<QPair<QString, QString>> tab = {
+        {"{projekt.name}", "projektName"},           {"{projekt.projektnummer}", "projektnummer"},
+        {"{projekt.auftraggeber}", "auftraggeber"},  {"{projekt.auftragnehmer}", "auftragnehmer"},
+        {"{projekt.bearbeiter}", "bearbeiter"},      {"{projekt.norm}", "norm"},
+        {"{projekt.werk}", "werk"},                  {"{projekt.abteilung}", "abteilung"},
+        {"{titelzusatz}", "titelzusatz"},
+    };
+    for (const auto &e : tab) t.replace(e.first, nb.value(e.second).toString());
+    t.replace("{datum}", nbDatumText(nb));
+    t.replace("{heute}", QDate::currentDate().toString("dd.MM.yyyy"));
+    return t;
+}
+
 // Wert eines benutzerdefinierten Feldes (feldtyp fest|datum|vollkennzeichen|format|projekt|seite)
 static QString nbFeldWert(const QVariantMap &f, const QVariantMap &nb, double bMm, double hMm)
 {
     const QString ft = f.value("feldtyp", "fest").toString();
-    if (ft == "fest")            return f.value("inhalt").toString();
+    if (ft == "fest")            return nbPlatzhalter(f.value("inhalt").toString(), nb);
     if (ft == "datum")           return nbDatumText(nb);
     if (ft == "vollkennzeichen") return nbVollKz(nb);
     if (ft == "format")          return nbFormatText(bMm, hMm);
@@ -84,6 +104,7 @@ static QString nbFeldWert(const QVariantMap &f, const QVariantMap &nb, double bM
         {"bearbeiter", "bearbeiter"},     {"norm", "norm"},
         {"blattnummer", "blattnummer"},   {"bezeichnung", "bezeichnung"},
         {"anlage_kuerzel", "anlageKuerzel"}, {"ort_kuerzel", "ortKuerzel"},
+        {"werk", "werk"},                 {"abteilung", "abteilung"},
     };
     return nb.value(schluessel.value(qs)).toString();
 }
@@ -138,16 +159,19 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
     double iX1 = mm(bMm - mR),  iY1 = mm(hMm - mU);
     double iW  = iX1 - iX0,     iH  = iY1 - iY0;
 
-    // Seitenbegrenzung (dünn gestrichelt)
-    QPen outerPen(QColor(0x2a, 0x4a, 0x7a), mm(0.25), Qt::DashLine);
-    p.setPen(outerPen);
-    p.setBrush(Qt::NoBrush);
-    p.drawRect(QRectF(0, 0, mm(bMm), mm(hMm)));
-
-    // Zeichnungsrahmen (dick)
     QPen framePen(QColor(0x4a, 0x7a, 0xb0), mm(0.7));
-    p.setPen(framePen);
-    p.drawRect(QRectF(iX0, iY0, iW, iH));
+    // Deckblätter (ohneRahmen) haben weder Seitenbegrenzung noch Zeichnungsrahmen
+    if (!nb.value("ohneRahmen").toBool()) {
+        // Seitenbegrenzung (dünn gestrichelt)
+        QPen outerPen(QColor(0x2a, 0x4a, 0x7a), mm(0.25), Qt::DashLine);
+        p.setPen(outerPen);
+        p.setBrush(Qt::NoBrush);
+        p.drawRect(QRectF(0, 0, mm(bMm), mm(hMm)));
+
+        // Zeichnungsrahmen (dick)
+        p.setPen(framePen);
+        p.drawRect(QRectF(iX0, iY0, iW, iH));
+    }
 
     // Benutzerdefinierte Felder (Phase 2)
     QVariantList felder = nb.value("felder").toList();
@@ -189,7 +213,7 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
                 p.setFont(vf); p.setPen(wertFarbe);
                 const double vy = label.isEmpty() ? fy + mm(1.0) : fy + fh*0.42;
                 p.drawText(QRectF(fx+mm(1.2), vy, fw-mm(2), fy + fh - vy),
-                           Qt::AlignLeft|Qt::AlignTop, nbFeldWert(f, nb, bMm, hMm));
+                           Qt::AlignLeft|Qt::AlignTop|Qt::TextWordWrap, nbFeldWert(f, nb, bMm, hMm));
                 p.restore();
             }
             if (f.value("rahmen").toBool()) {

@@ -424,6 +424,11 @@ public:
     Q_INVOKABLE bool         normblattVorlageLoeschen(int vorlageId);
 
     // Felder einer Vorlage laden / als Ganzes ersetzen (DELETE + INSERT in Transaction)
+    // Logo der Vorlage (Bearbeiter-Logo, hat Vorrang vor dem Projekt-Logo) – BLATTVORLAGEN-01b
+    Q_INVOKABLE bool         normblattVorlageLogoSpeichern(int vorlageId, const QString &pfad);
+    Q_INVOKABLE bool         normblattVorlageLogoLoeschen(int vorlageId);
+    // Daten fürs Deckblatt im Dokumentations-PDF; leere Map = keine Deckblattvorlage
+    QVariantMap deckblattDatenLaden(int projektId, int vorlageId, const QString &titelzusatz, bool mitLogo);
     Q_INVOKABLE QVariantList normblattFelderLaden(int vorlageId);
     Q_INVOKABLE bool         normblattFelderSpeichern(int vorlageId, const QVariantList &felder);
 

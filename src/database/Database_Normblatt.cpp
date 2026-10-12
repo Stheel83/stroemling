@@ -39,7 +39,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         SELECT s.blattnummer, s.bezeichnung, a.kuerzel AS anlage_kuerzel, o.kuerzel AS ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
-               s.revision_status, s.revision_kennung,
+               s.revision_status, s.revision_kennung, s.in_doku_pdf,
                p.name         AS projekt_name,
                p.projektnummer,
                p.auftraggeber,
@@ -80,6 +80,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("aussenOverlay")]    = q.value("aussen_overlay");
     m[QStringLiteral("titelblattVorlage")] = q.value("titelblatt_vorlage");
     m[QStringLiteral("revisionStatus")]   = q.value("revision_status");
+    m[QStringLiteral("inDokuPdf")]        = q.value("in_doku_pdf");
     m[QStringLiteral("revisionKennung")]  = q.value("revision_kennung");
     m[QStringLiteral("projektName")]      = q.value("projekt_name");
     m[QStringLiteral("projektnummer")]    = q.value("projektnummer");
@@ -154,6 +155,19 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
         qCWarning(lcDb) << "normblattEinstellungenSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool Database::seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE seite SET in_doku_pdf = :v WHERE id = :sid");
+    q.bindValue(":v",   inDokuPdf ? 1 : 0);
+    q.bindValue(":sid", seiteId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "seiteInDokuPdfSetzen:" << q.lastError().text();
         return false;
     }
     return true;
@@ -426,7 +440,7 @@ int Database::seiteDuplizieren(int seiteId)
     qs.prepare("SELECT ort_id, blattnummer, bezeichnung, seitentyp, "
                "       normblatt_anzeigen, normblatt_id, "
                "       rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, "
-               "       breite_mm, hoehe_mm, ausrichtung "
+               "       breite_mm, hoehe_mm, ausrichtung, in_doku_pdf "
                "FROM seite WHERE id = :sid");
     qs.bindValue(":sid", seiteId);
     if (!qs.exec() || !qs.next()) {
@@ -445,8 +459,8 @@ int Database::seiteDuplizieren(int seiteId)
         INSERT INTO seite (ort_id, blattnummer, bezeichnung, seitentyp,
                            normblatt_anzeigen, normblatt_id,
                            rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm,
-                           breite_mm, hoehe_mm, ausrichtung)
-        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus)
+                           breite_mm, hoehe_mm, ausrichtung, in_doku_pdf)
+        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus,:idp)
     )");
     qi.bindValue(":oid",  qs.value(0));
     qi.bindValue(":bn",   neueBlattnummer);
@@ -461,6 +475,7 @@ int Database::seiteDuplizieren(int seiteId)
     qi.bindValue(":bw",   qs.value(10));
     qi.bindValue(":bh",   qs.value(11));
     qi.bindValue(":aus",  qs.value(12));
+    qi.bindValue(":idp",  qs.value(13));
     if (!qi.exec()) {
         qCWarning(lcDb) << "seiteDuplizieren: neue Seite anlegen:" << qi.lastError().text();
         m_db.rollback();

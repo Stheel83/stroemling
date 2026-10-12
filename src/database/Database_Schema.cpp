@@ -2985,6 +2985,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE symbol_definition ADD COLUMN ist_mikrocontroller INTEGER NOT NULL DEFAULT 0)",
             R"(UPDATE symbol_definition SET ist_mikrocontroller=1 WHERE id IN ('ard_uno','ard_nano','ard_mega'))",
         }},
+        { 163, "DOKU-PDF-01: neue Spalte seite.in_doku_pdf (0/1, Default 1) - markiert, ob eine Seite im Dokumentations-PDF (Schaltplan-Abschnitt) enthalten ist. Dauerhafte Voreinstellung pro Seite; der Export-Dialog darf sie fuer einen einzelnen Export ueberschreiben.", {
+            R"(ALTER TABLE seite ADD COLUMN in_doku_pdf INTEGER NOT NULL DEFAULT 1)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

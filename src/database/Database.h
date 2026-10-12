@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QList>
+#include <QSizeF>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QString>
@@ -12,6 +14,9 @@
 //   - Schema versioniert anlegen (schema_version-Tabelle)
 //   - Bei Versionsänderung: alles löschen + neu aufbauen
 //   - Wird einmal in main.cpp erstellt und dann weitergegeben
+
+class QPainter;
+class QPdfWriter;
 
 class Database : public QObject
 {
@@ -386,6 +391,10 @@ public:
 
     // Normblatt-Einstellungen für eine Seite speichern.
     // normblattId=-1 → kein benutzerdefiniertes Normblatt (titelblattVorlage greift).
+    // DOKU-PDF-01: Seite im Dokumentations-PDF (Schaltplan-Abschnitt) enthalten?
+    // Lesen über normblattDatenLaden()["inDokuPdf"].
+    Q_INVOKABLE bool seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf);
+
     Q_INVOKABLE bool normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                                   const QString &hintergrundFarbe,
                                                   bool aussenOverlay,
@@ -984,6 +993,14 @@ public:
     Q_INVOKABLE QVariantList bauteilAlleKategorienFlach();
 
 private:
+    // DOKU-PDF-01: Schaltplan-Abschnitt des PDF-Exports (Database_PDF.cpp)
+    int    pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer, const QList<int> &seiteIds,
+                                      bool mitNormblatt, bool vollCanvas, bool mitInfostreifen,
+                                      bool ersteSeiteNeu);
+    QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas);
+    bool   pdfSchaltplanDatei(const QList<int> &seiteIds, const QString &pfad,
+                              bool mitNormblatt, bool vollCanvas, bool mitInfostreifen);
+
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();
 

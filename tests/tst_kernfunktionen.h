@@ -763,6 +763,61 @@ private slots:
         QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_voll.pdf", false, true, true));
     }
 
+    // DOKU-PDF-01: Seiten-Flag in_doku_pdf steuert den Schaltplan-Export "alle Seiten"; Einzelseite ignoriert es.
+    static int pdfSeitenAnzahl(const QString &pfad)
+    {
+        QFile f(pfad);
+        if (!f.open(QIODevice::ReadOnly)) return -1;
+        const QByteArray d = f.readAll();
+        int n = 0, pos = 0;
+        while ((pos = d.indexOf("/Type /Page", pos)) >= 0) {
+            pos += 11;
+            if (pos >= d.size() || d.at(pos) != 's') ++n;   // "/Type /Pages" ausschließen
+        }
+        return n;
+    }
+
+    void doku_pdf_01_seitenFlag()
+    {
+        const int a = neueSeite("DP1");
+        const int b = neueSeite("DP2");
+        const int c = neueSeite("DP3");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+
+        // Default: alle Seiten enthalten, Flag über normblattDatenLaden lesbar
+        QCOMPARE(m_db->normblattDatenLaden(a).value("inDokuPdf").toInt(), 1);
+
+        const QString dir = QDir::tempPath();
+        const QString alle = dir + "/stroemling_dokupdf_alle.pdf";
+        QVERIFY(m_db->canvasPdfExportieren(pid, alle, false, false, false));
+        const int gesamt = pdfSeitenAnzahl(alle);
+        QVERIFY(gesamt >= 3);
+
+        // Eine Seite abwählen → eine PDF-Seite weniger
+        QVERIFY(m_db->seiteInDokuPdfSetzen(b, false));
+        QCOMPARE(m_db->normblattDatenLaden(b).value("inDokuPdf").toInt(), 0);
+        const QString ohne = dir + "/stroemling_dokupdf_ohne.pdf";
+        QVERIFY(m_db->canvasPdfExportieren(pid, ohne, false, false, false));
+        QCOMPARE(pdfSeitenAnzahl(ohne), gesamt - 1);
+
+        // Einzelseite ignoriert das Flag
+        const QString einzel = dir + "/stroemling_dokupdf_einzel.pdf";
+        QVERIFY(m_db->canvasSeiteExportieren(b, einzel, false, false, false));
+        QCOMPARE(pdfSeitenAnzahl(einzel), 1);
+
+        // Duplizieren übernimmt das Flag
+        const int kopie = m_db->seiteDuplizieren(b);
+        QVERIFY(kopie > 0);
+        QCOMPARE(m_db->normblattDatenLaden(kopie).value("inDokuPdf").toInt(), 0);
+
+        // Alles abgewählt → kein Export (false), statt leerem PDF
+        Q_UNUSED(c);
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 0"));
+        QVERIFY(!m_db->canvasPdfExportieren(pid, dir + "/stroemling_dokupdf_leer.pdf", false, false, false));
+        QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 1"));
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

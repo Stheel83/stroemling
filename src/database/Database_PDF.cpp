@@ -38,59 +38,25 @@ bool Database::dateiExistiert(const QString &pfad) const
     return QFile::exists(localPath);
 }
 
-bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
+// ── Gemeinsamer Seiten-Renderer (DOKU-PDF-01) ───────────────
+// Rendert Schaltplan-Seiten nacheinander in einen bereits geöffneten Writer.
+// ersteSeiteNeu=false: die erste Seite nutzt das Layout, das der Writer beim
+// Anlegen bekam (kein newPage()). ersteSeiteNeu=true: auch die erste Seite
+// bekommt setPageLayout()+newPage() - nötig, wenn davor schon ein anderer
+// Abschnitt (Deckblatt, Verzeichnis, ...) im selben Dokument steht.
+// pxPerMm/C leiten sich aus dem Writer ab (konstant je Writer).
+// Rückgabe: Anzahl gerenderter Seiten.
+int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
+                                          const QList<int> &seiteIds,
+                                          bool mitNormblatt, bool vollCanvas, bool mitInfostreifen,
+                                          bool ersteSeiteNeu)
 {
-    // Alle Seiten des Projekts in Anzeigereihenfolge laden
-    QSqlQuery q(m_db);
-    q.prepare(R"(
-        SELECT s.id
-        FROM seite s
-        JOIN ort     o ON s.ort_id      = o.id
-        JOIN anlage  a ON o.anlage_id   = a.id
-        WHERE a.projekt_id = :pid
-        ORDER BY a.kuerzel, o.kuerzel, s.sortierung, s.blattnummer
-    )");
-    q.bindValue(":pid", projektId);
-    if (!q.exec() || !q.next()) {
-        qCWarning(lcDb) << "canvasPdfExportieren: keine Seiten für Projekt" << projektId;
-        return false;
-    }
-    QList<int> seiteIds;
-    seiteIds << q.value(0).toInt();
-    while (q.next()) seiteIds << q.value(0).toInt();
-
-    // Ausgabepfad normalisieren
-    QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
-
-    // Erste Seite für initiale Papiergröße
-    QVariantMap nb0 = normblattDatenLaden(seiteIds.first());
-    double b0 = nb0.value("breiteMm", 297.0).toDouble();
-    double h0 = nb0.value("hoeheMm",  210.0).toDouble();
-    if (vollCanvas) {
-        PdfBBox bb0 = pdfBoundingBox(seiteIds.first(), b0, h0, m_db);
-        b0 = bb0.bMm; h0 = bb0.hMm;
-    }
-
-    QPdfWriter writer(localPath);
-    writer.setCreator(QStringLiteral("Stroemling Design"));
-    writer.setTitle(nb0.value("projektName").toString());
-    writer.setPageMargins(QMarginsF(0, 0, 0, 0));
-    writer.setPageLayout(QPageLayout(
-        QPageSize(QSizeF(b0, h0), QPageSize::Millimeter),
-        QPageLayout::Portrait, QMarginsF(0,0,0,0)));
-
-    QPainter painter(&writer);
-    if (!painter.isActive()) {
-        qCWarning(lcDb) << "canvasPdfExportieren: QPainter konnte nicht gestartet werden";
-        return false;
-    }
-
     // DPI-basierte Skalierung: alle Zeichenaufrufe in Device-Pixeln
-    double pxPerMm = (double)writer.logicalDpiX() / 25.4;
-    double C       = pxPerMm / 4.0;   // Canvas-Pixel → Device-Pixel
+    const double pxPerMm = (double)writer.logicalDpiX() / 25.4;
+    const double C       = pxPerMm / 4.0;   // Canvas-Pixel → Device-Pixel
 
     for (int i = 0; i < seiteIds.size(); ++i) {
-        int seiteId = seiteIds[i];
+        const int seiteId = seiteIds[i];
         QVariantMap nb = normblattDatenLaden(seiteId);
         double bMm = nb.value("breiteMm", 297.0).toDouble();
         double hMm = nb.value("hoeheMm",  210.0).toDouble();
@@ -102,7 +68,7 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
             bMm  = bb.bMm;  hMm  = bb.hMm;
         }
 
-        if (i > 0) {
+        if (i > 0 || ersteSeiteNeu) {
             writer.setPageLayout(QPageLayout(
                 QPageSize(QSizeF(bMm, hMm), QPageSize::Millimeter),
                 QPageLayout::Portrait, QMarginsF(0,0,0,0)));
@@ -130,79 +96,91 @@ bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mit
         // gezeichnet wird (auch im vollCanvas-Modus, wo es unabhängig von
         // normblattAnzeigen unterdrückt wird - sonst fehlt sonst bei "Ganzes
         // Canvas" sowohl Normblatt als auch Infostreifen, INFOSTREIFEN-VOLLCANVAS-01).
-        bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
+        const bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
         if (normblattGezeichnet)
             pdfNormblattRendern(painter, nb, pxPerMm);
         if (mitInfostreifen && !normblattGezeichnet)
             pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
         pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
     }
-
-    painter.end();
-    qCInfo(lcDb) << "canvasPdfExportieren: PDF gespeichert:" << localPath
-            << "(" << seiteIds.size() << "Seiten)";
-    return QFile::exists(localPath);
+    return seiteIds.size();
 }
 
-bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
+// Seitengröße (mm) einer Schaltplan-Seite im Export - für das Start-Layout des Writers.
+QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas)
 {
-    QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
-
     QVariantMap nb = normblattDatenLaden(seiteId);
-    double bMm = nb.value("breiteMm", 297.0).toDouble();
-    double hMm = nb.value("hoeheMm",  210.0).toDouble();
-
-    // ── Vollständiger Canvas-Bereich: Seitengröße aus Bounding-Box berechnen ─
-    double txCu = 0.0, tyCu = 0.0;
+    double b = nb.value("breiteMm", 297.0).toDouble();
+    double h = nb.value("hoeheMm",  210.0).toDouble();
     if (vollCanvas) {
-        PdfBBox bb = pdfBoundingBox(seiteId, bMm, hMm, m_db);
-        txCu = bb.txCu; tyCu = bb.tyCu;
-        bMm  = bb.bMm;  hMm  = bb.hMm;
+        PdfBBox bb = pdfBoundingBox(seiteId, b, h, m_db);
+        b = bb.bMm; h = bb.hMm;
     }
+    return QSizeF(b, h);
+}
+
+// Schaltplan-Pipeline als eigenständiges PDF (Start-Layout aus der ersten Seite).
+bool Database::pdfSchaltplanDatei(const QList<int> &seiteIds, const QString &pfad,
+                                   bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
+{
+    if (seiteIds.isEmpty()) return false;
+
+    // Ausgabepfad normalisieren
+    const QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+
+    const QSizeF groesse = pdfSchaltplanSeitenGroesseMm(seiteIds.first(), vollCanvas);
 
     QPdfWriter writer(localPath);
     writer.setCreator(QStringLiteral("Stroemling Design"));
-    writer.setTitle(nb.value("projektName").toString());
+    writer.setTitle(normblattDatenLaden(seiteIds.first()).value("projektName").toString());
     writer.setPageMargins(QMarginsF(0, 0, 0, 0));
     writer.setPageLayout(QPageLayout(
-        QPageSize(QSizeF(bMm, hMm), QPageSize::Millimeter),
+        QPageSize(groesse, QPageSize::Millimeter),
         QPageLayout::Portrait, QMarginsF(0,0,0,0)));
 
     QPainter painter(&writer);
     if (!painter.isActive()) {
-        qCWarning(lcDb) << "canvasSeiteExportieren: QPainter konnte nicht gestartet werden";
+        qCWarning(lcDb) << "pdfSchaltplanDatei: QPainter konnte nicht gestartet werden";
         return false;
     }
 
-    double pxPerMm = (double)writer.logicalDpiX() / 25.4;
-    double C       = pxPerMm / 4.0;
-
-    painter.save();
-    painter.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
-    if (vollCanvas)
-        painter.translate(-txCu * C, -tyCu * C);
-    QVariantList elemente = grafikLaden(seiteId);
-    QVector<PdfKabelAderLabel> aderLabels;
-    QHash<int, bool> winkelUmkehrenMap;
-    QVector<PdfLeitungsSegment> leitungsSegs = pdfLeitungenSammeln(seiteId, pxPerMm, m_db, &aderLabels, &winkelUmkehrenMap);
-    for (const QVariant &ev : elemente)
-        pdfElementRendern(painter, ev.toMap(), C, pxPerMm, m_db, &leitungsSegs, seiteId, &winkelUmkehrenMap);
-    pdfLeitungenRendern(painter, C, pxPerMm, leitungsSegs);
-    pdfKabelAderBeschriftungRendern(painter, C, pxPerMm, aderLabels);
-    painter.restore();
-
-    // Infostreifen nur wenn das Normblatt auf dieser Seite tatsächlich NICHT
-    // gezeichnet wird (auch im vollCanvas-Modus, wo es unabhängig von
-    // normblattAnzeigen unterdrückt wird, s. canvasPdfExportieren).
-    bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
-    if (normblattGezeichnet)
-        pdfNormblattRendern(painter, nb, pxPerMm);
-    if (mitInfostreifen && !normblattGezeichnet)
-        pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
-    pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
+    pdfSchaltplanSeitenRendern(painter, writer, seiteIds, mitNormblatt, vollCanvas, mitInfostreifen, false);
 
     painter.end();
-    qCInfo(lcDb) << "canvasSeiteExportieren: PDF gespeichert:" << localPath
-            << (vollCanvas ? "(vollCanvas)" : "");
+    qCInfo(lcDb) << "pdfSchaltplanDatei: PDF gespeichert:" << localPath
+            << "(" << seiteIds.size() << "Seiten)" << (vollCanvas ? "(vollCanvas)" : "");
     return QFile::exists(localPath);
+}
+
+bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
+{
+    // Seiten des Projekts in Anzeigereihenfolge, nur die mit Flag in_doku_pdf (DOKU-PDF-01)
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT s.id
+        FROM seite s
+        JOIN ort     o ON s.ort_id      = o.id
+        JOIN anlage  a ON o.anlage_id   = a.id
+        WHERE a.projekt_id = :pid AND s.in_doku_pdf = 1
+        ORDER BY a.kuerzel, o.kuerzel, s.sortierung, s.blattnummer
+    )");
+    q.bindValue(":pid", projektId);
+    QList<int> seiteIds;
+    if (!q.exec()) {
+        qCWarning(lcDb) << "canvasPdfExportieren:" << q.lastError().text();
+        return false;
+    }
+    while (q.next()) seiteIds << q.value(0).toInt();
+    if (seiteIds.isEmpty()) {
+        qCWarning(lcDb) << "canvasPdfExportieren: keine Seiten für Projekt" << projektId
+                        << "(oder keine mit in_doku_pdf=1)";
+        return false;
+    }
+    return pdfSchaltplanDatei(seiteIds, pfad, mitNormblatt, vollCanvas, mitInfostreifen);
+}
+
+bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
+{
+    // Einzelseite: Flag in_doku_pdf bewusst ignoriert (ausdrücklicher Wunsch des Nutzers)
+    return pdfSchaltplanDatei({seiteId}, pfad, mitNormblatt, vollCanvas, mitInfostreifen);
 }

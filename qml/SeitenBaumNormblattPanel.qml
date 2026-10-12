@@ -17,6 +17,7 @@ ColumnLayout {
         var nd = db.normblattDatenLaden(seiteId)
         if (nd) {
             chkNormblatt.checked       = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true
+            chkInDokuPdf.checked       = nd.inDokuPdf === undefined || nd.inDokuPdf === 1 || nd.inDokuPdf === true
             tfHintergrundFarbe.text    = nd.hintergrundFarbe  || ""
             chkAussenOverlay.checked   = nd.aussenOverlay === 1 || nd.aussenOverlay === true
             if (nd.normblattVorlageId) {
@@ -47,6 +48,7 @@ ColumnLayout {
              && cmbVorlageAuswahl.currentIndex >= 0
              && root._normblattVorlagen.length > 0)
                 ? root._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
+        db.seiteInDokuPdfSetzen(seiteId, chkInDokuPdf.checked)
         db.seiteRevisionSetzen(
             seiteId,
             cmbRevisionStatus.currentText,
@@ -73,6 +75,33 @@ ColumnLayout {
                 text: qsTr("Normblatt anzeigen")
                 color: root.theme.textPrimary; font.pixelSize: 13
                 leftPadding: chkNormblatt.indicator.width + chkNormblatt.spacing
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
+    }
+
+    // DOKU-PDF-01: dauerhafte Voreinstellung für das Dokumentations-PDF
+    RowLayout {
+        Layout.fillWidth: true
+        CheckBox {
+            id: chkInDokuPdf
+            checked: true
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Legt fest, ob diese Seite im PDF-Export des Schaltplans enthalten ist. Beim Export kann die Auswahl für den Einzelfall geändert werden.")
+            indicator: Rectangle {
+                width: 16; height: 16; radius: 3
+                border.color: chkInDokuPdf.checked ? root.theme.accent : root.theme.border
+                color: chkInDokuPdf.checked ? root.theme.accent : root.theme.inputBg
+                Text {
+                    anchors.centerIn: parent
+                    text: "✓"; color: root.theme.textPrimary
+                    font.pixelSize: 11; visible: chkInDokuPdf.checked
+                }
+            }
+            contentItem: Text {
+                text: qsTr("In Dokumentations-PDF aufnehmen")
+                color: root.theme.textPrimary; font.pixelSize: 13
+                leftPadding: chkInDokuPdf.indicator.width + chkInDokuPdf.spacing
                 verticalAlignment: Text.AlignVCenter
             }
         }

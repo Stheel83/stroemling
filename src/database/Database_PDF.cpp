@@ -180,7 +180,8 @@ QVariantList Database::dokuPdfSeitenListe(int projektId)
 //     "abschnitte": [ {"typ":"deckblatt", "titelzusatz":"...", "logo":true},
 //                     {"typ":"inhaltsverzeichnis"},
 //                     {"typ":"schaltplan"},
-//                     {"typ":"sps_io", "konfig": { SPS-Export-Konfiguration, s. spsExportZeilen() }} ] }
+//                     {"typ":"sps_io", "konfig": { SPS-Export-Konfiguration, s. spsExportZeilen() }},
+//                     {"typ":"liste", "liste":"stueckliste", "jeAnlageOrt":false} ] }   // DOKU-PDF-05
 // Reihenfolge der Abschnitte = Reihenfolge im PDF. Alle Abschnitte rendern in denselben Writer.
 // Zwei Durchläufe: Dry-Run in einen Puffer ermittelt die Gesamtseitenzahl für "Seite x von y"
 // und die Startseite jedes Abschnitts (Seitenzahlen des Inhaltsverzeichnisses). Das Verzeichnis
@@ -191,6 +192,9 @@ struct DokuAbschnitt {
     QString     spsKonfig;    // nur sps_io: JSON-Text der Export-Konfiguration
     QString     titelzusatz;  // nur deckblatt
     bool        logo = true;  // nur deckblatt
+    QString     liste;        // nur liste: Id aus listenPdfKatalog()
+    bool        jeAnlageOrt = false;   // nur liste "adersummenliste"
+    QVariantMap tabelle;      // nur liste: aufbereitete Tabelle {titel, spalten, zeilen}
 };
 // Verzeichniseintrag mit Verweis auf die Startseite des Abschnitts + Versatz (Schaltplan: Index der Seite).
 struct DokuTocPlan {
@@ -239,6 +243,16 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
             } else if (da.typ == QLatin1String("deckblatt")) {
                 da.titelzusatz = a.value("titelzusatz").toString();
                 da.logo        = a.value("logo").toBool(true);
+            } else if (da.typ == QLatin1String("liste")) {
+                da.liste       = a.value("liste").toString();
+                da.jeAnlageOrt = a.value("jeAnlageOrt").toBool(false);
+                QVariantMap opt;
+                opt["jeAnlageOrt"] = da.jeAnlageOrt;
+                da.tabelle = listenPdfStandard(projektId, da.liste, opt);
+                if (da.tabelle.isEmpty()) {
+                    qCWarning(lcDb) << "dokuPdfExportieren: unbekannte Liste" << da.liste;
+                    return false;
+                }
             } else if (da.typ != QLatin1String("schaltplan") && da.typ != QLatin1String("inhaltsverzeichnis")) {
                 qCWarning(lcDb) << "dokuPdfExportieren: unbekannter Abschnittstyp" << da.typ;
                 return false;
@@ -282,11 +296,17 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
     for (int i = opt.abschnitte.size() - 1; i >= 0; --i)
         if (opt.abschnitte[i].typ == QLatin1String("schaltplan") && opt.seiteIds.isEmpty())
             opt.abschnitte.removeAt(i);
+    // Listen ohne Zeilen entfallen still (auch im Verzeichnis)
+    for (int i = opt.abschnitte.size() - 1; i >= 0; --i)
+        if (opt.abschnitte[i].typ == QLatin1String("liste") && opt.abschnitte[i].tabelle.value("zeilen").toList().isEmpty())
+            opt.abschnitte.removeAt(i);
+
     // Verzeichnis nur, wenn es etwas aufzulisten gibt
     {
         bool inhalt = false;
         for (const DokuAbschnitt &a : opt.abschnitte)
-            if (a.typ == QLatin1String("schaltplan") || a.typ == QLatin1String("sps_io")) inhalt = true;
+            if (a.typ == QLatin1String("schaltplan") || a.typ == QLatin1String("sps_io")
+                || a.typ == QLatin1String("liste")) inhalt = true;
         if (!inhalt)
             for (int i = opt.abschnitte.size() - 1; i >= 0; --i)
                 if (opt.abschnitte[i].typ == QLatin1String("inhaltsverzeichnis")) opt.abschnitte.removeAt(i);
@@ -302,6 +322,8 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         const DokuAbschnitt &a = opt.abschnitte[i];
         if (a.typ == QLatin1String("sps_io")) {
             tocPlan.append({{0, QObject::tr("SPS/PLS – I/O-Liste"), 0}, i, 0});
+        } else if (a.typ == QLatin1String("liste")) {
+            tocPlan.append({{0, a.tabelle.value("titel").toString(), 0}, i, 0});
         } else if (a.typ == QLatin1String("schaltplan")) {
             tocPlan.append({{0, QObject::tr("Schaltplan"), 0}, i, 0});
             QString letzteAnlage, letzterOrt;
@@ -376,6 +398,10 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
             } else if (a.typ == QLatin1String("schaltplan")) {
                 seiten += pdfSchaltplanSeitenRendern(painter, writer, opt.seiteIds,
                                                      opt.mitNormblatt, opt.vollCanvas, opt.mitInfostreifen, neu);
+            } else if (a.typ == QLatin1String("liste")) {
+                seiten += pdfTabelleRendern(painter, writer, a.tabelle.value("titel").toString(),
+                                            opt.projektName, a.tabelle.value("spalten").toStringList(),
+                                            a.tabelle.value("zeilen").toList(), neu, seiten + 1, gesamtSeiten);
             } else {   // sps_io
                 QStringList titel;
                 QList<QStringList> daten;

@@ -24,12 +24,9 @@ ColumnLayout {
         dateiname: "stueckliste.pdf"
         titelText: qsTr("Stückliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.slCols.map(function (c) { return c.header })
-            var zeilen = panel.slAnzeige.map(function (r) {
-                return [r.bmk || "", r.symbolId || "", r.freitext1 || "", r.freitext2 || "",
-                        r.seite || "", r.anlageUO || "", r.ortUO || "", r.anlageKz || "", r.ortKz || "", ""]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Stückliste"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("stueckliste", panel.slAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

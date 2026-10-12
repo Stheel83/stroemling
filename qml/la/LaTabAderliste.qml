@@ -25,15 +25,9 @@ ColumnLayout {
         dateiname: "aderliste.pdf"
         titelText: qsTr("Aderliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.alCols.map(function (c) { return c.header })
-            var zeilen = panel.alAnzeige.map(function (r) {
-                var farbe = r.aderfarbe ? (r.aderfarbe + (r.aderfarbe2 ? "/" + r.aderfarbe2 : "")) : "–"
-                return [r.bezeichnung || "", farbe,
-                        r.querschnittMm2 > 0 ? r.querschnittMm2 + " mm²" : "–",
-                        r.laengeM > 0 ? r.laengeM + " m" : "–",
-                        r.seite || "", r.anlageUO || "", r.ortUO || "", r.anlageKz || "", r.ortKz || "", ""]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Aderliste"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("aderliste", panel.alAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

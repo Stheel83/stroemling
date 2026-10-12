@@ -31,16 +31,9 @@ ColumnLayout {
         dateiname: "adersummenliste.pdf"
         titelText: qsTr("Adersummenliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.asJeAnlageOrt
-                ? [qsTr("Anlage"), qsTr("Ort")].concat(panel.asCols.map(function (c) { return c.header }))
-                : panel.asCols.map(function (c) { return c.header })
-            var zeilen = panel.asAnzeige.map(function (r) {
-                var farbe = r.aderfarbe ? (r.aderfarbe + (r.aderfarbe2 ? "/" + r.aderfarbe2 : "")) : "–"
-                var basis = [farbe, r.querschnittMm2 > 0 ? r.querschnittMm2 + " mm²" : "–",
-                             r.anzahl, r.laengeGesamtM > 0 ? r.laengeGesamtM.toFixed(2) + " m" : "–"]
-                return panel.asJeAnlageOrt ? [r.anlageKz || "", r.ortKz || ""].concat(basis) : basis
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Adersummenliste"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("adersummenliste", panel.asAnzeige, { "jeAnlageOrt": panel.asJeAnlageOrt })
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

@@ -24,14 +24,9 @@ ColumnLayout {
         dateiname: "steckverbinderliste.pdf"
         titelText: qsTr("Steckverbinderliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.svCols.map(function (c) { return c.header })
-            var zeilen = panel.svAnzeige.map(function (r) {
-                return [r.bmk || "", r.gkBezeichnung || "", r.bauteilBez || "", r.hersteller || "",
-                        r.polzahl > 0 ? r.polzahl + qsTr("-pol") : "", r.ipGesteckt || "", r.kodierung || "",
-                        r.geschirmt ? "SH" : "–", r.blattnr || "", r.anlageUO || "", r.ortUO || "",
-                        r.anlageKz || "", r.ortKz || "", ""]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Steckverbinder"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("steckverbinder", panel.svAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

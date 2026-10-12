@@ -31,15 +31,9 @@ ColumnLayout {
         dateiname: "kabelliste.pdf"
         titelText: qsTr("Kabelliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.klCols.map(function (c) { return c.header })
-            var zeilen = panel.klAnzeige.map(function (k) {
-                return [k.bezeichnung || "–", k.kabeltyp || "–",
-                        k.aderzahl > 0 ? k.aderzahl : "–",
-                        k.querschnittMm2 > 0 ? (k.querschnittMm2 + "").replace(".", ",") : "–",
-                        k.laengeM > 0 ? (k.laengeM + "").replace(".", ",") + " m" : "–",
-                        k.vonOrt || "–", k.nachOrt || "–", k.linienAnzahl > 0 ? k.linienAnzahl : "–"]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Kabelliste"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("kabelliste", panel.klAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

@@ -24,11 +24,9 @@ ColumnLayout {
         dateiname: "querverweisliste.pdf"
         titelText: qsTr("Querverweisliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.qvCols.map(function (c) { return c.header })
-            var zeilen = panel.qvAnzeige.map(function (r) {
-                return [r.signalname || "", r.richtung || "", r.seite || "", r.zielSeite || "", ""]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Querverweisliste"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("querverweise", panel.qvAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

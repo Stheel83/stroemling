@@ -24,16 +24,9 @@ ColumnLayout {
         dateiname: "klemmenplan.pdf"
         titelText: qsTr("Klemmenplan exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = [qsTr("Leiste"), qsTr("Nr."), qsTr("Bauteil"), qsTr("Typ"),
-                           qsTr("Querschnitt"), qsTr("Farbe"), qsTr("Potenzial"), qsTr("Ort")]
-            var zeilen = []
-            for (var i = 0; i < panel._klemmenplanModel.count; i++) {
-                var r = panel._klemmenplanModel.get(i)
-                if (r.typ !== "klemme") continue
-                zeilen.push([r.leisteBmk || "", r.nummer || "", r.bauteilBez || "", r.anschlussTyp || "",
-                             r.querschnitt || "", r.farbeBez || "", r.potenzial || "", r.ortKz || ""])
-            }
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Klemmenplan"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfStandard(panel.projektId, "klemmenplan")
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

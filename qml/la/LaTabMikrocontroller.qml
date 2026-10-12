@@ -27,15 +27,9 @@ ColumnLayout {
         dateiname: "pinbelegung.pdf"
         titelText: qsTr("Pinbelegung exportieren")
         onExportAngefordert: (pfad) => {
-            // letzte Spalte (Canvas-Sprung) gehört nicht ins PDF
-            var spalten = panel.mcCols.slice(0, panel.mcCols.length - 1).map(function (c) { return c.header })
-            var zeilen = panel.mcAnzeige.map(function (r) {
-                return [r.boardBmk || "", r.boardName || "", r.pin || "", r.netz || "",
-                        r.istFrei ? qsTr("(frei)") : (r.verbundenBmk || ""),
-                        r.verbundenSymbol || "", r.verbundenPin || "",
-                        r.defineName || "", r.defineWert || "", r.blattnr || ""]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Pinbelegung Mikrokontroller"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("pinbelegung", panel.mcAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

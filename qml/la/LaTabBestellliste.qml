@@ -30,15 +30,9 @@ ColumnLayout {
         dateiname: "bestellliste.pdf"
         titelText: qsTr("Bestellliste exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = panel.boCols.map(function (c) { return c.header })
-            var zeilen = panel.boAnzeige.map(function (r) {
-                return [r.bezeichnung || "", r.hersteller || "", r.artikelnummer || "", r.bestellnummer || "",
-                        r.lieferant || "",
-                        (r.einheit === "Stk" ? r.menge.toFixed(0) : r.menge.toFixed(2)) + " " + (r.einheit || ""),
-                        r.preisEur > 0 ? r.preisEur.toFixed(2) : "–",
-                        r.summeEur > 0 ? r.summeEur.toFixed(2) : "–"]
-            })
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Bestellliste"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("bestellliste", panel.boAnzeige)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

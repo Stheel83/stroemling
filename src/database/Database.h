@@ -377,6 +377,17 @@ public:
     // Formatierung/Datenauswahl (inkl. aktiver Filter/Sortierung) übernimmt
     // die aufrufende QML-Seite, damit ein PDF exakt das zeigt was am
     // Bildschirm sichtbar ist.
+    // DOKU-PDF-05: Zellenaufbereitung der Listen für PDF-Ausgaben (eine Abbildung für Listen-Tabs und
+    // Dokumentations-PDF). liste = Id aus listenPdfKatalog(); zeilen = Rohzeilen wie von den
+    // Datenfunktionen geliefert (ggf. gefiltert/sortiert). Rückgabe {titel, spalten, zeilen}, leer bei
+    // unbekannter Liste. optionen: {jeAnlageOrt} nur für "adersummenliste".
+    Q_INVOKABLE QVariantList listenPdfKatalog();                       // [{id, titel}]
+    Q_INVOKABLE QVariantMap  listenPdfTabelle(const QString &liste, const QVariantList &zeilen,
+                                              const QVariantMap &optionen = QVariantMap());
+    // Wie listenPdfTabelle, aber mit den ungefilterten Rohzeilen des Projekts (Standardansicht).
+    Q_INVOKABLE QVariantMap listenPdfStandard(int projektId, const QString &liste,
+                                              const QVariantMap &optionen = QVariantMap());
+
     Q_INVOKABLE bool listePdfSpeichern(const QString &titel, const QString &projektName,
                                         const QStringList &spalten, const QVariantList &zeilen,
                                         const QString &pfad);

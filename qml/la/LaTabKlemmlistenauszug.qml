@@ -57,26 +57,9 @@ ColumnLayout {
         dateiname: "klemmlistenauszug.pdf"
         titelText: qsTr("Klemmlistenauszug exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = [qsTr("Leiste"), qsTr("Nr."), qsTr("Von-Anschl."), qsTr("Von-Verbindung"),
-                           qsTr("Von-Seite"), qsTr("Von-Aderfarbe"), qsTr("Nach-Anschl."), qsTr("Nach-Verbindung"),
-                           qsTr("Nach-Seite"), qsTr("Nach-Aderfarbe"), qsTr("Querschnitt"), qsTr("Farbe")]
-            var zeilen = []
-            var curLeisteBmk = ""
-            for (var i = 0; i < panel._klaModel.count; i++) {
-                var r = panel._klaModel.get(i)
-                if (r.typ === "leiste") { curLeisteBmk = r.bmk || ""; continue }
-                if (r.typ !== "anschluss") continue
-                var vonFarbe  = (r.vonAderFarbe  || "") + (r.vonAderFarbe2  ? "/" + r.vonAderFarbe2  : "")
-                var nachFarbe = (r.nachAderFarbe || "") + (r.nachAderFarbe2 ? "/" + r.nachAderFarbe2 : "")
-                zeilen.push([curLeisteBmk, r.klemmeNr || "", r.anschlussVon || "",
-                             r.vonPlatziert  ? (r.vonVerbBez  || qsTr("(offen)")) : "",
-                             r.vonPlatziert  ? (r.vonBlattnummer  || "") : "", vonFarbe,
-                             r.anschlussNach || "",
-                             r.nachPlatziert ? (r.nachVerbBez || qsTr("(offen)")) : "",
-                             r.nachPlatziert ? (r.nachBlattnummer || "") : "", nachFarbe,
-                             r.querschnitt || "", r.farbeBez || ""])
-            }
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Klemmlistenauszug"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfStandard(panel.projektId, "klemmlistenauszug")
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

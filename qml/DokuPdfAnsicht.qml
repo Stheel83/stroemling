@@ -62,6 +62,36 @@ Item {
         "sps_io":             qsTr("SPS/PLS – I/O-Liste")
     })
 
+    // Listen (DOKU-PDF-05): Katalog aus C++ ([{id, titel}]), Zeilenzahl je Liste (leere Listen sind gesperrt)
+    property var  _listenKatalog: []
+    property var  _listenAnzahl: ({})
+    property bool adersummeJeAnlageOrt: false
+
+    function _titelFuer(typ) {
+        if (root._abschnittTitel[typ] !== undefined) return root._abschnittTitel[typ]
+        for (var i = 0; i < _listenKatalog.length; i++)
+            if ("liste_" + _listenKatalog[i].id === typ) return _listenKatalog[i].titel
+        return typ
+    }
+
+    function _istListe(typ) { return typ.indexOf("liste_") === 0 }
+    function _listenId(typ) { return typ.substring(6) }
+
+    // Listen ohne Einträge können nicht gewählt werden
+    function _listeLeer(typ) {
+        return _istListe(typ) && _listenAnzahl[_listenId(typ)] === 0
+    }
+
+    function _listenAnzahlLaden() {
+        var m = {}
+        for (var i = 0; i < _listenKatalog.length; i++) {
+            var id = _listenKatalog[i].id
+            m[id] = db.listenPdfStandard(root.projektId, id).zeilen.length
+        }
+        _listenAnzahl = m
+        abschnittVersion++
+    }
+
     // ── Hilfsfunktionen ──────────────────────────────────────────
     function _abschnittAktiv(typ) {
         var abhaengigkeit = abschnittVersion   // registriert die Abhängigkeit in aufrufenden Bindings
@@ -72,12 +102,16 @@ Item {
     }
 
     function _standardAbschnitte() {
-        return [ { typ: "deckblatt", aktiv: true }, { typ: "inhaltsverzeichnis", aktiv: true },
-                 { typ: "schaltplan", aktiv: true }, { typ: "sps_io", aktiv: false } ]
+        var a = [ { typ: "deckblatt", aktiv: true }, { typ: "inhaltsverzeichnis", aktiv: true },
+                  { typ: "schaltplan", aktiv: true }, { typ: "sps_io", aktiv: false } ]
+        for (var i = 0; i < _listenKatalog.length; i++)
+            a.push({ typ: "liste_" + _listenKatalog[i].id, aktiv: false })
+        return a
     }
 
     function _abschnitteSetzen(liste) {
         var typen = ["deckblatt", "inhaltsverzeichnis", "schaltplan", "sps_io"]
+        for (var t = 0; t < _listenKatalog.length; t++) typen.push("liste_" + _listenKatalog[t].id)
         var gesehen = {}
         var ergebnis = []
         for (var i = 0; i < liste.length; i++) {
@@ -91,7 +125,7 @@ Item {
             if (!gesehen[std[k].typ]) ergebnis.push(std[k])
         abschnittModel.clear()
         for (var j = 0; j < ergebnis.length; j++)
-            abschnittModel.append({ typ: ergebnis[j].typ, titel: root._abschnittTitel[ergebnis[j].typ],
+            abschnittModel.append({ typ: ergebnis[j].typ, titel: root._titelFuer(ergebnis[j].typ),
                                     aktiv: ergebnis[j].aktiv })
         abschnittVersion++
     }
@@ -105,7 +139,7 @@ Item {
             if (seitenModel.get(j).gewaehlt) seiten.push(seitenModel.get(j).schluessel)
         return { abschnitte: abs, seiten: seiten, titelzusatz: root.titelzusatz, logo: root.logoAn,
                  normblatt: root.normblattAn, infostreifen: root.infostreifenAn,
-                 vollCanvas: root.vollCanvasAn,
+                 vollCanvas: root.vollCanvasAn, adersummeJeAnlageOrt: root.adersummeJeAnlageOrt,
                  spsVorlage: root.spsVorlageName }
     }
 
@@ -120,6 +154,7 @@ Item {
         root.normblattAn     = z.normblatt === undefined ? true : !!z.normblatt
         root.infostreifenAn  = !!z.infostreifen
         root.vollCanvasAn    = !!z.vollCanvas
+        root.adersummeJeAnlageOrt = !!z.adersummeJeAnlageOrt
         root.spsVorlageName = z.spsVorlage || ""
         _spsAuswahlSetzen()
         if (mitSeiten && z.seiten) _seitenAuswahlAnwenden(z.seiten)
@@ -209,6 +244,12 @@ Item {
                 abs.push({ typ: "deckblatt", titelzusatz: root.titelzusatz, logo: root.logoAn })
             else if (a.typ === "sps_io")
                 abs.push({ typ: "sps_io", konfig: _spsEintraege[_spsAuswahl].konfig })
+            else if (root._istListe(a.typ)) {
+                if (root._listeLeer(a.typ)) continue   // leere Listen entfallen (auch im C++-Export)
+                var lid = root._listenId(a.typ)
+                abs.push({ typ: "liste", liste: lid,
+                           jeAnlageOrt: lid === "adersummenliste" ? root.adersummeJeAnlageOrt : false })
+            }
             else
                 abs.push({ typ: a.typ })
         }
@@ -228,7 +269,7 @@ Item {
         var version = abschnittVersion
         var irgendeinAktiv = version < 0
         for (var i = 0; i < abschnittModel.count; i++)
-            if (abschnittModel.get(i).aktiv) irgendeinAktiv = true
+            if (abschnittModel.get(i).aktiv && !_listeLeer(abschnittModel.get(i).typ)) irgendeinAktiv = true
         if (!irgendeinAktiv) return false
         if (_abschnittAktiv("schaltplan") && gewaehlteSeiten === 0) return false
         if (_abschnittAktiv("sps_io") && !_spsVorhanden) return false
@@ -272,6 +313,8 @@ Item {
         var z = null
         if (einst.zuletzt) { try { z = JSON.parse(einst.zuletzt) } catch (e2) { z = null } }
         _spsVorhanden = db.spsRackListe(root.projektId).length > 0
+        _listenKatalog = db.listenPdfKatalog()
+        _listenAnzahlLaden()
         _seitenNeuLaden()
         _zustandLaden(z, false)
         vorlageCombo.currentIndex = 0
@@ -494,6 +537,17 @@ Item {
                     color: root.theme.textMuted; font.pixelSize: 11
                 }
 
+                ScrollView {
+                    id: abschnittScroll
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    contentWidth: availableWidth
+
+                ColumnLayout {
+                    width: abschnittScroll.availableWidth
+                    spacing: 6
+
                 Repeater {
                     model: abschnittModel
                     delegate: ColumnLayout {
@@ -512,7 +566,7 @@ Item {
                                 Layout.fillWidth: true
                                 beschriftung: zeile.titel
                                 wert: zeile.aktiv
-                                enabled: zeile.typ !== "sps_io" || root._spsVorhanden
+                                enabled: (zeile.typ !== "sps_io" || root._spsVorhanden) && !root._listeLeer(zeile.typ)
                                 onUmgeschaltet: function(neu) {
                                     abschnittModel.setProperty(zeile.index, "aktiv", neu)
                                     root.abschnittVersion++
@@ -521,6 +575,12 @@ Item {
                             Text {
                                 visible: zeile.typ === "sps_io" && !root._spsVorhanden
                                 text: qsTr("keine SPS/PLS-Daten im Projekt")
+                                color: root.theme.textMuted; font.pixelSize: 11
+                            }
+                            Text {
+                                visible: root._istListe(zeile.typ)
+                                text: root._listeLeer(zeile.typ) ? qsTr("keine Einträge")
+                                      : qsTr("%1 Zeilen").arg(root._listenAnzahl[root._listenId(zeile.typ)])
                                 color: root.theme.textMuted; font.pixelSize: 11
                             }
                             KleinerButton {
@@ -570,6 +630,14 @@ Item {
                             }
                         }
 
+                        Kaestchen {
+                            Layout.leftMargin: 24
+                            visible: zeile.aktiv && zeile.typ === "liste_adersummenliste"
+                            beschriftung: qsTr("je Anlage/Ort gruppieren")
+                            wert: root.adersummeJeAnlageOrt
+                            onUmgeschaltet: function(neu) { root.adersummeJeAnlageOrt = neu }
+                        }
+
                         Text {
                             Layout.leftMargin: 24
                             visible: zeile.aktiv && zeile.typ === "schaltplan"
@@ -578,8 +646,8 @@ Item {
                         }
                     }
                 }
-
-                Item { Layout.fillHeight: true }
+                }   // ColumnLayout
+                }   // ScrollView
             }
 
             Rectangle { Layout.fillHeight: true; Layout.preferredWidth: 1; color: root.theme.border }

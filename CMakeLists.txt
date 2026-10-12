@@ -23,6 +23,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Schema.cpp
     src/database/Database_Canvas.cpp
     src/database/Database_Listen.cpp
+    src/database/Database_ListenPdf.cpp
     src/database/Database_Normblatt.cpp
     src/database/Database_Kabel.cpp
     src/database/Database_Klemmen.cpp
@@ -539,6 +540,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Schema.cpp
     src/database/Database_Canvas.cpp
     src/database/Database_Listen.cpp
+    src/database/Database_ListenPdf.cpp
     src/database/Database_Normblatt.cpp
     src/database/Database_Kabel.cpp
     src/database/Database_Klemmen.cpp

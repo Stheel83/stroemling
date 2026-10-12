@@ -24,18 +24,9 @@ ColumnLayout {
         dateiname: "belegungsplan.pdf"
         titelText: qsTr("Belegungsplan exportieren")
         onExportAngefordert: (pfad) => {
-            var spalten = [qsTr("GK-BMK"), qsTr("Typ"), qsTr("Symbol-BMK"), qsTr("Pin"), qsTr("Signal"),
-                           qsTr("Aderfarbe"), qsTr("Querschnitt mm²"), qsTr("Seite")]
-            var zeilen = []
-            var currentGkBmk = ""
-            for (var i = 0; i < panel._bpDaten.length; i++) {
-                var r = panel._bpDaten[i]
-                if (r.typ === "gehaeuse") { currentGkBmk = r.bmk || ""; continue }
-                var qs = r.querschnitt || 0
-                zeilen.push([currentGkBmk, r.kontaktTyp || "", r.kontaktBmk || "", r.kontaktBez || "",
-                             r.signalBez || "", r.signalFarbe || "", qs > 0 ? qs : "", r.blattnr || ""])
-            }
-            erfolgReagieren(db.listePdfSpeichern(qsTr("Belegungsplan"), panel.projektName, spalten, zeilen, pfad))
+            // Zellenaufbereitung zentral in C++ (DOKU-PDF-05), gleiche Abbildung wie das Dokumentations-PDF
+            var t = db.listenPdfTabelle("belegungsplan", panel._bpDaten)
+            erfolgReagieren(db.listePdfSpeichern(t.titel, panel.projektName, t.spalten, t.zeilen, pfad))
         }
     }
 

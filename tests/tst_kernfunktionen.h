@@ -939,6 +939,90 @@ private slots:
         QCOMPARE(pdfSeitenAnzahl(f3), 1);
     }
 
+    // DOKU-PDF-05: Zellenaufbereitung der Listen (eine Abbildung für Tabs und Dokumentations-PDF)
+    void doku_pdf_05_listen()
+    {
+        // Katalog: 11 Listen, Ids eindeutig
+        const QVariantList kat = m_db->listenPdfKatalog();
+        QCOMPARE(kat.size(), 11);
+
+        // Unbekannte Liste → leeres Ergebnis
+        QVERIFY(m_db->listenPdfTabelle("gibtsnicht", {}).isEmpty());
+
+        // Stückliste: Zellen aus Rohzeilen, kein "Canvas Pos."-Platzhalter, Spaltenzahl = Zellenzahl
+        QVariantMap row;
+        row["bmk"] = "-K1"; row["symbolId"] = "schuetz"; row["freitext1"] = "F1"; row["seite"] = "3";
+        row["anlageKz"] = "A"; row["ortKz"] = "O";
+        QVariantMap t = m_db->listenPdfTabelle("stueckliste", {row});
+        QCOMPARE(t["spalten"].toStringList().size(), 9);
+        QCOMPARE(t["zeilen"].toList().size(), 1);
+        const QStringList z = t["zeilen"].toList().first().toStringList();
+        QCOMPARE(z.size(), 9);
+        QCOMPARE(z[0], QString("-K1"));
+        QCOMPARE(z[1], QString("schuetz"));
+        QCOMPARE(z[7], QString("A"));
+        QVERIFY(!t["spalten"].toStringList().contains("Canvas Pos."));
+
+        // Adersummenliste: je Anlage/Ort fügt zwei Spalten vorn ein, Formatierung wie bisher in QML
+        QVariantMap as;
+        as["aderfarbe"] = "rot"; as["aderfarbe2"] = "weiss"; as["querschnittMm2"] = 1.5; as["anzahl"] = 4;
+        as["laengeGesamtM"] = 12.345; as["anlageKz"] = "AQ"; as["ortKz"] = "TR";
+        QVariantMap ohne = m_db->listenPdfTabelle("adersummenliste", {as});
+        QCOMPARE(ohne["spalten"].toStringList().size(), 4);
+        const QStringList zo = ohne["zeilen"].toList().first().toStringList();
+        QCOMPARE(zo, (QStringList{"rot/weiss", "1.5 mm²", "4", "12.35 m"}));   // toFixed(2) wie in QML
+        QVariantMap opt; opt["jeAnlageOrt"] = true;
+        QVariantMap mit = m_db->listenPdfTabelle("adersummenliste", {as}, opt);
+        QCOMPARE(mit["spalten"].toStringList().size(), 6);
+        QCOMPARE(mit["zeilen"].toList().first().toStringList().first(), QString("AQ"));
+
+        // Klemmlistenauszug / Belegungsplan: Gruppenköpfe liefern den Leisten-/Gehäuse-Kontext, erzeugen aber keine Zeile
+        QVariantMap leiste; leiste["typ"] = "leiste"; leiste["bmk"] = "-X1";
+        QVariantMap ans; ans["typ"] = "anschluss"; ans["klemmeNr"] = "1"; ans["anschlussVon"] = "A";
+        ans["vonPlatziert"] = true; ans["vonVerbBez"] = "";
+        QVariantMap kla = m_db->listenPdfTabelle("klemmlistenauszug", {leiste, ans});
+        QCOMPARE(kla["zeilen"].toList().size(), 1);
+        const QStringList kz = kla["zeilen"].toList().first().toStringList();
+        QCOMPARE(kz.size(), kla["spalten"].toStringList().size());
+        QCOMPARE(kz[0], QString("-X1"));
+        QCOMPARE(kz[3], QString("(offen)"));   // platziert ohne Verbindungsname
+
+        QVariantMap gh; gh["typ"] = "gehaeuse"; gh["bmk"] = "-X5";
+        QVariantMap kt; kt["typ"] = "kontakt"; kt["kontaktBez"] = "1"; kt["querschnitt"] = 0.75;
+        QVariantMap bp = m_db->listenPdfTabelle("belegungsplan", {gh, kt});
+        QCOMPARE(bp["zeilen"].toList().size(), 1);
+        QCOMPARE(bp["zeilen"].toList().first().toStringList()[0], QString("-X5"));
+
+        // Jede Liste liefert für ein leeres Projekt gültige Spalten und keine Zeilen
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        for (const QVariant &kv : kat) {
+            const QString id = kv.toMap()["id"].toString();
+            const QVariantMap tab = m_db->listenPdfStandard(pid, id);
+            QVERIFY2(!tab.isEmpty(), qPrintable(id));
+            QVERIFY2(!tab["spalten"].toStringList().isEmpty(), qPrintable(id));
+            for (const QVariant &zv : tab["zeilen"].toList())
+                QCOMPARE(zv.toStringList().size(), tab["spalten"].toStringList().size());
+        }
+
+        // Kombi-PDF: Liste als Abschnitt; leere Liste entfällt still, unbekannte Liste ist ein Fehler
+        const int sid = neueSeite("L5");
+        QVariantMap a = symbol("ard_uno", 0, 0, {{"bmk", "A1"}});
+        a["x2"] = 32.0; a["y2"] = 64.0;
+        QVERIFY(m_db->grafikSpeichern(sid, {a}));
+        QVERIFY(!m_db->stueckliste(pid).isEmpty());
+        const QString dir = QDir::tempPath();
+        const QString nurPlan = dir + "/stroemling_dokupdf5_plan.pdf";
+        QVERIFY(schaltplanPdf(pid, nurPlan, false, false, false));
+        const QString mitListe = dir + "/stroemling_dokupdf5_liste.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, mitListe,
+            R"({"mitNormblatt":false,"abschnitte":[{"typ":"schaltplan"},{"typ":"liste","liste":"stueckliste"},
+                {"typ":"liste","liste":"querverweise"}]})"));
+        // querverweise ist leer → entfällt; Stückliste = 1 Tabellenseite
+        QCOMPARE(pdfSeitenAnzahl(mitListe), pdfSeitenAnzahl(nurPlan) + 1);
+        QVERIFY(!m_db->dokuPdfExportieren(pid, dir + "/stroemling_dokupdf5_x.pdf",
+                                          R"({"abschnitte":[{"typ":"liste","liste":"gibtsnicht"}]})"));
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

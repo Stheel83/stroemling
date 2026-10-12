@@ -503,12 +503,6 @@ Item {
                             color: { var t = model.knotenTyp; if (t===0) return theme.textPrimary; if (t===1) return theme.textSecondary; return theme.textSecondary }
                             Layout.fillWidth: true; elide: Text.ElideRight
                         }
-                        Rectangle {
-                            visible: model.knotenTyp === 2
-                            color: theme.badge; radius: 3
-                            width: typText.width + 10; height: 18
-                            Text { id: typText; anchors.centerIn: parent; text: model.seitentyp ?? ""; font.pixelSize: 10; color: theme.accent }
-                        }
                         Row {
                             spacing: 4; visible: delegateItem.hovered && !dragHandle.drag.active
                             Button {

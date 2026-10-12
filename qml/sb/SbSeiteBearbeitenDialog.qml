@@ -35,8 +35,6 @@ Dialog {
     onOpened: {
         editBlatt.text      = root.altBlattnummer
         editSeiteBez.text   = root.altBezeichnung
-        var idx = editCmbTyp.model.indexOf(root.altSeitentyp)
-        editCmbTyp.currentIndex    = idx >= 0 ? idx : 0
         editCmbFormat.currentIndex = root.sb.formatIndex(root.altBreiteMm, root.altHoeheMm)
         editRandLinks.value  = root.altRandLinks
         editRandRechts.value = root.altRandRechts
@@ -69,14 +67,6 @@ Dialog {
             id: editSeiteBez; Layout.fillWidth: true
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
-        }
-        Text { text: qsTr("Seitentyp"); color: root.theme.textMuted; font.pixelSize: 12 }
-        ComboBox {
-            id: editCmbTyp; Layout.fillWidth: true
-            model: ["schaltplan", "klemmenplan", "kabelplan", "titelblatt", "inhaltsverzeichnis", "layout"]
-            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-            contentItem: Text { leftPadding: 8; text: editCmbTyp.displayText; color: root.theme.textPrimary;
-                                font.pixelSize: 14; verticalAlignment: Text.AlignVCenter }
         }
         Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12 }
         ComboBox {
@@ -150,7 +140,7 @@ Dialog {
                 onClicked: {
                     var fmt = editCmbFormat.model.get(editCmbFormat.currentIndex)
                     seitenModel.seiteBearbeiten(root.itemId,
-                        editBlatt.text.trim(), editSeiteBez.text.trim(), editCmbTyp.currentText,
+                        editBlatt.text.trim(), editSeiteBez.text.trim(), (root.altSeitentyp !== "" ? root.altSeitentyp : "schaltplan"),
                         fmt.breite, fmt.hoehe,
                         editRandLinks.value, editRandRechts.value,
                         editRandOben.value,  editRandUnten.value)

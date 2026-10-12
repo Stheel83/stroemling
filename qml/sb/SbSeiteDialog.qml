@@ -33,14 +33,6 @@ Dialog {
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }
-        Text { text: qsTr("Seitentyp"); color: root.theme.textMuted; font.pixelSize: 12 }
-        ComboBox {
-            id: cmbTyp; Layout.fillWidth: true
-            model: ["schaltplan", "klemmenplan", "kabelplan", "titelblatt", "inhaltsverzeichnis", "layout"]
-            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-            contentItem: Text { leftPadding: 8; text: cmbTyp.displayText; color: root.theme.textPrimary;
-                                font.pixelSize: 14; verticalAlignment: Text.AlignVCenter }
-        }
         Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12 }
         ComboBox {
             id: cmbFormat; Layout.fillWidth: true
@@ -80,9 +72,9 @@ Dialog {
                 onClicked: {
                     var fmt = cmbFormat.model.get(cmbFormat.currentIndex)
                     seitenModel.seiteAnlegen(root.fuerOrtId,
-                        inpBlatt.text.trim(), inpSeiteBez.text.trim(), cmbTyp.currentText,
+                        inpBlatt.text.trim(), inpSeiteBez.text.trim(), "schaltplan",
                         fmt.breite, fmt.hoehe)
-                    inpBlatt.text = ""; inpSeiteBez.text = ""; cmbTyp.currentIndex = 0; cmbFormat.currentIndex = 0
+                    inpBlatt.text = ""; inpSeiteBez.text = ""; cmbFormat.currentIndex = 0
                     root.close()
                     root.sb._nurSeitenFilter = false
                 }

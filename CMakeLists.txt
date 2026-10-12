@@ -262,7 +262,7 @@ qt_add_qml_module(stroemling_app
         qml/MakrobenennDialog.qml
         qml/MakroPalette.qml
         qml/DrcPanel.qml
-        qml/PdfExportDialog.qml
+        qml/DokuPdfDialog.qml
         qml/CanvasPanel.qml
         qml/KommandoPalette.qml
         qml/NormblattEditorDialog.qml

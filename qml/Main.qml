@@ -327,7 +327,7 @@ ApplicationWindow {
         onActivated: pdfExportDialog.open()
     }
 
-    PdfExportDialog {
+    DokuPdfDialog {
         id:        pdfExportDialog
         theme:     appTheme
         projektId: root.aktivProjektId

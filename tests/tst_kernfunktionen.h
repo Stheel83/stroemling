@@ -58,6 +58,21 @@ class TstKernfunktionen : public QObject
         return m;
     }
     // Projekt-Grundgerüst: liefert Seiten-ID (Default-Anlage/-Ort aus createProjekt)
+    // PDF-Export des Schaltplan-Abschnitts über dokuPdfExportieren() (ersetzt canvasPdfExportieren/-SeiteExportieren).
+    // ids leer = alle Seiten mit in_doku_pdf = 1.
+    bool schaltplanPdf(int pid, const QString &pfad, bool nb, bool voll, bool inf, const QList<int> &ids = {})
+    {
+        QJsonObject o;
+        o["mitNormblatt"] = nb; o["vollCanvas"] = voll; o["mitInfostreifen"] = inf;
+        if (!ids.isEmpty()) {
+            QJsonArray a;
+            for (int id : ids) a.append(id);
+            o["seiteIds"] = a;
+        }
+        o["abschnitte"] = QJsonArray{QJsonObject{{"typ", "schaltplan"}}};
+        return m_db->dokuPdfExportieren(pid, pfad, QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact)));
+    }
+
     int neueSeite(const QString &blatt)
     {
         const int ortId = einWert("SELECT id FROM ort LIMIT 1").toInt();
@@ -712,7 +727,7 @@ private slots:
             for (int nb = 0; nb <= 1; ++nb)
                 for (int inf = 0; inf <= 1; ++inf) {
                     const QString f = QString("%1/%2_nb%3_inf%4.pdf").arg(aus, voll ? "voll" : "seite").arg(nb).arg(inf);
-                    QVERIFY2(m_db->canvasPdfExportieren(pid, f, nb, voll, inf), qPrintable(f));
+                    QVERIFY2(schaltplanPdf(pid, f, nb, voll, inf), qPrintable(f));
                 }
     }
 
@@ -759,8 +774,8 @@ private slots:
         }
         QVERIFY(m_db->grafikSpeichern(sid, els));
         const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
-        QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_seite.pdf", true, false, true));
-        QVERIFY(m_db->canvasPdfExportieren(pid, aus + "/synth_voll.pdf", false, true, true));
+        QVERIFY(schaltplanPdf(pid, aus + "/synth_seite.pdf", true, false, true));
+        QVERIFY(schaltplanPdf(pid, aus + "/synth_voll.pdf", false, true, true));
     }
 
     // Referenz-PDF der generischen Listen-Tabelle (listePdfSpeichern) für Vorher/Nachher-Vergleiche bei Umbauten
@@ -807,7 +822,7 @@ private slots:
 
         const QString dir = QDir::tempPath();
         const QString alle = dir + "/stroemling_dokupdf_alle.pdf";
-        QVERIFY(m_db->canvasPdfExportieren(pid, alle, false, false, false));
+        QVERIFY(schaltplanPdf(pid, alle, false, false, false));
         const int gesamt = pdfSeitenAnzahl(alle);
         QVERIFY(gesamt >= 3);
 
@@ -815,12 +830,12 @@ private slots:
         QVERIFY(m_db->seiteInDokuPdfSetzen(b, false));
         QCOMPARE(m_db->normblattDatenLaden(b).value("inDokuPdf").toInt(), 0);
         const QString ohne = dir + "/stroemling_dokupdf_ohne.pdf";
-        QVERIFY(m_db->canvasPdfExportieren(pid, ohne, false, false, false));
+        QVERIFY(schaltplanPdf(pid, ohne, false, false, false));
         QCOMPARE(pdfSeitenAnzahl(ohne), gesamt - 1);
 
-        // Einzelseite ignoriert das Flag
+        // Explizite Seitenauswahl ignoriert das Flag
         const QString einzel = dir + "/stroemling_dokupdf_einzel.pdf";
-        QVERIFY(m_db->canvasSeiteExportieren(b, einzel, false, false, false));
+        QVERIFY(schaltplanPdf(pid, einzel, false, false, false, {b}));
         QCOMPARE(pdfSeitenAnzahl(einzel), 1);
 
         // Duplizieren übernimmt das Flag
@@ -832,7 +847,7 @@ private slots:
         Q_UNUSED(c);
         QSqlQuery q(QSqlDatabase::database());
         QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 0"));
-        QVERIFY(!m_db->canvasPdfExportieren(pid, dir + "/stroemling_dokupdf_leer.pdf", false, false, false));
+        QVERIFY(!schaltplanPdf(pid, dir + "/stroemling_dokupdf_leer.pdf", false, false, false));
         QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 1"));
     }
 

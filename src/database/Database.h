@@ -970,12 +970,12 @@ public:
     // ── Canvas PDF-Export (L16) ──────────────────────────────────────────────
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.
     // pfad: lokaler Dateipfad oder file://-URL.
-    Q_INVOKABLE bool canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false, bool mitInfostreifen = false);
-    Q_INVOKABLE bool canvasSeiteExportieren(int seiteId,  const QString &pfad, bool mitNormblatt = true, bool vollCanvas = false, bool mitInfostreifen = false);
     // DOKU-PDF-02: Dokumentations-PDF aus Abschnitten (schaltplan, sps_io) in einem Writer.
     // optionenJson: { mitNormblatt, vollCanvas, mitInfostreifen, seiteIds?, abschnitte:[{typ, konfig?}] },
     // Beschreibung in konzept/features/51_dokumentations_pdf.md §4.
     Q_INVOKABLE bool dokuPdfExportieren(int projektId, const QString &pfad, const QString &optionenJson);
+    // Seiten des Projekts für den Export-Dialog: [{id, anlage, ort, blatt, bezeichnung, inDokuPdf}]
+    Q_INVOKABLE QVariantList dokuPdfSeitenListe(int projektId);
     // Existenzprüfung für Export-Überschreibwarnungen (akzeptiert lokalen Pfad oder file://-URL).
     Q_INVOKABLE bool dateiExistiert(const QString &pfad) const;
 
@@ -1003,8 +1003,6 @@ private:
                                       bool ersteSeiteNeu);
     QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas);
     QList<int> dokuPdfSeitenIds(int projektId);
-    bool   pdfSchaltplanDatei(const QList<int> &seiteIds, const QString &pfad,
-                              bool mitNormblatt, bool vollCanvas, bool mitInfostreifen);
 
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen
     bool checkAndApplySchema();

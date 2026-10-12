@@ -1,0 +1,636 @@
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
+import QtCore
+import "components"
+import "la"
+
+// DOKU-PDF-04: Dokumentations-PDF – ersetzt den alten Schaltplan-PDF-Dialog.
+// Das PDF wird aus Abschnitten zusammengesetzt (Deckblatt, Inhaltsverzeichnis,
+// Schaltplan, SPS/PLS-I/O-Liste); Reihenfolge und Auswahl sind einstellbar,
+// Zusammenstellungen lassen sich als Vorlage speichern (global, QML-Settings).
+// Der eigentliche Aufbau passiert in Database::dokuPdfExportieren()
+// (konzept/features/51_dokumentations_pdf.md).
+Dialog {
+    id: root
+
+    modal:  true
+    parent: Overlay.overlay
+    anchors.centerIn: parent
+    width:  680
+    padding: 20
+
+    required property var theme
+    required property int projektId
+    required property int seiteId
+    property bool         debug: false
+
+    title: qsTr("Dokumentations-PDF")
+
+    background: Rectangle {
+        color:        root.theme.sidebar
+        border.color: root.theme.border
+        border.width: 1; radius: 6
+        // im Hintergrund statt als Kind des Dialogs: dessen contentItem ist ein Layout
+        DebugLabel { panelName: qsTr("Dokumentations-PDF-Dialog"); visible: root.debug && root.visible }
+    }
+
+    // ── Persistenz: globale Vorlagen + zuletzt benutzte Zusammenstellung ──
+    Settings {
+        id: einst
+        category: "doku_pdf"
+        property string vorlagen: "[]"   // JSON: [{name, zustand}]
+        property string zuletzt:  ""     // JSON des zuletzt benutzten Zustands
+    }
+
+    // SPS-Export-Vorlagen des Export-Tabs. Der Loader erzeugt die Settings bei jedem Öffnen
+    // neu, damit zwischenzeitlich im Tab gespeicherte Vorlagen sichtbar sind.
+    Loader {
+        id: spsEinstLader
+        active: root.visible
+        sourceComponent: Settings {
+            category: "sps_export"
+            property string vorlagen: "[]"
+            property string zuletzt:  ""
+        }
+        onLoaded: root._spsVorlagenLaden()
+    }
+
+    ListModel { id: abschnittModel }   // typ, titel, aktiv
+    ListModel { id: seitenModel }      // sid, label, gewaehlt
+
+    property var    _vorlagen: []
+    property var    _spsEintraege: []        // [{name, konfig}]
+    property int    _spsAuswahl: 0
+    property bool   _spsVorhanden: false
+    property string titelzusatz: ""
+    property bool   logoAn: true
+    property bool   normblattAn: true
+    property bool   infostreifenAn: false
+    property bool   vollCanvasAn: false
+    property int    gewaehlteSeiten: 0
+    property int    abschnittVersion: 0   // Zähler: ListModel.get() löst in Bindings keine Neuberechnung aus
+    property string spsVorlageName: ""
+
+    readonly property var _abschnittTitel: ({
+        "deckblatt":          qsTr("Deckblatt"),
+        "inhaltsverzeichnis": qsTr("Inhaltsverzeichnis"),
+        "schaltplan":         qsTr("Schaltplan"),
+        "sps_io":             qsTr("SPS/PLS – I/O-Liste")
+    })
+
+    // ── Hilfsfunktionen ──────────────────────────────────────────
+    function _abschnittAktiv(typ) {
+        var abhaengigkeit = abschnittVersion   // registriert die Abhängigkeit in aufrufenden Bindings
+        if (abhaengigkeit < 0) return false
+        for (var i = 0; i < abschnittModel.count; i++)
+            if (abschnittModel.get(i).typ === typ) return abschnittModel.get(i).aktiv
+        return false
+    }
+
+    function _standardAbschnitte() {
+        return [ { typ: "deckblatt", aktiv: true }, { typ: "inhaltsverzeichnis", aktiv: true },
+                 { typ: "schaltplan", aktiv: true }, { typ: "sps_io", aktiv: false } ]
+    }
+
+    function _abschnitteSetzen(liste) {
+        var typen = ["deckblatt", "inhaltsverzeichnis", "schaltplan", "sps_io"]
+        var gesehen = {}
+        var ergebnis = []
+        for (var i = 0; i < liste.length; i++) {
+            if (typen.indexOf(liste[i].typ) < 0 || gesehen[liste[i].typ]) continue
+            gesehen[liste[i].typ] = true
+            ergebnis.push({ typ: liste[i].typ, aktiv: !!liste[i].aktiv })
+        }
+        // fehlende Typen hinten anhängen (z. B. nach einem Update)
+        var std = _standardAbschnitte()
+        for (var k = 0; k < std.length; k++)
+            if (!gesehen[std[k].typ]) ergebnis.push(std[k])
+        abschnittModel.clear()
+        for (var j = 0; j < ergebnis.length; j++)
+            abschnittModel.append({ typ: ergebnis[j].typ, titel: root._abschnittTitel[ergebnis[j].typ],
+                                    aktiv: ergebnis[j].aktiv })
+        abschnittVersion++
+    }
+
+    function _zustand() {
+        var abs = []
+        for (var i = 0; i < abschnittModel.count; i++)
+            abs.push({ typ: abschnittModel.get(i).typ, aktiv: abschnittModel.get(i).aktiv })
+        return { abschnitte: abs, titelzusatz: root.titelzusatz, logo: root.logoAn,
+                 normblatt: root.normblattAn, infostreifen: root.infostreifenAn,
+                 vollCanvas: root.vollCanvasAn,
+                 spsVorlage: root.spsVorlageName }
+    }
+
+    function _zustandLaden(z) {
+        if (!z) z = {}
+        _abschnitteSetzen(z.abschnitte || _standardAbschnitte())
+        root.titelzusatz     = z.titelzusatz || ""
+        root.logoAn          = z.logo === undefined ? true : !!z.logo
+        root.normblattAn     = z.normblatt === undefined ? true : !!z.normblatt
+        root.infostreifenAn  = !!z.infostreifen
+        root.vollCanvasAn    = !!z.vollCanvas
+        root.spsVorlageName = z.spsVorlage || ""
+        _spsAuswahlSetzen()
+    }
+
+    // Wählt den SPS-Eintrag passend zu spsVorlageName (die Liste wird erst beim Öffnen per Loader gefüllt).
+    function _spsAuswahlSetzen() {
+        _spsAuswahl = 0
+        for (var i = 0; i < _spsEintraege.length; i++)
+            if (_spsEintraege[i].name === root.spsVorlageName) _spsAuswahl = i
+    }
+
+    function _spsVorlagenLaden() {
+        var eintraege = [ { name: qsTr("(Standard)"), konfig: JSON.parse(db.spsExportStandardKonfig()) } ]
+        var einstSps = spsEinstLader.item
+        if (einstSps) {
+            try {
+                var z = einstSps.zuletzt ? JSON.parse(einstSps.zuletzt) : null
+                if (z && z.spalten && z.spalten.length > 0)
+                    eintraege.push({ name: qsTr("(Zuletzt im Export-Tab)"), konfig: z })
+            } catch (e) { }
+            try {
+                var v = JSON.parse(einstSps.vorlagen) || []
+                for (var i = 0; i < v.length; i++) eintraege.push({ name: v[i].name, konfig: v[i].konfig })
+            } catch (e2) { }
+        }
+        _spsEintraege = eintraege
+        _spsAuswahlSetzen()
+    }
+
+    function _seitenNeuLaden() {
+        seitenModel.clear()
+        var liste = db.dokuPdfSeitenListe(root.projektId)
+        for (var i = 0; i < liste.length; i++) {
+            var s = liste[i]
+            var t = "=" + s.anlage + " +" + s.ort + "   " + qsTr("Blatt %1").arg(s.blatt)
+            if (s.bezeichnung) t += "  –  " + s.bezeichnung
+            seitenModel.append({ sid: s.id, label: t, gewaehlt: s.inDokuPdf })
+        }
+        _seitenZaehlen()
+    }
+
+    function _seitenZaehlen() {
+        var n = 0
+        for (var i = 0; i < seitenModel.count; i++) if (seitenModel.get(i).gewaehlt) n++
+        root.gewaehlteSeiten = n
+    }
+
+    function _alleSeiten(wert) {
+        for (var i = 0; i < seitenModel.count; i++) seitenModel.setProperty(i, "gewaehlt", wert)
+        _seitenZaehlen()
+    }
+
+    function _nurAktuelleSeite() {
+        for (var i = 0; i < seitenModel.count; i++)
+            seitenModel.setProperty(i, "gewaehlt", seitenModel.get(i).sid === root.seiteId)
+        _seitenZaehlen()
+    }
+
+    function _alsFlagUebernehmen() {
+        for (var i = 0; i < seitenModel.count; i++)
+            db.seiteInDokuPdfSetzen(seitenModel.get(i).sid, seitenModel.get(i).gewaehlt)
+        meldungManager.zeigen(qsTr("Auswahl als Seiten-Voreinstellung gespeichert."), true)
+    }
+
+    function _optionenJson() {
+        var abs = []
+        for (var i = 0; i < abschnittModel.count; i++) {
+            var a = abschnittModel.get(i)
+            if (!a.aktiv) continue
+            if (a.typ === "deckblatt")
+                abs.push({ typ: "deckblatt", titelzusatz: root.titelzusatz, logo: root.logoAn })
+            else if (a.typ === "sps_io")
+                abs.push({ typ: "sps_io", konfig: _spsEintraege[_spsAuswahl].konfig })
+            else
+                abs.push({ typ: a.typ })
+        }
+        var ids = []
+        for (var j = 0; j < seitenModel.count; j++)
+            if (seitenModel.get(j).gewaehlt) ids.push(seitenModel.get(j).sid)
+        return JSON.stringify({
+            mitNormblatt:    root.normblattAn && !root.vollCanvasAn,
+            vollCanvas:      root.vollCanvasAn,
+            mitInfostreifen: root.infostreifenAn,
+            seiteIds:        ids,
+            abschnitte:      abs
+        })
+    }
+
+    readonly property bool exportMoeglich: {
+        var version = abschnittVersion
+        var irgendeinAktiv = version < 0
+        for (var i = 0; i < abschnittModel.count; i++)
+            if (abschnittModel.get(i).aktiv) irgendeinAktiv = true
+        if (!irgendeinAktiv) return false
+        if (_abschnittAktiv("schaltplan") && gewaehlteSeiten === 0) return false
+        if (_abschnittAktiv("sps_io") && !_spsVorhanden) return false
+        return true
+    }
+
+    // Vorlagen
+    function _vorlagenSpeichern() { einst.vorlagen = JSON.stringify(_vorlagen) }
+
+    function _vorlageSpeichern(name) {
+        var neu = _vorlagen.slice()
+        var gefunden = -1
+        for (var i = 0; i < neu.length; i++) if (neu[i].name === name) gefunden = i
+        if (gefunden >= 0) neu[gefunden] = { name: name, zustand: _zustand() }
+        else neu.push({ name: name, zustand: _zustand() })
+        _vorlagen = neu
+        _vorlagenSpeichern()
+        vorlageCombo.currentIndex = _idxVorlage(name)
+        meldungManager.zeigen(qsTr("Vorlage \"%1\" gespeichert").arg(name), true)
+    }
+
+    function _idxVorlage(name) {
+        for (var i = 0; i < _vorlagen.length; i++) if (_vorlagen[i].name === name) return i + 1
+        return 0
+    }
+
+    function _vorlageLoeschen() {
+        var i = vorlageCombo.currentIndex - 1
+        if (i < 0 || i >= _vorlagen.length) return
+        var neu = _vorlagen.slice()
+        neu.splice(i, 1)
+        _vorlagen = neu
+        _vorlagenSpeichern()
+        vorlageCombo.currentIndex = 0
+    }
+
+    onAboutToShow: {
+        try { _vorlagen = JSON.parse(einst.vorlagen) || [] } catch (e) { _vorlagen = [] }
+        var z = null
+        if (einst.zuletzt) { try { z = JSON.parse(einst.zuletzt) } catch (e2) { z = null } }
+        _spsVorhanden = db.spsRackListe(root.projektId).length > 0
+        _zustandLaden(z)
+        _seitenNeuLaden()
+        vorlageCombo.currentIndex = 0
+    }
+
+    // ── Wiederverwendbare Bedienelemente ─────────────────────────
+    // wert = anzuzeigender Zustand (Bindung bleibt auch nach einem Klick erhalten, sonst würde
+    // ein später geladener Zustand nicht mehr angezeigt); umgeschaltet(neu) meldet die Benutzeraktion.
+    component Kaestchen: CheckBox {
+        id: kb
+        property string beschriftung: ""
+        property bool   wert: false
+        signal umgeschaltet(bool neu)
+        checked: wert
+        onToggled: {
+            var n = kb.checked
+            kb.checked = Qt.binding(function() { return kb.wert })
+            kb.umgeschaltet(n)
+        }
+        implicitHeight: 26
+        indicator: Item {
+            implicitWidth: 14; implicitHeight: 14
+            x: kb.leftPadding; y: (kb.height - height) / 2
+            Rectangle {
+                anchors.fill: parent; radius: 3
+                color: kb.checked ? root.theme.accent : "transparent"
+                border.color: kb.checked ? root.theme.accent : root.theme.border
+                border.width: 1.5
+                opacity: kb.enabled ? 1 : 0.5
+            }
+            Text {
+                anchors.centerIn: parent
+                text: "✓"; font.pixelSize: 10; font.bold: true
+                color: root.theme.sidebar; visible: kb.checked
+            }
+        }
+        contentItem: Text {
+            text: kb.beschriftung
+            color: kb.enabled ? root.theme.textPrimary : root.theme.textMuted
+            font.pixelSize: 12
+            leftPadding: 22
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+    }
+
+    // Auswahlliste im Stil des SPS-Export-Tabs (Hintergrund/Text aus dem Theme)
+    component Auswahl: ComboBox {
+        id: ab
+        implicitHeight: 28
+        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+        contentItem: Text {
+            text: ab.displayText; color: root.theme.textPrimary; font.pixelSize: 12
+            leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+        }
+    }
+
+    component KleinerButton: Button {
+        id: kbtn
+        implicitHeight: 26
+        implicitWidth: Math.max(26, kt.implicitWidth + 16)
+        contentItem: Text {
+            id: kt
+            text: kbtn.text
+            color: kbtn.enabled ? root.theme.textSecondary : root.theme.textMuted
+            font.pixelSize: 11
+            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+        }
+        background: Rectangle {
+            color: kbtn.hovered && kbtn.enabled ? root.theme.hover : root.theme.inputBg
+            radius: 4; border.color: root.theme.border
+        }
+    }
+
+    // ── Pfadwahl (eigener Picker, AppImage-tauglich) ─────────────
+    LaPdfExportDialog {
+        id: pfadDialog
+        theme: root.theme
+        dateiname: "dokumentation.pdf"
+        titelText: qsTr("Dokumentations-PDF speichern")
+        erfolgText: qsTr("Dokumentations-PDF gespeichert.")
+        onExportAngefordert: function(pfad) {
+            var ok = db.dokuPdfExportieren(root.projektId, pfad, root._optionenJson())
+            pfadDialog.erfolgReagieren(ok)
+            if (ok) {
+                einst.zuletzt = JSON.stringify(root._zustand())
+                achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": root.gewaehlteSeiten })
+                root.accept()
+            }
+        }
+    }
+
+    // ── Vorlage speichern ────────────────────────────────────────
+    Dialog {
+        id: nameDialog
+        title: qsTr("Vorlage speichern")
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 360
+        padding: 16
+        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
+        onOpened: { nameFeld.text = vorlageCombo.currentIndex > 0 ? root._vorlagen[vorlageCombo.currentIndex - 1].name : ""
+                    nameFeld.forceActiveFocus() }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Text { text: qsTr("Name der Vorlage"); color: root.theme.textMuted; font.pixelSize: 11 }
+            TextField {
+                id: nameFeld
+                Layout.fillWidth: true
+                color: root.theme.textPrimary; font.pixelSize: 12
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                onAccepted: if (text.trim().length > 0) { root._vorlageSpeichern(text.trim()); nameDialog.accept() }
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 8
+                Button {
+                    text: qsTr("Abbrechen"); Layout.fillWidth: true; implicitHeight: 32
+                    onClicked: nameDialog.reject()
+                    contentItem: Text { text: parent.text; color: root.theme.textSecondary; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                        radius: 4; border.color: root.theme.border }
+                }
+                Button {
+                    text: qsTr("Speichern"); Layout.fillWidth: true; implicitHeight: 32
+                    enabled: nameFeld.text.trim().length > 0
+                    onClicked: { root._vorlageSpeichern(nameFeld.text.trim()); nameDialog.accept() }
+                    contentItem: Text { text: parent.text; font.pixelSize: 12
+                        color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle {
+                        color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                        radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+                }
+            }
+        }
+    }
+
+    // ── Inhalt ───────────────────────────────────────────────────
+    contentItem: ColumnLayout {
+        spacing: 10
+
+        // Zusammenstellung (Vorlagen)
+        RowLayout {
+            Layout.fillWidth: true; spacing: 6
+            Text { text: qsTr("Zusammenstellung"); color: root.theme.textMuted; font.pixelSize: 11 }
+            Auswahl {
+                id: vorlageCombo
+                Layout.fillWidth: true
+                model: [qsTr("(zuletzt benutzt)")].concat(root._vorlagen.map(function(v) { return v.name }))
+                onActivated: function(i) {
+                    if (i === 0) {
+                        var z = null
+                        try { z = einst.zuletzt ? JSON.parse(einst.zuletzt) : null } catch (e) { z = null }
+                        root._zustandLaden(z)
+                    } else {
+                        root._zustandLaden(root._vorlagen[i - 1].zustand)
+                    }
+                }
+            }
+            KleinerButton { text: qsTr("Als Vorlage speichern …"); onClicked: nameDialog.open() }
+            KleinerButton {
+                text: qsTr("Löschen"); enabled: vorlageCombo.currentIndex > 0
+                onClicked: root._vorlageLoeschen()
+            }
+        }
+
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
+
+        // Abschnitte
+        Text { text: qsTr("Abschnitte (Reihenfolge = Reihenfolge im PDF)"); color: root.theme.textMuted; font.pixelSize: 11 }
+
+        Repeater {
+            model: abschnittModel
+            delegate: RowLayout {
+                id: zeile
+                required property int index
+                required property string typ
+                required property string titel
+                required property bool aktiv
+                Layout.fillWidth: true
+                spacing: 6
+
+                Kaestchen {
+                    Layout.fillWidth: true
+                    beschriftung: zeile.titel
+                    wert: zeile.aktiv
+                    enabled: zeile.typ !== "sps_io" || root._spsVorhanden
+                    onUmgeschaltet: function(neu) {
+                        abschnittModel.setProperty(zeile.index, "aktiv", neu)
+                        root.abschnittVersion++
+                    }
+                }
+                Text {
+                    visible: zeile.typ === "sps_io" && !root._spsVorhanden
+                    text: qsTr("keine SPS/PLS-Daten im Projekt")
+                    color: root.theme.textMuted; font.pixelSize: 11
+                }
+                KleinerButton {
+                    text: "▲"; enabled: zeile.index > 0
+                    onClicked: { abschnittModel.move(zeile.index, zeile.index - 1, 1); root.abschnittVersion++ }
+                }
+                KleinerButton {
+                    text: "▼"; enabled: zeile.index < abschnittModel.count - 1
+                    onClicked: { abschnittModel.move(zeile.index, zeile.index + 1, 1); root.abschnittVersion++ }
+                }
+            }
+        }
+
+        // Deckblatt-Optionen
+        RowLayout {
+            Layout.fillWidth: true; spacing: 8
+            visible: root._abschnittAktiv("deckblatt")
+            Text { text: qsTr("Deckblatt: Titelzusatz"); color: root.theme.textMuted; font.pixelSize: 11 }
+            TextField {
+                Layout.fillWidth: true
+                placeholderText: qsTr("z. B. Schaltplan Steuerung Anlage 2 (optional)")
+                text: root.titelzusatz
+                onTextEdited: root.titelzusatz = text
+                color: root.theme.textPrimary; font.pixelSize: 12
+                background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+            }
+            Kaestchen {
+                beschriftung: qsTr("Logo")
+                wert: root.logoAn
+                onUmgeschaltet: function(neu) { root.logoAn = neu }
+            }
+        }
+
+        // SPS-Optionen
+        RowLayout {
+            Layout.fillWidth: true; spacing: 8
+            visible: root._abschnittAktiv("sps_io") && root._spsVorhanden
+            Text { text: qsTr("SPS/PLS: Spalten und Filter wie"); color: root.theme.textMuted; font.pixelSize: 11 }
+            Auswahl {
+                Layout.fillWidth: true
+                model: root._spsEintraege.map(function(e) { return e.name })
+                currentIndex: root._spsAuswahl
+                onActivated: function(i) { root._spsAuswahl = i; root.spsVorlageName = root._spsEintraege[i].name }
+            }
+        }
+
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
+
+        // Schaltplan: Seitenauswahl + Optionen
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 6
+            visible: root._abschnittAktiv("schaltplan")
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Text {
+                    text: qsTr("Schaltplan-Seiten (%1 von %2)").arg(root.gewaehlteSeiten).arg(seitenModel.count)
+                    color: root.theme.textMuted; font.pixelSize: 11
+                    Layout.fillWidth: true
+                }
+                KleinerButton { text: qsTr("Alle");  onClicked: root._alleSeiten(true) }
+                KleinerButton { text: qsTr("Keine"); onClicked: root._alleSeiten(false) }
+                KleinerButton {
+                    text: qsTr("Nur aktuelle"); enabled: root.seiteId > 0
+                    onClicked: root._nurAktuelleSeite()
+                }
+                KleinerButton {
+                    text: qsTr("Als Voreinstellung speichern")
+                    onClicked: root._alsFlagUebernehmen()
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Schreibt die Auswahl dauerhaft in die Seiten (Option „In Dokumentations-PDF aufnehmen“).")
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 150
+                color: root.theme.inputBg
+                radius: 4; border.color: root.theme.border
+                clip: true
+
+                ListView {
+                    id: seitenListe
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    model: seitenModel
+                    clip: true
+                    ScrollBar.vertical: ScrollBar { }
+                    delegate: Kaestchen {
+                        required property int index
+                        required property string label
+                        required property bool gewaehlt
+                        width: seitenListe.width - 10
+                        implicitHeight: 24
+                        beschriftung: label
+                        wert: gewaehlt
+                        onUmgeschaltet: function(neu) { seitenModel.setProperty(index, "gewaehlt", neu); root._seitenZaehlen() }
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        visible: seitenModel.count === 0
+                        text: qsTr("Das Projekt hat noch keine Seiten.")
+                        color: root.theme.textMuted; font.pixelSize: 12
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true; spacing: 16
+                Kaestchen {
+                    beschriftung: qsTr("Normblatt einschließen")
+                    wert: root.normblattAn && !root.vollCanvasAn
+                    enabled: !root.vollCanvasAn
+                    onUmgeschaltet: function(neu) { root.normblattAn = neu }
+                }
+                Kaestchen {
+                    beschriftung: qsTr("Infostreifen für Seiten ohne Schriftfeld")
+                    wert: root.infostreifenAn
+                    onUmgeschaltet: function(neu) { root.infostreifenAn = neu }
+                }
+                Kaestchen {
+                    beschriftung: qsTr("Ganzes Canvas (ohne Normblatt)")
+                    wert: root.vollCanvasAn
+                    onUmgeschaltet: function(neu) { root.vollCanvasAn = neu }
+                }
+            }
+        }
+
+        // Hinweis, warum Exportieren gesperrt ist
+        Text {
+            Layout.fillWidth: true
+            visible: !root.exportMoeglich
+            wrapMode: Text.WordWrap
+            color: root.theme.accent; font.pixelSize: 11
+            text: {
+                var aktiv = root.abschnittVersion < 0
+                for (var i = 0; i < abschnittModel.count; i++) if (abschnittModel.get(i).aktiv) aktiv = true
+                if (!aktiv) return qsTr("Mindestens ein Abschnitt muss ausgewählt sein.")
+                if (root._abschnittAktiv("schaltplan") && root.gewaehlteSeiten === 0)
+                    return qsTr("Für den Schaltplan ist keine Seite ausgewählt.")
+                return qsTr("Der SPS/PLS-Abschnitt braucht SPS/PLS-Daten im Projekt.")
+            }
+        }
+
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }
+
+        RowLayout {
+            Layout.fillWidth: true; spacing: 8
+            Button {
+                text: qsTr("Abbrechen"); Layout.fillWidth: true; implicitHeight: 32
+                onClicked: root.reject()
+                contentItem: Text { text: parent.text; color: root.theme.textSecondary; font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                    radius: 4; border.color: root.theme.border }
+            }
+            Button {
+                text: qsTr("Exportieren …"); Layout.fillWidth: true; implicitHeight: 32
+                enabled: root.exportMoeglich
+                onClicked: pfadDialog.open()
+                contentItem: Text { text: parent.text; font.pixelSize: 12
+                    color: parent.enabled ? root.theme.textPrimary : root.theme.textMuted
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle {
+                    color: parent.enabled ? (parent.hovered ? root.theme.accent : root.theme.inputBg) : root.theme.inputBg
+                    radius: 4; border.color: parent.enabled ? root.theme.accent : root.theme.border }
+            }
+        }
+    }
+
+}

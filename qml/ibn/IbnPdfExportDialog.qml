@@ -5,7 +5,7 @@ import QtCore
 
 // PRUEFPROTOKOLL-PDF-DIALOG-01: ersetzt den nativen FileDialog (funktioniert
 // nicht zuverlässig im AppImage) durch denselben eigenen Pfad-Picker wie
-// PdfExportDialog.qml (Schaltplan-PDF-Export) - Seiten-Auswahl/Normblatt-
+// DokuPdfDialog.qml (Dokumentations-PDF) - Seiten-Auswahl/Normblatt-
 // Optionen dort sind für das Prüfprotokoll irrelevant und bewusst nicht
 // übernommen, nur Pfadauswahl + Überschreiben-Bestätigung.
 Dialog {
@@ -29,7 +29,7 @@ Dialog {
         border.width: 1; radius: 6
     }
 
-    // Eigener Pfad-Picker – identisch zu PdfExportDialog.qml (PDF-STRIPURL-01)
+    // Eigener Pfad-Picker – identisch zu LaPdfExportDialog.qml (PDF-STRIPURL-01)
     Dialog {
         id: speicherDialog
         title:  qsTr("PDF speichern unter")

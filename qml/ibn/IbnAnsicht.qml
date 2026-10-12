@@ -394,7 +394,7 @@ Item {
 
     // ── PDF-Export ────────────────────────────────────────
     // PRUEFPROTOKOLL-PDF-DIALOG-01: eigener Pfad-Picker statt nativem
-    // FileDialog, analog PdfExportDialog.qml (Schaltplan-PDF-Export) -
+    // FileDialog, analog DokuPdfDialog.qml (Dokumentations-PDF) -
     // Seiten-Auswahl/Normblatt-Optionen dort sind hier nicht relevant.
     IbnPdfExportDialog {
         id:        pdfExportDialog

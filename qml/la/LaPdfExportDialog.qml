@@ -5,7 +5,7 @@ import QtCore
 
 // LISTEN-PDF-DIALOG-01: eigener Pfad-Picker statt nativem FileDialog (der im
 // AppImage nicht zuverlässig funktioniert) – 1:1 dasselbe Muster wie
-// PdfExportDialog.qml (Schaltplan) und IbnPdfExportDialog.qml (Prüfprotokoll),
+// DokuPdfDialog.qml (Dokumentations-PDF) und IbnPdfExportDialog.qml (Prüfprotokoll),
 // aber datenunabhängig: der eigentliche PDF-Aufbau (Spalten/Zeilen) bleibt
 // beim Aufrufer, dieser Dialog kümmert sich nur um Pfadauswahl,
 // Überschreiben-Bestätigung und Status/Erfolgsmeldung.
@@ -49,7 +49,7 @@ Dialog {
 
     onOpened: statusText.text = ""
 
-    // Eigener Pfad-Picker – identisch zu PdfExportDialog.qml/IbnPdfExportDialog.qml
+    // Eigener Pfad-Picker – identisch zu IbnPdfExportDialog.qml
     Dialog {
         id: speicherDialog
         title:  root.speichernTitel

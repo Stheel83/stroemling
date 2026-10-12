@@ -120,39 +120,6 @@ QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas)
     return QSizeF(b, h);
 }
 
-// Schaltplan-Pipeline als eigenständiges PDF (Start-Layout aus der ersten Seite).
-bool Database::pdfSchaltplanDatei(const QList<int> &seiteIds, const QString &pfad,
-                                   bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
-{
-    if (seiteIds.isEmpty()) return false;
-
-    // Ausgabepfad normalisieren
-    const QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
-
-    const QSizeF groesse = pdfSchaltplanSeitenGroesseMm(seiteIds.first(), vollCanvas);
-
-    QPdfWriter writer(localPath);
-    writer.setCreator(QStringLiteral("Stroemling Design"));
-    writer.setTitle(normblattDatenLaden(seiteIds.first()).value("projektName").toString());
-    writer.setPageMargins(QMarginsF(0, 0, 0, 0));
-    writer.setPageLayout(QPageLayout(
-        QPageSize(groesse, QPageSize::Millimeter),
-        QPageLayout::Portrait, QMarginsF(0,0,0,0)));
-
-    QPainter painter(&writer);
-    if (!painter.isActive()) {
-        qCWarning(lcDb) << "pdfSchaltplanDatei: QPainter konnte nicht gestartet werden";
-        return false;
-    }
-
-    pdfSchaltplanSeitenRendern(painter, writer, seiteIds, mitNormblatt, vollCanvas, mitInfostreifen, false);
-
-    painter.end();
-    qCInfo(lcDb) << "pdfSchaltplanDatei: PDF gespeichert:" << localPath
-            << "(" << seiteIds.size() << "Seiten)" << (vollCanvas ? "(vollCanvas)" : "");
-    return QFile::exists(localPath);
-}
-
 // Seiten des Projekts in Anzeigereihenfolge, nur die mit Flag in_doku_pdf (DOKU-PDF-01)
 QList<int> Database::dokuPdfSeitenIds(int projektId)
 {
@@ -175,21 +142,35 @@ QList<int> Database::dokuPdfSeitenIds(int projektId)
     return ids;
 }
 
-bool Database::canvasPdfExportieren(int projektId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
+// Seitenliste für den Export-Dialog: alle Seiten des Projekts in Anzeigereihenfolge samt Flag.
+QVariantList Database::dokuPdfSeitenListe(int projektId)
 {
-    const QList<int> seiteIds = dokuPdfSeitenIds(projektId);
-    if (seiteIds.isEmpty()) {
-        qCWarning(lcDb) << "canvasPdfExportieren: keine Seiten für Projekt" << projektId
-                        << "(oder keine mit in_doku_pdf=1)";
-        return false;
+    QVariantList res;
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT s.id, a.kuerzel, o.kuerzel, s.blattnummer, COALESCE(s.bezeichnung,''), s.in_doku_pdf
+        FROM seite s
+        JOIN ort     o ON s.ort_id      = o.id
+        JOIN anlage  a ON o.anlage_id   = a.id
+        WHERE a.projekt_id = :pid
+        ORDER BY a.kuerzel, o.kuerzel, s.sortierung, s.blattnummer
+    )");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "dokuPdfSeitenListe:" << q.lastError().text();
+        return res;
     }
-    return pdfSchaltplanDatei(seiteIds, pfad, mitNormblatt, vollCanvas, mitInfostreifen);
-}
-
-bool Database::canvasSeiteExportieren(int seiteId, const QString &pfad, bool mitNormblatt, bool vollCanvas, bool mitInfostreifen)
-{
-    // Einzelseite: Flag in_doku_pdf bewusst ignoriert (ausdrücklicher Wunsch des Nutzers)
-    return pdfSchaltplanDatei({seiteId}, pfad, mitNormblatt, vollCanvas, mitInfostreifen);
+    while (q.next()) {
+        QVariantMap m;
+        m["id"]          = q.value(0);
+        m["anlage"]      = q.value(1);
+        m["ort"]         = q.value(2);
+        m["blatt"]       = q.value(3);
+        m["bezeichnung"] = q.value(4);
+        m["inDokuPdf"]   = q.value(5).toInt() == 1;
+        res.append(m);
+    }
+    return res;
 }
 
 // ── Dokumentations-PDF (DOKU-PDF-02) ─────────────────────────

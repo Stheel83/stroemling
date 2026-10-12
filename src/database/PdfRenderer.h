@@ -11,7 +11,7 @@
 //   PdfRenderer_Normblatt   Normblatt, Infostreifen, Revisions-Wasserzeichen, Bounding-Box
 //   PdfRenderer_Tabelle     generische Tabelle mit Seitenumbruch (Listen-PDF, Dokumentations-PDF)
 //   PdfRenderer_Deckblatt   Deckblatt + Inhaltsverzeichnis (A4 hoch), Fußzeile "Seite x von y"
-//   Database_PDF.cpp        öffentliche Database-Methoden (canvasPdfExportieren/-SeiteExportieren)
+//   Database_PDF.cpp        öffentliche Database-Methoden (dokuPdfExportieren, dokuPdfSeitenListe)
 // ============================================================
 #include <QColor>
 #include <QHash>

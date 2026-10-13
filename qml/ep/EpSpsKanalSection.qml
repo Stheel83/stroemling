@@ -75,6 +75,19 @@ Item {
         return ergebnis
     }
 
+    // BMK-Vorschlag aus einem Kanal (SPS-BMK-FOLGT-KANAL-01): derselbe Wert beim
+    // Zuweisen und beim Wiedererkennen "BMK ist noch der automatische Vorschlag
+    // des bisherigen Kanals" - beide Seiten müssen identisch rechnen.
+    // PLS: Rack/Slot/Kanal - SPS: die tatsächliche SPS-Adresse (E0.0/A1.3/EW64 ...),
+    // die für SPS-Technik die relevante Kennung ist, nicht Rack/Slot/Kanal.
+    function _bmkVorschlag(k) {
+        if (!k || (k.id || 0) <= 0) return ""
+        var v = (k.system_typ || "SPS") === "PLS"
+            ? "-R" + (k.rack_nr || 0) + "-S" + (k.slot || 0) + "-K" + ((k.kanal_nr || 0) + 1)
+            : "-" + (k.adresse || "")
+        return v === "-" ? "" : v
+    }
+
     function richtungText(typ) {
         if (typ === "E") return "Eingang"
         if (typ === "A") return "Ausgang"
@@ -327,6 +340,9 @@ Item {
             // Etabliertes Muster (analog EpMakrokastenSection.qml): jetzt
             // speichern, neu laden, Element über Position wiederfinden (Index/
             // ID sind nach dem Reload nicht mehr verlässlich dieselben).
+            // Bisheriger Kanal VOR dem Zwischenspeichern festhalten: danach kann
+            // sich panel.el/kanalInfo durch das Neuladen ändern.
+            var altKanal = root.kanalInfo
             var savedTyp      = panel.el.typ
             var savedSymbolId = panel.el.symbolId
             var savedX1       = panel.el.x1, savedY1 = panel.el.y1
@@ -343,34 +359,26 @@ Item {
             }
             if (!freshEl || (freshEl.id || 0) <= 0) return
 
-            var aktId = root.kanalInfo.id || 0
+            var aktId = altKanal.id || 0
             if (aktId > 0 && aktId !== dlgKanalWaehlen.gewaehltId)
                 db.spsKanalElementEntfernen(aktId)
             db.spsKanalElementZuweisen(dlgKanalWaehlen.gewaehltId, freshEl.id)
 
-            // Nutzerwunsch: BMK automatisch aus Rack/Slot/Kanal vorbelegen,
-            // aber nur wenn noch keins gesetzt ist (nie einen vorhandenen
-            // BMK überschreiben).
-            var bisherigesBmk = (freshEl.extraDaten && freshEl.extraDaten.bmk) || ""
-            if (bisherigesBmk.trim() === "") {
+            // BMK automatisch aus Rack/Slot/Kanal vorbelegen. Überschrieben wird
+            // nur ein leeres BMK oder eines, das noch dem automatischen Vorschlag
+            // des bisherigen Kanals entspricht (SPS-BMK-FOLGT-KANAL-01) - ein vom
+            // Nutzer selbst vergebenes BMK bleibt immer stehen.
+            var bisherigesBmk = ((freshEl.extraDaten && freshEl.extraDaten.bmk) || "").trim()
+            var altVorschlag  = root._bmkVorschlag(altKanal)
+            if (bisherigesBmk === "" || (altVorschlag !== "" && bisherigesBmk === altVorschlag)) {
                 var gewaehltesKanal = null
                 var modellListe = kanalListe.model || []
                 for (var k = 0; k < modellListe.length; k++) {
                     if (modellListe[k].id === dlgKanalWaehlen.gewaehltId) { gewaehltesKanal = modellListe[k]; break }
                 }
-                if (gewaehltesKanal) {
-                    // PLS: Rack/Slot/Kanal (kein systemtyp-eigenes Adressformat
-                    // mit Aussagekraft) - SPS: die tatsächliche SPS-Adresse
-                    // (E0.0/A1.3/EW64 ...), die für SPS-Technik die relevante
-                    // Kennung ist, nicht Rack/Slot/Kanal.
-                    var bmkVorschlag = (gewaehltesKanal.system_typ || "SPS") === "PLS"
-                        ? "-R" + (gewaehltesKanal.rack_nr || 0)
-                          + "-S" + (gewaehltesKanal.slot || 0)
-                          + "-K" + ((gewaehltesKanal.kanal_nr || 0) + 1)
-                        : "-" + (gewaehltesKanal.adresse || "")
-                    if (bmkVorschlag !== "-")
-                        db.grafikElementExtraMergeSetzen(freshEl.id, { bmk: bmkVorschlag })
-                }
+                var bmkVorschlag = root._bmkVorschlag(gewaehltesKanal)
+                if (bmkVorschlag !== "")
+                    db.grafikElementExtraMergeSetzen(freshEl.id, { bmk: bmkVorschlag })
             }
 
             panel.canvas.seiteNeuLaden()

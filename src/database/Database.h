@@ -915,6 +915,9 @@ public:
     // Vorschlag beim Anlegen eines eigenen Schemas. Konfig kann zusätzlich
     // schemata:{"AI":{spalten:[…]}}, ausgabe:"einzeln"|"eine_datei" enthalten.
     Q_INVOKABLE QStringList  spsExportSchemaIrrelevanteFelder(const QString &signal);
+    // SPS-EXPORT-05: vorhandene Anlagen-/Ort-Kürzel der Kanäle mit Schaltplan-Element (Filterauswahl)
+    // → {anlagen:[kuerzel], orte:[kuerzel]}
+    Q_INVOKABLE QVariantMap  spsExportFilterWerte(int projektId);
     // {text (alle Schemata, Abschnitte durch Leerzeile), zeilen (Gesamtzahl nach Filter), fehler,
     //  gruppen:[{schema, zeilen, text}]}; maxZeilen < 0 = alle (je Schema begrenzt)
     Q_INVOKABLE QVariantMap  spsExportVorschau(int projektId, const QString &konfigJson, int maxZeilen);

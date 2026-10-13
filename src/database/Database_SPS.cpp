@@ -249,12 +249,16 @@ static const QLatin1String _spsKanalSelectBase(
     "ge.seite_id AS element_seite_id, "
     "(ge.x1 + ge.x2) / 2.0 AS element_welt_x, (ge.y1 + ge.y2) / 2.0 AS element_welt_y, "
     "sb.artikel_nr AS baugruppe_artikel_nr, sr.bezeichnung AS rack_bezeichnung, "
-    "sr.hersteller AS rack_hersteller "
+    "sr.hersteller AS rack_hersteller, "
+    "COALESCE(an.kuerzel, se.anlage_kuerzel) AS anlage_kuerzel, "
+    "COALESCE(ot.kuerzel, se.ort_kuerzel) AS ort_kuerzel "
     "FROM sps_kanal sk "
     "LEFT JOIN sps_baugruppe  sb ON sb.id = sk.baugruppe_id "
     "LEFT JOIN sps_rack       sr ON sr.id = sb.rack_id "
     "LEFT JOIN grafik_element ge ON ge.id = sk.grafik_element_id "
-    "LEFT JOIN seite          se ON se.id = ge.seite_id ");
+    "LEFT JOIN seite          se ON se.id = ge.seite_id "
+    "LEFT JOIN ort            ot ON ot.id = se.ort_id "
+    "LEFT JOIN anlage         an ON an.id = ot.anlage_id ");
 
 static QVariantMap _spsKanalRow(QSqlQuery &q)
 {
@@ -291,6 +295,8 @@ static QVariantMap _spsKanalRow(QSqlQuery &q)
     m["artikel_nr"]        = q.value(32).isNull() ? QVariant() : q.value(32).toString();
     m["rack_bezeichnung"]  = q.value(33).isNull() ? QVariant() : q.value(33).toString();
     m["hersteller"]        = q.value(34).isNull() ? QVariant() : q.value(34).toString();
+    m["anlage_kuerzel"]    = q.value(35).isNull() ? QVariant() : q.value(35).toString();
+    m["ort_kuerzel"]       = q.value(36).isNull() ? QVariant() : q.value(36).toString();
     // Sprungziel (SPS-SPRUNG-01): gleiche Mittelpunktsformel wie die übrigen Sprungabfragen
     m["seite_id"] = q.value(29).isNull() ? QVariant() : q.value(29).toInt();
     m["welt_x"]   = q.value(30).isNull() ? QVariant() : q.value(30).toDouble();

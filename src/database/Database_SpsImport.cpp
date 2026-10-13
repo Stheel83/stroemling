@@ -211,7 +211,9 @@ QVariantMap Database::spsImportLesen(const QString &pfad)
     const QList<QStringList> rows = csvParsen(text, d);
     if (rows.isEmpty()) { r["fehler"] = QStringLiteral("Datei ist leer"); return r; }
 
-    const QVariantList kat = spsExportFeldKatalog();
+    QVariantList kat;
+    for (const QVariant &fv : spsExportFeldKatalog())
+        if (fv.toMap().value("importierbar", true).toBool()) kat.append(fv);
     QStringList vorschlag;
     for (const QString &h : rows[0]) vorschlag << feldVorschlag(h, kat);
 

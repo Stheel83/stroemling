@@ -5,11 +5,14 @@
 // Konfiguration als JSON (Vorlagen liegen global in den App-Einstellungen, QML):
 //   { spalten:[{feld,titel,wert?}], trennzeichen, dezimal, kopfzeile, bom,
 //     anfuehrung:"immer"|"bei_bedarf",
-//     filter:{ system:"", rack:"", signal:"", belegung:"alle|mit_element|ohne_element" },
+//     filter:{ system:"", rack:"", signal:"", belegung:"alle|mit_element|ohne_element",
+//              anlage:"", ort:"" },
 //     schemata:{ "AI":{spalten:[{feld,titel,wert?}]}, "DI":{…} },   // SPS-EXPORT-04
 //     ausgabe:"einzeln"|"eine_datei" }
 // "spalten" ist das Standard-Schema; eine Signalart (DI/DO/AI/AO) ohne eigenes Schema
 // fällt darauf zurück. "einzeln" schreibt je verwendetem Schema eine CSV (_<Schema>).
+// Spalte feld:"fest": konstanter Text; {feldschlüssel} darin wird durch den Feldwert
+// ersetzt (SPS-EXPORT-05, nur Export – wird beim Import nicht zurückgelesen).
 #include "Database.h"
 #include "Database_CsvHelfer.h"
 #include <QFile>
@@ -17,7 +20,11 @@
 #include <QPainter>
 #include <QPdfWriter>
 #include "PdfRenderer.h"
+#include <QHash>
 #include <QMap>
+#include <QRegularExpression>
+#include <QSet>
+#include <QSqlQuery>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -34,14 +41,20 @@ const FeldDef kFelder[] = {
     {"rack",             "Rack",              "Ort",       true },
     {"slot",             "Slot",              "Ort",       true },
     {"kanal",            "Kanal",             "Ort",       true },
+    {"kanal_absolut",    "Kanal absolut",     "Ort",       false},
+    {"rack_slot_kanal",  "Rack.Slot.Kanal",   "Ort",       false},
     {"rack_bezeichnung", "Rack-Bezeichnung",  "Ort",       false},
     {"hersteller",       "Hersteller",        "Ort",       false},
     {"baugruppe",        "Baugruppe",         "Hardware",  true },
     {"baugruppen_typ",   "Baugruppen-Typ",    "Hardware",  true },
     {"artikel_nr",       "Artikel-Nr.",       "Hardware",  false},
     {"signal",           "Signal",            "Hardware",  true },
+    {"analog_digital",   "Analog/Digital",    "Hardware",  false},
+    {"richtung",         "Richtung",          "Hardware",  false},
+    {"baugruppen_bereich","Baugruppen-Adressbereich","Hardware", false},
     {"adresse",          "Adresse",           "Adresse",   true },
     {"datentyp",         "Datentyp",          "Adresse",   true },
+    {"adresse_iec",      "IEC-Adresse",       "Adresse",   false},
     {"adress_typ",       "Adress-Typ",        "Adresse",   false},
     {"byte_nr",          "Byte",              "Adresse",   false},
     {"bit_nr",           "Bit",               "Adresse",   false},
@@ -56,10 +69,16 @@ const FeldDef kFelder[] = {
     {"alarm_hh",         "Alarm HH",          "Signal",    true },
     {"protokoll",        "Protokoll",         "Signal",    true },
     {"hart_adresse",     "HART-Adresse",      "Signal",    false},
+    {"spannweite",       "Spannweite",        "Signal",    false},
+    {"alarm_vorhanden",  "Alarm vorhanden",   "Signal",    false},
     {"bmk",              "BMK",               "Schaltplan",true },
     {"seite_blatt",      "Seite",             "Schaltplan",true },
     {"seite_name",       "Seitenbezeichnung", "Schaltplan",true },
-    {"fest",             "Fester Text",       "Sonstiges", false},
+    {"anlage",           "Anlage",            "Schaltplan",false},
+    {"ort",              "Ort (Einbauort)",   "Schaltplan",false},
+    {"freitext1",        "Freitext 1",        "Schaltplan",false},
+    {"freitext2",        "Freitext 2",        "Schaltplan",false},
+    {"fest",             "Text / Platzhalter","Sonstiges", false},
 };
 
 const FeldDef *feldDef(const QString &key)
@@ -85,6 +104,59 @@ QString signalArt(const QVariantMap &k)
     if (s == QLatin1String("DIO")) s = (adressTyp == QLatin1String("A")) ? QStringLiteral("DO") : QStringLiteral("DI");
     if (s == QLatin1String("AIO")) s = (adressTyp == QLatin1String("A")) ? QStringLiteral("AO") : QStringLiteral("AI");
     return s;
+}
+
+// Felder, die nur Ableitungen/Schaltplan-Bezug sind und beim Import nicht gesetzt werden können.
+bool feldImportierbar(const QString &key)
+{
+    static const QSet<QString> nein = {
+        "bmk", "seite_blatt", "seite_name", "fest", "anlage", "ort", "freitext1", "freitext2",
+        "adresse_iec", "richtung", "analog_digital", "rack_slot_kanal", "kanal_absolut",
+        "baugruppen_bereich", "alarm_vorhanden", "spannweite"};
+    return !nein.contains(key);
+}
+
+bool istEingangTyp(const QString &t) { return t == QLatin1String("E") || t == QLatin1String("I"); }
+bool istAusgangTyp(const QString &t) { return t == QLatin1String("A") || t == QLatin1String("Q"); }
+
+// %IX0.0 / %QW4 / %MD10 – gleiche Fallunterscheidung wie die interne Adressanzeige
+QString iecAdresse(const QVariantMap &k)
+{
+    if (k["system_typ"].toString() == QLatin1String("PLS")) return QString();
+    const QString t = k["adress_typ"].toString();
+    QString bereich;
+    if (istEingangTyp(t)) bereich = QStringLiteral("I");
+    else if (istAusgangTyp(t)) bereich = QStringLiteral("Q");
+    else if (t == QLatin1String("M")) bereich = QStringLiteral("M");
+    else return QString();   // Zeit-/Zähler-Nummern haben in IEC keine Direktadresse
+    const QString dt = k["datentyp"].toString();
+    const int byteNr = k["byte_nr"].toInt();
+    if (dt == QLatin1String("BYTE"))  return QStringLiteral("%%1B%2").arg(bereich).arg(byteNr);
+    if (dt == QLatin1String("WORD"))  return QStringLiteral("%%1W%2").arg(bereich).arg(byteNr);
+    if (dt == QLatin1String("DWORD")) return QStringLiteral("%%1D%2").arg(bereich).arg(byteNr);
+    return QStringLiteral("%%1X%2.%3").arg(bereich).arg(byteNr).arg(k["bit_nr"].toInt());
+}
+
+QString feldWert(const QString &key, const QVariantMap &k, const QString &dezimal, const QString &fest);
+
+// {feld}-Platzhalter im festen Text; unbekannte Schlüssel bleiben unverändert stehen.
+QString platzhalterErsetzen(const QString &text, const QVariantMap &k, const QString &dezimal)
+{
+    if (!text.contains(QLatin1Char('{'))) return text;
+    static const QRegularExpression re(QStringLiteral("\\{([a-z0-9_]+)\\}"));
+    QString out;
+    qsizetype pos = 0;
+    QRegularExpressionMatchIterator it = re.globalMatch(text);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch m = it.next();
+        out += text.mid(pos, m.capturedStart() - pos);
+        const QString key = m.captured(1);
+        if (key != QLatin1String("fest") && feldDef(key)) out += feldWert(key, k, dezimal, QString());
+        else out += m.captured(0);
+        pos = m.capturedEnd();
+    }
+    out += text.mid(pos);
+    return out;
 }
 
 QString feldWert(const QString &key, const QVariantMap &k, const QString &dezimal, const QString &fest)
@@ -123,7 +195,41 @@ QString feldWert(const QString &key, const QVariantMap &k, const QString &dezima
     }
     if (key == "seite_blatt")      return k["seite_blatt"].toString();
     if (key == "seite_name")       return k["seite_name"].toString();
-    if (key == "fest")             return fest;
+    if (key == "adresse_iec")      return iecAdresse(k);
+    if (key == "richtung") {
+        const QString sig = signalArt(k);
+        if (sig == QLatin1String("DI") || sig == QLatin1String("AI") || istEingangTyp(sig)) return QStringLiteral("Eingang");
+        if (sig == QLatin1String("DO") || sig == QLatin1String("AO") || istAusgangTyp(sig)) return QStringLiteral("Ausgang");
+        return QString();
+    }
+    if (key == "analog_digital") {
+        const QString sig = signalArt(k);
+        if (sig == QLatin1String("AI") || sig == QLatin1String("AO")) return QStringLiteral("analog");
+        if (sig == QLatin1String("DI") || sig == QLatin1String("DO")) return QStringLiteral("digital");
+        return QString();
+    }
+    if (key == "rack_slot_kanal") {
+        if (!hatBg || k["kanal_nr"].isNull()) return QString();
+        return QStringLiteral("R%1.S%2.K%3").arg(k["rack_nr"].toInt()).arg(k["slot"].toInt()).arg(k["kanal_nr"].toInt() + 1);
+    }
+    if (key == "kanal_absolut")    return k["_kanal_absolut"].toString();
+    if (key == "baugruppen_bereich") return k["_baugruppen_bereich"].toString();
+    if (key == "alarm_vorhanden") {
+        for (const char *f : {"pls_alarm_ll", "pls_alarm_lo", "pls_alarm_hi", "pls_alarm_hh"})
+            if (!k[QLatin1String(f)].isNull()) return QStringLiteral("ja");
+        return QStringLiteral("nein");
+    }
+    if (key == "spannweite") {
+        if (k["pls_bereich_min"].isNull() || k["pls_bereich_max"].isNull()) return QString();
+        return zahl(k["pls_bereich_max"].toDouble() - k["pls_bereich_min"].toDouble(), dezimal);
+    }
+    if (key == "anlage")           return k["anlage_kuerzel"].toString();
+    if (key == "ort")              return k["ort_kuerzel"].toString();
+    if (key == "freitext1" || key == "freitext2") {
+        const QByteArray ed = k["element_extra_daten"].toString().toUtf8();
+        return ed.isEmpty() ? QString() : QJsonDocument::fromJson(ed).object().value(key).toString();
+    }
+    if (key == "fest")             return platzhalterErsetzen(fest, k, dezimal);
     return QString();
 }
 
@@ -146,6 +252,7 @@ QVariantList Database::spsExportFeldKatalog()
         m["titel"]    = QString::fromUtf8(f.titel);
         m["gruppe"]   = QString::fromUtf8(f.gruppe);
         m["standard"] = f.standard;
+        m["importierbar"] = feldImportierbar(QString::fromLatin1(f.key));
         r.append(m);
     }
     return r;
@@ -181,6 +288,22 @@ QStringList Database::spsExportSchemaIrrelevanteFelder(const QString &signal)
     if (s == QLatin1String("AI") || s == QLatin1String("AO"))
         return alarme;
     return {};
+}
+
+QVariantMap Database::spsExportFilterWerte(int projektId)
+{
+    QSet<QString> anlagen, orte;
+    for (const QVariant &kv : spsKanalListe(projektId)) {
+        const QVariantMap k = kv.toMap();
+        if (!k["anlage_kuerzel"].toString().isEmpty()) anlagen.insert(k["anlage_kuerzel"].toString());
+        if (!k["ort_kuerzel"].toString().isEmpty())    orte.insert(k["ort_kuerzel"].toString());
+    }
+    QStringList a(anlagen.begin(), anlagen.end()), o(orte.begin(), orte.end());
+    a.sort(); o.sort();
+    QVariantMap r;
+    r["anlagen"] = a;
+    r["orte"]    = o;
+    return r;
 }
 
 // Gemeinsame Datenaufbereitung für CSV und PDF: je Schema Spaltentitel + Zeilen als reine
@@ -234,13 +357,71 @@ bool Database::spsExportGruppen(int projektId, const QString &konfigJson,
     const QString fRack     = f.value("rack").toString();
     const QString fSignal   = f.value("signal").toString().toUpper();
     const QString fBelegung = f.value("belegung").toString(QStringLiteral("alle"));
+    const QString fAnlage   = f.value("anlage").toString();
+    const QString fOrt      = f.value("ort").toString();
+
+    const QVariantList alleKanaele = spsKanalListe(projektId);
+
+    // Kanal absolut: Kanäle aller E/A-Baugruppen im Rack mit kleinerem Slot + eigener Kanal (1-basiert)
+    QHash<int, int> kanalOffset;   // baugruppe_id → Offset
+    {
+        QSqlQuery q(m_db);
+        q.prepare("SELECT b.id, b.rack_id, b.slot, b.typ, b.kanaele FROM sps_baugruppe b "
+                  "JOIN sps_rack r ON r.id = b.rack_id WHERE r.projekt_id = :pid "
+                  "ORDER BY b.rack_id, b.slot, b.id");
+        q.bindValue(":pid", projektId);
+        if (q.exec()) {
+            int letztesRack = -1, summe = 0;
+            while (q.next()) {
+                if (q.value(1).toInt() != letztesRack) { letztesRack = q.value(1).toInt(); summe = 0; }
+                kanalOffset[q.value(0).toInt()] = summe;
+                static const QSet<QString> ioTypen = {"DI", "DO", "AI", "AO", "DIO", "AIO"};
+                if (ioTypen.contains(q.value(3).toString().toUpper())) summe += q.value(4).toInt();
+            }
+        }
+    }
+    // Adressbereich je Baugruppe (belegte Kanäle): SPS je Adress-Typ "E0.0–E1.7", PLS "K1–K8"
+    QHash<int, QString> bereichJeBg;
+    {
+        struct MinMax { qint64 minKey = 0, maxKey = 0; QString minLabel, maxLabel; bool leer = true; };
+        QHash<int, QMap<QString, MinMax>> je;
+        for (const QVariant &kv : alleKanaele) {
+            const QVariantMap kn = kv.toMap();
+            if (kn["baugruppe_id"].isNull()) continue;
+            const bool pls = kn["system_typ"].toString() == QLatin1String("PLS");
+            if (pls && kn["kanal_nr"].isNull()) continue;
+            const qint64 key = pls ? kn["kanal_nr"].toInt()
+                                   : qint64(kn["byte_nr"].toInt()) * 8 + qMax(0, kn["bit_nr"].toInt());
+            const QString label = pls ? QStringLiteral("K%1").arg(kn["kanal_nr"].toInt() + 1) : kn["adresse"].toString();
+            MinMax &mm = je[kn["baugruppe_id"].toInt()][pls ? QString() : kn["adress_typ"].toString()];
+            if (mm.leer || key < mm.minKey) { mm.minKey = key; mm.minLabel = label; }
+            if (mm.leer || key > mm.maxKey) { mm.maxKey = key; mm.maxLabel = label; }
+            mm.leer = false;
+        }
+        for (auto bi = je.begin(); bi != je.end(); ++bi) {
+            QStringList teile;
+            for (auto ti = bi.value().begin(); ti != bi.value().end(); ++ti)
+                teile << (ti.value().minLabel == ti.value().maxLabel
+                              ? ti.value().minLabel
+                              : ti.value().minLabel + QStringLiteral("–") + ti.value().maxLabel);
+            bereichJeBg[bi.key()] = teile.join(QStringLiteral(" / "));
+        }
+    }
 
     QMap<QString, QList<QStringList>> zeilenJeSchema;
-    for (const QVariant &kv : spsKanalListe(projektId)) {
-        const QVariantMap kanal = kv.toMap();
+    for (const QVariant &kv : alleKanaele) {
+        QVariantMap kanal = kv.toMap();
         const bool hatBg = !kanal["baugruppe_id"].isNull();
+        if (hatBg) {
+            const int bgId = kanal["baugruppe_id"].toInt();
+            if (!kanal["kanal_nr"].isNull() && kanalOffset.contains(bgId))
+                kanal["_kanal_absolut"] = QString::number(kanalOffset[bgId] + kanal["kanal_nr"].toInt() + 1);
+            kanal["_baugruppen_bereich"] = bereichJeBg.value(bgId);
+        }
         if (!fSystem.isEmpty() && (!hatBg || kanal["system_typ"].toString() != fSystem)) continue;
         if (!fRack.isEmpty() && (!hatBg || kanal["rack_nr"].toString() != fRack)) continue;
+        if (!fAnlage.isEmpty() && kanal["anlage_kuerzel"].toString() != fAnlage) continue;
+        if (!fOrt.isEmpty() && kanal["ort_kuerzel"].toString() != fOrt) continue;
         const QString signal = signalArt(kanal).toUpper();
         if (!fSignal.isEmpty() && signal != fSignal) continue;
         const bool hatElement = !kanal["grafik_element_id"].isNull();

@@ -76,6 +76,8 @@ Item {
         { text: qsTr("SPS und PLS"), wert: "" },
         { text: "SPS", wert: "SPS" }, { text: "PLS", wert: "PLS" }
     ]
+    property var _anlageOptionen: [{ text: qsTr("alle Anlagen"), wert: "" }]
+    property var _ortOptionen:    [{ text: qsTr("alle Orte"),    wert: "" }]
     readonly property var _belegungOptionen: [
         { text: qsTr("alle Kanäle"),            wert: "alle" },
         { text: qsTr("nur mit Element"),        wert: "mit_element" },
@@ -147,9 +149,25 @@ Item {
                 system:   _systemOptionen[systemCombo.currentIndex].wert,
                 rack:     _rackOptionen[rackCombo.currentIndex].wert,
                 signal:   _signalOptionen[signalCombo.currentIndex].wert,
-                belegung: _belegungOptionen[belegungCombo.currentIndex].wert
+                belegung: _belegungOptionen[belegungCombo.currentIndex].wert,
+                anlage:   _anlageOptionen[anlageCombo.currentIndex].wert,
+                ort:      _ortOptionen[ortCombo.currentIndex].wert
             }
         }
+    }
+
+    // Anlagen/Orte, die an Kanälen mit Schaltplan-Element vorkommen (Filterauswahl)
+    function _filterWerteLaden() {
+        var a = [{ text: qsTr("alle Anlagen"), wert: "" }]
+        var o = [{ text: qsTr("alle Orte"),    wert: "" }]
+        if (root.projektId >= 0) {
+            var w = db.spsExportFilterWerte(root.projektId)
+            var al = w.anlagen || [], ol = w.orte || []
+            for (var i = 0; i < al.length; i++) a.push({ text: "=" + al[i], wert: al[i] })
+            for (var j = 0; j < ol.length; j++) o.push({ text: "+" + ol[j], wert: ol[j] })
+        }
+        _anlageOptionen = a
+        _ortOptionen = o
     }
 
     // Spaltenliste aus Konfig-Spalten: gewählte zuerst (in Reihenfolge), dann die übrigen Katalogfelder
@@ -181,6 +199,7 @@ Item {
 
     function _konfigLaden(k) {
         _laedt = true
+        _filterWerteLaden()
         var kat = db.spsExportFeldKatalog()
         var n = {}
         n["Standard"] = _listeAusSpalten(k.spalten || [], kat)
@@ -204,6 +223,8 @@ Item {
         rackCombo.currentIndex      = _idx(_rackOptionen, f.rack || "")
         signalCombo.currentIndex    = _idx(_signalOptionen, f.signal || "")
         belegungCombo.currentIndex  = _idx(_belegungOptionen, f.belegung || "alle")
+        anlageCombo.currentIndex    = _idx(_anlageOptionen, f.anlage || "")
+        ortCombo.currentIndex       = _idx(_ortOptionen, f.ort || "")
         _laedt = false
         _geaendert()
     }
@@ -323,8 +344,21 @@ Item {
         onTriggered: root._vorschauAktualisieren()
     }
 
-    onProjektIdChanged: _geaendert()
-    onKanalAnzahlChanged: _geaendert()
+    function _filterWerteAktualisieren() {
+        // Kann schon während des Aufbaus feuern (projektId-Binding), bevor die Combos existieren.
+        if (typeof anlageCombo === "undefined" || typeof ortCombo === "undefined" || !anlageCombo || !ortCombo) return
+        var anlage = _anlageOptionen[anlageCombo.currentIndex] ? _anlageOptionen[anlageCombo.currentIndex].wert : ""
+        var ort    = _ortOptionen[ortCombo.currentIndex] ? _ortOptionen[ortCombo.currentIndex].wert : ""
+        _laedt = true
+        _filterWerteLaden()
+        anlageCombo.currentIndex = _idx(_anlageOptionen, anlage)
+        ortCombo.currentIndex    = _idx(_ortOptionen, ort)
+        _laedt = false
+        _geaendert()
+    }
+
+    onProjektIdChanged: _filterWerteAktualisieren()
+    onKanalAnzahlChanged: _filterWerteAktualisieren()
 
     Component.onCompleted: {
         try { _vorlagen = JSON.parse(einst.vorlagen) || [] } catch (e) { _vorlagen = [] }
@@ -437,6 +471,67 @@ Item {
                         if (!enabled) return
                         root._vorlageSpeichern(nameFeld.text.trim())
                         nameDialog.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // Platzhalter-Auswahl für Textspalten: hängt {feld} an den Wert der Zielzeile an
+    Popup {
+        id: platzhalterPopup
+        property int zielIndex: -1
+        property var felder: []
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        width: 320
+        height: Math.min(420, root.height - 40)
+        padding: 8
+        onAboutToShow: {
+            var kat = db.spsExportFeldKatalog()
+            var l = []
+            for (var i = 0; i < kat.length; i++) if (kat[i].feld !== "fest") l.push(kat[i])
+            felder = l
+        }
+        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; radius: 6 }
+        contentItem: ColumnLayout {
+            spacing: 6
+            Text {
+                text: qsTr("Feld einfügen (wird als {feld} in den Text übernommen)")
+                color: root.theme.textSecondary; font.pixelSize: 12; wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: platzhalterPopup.felder
+                ScrollBar.vertical: ScrollBar {}
+                delegate: Rectangle {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 26
+                    color: phMa.containsMouse ? root.theme.hover : "transparent"
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 6; anchors.rightMargin: 6
+                        Text { text: modelData.titel; color: root.theme.textPrimary; font.pixelSize: 12
+                               Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { text: "{" + modelData.feld + "}"; color: root.theme.textMuted; font.pixelSize: 11 }
+                    }
+                    MouseArea {
+                        id: phMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            var i = platzhalterPopup.zielIndex
+                            if (i >= 0 && i < spaltenModel.count) {
+                                spaltenModel.setProperty(i, "wert", spaltenModel.get(i).wert + "{" + modelData.feld + "}")
+                                root._geaendert()
+                            }
+                            platzhalterPopup.close()
+                        }
                     }
                 }
             }
@@ -648,7 +743,7 @@ Item {
                                 onClicked: { spaltenModel.move(zeile.index, zeile.index + 1, 1); root._geaendert() }
                             }
                             Text {
-                                text: zeile.feld === "fest" ? qsTr("Fester Text") : zeile.standardTitel
+                                text: zeile.feld === "fest" ? qsTr("Text / Platzhalter") : zeile.standardTitel
                                 color: root.theme.textPrimary
                                 font.pixelSize: 12
                                 elide: Text.ElideRight
@@ -670,14 +765,23 @@ Item {
                             }
                             TextField {
                                 visible: zeile.feld === "fest"
-                                Layout.preferredWidth: 110
+                                Layout.preferredWidth: 150
                                 implicitHeight: 26
                                 text: zeile.wert
-                                placeholderText: qsTr("Wert")
+                                placeholderText: qsTr("Text oder {feld}")
                                 color: root.theme.textPrimary
                                 font.pixelSize: 12
                                 background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.accent }
                                 onTextEdited: { spaltenModel.setProperty(zeile.index, "wert", text); root._geaendert() }
+                            }
+                            ToolButton {
+                                visible: zeile.feld === "fest"
+                                text: "{ }"
+                                Layout.preferredWidth: 32; Layout.preferredHeight: 26
+                                onClicked: { platzhalterPopup.zielIndex = zeile.index; platzhalterPopup.open() }
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 400
+                                ToolTip.text: qsTr("Feld als Platzhalter einfügen, z.B. {anlage}_{variablenname}")
                             }
                             ToolButton {
                                 visible: zeile.feld === "fest"
@@ -694,16 +798,16 @@ Item {
 
             Button {
                 visible: root._schemaEigen
-                text: qsTr("＋ Feste Textspalte")
+                text: qsTr("＋ Textspalte")
                 implicitHeight: 28
                 contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
                     radius: 4; border.color: root.theme.border }
                 ToolTip.visible: hovered
-                ToolTip.text: qsTr("Spalte mit immer gleichem Inhalt (z.B. Stationsname) – für Import-Vorlagen")
+                ToolTip.text: qsTr("Spalte mit festem Text (z.B. Stationsname) oder aus Feldern zusammengesetzt, z.B. {anlage}_{variablenname}. Nur Export – wird beim Import nicht zurückgelesen.")
                 onClicked: {
-                    spaltenModel.append({ feld: "fest", titel: qsTr("Text"), standardTitel: qsTr("Fester Text"),
+                    spaltenModel.append({ feld: "fest", titel: qsTr("Text"), standardTitel: qsTr("Text / Platzhalter"),
                                           gruppe: "Sonstiges", aktiv: true, wert: "" })
                     root._geaendert()
                 }
@@ -779,6 +883,18 @@ Item {
 
                 KnopfLabel { thm: root.theme; text: qsTr("Belegung") }
                 KonfigCombo { id: belegungCombo; thm: root.theme; optionen: root._belegungOptionen; onGeaendert: root._geaendert() }
+
+                KnopfLabel { thm: root.theme; text: qsTr("Anlage") }
+                KonfigCombo { id: anlageCombo; thm: root.theme; optionen: root._anlageOptionen; onGeaendert: root._geaendert()
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Nur Kanäle mit Schaltplan-Element auf Seiten dieser Anlage") }
+
+                KnopfLabel { thm: root.theme; text: qsTr("Ort") }
+                KonfigCombo { id: ortCombo; thm: root.theme; optionen: root._ortOptionen; onGeaendert: root._geaendert()
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Nur Kanäle mit Schaltplan-Element auf Seiten dieses Einbauorts") }
             }
 
             RowLayout {

@@ -530,6 +530,69 @@ private slots:
         QVERIFY(!m_db->spsExportSchemaIrrelevanteFelder("AI").contains("einheit"));
     }
 
+    // SPS-EXPORT-05: abgeleitete Felder, Anlage/Ort samt Filter, Platzhalter-Text
+    void sps_04c_exportAbgeleiteteFelder()
+    {
+        const int r = m_db->spsRackAnlegen(1, 97, "SPS", "Schrank", "ACME");
+        const int bgDi = m_db->spsBaugruppeAnlegen(r, 1, "DI", "DI 8", 8, 0);
+        const int bgAi = m_db->spsBaugruppeAnlegen(r, 2, "AI", "AI 4", 4, 64);
+        QVERIFY(r > 0 && bgDi > 0 && bgAi > 0);
+        const int k1 = m_db->spsKanalAnlegen(1, bgDi, 0, "E", 0, 3, "BOOL", "XS-1", "");
+        QVERIFY(m_db->spsKanalAnlegen(1, bgDi, 1, "E", 0, 5, "BOOL", "XS-2", "") > 0);
+        const int k3 = m_db->spsKanalAnlegen(1, bgAi, 1, "E", 64, 0, "WORD", "TIC-1", "");
+        QVERIFY(k1 > 0 && k3 > 0);
+        QVERIFY(m_db->spsKanalAktualisieren(k3, {{"pls_bereich_min", 10.0}, {"pls_bereich_max", 60.0}}));
+
+        // k1 bekommt ein Schaltplan-Element (Anlage/Ort der Seite, Freitext aus extra_daten)
+        const int sid = neueSeite("1");
+        QVERIFY(m_db->grafikSpeichern(sid, {symbol("sps_eingang", 0, 0)}));
+        const int geId = m_db->grafikLaden(sid)[0].toMap()["id"].toInt();
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-B1\",\"freitext1\":\"Fz\"}' WHERE id=%1").arg(geId)) >= 0);
+        QVERIFY(ins(QString("UPDATE sps_kanal SET grafik_element_id=%1 WHERE id=%2").arg(geId).arg(k1)) >= 0);
+        const QString anlage = einWert("SELECT kuerzel FROM anlage LIMIT 1").toString();
+        const QString ort    = einWert("SELECT kuerzel FROM ort LIMIT 1").toString();
+
+        const QString konfig = QString(R"({"spalten":[
+            {"feld":"variablenname","titel":"Tag"},{"feld":"adresse_iec"},{"feld":"richtung"},
+            {"feld":"analog_digital"},{"feld":"rack_slot_kanal"},{"feld":"kanal_absolut"},
+            {"feld":"baugruppen_bereich"},{"feld":"alarm_vorhanden"},{"feld":"spannweite"},
+            {"feld":"anlage"},{"feld":"ort"},{"feld":"freitext1"},
+            {"feld":"fest","titel":"Text","wert":"{anlage}_{variablenname}-{unbekannt}-{fest}"}],
+            "trennzeichen":";","dezimal":".","kopfzeile":false,"bom":false,"anfuehrung":"bei_bedarf",
+            "filter":{"rack":"97"}})");
+        const QVariantMap v = m_db->spsExportVorschau(1, konfig, -1);
+        QVERIFY2(v["fehler"].toString().isEmpty(), qPrintable(v["fehler"].toString()));
+        const QStringList z = v["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QCOMPARE(z.size(), 3);
+        // Reihenfolge: Slot 1 Kanal 1, Slot 1 Kanal 2, Slot 2 Kanal 2
+        QCOMPARE(z[0], QString("XS-1;%IX0.3;Eingang;digital;R97.S1.K1;1;E0.3–E0.5;nein;;%1;%2;Fz;%1_XS-1-{unbekannt}-{fest}")
+                           .arg(anlage, ort));
+        QCOMPARE(z[1], QString("XS-2;%IX0.5;Eingang;digital;R97.S1.K2;2;E0.3–E0.5;nein;;;;;_XS-2-{unbekannt}-{fest}"));
+        // AI: 8 Kanäle der DI-Karte davor + Kanal 2 = 10; belegter Bereich nur ein Kanal
+        QCOMPARE(z[2], QString("TIC-1;%IW64;Eingang;analog;R97.S2.K2;10;EW64;nein;50;;;;_TIC-1-{unbekannt}-{fest}"));
+
+        // Filter Anlage/Ort: nur Kanäle mit Element auf dieser Anlage/diesem Ort
+        const QString kA = QString(R"({"spalten":[{"feld":"variablenname"}],"kopfzeile":false,
+            "filter":{"anlage":"%1","ort":"%2"}})").arg(anlage, ort);
+        QCOMPARE(m_db->spsExportVorschau(1, kA, -1)["zeilen"].toInt(), 1);
+        const QString kB = QString(R"({"spalten":[{"feld":"variablenname"}],"kopfzeile":false,
+            "filter":{"anlage":"gibtsnicht"}})");
+        QCOMPARE(m_db->spsExportVorschau(1, kB, -1)["zeilen"].toInt(), 0);
+
+        const QVariantMap fw = m_db->spsExportFilterWerte(1);
+        QVERIFY(fw["anlagen"].toStringList().contains(anlage));
+        QVERIFY(fw["orte"].toStringList().contains(ort));
+
+        // Katalog: abgeleitete Felder sind nicht importierbar, Standardfelder schon
+        bool ioFeldGefunden = false;
+        for (const QVariant &fv : m_db->spsExportFeldKatalog()) {
+            const QVariantMap f = fv.toMap();
+            if (f["feld"].toString() == "richtung") { QVERIFY(!f["importierbar"].toBool()); ioFeldGefunden = true; }
+            if (f["feld"].toString() == "variablenname") QVERIFY(f["importierbar"].toBool());
+        }
+        QVERIFY(ioFeldGefunden);
+    }
+
     // ── SPS-IMPORT-01 ────────────────────────────────────────────
     QString csvSchreiben(const QString &name, const QString &inhalt)
     {

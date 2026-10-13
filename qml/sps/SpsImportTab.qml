@@ -58,7 +58,7 @@ Item {
         var o = [{ feld: "", text: qsTr("— ignorieren —") }]
         for (var i = 0; i < kat.length; i++) {
             var f = kat[i].feld
-            if (f === "bmk" || f === "seite_blatt" || f === "seite_name" || f === "fest") continue
+            if (kat[i].importierbar === false) continue
             o.push({ feld: f, text: kat[i].titel })
         }
         _feldOptionen = o

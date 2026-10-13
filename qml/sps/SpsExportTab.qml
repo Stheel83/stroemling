@@ -46,6 +46,9 @@ Item {
     property string _schema: "Standard"
     property var    _schemata: ({})
     property var    _gruppen: []          // Ergebnis der Vorschau: [{schema, zeilen, text}]
+    // Je Schema: {leere: bool, sort: [{feld, absteigend}]}; das bearbeitete Schema liegt live in den Widgets
+    property var    _optionen: ({})
+    property var    _sortFeldOptionen: [{ text: qsTr("— keine —"), wert: "" }]
     readonly property bool _schemaEigen: _schemata[_schema] !== undefined
     readonly property var  _schemaSchluessel: ["Standard", "DI", "DO", "AI", "AO"]
 
@@ -102,7 +105,8 @@ Item {
         for (var i = 0; i < spaltenModel.count; i++) {
             var m = spaltenModel.get(i)
             a.push({ feld: m.feld, titel: m.titel, standardTitel: m.standardTitel,
-                     gruppe: m.gruppe, aktiv: m.aktiv, wert: m.wert })
+                     gruppe: m.gruppe, aktiv: m.aktiv, wert: m.wert,
+                     prefix: m.prefix, suffix: m.suffix })
         }
         return a
     }
@@ -126,18 +130,58 @@ Item {
             if (!m.aktiv) continue
             var o = { feld: m.feld, titel: m.titel }
             if (m.feld === "fest") o.wert = m.wert
+            if (m.prefix) o.prefix = m.prefix
+            if (m.suffix) o.suffix = m.suffix
             sp.push(o)
         }
         return sp
     }
 
+    function _optionenAusWidgets() {
+        var sort = []
+        var f1 = _sortFeldOptionen[sort1Combo.currentIndex] ? _sortFeldOptionen[sort1Combo.currentIndex].wert : ""
+        var f2 = _sortFeldOptionen[sort2Combo.currentIndex] ? _sortFeldOptionen[sort2Combo.currentIndex].wert : ""
+        if (f1) sort.push({ feld: f1, absteigend: sort1Ab.checked })
+        if (f2) sort.push({ feld: f2, absteigend: sort2Ab.checked })
+        return { leere: leereCheck.checked, sort: sort }
+    }
+
+    function _widgetsAusOptionen(o) {
+        var op = o || { leere: false, sort: [] }
+        var s = op.sort || []
+        leereCheck.checked = !!op.leere
+        sort1Combo.currentIndex = _idx(_sortFeldOptionen, s.length > 0 ? s[0].feld : "")
+        sort1Ab.checked = s.length > 0 && !!s[0].absteigend
+        sort2Combo.currentIndex = _idx(_sortFeldOptionen, s.length > 1 ? s[1].feld : "")
+        sort2Ab.checked = s.length > 1 && !!s[1].absteigend
+    }
+
+    function _optionenAktuell() {
+        var n = Object.assign({}, _optionen)
+        if (_schemata[_schema] !== undefined) n[_schema] = _optionenAusWidgets()
+        return n
+    }
+
+    function _optionenZuKonfig(o) {
+        var op = o || { leere: false, sort: [] }
+        return { leere_ausblenden: !!op.leere, sortierung: op.sort || [] }
+    }
+
     function _konfigObjekt() {
         var sch = _schemataAktuell()
+        var opt = _optionenAktuell()
         var eigene = {}
-        for (var key in sch)
-            if (key !== "Standard") eigene[key] = { spalten: _spaltenExport(sch[key]) }
+        for (var key in sch) {
+            if (key === "Standard") continue
+            var e = _optionenZuKonfig(opt[key])
+            e.spalten = _spaltenExport(sch[key])
+            eigene[key] = e
+        }
+        var std = _optionenZuKonfig(opt["Standard"])
         return {
             spalten:      _spaltenExport(sch["Standard"] || []),
+            leere_ausblenden: std.leere_ausblenden,
+            sortierung:   std.sortierung,
             schemata:     eigene,
             ausgabe:      _ausgabeOptionen[ausgabeCombo.currentIndex].wert,
             trennzeichen: _trennOptionen[trennCombo.currentIndex].wert,
@@ -183,7 +227,8 @@ Item {
             liste.push({ feld: d.feld,
                          titel: sp[i].titel !== undefined ? sp[i].titel : d.titel,
                          standardTitel: d.titel, gruppe: d.gruppe, aktiv: true,
-                         wert: sp[i].wert || "" })
+                         wert: sp[i].wert || "",
+                         prefix: sp[i].prefix || "", suffix: sp[i].suffix || "" })
             if (d.feld === "fest") festVorhanden = true
             else benutzt[d.feld] = true
         }
@@ -192,7 +237,7 @@ Item {
             if (benutzt[e.feld]) continue
             if (e.feld === "fest" && festVorhanden) continue
             liste.push({ feld: e.feld, titel: e.titel, standardTitel: e.titel,
-                         gruppe: e.gruppe, aktiv: false, wert: "" })
+                         gruppe: e.gruppe, aktiv: false, wert: "", prefix: "", suffix: "" })
         }
         return liste
     }
@@ -204,13 +249,22 @@ Item {
         var n = {}
         n["Standard"] = _listeAusSpalten(k.spalten || [], kat)
         var sc = k.schemata || {}
+        var so = [{ text: qsTr("— keine —"), wert: "" }]
+        for (var ki = 0; ki < kat.length; ki++)
+            if (kat[ki].feld !== "fest") so.push({ text: kat[ki].titel, wert: kat[ki].feld })
+        _sortFeldOptionen = so
+        var no = {}
+        no["Standard"] = { leere: !!k.leere_ausblenden, sort: k.sortierung || [] }
         for (var key in sc) {
             if (key === "Standard") continue
             n[key] = _listeAusSpalten((sc[key] && sc[key].spalten) || [], kat)
+            no[key] = { leere: !!sc[key].leere_ausblenden, sort: sc[key].sortierung || [] }
         }
         _schemata = n
+        _optionen = no
         _schema = "Standard"
         _modellFuellen(n["Standard"])
+        _widgetsAusOptionen(no["Standard"])
 
         trennCombo.currentIndex     = _idx(_trennOptionen, k.trennzeichen !== undefined ? k.trennzeichen : ";")
         dezimalCombo.currentIndex   = _idx(_dezimalOptionen, k.dezimal !== undefined ? k.dezimal : ",")
@@ -238,9 +292,14 @@ Item {
         if (key === _schema) return
         _laedt = true
         _schemata = _schemataAktuell()     // live-Stand des bisherigen Schemas sichern
+        _optionen = _optionenAktuell()
         _schema = key
-        if (_schemata[key] !== undefined) _modellFuellen(_schemata[key])
-        else spaltenModel.clear()
+        if (_schemata[key] !== undefined) {
+            _modellFuellen(_schemata[key])
+            _widgetsAusOptionen(_optionen[key])
+        } else {
+            spaltenModel.clear()
+        }
         _laedt = false
     }
 
@@ -256,9 +315,13 @@ Item {
         }
         var n = Object.assign({}, _schemata)
         n[_schema] = arr
+        var no = Object.assign({}, _optionen)
+        no[_schema] = JSON.parse(JSON.stringify(_optionen["Standard"] || { leere: false, sort: [] }))
         _laedt = true
         _schemata = n
+        _optionen = no
         _modellFuellen(arr)
+        _widgetsAusOptionen(no[_schema])
         _laedt = false
         _geaendert()
     }
@@ -266,7 +329,10 @@ Item {
     function _schemaVerwerfen() {
         var n = Object.assign({}, _schemata)
         delete n[_schema]
+        var no = Object.assign({}, _optionen)
+        delete no[_schema]
         _schemata = n
+        _optionen = no
         spaltenModel.clear()
         _geaendert()
     }
@@ -711,6 +777,8 @@ Item {
                         required property string gruppe
                         required property bool aktiv
                         required property string wert
+                        required property string prefix
+                        required property string suffix
 
                         width: ListView.view.width
                         height: 34
@@ -747,7 +815,7 @@ Item {
                                 color: root.theme.textPrimary
                                 font.pixelSize: 12
                                 elide: Text.ElideRight
-                                Layout.preferredWidth: 130
+                                Layout.preferredWidth: 110
                                 ToolTip.visible: _lblMa.containsMouse
                                 ToolTip.text: zeile.gruppe
                                 ToolTip.delay: 400
@@ -762,6 +830,32 @@ Item {
                                 font.pixelSize: 12
                                 background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
                                 onTextEdited: { spaltenModel.setProperty(zeile.index, "titel", text); root._geaendert() }
+                            }
+                            TextField {
+                                Layout.preferredWidth: 52
+                                implicitHeight: 26
+                                text: zeile.prefix
+                                placeholderText: qsTr("Präfix")
+                                color: root.theme.textPrimary
+                                font.pixelSize: 11
+                                background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
+                                onTextEdited: { spaltenModel.setProperty(zeile.index, "prefix", text); root._geaendert() }
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 400
+                                ToolTip.text: qsTr("Text vor dem Wert (nur wenn der Wert nicht leer ist)")
+                            }
+                            TextField {
+                                Layout.preferredWidth: 52
+                                implicitHeight: 26
+                                text: zeile.suffix
+                                placeholderText: qsTr("Suffix")
+                                color: root.theme.textPrimary
+                                font.pixelSize: 11
+                                background: Rectangle { color: root.theme.inputBg; radius: 3; border.color: root.theme.border }
+                                onTextEdited: { spaltenModel.setProperty(zeile.index, "suffix", text); root._geaendert() }
+                                ToolTip.visible: hovered
+                                ToolTip.delay: 400
+                                ToolTip.text: qsTr("Text nach dem Wert (nur wenn der Wert nicht leer ist)")
                             }
                             TextField {
                                 visible: zeile.feld === "fest"
@@ -808,8 +902,51 @@ Item {
                 ToolTip.text: qsTr("Spalte mit festem Text (z.B. Stationsname) oder aus Feldern zusammengesetzt, z.B. {anlage}_{variablenname}. Nur Export – wird beim Import nicht zurückgelesen.")
                 onClicked: {
                     spaltenModel.append({ feld: "fest", titel: qsTr("Text"), standardTitel: qsTr("Text / Platzhalter"),
-                                          gruppe: "Sonstiges", aktiv: true, wert: "" })
+                                          gruppe: "Sonstiges", aktiv: true, wert: "",
+                                          prefix: "", suffix: "" })
                     root._geaendert()
+                }
+            }
+
+            // Optionen des Schemas: Sortierung, leere Spalten
+            GridLayout {
+                visible: root._schemaEigen
+                columns: 3
+                columnSpacing: 8
+                rowSpacing: 4
+                Layout.fillWidth: true
+
+                KnopfLabel { thm: root.theme; text: qsTr("Sortieren nach") }
+                KonfigCombo { id: sort1Combo; thm: root.theme; optionen: root._sortFeldOptionen; onGeaendert: root._geaendert() }
+                CheckBox {
+                    id: sort1Ab
+                    text: qsTr("absteigend")
+                    onToggled: root._geaendert()
+                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: parent.indicator.width + 6; verticalAlignment: Text.AlignVCenter }
+                }
+
+                KnopfLabel { thm: root.theme; text: qsTr("dann nach") }
+                KonfigCombo { id: sort2Combo; thm: root.theme; optionen: root._sortFeldOptionen; onGeaendert: root._geaendert() }
+                CheckBox {
+                    id: sort2Ab
+                    text: qsTr("absteigend")
+                    onToggled: root._geaendert()
+                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: parent.indicator.width + 6; verticalAlignment: Text.AlignVCenter }
+                }
+
+                KnopfLabel { thm: root.theme; text: "" }
+                CheckBox {
+                    id: leereCheck
+                    Layout.columnSpan: 2
+                    text: qsTr("Leere Spalten ausblenden")
+                    onToggled: root._geaendert()
+                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                        leftPadding: parent.indicator.width + 6; verticalAlignment: Text.AlignVCenter }
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Spalten, in denen kein Kanal einen Wert hat, entfallen in diesem Schema (mindestens eine Spalte bleibt)")
                 }
             }
         }

@@ -1138,6 +1138,8 @@ private:
         QStringList          titel;
         QList<QStringList>   zeilen;
     };
+    // SPS-EXPORT-06: Gegenstelle/Klemme/Kabel/Ader je sps_kanal.id, nur wenn eindeutig (Schlüssel "_vw_<feld>")
+    QHash<int, QVariantMap> spsVerdrahtungJeKanal(int projektId, const QVariantList &kanaele);
     bool spsExportGruppen(int projektId, const QString &konfigJson,
                           QList<SpsExportGruppe> &gruppen, QString &fehler);
 

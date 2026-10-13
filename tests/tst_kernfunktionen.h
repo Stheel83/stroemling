@@ -593,6 +593,78 @@ private slots:
         QVERIFY(ioFeldGefunden);
     }
 
+    // SPS-EXPORT-06: Präfix/Suffix, Sortierung, leere Spalten ausblenden, Verdrahtung (nur eindeutig)
+    void sps_04d_exportSortierungUndVerdrahtung()
+    {
+        const int r = m_db->spsRackAnlegen(1, 98, "SPS", "Schrank", "ACME");
+        const int bg = m_db->spsBaugruppeAnlegen(r, 1, "DI", "DI 8", 8, 0);
+        QVERIFY(r > 0 && bg > 0);
+        const int k1 = m_db->spsKanalAnlegen(1, bg, 0, "E", 0, 0, "BOOL", "B10", "");
+        const int k2 = m_db->spsKanalAnlegen(1, bg, 1, "E", 0, 1, "BOOL", "B2", "");
+        const int k3 = m_db->spsKanalAnlegen(1, bg, 2, "E", 0, 2, "BOOL", "", "");
+        QVERIFY(k1 > 0 && k2 > 0 && k3 > 0);
+
+        // Sortierung natürlich (B2 vor B10), absteigend, leere Werte zuletzt; Präfix/Suffix nur bei Wert
+        const QString kSort = R"({"spalten":[{"feld":"variablenname","titel":"Tag","prefix":"<","suffix":">"},
+            {"feld":"einheit","titel":"Einheit"}],"kopfzeile":false,"trennzeichen":";","anfuehrung":"bei_bedarf",
+            "sortierung":[{"feld":"variablenname"}],"filter":{"rack":"98"}})";
+        QStringList z = m_db->spsExportVorschau(1, kSort, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QCOMPARE(z.size(), 3);
+        QCOMPARE(z[0], QString("<B2>;"));
+        QCOMPARE(z[1], QString("<B10>;"));
+        QCOMPARE(z[2], QString(";"));            // leerer Tag zuletzt, kein Präfix/Suffix
+        QString kAb = kSort;
+        kAb.replace(R"("sortierung":[{"feld":"variablenname"}])", R"("sortierung":[{"feld":"variablenname","absteigend":true}])");
+        z = m_db->spsExportVorschau(1, kAb, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QCOMPARE(z[0], QString("<B10>;"));
+        QCOMPARE(z[1], QString("<B2>;"));
+
+        // leere Spalten ausblenden: Einheit ist überall leer
+        QString kLeer = kSort;
+        kLeer.replace(R"("kopfzeile":false,)", R"("kopfzeile":true,"leere_ausblenden":true,)");
+        const QVariantMap vl = m_db->spsExportVorschau(1, kLeer, -1);
+        QVERIFY(vl["text"].toString().startsWith("Tag\n"));
+
+        // Verdrahtung: Kanal-Element K (sps_di_einpolig) — Netz — Gerät G (ventil)
+        const int sid = neueSeite("1");
+        const QString pinX = einWert("SELECT x FROM symbol_pin WHERE symbol_id='ventil' ORDER BY id LIMIT 1").toString();
+        const QString pinY = einWert("SELECT y FROM symbol_pin WHERE symbol_id='ventil' ORDER BY id LIMIT 1").toString();
+        QVERIFY2(!pinX.isEmpty(), "Symbol ventil ohne Pins");
+        const double gx = 50, gy = 50, gs = 8;
+        const double px = gx + gs / 2 + (pinX.toDouble() - 0.5) * gs;
+        const double py = gy + gs / 2 + (pinY.toDouble() - 0.5) * gs;
+        QVERIFY(m_db->grafikSpeichern(sid, {symbol("sps_di_einpolig", 0, 0), symbol("ventil", gx, gy)}));
+        const QVariantList el = m_db->grafikLaden(sid);
+        int kId = 0, gId = 0;
+        for (const QVariant &e : el) {
+            if (e.toMap()["symbolId"].toString() == "sps_di_einpolig") kId = e.toMap()["id"].toInt();
+            if (e.toMap()["symbolId"].toString() == "ventil") gId = e.toMap()["id"].toInt();
+        }
+        QVERIFY(kId > 0 && gId > 0);
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-Y1\"}' WHERE id=%1").arg(gId)) >= 0);
+        QVERIFY(ins(QString("UPDATE sps_kanal SET grafik_element_id=%1 WHERE id=%2").arg(kId).arg(k1)) >= 0);
+        const int net = ins("INSERT INTO verbindung (projekt_id, bezeichnung) VALUES (1,'N1')");
+        const QString pts = QString("[{\"x\":2,\"y\":0},{\"x\":%1,\"y\":%2}]").arg(px).arg(py);
+        QVERIFY(ins(QString("INSERT INTO verbindung_segment (verbindung_id, seite_id, punkte) VALUES (%1,%2,'%3')")
+                        .arg(net).arg(sid).arg(pts)) > 0);
+        const int kabel = ins("INSERT INTO kabel (projekt_id, bezeichnung) VALUES (1,'W1')");
+        QVERIFY(ins(QString("INSERT INTO kabel_ader (kabel_id, ader_nr, farbe, verbindung_id) VALUES (%1,3,'BN',%2)")
+                        .arg(kabel).arg(net)) > 0);
+
+        const QString kVw = R"({"spalten":[{"feld":"variablenname"},{"feld":"gegenstelle_bmk"},
+            {"feld":"gegenstelle_anschluss"},{"feld":"kabel"},{"feld":"ader"}],
+            "kopfzeile":false,"trennzeichen":";","anfuehrung":"bei_bedarf","filter":{"rack":"98"}})";
+        z = m_db->spsExportVorschau(1, kVw, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QCOMPARE(z.filter("B10;-Y1;").size(), 1);
+        QVERIFY2(z.filter("B10;-Y1;").first().endsWith(";W1;3 (BN)"), qPrintable(z.join('|')));
+
+        // Verzweigung: zweite Ader im selben Netz → Kabel/Ader bleiben leer, Gegenstelle bleibt
+        QVERIFY(ins(QString("INSERT INTO kabel_ader (kabel_id, ader_nr, verbindung_id) VALUES (%1,4,%2)")
+                        .arg(kabel).arg(net)) > 0);
+        z = m_db->spsExportVorschau(1, kVw, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QVERIFY2(z.filter("B10;-Y1;").first().endsWith(";;"), qPrintable(z.join('|')));
+    }
+
     // ── SPS-IMPORT-01 ────────────────────────────────────────────
     QString csvSchreiben(const QString &name, const QString &inhalt)
     {

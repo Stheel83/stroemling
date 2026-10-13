@@ -180,7 +180,7 @@ QVariantList Database::dokuPdfSeitenListe(int projektId)
 //     "abschnitte": [ {"typ":"deckblatt", "titelzusatz":"...", "logo":true, "vorlageId":0},
 //                     {"typ":"inhaltsverzeichnis"},
 //                     {"typ":"schaltplan"},
-//                     {"typ":"sps_io", "konfig": { SPS-Export-Konfiguration, s. spsExportZeilen() }},
+//                     {"typ":"sps_io", "konfig": { SPS-Export-Konfiguration, s. spsExportGruppen() }},
 //                     {"typ":"liste", "liste":"stueckliste", "jeAnlageOrt":false} ] }   // DOKU-PDF-05
 // Reihenfolge der Abschnitte = Reihenfolge im PDF. Alle Abschnitte rendern in denselben Writer.
 // Zwei Durchläufe: Dry-Run in einen Puffer ermittelt die Gesamtseitenzahl für "Seite x von y"
@@ -392,18 +392,21 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
                                             opt.projektName, a.tabelle.value("spalten").toStringList(),
                                             a.tabelle.value("zeilen").toList(), neu, seiten + 1, gesamtSeiten);
             } else {   // sps_io
-                QStringList titel;
-                QList<QStringList> daten;
+                QList<SpsExportGruppe> gruppen;
                 QString fehler;
-                if (!spsExportZeilen(projektId, a.spsKonfig, titel, daten, fehler)) {
+                if (!spsExportGruppen(projektId, a.spsKonfig, gruppen, fehler)) {
                     qCWarning(lcDb) << "dokuPdfExportieren: SPS-Abschnitt:" << fehler;
                     painter.end();
                     return -1;
                 }
-                QVariantList zeilen;
-                for (const QStringList &z : daten) zeilen.append(QVariant(z));
-                seiten += pdfTabelleRendern(painter, writer, QStringLiteral("SPS/PLS – I/O-Liste"),
-                                            opt.projektName, titel, zeilen, neu, seiten + 1, gesamtSeiten);
+                for (int g = 0; g < gruppen.size(); ++g) {
+                    QVariantList zeilen;
+                    for (const QStringList &z : gruppen[g].zeilen) zeilen.append(QVariant(z));
+                    QString titel = QStringLiteral("SPS/PLS – I/O-Liste");
+                    if (gruppen.size() > 1) titel += QStringLiteral(" (%1)").arg(gruppen[g].schema);
+                    seiten += pdfTabelleRendern(painter, writer, titel, opt.projektName, gruppen[g].titel,
+                                                zeilen, neu || g > 0, seiten + 1, gesamtSeiten);
+                }
             }
         }
         painter.end();

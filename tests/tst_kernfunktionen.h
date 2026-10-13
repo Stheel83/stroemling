@@ -465,6 +465,71 @@ private slots:
         QVERIFY(!m_db->spsExportPdfSpeichern(1, "Testprojekt", pdf, R"({"spalten":[]})"));
     }
 
+    // SPS-EXPORT-04: Schemata je Signalart
+    void sps_04b_exportSchemata()
+    {
+        const int r = m_db->spsRackAnlegen(1, 96, "PLS", "Messwarte", "ACME");
+        const int bgAi = m_db->spsBaugruppeAnlegen(r, 2, "AI", "AI 4", 4, 0);
+        const int bgDi = m_db->spsBaugruppeAnlegen(r, 3, "DI", "DI 4", 4, 0);
+        QVERIFY(r > 0 && bgAi > 0 && bgDi > 0);
+        const int kA = m_db->spsKanalAnlegen(1, bgAi, 0, "E", 0, 0, "REAL", "TIC-1", "");
+        QVERIFY(m_db->spsKanalAktualisieren(kA, {{"pls_einheit", "°C"}, {"pls_alarm_hh", 80.0}}));
+        QVERIFY(m_db->spsKanalAnlegen(1, bgDi, 0, "E", 0, 0, "BOOL", "XS-1", "") > 0);
+
+        // Standard = Adresse;Tag, nur AI hat ein eigenes Schema mit Einheit und HH
+        const QString konfig = R"({"spalten":[{"feld":"adresse","titel":"Addr"},{"feld":"variablenname","titel":"Tag"}],
+            "schemata":{"AI":{"spalten":[{"feld":"adresse","titel":"Addr"},{"feld":"einheit","titel":"Unit"},
+                                          {"feld":"alarm_hh","titel":"HH"}]}},
+            "trennzeichen":";","dezimal":".","kopfzeile":true,"bom":false,"anfuehrung":"bei_bedarf",
+            "ausgabe":"einzeln","filter":{"rack":"96"}})";
+        const QVariantMap v = m_db->spsExportVorschau(1, konfig, -1);
+        QVERIFY2(v["fehler"].toString().isEmpty(), qPrintable(v["fehler"].toString()));
+        QCOMPARE(v["zeilen"].toInt(), 2);
+        const QVariantList g = v["gruppen"].toList();
+        QCOMPARE(g.size(), 2);
+        QCOMPARE(g[0].toMap()["schema"].toString(), QString("Standard"));
+        QCOMPARE(g[0].toMap()["text"].toString(), QString("Addr;Tag\nR96 S3 K1;XS-1\n"));
+        QCOMPARE(g[1].toMap()["schema"].toString(), QString("AI"));
+        QCOMPARE(g[1].toMap()["text"].toString(), QString("Addr;Unit;HH\nR96 S2 K1;°C;80\n"));
+        // Gesamttext: Abschnitte durch Leerzeile
+        QVERIFY(v["text"].toString().contains("XS-1\n\nAddr;Unit;HH"));
+
+        // CSV „einzeln": zwei Dateien mit Suffix, Basisname bleibt frei
+        const QString basis = m_projPfad + "_schema.csv";
+        QVERIFY(m_db->spsExportCsvSpeichern(1, basis, konfig));
+        const QString dAi = m_projPfad + "_schema_AI.csv";
+        const QString dStd = m_projPfad + "_schema_Standard.csv";
+        QVERIFY(QFileInfo::exists(dAi) && QFileInfo::exists(dStd));
+        QVERIFY(!QFileInfo::exists(basis));
+        QFile::remove(dAi); QFile::remove(dStd);
+
+        // CSV „eine_datei": eine Datei mit beiden Abschnitten
+        QString k2 = konfig;
+        k2.replace("\"einzeln\"", "\"eine_datei\"");
+        QVERIFY(m_db->spsExportCsvSpeichern(1, basis, k2));
+        QVERIFY(QFileInfo::exists(basis));
+        QFile::remove(basis);
+
+        // Filter auf eine Signalart → nur eine Gruppe, Dateiname unverändert
+        QString k3 = konfig;
+        k3.replace("\"filter\":{\"rack\":\"96\"}", "\"filter\":{\"rack\":\"96\",\"signal\":\"AI\"}");
+        QVERIFY(m_db->spsExportCsvSpeichern(1, basis, k3));
+        QVERIFY(QFileInfo::exists(basis));
+        QFile::remove(basis);
+
+        // PDF mit mehreren Schemata
+        const QString pdf = m_projPfad + "_schema.pdf";
+        QVERIFY(m_db->spsExportPdfSpeichern(1, "Testprojekt", pdf, konfig));
+        QVERIFY(QFileInfo(pdf).size() > 500);
+        QFile::remove(pdf);
+
+        // Schema ohne Spalten ist ein Fehler; Vorschlagsliste
+        QString k4 = R"({"spalten":[{"feld":"adresse"}],"schemata":{"DI":{"spalten":[]}}})";
+        QVERIFY(!m_db->spsExportVorschau(1, k4, 5)["fehler"].toString().isEmpty());
+        QVERIFY(m_db->spsExportSchemaIrrelevanteFelder("DI").contains("alarm_ll"));
+        QVERIFY(!m_db->spsExportSchemaIrrelevanteFelder("AI").contains("einheit"));
+    }
+
     // ── SPS-IMPORT-01 ────────────────────────────────────────────
     QString csvSchreiben(const QString &name, const QString &inhalt)
     {

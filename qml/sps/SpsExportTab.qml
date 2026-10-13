@@ -11,6 +11,8 @@ import "../la"
 // sich ein Zielformat (Leitsystem-Import, Excel-Vorlage) einmal bauen und in
 // jedem Projekt wiederverwenden. Die Datenaufbereitung selbst liegt in C++
 // (Database_SpsExport.cpp); diese Datei ist nur Konfigurations-Oberfläche.
+// SPS-EXPORT-04: Neben dem Standard-Schema kann jede Signalart (DI/DO/AI/AO) ein
+// eigenes Spaltenschema haben; Signalarten ohne eigenes Schema nutzen den Standard.
 Item {
     id: root
 
@@ -37,6 +39,16 @@ Item {
     property int    _vorschauZeilen: 0
     property int    _aktiveSpalten: 0
 
+    // Schemata: Schlüssel → Spaltenliste [{feld,titel,standardTitel,gruppe,aktiv,wert}].
+    // "Standard" ist immer vorhanden. Das gerade bearbeitete Schema liegt live in
+    // spaltenModel (Stand hier erst nach _schemataAktuell()/_schemaWechseln()).
+    // Nur per Neuzuweisung ändern, sonst feuern die Bindings nicht.
+    property string _schema: "Standard"
+    property var    _schemata: ({})
+    property var    _gruppen: []          // Ergebnis der Vorschau: [{schema, zeilen, text}]
+    readonly property bool _schemaEigen: _schemata[_schema] !== undefined
+    readonly property var  _schemaSchluessel: ["Standard", "DI", "DO", "AI", "AO"]
+
     readonly property var _trennOptionen: [
         { text: qsTr("Semikolon ( ; )"),   wert: ";" },
         { text: qsTr("Komma ( , )"),       wert: "," },
@@ -46,6 +58,10 @@ Item {
     readonly property var _dezimalOptionen: [
         { text: qsTr("Komma ( 12,5 )"),  wert: "," },
         { text: qsTr("Punkt ( 12.5 )"),  wert: "." }
+    ]
+    readonly property var _ausgabeOptionen: [
+        { text: qsTr("Eine Datei je Schema (…_AI.csv)"), wert: "einzeln" },
+        { text: qsTr("Eine Datei mit Abschnitten"),     wert: "eine_datei" }
     ]
     readonly property var _anfuehrungOptionen: [
         { text: qsTr("Immer"),            wert: "immer" },
@@ -79,17 +95,49 @@ Item {
     }
 
     // ── Konfiguration ⇄ Oberfläche ───────────────────────────────
-    function _konfigObjekt() {
-        var sp = []
+    function _modellAlsListe() {
+        var a = []
         for (var i = 0; i < spaltenModel.count; i++) {
             var m = spaltenModel.get(i)
+            a.push({ feld: m.feld, titel: m.titel, standardTitel: m.standardTitel,
+                     gruppe: m.gruppe, aktiv: m.aktiv, wert: m.wert })
+        }
+        return a
+    }
+
+    function _modellFuellen(liste) {
+        spaltenModel.clear()
+        for (var i = 0; i < liste.length; i++) spaltenModel.append(liste[i])
+    }
+
+    // Kopie aller Schemata inkl. des live bearbeiteten Stands
+    function _schemataAktuell() {
+        var n = Object.assign({}, _schemata)
+        if (n[_schema] !== undefined) n[_schema] = _modellAlsListe()
+        return n
+    }
+
+    function _spaltenExport(liste) {
+        var sp = []
+        for (var i = 0; i < liste.length; i++) {
+            var m = liste[i]
             if (!m.aktiv) continue
             var o = { feld: m.feld, titel: m.titel }
             if (m.feld === "fest") o.wert = m.wert
             sp.push(o)
         }
+        return sp
+    }
+
+    function _konfigObjekt() {
+        var sch = _schemataAktuell()
+        var eigene = {}
+        for (var key in sch)
+            if (key !== "Standard") eigene[key] = { spalten: _spaltenExport(sch[key]) }
         return {
-            spalten:      sp,
+            spalten:      _spaltenExport(sch["Standard"] || []),
+            schemata:     eigene,
+            ausgabe:      _ausgabeOptionen[ausgabeCombo.currentIndex].wert,
             trennzeichen: _trennOptionen[trennCombo.currentIndex].wert,
             dezimal:      _dezimalOptionen[dezimalCombo.currentIndex].wert,
             kopfzeile:    kopfCheck.checked,
@@ -104,23 +152,20 @@ Item {
         }
     }
 
-    function _konfigLaden(k) {
-        _laedt = true
-        var kat = db.spsExportFeldKatalog()
+    // Spaltenliste aus Konfig-Spalten: gewählte zuerst (in Reihenfolge), dann die übrigen Katalogfelder
+    function _listeAusSpalten(sp, kat) {
         var katMap = {}
         for (var c = 0; c < kat.length; c++) katMap[kat[c].feld] = kat[c]
-
-        spaltenModel.clear()
+        var liste = []
         var benutzt = {}
         var festVorhanden = false
-        var sp = k.spalten || []
         for (var i = 0; i < sp.length; i++) {
             var d = katMap[sp[i].feld]
             if (!d) continue
-            spaltenModel.append({ feld: d.feld,
-                                  titel: sp[i].titel !== undefined ? sp[i].titel : d.titel,
-                                  standardTitel: d.titel, gruppe: d.gruppe, aktiv: true,
-                                  wert: sp[i].wert || "" })
+            liste.push({ feld: d.feld,
+                         titel: sp[i].titel !== undefined ? sp[i].titel : d.titel,
+                         standardTitel: d.titel, gruppe: d.gruppe, aktiv: true,
+                         wert: sp[i].wert || "" })
             if (d.feld === "fest") festVorhanden = true
             else benutzt[d.feld] = true
         }
@@ -128,12 +173,29 @@ Item {
             var e = kat[j]
             if (benutzt[e.feld]) continue
             if (e.feld === "fest" && festVorhanden) continue
-            spaltenModel.append({ feld: e.feld, titel: e.titel, standardTitel: e.titel,
-                                  gruppe: e.gruppe, aktiv: false, wert: "" })
+            liste.push({ feld: e.feld, titel: e.titel, standardTitel: e.titel,
+                         gruppe: e.gruppe, aktiv: false, wert: "" })
         }
+        return liste
+    }
+
+    function _konfigLaden(k) {
+        _laedt = true
+        var kat = db.spsExportFeldKatalog()
+        var n = {}
+        n["Standard"] = _listeAusSpalten(k.spalten || [], kat)
+        var sc = k.schemata || {}
+        for (var key in sc) {
+            if (key === "Standard") continue
+            n[key] = _listeAusSpalten((sc[key] && sc[key].spalten) || [], kat)
+        }
+        _schemata = n
+        _schema = "Standard"
+        _modellFuellen(n["Standard"])
 
         trennCombo.currentIndex     = _idx(_trennOptionen, k.trennzeichen !== undefined ? k.trennzeichen : ";")
         dezimalCombo.currentIndex   = _idx(_dezimalOptionen, k.dezimal !== undefined ? k.dezimal : ",")
+        ausgabeCombo.currentIndex   = _idx(_ausgabeOptionen, k.ausgabe || "einzeln")
         kopfCheck.checked           = k.kopfzeile !== false
         bomCheck.checked            = k.bom !== false
         anfuehrungCombo.currentIndex = _idx(_anfuehrungOptionen, k.anfuehrung || "immer")
@@ -150,6 +212,52 @@ Item {
         _konfigLaden(JSON.parse(db.spsExportStandardKonfig()))
     }
 
+    // ── Schema-Auswahl ───────────────────────────────────────────
+    function _schemaWechseln(key) {
+        if (key === _schema) return
+        _laedt = true
+        _schemata = _schemataAktuell()     // live-Stand des bisherigen Schemas sichern
+        _schema = key
+        if (_schemata[key] !== undefined) _modellFuellen(_schemata[key])
+        else spaltenModel.clear()
+        _laedt = false
+    }
+
+    // Eigenes Schema = Kopie des Standards ohne die für die Signalart irrelevanten Felder
+    function _eigenesSchemaAnlegen() {
+        var irr = db.spsExportSchemaIrrelevanteFelder(_schema)
+        var std = _schemata["Standard"] || []
+        var arr = []
+        for (var i = 0; i < std.length; i++) {
+            var m = Object.assign({}, std[i])
+            if (m.aktiv && irr.indexOf(m.feld) >= 0) m.aktiv = false
+            arr.push(m)
+        }
+        var n = Object.assign({}, _schemata)
+        n[_schema] = arr
+        _laedt = true
+        _schemata = n
+        _modellFuellen(arr)
+        _laedt = false
+        _geaendert()
+    }
+
+    function _schemaVerwerfen() {
+        var n = Object.assign({}, _schemata)
+        delete n[_schema]
+        _schemata = n
+        spaltenModel.clear()
+        _geaendert()
+    }
+
+    // Hinweis für die Erfolgsmeldung: bei mehreren Dateien die Schema-Suffixe nennen
+    function _csvErfolgText() {
+        var einzeln = _ausgabeOptionen[ausgabeCombo.currentIndex].wert === "einzeln"
+        if (!einzeln || _gruppen.length < 2) return qsTr("I/O-Liste exportiert.")
+        var teile = _gruppen.map(function(g) { return "_" + g.schema })
+        return qsTr("I/O-Liste exportiert: %1 Dateien (%2).").arg(_gruppen.length).arg(teile.join(", "))
+    }
+
     function _geaendert() {
         if (_laedt) return
         aktualisierTimer.restart()
@@ -159,10 +267,23 @@ Item {
         if (root.projektId < 0) { _vorschauText = ""; _vorschauFehler = ""; _vorschauZeilen = 0; return }
         var json = JSON.stringify(_konfigObjekt())
         var v = db.spsExportVorschau(root.projektId, json, 8)
-        _vorschauText   = v.text || ""
+        var gruppen = v.gruppen || []
+        var t = ""
+        if (gruppen.length > 1) {
+            for (var gi = 0; gi < gruppen.length; gi++)
+                t += "── " + gruppen[gi].schema + " · " + qsTr("%1 Zeile(n)").arg(gruppen[gi].zeilen)
+                     + " ──\n" + gruppen[gi].text + "\n"
+        } else {
+            t = v.text || ""
+        }
+        _gruppen        = gruppen
+        _vorschauText   = t
         _vorschauFehler = v.fehler || ""
         _vorschauZeilen = v.zeilen || 0
-        _aktiveSpalten  = _konfigObjekt().spalten.length
+        var kfg = _konfigObjekt()
+        var maxSp = kfg.spalten.length
+        for (var sk in kfg.schemata) maxSp = Math.max(maxSp, kfg.schemata[sk].spalten.length)
+        _aktiveSpalten  = maxSp
         einst.zuletzt = json
     }
 
@@ -246,6 +367,7 @@ Item {
         speichernTitel: qsTr("CSV speichern unter")
         erfolgText: qsTr("I/O-Liste exportiert.")
         onExportAngefordert: function(pfad) {
+            exportDialog.erfolgText = root._csvErfolgText()
             var ok = db.spsExportCsvSpeichern(root.projektId, pfad, JSON.stringify(root._konfigObjekt()))
             exportDialog.erfolgReagieren(ok)
         }
@@ -374,7 +496,89 @@ Item {
                 }
             }
 
+            // ── Schema (Signalart) ───────────────────────────────
             RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 6
+                Text { text: qsTr("Schema"); color: root.theme.textPrimary; font.bold: true; font.pixelSize: 13; Layout.fillWidth: true }
+                Text {
+                    text: qsTr("Signalarten ohne eigenes Schema nutzen das Standard-Schema")
+                    color: root.theme.textMuted; font.pixelSize: 11
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Repeater {
+                    model: root._schemaSchluessel
+                    delegate: Rectangle {
+                        id: chip
+                        required property string modelData
+                        readonly property bool aktiv: root._schema === modelData
+                        readonly property bool eigen: modelData === "Standard" || root._schemata[modelData] !== undefined
+                        implicitWidth: 64
+                        implicitHeight: 28
+                        radius: 14
+                        color: aktiv ? root.theme.accent : (chipMa.containsMouse ? root.theme.hover : root.theme.inputBg)
+                        border.color: eigen ? root.theme.accent : root.theme.border
+                        border.width: 1
+                        Text {
+                            anchors.centerIn: parent
+                            text: chip.modelData
+                            font.pixelSize: 12
+                            font.bold: chip.eigen
+                            color: chip.aktiv || chip.eigen ? root.theme.textPrimary : root.theme.textMuted
+                        }
+                        MouseArea {
+                            id: chipMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root._schemaWechseln(chip.modelData)
+                            ToolTip.visible: containsMouse
+                            ToolTip.delay: 400
+                            ToolTip.text: chip.modelData === "Standard"
+                                          ? qsTr("Standard-Schema – gilt für alle Signalarten ohne eigenes Schema")
+                                          : (chip.eigen ? qsTr("%1 hat ein eigenes Schema").arg(chip.modelData)
+                                                        : qsTr("%1 nutzt das Standard-Schema").arg(chip.modelData))
+                        }
+                    }
+                }
+                Item { Layout.fillWidth: true }
+            }
+
+            RowLayout {
+                visible: root._schema !== "Standard"
+                Layout.fillWidth: true
+                spacing: 8
+                Text {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    color: root.theme.textSecondary
+                    font.pixelSize: 12
+                    text: root._schemaEigen
+                          ? qsTr("Eigenes Schema für %1").arg(root._schema)
+                          : qsTr("%1 nutzt das Standard-Schema.").arg(root._schema)
+                }
+                Button {
+                    text: root._schemaEigen ? qsTr("Zurück zum Standard") : qsTr("Eigenes Schema anlegen")
+                    implicitHeight: 28
+                    contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? (root._schemaEigen ? root.theme.hover : root.theme.accent) : root.theme.inputBg
+                        radius: 4; border.color: root._schemaEigen ? root.theme.border : root.theme.accent }
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: root._schemaEigen
+                                  ? qsTr("Eigenes Schema verwerfen – %1 nutzt wieder das Standard-Schema").arg(root._schema)
+                                  : qsTr("Kopiert die Standard-Spalten ohne die für %1 unpassenden Felder (z.B. Alarmgrenzen) – danach frei änderbar").arg(root._schema)
+                    onClicked: root._schemaEigen ? root._schemaVerwerfen() : root._eigenesSchemaAnlegen()
+                }
+            }
+
+            RowLayout {
+                visible: root._schemaEigen
                 Layout.fillWidth: true
                 Layout.topMargin: 6
                 Text { text: qsTr("Spalten"); color: root.theme.textPrimary; font.bold: true; font.pixelSize: 13; Layout.fillWidth: true }
@@ -384,7 +588,10 @@ Item {
                 }
             }
 
+            Item { visible: !root._schemaEigen; Layout.fillWidth: true; Layout.fillHeight: true }
+
             Rectangle {
+                visible: root._schemaEigen
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 color: root.theme.surface
@@ -486,6 +693,7 @@ Item {
             }
 
             Button {
+                visible: root._schemaEigen
                 text: qsTr("＋ Feste Textspalte")
                 implicitHeight: 28
                 contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
@@ -516,6 +724,12 @@ Item {
                 columnSpacing: 10
                 rowSpacing: 6
                 Layout.fillWidth: true
+
+                KnopfLabel { thm: root.theme; text: qsTr("Ausgabe") }
+                KonfigCombo { id: ausgabeCombo; thm: root.theme; optionen: root._ausgabeOptionen; onGeaendert: root._geaendert()
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 400
+                    ToolTip.text: qsTr("Gilt nur, wenn mehrere Schemata verwendet werden (CSV). Das PDF enthält immer eine Tabelle je Schema.") }
 
                 KnopfLabel { thm: root.theme; text: qsTr("Trennzeichen") }
                 KonfigCombo { id: trennCombo; thm: root.theme; optionen: root._trennOptionen; onGeaendert: root._geaendert() }

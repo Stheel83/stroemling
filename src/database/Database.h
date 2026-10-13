@@ -911,7 +911,12 @@ public:
     //              anfuehrung:"immer"|"bei_bedarf", filter:{system,rack,signal,belegung}}
     Q_INVOKABLE QVariantList spsExportFeldKatalog();    // [{feld, titel, gruppe, standard}]
     Q_INVOKABLE QString      spsExportStandardKonfig(); // JSON
-    // {text, zeilen (Gesamtzahl nach Filter), fehler}; maxZeilen < 0 = alle
+    // SPS-EXPORT-04: Feldschlüssel, die für eine Signalart (DI/DO/AI/AO) nicht sinnvoll sind –
+    // Vorschlag beim Anlegen eines eigenen Schemas. Konfig kann zusätzlich
+    // schemata:{"AI":{spalten:[…]}}, ausgabe:"einzeln"|"eine_datei" enthalten.
+    Q_INVOKABLE QStringList  spsExportSchemaIrrelevanteFelder(const QString &signal);
+    // {text (alle Schemata, Abschnitte durch Leerzeile), zeilen (Gesamtzahl nach Filter), fehler,
+    //  gruppen:[{schema, zeilen, text}]}; maxZeilen < 0 = alle (je Schema begrenzt)
     Q_INVOKABLE QVariantMap  spsExportVorschau(int projektId, const QString &konfigJson, int maxZeilen);
     Q_INVOKABLE bool         spsExportCsvSpeichern(int projektId, const QString &pfad,
                                                    const QString &konfigJson);
@@ -1124,8 +1129,14 @@ private:
     QVariantMap spsExportErzeugen(int projektId, const QString &konfigJson, int maxZeilen);
     QVariantMap spsImportPlanen(int projektId, const QString &pfad, const QString &konfigJson,
                                 bool ausfuehren);
-    bool spsExportZeilen(int projektId, const QString &konfigJson, QStringList &titel,
-                         QList<QStringList> &zeilen, QString &fehler);
+    // SPS-EXPORT-04: Zeilen je Schema (Standard + eigene Schemata je Signalart), Reihenfolge fest.
+    struct SpsExportGruppe {
+        QString              schema;   // "Standard" | "DI" | "DO" | "AI" | "AO" | …
+        QStringList          titel;
+        QList<QStringList>   zeilen;
+    };
+    bool spsExportGruppen(int projektId, const QString &konfigJson,
+                          QList<SpsExportGruppe> &gruppen, QString &fehler);
 
     QSqlDatabase m_db;
     int          m_grafikAenderungszaehler = 0;

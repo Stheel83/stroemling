@@ -5,10 +5,19 @@
 // Konfiguration als JSON (Vorlagen liegen global in den App-Einstellungen, QML):
 //   { spalten:[{feld,titel,wert?}], trennzeichen, dezimal, kopfzeile, bom,
 //     anfuehrung:"immer"|"bei_bedarf",
-//     filter:{ system:"", rack:"", signal:"", belegung:"alle|mit_element|ohne_element" } }
+//     filter:{ system:"", rack:"", signal:"", belegung:"alle|mit_element|ohne_element" },
+//     schemata:{ "AI":{spalten:[{feld,titel,wert?}]}, "DI":{…} },   // SPS-EXPORT-04
+//     ausgabe:"einzeln"|"eine_datei" }
+// "spalten" ist das Standard-Schema; eine Signalart (DI/DO/AI/AO) ohne eigenes Schema
+// fällt darauf zurück. "einzeln" schreibt je verwendetem Schema eine CSV (_<Schema>).
 #include "Database.h"
 #include "Database_CsvHelfer.h"
 #include <QFile>
+#include <QFileInfo>
+#include <QPainter>
+#include <QPdfWriter>
+#include "PdfRenderer.h"
+#include <QMap>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -158,13 +167,26 @@ QString Database::spsExportStandardKonfig()
     k["bom"]          = true;
     k["anfuehrung"]   = QStringLiteral("immer");
     k["filter"]       = QJsonObject{{"system", ""}, {"rack", ""}, {"signal", ""}, {"belegung", "alle"}};
+    k["schemata"]     = QJsonObject();
+    k["ausgabe"]      = QStringLiteral("einzeln");
     return QString::fromUtf8(QJsonDocument(k).toJson(QJsonDocument::Compact));
 }
 
-// Gemeinsame Datenaufbereitung für CSV und PDF: Spaltentitel + Zeilen als reine
+QStringList Database::spsExportSchemaIrrelevanteFelder(const QString &signal)
+{
+    const QString s = signal.toUpper();
+    const QStringList alarme = {"alarm_ll", "alarm_lo", "alarm_hi", "alarm_hh"};
+    if (s == QLatin1String("DI") || s == QLatin1String("DO"))
+        return QStringList{"einheit", "bereich_min", "bereich_max", "protokoll", "hart_adresse"} + alarme;
+    if (s == QLatin1String("AI") || s == QLatin1String("AO"))
+        return alarme;
+    return {};
+}
+
+// Gemeinsame Datenaufbereitung für CSV und PDF: je Schema Spaltentitel + Zeilen als reine
 // Zellentexte (Dezimalzeichen bereits angewendet), Filter angewendet.
-bool Database::spsExportZeilen(int projektId, const QString &konfigJson, QStringList &titel,
-                               QList<QStringList> &zeilen, QString &fehler)
+bool Database::spsExportGruppen(int projektId, const QString &konfigJson,
+                                QList<SpsExportGruppe> &gruppen, QString &fehler)
 {
     QJsonParseError pe;
     const QJsonObject k = QJsonDocument::fromJson(konfigJson.toUtf8(), &pe).object();
@@ -174,20 +196,37 @@ bool Database::spsExportZeilen(int projektId, const QString &konfigJson, QString
     }
 
     struct Spalte { QString feld, titel, fest; };
-    QVector<Spalte> spalten;
-    for (const QJsonValue &v : k.value("spalten").toArray()) {
-        const QJsonObject o = v.toObject();
-        const QString feld = o.value("feld").toString();
-        const FeldDef *d = feldDef(feld);
-        if (!d) continue;
-        spalten.append({feld, o.contains("titel") ? o.value("titel").toString() : QString::fromUtf8(d->titel),
-                        o.value("wert").toString()});
-    }
-    if (spalten.isEmpty()) {
+    auto spaltenLesen = [](const QJsonArray &arr) {
+        QVector<Spalte> sp;
+        for (const QJsonValue &v : arr) {
+            const QJsonObject o = v.toObject();
+            const QString feld = o.value("feld").toString();
+            const FeldDef *d = feldDef(feld);
+            if (!d) continue;
+            sp.append({feld, o.contains("titel") ? o.value("titel").toString() : QString::fromUtf8(d->titel),
+                       o.value("wert").toString()});
+        }
+        return sp;
+    };
+
+    const QString standard = QStringLiteral("Standard");
+    QMap<QString, QVector<Spalte>> schemata;   // Schlüssel "Standard" + Signalarten mit eigenem Schema
+    schemata[standard] = spaltenLesen(k.value("spalten").toArray());
+    if (schemata[standard].isEmpty()) {
         fehler = QStringLiteral("Keine Spalte ausgewählt");
         return false;
     }
-    for (const Spalte &s : spalten) titel << s.titel;
+    const QJsonObject eigene = k.value("schemata").toObject();
+    for (auto it = eigene.begin(); it != eigene.end(); ++it) {
+        const QString key = it.key().toUpper();
+        if (key == standard.toUpper()) continue;
+        const QVector<Spalte> sp = spaltenLesen(it.value().toObject().value("spalten").toArray());
+        if (sp.isEmpty()) {
+            fehler = QStringLiteral("Schema %1: keine Spalte ausgewählt").arg(key);
+            return false;
+        }
+        schemata[key] = sp;
+    }
 
     const QString dezimal = k.value("dezimal").toString(QStringLiteral(","));
     const QJsonObject f = k.value("filter").toObject();
@@ -196,20 +235,44 @@ bool Database::spsExportZeilen(int projektId, const QString &konfigJson, QString
     const QString fSignal   = f.value("signal").toString().toUpper();
     const QString fBelegung = f.value("belegung").toString(QStringLiteral("alle"));
 
+    QMap<QString, QList<QStringList>> zeilenJeSchema;
     for (const QVariant &kv : spsKanalListe(projektId)) {
         const QVariantMap kanal = kv.toMap();
         const bool hatBg = !kanal["baugruppe_id"].isNull();
         if (!fSystem.isEmpty() && (!hatBg || kanal["system_typ"].toString() != fSystem)) continue;
         if (!fRack.isEmpty() && (!hatBg || kanal["rack_nr"].toString() != fRack)) continue;
-        if (!fSignal.isEmpty() && signalArt(kanal).toUpper() != fSignal) continue;
+        const QString signal = signalArt(kanal).toUpper();
+        if (!fSignal.isEmpty() && signal != fSignal) continue;
         const bool hatElement = !kanal["grafik_element_id"].isNull();
         if (fBelegung == QLatin1String("mit_element") && !hatElement) continue;
         if (fBelegung == QLatin1String("ohne_element") && hatElement) continue;
 
+        const QString schema = schemata.contains(signal) ? signal : standard;
         QStringList zeile;
-        for (const Spalte &s : spalten)
+        for (const Spalte &s : schemata[schema])
             zeile << feldWert(s.feld, kanal, dezimal, s.fest);
-        zeilen.append(zeile);
+        zeilenJeSchema[schema].append(zeile);
+    }
+
+    // feste Reihenfolge: Standard, DI, DO, AI, AO, danach übrige alphabetisch
+    QStringList reihenfolge = {standard, "DI", "DO", "AI", "AO"};
+    for (auto it = zeilenJeSchema.begin(); it != zeilenJeSchema.end(); ++it)
+        if (!reihenfolge.contains(it.key())) reihenfolge << it.key();
+    gruppen.clear();
+    for (const QString &schema : reihenfolge) {
+        if (!zeilenJeSchema.contains(schema)) continue;
+        SpsExportGruppe g;
+        g.schema = schema;
+        for (const Spalte &s : schemata[schema]) g.titel << s.titel;
+        g.zeilen = zeilenJeSchema[schema];
+        gruppen.append(g);
+    }
+    // Nichts exportierbar: leere Standard-Gruppe, damit Kopfzeile/Vorschau weiterhin 0 Zeilen zeigen
+    if (gruppen.isEmpty()) {
+        SpsExportGruppe g;
+        g.schema = standard;
+        for (const Spalte &s : schemata[standard]) g.titel << s.titel;
+        gruppen.append(g);
     }
     return true;
 }
@@ -220,11 +283,11 @@ QVariantMap Database::spsExportErzeugen(int projektId, const QString &konfigJson
     res["text"] = QString();
     res["zeilen"] = 0;
     res["fehler"] = QString();
+    res["gruppen"] = QVariantList();
 
-    QStringList titel;
-    QList<QStringList> daten;
+    QList<SpsExportGruppe> gruppen;
     QString fehler;
-    if (!spsExportZeilen(projektId, konfigJson, titel, daten, fehler)) {
+    if (!spsExportGruppen(projektId, konfigJson, gruppen, fehler)) {
         res["fehler"] = fehler;
         return res;
     }
@@ -234,6 +297,7 @@ QVariantMap Database::spsExportErzeugen(int projektId, const QString &konfigJson
     if (trenn == QLatin1String("\\t")) trenn = QStringLiteral("\t");
     if (trenn.isEmpty()) trenn = QStringLiteral(";");
     const bool immer = k.value("anfuehrung").toString(QStringLiteral("immer")) != QLatin1String("bei_bedarf");
+    const bool kopf  = k.value("kopfzeile").toBool(true);
 
     auto zeileZuCsv = [&](const QStringList &z) {
         QStringList out;
@@ -241,30 +305,65 @@ QVariantMap Database::spsExportErzeugen(int projektId, const QString &konfigJson
         return out.join(trenn);
     };
 
-    QStringList zeilen;
-    if (k.value("kopfzeile").toBool(true)) zeilen << zeileZuCsv(titel);
-    for (int i = 0; i < daten.size(); ++i) {
-        if (maxZeilen >= 0 && i >= maxZeilen) break;
-        zeilen << zeileZuCsv(daten[i]);
+    QStringList abschnitte;
+    QVariantList gruppenListe;
+    int gesamt = 0;
+    for (const SpsExportGruppe &g : gruppen) {
+        QStringList zeilen;
+        if (kopf) zeilen << zeileZuCsv(g.titel);
+        for (int i = 0; i < g.zeilen.size(); ++i) {
+            if (maxZeilen >= 0 && i >= maxZeilen) break;
+            zeilen << zeileZuCsv(g.zeilen[i]);
+        }
+        const QString text = zeilen.join(QLatin1Char('\n')) + QLatin1Char('\n');
+        abschnitte << text;
+        gesamt += g.zeilen.size();
+        QVariantMap gm;
+        gm["schema"] = g.schema;
+        gm["zeilen"] = g.zeilen.size();
+        gm["text"]   = text;
+        gruppenListe.append(gm);
     }
-    res["text"]   = zeilen.join(QLatin1Char('\n')) + QLatin1Char('\n');
-    res["zeilen"] = daten.size();
+    res["text"]    = abschnitte.join(QLatin1Char('\n'));   // Leerzeile zwischen den Abschnitten
+    res["zeilen"]  = gesamt;
+    res["gruppen"] = gruppenListe;
     return res;
 }
 
 bool Database::spsExportPdfSpeichern(int projektId, const QString &projektName,
                                      const QString &pfad, const QString &konfigJson)
 {
-    QStringList titel;
-    QList<QStringList> daten;
+    QList<SpsExportGruppe> gruppen;
     QString fehler;
-    if (!spsExportZeilen(projektId, konfigJson, titel, daten, fehler)) {
+    if (!spsExportGruppen(projektId, konfigJson, gruppen, fehler)) {
         qCWarning(lcDb) << "spsExportPdfSpeichern:" << fehler;
         return false;
     }
-    QVariantList zeilen;
-    for (const QStringList &z : daten) zeilen.append(QVariant(z));
-    return listePdfSpeichern(QStringLiteral("SPS/PLS – I/O-Liste"), projektName, titel, zeilen, pfad);
+    // Ein Schema: wie bisher (Listen-PDF-Aufbau). Mehrere: eine Tabelle je Schema in einem Dokument.
+    if (gruppen.size() == 1) {
+        QVariantList zeilen;
+        for (const QStringList &z : gruppen[0].zeilen) zeilen.append(QVariant(z));
+        return listePdfSpeichern(QStringLiteral("SPS/PLS – I/O-Liste"), projektName, gruppen[0].titel, zeilen, pfad);
+    }
+    QString lokal = CsvHelfer::lokalerPfad(pfad);
+    QPdfWriter writer(lokal);
+    writer.setCreator(QStringLiteral("Stroemling Design"));
+    writer.setTitle(QStringLiteral("SPS/PLS – I/O-Liste"));
+    writer.setPageLayout(pdfTabellenSeitenLayout());
+    QPainter painter(&writer);
+    if (!painter.isActive()) {
+        qCWarning(lcDb) << "spsExportPdfSpeichern: QPainter konnte nicht gestartet werden";
+        return false;
+    }
+    for (int i = 0; i < gruppen.size(); ++i) {
+        QVariantList zeilen;
+        for (const QStringList &z : gruppen[i].zeilen) zeilen.append(QVariant(z));
+        pdfTabelleRendern(painter, writer,
+                          QStringLiteral("SPS/PLS – I/O-Liste (%1)").arg(gruppen[i].schema),
+                          projektName, gruppen[i].titel, zeilen, i > 0);
+    }
+    painter.end();
+    return QFile::exists(lokal);
 }
 
 QVariantMap Database::spsExportVorschau(int projektId, const QString &konfigJson, int maxZeilen)
@@ -279,17 +378,37 @@ bool Database::spsExportCsvSpeichern(int projektId, const QString &pfad, const Q
         qCWarning(lcDb) << "spsExportCsvSpeichern:" << erg["fehler"].toString();
         return false;
     }
-    QFile file(CsvHelfer::lokalerPfad(pfad));
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qCWarning(lcDb) << "spsExportCsvSpeichern: kann nicht öffnen:" << file.fileName();
-        return false;
+    const QJsonObject k = QJsonDocument::fromJson(konfigJson.toUtf8()).object();
+    const bool bom = k.value("bom").toBool(true);
+    const QVariantList gruppen = erg["gruppen"].toList();
+    const bool einzeln = gruppen.size() > 1
+                         && k.value("ausgabe").toString(QStringLiteral("einzeln")) != QLatin1String("eine_datei");
+
+    auto schreiben = [&](const QString &zielPfad, const QString &text) {
+        QFile file(CsvHelfer::lokalerPfad(zielPfad));
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            qCWarning(lcDb) << "spsExportCsvSpeichern: kann nicht öffnen:" << file.fileName();
+            return false;
+        }
+        QTextStream out(&file);
+        out.setEncoding(QStringConverter::Utf8);
+        if (bom) out << "\xEF\xBB\xBF";
+        out << text;
+        file.close();
+        qCInfo(lcDb) << "SPS/PLS-Export gespeichert:" << file.fileName();
+        return true;
+    };
+
+    if (!einzeln) return schreiben(pfad, erg["text"].toString());
+
+    // Eine Datei je Schema: <Name>_<Schema>.<Endung>
+    const QFileInfo fi(CsvHelfer::lokalerPfad(pfad));
+    const QString endung = fi.suffix().isEmpty() ? QString() : QStringLiteral(".") + fi.suffix();
+    for (const QVariant &gv : gruppen) {
+        const QVariantMap g = gv.toMap();
+        const QString ziel = fi.absolutePath() + QLatin1Char('/') + fi.completeBaseName()
+                             + QLatin1Char('_') + g["schema"].toString() + endung;
+        if (!schreiben(ziel, g["text"].toString())) return false;
     }
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    if (QJsonDocument::fromJson(konfigJson.toUtf8()).object().value("bom").toBool(true))
-        out << "\xEF\xBB\xBF";
-    out << erg["text"].toString();
-    file.close();
-    qCInfo(lcDb) << "SPS/PLS-Export gespeichert:" << file.fileName() << "(" << erg["zeilen"].toInt() << "Zeilen)";
     return true;
 }

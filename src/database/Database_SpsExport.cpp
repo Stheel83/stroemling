@@ -86,10 +86,14 @@ const FeldDef kFelder[] = {
     {"gegenstelle_anschluss","Gegenstelle Anschluss","Verdrahtung",false},
     {"gegenstelle_bauteil","Gegenstelle Bauteil","Verdrahtung",false},
     {"gegenstelle_artikel","Gegenstelle Artikel-Nr.","Verdrahtung",false},
+    {"gegenstelle_freitext1","Gegenstelle Freitext 1","Verdrahtung",false},
+    {"gegenstelle_freitext2","Gegenstelle Freitext 2","Verdrahtung",false},
     {"klemme",           "Klemme",            "Verdrahtung",false},
     {"kette",            "Verdrahtungsweg",   "Verdrahtung",false},
     {"ziel_bmk",         "Ziel BMK",          "Verdrahtung",false},
     {"ziel_anschluss",   "Ziel Anschluss",    "Verdrahtung",false},
+    {"ziel_freitext1",   "Ziel Freitext 1",   "Verdrahtung",false},
+    {"ziel_freitext2",   "Ziel Freitext 2",   "Verdrahtung",false},
     {"kabel",            "Kabel",             "Verdrahtung",false},
     {"ader",             "Ader",              "Verdrahtung",false},
     {"anlage",           "Anlage",            "Schaltplan",false},
@@ -132,7 +136,8 @@ bool feldImportierbar(const QString &key)
         "adresse_iec", "richtung", "analog_digital", "rack_slot_kanal", "kanal_absolut",
         "baugruppen_bereich", "alarm_vorhanden", "spannweite",
         "gegenstelle_bmk", "gegenstelle_anschluss", "gegenstelle_bauteil", "gegenstelle_artikel",
-        "klemme", "kabel", "ader", "kette", "ziel_bmk", "ziel_anschluss"};
+        "klemme", "kabel", "ader", "kette", "ziel_bmk", "ziel_anschluss",
+        "gegenstelle_freitext1", "gegenstelle_freitext2", "ziel_freitext1", "ziel_freitext2"};
     return !nein.contains(key);
 }
 
@@ -245,7 +250,9 @@ QString feldWert(const QString &key, const QVariantMap &k, const QString &dezima
     }
     if (key == "gegenstelle_bmk" || key == "gegenstelle_anschluss" || key == "gegenstelle_bauteil"
         || key == "gegenstelle_artikel" || key == "klemme" || key == "kabel" || key == "ader"
-        || key == "kette" || key == "ziel_bmk" || key == "ziel_anschluss")
+        || key == "kette" || key == "ziel_bmk" || key == "ziel_anschluss"
+        || key == "gegenstelle_freitext1" || key == "gegenstelle_freitext2"
+        || key == "ziel_freitext1" || key == "ziel_freitext2")
         return k["_vw_" + key].toString();
     if (key == "anlage")           return k["anlage_kuerzel"].toString();
     if (key == "ort")              return k["ort_kuerzel"].toString();
@@ -368,7 +375,7 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
 
     struct NetPin {
         int elementId = 0, klemmeId = 0, bauteilId = 0, betriebsmittelId = 0;
-        QString bmk, pin, anschlussBez;
+        QString bmk, pin, anschlussBez, freitext1, freitext2;
     };
     QMap<int, QList<NetPin>> netMitglieder;     // verbindung_id → Pins (alle Seiten)
     QHash<int, QSet<int>> kanalNetze;           // Kanal-Element → Netze seines Signalpins
@@ -439,6 +446,8 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
                 np.bmk = ext.value("bmk").toString();
                 np.pin = anschluss.isEmpty() ? p.name : anschluss;
                 np.anschlussBez = anschluss;
+                np.freitext1 = ext.value("freitext1").toString();
+                np.freitext2 = ext.value("freitext2").toString();
                 np.klemmeId = ext.value("klemmeId").toInt();
                 np.bauteilId = ext.value("bauteil_id").toInt();
                 np.betriebsmittelId = symQ.value(10).toInt();
@@ -495,7 +504,7 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
     // Verdrahtungsweg: vom Signalnetz Schritt für Schritt über Klemmen/Kabel bis zum Gerät.
     // Jede Verzweigung (mehr als eine Fortsetzung, mehrere Adern in einem Netz, mehrere Netze auf der
     // anderen Klemmenseite) bricht den Weg ab – dann bleibt der Weg leer ("nur wenn eindeutig").
-    struct Weg { QStringList teile; QString zielBmk, zielAnschluss; bool eindeutig = false; };
+    struct Weg { QStringList teile; QString zielBmk, zielAnschluss, zielFreitext1, zielFreitext2; bool eindeutig = false; };
     auto wegGehen = [&](int startElement, int startNetz) {
         Weg w;
         QSet<int> besuchteNetze;
@@ -526,6 +535,8 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
             if (geraete.size() == 1) {
                 const QList<NetPin> pins = geraete.constBegin().value();
                 w.zielBmk = pins.first().bmk;
+                w.zielFreitext1 = pins.first().freitext1;
+                w.zielFreitext2 = pins.first().freitext2;
                 if (pins.size() == 1) w.zielAnschluss = pins.first().pin;
                 w.teile << (pins.first().bmk + (pins.size() == 1 ? QLatin1Char(':') + pins.first().pin : QString()));
                 w.eindeutig = true;
@@ -562,6 +573,8 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
             const QList<NetPin> pins = geraete.constBegin().value();
             const NetPin &np = pins.first();
             r["_vw_gegenstelle_bmk"] = np.bmk;
+            r["_vw_gegenstelle_freitext1"] = np.freitext1;
+            r["_vw_gegenstelle_freitext2"] = np.freitext2;
             if (pins.size() == 1) r["_vw_gegenstelle_anschluss"] = np.pin;
             int bauteilId = np.bauteilId;
             if (bauteilId <= 0 && np.betriebsmittelId > 0) {
@@ -591,6 +604,8 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
             r["_vw_kette"] = weg.teile.join(QStringLiteral(" → "));
             if (!weg.zielBmk.isEmpty()) r["_vw_ziel_bmk"] = weg.zielBmk;
             if (!weg.zielAnschluss.isEmpty()) r["_vw_ziel_anschluss"] = weg.zielAnschluss;
+            r["_vw_ziel_freitext1"] = weg.zielFreitext1;
+            r["_vw_ziel_freitext2"] = weg.zielFreitext2;
         }
         if (!r.isEmpty()) ergebnis.insert(elementZuKanal.value(elId), r);
     }
@@ -665,7 +680,9 @@ bool Database::spsExportGruppen(int projektId, const QString &konfigJson,
     // Verdrahtung nur berechnen, wenn ein Schema ein Feld daraus (Spalte, Sortierung, Platzhalter) braucht
     static const QStringList vwFelder = {"gegenstelle_bmk", "gegenstelle_anschluss", "gegenstelle_bauteil",
                                           "gegenstelle_artikel", "klemme", "kabel", "ader",
-                                          "kette", "ziel_bmk", "ziel_anschluss"};
+                                          "kette", "ziel_bmk", "ziel_anschluss",
+                                          "gegenstelle_freitext1", "gegenstelle_freitext2",
+                                          "ziel_freitext1", "ziel_freitext2"};
     bool braucheVerdrahtung = false;
     for (const Schema &sc : schemata) {
         for (const Spalte &s : sc.spalten) {

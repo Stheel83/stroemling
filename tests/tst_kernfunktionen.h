@@ -641,7 +641,7 @@ private slots:
             if (e.toMap()["symbolId"].toString() == "ventil") gId = e.toMap()["id"].toInt();
         }
         QVERIFY(kId > 0 && gId > 0);
-        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-Y1\"}' WHERE id=%1").arg(gId)) >= 0);
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-Y1\",\"freitext1\":\"Heizung\"}' WHERE id=%1").arg(gId)) >= 0);
         QVERIFY(ins(QString("UPDATE sps_kanal SET grafik_element_id=%1 WHERE id=%2").arg(kId).arg(k1)) >= 0);
         const int net = ins("INSERT INTO verbindung (projekt_id, bezeichnung) VALUES (1,'N1')");
         const QString pts = QString("[{\"x\":2,\"y\":0},{\"x\":%1,\"y\":%2}]").arg(px).arg(py);
@@ -657,6 +657,10 @@ private slots:
         z = m_db->spsExportVorschau(1, kVw, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
         QCOMPARE(z.filter("B10;-Y1;").size(), 1);
         QVERIFY2(z.filter("B10;-Y1;").first().endsWith(";W1;3 (BN)"), qPrintable(z.join('|')));
+
+        // Freitext der Gegenstelle (direkter Nachbar)
+        const QString kFt = R"({"spalten":[{"feld":"gegenstelle_freitext1"}],"kopfzeile":false,"filter":{"rack":"98"}})";
+        QVERIFY(m_db->spsExportVorschau(1, kFt, -1)["text"].toString().contains("Heizung"));
 
         // Verzweigung: zweite Ader im selben Netz → Kabel/Ader bleiben leer, Gegenstelle bleibt
         QVERIFY(ins(QString("INSERT INTO kabel_ader (kabel_id, ader_nr, verbindung_id) VALUES (%1,4,%2)")
@@ -693,7 +697,7 @@ private slots:
                         .arg(klemme).arg(ids["klemme_anschluss"][0])) >= 0);
         QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"klemmeId\":%1,\"anschlussBezeichnung\":\"1.2\"}' WHERE id=%2")
                         .arg(klemme).arg(ids["klemme_anschluss"][1])) >= 0);
-        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-Y1\"}' WHERE id=%1").arg(ids["ventil"][0])) >= 0);
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-Y1\",\"freitext1\":\"Ventil Z\",\"freitext2\":\"24V\"}' WHERE id=%1").arg(ids["ventil"][0])) >= 0);
         QVERIFY(ins(QString("UPDATE sps_kanal SET grafik_element_id=%1 WHERE id=%2").arg(ids["sps_di_einpolig"][0]).arg(k1)) >= 0);
 
         const QPointF pK  = pinPos("sps_di_einpolig", 0, 0, 8);
@@ -718,6 +722,11 @@ private slots:
         QCOMPARE(z.size(), 1);
         // Gegenstelle direkt am Kanal: nur Klemme, kein Gerät → leer; Weg führt bis zum Ventil
         QCOMPARE(z[0], QString("B1;X1:3 → W1/3 → -Y1:A1;-Y1;"));
+
+        // Freitexte des Zielgeräts
+        const QString kfgFt = R"({"spalten":[{"feld":"ziel_freitext1"},{"feld":"ziel_freitext2"}],
+            "kopfzeile":false,"trennzeichen":";","filter":{"rack":"99"}})";
+        QCOMPARE(m_db->spsExportVorschau(1, kfgFt, -1)["text"].toString().trimmed(), QString("\"Ventil Z\";\"24V\""));
 
         // Verzweigung: zweite Ader im Netz hinter der Klemme → Weg bleibt leer
         QVERIFY(ins(QString("INSERT INTO kabel_ader (kabel_id, ader_nr, verbindung_id) VALUES (%1,4,%2)").arg(kabel).arg(n2)) > 0);

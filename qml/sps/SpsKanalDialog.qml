@@ -13,6 +13,16 @@ Dialog {
 
     readonly property bool istPls: root.systemTyp === "PLS"
 
+    // Typ der gewählten Baugruppe; Einheit/Bereich/Alarme/Protokoll/HART gibt es bei PLS immer,
+    // bei SPS nur an analogen Baugruppen (AI/AO/AIO) – vorher waren sie bei SPS gar nicht editierbar.
+    readonly property string _bgTyp: {
+        var id = kanalBaugruppeCombo.ausgewaehlteId
+        for (var i = 0; i < root.baugruppen.length; i++)
+            if (root.baugruppen[i].id === id) return String(root.baugruppen[i].typ).toUpperCase()
+        return ""
+    }
+    readonly property bool zeigeAnalogFelder: istPls || _bgTyp === "AI" || _bgTyp === "AO" || _bgTyp === "AIO"
+
     property bool _istNeu: true
     property int  _editId: -1
 
@@ -70,10 +80,15 @@ Dialog {
                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             }
 
-            // PLS-Felder
-            Label { text: qsTr("Kanal-Nr. (innerhalb Baugruppe, 0-basiert)"); visible: root.istPls; color: root.theme.textPrimary }
+            // Kanal-Nr.: bei PLS Pflicht (Teil der Adresse), bei SPS optional (-1 = keine) – wird für
+            // Rack.Slot.Kanal, absolute Kanalnummer und die Belegungsanzeige verwendet.
+            Label {
+                text: root.istPls ? qsTr("Kanal-Nr. (innerhalb Baugruppe, 0-basiert)")
+                                  : qsTr("Kanal-Nr. (innerhalb Baugruppe, 0-basiert, -1 = keine)")
+                color: root.theme.textPrimary
+            }
             SpinBox {
-                id: kanalNrSpin; visible: root.istPls; from: 0; to: 127; Layout.fillWidth: true
+                id: kanalNrSpin; from: root.istPls ? 0 : -1; to: 127; Layout.fillWidth: true
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                 contentItem: Text { text: parent.value; color: root.theme.textPrimary; font.pixelSize: 12;
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -109,17 +124,17 @@ Dialog {
             }
 
             // PLS-Metadaten
-            Label { text: qsTr("Einheit"); visible: root.istPls; color: root.theme.textPrimary }
+            Label { text: qsTr("Einheit"); visible: root.zeigeAnalogFelder; color: root.theme.textPrimary }
             TextField {
-                id: plsEinheitField; visible: root.istPls
+                id: plsEinheitField; visible: root.zeigeAnalogFelder
                 placeholderText: "°C / bar / m³/h / %"
                 Layout.fillWidth: true
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
                 color: root.theme.textPrimary
             }
-            Label { text: qsTr("Bereich Min / Max"); visible: root.istPls; color: root.theme.textPrimary }
+            Label { text: qsTr("Bereich Min / Max"); visible: root.zeigeAnalogFelder; color: root.theme.textPrimary }
             RowLayout {
-                visible: root.istPls
+                visible: root.zeigeAnalogFelder
                 Layout.fillWidth: true
                 TextField {
                     id: plsMinField; placeholderText: "0.0"; Layout.fillWidth: true
@@ -133,9 +148,9 @@ Dialog {
                     color: root.theme.textPrimary
                 }
             }
-            Label { text: qsTr("Alarme LL / LO / HI / HH"); visible: root.istPls; color: root.theme.textPrimary }
+            Label { text: qsTr("Alarme LL / LO / HI / HH"); visible: root.zeigeAnalogFelder; color: root.theme.textPrimary }
             GridLayout {
-                visible: root.istPls
+                visible: root.zeigeAnalogFelder
                 Layout.fillWidth: true
                 columns: 4; columnSpacing: 6
                 TextField { id: plsAlllField; placeholderText: "LL"; Layout.fillWidth: true
@@ -151,15 +166,27 @@ Dialog {
                     background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
                     color: root.theme.textPrimary }
             }
-            Label { text: qsTr("Protokoll"); visible: root.istPls; color: root.theme.textPrimary }
+            Label { text: qsTr("Protokoll"); visible: root.zeigeAnalogFelder; color: root.theme.textPrimary }
             ComboBox {
                 id: plsProtokollCombo
-                visible: root.istPls
-                model: ["analog","HART","PROFIBUS_PA","FOUNDATION_FF"]
+                visible: root.zeigeAnalogFelder
+                // SPS: erster Eintrag leer = nicht gesetzt (vorher gab es hier keine Eingabe)
+                model: root.istPls ? ["analog","HART","PROFIBUS_PA","FOUNDATION_FF"]
+                                   : ["","analog","HART","PROFIBUS_PA","FOUNDATION_FF"]
                 Layout.fillWidth: true
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                 contentItem: Text { text: parent.displayText; color: root.theme.textPrimary; font.pixelSize: 12;
                                     leftPadding: 8; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+            }
+            Label { text: qsTr("HART-Geräteadresse (1–15)"); visible: root.zeigeAnalogFelder; color: root.theme.textPrimary }
+            TextField {
+                id: plsHartField; visible: root.zeigeAnalogFelder
+                placeholderText: qsTr("leer = kein HART")
+                inputMethodHints: Qt.ImhDigitsOnly
+                validator: IntValidator { bottom: 0; top: 15 }
+                Layout.fillWidth: true
+                background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 3 }
+                color: root.theme.textPrimary
             }
         }
     }
@@ -171,11 +198,13 @@ Dialog {
         kanalAdressTypCombo.currentIndex = 0
         kanalByteNrSpin.value = 0; kanalBitNrSpin.value = 0
         kanalDatentypCombo.currentIndex = 0
-        kanalNrSpin.value = (vorgabeKanalNr !== undefined && vorgabeKanalNr >= 0) ? vorgabeKanalNr : 0
+        kanalNrSpin.value = (vorgabeKanalNr !== undefined && vorgabeKanalNr >= 0) ? vorgabeKanalNr
+                                                                                    : (root.istPls ? 0 : -1)
         kanalVarField.text = ""; kanalKomField.text = ""
         plsEinheitField.text = ""; plsMinField.text = ""; plsMaxField.text = ""
         plsAlllField.text = ""; plsAlloField.text = ""
         plsAlhiField.text = ""; plsAlhhField.text = ""
+        plsHartField.text = ""
         plsProtokollCombo.currentIndex = 0
         if (root.aktBaugruppeId > 0) {
             for (var i = 0; i < root.baugruppen.length; i++)
@@ -192,7 +221,8 @@ Dialog {
         kanalByteNrSpin.value = k.byte_nr || 0
         kanalBitNrSpin.value  = k.bit_nr  || 0
         kanalDatentypCombo.currentIndex = Math.max(0, kanalDatentypCombo.model.indexOf(k.datentyp))
-        kanalNrSpin.value     = k.kanal_nr != null ? k.kanal_nr : 0
+        kanalNrSpin.value     = k.kanal_nr != null ? k.kanal_nr : (root.istPls ? 0 : -1)
+        plsHartField.text     = k.pls_hart_adresse != null ? String(k.pls_hart_adresse) : ""
         kanalVarField.text    = k.variablenname || ""
         kanalKomField.text    = k.kommentar    || ""
         plsEinheitField.text  = k.pls_einheit  || ""
@@ -213,7 +243,7 @@ Dialog {
         var bgId   = kanalBaugruppeCombo.ausgewaehlteId
         var byteNr = root.istPls ? 0 : kanalByteNrSpin.value
         var bitNr  = root.istPls ? 0 : kanalBitNrSpin.value
-        var kNr    = root.istPls ? kanalNrSpin.value : -1
+        var kNr    = kanalNrSpin.value
         var typ    = root.istPls ? "E" : kanalAdressTypCombo.currentText
         var dtype  = root.istPls ? "REAL" : kanalDatentypCombo.currentText
         if (root.istPls) {
@@ -248,10 +278,11 @@ Dialog {
             return isNaN(v) ? null : v
         }
         var plsFelder = {}
-        if (root.istPls) {
+        if (root.zeigeAnalogFelder) {
             plsFelder = {
                 "pls_einheit":     plsEinheitField.text.trim() || null,
-                "pls_protokoll":   plsProtokollCombo.currentText,
+                "pls_protokoll":   plsProtokollCombo.currentText || null,
+                "pls_hart_adresse": plsHartField.text.trim() === "" ? null : parseInt(plsHartField.text),
                 "pls_bereich_min": zahlOderNull(plsMinField),
                 "pls_bereich_max": zahlOderNull(plsMaxField),
                 "pls_alarm_ll":    zahlOderNull(plsAlllField),
@@ -269,7 +300,7 @@ Dialog {
             if (newId < 0) { root.fehler(qsTr("Kanal konnte nicht angelegt werden (Adresse bereits vergeben?)")); return }
             // Einheit/Bereich/Alarme gehören nicht zur Anlege-Signatur - sonst gingen
             // sie beim Neuanlegen eines PLS-Kanals stillschweigend verloren.
-            if (root.istPls && !db.spsKanalAktualisieren(newId, plsFelder))
+            if (root.zeigeAnalogFelder && !db.spsKanalAktualisieren(newId, plsFelder))
                 root.fehler(qsTr("Kanal angelegt, PLS-Felder konnten aber nicht gespeichert werden"))
             root.gespeichert(newId)
         } else {
@@ -281,10 +312,8 @@ Dialog {
                 "variablenname": kanalVarField.text.trim(),
                 "kommentar":     kanalKomField.text.trim()
             }
-            if (root.istPls) {
-                felder["kanal_nr"] = kNr
-                for (var key in plsFelder) felder[key] = plsFelder[key]
-            }
+            if (root.istPls || kNr >= 0) felder["kanal_nr"] = kNr
+            for (var key in plsFelder) felder[key] = plsFelder[key]
             if (!db.spsKanalAktualisieren(_editId, felder)) {
                 root.fehler(qsTr("Kanal konnte nicht gespeichert werden (Adresse bereits belegt?)"))
                 return

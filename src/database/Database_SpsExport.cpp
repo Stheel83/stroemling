@@ -87,6 +87,9 @@ const FeldDef kFelder[] = {
     {"gegenstelle_bauteil","Gegenstelle Bauteil","Verdrahtung",false},
     {"gegenstelle_artikel","Gegenstelle Artikel-Nr.","Verdrahtung",false},
     {"klemme",           "Klemme",            "Verdrahtung",false},
+    {"kette",            "Verdrahtungsweg",   "Verdrahtung",false},
+    {"ziel_bmk",         "Ziel BMK",          "Verdrahtung",false},
+    {"ziel_anschluss",   "Ziel Anschluss",    "Verdrahtung",false},
     {"kabel",            "Kabel",             "Verdrahtung",false},
     {"ader",             "Ader",              "Verdrahtung",false},
     {"anlage",           "Anlage",            "Schaltplan",false},
@@ -129,7 +132,7 @@ bool feldImportierbar(const QString &key)
         "adresse_iec", "richtung", "analog_digital", "rack_slot_kanal", "kanal_absolut",
         "baugruppen_bereich", "alarm_vorhanden", "spannweite",
         "gegenstelle_bmk", "gegenstelle_anschluss", "gegenstelle_bauteil", "gegenstelle_artikel",
-        "klemme", "kabel", "ader"};
+        "klemme", "kabel", "ader", "kette", "ziel_bmk", "ziel_anschluss"};
     return !nein.contains(key);
 }
 
@@ -241,7 +244,8 @@ QString feldWert(const QString &key, const QVariantMap &k, const QString &dezima
         return zahl(k["pls_bereich_max"].toDouble() - k["pls_bereich_min"].toDouble(), dezimal);
     }
     if (key == "gegenstelle_bmk" || key == "gegenstelle_anschluss" || key == "gegenstelle_bauteil"
-        || key == "gegenstelle_artikel" || key == "klemme" || key == "kabel" || key == "ader")
+        || key == "gegenstelle_artikel" || key == "klemme" || key == "kabel" || key == "ader"
+        || key == "kette" || key == "ziel_bmk" || key == "ziel_anschluss")
         return k["_vw_" + key].toString();
     if (key == "anlage")           return k["anlage_kuerzel"].toString();
     if (key == "ort")              return k["ort_kuerzel"].toString();
@@ -364,7 +368,7 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
 
     struct NetPin {
         int elementId = 0, klemmeId = 0, bauteilId = 0, betriebsmittelId = 0;
-        QString bmk, pin;
+        QString bmk, pin, anschlussBez;
     };
     QMap<int, QList<NetPin>> netMitglieder;     // verbindung_id → Pins (alle Seiten)
     QHash<int, QSet<int>> kanalNetze;           // Kanal-Element → Netze seines Signalpins
@@ -434,6 +438,7 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
                 np.elementId = elId;
                 np.bmk = ext.value("bmk").toString();
                 np.pin = anschluss.isEmpty() ? p.name : anschluss;
+                np.anschlussBez = anschluss;
                 np.klemmeId = ext.value("klemmeId").toInt();
                 np.bauteilId = ext.value("bauteil_id").toInt();
                 np.betriebsmittelId = symQ.value(10).toInt();
@@ -471,9 +476,74 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
             const QString f1 = q.value(3).toString(), f2 = q.value(4).toString();
             if (!f1.isEmpty()) nr += QStringLiteral(" (") + f1 + (f2.isEmpty() ? QString() : QLatin1Char('/') + f2) + QLatin1Char(')');
             a["ader"] = nr;
+            a["adernr"] = QString::number(q.value(2).toInt());
             aderJeNetz.insert(q.value(0).toInt(), a);
         }
     }
+
+    // Klemmenanschlüsse derselben Klemme und Ebene sind intern verbunden (KLEMME-NET-01):
+    // Gruppe "klemmeId|ebene" → Element → Netze, an denen dieses Anschluss-Element liegt
+    auto ebeneVon = [](const QString &bez) {
+        return (bez == QLatin1String("PE") || !bez.contains(QLatin1Char('.'))) ? bez : bez.section(QLatin1Char('.'), 0, 0);
+    };
+    QHash<QString, QHash<int, QSet<int>>> gruppenNetze;
+    for (auto ni = netMitglieder.constBegin(); ni != netMitglieder.constEnd(); ++ni)
+        for (const NetPin &np : ni.value())
+            if (np.klemmeId > 0)
+                gruppenNetze[QString::number(np.klemmeId) + QLatin1Char('|') + ebeneVon(np.anschlussBez)][np.elementId].insert(ni.key());
+
+    // Verdrahtungsweg: vom Signalnetz Schritt für Schritt über Klemmen/Kabel bis zum Gerät.
+    // Jede Verzweigung (mehr als eine Fortsetzung, mehrere Adern in einem Netz, mehrere Netze auf der
+    // anderen Klemmenseite) bricht den Weg ab – dann bleibt der Weg leer ("nur wenn eindeutig").
+    struct Weg { QStringList teile; QString zielBmk, zielAnschluss; bool eindeutig = false; };
+    auto wegGehen = [&](int startElement, int startNetz) {
+        Weg w;
+        QSet<int> besuchteNetze;
+        QSet<QString> besuchteGruppen;
+        int netz = startNetz;
+        for (int schritt = 0; schritt < 64; ++schritt) {
+            besuchteNetze.insert(netz);
+            const QList<QVariantMap> adern = aderJeNetz.values(netz);
+            if (adern.size() > 1) return Weg();
+            if (adern.size() == 1)
+                w.teile << adern.first()["kabel"].toString() + QLatin1Char('/') + adern.first()["adernr"].toString();
+
+            QHash<int, QList<NetPin>> geraete;
+            QSet<QString> gruppen;
+            QHash<QString, int> gruppeKlemme;
+            for (const NetPin &np : netMitglieder.value(netz)) {
+                if (np.elementId == startElement) continue;
+                if (np.klemmeId > 0) {
+                    const QString key = QString::number(np.klemmeId) + QLatin1Char('|') + ebeneVon(np.anschlussBez);
+                    if (!besuchteGruppen.contains(key)) { gruppen.insert(key); gruppeKlemme[key] = np.klemmeId; }
+                } else {
+                    geraete[np.elementId].append(np);
+                }
+            }
+            const int optionen = geraete.size() + gruppen.size();
+            if (optionen == 0) { w.eindeutig = true; return w; }          // Weg endet offen
+            if (optionen > 1) return Weg();                               // Verzweigung
+            if (geraete.size() == 1) {
+                const QList<NetPin> pins = geraete.constBegin().value();
+                w.zielBmk = pins.first().bmk;
+                if (pins.size() == 1) w.zielAnschluss = pins.first().pin;
+                w.teile << (pins.first().bmk + (pins.size() == 1 ? QLatin1Char(':') + pins.first().pin : QString()));
+                w.eindeutig = true;
+                return w;
+            }
+            const QString key = *gruppen.begin();
+            besuchteGruppen.insert(key);
+            w.teile << klemmenLabel.value(gruppeKlemme[key]);
+            QSet<int> weiter;
+            const QHash<int, QSet<int>> elemente = gruppenNetze.value(key);
+            for (auto ei = elemente.constBegin(); ei != elemente.constEnd(); ++ei)
+                for (int n : ei.value()) if (!besuchteNetze.contains(n)) weiter.insert(n);
+            if (weiter.isEmpty()) { w.eindeutig = true; return w; }       // Weg endet an der Klemme
+            if (weiter.size() > 1) return Weg();                          // andere Seite verzweigt
+            netz = *weiter.begin();
+        }
+        return Weg();
+    };
 
     for (auto it = kanalNetze.constBegin(); it != kanalNetze.constEnd(); ++it) {
         if (it.value().size() != 1) continue;               // Signalpin an keinem/mehreren Netzen
@@ -515,6 +585,12 @@ QHash<int, QVariantMap> Database::spsVerdrahtungJeKanal(int projektId, const QVa
         if (adern.size() == 1) {
             r["_vw_kabel"] = adern.first()["kabel"];
             r["_vw_ader"]  = adern.first()["ader"];
+        }
+        const Weg weg = wegGehen(elId, netz);
+        if (weg.eindeutig && !weg.teile.isEmpty()) {
+            r["_vw_kette"] = weg.teile.join(QStringLiteral(" → "));
+            if (!weg.zielBmk.isEmpty()) r["_vw_ziel_bmk"] = weg.zielBmk;
+            if (!weg.zielAnschluss.isEmpty()) r["_vw_ziel_anschluss"] = weg.zielAnschluss;
         }
         if (!r.isEmpty()) ergebnis.insert(elementZuKanal.value(elId), r);
     }
@@ -588,7 +664,8 @@ bool Database::spsExportGruppen(int projektId, const QString &konfigJson,
 
     // Verdrahtung nur berechnen, wenn ein Schema ein Feld daraus (Spalte, Sortierung, Platzhalter) braucht
     static const QStringList vwFelder = {"gegenstelle_bmk", "gegenstelle_anschluss", "gegenstelle_bauteil",
-                                          "gegenstelle_artikel", "klemme", "kabel", "ader"};
+                                          "gegenstelle_artikel", "klemme", "kabel", "ader",
+                                          "kette", "ziel_bmk", "ziel_anschluss"};
     bool braucheVerdrahtung = false;
     for (const Schema &sc : schemata) {
         for (const Spalte &s : sc.spalten) {

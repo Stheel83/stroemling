@@ -665,6 +665,66 @@ private slots:
         QVERIFY2(z.filter("B10;-Y1;").first().endsWith(";;"), qPrintable(z.join('|')));
     }
 
+    // SPS-EXPORT-07: Verdrahtungsweg über Klemmen und Kabel hinweg
+    void sps_04e_exportVerdrahtungsweg()
+    {
+        const int r = m_db->spsRackAnlegen(1, 99, "SPS", "Schrank", "ACME");
+        const int bg = m_db->spsBaugruppeAnlegen(r, 1, "DI", "DI 8", 8, 0);
+        const int k1 = m_db->spsKanalAnlegen(1, bg, 0, "E", 0, 0, "BOOL", "B1", "");
+        QVERIFY(r > 0 && bg > 0 && k1 > 0);
+
+        auto pinPos = [&](const QString &sym, double x, double y, double s) {
+            const double px = einWert(QString("SELECT x FROM symbol_pin WHERE symbol_id='%1' ORDER BY id LIMIT 1").arg(sym)).toDouble();
+            const double py = einWert(QString("SELECT y FROM symbol_pin WHERE symbol_id='%1' ORDER BY id LIMIT 1").arg(sym)).toDouble();
+            return QPointF(x + s / 2 + (px - 0.5) * s, y + s / 2 + (py - 0.5) * s);
+        };
+        const int sid = neueSeite("1");
+        QVERIFY(m_db->grafikSpeichern(sid, {symbol("sps_di_einpolig", 0, 0), symbol("klemme_anschluss", 30, 0),
+                                            symbol("klemme_anschluss", 30, 30), symbol("ventil", 60, 60)}));
+        QMap<QString, QList<int>> ids;
+        for (const QVariant &e : m_db->grafikLaden(sid))
+            ids[e.toMap()["symbolId"].toString()].append(e.toMap()["id"].toInt());
+        QVERIFY(ids["klemme_anschluss"].size() == 2 && ids["ventil"].size() == 1 && ids["sps_di_einpolig"].size() == 1);
+
+        const int leiste = ins("INSERT INTO klemmenleiste (projekt_id, bezeichnung) VALUES (1,'X1')");
+        const int klemme = ins(QString("INSERT INTO klemme (klemmenleiste_id, nummer) VALUES (%1,'3')").arg(leiste));
+        QVERIFY(leiste > 0 && klemme > 0);
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"klemmeId\":%1,\"anschlussBezeichnung\":\"1.1\"}' WHERE id=%2")
+                        .arg(klemme).arg(ids["klemme_anschluss"][0])) >= 0);
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"klemmeId\":%1,\"anschlussBezeichnung\":\"1.2\"}' WHERE id=%2")
+                        .arg(klemme).arg(ids["klemme_anschluss"][1])) >= 0);
+        QVERIFY(ins(QString("UPDATE grafik_element SET extra_daten='{\"bmk\":\"-Y1\"}' WHERE id=%1").arg(ids["ventil"][0])) >= 0);
+        QVERIFY(ins(QString("UPDATE sps_kanal SET grafik_element_id=%1 WHERE id=%2").arg(ids["sps_di_einpolig"][0]).arg(k1)) >= 0);
+
+        const QPointF pK  = pinPos("sps_di_einpolig", 0, 0, 8);
+        const QPointF pA1 = pinPos("klemme_anschluss", 30, 0, 8);
+        const QPointF pA2 = pinPos("klemme_anschluss", 30, 30, 8);
+        const QPointF pV  = pinPos("ventil", 60, 60, 8);
+        auto netz = [&](const QPointF &a, const QPointF &b) {
+            const int n = ins("INSERT INTO verbindung (projekt_id) VALUES (1)");
+            const QString pts = QString("[{\"x\":%1,\"y\":%2},{\"x\":%3,\"y\":%4}]").arg(a.x()).arg(a.y()).arg(b.x()).arg(b.y());
+            ins(QString("INSERT INTO verbindung_segment (verbindung_id, seite_id, punkte) VALUES (%1,%2,'%3')").arg(n).arg(sid).arg(pts));
+            return n;
+        };
+        netz(pK, pA1);
+        const int n2 = netz(pA2, pV);
+        const int kabel = ins("INSERT INTO kabel (projekt_id, bezeichnung) VALUES (1,'W1')");
+        QVERIFY(ins(QString("INSERT INTO kabel_ader (kabel_id, ader_nr, verbindung_id) VALUES (%1,3,%2)").arg(kabel).arg(n2)) > 0);
+
+        const QString kfg = R"({"spalten":[{"feld":"variablenname"},{"feld":"kette"},{"feld":"ziel_bmk"},
+            {"feld":"gegenstelle_bmk"}],"kopfzeile":false,"trennzeichen":";","anfuehrung":"bei_bedarf",
+            "filter":{"rack":"99"}})";
+        QStringList z = m_db->spsExportVorschau(1, kfg, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QCOMPARE(z.size(), 1);
+        // Gegenstelle direkt am Kanal: nur Klemme, kein Gerät → leer; Weg führt bis zum Ventil
+        QCOMPARE(z[0], QString("B1;X1:3 → W1/3 → -Y1:A1;-Y1;"));
+
+        // Verzweigung: zweite Ader im Netz hinter der Klemme → Weg bleibt leer
+        QVERIFY(ins(QString("INSERT INTO kabel_ader (kabel_id, ader_nr, verbindung_id) VALUES (%1,4,%2)").arg(kabel).arg(n2)) > 0);
+        z = m_db->spsExportVorschau(1, kfg, -1)["text"].toString().split('\n', Qt::SkipEmptyParts);
+        QVERIFY2(z.size() == 1 && z[0] == "B1;;;", qPrintable(z.join('|')));
+    }
+
     // ── SPS-IMPORT-01 ────────────────────────────────────────────
     QString csvSchreiben(const QString &name, const QString &inhalt)
     {

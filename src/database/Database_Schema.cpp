@@ -3034,6 +3034,9 @@ static QList<SchemaMigration> alleMigrationen()
             R"(INSERT INTO normblatt_feld (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm, label, inhalt, quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge) SELECT (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='infostreifen' LIMIT 1), 'fest', 215.3, 1.5, 24, 5, '', '{heute}', '', 2.8, 0, 0, 7 WHERE (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='infostreifen' LIMIT 1) IS NOT NULL)",
             R"(INSERT INTO normblatt_feld (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm, label, inhalt, quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge) SELECT (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='infostreifen' LIMIT 1), 'projekt', 240, 1.5, 55, 5, '', '', 'bearbeiter', 2.8, 0, 0, 8 WHERE (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='infostreifen' LIMIT 1) IS NOT NULL)",
         }},
+        { 169, "INFOSTREIFEN-03: seite.infostreifen ('auto'|'a4'|'a3'|'a2'|'a1'|'a0'|'canvas'|'aus', Default 'auto') - Breite/Anzeige des Infostreifens je Seite; auto folgt dem Seitenformat.", {
+            R"(ALTER TABLE seite ADD COLUMN infostreifen TEXT NOT NULL DEFAULT 'auto')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

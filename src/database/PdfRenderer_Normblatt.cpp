@@ -344,10 +344,13 @@ void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
 
     const double refB = qMax(1.0, st.value("breiteMm", 297.0).toDouble());
     const double hStr = st.value("hoeheMm", 8.0).toDouble();
-    const double faktor = bMm / refB;
+    // Breite je Modus (INFOSTREIFEN-03): 0 = volle Blattbreite, sonst Formatbreite, nie breiter als das Blatt
+    const double modusB = nb.value("infostreifenBreiteMm").toDouble();
+    const double wMm    = modusB > 0 ? qMin(modusB, bMm) : bMm;
+    const double faktor = wMm / refB;
     const double y0 = hMm - hStr;
 
-    p.fillRect(QRectF(0, y0 * pxPerMm, bMm * pxPerMm, hStr * pxPerMm), Qt::white);
+    p.fillRect(QRectF(0, y0 * pxPerMm, wMm * pxPerMm, hStr * pxPerMm), Qt::white);
 
     QVariantList skaliert;
     for (const QVariant &fv : felder) {

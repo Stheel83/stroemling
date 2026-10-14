@@ -1468,6 +1468,22 @@ private slots:
         QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
         QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
 
+        // INFOSTREIFEN-03: Modus je Seite und Breite
+        QCOMPARE(nd.value("infostreifenModus").toString(), QStringLiteral("auto"));
+        QVERIFY(nd.value("infostreifenBreiteMm").toDouble() >= 297.0);          // auto: Seitenformat, min. A4
+        QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "quatsch"));
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3"));
+        QCOMPARE(m_db->normblattDatenLaden(sid).value("infostreifenBreiteMm").toDouble(), 420.0);
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "canvas"));
+        QCOMPARE(m_db->normblattDatenLaden(sid).value("infostreifenBreiteMm").toDouble(), 0.0);
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "aus"));
+        QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
+        // PDF: "aus" unterdrueckt den Streifen trotz Export-Option
+        const QString fAus = dir + "/stroemling_is3_aus.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, fAus, R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})"));
+        QVERIFY(!pdfText(fAus).contains("KernTest"));
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "auto"));
+
         // PDF mit Streifen: Projektname aus dem Standard-Streifen steht auf der Seite
         const QString f1 = dir + "/stroemling_is1_a.pdf";
         const QString opt = R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})";

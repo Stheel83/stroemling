@@ -100,7 +100,7 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         const bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
         if (normblattGezeichnet)
             pdfNormblattRendern(painter, nb, pxPerMm);
-        if (mitInfostreifen && !normblattGezeichnet) {
+        if (mitInfostreifen && !normblattGezeichnet && nb.value("infostreifenModus").toString() != QLatin1String("aus")) {
             nb[QStringLiteral("infostreifen")] = infostreifenLaden(seiteId);
             pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
         }

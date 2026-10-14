@@ -81,10 +81,11 @@ QtObject {
         var logoStd  = cv.normblattLogoUrl
         var logoAsp  = nd.logoAspekt
         var sLinks = 0, sBreite = 0, sHoehe = 0, sOben = 0
-        if (!nd.normblattAnzeigen) {
+        if (!nd.normblattAnzeigen && nd.infostreifenModus !== "aus") {
             var st = nd.infostreifen
             if (!st || !st.felder || st.felder.length === 0) return
-            // Lage: unter der Bounding-Box aller Elemente, 15 mm Rand je Seite (wie PDF „Ganzes Canvas“), min. 150 mm breit
+            // Lage: unter der Bounding-Box aller Elemente (15 mm Rand wie PDF „Ganzes Canvas“); Breite je Modus
+            // (nd.infostreifenBreiteMm: Seitenformat/A4…A0, 0 = Bounding-Box + Rand), nie unter A4 quer
             if (!elemente || elemente.length === 0) return
             var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity
             for (var ei = 0; ei < elemente.length; ei++) {
@@ -94,8 +95,9 @@ QtObject {
             }
             if (!isFinite(bx0)) return
             var sRand = 15
+            var modusB = nd.infostreifenBreiteMm || 0
             sLinks = bx0 / cv.mmToPx - sRand
-            sBreite = Math.max(150, (bx1 - bx0) / cv.mmToPx + 2 * sRand)
+            sBreite = modusB > 0 ? modusB : Math.max(297, (bx1 - bx0) / cv.mmToPx + 2 * sRand)
             sHoehe = st.hoeheMm || 8
             sOben = by1 / cv.mmToPx + sRand - sHoehe
             var fak = sBreite / Math.max(1, st.breiteMm || 297)

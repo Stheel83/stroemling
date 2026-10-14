@@ -412,6 +412,8 @@ public:
     // DOKU-PDF-01: Seite im Dokumentations-PDF (Schaltplan-Abschnitt) enthalten?
     // Lesen über normblattDatenLaden()["inDokuPdf"].
     Q_INVOKABLE bool seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf);
+    // Infostreifen je Seite: auto|a4|a3|a2|a1|a0|canvas|aus (INFOSTREIFEN-03)
+    Q_INVOKABLE bool seiteInfostreifenSetzen(int seiteId, const QString &modus);
 
     Q_INVOKABLE bool normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                                   const QString &hintergrundFarbe,
@@ -451,6 +453,7 @@ public:
     // Vorlage des Infostreifens (INFOSTREIFEN-01): {felder, breiteMm (Referenzbreite), hoeheMm, logoDataUrl, logoAspekt};
     // leere Map = keine Streifenvorlage vorhanden. Vorlage = projekt.infostreifen_vorlage_id, sonst Standard-Infostreifen.
     QVariantMap infostreifenLaden(int seiteId);
+    static double infostreifenBreiteMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm);
     // Projekt-Auswahl der Infostreifen-Vorlage (0 = Standard-Infostreifen)
     Q_INVOKABLE int  projektInfostreifenVorlageId();
     Q_INVOKABLE bool projektInfostreifenVorlageSetzen(int vorlageId);

@@ -8,6 +8,7 @@ ColumnLayout {
 
     required property var theme
     property var _normblattVorlagen: []
+    readonly property var _streifenModi: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas", "aus"]
 
     Layout.fillWidth: true
     spacing: 10
@@ -34,6 +35,8 @@ ColumnLayout {
             var ri = cmbRevisionStatus.model.indexOf(nd.revisionStatus || "")
             cmbRevisionStatus.currentIndex = ri >= 0 ? ri : 0
             tfRevisionKennung.text = nd.revisionKennung || ""
+            var si = root._streifenModi.indexOf(nd.infostreifenModus || "auto")
+            cmbInfostreifen.currentIndex = si >= 0 ? si : 0
         }
     }
 
@@ -49,6 +52,7 @@ ColumnLayout {
              && root._normblattVorlagen.length > 0)
                 ? root._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
         db.seiteInDokuPdfSetzen(seiteId, chkInDokuPdf.checked)
+        db.seiteInfostreifenSetzen(seiteId, root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)])
         db.seiteRevisionSetzen(
             seiteId,
             cmbRevisionStatus.currentText,
@@ -105,6 +109,24 @@ ColumnLayout {
                 verticalAlignment: Text.AlignVCenter
             }
         }
+    }
+
+    // Infostreifen (nur ohne Normblatt): Breite folgt dem Seitenformat oder fest A4…A0 / Gesamtes Canvas / aus
+    Text {
+        text: qsTr("Infostreifen")
+        color: root.theme.textMuted; font.pixelSize: 12
+        visible: !chkNormblatt.checked
+    }
+    ComboBox {
+        id: cmbInfostreifen
+        Layout.fillWidth: true
+        visible: !chkNormblatt.checked
+        model: [qsTr("Automatisch (Seitenformat)"), "A4", "A3", "A2", "A1", "A0", qsTr("Gesamtes Canvas"), qsTr("Aus")]
+        ToolTip.visible: hovered; ToolTip.delay: 600
+        ToolTip.text: qsTr("Streifen mit Projekt-/Blattangaben unter den Elementen (Seiten ohne Schriftfeld). Vorlage: Projektseite → Infostreifen, Gestaltung unter „Blattvorlagen“.")
+        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+        contentItem: Text { leftPadding: 8; text: cmbInfostreifen.displayText; color: root.theme.textPrimary
+            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
     }
 
     // Titelblatt-Vorlage (nur wenn Normblatt aktiv)

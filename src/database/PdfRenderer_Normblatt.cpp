@@ -66,6 +66,8 @@ static QString nbFormatText(double b, double h)
     if      (qAbs(mx-420)<5 && qAbs(mn-297)<5) fmt="A3";
     else if (qAbs(mx-297)<5 && qAbs(mn-210)<5) fmt="A4";
     else if (qAbs(mx-594)<5 && qAbs(mn-420)<5) fmt="A2";
+    else if (qAbs(mx-841)<5 && qAbs(mn-594)<5) fmt="A1";
+    else if (qAbs(mx-1189)<5 && qAbs(mn-841)<5) fmt="A0";
     else fmt=QString::number(qRound(b))+"x"+QString::number(qRound(h));
     return fmt + (b > h ? " QF" : " HF");
 }

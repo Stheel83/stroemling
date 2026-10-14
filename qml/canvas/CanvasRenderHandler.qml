@@ -183,6 +183,20 @@ QtObject {
             ctx.strokeRect(iX0, iY0, iW, iH)
         }
 
+        // ── Formathinweis (kleine Orientierung an der linken oberen Blattecke, außerhalb des Blatts) ──
+        {
+            var _fm = /^(A\d) (QF|HF)$/.exec(formatText())
+            var _lbl = _fm ? (_fm[1] + (_fm[2] === "QF" ? " quer" : " hoch"))
+                           : (Math.round(bMm) + " × " + Math.round(hMm) + " mm")
+            ctx.save()
+            ctx.font = "11px sans-serif"
+            ctx.fillStyle = "#5a7aa0"
+            ctx.textAlign = "left"
+            ctx.textBaseline = "bottom"
+            ctx.fillText(_lbl, pX0 + 2, pY0 - 3)
+            ctx.restore()
+        }
+
         // ── Benutzerdefinierte Felder (Phase 2) ──────────────────────
         var _felder = nd.felder
         if (_felder && _felder.length > 0) {
@@ -319,6 +333,8 @@ QtObject {
             if      (Math.abs(mx - 420) < 5 && Math.abs(mn - 297) < 5) fmt = "A3"
             else if (Math.abs(mx - 297) < 5 && Math.abs(mn - 210) < 5) fmt = "A4"
             else if (Math.abs(mx - 594) < 5 && Math.abs(mn - 420) < 5) fmt = "A2"
+            else if (Math.abs(mx - 841) < 5 && Math.abs(mn - 594) < 5) fmt = "A1"
+            else if (Math.abs(mx - 1189) < 5 && Math.abs(mn - 841) < 5) fmt = "A0"
             else fmt = Math.round(b) + "×" + Math.round(h)
             return fmt + (b > h ? " QF" : " HF")
         }

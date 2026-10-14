@@ -100,8 +100,10 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         const bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
         if (normblattGezeichnet)
             pdfNormblattRendern(painter, nb, pxPerMm);
-        if (mitInfostreifen && !normblattGezeichnet)
+        if (mitInfostreifen && !normblattGezeichnet) {
+            nb[QStringLiteral("infostreifen")] = infostreifenLaden(seiteId);
             pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
+        }
         pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
     }
     return seiteIds.size();

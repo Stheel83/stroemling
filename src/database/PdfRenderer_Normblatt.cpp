@@ -331,68 +331,41 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
     }
 }
 
-// ── Minimaler Infostreifen für Seiten ohne Normblatt ────────────────────────
-// Zeichnet einen 8 mm hohen Streifen am unteren Seitenrand mit:
-//   Links: Projektname · Auftraggeber   |   Mitte: Blatt – Bezeichnung (fett)
-//   Rechts: Exportdatum · Bearbeiter
+// ── Infostreifen für Seiten ohne Normblatt (INFOSTREIFEN-01) ────────────────
+// Blattvorlage der Art 'infostreifen' (nb["infostreifen"], aus Database::infostreifenLaden): volle Seitenbreite am
+// unteren Rand, Höhe = Vorlagenhöhe in mm. x/Breite der Felder sind relativ zur Referenzbreite der Vorlage und
+// werden auf die tatsächliche Seitenbreite skaliert. Gezeichnet wird über pdfNormblattRendern (alle Feldtypen).
 void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
                                     double bMm, double hMm, double pxPerMm)
 {
-    const double hStrMm = 8.0;
-    const double padMm  = 1.5;
-    double y0 = (hMm - hStrMm) * pxPerMm;
-    double w  =  bMm           * pxPerMm;
-    double h  =  hStrMm        * pxPerMm;
+    const QVariantMap st = nb.value("infostreifen").toMap();
+    const QVariantList felder = st.value("felder").toList();
+    if (felder.isEmpty()) return;
 
-    p.fillRect(QRectF(0, y0, w, h), Qt::white);
+    const double refB = qMax(1.0, st.value("breiteMm", 297.0).toDouble());
+    const double hStr = st.value("hoeheMm", 8.0).toDouble();
+    const double faktor = bMm / refB;
+    const double y0 = hMm - hStr;
 
-    QPen linePen(Qt::black, 0.4 * pxPerMm);
-    p.setPen(linePen);
-    p.drawLine(QLineF(0, y0, w, y0));                // obere Trennlinie
+    p.fillRect(QRectF(0, y0 * pxPerMm, bMm * pxPerMm, hStr * pxPerMm), Qt::white);
 
-    // Abschnittsgrenzen (prozentual)
-    double x1 = w * 0.40;
-    double x2 = w * 0.72;
-    p.drawLine(QLineF(x1, y0, x1, hMm * pxPerMm));  // 1. vertikale Linie
-    p.drawLine(QLineF(x2, y0, x2, hMm * pxPerMm));  // 2. vertikale Linie
-
-    // Textstil
-    QFont font;
-    font.setFamily(QStringLiteral("sans-serif"));
-    font.setPixelSize(qMax(1, qRound(2.8 * pxPerMm)));
-    p.setFont(font);
-    p.setPen(Qt::black);
-
-    double pad  = padMm * pxPerMm;
-    double tY   = y0 + pad;
-    double tH   = h - 2.0 * pad;
-
-    // Links: Projektname · Auftraggeber
-    QString links = nb.value("projektName").toString();
-    QString ag    = nb.value("auftraggeber").toString();
-    if (!ag.isEmpty()) links += QStringLiteral("  \xB7  ") + ag;
-    p.drawText(QRectF(pad, tY, x1 - 2*pad, tH),
-               Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, links);
-
-    // Mitte: Blattnummer – Bezeichnung (fett)
-    QString blatt = nb.value("blattnummer").toString();
-    QString bez   = nb.value("bezeichnung").toString();
-    QString mitte = blatt.isEmpty() ? bez
-                  : bez.isEmpty()   ? blatt
-                  : blatt + QStringLiteral(" – ") + bez;
-    QFont fontB = font; fontB.setBold(true);
-    p.setFont(fontB);
-    p.drawText(QRectF(x1 + pad, tY, x2 - x1 - 2*pad, tH),
-               Qt::AlignHCenter | Qt::AlignVCenter, mitte);
-
-    // Rechts: Datum · Bearbeiter
-    p.setFont(font);
-    QString datum      = QDateTime::currentDateTime().toString("dd.MM.yyyy");
-    QString bearbeiter = nb.value("bearbeiter").toString();
-    QString rechts     = datum;
-    if (!bearbeiter.isEmpty()) rechts += QStringLiteral("  \xB7  ") + bearbeiter;
-    p.drawText(QRectF(x2 + pad, tY, w - x2 - 2*pad, tH),
-               Qt::AlignRight | Qt::AlignVCenter, rechts);
+    QVariantList skaliert;
+    for (const QVariant &fv : felder) {
+        QVariantMap f = fv.toMap();
+        f["xMm"]      = f.value("xMm").toDouble() * faktor;
+        f["breiteMm"] = f.value("breiteMm").toDouble() * faktor;
+        f["yMm"]      = y0 + f.value("yMm").toDouble();
+        skaliert.append(f);
+    }
+    QVariantMap d = nb;
+    d["felder"]           = skaliert;
+    d["ohneRahmen"]       = true;
+    d["hintergrundFarbe"] = QString();
+    d["breiteMm"]         = bMm;
+    d["hoeheMm"]          = hMm;
+    d["logoDataUrl"]      = st.value("logoDataUrl");
+    d["logoAspekt"]       = st.value("logoAspekt");
+    pdfNormblattRendern(p, d, pxPerMm);
 }
 
 // ── Revisionsmarker-Wasserzeichen (analog SchaltplanCanvas.qml) ─────────────

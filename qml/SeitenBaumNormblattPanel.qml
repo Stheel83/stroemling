@@ -13,7 +13,7 @@ ColumnLayout {
     spacing: 10
 
     function laden(seiteId) {
-        root._normblattVorlagen = db.normblattVorlagenListe().filter(function(v) { return v.art !== "deckblatt" })
+        root._normblattVorlagen = db.normblattVorlagenListe().filter(function(v) { return v.art === "schriftfeld" })
         var nd = db.normblattDatenLaden(seiteId)
         if (nd) {
             chkNormblatt.checked       = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true

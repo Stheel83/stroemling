@@ -22,7 +22,7 @@ Item {
     property bool _neuModus:   false
     property string _neuName:  ""
     property int  _neuFormatIdx: 0
-    property string _neuArt: "schriftfeld"   // "schriftfeld" | "deckblatt" (A4 hoch, Ränder 0)
+    property string _neuArt: "schriftfeld"   // "schriftfeld" | "deckblatt" (A4 hoch, Ränder 0) | "infostreifen" (297 × 8 mm, Ränder 0)
     property bool _einstellungenModus: false
     property string _einstellungenName: ""
     property int  _einstellungenFormatIdx: 0
@@ -300,11 +300,13 @@ Item {
         if (!name) return
         var fmt = formatModel.get(Math.max(0, _neuFormatIdx))
         var deck = _neuArt === "deckblatt"
+        var strf = _neuArt === "infostreifen"
+        var ohneRand = deck || strf
         var id = db.normblattVorlageSpeichern({
             name: name, art: _neuArt,
-            breiteMm: deck ? 210 : fmt.breite, hoeheMm: deck ? 297 : fmt.hoehe,
-            randLinksMm: deck ? 0 : 20, randRechtsMm: deck ? 0 : 10,
-            randObenMm:  deck ? 0 : 10, randUntenMm:  deck ? 0 : 10
+            breiteMm: deck ? 210 : (strf ? 297 : fmt.breite), hoeheMm: deck ? 297 : (strf ? 8 : fmt.hoehe),
+            randLinksMm: ohneRand ? 0 : 20, randRechtsMm: ohneRand ? 0 : 10,
+            randObenMm:  ohneRand ? 0 : 10, randUntenMm:  ohneRand ? 0 : 10
         })
         _neuModus = false
         _vorlagen = db.normblattVorlagenListe()
@@ -415,16 +417,16 @@ Item {
                 id: cmbNeuArt
                 visible: root._neuModus
                 Layout.preferredWidth: 170; Layout.preferredHeight: 32
-                model: [qsTr("Schriftfeld"), qsTr("Deckblatt (A4 hoch)")]
-                currentIndex: root._neuArt === "deckblatt" ? 1 : 0
+                model: [qsTr("Schriftfeld"), qsTr("Deckblatt (A4 hoch)"), qsTr("Infostreifen")]
+                currentIndex: root._neuArt === "deckblatt" ? 1 : (root._neuArt === "infostreifen" ? 2 : 0)
                 background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
                 contentItem: Text { leftPadding: 8; text: cmbNeuArt.displayText; color: root.theme.textPrimary
                     font.pixelSize: 12; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                onActivated: function(i) { root._neuArt = i === 1 ? "deckblatt" : "schriftfeld" }
+                onActivated: function(i) { root._neuArt = i === 1 ? "deckblatt" : (i === 2 ? "infostreifen" : "schriftfeld") }
             }
             ComboBox {
                 id: cmbNeuFormat
-                visible: root._neuModus && root._neuArt !== "deckblatt"
+                visible: root._neuModus && root._neuArt === "schriftfeld"
                 Layout.preferredWidth: 190; Layout.preferredHeight: 32
                 model: formatModel; textRole: "text"
                 currentIndex: root._neuFormatIdx

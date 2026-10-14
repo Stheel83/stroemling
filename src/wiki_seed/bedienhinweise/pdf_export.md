@@ -72,7 +72,7 @@ ausdrücklich als Voreinstellung speicherst.
 | Option | Wirkung |
 |---|---|
 | **Normblatt einschließen** | Zeichnet Rahmen und Schriftfeld der Seite mit |
-| **Infostreifen für Seiten ohne Schriftfeld** | Seiten ohne Normblatt bekommen unten einen schmalen Streifen: links Projektname und Auftraggeber, in der Mitte Blattnummer und Bezeichnung, rechts Datum und Bearbeiter |
+| **Infostreifen für Seiten ohne Schriftfeld** | Seiten ohne Normblatt bekommen unten einen schmalen Streifen. Inhalt und Aussehen kommen aus einer Blattvorlage der Art „Infostreifen“ (Standard: Projekt und Auftraggeber, Seitenkennzeichen und Bezeichnung, Datum und Bearbeiter); die Vorlage wählst du auf der Projektseite, gestaltet wird sie unter „Blattvorlagen“ |
 | **Ganzes Canvas (ohne Normblatt)** | Exportiert den gesamten belegten Bereich der Seite statt des Blattformats; das Normblatt entfällt dabei |
 
 ---

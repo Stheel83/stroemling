@@ -406,6 +406,50 @@ QVariantMap Database::deckblattDatenLaden(int projektId, int vorlageId, const QS
     return m;
 }
 
+QVariantMap Database::infostreifenLaden(int seiteId)
+{
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT nv.id, nv.breite_mm, nv.hoehe_mm, nv.logo_data, nv.logo_mime
+        FROM seite s
+        JOIN ort o ON s.ort_id = o.id
+        JOIN anlage a ON o.anlage_id = a.id
+        JOIN projekt p ON a.projekt_id = p.id
+        JOIN normblatt_vorlage nv ON nv.art = 'infostreifen'
+        WHERE s.id = :sid
+        ORDER BY (nv.id = p.infostreifen_vorlage_id) DESC, nv.ist_standard DESC, nv.id
+        LIMIT 1)");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec() || !q.next()) return {};
+    QVariantMap m;
+    m[QStringLiteral("breiteMm")] = q.value(1);
+    m[QStringLiteral("hoeheMm")]  = q.value(2);
+    m[QStringLiteral("felder")]   = normblattFelderLaden(q.value(0).toInt());
+    logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
+              q.value(3).toByteArray(), q.value(4).toString());
+    return m;
+}
+
+int Database::projektInfostreifenVorlageId()
+{
+    QSqlQuery q(m_db);
+    if (q.exec("SELECT COALESCE(infostreifen_vorlage_id, 0) FROM projekt ORDER BY id DESC LIMIT 1") && q.next())
+        return q.value(0).toInt();
+    return 0;
+}
+
+bool Database::projektInfostreifenVorlageSetzen(int vorlageId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE projekt SET infostreifen_vorlage_id = :v WHERE id = (SELECT id FROM projekt ORDER BY id DESC LIMIT 1)");
+    q.bindValue(":v", vorlageId > 0 ? QVariant(vorlageId) : QVariant());
+    if (!q.exec()) {
+        qCWarning(lcDb) << "projektInfostreifenVorlageSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
 QVariantList Database::normblattFelderLaden(int vorlageId)
 {
     QSqlQuery q(m_db);

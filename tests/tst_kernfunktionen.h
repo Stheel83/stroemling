@@ -1434,6 +1434,61 @@ private slots:
                                           R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
     }
 
+    // INFOSTREIFEN-01: Infostreifen als Blattvorlage (Art 'infostreifen'), Seed, Projekt-Auswahl, PDF-Ausgabe.
+    void infostreifen_01_vorlage()
+    {
+        neueSeite("IS1");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const QString dir = QDir::tempPath();
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr;
+            pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+
+        // Seed: eine Streifenvorlage, 297 x 8 mm, mit Feldern; Schriftfeld-Auswahl kennt sie nicht
+        QVariantList streifen;
+        for (const QVariant &v : m_db->normblattVorlagenListe())
+            if (v.toMap().value("art").toString() == "infostreifen") streifen << v;
+        QCOMPARE(streifen.size(), 1);
+        const int vid = streifen.first().toMap().value("id").toInt();
+        QCOMPARE(streifen.first().toMap().value("hoeheMm").toInt(), 8);
+        QVERIFY(m_db->normblattFelderLaden(vid).size() >= 5);
+        QCOMPARE(m_db->projektInfostreifenVorlageId(), 0);
+
+        // PDF mit Streifen: Projektname aus dem Standard-Streifen steht auf der Seite
+        const QString f1 = dir + "/stroemling_is1_a.pdf";
+        const QString opt = R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f1, opt));
+        QVERIFY2(pdfText(f1).contains("KernTest"), qPrintable(pdfText(f1)));
+
+        // ohne Option kein Streifen
+        const QString f2 = dir + "/stroemling_is1_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2,
+            R"({"mitNormblatt":false,"mitInfostreifen":false,"abschnitte":[{"typ":"schaltplan"}]})"));
+        QVERIFY(!pdfText(f2).contains("KernTest"));
+
+        // eigene Streifenvorlage: Projekt-Auswahl wirkt, festes Textfeld erscheint
+        const int eigen = m_db->normblattVorlageSpeichern({{"name", "Mein Streifen"}, {"art", "infostreifen"},
+            {"breiteMm", 100}, {"hoeheMm", 6}, {"randLinksMm", 0}, {"randRechtsMm", 0}, {"randObenMm", 0}, {"randUntenMm", 0}});
+        QVERIFY(eigen > 0);
+        QVariantMap fd{{"feldtyp", "fest"}, {"xMm", 10}, {"yMm", 1}, {"breiteMm", 50}, {"hoeheMm", 4},
+                       {"inhalt", "Streifen-Eigen-Text"}, {"schriftgroesse", 3.0}, {"reihenfolge", 0}};
+        QVERIFY(m_db->normblattFelderSpeichern(eigen, {fd}));
+        QVERIFY(m_db->projektInfostreifenVorlageSetzen(eigen));
+        QCOMPARE(m_db->projektInfostreifenVorlageId(), eigen);
+        const QString f3 = dir + "/stroemling_is1_c.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f3, opt));
+        const QString t3 = pdfText(f3);
+        QVERIFY2(t3.contains("Streifen-Eigen-Text"), qPrintable(t3));
+        QVERIFY2(!t3.contains("KernTest"), qPrintable(t3));
+
+        // Vorlage loeschen -> Auswahl faellt auf Standard zurueck (ON DELETE SET NULL)
+        QVERIFY(m_db->normblattVorlageLoeschen(eigen));
+        QCOMPARE(m_db->projektInfostreifenVorlageId(), 0);
+    }
+
     // BLATTVORLAGEN-02: Kunden-Logo je Projekt, Feldtypen logo_kunde/linie/textblock, Deckblatt-Art per API.
     void blattvorlagen_02_kundenlogoFeldtypen()
     {

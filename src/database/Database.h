@@ -448,6 +448,12 @@ public:
     Q_INVOKABLE bool         vorlageAusBibliothekLoeschen(const QString &uid);
     // Daten fürs Deckblatt im Dokumentations-PDF; leere Map = keine Deckblattvorlage
     QVariantMap deckblattDatenLaden(int projektId, int vorlageId, const QString &titelzusatz, bool mitLogo);
+    // Vorlage des Infostreifens (INFOSTREIFEN-01): {felder, breiteMm (Referenzbreite), hoeheMm, logoDataUrl, logoAspekt};
+    // leere Map = keine Streifenvorlage vorhanden. Vorlage = projekt.infostreifen_vorlage_id, sonst Standard-Infostreifen.
+    QVariantMap infostreifenLaden(int seiteId);
+    // Projekt-Auswahl der Infostreifen-Vorlage (0 = Standard-Infostreifen)
+    Q_INVOKABLE int  projektInfostreifenVorlageId();
+    Q_INVOKABLE bool projektInfostreifenVorlageSetzen(int vorlageId);
     Q_INVOKABLE QVariantList normblattFelderLaden(int vorlageId);
     Q_INVOKABLE bool         normblattFelderSpeichern(int vorlageId, const QVariantList &felder);
 

@@ -70,7 +70,8 @@ QtObject {
     }
 
     // ── Normblattrahmen (DIN 6771, vereinfacht) ──────────────────────
-    function drawNormblatt(ctx) {
+    // elemente: Snapshot des ElementeModels (für die Lage des Infostreifens; optional)
+    function drawNormblatt(ctx, elemente) {
         if (!cv.normblattDaten) return
 
         var nd   = cv.normblattDaten
@@ -79,18 +80,32 @@ QtObject {
         var streifen = false
         var logoStd  = cv.normblattLogoUrl
         var logoAsp  = nd.logoAspekt
+        var sLinks = 0, sBreite = 0, sHoehe = 0, sOben = 0
         if (!nd.normblattAnzeigen) {
             var st = nd.infostreifen
             if (!st || !st.felder || st.felder.length === 0) return
-            var sB = nd.breiteMm || 297, sH = nd.hoeheMm || 210
-            var fak = sB / Math.max(1, st.breiteMm || 297), sY0 = sH - (st.hoeheMm || 8)
+            // Lage: unter der Bounding-Box aller Elemente, 15 mm Rand je Seite (wie PDF „Ganzes Canvas“), min. 150 mm breit
+            if (!elemente || elemente.length === 0) return
+            var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity
+            for (var ei = 0; ei < elemente.length; ei++) {
+                var be = elemente[ei]
+                bx0 = Math.min(bx0, be.x1, be.x2); by0 = Math.min(by0, be.y1, be.y2)
+                bx1 = Math.max(bx1, be.x1, be.x2); by1 = Math.max(by1, be.y1, be.y2)
+            }
+            if (!isFinite(bx0)) return
+            var sRand = 15
+            sLinks = bx0 / cv.mmToPx - sRand
+            sBreite = Math.max(150, (bx1 - bx0) / cv.mmToPx + 2 * sRand)
+            sHoehe = st.hoeheMm || 8
+            sOben = by1 / cv.mmToPx + sRand - sHoehe
+            var fak = sBreite / Math.max(1, st.breiteMm || 297)
             var sf = []
             for (var si = 0; si < st.felder.length; si++) {
                 var o = {}
                 for (var k in st.felder[si]) o[k] = st.felder[si][k]
-                o.xMm = st.felder[si].xMm * fak
+                o.xMm = sLinks + st.felder[si].xMm * fak
                 o.breiteMm = st.felder[si].breiteMm * fak
-                o.yMm = sY0 + st.felder[si].yMm
+                o.yMm = sOben + st.felder[si].yMm
                 sf.push(o)
             }
             var nd2 = {}
@@ -133,9 +148,8 @@ QtObject {
 
         if (streifen) {
             // Hintergrund wie das Standard-Schriftfeld, damit die Schrift auf der Zeichnung lesbar bleibt
-            var stHmm = (cv.normblattDaten.infostreifen.hoeheMm || 8)
             ctx.fillStyle = "rgba(5,15,35,0.8)"
-            ctx.fillRect(pX0, sy((hMm - stHmm) * mpx), pX1 - pX0, s(stHmm))
+            ctx.fillRect(sx(sLinks * mpx), sy(sOben * mpx), s(sBreite), s(sHoehe))
         } else {
             // ── Seitenhintergrund (konfigurierbar; leer = transparent) ──
             var bgFarbe = (nd.hintergrundFarbe || "").toString().trim()

@@ -586,8 +586,8 @@ Item {
         onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0,0,width,height)
-            renderHandler.drawNormblatt(ctx)
             var elemente = elementeModel.snapshot()
+            renderHandler.drawNormblatt(ctx, elemente)
             // Gerätekasten-Liste einmalig filtern — GA-Rendering nutzt drawCanvas._gkListe
             var _gkBuf = []
             for (var _gi = 0; _gi < elemente.length; _gi++)

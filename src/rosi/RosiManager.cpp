@@ -58,9 +58,9 @@ QStringList RosiManager::_poolB_Kommentar()
     return {
         "Janz jenau, so macht man dat.",
         "Immer locker bleiben, is nur'n Schaltplan.",
-        "Strom fließt, Kaffee sollte auch.",
+        "Strom fließt, und der Kaffee umso mehr.",
         "Bei mir unten is es feucht, aber jemütlich.",
-        "Sach mal, biste eigentlich schon lange dabei?",
+        "Sach mal, kommst klar? Du bist ja schon echt lange hier am rumfuhrwerken?",
     };
 }
 
@@ -77,8 +77,8 @@ QStringList RosiManager::_poolC_Tipp()
 QStringList RosiManager::_poolD_UrlaubRueckkehr()
 {
     return {
-        "War weg, Kollegin im Klärwerk besuchen.",
-        "Bin wieder da! Drei Wochen Nordsee, jetzt riech ich nach Salzwasser.",
+        "War weg, ne Kollegin im Klärwerk besuchen.",
+        "Bin wieder da! Drei Wochen Usedom, jetzt bin ich voll erholt!",
         "Sorry, war off — Röhrenaale brauchen auch mal Urlaub.",
         "Bin wieder da, war jut, aber meine Röhre hier hat mir doch jefehlt.",
     };
@@ -90,15 +90,15 @@ QStringList RosiManager::_poolD2_Urlaubsgeschichten()
         "Weeste, in Spanien hab ick'n Wels kennenjelernt, der hatte 'n Schnurrbart dicker als meiner.",
         "Sach ick dir, die Wellen da unten, voll der Trubel, hab kaum geschlafen.",
         "War auch kurz bei meiner Tante im Hafenbecken, die erzählt immer noch dieselben Geschichten.",
-        "Hab Muscheln jesammelt, lieg jetzt irgendwo in meiner Röhre rum.",
+        "Hab Muscheln jesammelt, schöne neue Deko für die Röhre.",
     };
 }
 
 QStringList RosiManager::_poolE_Besuch()
 {
     return {
-        "Hier is meine Cousine Aalfriede zu Besuch, sie grüßt!",
-        "Mein Kumpel Stichling schaut grade vorbei, der wollt nur winken.",
+        "Grad is meine Cousine Aalfriede zu Besuch, sie grüßt!",
+        "Mein Kumpel Stichling schaut grade vorbei, der wollt nur mal ei's winken.",
     };
 }
 
@@ -108,7 +108,7 @@ QStringList RosiManager::_poolF_PauseTrinken()
         "Mach mal ne Pause, sonst kriegste viereckige Augen.",
         "Trink mal'n Schlückchen.",
         "Meine Röhre is schon janz trocken, trink ma' wat.",
-        "Gut jeölt is halb jewonnen.",
+        "Jut jeölt is halb jewonnen.",
         "Wann hast du das letzte Mal wat jetrunken, hä?",
     };
 }
@@ -117,8 +117,8 @@ QStringList RosiManager::_poolG_Auswanderung()
 {
     return {
         "Ick überlege ja auszuwandern... aber wat mach ick ohne meine Röhre hier?",
-        "Manchmal denk ick, ick zieh nach Spanien — dann krieg ick wieder Schiss vor der Bürokratie da.",
-        "Hab schon Koffer jepackt... ne, lass ma, hier is doch janz jemütlich.",
+        "Manchmal denk ick, ick zieh nach Spanien — doch dann krieg ick wieder Schiss vor der Bürokratie.",
+        "Ah! Deutschland, hier is et doch janz jemütlich.",
     };
 }
 
@@ -134,8 +134,8 @@ QStringList RosiManager::_poolH_Postkarte()
 QStringList RosiManager::_poolI_Jugendwoerter()
 {
     return {
-        "Krass.", "67.", "Digga.", "Cringe.", "Sheesh.", "Aura.", "Slay.",
-        "Hammer!", "Endgeil!", "Läuft bei dir.", "Alles klar, Digga.", "Yolo!", "Mega!",
+        "Krass.", "six-seven", "Digga.", "Cringe.", "Sheesh.", "Aura.", "Slay.",
+        "Hammer!", "Endgeil!", "Läuft bei dir.", "Alles klar, Digga.", "Yolo!", "Mega!", "Ragebait",
     };
 }
 
@@ -151,7 +151,7 @@ QStringList RosiManager::_poolJ_Krankheiten()
 
 QStringList RosiManager::_reiseziele()
 {
-    return { "Spanien", "Italien", "Mallorca", "Türkei", "Nordsee/Ostsee", "England", "Frankreich" };
+    return { "Spanien", "Italien", "Mallorca", "Türkei", "Nordsee/Ostsee", "England", "Frankreich", "Insel Usedom" };
 }
 
 QStringList RosiManager::_poolD3_Reisesprache(int zielId)
@@ -164,6 +164,7 @@ QStringList RosiManager::_poolD3_Reisesprache(int zielId)
         case 4: return { "Moin moin!", "Dat is schön hier." };                  // Nordsee/Ostsee (Plattdeutsch-Joke)
         case 5: return { "Cheers!", "Lovely, innit?" };                         // England
         case 6: return { "Oh là là!", "Merci beaucoup." };                      // Frankreich
+        case 7: return { "Ab in die Badewanne", "Beste Insel!"};                // Insel Usedom
         default: return {};
     }
 }

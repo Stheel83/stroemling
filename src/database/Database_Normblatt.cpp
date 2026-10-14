@@ -218,7 +218,8 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
     return true;
 }
 
-// Format-Flaeche des Infostreifens je Modus (mm). (0,0) = canvas (Groesse folgt den Elementen) bzw. aus. INFOSTREIFEN-03
+// Format-Flaeche des Infostreifens je Modus (mm). (0,0) = auto (kleinstes passendes DIN-Format, s. infostreifenFlaecheMm),
+// canvas (Groesse folgt den Elementen) bzw. aus. INFOSTREIFEN-03 / NORMBLATT-DYNAMISCH-01 N-01
 QSizeF Database::infostreifenFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm)
 {
     if (modus == QLatin1String("a4")) return {297.0, 210.0};
@@ -226,8 +227,8 @@ QSizeF Database::infostreifenFormatMm(const QString &modus, double seiteBreiteMm
     if (modus == QLatin1String("a2")) return {594.0, 420.0};
     if (modus == QLatin1String("a1")) return {841.0, 594.0};
     if (modus == QLatin1String("a0")) return {1189.0, 841.0};
-    if (modus == QLatin1String("canvas") || modus == QLatin1String("aus")) return {0.0, 0.0};
-    return {seiteBreiteMm, seiteHoeheMm};   // auto: Seitenformat der Seite
+    Q_UNUSED(seiteBreiteMm); Q_UNUSED(seiteHoeheMm);
+    return {0.0, 0.0};   // auto, canvas, aus
 }
 
 bool Database::seiteInfostreifenSetzen(int seiteId, const QString &modus, const QString &ausrichtung)
@@ -266,7 +267,7 @@ bool elementeBoxMm(const QSqlDatabase &db, int seiteId, QRectF &box)
 
 bool Database::infostreifenElementeZuGross(int seiteId, const QString &modus)
 {
-    if (modus == QLatin1String("canvas") || modus == QLatin1String("aus")) return false;
+    if (modus == QLatin1String("auto") || modus == QLatin1String("canvas") || modus == QLatin1String("aus")) return false;
     QSqlQuery q(m_db);
     q.prepare("SELECT breite_mm, hoehe_mm FROM seite WHERE id = :sid");
     q.bindValue(":sid", seiteId);
@@ -286,8 +287,16 @@ QRectF Database::infostreifenFlaecheMm(int seiteId, const QVariantMap &nb)
     if (!elementeBoxMm(m_db, seiteId, box)) return {};
     const double rand = 15.0;
     QSizeF fmt(nb.value("infostreifenBreiteMm").toDouble(), nb.value("infostreifenHoeheMm").toDouble());
-    if (fmt.width() <= 0 || fmt.height() <= 0)   // canvas: Box + Rand, mindestens A4 breit
-        fmt = QSizeF(qMax(297.0, box.width() + 2 * rand), box.height() + 2 * rand);
+    if (fmt.width() <= 0 || fmt.height() <= 0) {
+        // auto: kleinstes DIN-Format quer (A4...A0), in das Box + Rand passt; passt keins oder canvas: Box + Rand, min. A4 breit
+        const double nb_ = box.width() + 2 * rand, nh_ = box.height() + 2 * rand;
+        static const QSizeF dinFormate[] = {{297, 210}, {420, 297}, {594, 420}, {841, 594}, {1189, 841}};
+        fmt = QSizeF(qMax(297.0, nb_), nh_);
+        if (modus == QLatin1String("auto")) {
+            for (const QSizeF &f : dinFormate)
+                if (f.width() >= nb_ && f.height() >= nh_) { fmt = f; break; }
+        }
+    }
     const double unten = box.bottom() + rand;
     const bool rechts = nb.value("infostreifenAusrichtung").toString() == QLatin1String("rechts");
     const double links = rechts ? box.right() + rand - fmt.width() : box.left() - rand;

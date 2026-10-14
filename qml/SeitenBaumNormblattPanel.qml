@@ -7,8 +7,13 @@ ColumnLayout {
     id: root
 
     required property var theme
+    // Blattkopf der Seite: "schriftfeld" | "infostreifen" | "keiner" (vom Dialog gesetzt)
+    property string blattkopf: "schriftfeld"
+    readonly property bool normblattAn: blattkopf === "schriftfeld"
+    readonly property bool streifenAn:  blattkopf === "infostreifen"
     property var _normblattVorlagen: []
-    readonly property var _streifenModi: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas", "aus"]
+    // Infostreifen-Format: Automatisch = kleinstes passendes DIN-Format; "aus" wird über den Blattkopf "keiner" gesetzt
+    readonly property var _streifenModi: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas"]
     readonly property var _streifenAusrichtungen: ["links", "rechts"]
     property int _seiteId: -1
     property bool _streifenZuGross: false
@@ -20,12 +25,15 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: 10
 
+    // Lädt die Seiteneinstellungen; gibt den ermittelten Blattkopf zurück ("schriftfeld" | "infostreifen" | "keiner")
     function laden(seiteId) {
+        var kopf = "schriftfeld"
         root._normblattVorlagen = db.normblattVorlagenListe().filter(function(v) { return v.art === "schriftfeld" })
         root._seiteId = seiteId
         var nd = db.normblattDatenLaden(seiteId)
         if (nd) {
-            chkNormblatt.checked       = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true
+            var normblatt = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true
+            kopf = normblatt ? "schriftfeld" : (nd.infostreifenModus === "aus" ? "keiner" : "infostreifen")
             chkInDokuPdf.checked       = nd.inDokuPdf === undefined || nd.inDokuPdf === 1 || nd.inDokuPdf === true
             tfHintergrundFarbe.text    = nd.hintergrundFarbe  || ""
             chkAussenOverlay.checked   = nd.aussenOverlay === 1 || nd.aussenOverlay === true
@@ -44,16 +52,17 @@ ColumnLayout {
             cmbRevisionStatus.currentIndex = ri >= 0 ? ri : 0
             tfRevisionKennung.text = nd.revisionKennung || ""
             var si = root._streifenModi.indexOf(nd.infostreifenModus || "auto")
-            cmbInfostreifen.currentIndex = si >= 0 ? si : 0
+            cmbInfostreifen.currentIndex = si >= 0 ? si : 0   // "aus" → Automatisch (Blattkopf "keiner" bleibt erhalten)
             cmbAusrichtung.currentIndex = nd.infostreifenAusrichtung === "rechts" ? 1 : 0
             root._streifenPruefen()
         }
+        return kopf
     }
 
     function speichern(seiteId) {
         db.normblattEinstellungenSetzen(
             seiteId,
-            chkNormblatt.checked,
+            root.normblattAn,
             tfHintergrundFarbe.text.trim(),
             chkAussenOverlay.checked,
             cmbVorlage.currentText,
@@ -62,7 +71,9 @@ ColumnLayout {
              && root._normblattVorlagen.length > 0)
                 ? root._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
         db.seiteInDokuPdfSetzen(seiteId, chkInDokuPdf.checked)
-        db.seiteInfostreifenSetzen(seiteId, root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)],
+        db.seiteInfostreifenSetzen(seiteId,
+                                   root.blattkopf === "keiner" ? "aus"
+                                       : root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)],
                                    root._streifenAusrichtungen[Math.max(0, cmbAusrichtung.currentIndex)])
         db.seiteRevisionSetzen(
             seiteId,
@@ -70,72 +81,20 @@ ColumnLayout {
             tfRevisionKennung.text.trim())
     }
 
-    // ── Normblatt-Einstellungen ──────────────────────────────────
-    RowLayout {
-        Layout.fillWidth: true; Layout.topMargin: 2
-        CheckBox {
-            id: chkNormblatt
-            checked: true
-            indicator: Rectangle {
-                width: 16; height: 16; radius: 3
-                border.color: chkNormblatt.checked ? root.theme.accent : root.theme.border
-                color: chkNormblatt.checked ? root.theme.accent : root.theme.inputBg
-                Text {
-                    anchors.centerIn: parent
-                    text: "✓"; color: root.theme.textPrimary
-                    font.pixelSize: 11; visible: chkNormblatt.checked
-                }
-            }
-            contentItem: Text {
-                text: qsTr("Normblatt anzeigen")
-                color: root.theme.textPrimary; font.pixelSize: 13
-                leftPadding: chkNormblatt.indicator.width + chkNormblatt.spacing
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-    }
-
-    // DOKU-PDF-01: dauerhafte Voreinstellung für das Dokumentations-PDF
-    RowLayout {
-        Layout.fillWidth: true
-        CheckBox {
-            id: chkInDokuPdf
-            checked: true
-            ToolTip.visible: hovered
-            ToolTip.text: qsTr("Legt fest, ob diese Seite im PDF-Export des Schaltplans enthalten ist. Beim Export kann die Auswahl für den Einzelfall geändert werden.")
-            indicator: Rectangle {
-                width: 16; height: 16; radius: 3
-                border.color: chkInDokuPdf.checked ? root.theme.accent : root.theme.border
-                color: chkInDokuPdf.checked ? root.theme.accent : root.theme.inputBg
-                Text {
-                    anchors.centerIn: parent
-                    text: "✓"; color: root.theme.textPrimary
-                    font.pixelSize: 11; visible: chkInDokuPdf.checked
-                }
-            }
-            contentItem: Text {
-                text: qsTr("In Dokumentations-PDF aufnehmen")
-                color: root.theme.textPrimary; font.pixelSize: 13
-                leftPadding: chkInDokuPdf.indicator.width + chkInDokuPdf.spacing
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-    }
-
-    // Infostreifen (nur ohne Normblatt): Breite folgt dem Seitenformat oder fest A4…A0 / Gesamtes Canvas / aus
+    // Infostreifen: Format der Fläche um die Elemente (Automatisch = kleinstes passendes DIN-Format) und Ausrichtung
     Text {
-        text: qsTr("Infostreifen")
+        text: qsTr("Format der Fläche")
         color: root.theme.textMuted; font.pixelSize: 12
-        visible: !chkNormblatt.checked
+        visible: root.streifenAn
     }
     ComboBox {
         id: cmbInfostreifen
         Layout.fillWidth: true
-        visible: !chkNormblatt.checked
-        model: [qsTr("Automatisch (Seitenformat)"), "A4", "A3", "A2", "A1", "A0", qsTr("Gesamtes Canvas"), qsTr("Aus")]
+        visible: root.streifenAn
+        model: [qsTr("Automatisch (kleinstes passendes DIN-Format)"), "A4", "A3", "A2", "A1", "A0", qsTr("Gesamtes Canvas")]
         onActivated: root._streifenPruefen()
         ToolTip.visible: hovered; ToolTip.delay: 600
-        ToolTip.text: qsTr("Fläche im gewählten Format um die Elemente, Infostreifen am unteren Rand (Seiten ohne Schriftfeld). Vorlage: Projektseite → Infostreifen, Gestaltung unter „Blattvorlagen“.")
+        ToolTip.text: qsTr("Fläche im gewählten Format um die Elemente, Infostreifen am unteren Rand. Vorlage: Projektseite → Infostreifen, Gestaltung unter „Blattvorlagen“.")
         background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
         contentItem: Text { leftPadding: 8; text: cmbInfostreifen.displayText; color: root.theme.textPrimary
             font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
@@ -143,18 +102,18 @@ ColumnLayout {
     ComboBox {
         id: cmbAusrichtung
         Layout.fillWidth: true
-        visible: !chkNormblatt.checked && cmbInfostreifen.currentIndex !== 7
+        visible: root.streifenAn
         model: [qsTr("Linksbündig zu den Elementen"), qsTr("Rechtsbündig zu den Elementen")]
         ToolTip.visible: hovered; ToolTip.delay: 600
-        ToolTip.text: qsTr("Legt fest, ob die Format-Fläche links der Elemente beginnt oder rechts der Elemente endet.")
+        ToolTip.text: qsTr("Legt fest, ob die Fläche links der Elemente beginnt oder rechts der Elemente endet.")
         background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
         contentItem: Text { leftPadding: 8; text: cmbAusrichtung.displayText; color: root.theme.textPrimary
             font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
     }
     Text {
         Layout.fillWidth: true
-        visible: !chkNormblatt.checked && root._streifenZuGross
-        text: qsTr("Die Elemente sind größer als die gewählte Fläche – Format vergrößern oder „Gesamtes Canvas“ wählen.")
+        visible: root.streifenAn && root._streifenZuGross
+        text: qsTr("Die Elemente sind größer als die gewählte Fläche – anderes Format oder „Automatisch“ wählen.")
         color: root.theme.warning !== undefined ? root.theme.warning : "#d08a20"
         font.pixelSize: 12; wrapMode: Text.WordWrap
     }
@@ -163,12 +122,12 @@ ColumnLayout {
     Text {
         text: qsTr("Schriftfeld-Vorlage")
         color: root.theme.textMuted; font.pixelSize: 12
-        visible: chkNormblatt.checked
+        visible: root.normblattAn
     }
     ComboBox {
         id: cmbVorlage
         Layout.fillWidth: true
-        visible: chkNormblatt.checked
+        visible: root.normblattAn
         model: ["din6771", "kompakt", "rahmen", "benutzerdefiniert"]
         background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
         contentItem: Text {
@@ -207,13 +166,13 @@ ColumnLayout {
     Text {
         text: qsTr("Vorlage auswählen")
         color: root.theme.textMuted; font.pixelSize: 12
-        visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
+        visible: root.normblattAn && cmbVorlage.currentText === "benutzerdefiniert"
         height: visible ? implicitHeight : 0
     }
     ComboBox {
         id: cmbVorlageAuswahl
         Layout.fillWidth: true
-        visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
+        visible: root.normblattAn && cmbVorlage.currentText === "benutzerdefiniert"
                  && root._normblattVorlagen.length > 0
         model: root._normblattVorlagen.map(function(v) {
             return v.name + qsTr(" (%1×%2 mm)").arg(Math.round(v.breiteMm || 297)).arg(Math.round(v.hoeheMm || 210))
@@ -237,7 +196,7 @@ ColumnLayout {
     }
     Text {
         text: qsTr("Keine Vorlagen vorhanden. Über „Blattvorlagen“ in der Seitenleiste anlegen.")
-        visible: chkNormblatt.checked && cmbVorlage.currentText === "benutzerdefiniert"
+        visible: root.normblattAn && cmbVorlage.currentText === "benutzerdefiniert"
                  && root._normblattVorlagen.length === 0
         color: root.theme.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap
         Layout.fillWidth: true
@@ -246,7 +205,7 @@ ColumnLayout {
     // Aussen-Overlay Checkbox (nur wenn Normblatt aktiv)
     RowLayout {
         Layout.fillWidth: true
-        visible: chkNormblatt.checked
+        visible: root.normblattAn
         CheckBox {
             id: chkAussenOverlay
             checked: false
@@ -270,9 +229,10 @@ ColumnLayout {
     }
 
     // Seitenhintergrundfarbe
-    Text { text: qsTr("Seitenhintergrund (Farbe)"); color: root.theme.textMuted; font.pixelSize: 12 }
+    Text { text: qsTr("Seitenhintergrund (Farbe)"); color: root.theme.textMuted; font.pixelSize: 12; visible: root.normblattAn }
     RowLayout {
         Layout.fillWidth: true; spacing: 6
+        visible: root.normblattAn
         TextField {
             id: tfHintergrundFarbe
             Layout.fillWidth: true
@@ -284,6 +244,33 @@ ColumnLayout {
             width: 28; height: 28; radius: 4
             color: tfHintergrundFarbe.text.trim() || "transparent"
             border.color: root.theme.border
+        }
+    }
+
+    // DOKU-PDF-01: dauerhafte Voreinstellung für das Dokumentations-PDF
+    RowLayout {
+        Layout.fillWidth: true
+        CheckBox {
+            id: chkInDokuPdf
+            checked: true
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Legt fest, ob diese Seite im PDF-Export des Schaltplans enthalten ist. Beim Export kann die Auswahl für den Einzelfall geändert werden.")
+            indicator: Rectangle {
+                width: 16; height: 16; radius: 3
+                border.color: chkInDokuPdf.checked ? root.theme.accent : root.theme.border
+                color: chkInDokuPdf.checked ? root.theme.accent : root.theme.inputBg
+                Text {
+                    anchors.centerIn: parent
+                    text: "✓"; color: root.theme.textPrimary
+                    font.pixelSize: 11; visible: chkInDokuPdf.checked
+                }
+            }
+            contentItem: Text {
+                text: qsTr("In Dokumentations-PDF aufnehmen")
+                color: root.theme.textPrimary; font.pixelSize: 13
+                leftPadding: chkInDokuPdf.indicator.width + chkInDokuPdf.spacing
+                verticalAlignment: Text.AlignVCenter
+            }
         }
     }
 

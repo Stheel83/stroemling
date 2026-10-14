@@ -1471,7 +1471,7 @@ private slots:
         // INFOSTREIFEN-03: Modus je Seite, Format-Flaeche, Ausrichtung
         QCOMPARE(nd.value("infostreifenModus").toString(), QStringLiteral("auto"));
         QCOMPARE(nd.value("infostreifenAusrichtung").toString(), QStringLiteral("links"));
-        QVERIFY(nd.value("infostreifenBreiteMm").toDouble() > 0);               // auto: Seitenformat
+        QCOMPARE(nd.value("infostreifenBreiteMm").toDouble(), 0.0);             // auto: Format folgt dem Inhalt
         QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "quatsch", "links"));
         QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "a3", "mitte"));
         QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3", "links"));
@@ -1507,6 +1507,18 @@ private slots:
         QVERIFY(m_db->dokuPdfExportieren(pid, fA4, optSt));
         const QString gA4 = pdfGroesse(fA4);
         if (!gA4.isEmpty()) QVERIFY2(gA4.contains("842") && gA4.contains("595"), qPrintable(gA4));        // A4 quer
+        // Automatisch = kleinstes passendes DIN-Format: Box 400 mm breit + 30 mm Rand -> A3 (420 x 297); nie "zu gross"
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 1700, 300)}));   // 100..1700 cu = 25..425 mm, 400 mm breit
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "auto", "links"));
+        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "auto"));
+        const QString fAuto = dir + "/stroemling_is3_auto.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, fAuto, optSt));
+        const QString gAuto = pdfGroesse(fAuto);
+        if (!gAuto.isEmpty()) QVERIFY2(gAuto.contains("1190") || gAuto.contains("1191"), qPrintable(gAuto));   // A3 quer
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));
+        QVERIFY(m_db->dokuPdfExportieren(pid, fAuto, optSt));
+        const QString gAuto2 = pdfGroesse(fAuto);
+        if (!gAuto2.isEmpty()) QVERIFY2(gAuto2.contains("842") && gAuto2.contains("595"), qPrintable(gAuto2));   // A4 quer
         // groessere Elemente als die Flaeche -> Hinweis
         QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 5000, 300)}));
         QVERIFY(m_db->infostreifenElementeZuGross(sid, "a3"));

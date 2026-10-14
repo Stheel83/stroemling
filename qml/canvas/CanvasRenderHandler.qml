@@ -85,7 +85,7 @@ QtObject {
             var st = nd.infostreifen
             if (!st || !st.felder || st.felder.length === 0) return
             // Format-Fläche (INFOSTREIFEN-03): Unterkante 15 mm unter den Elementen, links-/rechtsbündig zur Bounding-Box;
-            // Größe aus nd.infostreifenBreiteMm/-HoeheMm (0 = "canvas": Box + Rand, mindestens A4 breit).
+            // Größe aus nd.infostreifenBreiteMm/-HoeheMm (0 = "auto": kleinstes DIN-Format, "canvas": Box + Rand).
             // Gleiche Definition wie Database::infostreifenFlaecheMm() (PDF).
             if (!elemente || elemente.length === 0) return
             var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity
@@ -99,8 +99,16 @@ QtObject {
             var boxL = bx0 / cv.mmToPx, boxR = bx1 / cv.mmToPx, boxU = by0 / cv.mmToPx, boxD = by1 / cv.mmToPx
             var fW = nd.infostreifenBreiteMm || 0, fH = nd.infostreifenHoeheMm || 0
             if (fW <= 0 || fH <= 0) {
-                fW = Math.max(297, boxR - boxL + 2 * sRand)
-                fH = boxD - boxU + 2 * sRand
+                // "auto": kleinstes DIN-Format quer, in das Box + Rand passt; sonst (und "canvas") Box + Rand, min. A4 breit
+                var nW = boxR - boxL + 2 * sRand, nH = boxD - boxU + 2 * sRand
+                fW = Math.max(297, nW)
+                fH = nH
+                if (nd.infostreifenModus === "auto") {
+                    var din = [[297, 210], [420, 297], [594, 420], [841, 594], [1189, 841]]
+                    for (var di = 0; di < din.length; di++) {
+                        if (din[di][0] >= nW && din[di][1] >= nH) { fW = din[di][0]; fH = din[di][1]; break }
+                    }
+                }
             }
             sBreite = fW
             sUnten  = boxD + sRand

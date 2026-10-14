@@ -27,6 +27,9 @@ Dialog {
     property real   altRandRechts:       10
     property real   altRandOben:         10
     property real   altRandUnten:        10
+    // Blattkopf der Seite: "schriftfeld" (Normblatt) | "infostreifen" | "keiner" (NORMBLATT-DYNAMISCH-01 N-01)
+    readonly property var _blattkoepfe: ["schriftfeld", "infostreifen", "keiner"]
+    readonly property string blattkopf: _blattkoepfe[Math.max(0, editBlattkopf.currentIndex)]
 
     height: Math.min(implicitHeight, 680)
     background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
@@ -40,7 +43,8 @@ Dialog {
         editRandRechts.value = root.altRandRechts
         editRandOben.value   = root.altRandOben
         editRandUnten.value  = root.altRandUnten
-        normblattPanel.laden(root.itemId)
+        var bk = normblattPanel.laden(root.itemId)
+        editBlattkopf.currentIndex = Math.max(0, root._blattkoepfe.indexOf(bk))
     }
 
     contentItem: ColumnLayout {
@@ -68,9 +72,20 @@ Dialog {
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             color: root.theme.textPrimary; font.pixelSize: 14
         }
-        Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12 }
+        Text { text: qsTr("Blattkopf"); color: root.theme.textMuted; font.pixelSize: 12 }
+        ComboBox {
+            id: editBlattkopf; Layout.fillWidth: true
+            model: [qsTr("Schriftfeld (Normblatt)"), qsTr("Infostreifen"), qsTr("Keiner")]
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: qsTr("Schriftfeld: Zeichnungsrahmen mit Schriftfeld in festem Blatt.\nInfostreifen: schmaler Streifen unter den Elementen, Fläche folgt dem Inhalt.\nKeiner: kein Blattkopf.")
+            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+            contentItem: Text { leftPadding: 8; text: editBlattkopf.displayText; color: root.theme.textPrimary;
+                                font.pixelSize: 13; verticalAlignment: Text.AlignVCenter }
+        }
+        Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12; visible: root.blattkopf === "schriftfeld" }
         ComboBox {
             id: editCmbFormat; Layout.fillWidth: true
+            visible: root.blattkopf === "schriftfeld"
             model: ListModel {
                 ListElement { text: "A4 Querformat  (297 × 210 mm)"; breite: 297; hoehe: 210 }
                 ListElement { text: "A4 Hochformat  (210 × 297 mm)"; breite: 210; hoehe: 297 }
@@ -85,8 +100,9 @@ Dialog {
                                 font.pixelSize: 13; verticalAlignment: Text.AlignVCenter }
         }
 
-        Text { text: qsTr("Ränder (mm)"); color: root.theme.textMuted; font.pixelSize: 12 }
+        Text { text: qsTr("Ränder (mm)"); color: root.theme.textMuted; font.pixelSize: 12; visible: root.blattkopf === "schriftfeld" }
         GridLayout {
+            visible: root.blattkopf === "schriftfeld"
             columns: 4; columnSpacing: 6; rowSpacing: 4; Layout.fillWidth: true
             Text { text: qsTr("Links");  color: root.theme.textMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
             Text { text: qsTr("Rechts"); color: root.theme.textMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
@@ -113,6 +129,7 @@ Dialog {
         SeitenBaumNormblattPanel {
             id: normblattPanel
             theme: root.theme
+            blattkopf: root.blattkopf
         }
         } // ColumnLayout (ScrollView content)
         } // ScrollView

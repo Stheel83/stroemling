@@ -80,12 +80,13 @@ QtObject {
         var streifen = false
         var logoStd  = cv.normblattLogoUrl
         var logoAsp  = nd.logoAspekt
-        var sLinks = 0, sBreite = 0, sHoehe = 0, sOben = 0
+        var sLinks = 0, sBreite = 0, sHoehe = 0, sOben = 0, sUnten = 0, sOberF = 0
         if (!nd.normblattAnzeigen && nd.infostreifenModus !== "aus") {
             var st = nd.infostreifen
             if (!st || !st.felder || st.felder.length === 0) return
-            // Lage: unter der Bounding-Box aller Elemente (15 mm Rand wie PDF „Ganzes Canvas“); Breite je Modus
-            // (nd.infostreifenBreiteMm: Seitenformat/A4…A0, 0 = Bounding-Box + Rand), nie unter A4 quer
+            // Format-Fläche (INFOSTREIFEN-03): Unterkante 15 mm unter den Elementen, links-/rechtsbündig zur Bounding-Box;
+            // Größe aus nd.infostreifenBreiteMm/-HoeheMm (0 = "canvas": Box + Rand, mindestens A4 breit).
+            // Gleiche Definition wie Database::infostreifenFlaecheMm() (PDF).
             if (!elemente || elemente.length === 0) return
             var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity
             for (var ei = 0; ei < elemente.length; ei++) {
@@ -95,11 +96,18 @@ QtObject {
             }
             if (!isFinite(bx0)) return
             var sRand = 15
-            var modusB = nd.infostreifenBreiteMm || 0
-            sLinks = bx0 / cv.mmToPx - sRand
-            sBreite = modusB > 0 ? modusB : Math.max(297, (bx1 - bx0) / cv.mmToPx + 2 * sRand)
-            sHoehe = st.hoeheMm || 8
-            sOben = by1 / cv.mmToPx + sRand - sHoehe
+            var boxL = bx0 / cv.mmToPx, boxR = bx1 / cv.mmToPx, boxU = by0 / cv.mmToPx, boxD = by1 / cv.mmToPx
+            var fW = nd.infostreifenBreiteMm || 0, fH = nd.infostreifenHoeheMm || 0
+            if (fW <= 0 || fH <= 0) {
+                fW = Math.max(297, boxR - boxL + 2 * sRand)
+                fH = boxD - boxU + 2 * sRand
+            }
+            sBreite = fW
+            sUnten  = boxD + sRand
+            sOberF  = sUnten - fH
+            sLinks  = (nd.infostreifenAusrichtung === "rechts") ? boxR + sRand - fW : boxL - sRand
+            sHoehe  = st.hoeheMm || 8
+            sOben   = sUnten - sHoehe
             var fak = sBreite / Math.max(1, st.breiteMm || 297)
             var sf = []
             for (var si = 0; si < st.felder.length; si++) {
@@ -150,6 +158,11 @@ QtObject {
 
         if (streifen) {
             // Hintergrund wie das Standard-Schriftfeld, damit die Schrift auf der Zeichnung lesbar bleibt
+            ctx.strokeStyle = "#2a4a7a"
+            ctx.lineWidth   = Math.max(0.5, s(0.25))
+            ctx.setLineDash([s(3), s(2)])
+            ctx.strokeRect(sx(sLinks * mpx), sy(sOberF * mpx), s(sBreite), s(sUnten - sOberF))
+            ctx.setLineDash([])
             ctx.fillStyle = "rgba(5,15,35,0.8)"
             ctx.fillRect(sx(sLinks * mpx), sy(sOben * mpx), s(sBreite), s(sHoehe))
         } else {

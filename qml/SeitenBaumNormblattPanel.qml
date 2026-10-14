@@ -9,12 +9,20 @@ ColumnLayout {
     required property var theme
     property var _normblattVorlagen: []
     readonly property var _streifenModi: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas", "aus"]
+    readonly property var _streifenAusrichtungen: ["links", "rechts"]
+    property int _seiteId: -1
+    property bool _streifenZuGross: false
+    function _streifenPruefen() {
+        _streifenZuGross = _seiteId > 0 && db.infostreifenElementeZuGross(_seiteId,
+                               _streifenModi[Math.max(0, cmbInfostreifen.currentIndex)])
+    }
 
     Layout.fillWidth: true
     spacing: 10
 
     function laden(seiteId) {
         root._normblattVorlagen = db.normblattVorlagenListe().filter(function(v) { return v.art === "schriftfeld" })
+        root._seiteId = seiteId
         var nd = db.normblattDatenLaden(seiteId)
         if (nd) {
             chkNormblatt.checked       = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true
@@ -37,6 +45,8 @@ ColumnLayout {
             tfRevisionKennung.text = nd.revisionKennung || ""
             var si = root._streifenModi.indexOf(nd.infostreifenModus || "auto")
             cmbInfostreifen.currentIndex = si >= 0 ? si : 0
+            cmbAusrichtung.currentIndex = nd.infostreifenAusrichtung === "rechts" ? 1 : 0
+            root._streifenPruefen()
         }
     }
 
@@ -52,7 +62,8 @@ ColumnLayout {
              && root._normblattVorlagen.length > 0)
                 ? root._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
         db.seiteInDokuPdfSetzen(seiteId, chkInDokuPdf.checked)
-        db.seiteInfostreifenSetzen(seiteId, root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)])
+        db.seiteInfostreifenSetzen(seiteId, root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)],
+                                   root._streifenAusrichtungen[Math.max(0, cmbAusrichtung.currentIndex)])
         db.seiteRevisionSetzen(
             seiteId,
             cmbRevisionStatus.currentText,
@@ -122,11 +133,30 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: !chkNormblatt.checked
         model: [qsTr("Automatisch (Seitenformat)"), "A4", "A3", "A2", "A1", "A0", qsTr("Gesamtes Canvas"), qsTr("Aus")]
+        onActivated: root._streifenPruefen()
         ToolTip.visible: hovered; ToolTip.delay: 600
-        ToolTip.text: qsTr("Streifen mit Projekt-/Blattangaben unter den Elementen (Seiten ohne Schriftfeld). Vorlage: Projektseite → Infostreifen, Gestaltung unter „Blattvorlagen“.")
+        ToolTip.text: qsTr("Fläche im gewählten Format um die Elemente, Infostreifen am unteren Rand (Seiten ohne Schriftfeld). Vorlage: Projektseite → Infostreifen, Gestaltung unter „Blattvorlagen“.")
         background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
         contentItem: Text { leftPadding: 8; text: cmbInfostreifen.displayText; color: root.theme.textPrimary
             font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+    }
+    ComboBox {
+        id: cmbAusrichtung
+        Layout.fillWidth: true
+        visible: !chkNormblatt.checked && cmbInfostreifen.currentIndex !== 7
+        model: [qsTr("Linksbündig zu den Elementen"), qsTr("Rechtsbündig zu den Elementen")]
+        ToolTip.visible: hovered; ToolTip.delay: 600
+        ToolTip.text: qsTr("Legt fest, ob die Format-Fläche links der Elemente beginnt oder rechts der Elemente endet.")
+        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+        contentItem: Text { leftPadding: 8; text: cmbAusrichtung.displayText; color: root.theme.textPrimary
+            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+    }
+    Text {
+        Layout.fillWidth: true
+        visible: !chkNormblatt.checked && root._streifenZuGross
+        text: qsTr("Die Elemente sind größer als die gewählte Fläche – Format vergrößern oder „Gesamtes Canvas“ wählen.")
+        color: root.theme.warning !== undefined ? root.theme.warning : "#d08a20"
+        font.pixelSize: 12; wrapMode: Text.WordWrap
     }
 
     // Titelblatt-Vorlage (nur wenn Normblatt aktiv)

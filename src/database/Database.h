@@ -412,8 +412,10 @@ public:
     // DOKU-PDF-01: Seite im Dokumentations-PDF (Schaltplan-Abschnitt) enthalten?
     // Lesen über normblattDatenLaden()["inDokuPdf"].
     Q_INVOKABLE bool seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf);
-    // Infostreifen je Seite: auto|a4|a3|a2|a1|a0|canvas|aus (INFOSTREIFEN-03)
-    Q_INVOKABLE bool seiteInfostreifenSetzen(int seiteId, const QString &modus);
+    // Infostreifen je Seite: modus auto|a4|a3|a2|a1|a0|canvas|aus, ausrichtung links|rechts (INFOSTREIFEN-03)
+    Q_INVOKABLE bool seiteInfostreifenSetzen(int seiteId, const QString &modus, const QString &ausrichtung);
+    // true, wenn die Elemente der Seite groesser sind als die Format-Flaeche des Modus (nicht bei canvas/aus)
+    Q_INVOKABLE bool infostreifenElementeZuGross(int seiteId, const QString &modus);
 
     Q_INVOKABLE bool normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                                   const QString &hintergrundFarbe,
@@ -453,7 +455,8 @@ public:
     // Vorlage des Infostreifens (INFOSTREIFEN-01): {felder, breiteMm (Referenzbreite), hoeheMm, logoDataUrl, logoAspekt};
     // leere Map = keine Streifenvorlage vorhanden. Vorlage = projekt.infostreifen_vorlage_id, sonst Standard-Infostreifen.
     QVariantMap infostreifenLaden(int seiteId);
-    static double infostreifenBreiteMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm);
+    // Format-Flaeche je Modus in mm; (0,0) = canvas/aus (Groesse folgt den Elementen bzw. entfaellt)
+    static QSizeF infostreifenFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm);
     // Projekt-Auswahl der Infostreifen-Vorlage (0 = Standard-Infostreifen)
     Q_INVOKABLE int  projektInfostreifenVorlageId();
     Q_INVOKABLE bool projektInfostreifenVorlageSetzen(int vorlageId);
@@ -1050,7 +1053,9 @@ private:
     int    pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer, const QList<int> &seiteIds,
                                       bool mitNormblatt, bool vollCanvas, bool mitInfostreifen,
                                       bool ersteSeiteNeu);
-    QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas);
+    QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas, bool mitNormblatt, bool mitInfostreifen);
+    // Format-Flaeche des Infostreifens (mm, Seitenkoordinaten) aus Modus/Ausrichtung/Elementen; ungueltig = keine
+    QRectF infostreifenFlaecheMm(int seiteId, const QVariantMap &nb);
     QList<int> dokuPdfSeitenIds(int projektId);
 
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen

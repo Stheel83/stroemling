@@ -343,11 +343,13 @@ void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
     if (felder.isEmpty()) return;
 
     const double refB = qMax(1.0, st.value("breiteMm", 297.0).toDouble());
-    const double hStr = st.value("hoeheMm", 8.0).toDouble();
+    // Höhe und Schrift wachsen mit dem Format (Faktor = Streifenbreite / Referenzbreite), A4 quer = 1:1
+    const double hRef = st.value("hoeheMm", 8.0).toDouble();
     // Breite je Modus (INFOSTREIFEN-03): 0 = volle Blattbreite, sonst Formatbreite, nie breiter als das Blatt
     const double modusB = nb.value("infostreifenBreiteMm").toDouble();
     const double wMm    = modusB > 0 ? qMin(modusB, bMm) : bMm;
     const double faktor = wMm / refB;
+    const double hStr = hRef * faktor;
     const double y0 = hMm - hStr;
 
     p.fillRect(QRectF(0, y0 * pxPerMm, wMm * pxPerMm, hStr * pxPerMm), Qt::white);
@@ -357,7 +359,9 @@ void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
         QVariantMap f = fv.toMap();
         f["xMm"]      = f.value("xMm").toDouble() * faktor;
         f["breiteMm"] = f.value("breiteMm").toDouble() * faktor;
-        f["yMm"]      = y0 + f.value("yMm").toDouble();
+        f["yMm"]      = y0 + f.value("yMm").toDouble() * faktor;
+        f["hoeheMm"]  = f.value("hoeheMm").toDouble() * faktor;
+        f["schriftgroesse"] = f.value("schriftgroesse").toDouble() * faktor;
         skaliert.append(f);
     }
     QVariantMap d = nb;

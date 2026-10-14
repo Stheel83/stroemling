@@ -3037,6 +3037,9 @@ static QList<SchemaMigration> alleMigrationen()
         { 169, "INFOSTREIFEN-03: seite.infostreifen ('auto'|'a4'|'a3'|'a2'|'a1'|'a0'|'canvas'|'aus', Default 'auto') - Breite/Anzeige des Infostreifens je Seite; auto folgt dem Seitenformat.", {
             R"(ALTER TABLE seite ADD COLUMN infostreifen TEXT NOT NULL DEFAULT 'auto')",
         }},
+        { 170, "INFOSTREIFEN-03b: seite.infostreifen_ausrichtung ('links'|'rechts', Default 'links') - Ausrichtung der Format-Flaeche des Infostreifens relativ zu den Elementen.", {
+            R"(ALTER TABLE seite ADD COLUMN infostreifen_ausrichtung TEXT NOT NULL DEFAULT 'links')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

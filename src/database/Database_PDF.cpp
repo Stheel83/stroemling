@@ -62,11 +62,26 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         double bMm = nb.value("breiteMm", 297.0).toDouble();
         double hMm = nb.value("hoeheMm",  210.0).toDouble();
         double txCu = 0.0, tyCu = 0.0;
+        bool verschieben = false;
 
-        if (vollCanvas) {
+        // Infostreifen-Format-Flaeche (INFOSTREIFEN-03): Blatt = Flaechenformat, Inhalt um die Flaechenecke
+        // verschoben; nur wenn ein Streifen gezeichnet wird und nicht "Ganzes Canvas"
+        const bool streifenFlaeche = mitInfostreifen && !vollCanvas
+                                     && !(mitNormblatt && nb.value("normblattAnzeigen").toBool());
+        QRectF flaeche;
+        if (streifenFlaeche) {
+            flaeche = infostreifenFlaecheMm(seiteId, nb);
+            if (flaeche.isValid()) {
+                bMm = flaeche.width();  hMm = flaeche.height();
+                txCu = flaeche.left() * 4.0;  tyCu = flaeche.top() * 4.0;
+                verschieben = true;
+                nb[QStringLiteral("infostreifenBreiteMm")] = flaeche.width();
+            }
+        } else if (vollCanvas) {
             PdfBBox bb = pdfBoundingBox(seiteId, bMm, hMm, m_db);
             txCu = bb.txCu; tyCu = bb.tyCu;
             bMm  = bb.bMm;  hMm  = bb.hMm;
+            verschieben = true;
         }
 
         if (i > 0 || ersteSeiteNeu) {
@@ -80,7 +95,7 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         // (enthält ggf. den vollCanvas-Translate)
         painter.save();
         painter.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
-        if (vollCanvas)
+        if (verschieben)
             painter.translate(-txCu * C, -tyCu * C);
         QVariantList elemente = grafikLaden(seiteId);
         QVector<PdfKabelAderLabel> aderLabels;
@@ -110,11 +125,15 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
 }
 
 // Seitengröße (mm) einer Schaltplan-Seite im Export - für das Start-Layout des Writers.
-QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas)
+QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas, bool mitNormblatt, bool mitInfostreifen)
 {
     QVariantMap nb = normblattDatenLaden(seiteId);
     double b = nb.value("breiteMm", 297.0).toDouble();
     double h = nb.value("hoeheMm",  210.0).toDouble();
+    if (mitInfostreifen && !vollCanvas && !(mitNormblatt && nb.value("normblattAnzeigen").toBool())) {
+        const QRectF f = infostreifenFlaecheMm(seiteId, nb);
+        if (f.isValid()) return f.size();
+    }
     if (vollCanvas) {
         PdfBBox bb = pdfBoundingBox(seiteId, b, h, m_db);
         b = bb.bMm; h = bb.hMm;
@@ -352,7 +371,8 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         startLayout = pdfHochSeitenLayout();
     } else if (ersterTyp == QLatin1String("schaltplan")) {
         startLayout = QPageLayout(
-            QPageSize(pdfSchaltplanSeitenGroesseMm(opt.seiteIds.first(), opt.vollCanvas), QPageSize::Millimeter),
+            QPageSize(pdfSchaltplanSeitenGroesseMm(opt.seiteIds.first(), opt.vollCanvas, opt.mitNormblatt, opt.mitInfostreifen),
+                      QPageSize::Millimeter),
             QPageLayout::Portrait, QMarginsF(0, 0, 0, 0));
     }
 

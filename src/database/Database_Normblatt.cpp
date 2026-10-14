@@ -73,7 +73,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         SELECT s.blattnummer, s.bezeichnung, a.kuerzel AS anlage_kuerzel, o.kuerzel AS ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
-               s.revision_status, s.revision_kennung, s.in_doku_pdf, s.infostreifen,
+               s.revision_status, s.revision_kennung, s.in_doku_pdf, s.infostreifen, s.infostreifen_ausrichtung,
                p.name         AS projekt_name,
                p.projektnummer,
                p.auftraggeber,
@@ -157,12 +157,14 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                       qv.value(0).toByteArray(), qv.value(1).toString());
         }
     }
-    // Infostreifen (INFOSTREIFEN-02/03): Modus und Breite immer, die Vorlage nur auf Seiten ohne Schriftfeld
+    // Infostreifen (INFOSTREIFEN-02/03): Modus/Format immer, die Vorlage nur auf Seiten ohne Schriftfeld
     {
         const QString modus = q.value("infostreifen").toString();
-        m[QStringLiteral("infostreifenModus")]    = modus;
-        m[QStringLiteral("infostreifenBreiteMm")] = infostreifenBreiteMm(modus, q.value("breite_mm").toDouble(),
-                                                                         q.value("hoehe_mm").toDouble());
+        const QSizeF fmt = infostreifenFormatMm(modus, q.value("breite_mm").toDouble(), q.value("hoehe_mm").toDouble());
+        m[QStringLiteral("infostreifenModus")]       = modus;
+        m[QStringLiteral("infostreifenAusrichtung")] = q.value("infostreifen_ausrichtung").toString();
+        m[QStringLiteral("infostreifenBreiteMm")]    = fmt.width();
+        m[QStringLiteral("infostreifenHoeheMm")]     = fmt.height();
         if (!q.value("normblatt_anzeigen").toBool() && modus != QLatin1String("aus"))
             m[QStringLiteral("infostreifen")] = infostreifenLaden(seiteId);
     }
@@ -216,34 +218,80 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
     return true;
 }
 
-// Breite des Infostreifens je Modus (mm); 0 = "canvas" (Breite richtet sich nach Bounding-Box bzw. Blatt). INFOSTREIFEN-03
-double Database::infostreifenBreiteMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm)
+// Format-Flaeche des Infostreifens je Modus (mm). (0,0) = canvas (Groesse folgt den Elementen) bzw. aus. INFOSTREIFEN-03
+QSizeF Database::infostreifenFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm)
 {
-    if (modus == QLatin1String("a4")) return 297.0;
-    if (modus == QLatin1String("a3")) return 420.0;
-    if (modus == QLatin1String("a2")) return 594.0;
-    if (modus == QLatin1String("a1")) return 841.0;
-    if (modus == QLatin1String("a0")) return 1189.0;
-    if (modus == QLatin1String("canvas")) return 0.0;
-    return qMax(297.0, qMax(seiteBreiteMm, seiteHoeheMm));   // auto: Seitenformat, mindestens A4
+    if (modus == QLatin1String("a4")) return {297.0, 210.0};
+    if (modus == QLatin1String("a3")) return {420.0, 297.0};
+    if (modus == QLatin1String("a2")) return {594.0, 420.0};
+    if (modus == QLatin1String("a1")) return {841.0, 594.0};
+    if (modus == QLatin1String("a0")) return {1189.0, 841.0};
+    if (modus == QLatin1String("canvas") || modus == QLatin1String("aus")) return {0.0, 0.0};
+    return {seiteBreiteMm, seiteHoeheMm};   // auto: Seitenformat der Seite
 }
 
-bool Database::seiteInfostreifenSetzen(int seiteId, const QString &modus)
+bool Database::seiteInfostreifenSetzen(int seiteId, const QString &modus, const QString &ausrichtung)
 {
     static const QStringList erlaubt = {"auto", "a4", "a3", "a2", "a1", "a0", "canvas", "aus"};
-    if (!erlaubt.contains(modus)) {
-        qCWarning(lcDb) << "seiteInfostreifenSetzen: ungueltiger Modus" << modus;
+    if (!erlaubt.contains(modus) || (ausrichtung != QLatin1String("links") && ausrichtung != QLatin1String("rechts"))) {
+        qCWarning(lcDb) << "seiteInfostreifenSetzen: ungueltige Werte" << modus << ausrichtung;
         return false;
     }
     QSqlQuery q(m_db);
-    q.prepare("UPDATE seite SET infostreifen = :m WHERE id = :sid");
+    q.prepare("UPDATE seite SET infostreifen = :m, infostreifen_ausrichtung = :a WHERE id = :sid");
     q.bindValue(":m", modus);
+    q.bindValue(":a", ausrichtung);
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
         qCWarning(lcDb) << "seiteInfostreifenSetzen:" << q.lastError().text();
         return false;
     }
     return true;
+}
+
+namespace {
+// Bounding-Box der Elemente einer Seite in mm (x1,y1,x2,y2 / 4) – gleiche Definition wie drawNormblatt() im Canvas
+bool elementeBoxMm(const QSqlDatabase &db, int seiteId, QRectF &box)
+{
+    QSqlQuery q(db);
+    q.prepare(R"(SELECT MIN(MIN(x1,x2)), MIN(MIN(y1,y2)), MAX(MAX(x1,x2)), MAX(MAX(y1,y2)), COUNT(*)
+                 FROM grafik_element WHERE seite_id = :sid)");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec() || !q.next() || q.value(4).toInt() == 0) return false;
+    box = QRectF(QPointF(q.value(0).toDouble() / 4.0, q.value(1).toDouble() / 4.0),
+                 QPointF(q.value(2).toDouble() / 4.0, q.value(3).toDouble() / 4.0));
+    return true;
+}
+} // namespace
+
+bool Database::infostreifenElementeZuGross(int seiteId, const QString &modus)
+{
+    if (modus == QLatin1String("canvas") || modus == QLatin1String("aus")) return false;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT breite_mm, hoehe_mm FROM seite WHERE id = :sid");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec() || !q.next()) return false;
+    const QSizeF fmt = infostreifenFormatMm(modus, q.value(0).toDouble(), q.value(1).toDouble());
+    QRectF box;
+    if (!elementeBoxMm(m_db, seiteId, box)) return false;
+    return box.width() + 30.0 > fmt.width() + 0.01 || box.height() + 30.0 > fmt.height() + 0.01;
+}
+
+// Format-Flaeche des Infostreifens (Seitenkoordinaten, mm); ungueltiges Rechteck = keine Flaeche (aus / keine Elemente).
+QRectF Database::infostreifenFlaecheMm(int seiteId, const QVariantMap &nb)
+{
+    const QString modus = nb.value("infostreifenModus").toString();
+    if (modus == QLatin1String("aus")) return {};
+    QRectF box;
+    if (!elementeBoxMm(m_db, seiteId, box)) return {};
+    const double rand = 15.0;
+    QSizeF fmt(nb.value("infostreifenBreiteMm").toDouble(), nb.value("infostreifenHoeheMm").toDouble());
+    if (fmt.width() <= 0 || fmt.height() <= 0)   // canvas: Box + Rand, mindestens A4 breit
+        fmt = QSizeF(qMax(297.0, box.width() + 2 * rand), box.height() + 2 * rand);
+    const double unten = box.bottom() + rand;
+    const bool rechts = nb.value("infostreifenAusrichtung").toString() == QLatin1String("rechts");
+    const double links = rechts ? box.right() + rand - fmt.width() : box.left() - rand;
+    return QRectF(links, unten - fmt.height(), fmt.width(), fmt.height());
 }
 
 bool Database::seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf)

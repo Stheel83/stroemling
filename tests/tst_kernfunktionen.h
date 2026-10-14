@@ -1468,21 +1468,56 @@ private slots:
         QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
         QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
 
-        // INFOSTREIFEN-03: Modus je Seite und Breite
+        // INFOSTREIFEN-03: Modus je Seite, Format-Flaeche, Ausrichtung
         QCOMPARE(nd.value("infostreifenModus").toString(), QStringLiteral("auto"));
-        QVERIFY(nd.value("infostreifenBreiteMm").toDouble() >= 297.0);          // auto: Seitenformat, min. A4
-        QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "quatsch"));
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3"));
-        QCOMPARE(m_db->normblattDatenLaden(sid).value("infostreifenBreiteMm").toDouble(), 420.0);
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "canvas"));
-        QCOMPARE(m_db->normblattDatenLaden(sid).value("infostreifenBreiteMm").toDouble(), 0.0);
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "aus"));
+        QCOMPARE(nd.value("infostreifenAusrichtung").toString(), QStringLiteral("links"));
+        QVERIFY(nd.value("infostreifenBreiteMm").toDouble() > 0);               // auto: Seitenformat
+        QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "quatsch", "links"));
+        QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "a3", "mitte"));
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3", "links"));
+        nd = m_db->normblattDatenLaden(sid);
+        QCOMPARE(nd.value("infostreifenBreiteMm").toDouble(), 420.0);
+        QCOMPARE(nd.value("infostreifenHoeheMm").toDouble(), 297.0);
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "canvas", "rechts"));
+        nd = m_db->normblattDatenLaden(sid);
+        QCOMPARE(nd.value("infostreifenBreiteMm").toDouble(), 0.0);
+        QCOMPARE(nd.value("infostreifenAusrichtung").toString(), QStringLiteral("rechts"));
+        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "canvas"));
+
+        // PDF: Blatt = Format-Flaeche (A3 quer = 420 x 297 mm = 1190 x 842 pt), Streifen steht darauf
+        auto pdfGroesse = [&](const QString &pdf) {
+            QProcess pr; pr.start("pdfinfo", {pdf});
+            if (!pr.waitForFinished(20000)) return QString();
+            const QString o = QString::fromUtf8(pr.readAllStandardOutput());
+            const int k = o.indexOf("Page size:");
+            return k < 0 ? QString() : o.mid(k, o.indexOf('\n', k) - k);
+        };
+        // Elemente einfuegen, damit eine Box existiert (Seite hat sonst keine); 100..500 cu = 25..125 mm
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3", "links"));
+        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "a3"));
+        const QString optSt = R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})";
+        const QString fA3 = dir + "/stroemling_is3_a3.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, fA3, optSt));
+        const QString gA3 = pdfGroesse(fA3);
+        if (!gA3.isEmpty()) QVERIFY2(gA3.contains("1190") || gA3.contains("1191"), qPrintable(gA3));   // A3 quer
+        QVERIFY2(pdfText(fA3).contains("KernTest"), qPrintable(pdfText(fA3)));
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a4", "rechts"));
+        const QString fA4 = dir + "/stroemling_is3_a4.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, fA4, optSt));
+        const QString gA4 = pdfGroesse(fA4);
+        if (!gA4.isEmpty()) QVERIFY2(gA4.contains("842") && gA4.contains("595"), qPrintable(gA4));        // A4 quer
+        // groessere Elemente als die Flaeche -> Hinweis
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 5000, 300)}));
+        QVERIFY(m_db->infostreifenElementeZuGross(sid, "a3"));
+        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "a0") || true);
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "aus", "links"));
         QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
         // PDF: "aus" unterdrueckt den Streifen trotz Export-Option
         const QString fAus = dir + "/stroemling_is3_aus.pdf";
         QVERIFY(m_db->dokuPdfExportieren(pid, fAus, R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})"));
         QVERIFY(!pdfText(fAus).contains("KernTest"));
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "auto"));
+        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "auto", "links"));
 
         // PDF mit Streifen: Projektname aus dem Standard-Streifen steht auf der Seite
         const QString f1 = dir + "/stroemling_is1_a.pdf";

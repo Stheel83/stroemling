@@ -87,7 +87,7 @@ QStringList RosiManager::_poolD_UrlaubRueckkehr()
 QStringList RosiManager::_poolD2_Urlaubsgeschichten()
 {
     return {
-        "Weeste, in Spanien hab ick'n Wels kennenjelernt, der hatte 'n Schnurrbart dicker als meiner.",
+        "Weeste, im Urlaub hab ick'n Wels kennenjelernt, der hatte 'n Schnurrbart dicker als meiner.",
         "Sach ick dir, die Wellen da unten, voll der Trubel, hab kaum geschlafen.",
         "War auch kurz bei meiner Tante im Hafenbecken, die erzählt immer noch dieselben Geschichten.",
         "Hab Muscheln jesammelt, schöne neue Deko für die Röhre.",

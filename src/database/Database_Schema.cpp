@@ -3053,6 +3053,13 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE seite DROP COLUMN infostreifen_ausrichtung)",
             R"(ALTER TABLE projekt DROP COLUMN infostreifen_vorlage_id)",
         }},
+        { 173, "NORMBLATT-DYNAMISCH-01 N-04: seite.geaendert_am (Datum der letzten Speicherung, fuer {seite.geaendert}); Standard-Infostreifen zeigt das Aenderungsdatum und 'Bl. x/y'.", {
+            R"(ALTER TABLE seite ADD COLUMN geaendert_am TEXT)",
+            R"(UPDATE seite SET geaendert_am = (SELECT substr(p.erstellt_am, 1, 10) FROM ort o JOIN anlage a ON a.id = o.anlage_id JOIN projekt p ON p.id = a.projekt_id WHERE o.id = seite.ort_id))",
+            R"(UPDATE normblatt_feld SET inhalt = '{seite.geaendert}' WHERE vorlage_id = (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='schriftfeld' ORDER BY id LIMIT 1) AND feldtyp = 'fest' AND inhalt = '{heute}')",
+            R"(UPDATE normblatt_feld SET breite_mm = 40 WHERE vorlage_id = (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='schriftfeld' ORDER BY id LIMIT 1) AND feldtyp = 'projekt' AND quelle_spalte = 'bearbeiter' AND breite_mm = 55)",
+            R"(INSERT INTO normblatt_feld (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm, label, inhalt, quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge) SELECT (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='schriftfeld' ORDER BY id LIMIT 1), 'fest', 281, 1.5, 15, 5, '', 'Bl. {seite.nr}/{seite.anzahl}', '', 2.8, 0, 0, 9 WHERE (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='schriftfeld' ORDER BY id LIMIT 1) IS NOT NULL AND NOT EXISTS (SELECT 1 FROM normblatt_feld WHERE vorlage_id = (SELECT id FROM normblatt_vorlage WHERE name='Standard-Infostreifen' AND art='schriftfeld' ORDER BY id LIMIT 1) AND inhalt LIKE 'Bl. {seite.nr}%'))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

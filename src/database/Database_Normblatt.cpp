@@ -73,7 +73,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         SELECT s.blattnummer, s.bezeichnung, a.kuerzel AS anlage_kuerzel, o.kuerzel AS ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
-               s.revision_status, s.revision_kennung, s.in_doku_pdf, 
+               s.revision_status, s.revision_kennung, s.in_doku_pdf, s.geaendert_am,
                s.normblatt_position, s.normblatt_format, s.normblatt_ausrichtung, s.normblatt_rahmen,
                p.name         AS projekt_name,
                p.projektnummer,
@@ -118,6 +118,28 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     m[QStringLiteral("titelblattVorlage")] = q.value("titelblatt_vorlage");
     m[QStringLiteral("revisionStatus")]   = q.value("revision_status");
     m[QStringLiteral("inDokuPdf")]        = q.value("in_doku_pdf");
+    m[QStringLiteral("geaendertAm")]      = q.value("geaendert_am");
+    // laufende Nummer der Seite im Projekt und Seitenzahl (Reihenfolge wie das Dokumentations-PDF), fuer {seite.nr}/{seite.anzahl}
+    {
+        QSqlQuery qn(m_db);
+        qn.prepare(R"(
+            SELECT s2.id FROM seite s2
+            JOIN ort o2 ON s2.ort_id = o2.id
+            JOIN anlage a2 ON o2.anlage_id = a2.id
+            WHERE a2.projekt_id = (SELECT a.projekt_id FROM seite s JOIN ort o ON s.ort_id = o.id
+                                   JOIN anlage a ON o.anlage_id = a.id WHERE s.id = :sid)
+            ORDER BY a2.kuerzel, o2.kuerzel, s2.sortierung, s2.blattnummer)");
+        qn.bindValue(":sid", seiteId);
+        int nr = 0, gesamt = 0;
+        if (qn.exec()) {
+            while (qn.next()) {
+                ++gesamt;
+                if (qn.value(0).toInt() == seiteId) nr = gesamt;
+            }
+        }
+        m[QStringLiteral("blattNr")]     = nr;
+        m[QStringLiteral("blattAnzahl")] = gesamt;
+    }
     m[QStringLiteral("revisionKennung")]  = q.value("revision_kennung");
     m[QStringLiteral("projektName")]      = q.value("projekt_name");
     m[QStringLiteral("projektnummer")]    = q.value("projektnummer");

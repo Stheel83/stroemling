@@ -554,6 +554,15 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
             qCWarning(lcDb) << "grafikSpeichern sps_kanal relink:" << qSps.lastError().text();
     }
 
+    {
+        // N-04: Datum der letzten Speicherung ({seite.geaendert} in Schriftfeld/Infostreifen)
+        QSqlQuery qDat;
+        qDat.prepare("UPDATE seite SET geaendert_am = date('now', 'localtime') WHERE id = :sid");
+        qDat.bindValue(":sid", seiteId);
+        if (!qDat.exec())
+            qCWarning(lcDb) << "grafikSpeichern geaendert_am:" << qDat.lastError().text();
+    }
+
     if (!m_db.commit()) {
         auto msg = m_db.lastError().text();
         qCWarning(lcDb) << "grafikSpeichern commit:" << msg;

@@ -65,6 +65,9 @@ Eine so erstellte Vorlage wählst du danach in jeder Seite über
 - **Platzhalter in festen Texten:** `{projekt.name}`, `{projekt.projektnummer}`, `{projekt.auftraggeber}`,
   `{projekt.auftragnehmer}`, `{projekt.bearbeiter}`, `{projekt.norm}`, `{projekt.werk}`, `{projekt.abteilung}`,
   `{datum}` (Projekt angelegt), `{heute}` (Ausgabedatum) und `{titelzusatz}` (Eingabe beim PDF-Export).
+  Seitenbezogen: `{seite.nr}` und `{seite.anzahl}` (laufende Nummer und Seitenzahl im Projekt, also „Blatt 3 von 12“),
+  `{seite.blattnummer}`, `{seite.bezeichnung}`, `{seite.kennzeichen}` und `{seite.geaendert}` (Datum der letzten Speicherung
+  der Seite). Auf Deckblättern bleiben die seitenbezogenen Platzhalter leer.
 - **Deckblatt:** Das Deckblatt des Dokumentations-PDFs ist eine Blattvorlage der Art „Deckblatt“ (A4 hoch).
   Mitgeliefert ist „Standard-Deckblatt“; per „Kopieren“ legst du eine eigene Variante an und wählst sie im
   PDF-Export beim Abschnitt Deckblatt unter „Vorlage“.

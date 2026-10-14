@@ -84,6 +84,18 @@ static QString nbPlatzhalter(QString t, const QVariantMap &nb)
         {"{titelzusatz}", "titelzusatz"},
     };
     for (const auto &e : tab) t.replace(e.first, nb.value(e.second).toString());
+    // Seitenbezug (N-04); bei Deckblaettern ohne Seite leer
+    if (t.contains("{seite.")) {
+        const int nr = nb.value("blattNr").toInt(), gesamt = nb.value("blattAnzahl").toInt();
+        t.replace("{seite.nr}", nr > 0 ? QString::number(nr) : QString());
+        t.replace("{seite.anzahl}", gesamt > 0 ? QString::number(gesamt) : QString());
+        t.replace("{seite.blattnummer}", nb.value("blattnummer").toString());
+        t.replace("{seite.bezeichnung}", nb.value("bezeichnung").toString());
+        t.replace("{seite.kennzeichen}", nb.contains("blattnummer") ? nbVollKz(nb) : QString());
+        const QString g = nb.value("geaendertAm").toString();
+        const QDate gd = QDate::fromString(g.left(10), Qt::ISODate);
+        t.replace("{seite.geaendert}", gd.isValid() ? gd.toString("dd.MM.yyyy") : QString());
+    }
     t.replace("{datum}", nbDatumText(nb));
     t.replace("{heute}", QDate::currentDate().toString("dd.MM.yyyy"));
     return t;

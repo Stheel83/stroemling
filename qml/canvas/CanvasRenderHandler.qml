@@ -334,6 +334,12 @@ QtObject {
             return kz + bn
         }
         // Platzhalter in festen Texten (siehe PdfRenderer_Normblatt.cpp nbPlatzhalter)
+        // zuletzt gespeichert (seite.geaendert_am, ISO) als dd.MM.yyyy; leer wenn unbekannt
+        function geaendertText() {
+            var g = (nd.geaendertAm || "").toString()
+            var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(g)
+            return m ? (m[3] + "." + m[2] + "." + m[1]) : ""
+        }
         function platzhalter(t) {
             if (t.indexOf("{") < 0) return t
             var m = {
@@ -342,7 +348,12 @@ QtObject {
                 "{projekt.bearbeiter}": nd.bearbeiter, "{projekt.norm}": nd.norm,
                 "{projekt.werk}": nd.werk, "{projekt.abteilung}": nd.abteilung,
                 "{titelzusatz}": nd.titelzusatz, "{datum}": datumText(),
-                "{heute}": Qt.formatDate(new Date(), "dd.MM.yyyy")
+                "{heute}": Qt.formatDate(new Date(), "dd.MM.yyyy"),
+                // Seitenbezug (N-04), Spiegel von nbPlatzhalter() im PDF
+                "{seite.nr}": nd.blattNr > 0 ? String(nd.blattNr) : "",
+                "{seite.anzahl}": nd.blattAnzahl > 0 ? String(nd.blattAnzahl) : "",
+                "{seite.blattnummer}": nd.blattnummer, "{seite.bezeichnung}": nd.bezeichnung,
+                "{seite.kennzeichen}": vollkz(), "{seite.geaendert}": geaendertText()
             }
             for (var k in m) t = t.split(k).join((m[k] || "").toString())
             return t

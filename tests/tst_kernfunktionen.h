@@ -1533,6 +1533,57 @@ private slots:
         QVERIFY(m_db->normblattVorlageLoeschen(eigen));
     }
 
+    // NORMBLATT-DYNAMISCH-01 N-04: seitenbezogene Platzhalter, Aenderungsdatum, Standard-Infostreifen-Felder
+    void normblatt_dynamisch_04_platzhalter()
+    {
+        neueSeite("ND4");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const int sid = einWert("SELECT id FROM seite ORDER BY id DESC LIMIT 1").toInt();
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr; pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+        // Standard-Infostreifen: Datumsfeld auf {seite.geaendert}, Feld "Bl. x/y" vorhanden
+        int vid = 0;
+        for (const QVariant &v : m_db->normblattVorlagenListe())
+            if (v.toMap().value("name").toString() == "Standard-Infostreifen") vid = v.toMap().value("id").toInt();
+        QVERIFY(vid > 0);
+        QStringList inhalte;
+        for (const QVariant &f : m_db->normblattFelderLaden(vid)) inhalte << f.toMap().value("inhalt").toString();
+        QVERIFY(inhalte.contains("{seite.geaendert}"));
+        QVERIFY(inhalte.contains("Bl. {seite.nr}/{seite.anzahl}"));
+        QVERIFY(!inhalte.contains("{heute}"));
+
+        // Speichern setzt das Aenderungsdatum; Blattzaehler im Projekt
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));
+        QVariantMap nd = m_db->normblattDatenLaden(sid);
+        QCOMPARE(nd.value("geaendertAm").toString(), QDate::currentDate().toString(Qt::ISODate));
+        QVERIFY(nd.value("blattNr").toInt() >= 1);
+        QVERIFY(nd.value("blattAnzahl").toInt() >= nd.value("blattNr").toInt());
+
+        // eigene Vorlage mit Platzhaltern im PDF
+        const int eigen = m_db->normblattVorlageSpeichern({{"name", "Platzhalter-Test"}, {"art", "schriftfeld"},
+            {"breiteMm", 297}, {"hoeheMm", 210}, {"randLinksMm", 10}, {"randRechtsMm", 10}, {"randObenMm", 10}, {"randUntenMm", 10}});
+        QVERIFY(eigen > 0);
+        QVariantMap fd{{"feldtyp", "fest"}, {"xMm", 20}, {"yMm", 190}, {"breiteMm", 200}, {"hoeheMm", 8},
+                       {"inhalt", "Blatt {seite.nr} von {seite.anzahl} / {seite.blattnummer} / {seite.geaendert}"},
+                       {"schriftgroesse", 3.0}, {"reihenfolge", 0}};
+        QVERIFY(m_db->normblattFelderSpeichern(eigen, {fd}));
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), eigen));
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true));
+        const QString f = QDir::tempPath() + "/stroemling_nd4.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f, R"({"mitNormblatt":true,"abschnitte":[{"typ":"schaltplan"}]})"));
+        const QString t = pdfText(f);
+        const QString heute = QDate::currentDate().toString("dd.MM.yyyy");
+        QVERIFY2(t.contains(QString("Blatt %1 von %2").arg(nd.value("blattNr").toInt()).arg(nd.value("blattAnzahl").toInt())),
+                 qPrintable(t));
+        QVERIFY2(t.contains(heute), qPrintable(t));
+        QVERIFY2(!t.contains("{seite."), qPrintable(t));
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+        QVERIFY(m_db->normblattVorlageLoeschen(eigen));
+    }
+
     // NORMBLATT-DYNAMISCH-01 N-02: Normblatt "folgt Inhalt" (Position inhalt), Format auto/fest, PDF-Blatt = Flaeche
     void normblatt_dynamisch_02_inhalt()
     {

@@ -116,6 +116,7 @@ static bool projektVorlageLesen(Database *self, QSqlDatabase &db, int id, Vorlag
     if (!q.exec() || !q.next()) return false;
     v.name = q.value(0).toString();      v.beschreibung = q.value(1).toString();
     v.art  = q.value(2).toString();
+    if (v.art == QLatin1String("infostreifen")) v.art = QStringLiteral("schriftfeld");   // N-03: Streifen ist ein Schriftfeld
     v.breite = q.value(3).toDouble();    v.hoehe = q.value(4).toDouble();
     v.rl = q.value(5).toDouble();        v.rr = q.value(6).toDouble();
     v.ro = q.value(7).toDouble();        v.ru = q.value(8).toDouble();
@@ -164,6 +165,7 @@ static VorlagenInhalt inhaltAusBibliothek(const QVariantMap &k, const QVariantLi
 {
     VorlagenInhalt v;
     v.art = k.value("art").toString();
+    if (v.art == QLatin1String("infostreifen")) v.art = QStringLiteral("schriftfeld");
     v.breite = k.value("breiteMm").toDouble(); v.hoehe = k.value("hoeheMm").toDouble();
     v.rl = k.value("randLinksMm").toDouble();  v.rr = k.value("randRechtsMm").toDouble();
     v.ro = k.value("randObenMm").toDouble();   v.ru = k.value("randUntenMm").toDouble();

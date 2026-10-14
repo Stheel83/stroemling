@@ -61,10 +61,10 @@ class TstKernfunktionen : public QObject
     // Projekt-Grundgerüst: liefert Seiten-ID (Default-Anlage/-Ort aus createProjekt)
     // PDF-Export des Schaltplan-Abschnitts über dokuPdfExportieren() (ersetzt canvasPdfExportieren/-SeiteExportieren).
     // ids leer = alle Seiten mit in_doku_pdf = 1.
-    bool schaltplanPdf(int pid, const QString &pfad, bool nb, bool voll, bool inf, const QList<int> &ids = {})
+    bool schaltplanPdf(int pid, const QString &pfad, bool nb, const QList<int> &ids = {})
     {
         QJsonObject o;
-        o["mitNormblatt"] = nb; o["vollCanvas"] = voll; o["mitInfostreifen"] = inf;
+        o["mitNormblatt"] = nb;
         if (!ids.isEmpty()) {
             QJsonArray a;
             for (int id : ids) a.append(id);
@@ -993,12 +993,10 @@ private slots:
         QVERIFY2(m_db->openProjekt(proj), "Projekt-Kopie konnte nicht geöffnet werden");
         const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
         QVERIFY(pid > 0);
-        for (int voll = 0; voll <= 1; ++voll)
-            for (int nb = 0; nb <= 1; ++nb)
-                for (int inf = 0; inf <= 1; ++inf) {
-                    const QString f = QString("%1/%2_nb%3_inf%4.pdf").arg(aus, voll ? "voll" : "seite").arg(nb).arg(inf);
-                    QVERIFY2(schaltplanPdf(pid, f, nb, voll, inf), qPrintable(f));
-                }
+        for (int nb = 0; nb <= 1; ++nb) {
+            const QString f = QString("%1/nb%2.pdf").arg(aus).arg(nb);
+            QVERIFY2(schaltplanPdf(pid, f, nb), qPrintable(f));
+        }
     }
 
     // Synthetisches Projekt für den PDF-Vergleich vor/nach Umbauten: deckt Symbol-Sonderfälle ab, die
@@ -1044,8 +1042,8 @@ private slots:
         }
         QVERIFY(m_db->grafikSpeichern(sid, els));
         const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
-        QVERIFY(schaltplanPdf(pid, aus + "/synth_seite.pdf", true, false, true));
-        QVERIFY(schaltplanPdf(pid, aus + "/synth_voll.pdf", false, true, true));
+        QVERIFY(schaltplanPdf(pid, aus + "/synth_normblatt.pdf", true));
+        QVERIFY(schaltplanPdf(pid, aus + "/synth_ohne.pdf", false));
     }
 
     // Referenz-PDF der generischen Listen-Tabelle (listePdfSpeichern) für Vorher/Nachher-Vergleiche bei Umbauten
@@ -1092,7 +1090,7 @@ private slots:
 
         const QString dir = QDir::tempPath();
         const QString alle = dir + "/stroemling_dokupdf_alle.pdf";
-        QVERIFY(schaltplanPdf(pid, alle, false, false, false));
+        QVERIFY(schaltplanPdf(pid, alle, false));
         const int gesamt = pdfSeitenAnzahl(alle);
         QVERIFY(gesamt >= 3);
 
@@ -1100,12 +1098,12 @@ private slots:
         QVERIFY(m_db->seiteInDokuPdfSetzen(b, false));
         QCOMPARE(m_db->normblattDatenLaden(b).value("inDokuPdf").toInt(), 0);
         const QString ohne = dir + "/stroemling_dokupdf_ohne.pdf";
-        QVERIFY(schaltplanPdf(pid, ohne, false, false, false));
+        QVERIFY(schaltplanPdf(pid, ohne, false));
         QCOMPARE(pdfSeitenAnzahl(ohne), gesamt - 1);
 
         // Explizite Seitenauswahl ignoriert das Flag
         const QString einzel = dir + "/stroemling_dokupdf_einzel.pdf";
-        QVERIFY(schaltplanPdf(pid, einzel, false, false, false, {b}));
+        QVERIFY(schaltplanPdf(pid, einzel, false, {b}));
         QCOMPARE(pdfSeitenAnzahl(einzel), 1);
 
         // Duplizieren übernimmt das Flag
@@ -1117,7 +1115,7 @@ private slots:
         Q_UNUSED(c);
         QSqlQuery q(QSqlDatabase::database());
         QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 0"));
-        QVERIFY(!schaltplanPdf(pid, dir + "/stroemling_dokupdf_leer.pdf", false, false, false));
+        QVERIFY(!schaltplanPdf(pid, dir + "/stroemling_dokupdf_leer.pdf", false));
         QVERIFY(q.exec("UPDATE seite SET in_doku_pdf = 1"));
     }
 
@@ -1282,7 +1280,7 @@ private slots:
         QVERIFY(!m_db->stueckliste(pid).isEmpty());
         const QString dir = QDir::tempPath();
         const QString nurPlan = dir + "/stroemling_dokupdf5_plan.pdf";
-        QVERIFY(schaltplanPdf(pid, nurPlan, false, false, false));
+        QVERIFY(schaltplanPdf(pid, nurPlan, false));
         const QString mitListe = dir + "/stroemling_dokupdf5_liste.pdf";
         QVERIFY(m_db->dokuPdfExportieren(pid, mitListe,
             R"({"mitNormblatt":false,"abschnitte":[{"typ":"schaltplan"},{"typ":"liste","liste":"stueckliste"},
@@ -1328,7 +1326,7 @@ private slots:
         // Standard-Schriftfeld: ohne Vorlage kein Logo, Auftragnehmer-Zelle bleibt
         QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, "", false, "din6771", 0));
         const QString std = dir + "/stroemling_bv1_std.pdf";
-        QVERIFY(schaltplanPdf(pid, std, true, false, false));
+        QVERIFY(schaltplanPdf(pid, std, true));
         QVERIFY(pdfText(std).contains("AUFTRAGNEHMER"));
         if (bildAnzahl(std) >= 0) QCOMPARE(bildAnzahl(std), 0);
 
@@ -1358,7 +1356,7 @@ private slots:
         QVERIFY2(qAbs(nd0.value("logoAspekt").toDouble() - 4.0) < 0.01, "logoAspekt");
 
         const QString eig = dir + "/stroemling_bv1_eigen.pdf";
-        QVERIFY(schaltplanPdf(pid, eig, true, false, false));
+        QVERIFY(schaltplanPdf(pid, eig, true));
         const QString text = pdfText(eig);
         QVERIFY2(text.contains("Titel-Hallo-Welt"), qPrintable(text));
         QVERIFY2(text.contains("A4 QF"), qPrintable(text));
@@ -1434,57 +1432,14 @@ private slots:
                                           R"({"seiteIds":[],"abschnitte":[{"typ":"deckblatt"}]})"));
     }
 
-    // INFOSTREIFEN-01: Infostreifen als Blattvorlage (Art 'infostreifen'), Seed, Projekt-Auswahl, PDF-Ausgabe.
-    void infostreifen_01_vorlage()
+    // NORMBLATT-DYNAMISCH-01 N-03: Infostreifen als Schriftfeld-Vorlage (Rahmen aus), relative Feldgeometrie,
+    // Seiten ohne Normblatt = Bounding-Box-Blatt, Altspalten entfernt
+    void normblatt_dynamisch_03_streifenVorlage()
     {
-        neueSeite("IS1");
+        neueSeite("ND3");
         const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const int sid = einWert("SELECT id FROM seite ORDER BY id DESC LIMIT 1").toInt();
         const QString dir = QDir::tempPath();
-        auto pdfText = [&](const QString &pdf) {
-            QProcess pr;
-            pr.start("pdftotext", {"-layout", pdf, "-"});
-            if (!pr.waitForFinished(20000)) return QString();
-            return QString::fromUtf8(pr.readAllStandardOutput());
-        };
-
-        // Seed: eine Streifenvorlage, 297 x 8 mm, mit Feldern; Schriftfeld-Auswahl kennt sie nicht
-        QVariantList streifen;
-        for (const QVariant &v : m_db->normblattVorlagenListe())
-            if (v.toMap().value("art").toString() == "infostreifen") streifen << v;
-        QCOMPARE(streifen.size(), 1);
-        const int vid = streifen.first().toMap().value("id").toInt();
-        QCOMPARE(streifen.first().toMap().value("hoeheMm").toInt(), 8);
-        QVERIFY(m_db->normblattFelderLaden(vid).size() >= 5);
-        QCOMPARE(m_db->projektInfostreifenVorlageId(), 0);
-
-        // Canvas-Daten (INFOSTREIFEN-02): ohne Schriftfeld liefert normblattDatenLaden die Streifenvorlage mit
-        const int sid = einWert("SELECT id FROM seite LIMIT 1").toInt();
-        QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
-        QVariantMap nd = m_db->normblattDatenLaden(sid);
-        QVERIFY(nd.contains("infostreifen"));
-        QVERIFY(nd.value("infostreifen").toMap().value("felder").toList().size() >= 5);
-        QCOMPARE(nd.value("infostreifen").toMap().value("hoeheMm").toInt(), 8);
-        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
-        QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
-        QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
-
-        // INFOSTREIFEN-03: Modus je Seite, Format-Flaeche, Ausrichtung
-        QCOMPARE(nd.value("infostreifenModus").toString(), QStringLiteral("auto"));
-        QCOMPARE(nd.value("infostreifenAusrichtung").toString(), QStringLiteral("links"));
-        QCOMPARE(nd.value("infostreifenBreiteMm").toDouble(), 0.0);             // auto: Format folgt dem Inhalt
-        QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "quatsch", "links"));
-        QVERIFY(!m_db->seiteInfostreifenSetzen(sid, "a3", "mitte"));
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3", "links"));
-        nd = m_db->normblattDatenLaden(sid);
-        QCOMPARE(nd.value("infostreifenBreiteMm").toDouble(), 420.0);
-        QCOMPARE(nd.value("infostreifenHoeheMm").toDouble(), 297.0);
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "canvas", "rechts"));
-        nd = m_db->normblattDatenLaden(sid);
-        QCOMPARE(nd.value("infostreifenBreiteMm").toDouble(), 0.0);
-        QCOMPARE(nd.value("infostreifenAusrichtung").toString(), QStringLiteral("rechts"));
-        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "canvas"));
-
-        // PDF: Blatt = Format-Flaeche (A3 quer = 420 x 297 mm = 1190 x 842 pt), Streifen steht darauf
         auto pdfGroesse = [&](const QString &pdf) {
             QProcess pr; pr.start("pdfinfo", {pdf});
             if (!pr.waitForFinished(20000)) return QString();
@@ -1492,75 +1447,90 @@ private slots:
             const int k = o.indexOf("Page size:");
             return k < 0 ? QString() : o.mid(k, o.indexOf('\n', k) - k);
         };
-        // Elemente einfuegen, damit eine Box existiert (Seite hat sonst keine); 100..500 cu = 25..125 mm
-        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a3", "links"));
-        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "a3"));
-        const QString optSt = R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})";
-        const QString fA3 = dir + "/stroemling_is3_a3.pdf";
-        QVERIFY(m_db->dokuPdfExportieren(pid, fA3, optSt));
-        const QString gA3 = pdfGroesse(fA3);
-        if (!gA3.isEmpty()) QVERIFY2(gA3.contains("1190") || gA3.contains("1191"), qPrintable(gA3));   // A3 quer
-        QVERIFY2(pdfText(fA3).contains("KernTest"), qPrintable(pdfText(fA3)));
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "a4", "rechts"));
-        const QString fA4 = dir + "/stroemling_is3_a4.pdf";
-        QVERIFY(m_db->dokuPdfExportieren(pid, fA4, optSt));
-        const QString gA4 = pdfGroesse(fA4);
-        if (!gA4.isEmpty()) QVERIFY2(gA4.contains("842") && gA4.contains("595"), qPrintable(gA4));        // A4 quer
-        // Automatisch = kleinstes passendes DIN-Format: Box 400 mm breit + 30 mm Rand -> A3 (420 x 297); nie "zu gross"
-        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 1700, 300)}));   // 100..1700 cu = 25..425 mm, 400 mm breit
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "auto", "links"));
-        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "auto"));
-        const QString fAuto = dir + "/stroemling_is3_auto.pdf";
-        QVERIFY(m_db->dokuPdfExportieren(pid, fAuto, optSt));
-        const QString gAuto = pdfGroesse(fAuto);
-        if (!gAuto.isEmpty()) QVERIFY2(gAuto.contains("1190") || gAuto.contains("1191"), qPrintable(gAuto));   // A3 quer
-        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));
-        QVERIFY(m_db->dokuPdfExportieren(pid, fAuto, optSt));
-        const QString gAuto2 = pdfGroesse(fAuto);
-        if (!gAuto2.isEmpty()) QVERIFY2(gAuto2.contains("842") && gAuto2.contains("595"), qPrintable(gAuto2));   // A4 quer
-        // groessere Elemente als die Flaeche -> Hinweis
-        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 5000, 300)}));
-        QVERIFY(m_db->infostreifenElementeZuGross(sid, "a3"));
-        QVERIFY(!m_db->infostreifenElementeZuGross(sid, "a0") || true);
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "aus", "links"));
-        QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
-        // PDF: "aus" unterdrueckt den Streifen trotz Export-Option
-        const QString fAus = dir + "/stroemling_is3_aus.pdf";
-        QVERIFY(m_db->dokuPdfExportieren(pid, fAus, R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})"));
-        QVERIFY(!pdfText(fAus).contains("KernTest"));
-        QVERIFY(m_db->seiteInfostreifenSetzen(sid, "auto", "links"));
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr; pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+        auto spalten = [&](const QString &tabelle) {
+            QStringList l; QSqlQuery q(QSqlDatabase::database());
+            q.exec("PRAGMA table_info(" + tabelle + ")");
+            while (q.next()) l << q.value(1).toString();
+            return l;
+        };
 
-        // PDF mit Streifen: Projektname aus dem Standard-Streifen steht auf der Seite
-        const QString f1 = dir + "/stroemling_is1_a.pdf";
-        const QString opt = R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})";
+        // Altspalten entfernt, Vorlagen-Art infostreifen gibt es nicht mehr
+        QVERIFY(!spalten("seite").contains("infostreifen"));
+        QVERIFY(!spalten("seite").contains("infostreifen_ausrichtung"));
+        QVERIFY(!spalten("projekt").contains("infostreifen_vorlage_id"));
+        int streifen = 0;
+        for (const QVariant &v : m_db->normblattVorlagenListe()) {
+            QVERIFY(v.toMap().value("art").toString() != "infostreifen");
+            if (v.toMap().value("name").toString() == "Standard-Infostreifen") {
+                ++streifen;
+                QCOMPARE(v.toMap().value("art").toString(), QStringLiteral("schriftfeld"));
+                QCOMPARE(v.toMap().value("hoeheMm").toInt(), 8);
+            }
+        }
+        QCOMPARE(streifen, 1);
+        int vid = 0;
+        for (const QVariant &v : m_db->normblattVorlagenListe())
+            if (v.toMap().value("name").toString() == "Standard-Infostreifen") vid = v.toMap().value("id").toInt();
+
+        // Streifen als Normblatt: Position inhalt, Rahmen aus, A3 fest
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), vid));
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));    // 25..125 x 25..75 mm
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "inhalt", "a3", "links", false));
+        QVariantMap nd = m_db->normblattDatenLaden(sid);
+        QVERIFY(!nd.value("normblattRahmen").toBool());
+        QCOMPARE(nd.value("vorlageBreiteMm").toInt(), 297);
+        QCOMPARE(nd.value("vorlageHoeheMm").toInt(), 8);
+        QVERIFY(nd.value("schriftfeldHoeheMm").toDouble() > 0 && nd.value("schriftfeldHoeheMm").toDouble() <= 8.0);
+        const QString opt = R"({"mitNormblatt":true,"abschnitte":[{"typ":"schaltplan"}]})";
+        const QString f1 = dir + "/stroemling_nd3_a.pdf";
         QVERIFY(m_db->dokuPdfExportieren(pid, f1, opt));
-        QVERIFY2(pdfText(f1).contains("KernTest"), qPrintable(pdfText(f1)));
+        const QString g1 = pdfGroesse(f1);
+        if (!g1.isEmpty()) QVERIFY2(g1.contains("1190") || g1.contains("1191"), qPrintable(g1));   // A3 quer
+        QVERIFY2(pdfText(f1).contains("KernTest"), qPrintable(pdfText(f1)));   // Projektname aus dem Streifen
 
-        // ohne Option kein Streifen
-        const QString f2 = dir + "/stroemling_is1_b.pdf";
-        QVERIFY(m_db->dokuPdfExportieren(pid, f2,
-            R"({"mitNormblatt":false,"mitInfostreifen":false,"abschnitte":[{"typ":"schaltplan"}]})"));
-        QVERIFY(!pdfText(f2).contains("KernTest"));
+        // eigene Vorlage ist nicht mehr "fest" gesperrt: Automatisch -> kleinstes DIN-Format, hier A4
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "inhalt", "auto", "links", false));
+        const QString f2 = dir + "/stroemling_nd3_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2, opt));
+        const QString g2 = pdfGroesse(f2);
+        if (!g2.isEmpty()) QVERIFY2(g2.contains("842") && g2.contains("595"), qPrintable(g2));
 
-        // eigene Streifenvorlage: Projekt-Auswahl wirkt, festes Textfeld erscheint
-        const int eigen = m_db->normblattVorlageSpeichern({{"name", "Mein Streifen"}, {"art", "infostreifen"},
-            {"breiteMm", 100}, {"hoeheMm", 6}, {"randLinksMm", 0}, {"randRechtsMm", 0}, {"randObenMm", 0}, {"randUntenMm", 0}});
-        QVERIFY(eigen > 0);
-        QVariantMap fd{{"feldtyp", "fest"}, {"xMm", 10}, {"yMm", 1}, {"breiteMm", 50}, {"hoeheMm", 4},
-                       {"inhalt", "Streifen-Eigen-Text"}, {"schriftgroesse", 3.0}, {"reihenfolge", 0}};
-        QVERIFY(m_db->normblattFelderSpeichern(eigen, {fd}));
-        QVERIFY(m_db->projektInfostreifenVorlageSetzen(eigen));
-        QCOMPARE(m_db->projektInfostreifenVorlageId(), eigen);
-        const QString f3 = dir + "/stroemling_is1_c.pdf";
+        // Blattkopf Keiner (kein Normblatt): Blatt = Bounding-Box + 15 mm (100 + 30 breit, 50 + 30 hoch)
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+        const QString f3 = dir + "/stroemling_nd3_c.pdf";
         QVERIFY(m_db->dokuPdfExportieren(pid, f3, opt));
-        const QString t3 = pdfText(f3);
-        QVERIFY2(t3.contains("Streifen-Eigen-Text"), qPrintable(t3));
-        QVERIFY2(!t3.contains("KernTest"), qPrintable(t3));
+        const QString g3 = pdfGroesse(f3);
+        if (!g3.isEmpty()) QVERIFY2((g3.contains("368") || g3.contains("369")) && g3.contains("227"), qPrintable(g3));       // 130 x 80 mm
+        QVERIFY(!pdfText(f3).contains("KernTest"));
+        // Export-Option "Normblatt einschliessen" aus: ebenfalls Bounding-Box-Blatt
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), vid));
+        const QString f4 = dir + "/stroemling_nd3_d.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f4, R"({"mitNormblatt":false,"abschnitte":[{"typ":"schaltplan"}]})"));
+        const QString g4 = pdfGroesse(f4);
+        if (!g4.isEmpty()) QVERIFY2((g4.contains("368") || g4.contains("369")) && g4.contains("227"), qPrintable(g4));
 
-        // Vorlage loeschen -> Auswahl faellt auf Standard zurueck (ON DELETE SET NULL)
+        // Relative Geometrie: Vorlage 100 x 20 mm mit festem Text; auf A4-Blatt bleibt die Feldhoehe, Breite skaliert
+        const int eigen = m_db->normblattVorlageSpeichern({{"name", "Mein Streifen"}, {"art", "schriftfeld"},
+            {"breiteMm", 100}, {"hoeheMm", 20}, {"randLinksMm", 0}, {"randRechtsMm", 0}, {"randObenMm", 0}, {"randUntenMm", 0}});
+        QVERIFY(eigen > 0);
+        QVariantMap fd{{"feldtyp", "fest"}, {"xMm", 10}, {"yMm", 12}, {"breiteMm", 50}, {"hoeheMm", 6},
+                       {"inhalt", "Relativ-Text-N03"}, {"schriftgroesse", 3.0}, {"reihenfolge", 0}};
+        QVERIFY(m_db->normblattFelderSpeichern(eigen, {fd}));
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), eigen));
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true));
+        nd = m_db->normblattDatenLaden(sid);
+        QCOMPARE(nd.value("vorlageBreiteMm").toInt(), 100);
+        QCOMPARE(nd.value("schriftfeldHoeheMm").toDouble(), 8.0);                    // 20 - 12
+        const QString f5 = dir + "/stroemling_nd3_e.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f5, opt));
+        QVERIFY2(pdfText(f5).contains("Relativ-Text-N03"), qPrintable(pdfText(f5)));
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
         QVERIFY(m_db->normblattVorlageLoeschen(eigen));
-        QCOMPARE(m_db->projektInfostreifenVorlageId(), 0);
     }
 
     // NORMBLATT-DYNAMISCH-01 N-02: Normblatt "folgt Inhalt" (Position inhalt), Format auto/fest, PDF-Blatt = Flaeche

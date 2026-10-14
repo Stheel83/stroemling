@@ -412,15 +412,11 @@ public:
     // DOKU-PDF-01: Seite im Dokumentations-PDF (Schaltplan-Abschnitt) enthalten?
     // Lesen über normblattDatenLaden()["inDokuPdf"].
     Q_INVOKABLE bool seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf);
-    // Infostreifen je Seite: modus auto|a4|a3|a2|a1|a0|canvas|aus, ausrichtung links|rechts (INFOSTREIFEN-03)
-    Q_INVOKABLE bool seiteInfostreifenSetzen(int seiteId, const QString &modus, const QString &ausrichtung);
     // Normblatt je Seite (N-02): position fest|inhalt, format auto|a4..a0|canvas, ausrichtung links|rechts, rahmen
     Q_INVOKABLE bool seiteNormblattLageSetzen(int seiteId, const QString &position, const QString &format,
                                               const QString &ausrichtung, bool rahmen);
     // true, wenn die Elemente (+ Abstand, Ränder, Schriftfeld) nicht in das feste Format passen (Position "inhalt")
     Q_INVOKABLE bool normblattInhaltZuGross(int seiteId, const QString &format, const QString &vorlage);
-    // true, wenn die Elemente der Seite groesser sind als die Format-Flaeche des Modus (nicht bei canvas/aus)
-    Q_INVOKABLE bool infostreifenElementeZuGross(int seiteId, const QString &modus);
 
     Q_INVOKABLE bool normblattEinstellungenSetzen(int seiteId, bool anzeigen,
                                                   const QString &hintergrundFarbe,
@@ -457,14 +453,8 @@ public:
     Q_INVOKABLE bool         vorlageAusBibliothekLoeschen(const QString &uid);
     // Daten fürs Deckblatt im Dokumentations-PDF; leere Map = keine Deckblattvorlage
     QVariantMap deckblattDatenLaden(int projektId, int vorlageId, const QString &titelzusatz, bool mitLogo);
-    // Vorlage des Infostreifens (INFOSTREIFEN-01): {felder, breiteMm (Referenzbreite), hoeheMm, logoDataUrl, logoAspekt};
-    // leere Map = keine Streifenvorlage vorhanden. Vorlage = projekt.infostreifen_vorlage_id, sonst Standard-Infostreifen.
-    QVariantMap infostreifenLaden(int seiteId);
-    // Format-Flaeche je Modus in mm; (0,0) = canvas/aus (Groesse folgt den Elementen bzw. entfaellt)
-    static QSizeF infostreifenFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm);
-    // Projekt-Auswahl der Infostreifen-Vorlage (0 = Standard-Infostreifen)
-    Q_INVOKABLE int  projektInfostreifenVorlageId();
-    Q_INVOKABLE bool projektInfostreifenVorlageSetzen(int vorlageId);
+    // Blattformat je Format-Modus in mm; (0,0) = auto/canvas (Groesse folgt den Elementen)
+    static QSizeF blattFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm);
     Q_INVOKABLE QVariantList normblattFelderLaden(int vorlageId);
     Q_INVOKABLE bool         normblattFelderSpeichern(int vorlageId, const QVariantList &felder);
 
@@ -1028,7 +1018,7 @@ public:
     // Alle Seiten eines Projekts als mehrseitiges Vektor-PDF exportieren.
     // pfad: lokaler Dateipfad oder file://-URL.
     // DOKU-PDF-02: Dokumentations-PDF aus Abschnitten (schaltplan, sps_io) in einem Writer.
-    // optionenJson: { mitNormblatt, vollCanvas, mitInfostreifen, seiteIds?, abschnitte:[{typ, konfig?}] },
+    // optionenJson: { mitNormblatt, seiteIds?, abschnitte:[{typ, konfig?}] },
     // Beschreibung in konzept/features/51_dokumentations_pdf.md §4.
     Q_INVOKABLE bool dokuPdfExportieren(int projektId, const QString &pfad, const QString &optionenJson);
     // Seiten des Projekts für den Export-Dialog: [{id, anlage, ort, blatt, bezeichnung, inDokuPdf}]
@@ -1056,12 +1046,10 @@ public:
 private:
     // DOKU-PDF-01: Schaltplan-Abschnitt des PDF-Exports (Database_PDF.cpp)
     int    pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer, const QList<int> &seiteIds,
-                                      bool mitNormblatt, bool vollCanvas, bool mitInfostreifen,
+                                      bool mitNormblatt,
                                       bool ersteSeiteNeu);
-    QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas, bool mitNormblatt, bool mitInfostreifen);
-    // Format-Flaeche des Infostreifens (mm, Seitenkoordinaten) aus Modus/Ausrichtung/Elementen; ungueltig = keine
-    QRectF infostreifenFlaecheMm(int seiteId, const QVariantMap &nb);
-    // Blatt-Flaeche (mm) des Normblatts bei Position "inhalt"; ungueltig = Position fest / keine Elemente / eigene Vorlage
+    QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool mitNormblatt);
+    // Blatt-Flaeche (mm) des Normblatts bei Position "inhalt"; ungueltig = Position fest / keine Elemente
     QRectF normblattFlaecheMm(int seiteId, const QVariantMap &nb);
     QList<int> dokuPdfSeitenIds(int projektId);
 

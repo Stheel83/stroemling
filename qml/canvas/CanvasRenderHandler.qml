@@ -74,7 +74,6 @@ QtObject {
     // Ränder = Papierrand → Rahmen, P = 10 mm Abstand Inhalt → Rahmen, Schriftfeld unten im Rahmen.
     function normblattFlaecheMm(nd, elemente) {
         if (!nd || !nd.normblattAnzeigen || nd.normblattPosition !== "inhalt") return null
-        if (nd.felder && nd.felder.length > 0) return null
         if (!elemente || elemente.length === 0) return null
         var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
         for (var i = 0; i < elemente.length; i++) {
@@ -87,8 +86,10 @@ QtObject {
         var bL = x0 / m, bR = x1 / m, bT = y0 / m, bB = y1 / m
         var P = 10
         var vl = nd.titelblattVorlage || "din6771"
-        var sf = vl === "kompakt" ? 16 : (vl === "rahmen" ? 0 : 39)
         var rl = nd.randLinksMm || 0, rr = nd.randRechtsMm || 0, ro = nd.randObenMm || 0, ru = nd.randUntenMm || 0
+        // eigene Vorlage: ganze Vorlage ab der obersten Feld-Oberkante reservieren (abzüglich unterem Rand, der schon in F steckt)
+        var sf = (nd.felder && nd.felder.length > 0) ? Math.max(0, (nd.schriftfeldHoeheMm || 0) - ru)
+                                                    : (vl === "kompakt" ? 16 : (vl === "rahmen" ? 0 : 39))
         var needW = (bR - bL) + 2 * P + rl + rr
         var needH = (bB - bT) + 2 * P + sf + ro + ru
         var fW = nd.normblattFormatBreiteMm || 0, fH = nd.normblattFormatHoeheMm || 0
@@ -114,75 +115,17 @@ QtObject {
     }
 
     // ── Normblattrahmen (DIN 6771, vereinfacht) ──────────────────────
-    // elemente: Snapshot des ElementeModels (für die Lage des Infostreifens; optional)
+    // elemente: Snapshot des ElementeModels (für die Lage der Blatt-Fläche bei Position "inhalt"; optional)
     function drawNormblatt(ctx, elemente) {
         if (!cv.normblattDaten) return
+        if (!cv.normblattDaten.normblattAnzeigen) return
 
         var nd   = cv.normblattDaten
-        // Infostreifen (INFOSTREIFEN-02): auf Seiten ohne Schriftfeld dieselbe Zeichenlogik mit skalierten Feldern am
-        // unteren Seitenrand, ohne Rahmen/Hintergrund. Spiegelt pdfInfostreifenRendern() (PdfRenderer_Normblatt.cpp).
-        var streifen = false
-        var logoStd  = cv.normblattLogoUrl
-        var logoAsp  = nd.logoAspekt
-        var sLinks = 0, sBreite = 0, sHoehe = 0, sOben = 0, sUnten = 0, sOberF = 0
-        if (!nd.normblattAnzeigen && nd.infostreifenModus !== "aus") {
-            var st = nd.infostreifen
-            if (!st || !st.felder || st.felder.length === 0) return
-            // Format-Fläche (INFOSTREIFEN-03): Unterkante 15 mm unter den Elementen, links-/rechtsbündig zur Bounding-Box;
-            // Größe aus nd.infostreifenBreiteMm/-HoeheMm (0 = "auto": kleinstes DIN-Format, "canvas": Box + Rand).
-            // Gleiche Definition wie Database::infostreifenFlaecheMm() (PDF).
-            if (!elemente || elemente.length === 0) return
-            var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity
-            for (var ei = 0; ei < elemente.length; ei++) {
-                var be = elemente[ei]
-                bx0 = Math.min(bx0, be.x1, be.x2); by0 = Math.min(by0, be.y1, be.y2)
-                bx1 = Math.max(bx1, be.x1, be.x2); by1 = Math.max(by1, be.y1, be.y2)
-            }
-            if (!isFinite(bx0)) return
-            var sRand = 15
-            var boxL = bx0 / cv.mmToPx, boxR = bx1 / cv.mmToPx, boxU = by0 / cv.mmToPx, boxD = by1 / cv.mmToPx
-            var fW = nd.infostreifenBreiteMm || 0, fH = nd.infostreifenHoeheMm || 0
-            if (fW <= 0 || fH <= 0) {
-                // "auto": kleinstes DIN-Format quer, in das Box + Rand passt; sonst (und "canvas") Box + Rand, min. A4 breit
-                var nW = boxR - boxL + 2 * sRand, nH = boxD - boxU + 2 * sRand
-                fW = Math.max(297, nW)
-                fH = nH
-                if (nd.infostreifenModus === "auto") {
-                    var din = [[297, 210], [420, 297], [594, 420], [841, 594], [1189, 841]]
-                    for (var di = 0; di < din.length; di++) {
-                        if (din[di][0] >= nW && din[di][1] >= nH) { fW = din[di][0]; fH = din[di][1]; break }
-                    }
-                }
-            }
-            sBreite = fW
-            sUnten  = boxD + sRand
-            sOberF  = sUnten - fH
-            sLinks  = (nd.infostreifenAusrichtung === "rechts") ? boxR + sRand - fW : boxL - sRand
-            sHoehe  = st.hoeheMm || 8
-            sOben   = sUnten - sHoehe
-            var fak = sBreite / Math.max(1, st.breiteMm || 297)
-            var sf = []
-            for (var si = 0; si < st.felder.length; si++) {
-                var o = {}
-                for (var k in st.felder[si]) o[k] = st.felder[si][k]
-                o.xMm = sLinks + st.felder[si].xMm * fak
-                o.breiteMm = st.felder[si].breiteMm * fak
-                o.yMm = sOben + st.felder[si].yMm
-                sf.push(o)
-            }
-            var nd2 = {}
-            for (var key in nd) nd2[key] = nd[key]
-            nd2.felder = sf
-            nd = nd2
-            streifen = true
-            logoStd = cv.infostreifenLogoUrl
-            logoAsp = st.logoAspekt
-        }
         var z    = cv.zoom
         var mpx  = cv.mmToPx   // world-px per mm
 
         // Normblatt "folgt Inhalt" (N-02): Blatt liegt an der berechneten Fläche statt am Ursprung
-        var fl = streifen ? null : normblattFlaecheMm(nd, elemente)
+        var fl = normblattFlaecheMm(nd, elemente)
         var ox = 0, oy = 0
         if (fl) {
             ox = fl.l * mpx; oy = fl.t * mpx
@@ -219,36 +162,25 @@ QtObject {
         ctx.lineCap   = "square"
         ctx.lineJoin  = "miter"
 
-        if (streifen) {
-            // Hintergrund wie das Standard-Schriftfeld, damit die Schrift auf der Zeichnung lesbar bleibt
+        // ── Seitenhintergrund (konfigurierbar; leer = transparent) ──
+        var bgFarbe = (nd.hintergrundFarbe || "").toString().trim()
+        if (bgFarbe) {
+            ctx.fillStyle = bgFarbe
+            ctx.fillRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
+        }
+
+        if (nd.normblattRahmen !== false) {
+            // ── Seitenbegrenzung (dünn, gestrichelt) ──
             ctx.strokeStyle = "#2a4a7a"
             ctx.lineWidth   = Math.max(0.5, s(0.25))
             ctx.setLineDash([s(3), s(2)])
-            ctx.strokeRect(sx(sLinks * mpx), sy(sOberF * mpx), s(sBreite), s(sUnten - sOberF))
+            ctx.strokeRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
             ctx.setLineDash([])
-            ctx.fillStyle = "rgba(5,15,35,0.8)"
-            ctx.fillRect(sx(sLinks * mpx), sy(sOben * mpx), s(sBreite), s(sHoehe))
-        } else {
-            // ── Seitenhintergrund (konfigurierbar; leer = transparent) ──
-            var bgFarbe = (nd.hintergrundFarbe || "").toString().trim()
-            if (bgFarbe) {
-                ctx.fillStyle = bgFarbe
-                ctx.fillRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
-            }
 
-            if (nd.normblattRahmen !== false) {
-                // ── Seitenbegrenzung (dünn, gestrichelt) ──
-                ctx.strokeStyle = "#2a4a7a"
-                ctx.lineWidth   = Math.max(0.5, s(0.25))
-                ctx.setLineDash([s(3), s(2)])
-                ctx.strokeRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
-                ctx.setLineDash([])
-
-                // ── Zeichnungsrahmen (dick) ──
-                ctx.strokeStyle = "#4a7ab0"
-                ctx.lineWidth   = Math.max(1, s(0.7))
-                ctx.strokeRect(iX0, iY0, iW, iH)
-            }
+            // ── Zeichnungsrahmen (dick) ──
+            ctx.strokeStyle = "#4a7ab0"
+            ctx.lineWidth   = Math.max(1, s(0.7))
+            ctx.strokeRect(iX0, iY0, iW, iH)
         }
 
         // ── Benutzerdefinierte Felder (Phase 2) ──────────────────────
@@ -273,9 +205,13 @@ QtObject {
             }
             for (var _fi = 0; _fi < _felder.length; _fi++) {
                 var _f = _felder[_fi]
-                var _fx = sx(_f.xMm   * mpx)
-                var _fy = sy(_f.yMm   * mpx)
-                var _fw = s(_f.breiteMm)
+                // N-03: relative Geometrie – x/Breite skalieren mit der Blattbreite, y von der Unterkante gerechnet
+                // (Spiegel von pdfNormblattRendern); ohne Vorlagenmasse unverändert
+                var _vb = nd.vorlageBreiteMm || 0, _vh = nd.vorlageHoeheMm || 0
+                var _sk = _vb > 0 ? bMm / _vb : 1
+                var _fx = sx(_f.xMm * _sk * mpx)
+                var _fy = sy((_vh > 0 ? hMm - (_vh - _f.yMm) : _f.yMm) * mpx)
+                var _fw = s(_f.breiteMm * _sk)
                 var _fh = s(_f.hoeheMm)
                 if (_f.feldtyp === "logo") {
                     logoZeichnen(_fx, _fy, _fw, _fh)

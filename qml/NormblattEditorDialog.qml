@@ -22,7 +22,7 @@ Item {
     property bool _neuModus:   false
     property string _neuName:  ""
     property int  _neuFormatIdx: 0
-    property string _neuArt: "schriftfeld"   // "schriftfeld" | "deckblatt" (A4 hoch, Ränder 0) | "infostreifen" (297 × 8 mm, Ränder 0)
+    property string _neuArt: "schriftfeld"   // "schriftfeld" | "deckblatt" (A4 hoch, Ränder 0) | "infostreifen" (Schriftfeld 297 × 8 mm, Ränder 0; wird als Art "schriftfeld" gespeichert)
     property bool _einstellungenModus: false
     property string _einstellungenName: ""
     property int  _einstellungenFormatIdx: 0
@@ -303,7 +303,7 @@ Item {
         var strf = _neuArt === "infostreifen"
         var ohneRand = deck || strf
         var id = db.normblattVorlageSpeichern({
-            name: name, art: _neuArt,
+            name: name, art: strf ? "schriftfeld" : _neuArt,
             breiteMm: deck ? 210 : (strf ? 297 : fmt.breite), hoeheMm: deck ? 297 : (strf ? 8 : fmt.hoehe),
             randLinksMm: ohneRand ? 0 : 20, randRechtsMm: ohneRand ? 0 : 10,
             randObenMm:  ohneRand ? 0 : 10, randUntenMm:  ohneRand ? 0 : 10

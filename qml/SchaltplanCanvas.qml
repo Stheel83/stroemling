@@ -77,17 +77,12 @@ Item {
     property var    normblattSeiteRect: null
     property string normblattLogoUrl: ""
     property string normblattKundenLogoUrl: ""   // Feldtyp logo_kunde (Kunden-Logo des Projekts)
-    property string infostreifenLogoUrl: ""      // Logo der Infostreifen-Vorlage (Feldtyp logo)
 
     property bool minimapSichtbar: false
 
     onNormblattLogoUrlChanged: {
         if (normblattLogoUrl)
             drawCanvas.loadImage(normblattLogoUrl)
-    }
-    onInfostreifenLogoUrlChanged: {
-        if (infostreifenLogoUrl)
-            drawCanvas.loadImage(infostreifenLogoUrl)
     }
     onNormblattKundenLogoUrlChanged: {
         if (normblattKundenLogoUrl)
@@ -1092,7 +1087,6 @@ Item {
             normblattDaten   = db.normblattDatenLaden(seiteId)
             normblattLogoUrl = normblattDaten ? (normblattDaten.logoDataUrl || "") : ""
             normblattKundenLogoUrl = normblattDaten ? (normblattDaten.kundenLogoDataUrl || "") : ""
-            infostreifenLogoUrl = (normblattDaten && normblattDaten.infostreifen) ? (normblattDaten.infostreifen.logoDataUrl || "") : ""
             revisionStatus   = normblattDaten ? (normblattDaten.revisionStatus  || "") : ""
             revisionKennung  = normblattDaten ? (normblattDaten.revisionKennung || "") : ""
             repaintAll()
@@ -1146,7 +1140,6 @@ Item {
             root.normblattDaten    = db.normblattDatenLaden(seiteId)
             root.normblattLogoUrl  = root.normblattDaten ? (root.normblattDaten.logoDataUrl || "") : ""
             root.normblattKundenLogoUrl = root.normblattDaten ? (root.normblattDaten.kundenLogoDataUrl || "") : ""
-            root.infostreifenLogoUrl = (root.normblattDaten && root.normblattDaten.infostreifen) ? (root.normblattDaten.infostreifen.logoDataUrl || "") : ""
             root.revisionStatus    = root.normblattDaten ? (root.normblattDaten.revisionStatus  || "") : ""
             root.revisionKennung   = root.normblattDaten ? (root.normblattDaten.revisionKennung || "") : ""
             // Querverweis-Partner-Cache aufbauen
@@ -1184,7 +1177,6 @@ Item {
             root.normblattDaten   = null
             root.normblattLogoUrl = ""
             root.normblattKundenLogoUrl = ""
-            root.infostreifenLogoUrl = ""
             root.revisionStatus   = ""
             root.revisionKennung  = ""
             root.repaintAll()

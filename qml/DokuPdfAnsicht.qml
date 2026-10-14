@@ -49,8 +49,6 @@ Item {
     property string titelzusatz: ""
     property bool   logoAn: true
     property bool   normblattAn: true
-    property bool   infostreifenAn: false
-    property bool   vollCanvasAn: false
     property int    gewaehlteSeiten: 0
     property int    abschnittVersion: 0   // Zähler: ListModel.get() löst in Bindings keine Neuberechnung aus
     property string spsVorlageName: ""
@@ -141,8 +139,7 @@ Item {
         for (var j = 0; j < seitenModel.count; j++)
             if (seitenModel.get(j).gewaehlt) seiten.push(seitenModel.get(j).schluessel)
         return { abschnitte: abs, seiten: seiten, titelzusatz: root.titelzusatz, logo: root.logoAn,
-                 normblatt: root.normblattAn, infostreifen: root.infostreifenAn,
-                 vollCanvas: root.vollCanvasAn, adersummeJeAnlageOrt: root.adersummeJeAnlageOrt,
+                 normblatt: root.normblattAn, adersummeJeAnlageOrt: root.adersummeJeAnlageOrt,
                  spsVorlage: root.spsVorlageName, deckblattVorlage: root.deckblattVorlageName }
     }
 
@@ -155,8 +152,6 @@ Item {
         root.titelzusatz     = z.titelzusatz || ""
         root.logoAn          = z.logo === undefined ? true : !!z.logo
         root.normblattAn     = z.normblatt === undefined ? true : !!z.normblatt
-        root.infostreifenAn  = !!z.infostreifen
-        root.vollCanvasAn    = !!z.vollCanvas
         root.adersummeJeAnlageOrt = !!z.adersummeJeAnlageOrt
         root.spsVorlageName = z.spsVorlage || ""
         root.deckblattVorlageName = z.deckblattVorlage || ""
@@ -262,9 +257,7 @@ Item {
         for (var j = 0; j < seitenModel.count; j++)
             if (seitenModel.get(j).gewaehlt) ids.push(seitenModel.get(j).sid)
         return JSON.stringify({
-            mitNormblatt:    root.normblattAn && !root.vollCanvasAn,
-            vollCanvas:      root.vollCanvasAn,
-            mitInfostreifen: root.infostreifenAn,
+            mitNormblatt:    root.normblattAn,
             seiteIds:        ids,
             abschnitte:      abs
         })
@@ -749,21 +742,10 @@ Item {
                 Kaestchen {
                     Layout.fillWidth: true
                     beschriftung: qsTr("Normblatt einschließen")
-                    wert: root.normblattAn && !root.vollCanvasAn
-                    enabled: !root.vollCanvasAn
+                    wert: root.normblattAn
                     onUmgeschaltet: function(neu) { root.normblattAn = neu }
-                }
-                Kaestchen {
-                    Layout.fillWidth: true
-                    beschriftung: qsTr("Infostreifen für Seiten ohne Schriftfeld")
-                    wert: root.infostreifenAn
-                    onUmgeschaltet: function(neu) { root.infostreifenAn = neu }
-                }
-                Kaestchen {
-                    Layout.fillWidth: true
-                    beschriftung: qsTr("Ganzes Canvas (ohne Normblatt)")
-                    wert: root.vollCanvasAn
-                    onUmgeschaltet: function(neu) { root.vollCanvasAn = neu }
+                    ToolTip.visible: hovered; ToolTip.delay: 600
+                    ToolTip.text: qsTr("Aus: Seiten ohne Normblatt – das Blatt umschließt die Elemente (Bounding-Box + Rand).")
                 }
             }
         }

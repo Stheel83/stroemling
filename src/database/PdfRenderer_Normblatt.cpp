@@ -185,9 +185,14 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
         const QColor wertFarbe  = dunkel ? QColor(0xc8, 0xdd, 0xf0) : QColor(0x11, 0x11, 0x11);
         for (const QVariant &fv : felder) {
             QVariantMap f = fv.toMap();
-            double fx = mm(f.value("xMm").toDouble());
-            double fy = mm(f.value("yMm").toDouble());
-            double fw = mm(f.value("breiteMm").toDouble());
+            // N-03: relative Geometrie – x/Breite skalieren mit der Blattbreite, y wird von der Unterkante gerechnet
+            // (ohne vorlage*-Masse, z. B. Deckblatt: unveraendert)
+            const double vb = nb.value("vorlageBreiteMm").toDouble();
+            const double vh = nb.value("vorlageHoeheMm").toDouble();
+            const double sk = vb > 0 ? bMm / vb : 1.0;
+            double fx = mm(f.value("xMm").toDouble() * sk);
+            double fy = mm(vh > 0 ? hMm - (vh - f.value("yMm").toDouble()) : f.value("yMm").toDouble());
+            double fw = mm(f.value("breiteMm").toDouble() * sk);
             double fh = mm(f.value("hoeheMm").toDouble());
             const QRectF zelle(fx, fy, fw, fh);
             const QString feldtyp = f.value("feldtyp").toString();
@@ -331,52 +336,8 @@ void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm)
     }
 }
 
-// ── Infostreifen für Seiten ohne Normblatt (INFOSTREIFEN-01) ────────────────
-// Blattvorlage der Art 'infostreifen' (nb["infostreifen"], aus Database::infostreifenLaden): volle Seitenbreite am
-// unteren Rand, Höhe = Vorlagenhöhe in mm. x/Breite der Felder sind relativ zur Referenzbreite der Vorlage und
-// werden auf die tatsächliche Seitenbreite skaliert. Gezeichnet wird über pdfNormblattRendern (alle Feldtypen).
-void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
-                                    double bMm, double hMm, double pxPerMm)
-{
-    const QVariantMap st = nb.value("infostreifen").toMap();
-    const QVariantList felder = st.value("felder").toList();
-    if (felder.isEmpty()) return;
-
-    const double refB = qMax(1.0, st.value("breiteMm", 297.0).toDouble());
-    // Höhe und Schrift wachsen mit dem Format (Faktor = Streifenbreite / Referenzbreite), A4 quer = 1:1
-    const double hRef = st.value("hoeheMm", 8.0).toDouble();
-    // Breite je Modus (INFOSTREIFEN-03): 0 = volle Blattbreite, sonst Formatbreite, nie breiter als das Blatt
-    const double modusB = nb.value("infostreifenBreiteMm").toDouble();
-    const double wMm    = modusB > 0 ? qMin(modusB, bMm) : bMm;
-    const double faktor = wMm / refB;
-    const double hStr = hRef * faktor;
-    const double y0 = hMm - hStr;
-
-    p.fillRect(QRectF(0, y0 * pxPerMm, wMm * pxPerMm, hStr * pxPerMm), Qt::white);
-
-    QVariantList skaliert;
-    for (const QVariant &fv : felder) {
-        QVariantMap f = fv.toMap();
-        f["xMm"]      = f.value("xMm").toDouble() * faktor;
-        f["breiteMm"] = f.value("breiteMm").toDouble() * faktor;
-        f["yMm"]      = y0 + f.value("yMm").toDouble() * faktor;
-        f["hoeheMm"]  = f.value("hoeheMm").toDouble() * faktor;
-        f["schriftgroesse"] = f.value("schriftgroesse").toDouble() * faktor;
-        skaliert.append(f);
-    }
-    QVariantMap d = nb;
-    d["felder"]           = skaliert;
-    d["ohneRahmen"]       = true;
-    d["hintergrundFarbe"] = QString();
-    d["breiteMm"]         = bMm;
-    d["hoeheMm"]          = hMm;
-    d["logoDataUrl"]      = st.value("logoDataUrl");
-    d["logoAspekt"]       = st.value("logoAspekt");
-    pdfNormblattRendern(p, d, pxPerMm);
-}
-
 // ── Revisionsmarker-Wasserzeichen (analog SchaltplanCanvas.qml) ─────────────
-// Wird unabhängig von Normblatt/Infostreifen/vollCanvas auf jeder Seite gezeichnet,
+// Wird unabhängig vom Normblatt auf jeder Seite gezeichnet,
 // sofern ein Revisionsstatus gesetzt ist.
 void pdfRevisionswasserzeichenRendern(QPainter &p, const QVariantMap &nb,
                                               double bMm, double hMm, double pxPerMm)

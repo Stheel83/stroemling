@@ -27,12 +27,11 @@ Dialog {
     property real   altRandRechts:       10
     property real   altRandOben:         10
     property real   altRandUnten:        10
-    // Blattkopf der Seite: "schriftfeld" (Normblatt) | "infostreifen" | "keiner" (NORMBLATT-DYNAMISCH-01 N-01)
-    readonly property var _blattkoepfe: ["schriftfeld", "infostreifen", "keiner"]
+    // Blattkopf der Seite: "schriftfeld" (Normblatt, auch Infostreifen als Vorlage) | "keiner" (NORMBLATT-DYNAMISCH-01)
+    readonly property var _blattkoepfe: ["schriftfeld", "keiner"]
     readonly property string blattkopf: _blattkoepfe[Math.max(0, editBlattkopf.currentIndex)]
-    // Normblatt-Position: "fest" (Blatt bei 0,0 im gewählten Format) | "inhalt" (Rahmen/Schriftfeld folgen den Elementen, N-02);
-    // eigene Vorlagen sind bis N-03 formatgebunden und bleiben "fest"
-    readonly property string position: (normblattPanel.vorlageBenutzerdefiniert || editPosition.currentIndex === 0) ? "fest" : "inhalt"
+    // Normblatt-Position: "fest" (Blatt bei 0,0 im gewählten Format) | "inhalt" (Rahmen/Schriftfeld folgen den Elementen, N-02)
+    readonly property string position: editPosition.currentIndex === 0 ? "fest" : "inhalt"
 
     height: Math.min(implicitHeight, 680)
     background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
@@ -79,9 +78,9 @@ Dialog {
         Text { text: qsTr("Blattkopf"); color: root.theme.textMuted; font.pixelSize: 12 }
         ComboBox {
             id: editBlattkopf; Layout.fillWidth: true
-            model: [qsTr("Schriftfeld (Normblatt)"), qsTr("Infostreifen"), qsTr("Keiner")]
+            model: [qsTr("Schriftfeld (Normblatt)"), qsTr("Keiner")]
             ToolTip.visible: hovered; ToolTip.delay: 600
-            ToolTip.text: qsTr("Schriftfeld: Zeichnungsrahmen mit Schriftfeld in festem Blatt.\nInfostreifen: schmaler Streifen unter den Elementen, Fläche folgt dem Inhalt.\nKeiner: kein Blattkopf.")
+            ToolTip.text: qsTr("Schriftfeld: Zeichnungsrahmen mit Schriftfeld (auch als schmaler Infostreifen: Vorlage „Standard-Infostreifen“, Zeichnungsrahmen aus).\nKeiner: kein Blattkopf; im PDF umschließt das Blatt die Elemente.")
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             contentItem: Text { leftPadding: 8; text: editBlattkopf.displayText; color: root.theme.textPrimary;
                                 font.pixelSize: 13; verticalAlignment: Text.AlignVCenter }
@@ -90,12 +89,9 @@ Dialog {
         ComboBox {
             id: editPosition; Layout.fillWidth: true
             visible: root.blattkopf === "schriftfeld"
-            enabled: !normblattPanel.vorlageBenutzerdefiniert
             model: [qsTr("Fest (Blatt bei 0,0 im gewählten Format)"), qsTr("Folgt dem Inhalt (Rahmen legt sich um die Elemente)")]
             ToolTip.visible: hovered; ToolTip.delay: 600
-            ToolTip.text: normblattPanel.vorlageBenutzerdefiniert
-                ? qsTr("Eigene Schriftfeld-Vorlagen sind an ein Blattformat gebunden und bleiben fest.")
-                : qsTr("Fest: du zeichnest in den vorgegebenen Rahmen.\nFolgt dem Inhalt: Rahmen und Schriftfeld passen sich den Elementen an.")
+            ToolTip.text: qsTr("Fest: du zeichnest in den vorgegebenen Rahmen.\nFolgt dem Inhalt: Rahmen und Schriftfeld passen sich den Elementen an.")
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             contentItem: Text { leftPadding: 8; text: editPosition.displayText; color: root.theme.textPrimary;
                                 font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }

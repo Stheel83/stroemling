@@ -60,7 +60,6 @@ Item {
         normField.text   = info.norm           || ""
         _projektId       = info.id !== undefined ? info.id : -1
         _kundenLogoUrl   = _projektId >= 0 ? db.projektKundenLogoDataUrl(_projektId) : ""
-        streifenCombo.neuLaden()
         _ladevorgang = false
         _geaendert   = false
     }
@@ -425,32 +424,6 @@ Item {
                         color: root.theme.textPrimary
                         background: Rectangle { color: root.theme.inputBg; border.color: normField.activeFocus ? root.theme.accent : root.theme.border; radius: 4 }
                         onTextChanged: if (!root._ladevorgang) root._geaendert = true
-                    }
-
-                    Text { text: qsTr("Infostreifen"); font.pixelSize: 12; color: root.theme.textMuted }
-                    ComboBox {
-                        id: streifenCombo
-                        Layout.fillWidth: true; Layout.preferredHeight: 32
-                        textRole: "name"
-                        property var vorlagen: []
-                        model: vorlagen
-                        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-                        contentItem: Text { leftPadding: 8; text: streifenCombo.displayText; color: root.theme.textPrimary
-                            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                        ToolTip.visible: hovered; ToolTip.delay: 600
-                        ToolTip.text: qsTr("Blattvorlage für den Streifen auf Seiten ohne Schriftfeld. Gestaltung unter „Blattvorlagen“.")
-                        // wirkt sofort (kein Teil von „Speichern“ der Projektdaten)
-                        onActivated: function(i) { db.projektInfostreifenVorlageSetzen(vorlagen[i].id) }
-                        function neuLaden() {
-                            var l = db.normblattVorlagenListe().filter(function(v) { return v.art === "infostreifen" })
-                            vorlagen = l
-                            var id = db.projektInfostreifenVorlageId()
-                            var idx = 0
-                            for (var k = 0; k < l.length; k++) {
-                                if (l[k].id === id || (id === 0 && l[k].istStandard)) { idx = k; if (l[k].id === id) break }
-                            }
-                            currentIndex = idx
-                        }
                     }
 
                     Text { text: qsTr("Kunden-Logo"); font.pixelSize: 12; color: root.theme.textMuted }

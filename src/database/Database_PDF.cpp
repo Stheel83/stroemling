@@ -49,8 +49,7 @@ bool Database::dateiExistiert(const QString &pfad) const
 // Rückgabe: Anzahl gerenderter Seiten.
 int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
                                           const QList<int> &seiteIds,
-                                          bool mitNormblatt, bool vollCanvas, bool mitInfostreifen,
-                                          bool ersteSeiteNeu)
+                                          bool mitNormblatt, bool ersteSeiteNeu)
 {
     // DPI-basierte Skalierung: alle Zeichenaufrufe in Device-Pixeln
     const double pxPerMm = (double)writer.logicalDpiX() / 25.4;
@@ -64,8 +63,12 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         double txCu = 0.0, tyCu = 0.0;
         bool verschieben = false;
 
-        // Normblatt "folgt Inhalt" (N-02): Blatt = Flaeche, Inhalt um die Flaechenecke verschoben (wie Ganzes Canvas)
-        if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool()) {
+        // Blatt je Seite (NORMBLATT-DYNAMISCH-01 N-03):
+        //  - Normblatt gezeichnet, Position "inhalt": Blatt = berechnete Flaeche, Inhalt um die Flaechenecke verschoben
+        //  - Normblatt gezeichnet, Position "fest":   Blatt = Seitenformat, Ursprung 0,0
+        //  - kein Normblatt (Blattkopf "Keiner" oder Option "Normblatt einschliessen" aus): Blatt = Bounding-Box + 15 mm
+        const bool normblattGezeichnet = mitNormblatt && nb.value("normblattAnzeigen").toBool();
+        if (normblattGezeichnet) {
             const QRectF nf = normblattFlaecheMm(seiteId, nb);
             if (nf.isValid()) {
                 bMm = nf.width();  hMm = nf.height();
@@ -74,22 +77,7 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
                 nb[QStringLiteral("breiteMm")] = bMm;
                 nb[QStringLiteral("hoeheMm")]  = hMm;
             }
-        }
-
-        // Infostreifen-Format-Flaeche (INFOSTREIFEN-03): Blatt = Flaechenformat, Inhalt um die Flaechenecke
-        // verschoben; nur wenn ein Streifen gezeichnet wird und nicht "Ganzes Canvas"
-        const bool streifenFlaeche = mitInfostreifen && !vollCanvas && !verschieben
-                                     && !(mitNormblatt && nb.value("normblattAnzeigen").toBool());
-        QRectF flaeche;
-        if (streifenFlaeche) {
-            flaeche = infostreifenFlaecheMm(seiteId, nb);
-            if (flaeche.isValid()) {
-                bMm = flaeche.width();  hMm = flaeche.height();
-                txCu = flaeche.left() * 4.0;  tyCu = flaeche.top() * 4.0;
-                verschieben = true;
-                nb[QStringLiteral("infostreifenBreiteMm")] = flaeche.width();
-            }
-        } else if (vollCanvas && !verschieben) {
+        } else {
             PdfBBox bb = pdfBoundingBox(seiteId, bMm, hMm, m_db);
             txCu = bb.txCu; tyCu = bb.tyCu;
             bMm  = bb.bMm;  hMm  = bb.hMm;
@@ -104,7 +92,7 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         }
 
         // Weißer Seitenhintergrund + Elemente im eigenen save/restore-Block
-        // (enthält ggf. den vollCanvas-Translate)
+        // (enthält ggf. den Translate auf die Blatt-Fläche)
         painter.save();
         painter.fillRect(QRectF(0, 0, bMm * pxPerMm, hMm * pxPerMm), Qt::white);
         if (verschieben)
@@ -119,42 +107,27 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         pdfKabelAderBeschriftungRendern(painter, C, pxPerMm, aderLabels);
         painter.restore();  // Translate entfernt – ab hier absolute Seitenkoordinaten
 
-        // Normblatt + Infostreifen in absoluten Koordinaten (kein Translate aktiv)
-        // Infostreifen nur wenn das Normblatt auf dieser Seite tatsächlich NICHT
-        // gezeichnet wird (auch im vollCanvas-Modus, wo es unabhängig von
-        // normblattAnzeigen unterdrückt wird - sonst fehlt sonst bei "Ganzes
-        // Canvas" sowohl Normblatt als auch Infostreifen, INFOSTREIFEN-VOLLCANVAS-01).
-        const bool normblattGezeichnet = mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool();
+        // Normblatt in absoluten Koordinaten (kein Translate aktiv)
         if (normblattGezeichnet)
             pdfNormblattRendern(painter, nb, pxPerMm);
-        if (mitInfostreifen && !normblattGezeichnet && nb.value("infostreifenModus").toString() != QLatin1String("aus")) {
-            nb[QStringLiteral("infostreifen")] = infostreifenLaden(seiteId);
-            pdfInfostreifenRendern(painter, nb, bMm, hMm, pxPerMm);
-        }
         pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
     }
     return seiteIds.size();
 }
 
 // Seitengröße (mm) einer Schaltplan-Seite im Export - für das Start-Layout des Writers.
-QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas, bool mitNormblatt, bool mitInfostreifen)
+QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool mitNormblatt)
 {
     QVariantMap nb = normblattDatenLaden(seiteId);
     double b = nb.value("breiteMm", 297.0).toDouble();
     double h = nb.value("hoeheMm",  210.0).toDouble();
-    if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool()) {
+    if (mitNormblatt && nb.value("normblattAnzeigen").toBool()) {
         const QRectF nf = normblattFlaecheMm(seiteId, nb);
         if (nf.isValid()) return nf.size();
+        return QSizeF(b, h);                    // Position fest: Seitenformat
     }
-    if (mitInfostreifen && !vollCanvas && !(mitNormblatt && nb.value("normblattAnzeigen").toBool())) {
-        const QRectF f = infostreifenFlaecheMm(seiteId, nb);
-        if (f.isValid()) return f.size();
-    }
-    if (vollCanvas) {
-        PdfBBox bb = pdfBoundingBox(seiteId, b, h, m_db);
-        b = bb.bMm; h = bb.hMm;
-    }
-    return QSizeF(b, h);
+    PdfBBox bb = pdfBoundingBox(seiteId, b, h, m_db);   // kein Normblatt: Bounding-Box + Rand
+    return QSizeF(bb.bMm, bb.hMm);
 }
 
 // Seiten des Projekts in Anzeigereihenfolge, nur die mit Flag in_doku_pdf (DOKU-PDF-01)
@@ -212,7 +185,7 @@ QVariantList Database::dokuPdfSeitenListe(int projektId)
 
 // ── Dokumentations-PDF (DOKU-PDF-02) ─────────────────────────
 // Optionen-JSON:
-//   { "mitNormblatt": true, "vollCanvas": false, "mitInfostreifen": false,
+//   { "mitNormblatt": true,
 //     "seiteIds": [..]            // optional; Standard: alle Seiten mit in_doku_pdf = 1
 //     "abschnitte": [ {"typ":"deckblatt", "titelzusatz":"...", "logo":true, "vorlageId":0},
 //                     {"typ":"inhaltsverzeichnis"},
@@ -241,7 +214,7 @@ struct DokuTocPlan {
     int versatz   = -1;   // < 0: ohne Seitenzahl
 };
 struct DokuOptionen {
-    bool mitNormblatt = true, vollCanvas = false, mitInfostreifen = false;
+    bool mitNormblatt = true;
     QList<int>          seiteIds;
     QList<DokuAbschnitt> abschnitte;
     QString             projektName;
@@ -259,8 +232,6 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
 
     DokuOptionen opt;
     opt.mitNormblatt    = o.value("mitNormblatt").toBool(true);
-    opt.vollCanvas      = o.value("vollCanvas").toBool(false);
-    opt.mitInfostreifen = o.value("mitInfostreifen").toBool(false);
 
     if (o.contains("seiteIds")) {
         for (const QJsonValue &v : o.value("seiteIds").toArray()) opt.seiteIds << v.toInt();
@@ -387,7 +358,7 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         startLayout = pdfHochSeitenLayout();
     } else if (ersterTyp == QLatin1String("schaltplan")) {
         startLayout = QPageLayout(
-            QPageSize(pdfSchaltplanSeitenGroesseMm(opt.seiteIds.first(), opt.vollCanvas, opt.mitNormblatt, opt.mitInfostreifen),
+            QPageSize(pdfSchaltplanSeitenGroesseMm(opt.seiteIds.first(), opt.mitNormblatt),
                       QPageSize::Millimeter),
             QPageLayout::Portrait, QMarginsF(0, 0, 0, 0));
     }
@@ -424,7 +395,7 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
                 seiten += pdfInhaltsverzeichnisRendern(painter, writer, eintraege, neu, seiten + 1, gesamtSeiten);
             } else if (a.typ == QLatin1String("schaltplan")) {
                 seiten += pdfSchaltplanSeitenRendern(painter, writer, opt.seiteIds,
-                                                     opt.mitNormblatt, opt.vollCanvas, opt.mitInfostreifen, neu);
+                                                     opt.mitNormblatt, neu);
             } else if (a.typ == QLatin1String("liste")) {
                 seiten += pdfTabelleRendern(painter, writer, a.tabelle.value("titel").toString(),
                                             opt.projektName, a.tabelle.value("spalten").toStringList(),

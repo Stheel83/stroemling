@@ -73,7 +73,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         SELECT s.blattnummer, s.bezeichnung, a.kuerzel AS anlage_kuerzel, o.kuerzel AS ort_kuerzel,
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
-               s.revision_status, s.revision_kennung, s.in_doku_pdf, s.infostreifen, s.infostreifen_ausrichtung,
+               s.revision_status, s.revision_kennung, s.in_doku_pdf, 
                s.normblatt_position, s.normblatt_format, s.normblatt_ausrichtung, s.normblatt_rahmen,
                p.name         AS projekt_name,
                p.projektnummer,
@@ -161,7 +161,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
     // Normblatt-Lage (N-02)
     {
         const QString fm = q.value("normblatt_format").toString();
-        const QSizeF fmt = infostreifenFormatMm(fm, 0, 0);
+        const QSizeF fmt = blattFormatMm(fm, 0, 0);
         m[QStringLiteral("normblattPosition")]    = q.value("normblatt_position");
         m[QStringLiteral("normblattFormat")]      = fm;
         m[QStringLiteral("normblattAusrichtung")] = q.value("normblatt_ausrichtung");
@@ -169,17 +169,6 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         m[QStringLiteral("normblattFormatBreiteMm")] = fmt.width();
         m[QStringLiteral("normblattFormatHoeheMm")]  = fmt.height();
         m[QStringLiteral("ohneRahmen")]           = q.value("normblatt_rahmen").toInt() == 0;
-    }
-    // Infostreifen (INFOSTREIFEN-02/03): Modus/Format immer, die Vorlage nur auf Seiten ohne Schriftfeld
-    {
-        const QString modus = q.value("infostreifen").toString();
-        const QSizeF fmt = infostreifenFormatMm(modus, q.value("breite_mm").toDouble(), q.value("hoehe_mm").toDouble());
-        m[QStringLiteral("infostreifenModus")]       = modus;
-        m[QStringLiteral("infostreifenAusrichtung")] = q.value("infostreifen_ausrichtung").toString();
-        m[QStringLiteral("infostreifenBreiteMm")]    = fmt.width();
-        m[QStringLiteral("infostreifenHoeheMm")]     = fmt.height();
-        if (!q.value("normblatt_anzeigen").toBool() && modus != QLatin1String("aus"))
-            m[QStringLiteral("infostreifen")] = infostreifenLaden(seiteId);
     }
     m[QStringLiteral("erstelltAm")]       = q.value("erstellt_am");
     m[QStringLiteral("randLinksMm")]      = q.value("rand_links_mm");
@@ -196,7 +185,21 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
             QVariant normblattId = qnid.value(0);
             if (!normblattId.isNull() && normblattId.toInt() > 0) {
                 m[QStringLiteral("normblattVorlageId")] = normblattId;
-                m[QStringLiteral("felder")] = normblattFelderLaden(normblattId.toInt());
+                const QVariantList felder = normblattFelderLaden(normblattId.toInt());
+                m[QStringLiteral("felder")] = felder;
+                // N-03: Feldgeometrie ist relativ zur Vorlage (x/Breite skalieren, y von der Unterkante). vorlage* = Masse der
+                // Vorlage, schriftfeldHoeheMm = Abstand der obersten Feld-Oberkante vom unteren Blattrand (fuer "folgt Inhalt").
+                QSqlQuery qv(m_db);
+                qv.prepare("SELECT breite_mm, hoehe_mm FROM normblatt_vorlage WHERE id = :id");
+                qv.bindValue(":id", normblattId);
+                if (qv.exec() && qv.next() && !felder.isEmpty()) {
+                    const double vh = qv.value(1).toDouble();
+                    double minY = vh;
+                    for (const QVariant &fv : felder) minY = qMin(minY, fv.toMap().value("yMm").toDouble());
+                    m[QStringLiteral("vorlageBreiteMm")]    = qv.value(0);
+                    m[QStringLiteral("vorlageHoeheMm")]     = vh;
+                    m[QStringLiteral("schriftfeldHoeheMm")] = qMax(0.0, vh - minY);
+                }
             }
         }
     }
@@ -231,9 +234,9 @@ bool Database::normblattEinstellungenSetzen(int seiteId, bool anzeigen,
     return true;
 }
 
-// Format-Flaeche des Infostreifens je Modus (mm). (0,0) = auto (kleinstes passendes DIN-Format, s. infostreifenFlaecheMm),
-// canvas (Groesse folgt den Elementen) bzw. aus. INFOSTREIFEN-03 / NORMBLATT-DYNAMISCH-01 N-01
-QSizeF Database::infostreifenFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm)
+// Blattformat je Format-Modus (mm). (0,0) = auto (kleinstes passendes DIN-Format) bzw. canvas (Groesse folgt den Elementen).
+// NORMBLATT-DYNAMISCH-01
+QSizeF Database::blattFormatMm(const QString &modus, double seiteBreiteMm, double seiteHoeheMm)
 {
     if (modus == QLatin1String("a4")) return {297.0, 210.0};
     if (modus == QLatin1String("a3")) return {420.0, 297.0};
@@ -241,26 +244,7 @@ QSizeF Database::infostreifenFormatMm(const QString &modus, double seiteBreiteMm
     if (modus == QLatin1String("a1")) return {841.0, 594.0};
     if (modus == QLatin1String("a0")) return {1189.0, 841.0};
     Q_UNUSED(seiteBreiteMm); Q_UNUSED(seiteHoeheMm);
-    return {0.0, 0.0};   // auto, canvas, aus
-}
-
-bool Database::seiteInfostreifenSetzen(int seiteId, const QString &modus, const QString &ausrichtung)
-{
-    static const QStringList erlaubt = {"auto", "a4", "a3", "a2", "a1", "a0", "canvas", "aus"};
-    if (!erlaubt.contains(modus) || (ausrichtung != QLatin1String("links") && ausrichtung != QLatin1String("rechts"))) {
-        qCWarning(lcDb) << "seiteInfostreifenSetzen: ungueltige Werte" << modus << ausrichtung;
-        return false;
-    }
-    QSqlQuery q(m_db);
-    q.prepare("UPDATE seite SET infostreifen = :m, infostreifen_ausrichtung = :a WHERE id = :sid");
-    q.bindValue(":m", modus);
-    q.bindValue(":a", ausrichtung);
-    q.bindValue(":sid", seiteId);
-    if (!q.exec()) {
-        qCWarning(lcDb) << "seiteInfostreifenSetzen:" << q.lastError().text();
-        return false;
-    }
-    return true;
+    return {0.0, 0.0};   // auto, canvas
 }
 
 bool Database::seiteNormblattLageSetzen(int seiteId, const QString &position, const QString &format,
@@ -299,44 +283,6 @@ bool elementeBoxMm(const QSqlDatabase &db, int seiteId, QRectF &box)
 }
 } // namespace
 
-bool Database::infostreifenElementeZuGross(int seiteId, const QString &modus)
-{
-    if (modus == QLatin1String("auto") || modus == QLatin1String("canvas") || modus == QLatin1String("aus")) return false;
-    QSqlQuery q(m_db);
-    q.prepare("SELECT breite_mm, hoehe_mm FROM seite WHERE id = :sid");
-    q.bindValue(":sid", seiteId);
-    if (!q.exec() || !q.next()) return false;
-    const QSizeF fmt = infostreifenFormatMm(modus, q.value(0).toDouble(), q.value(1).toDouble());
-    QRectF box;
-    if (!elementeBoxMm(m_db, seiteId, box)) return false;
-    return box.width() + 30.0 > fmt.width() + 0.01 || box.height() + 30.0 > fmt.height() + 0.01;
-}
-
-// Format-Flaeche des Infostreifens (Seitenkoordinaten, mm); ungueltiges Rechteck = keine Flaeche (aus / keine Elemente).
-QRectF Database::infostreifenFlaecheMm(int seiteId, const QVariantMap &nb)
-{
-    const QString modus = nb.value("infostreifenModus").toString();
-    if (modus == QLatin1String("aus")) return {};
-    QRectF box;
-    if (!elementeBoxMm(m_db, seiteId, box)) return {};
-    const double rand = 15.0;
-    QSizeF fmt(nb.value("infostreifenBreiteMm").toDouble(), nb.value("infostreifenHoeheMm").toDouble());
-    if (fmt.width() <= 0 || fmt.height() <= 0) {
-        // auto: kleinstes DIN-Format quer (A4...A0), in das Box + Rand passt; passt keins oder canvas: Box + Rand, min. A4 breit
-        const double nb_ = box.width() + 2 * rand, nh_ = box.height() + 2 * rand;
-        static const QSizeF dinFormate[] = {{297, 210}, {420, 297}, {594, 420}, {841, 594}, {1189, 841}};
-        fmt = QSizeF(qMax(297.0, nb_), nh_);
-        if (modus == QLatin1String("auto")) {
-            for (const QSizeF &f : dinFormate)
-                if (f.width() >= nb_ && f.height() >= nh_) { fmt = f; break; }
-        }
-    }
-    const double unten = box.bottom() + rand;
-    const bool rechts = nb.value("infostreifenAusrichtung").toString() == QLatin1String("rechts");
-    const double links = rechts ? box.right() + rand - fmt.width() : box.left() - rand;
-    return QRectF(links, unten - fmt.height(), fmt.width(), fmt.height());
-}
-
 // Hoehe des Schriftfelds der eingebauten Vorlagen (mm); entspricht pdfNormblattRendern()/drawNormblatt()
 static double normblattSchriftfeldHoeheMm(const QString &vorlage)
 {
@@ -370,25 +316,28 @@ static QRectF normblattFlaecheBerechnen(const QRectF &box, const QSizeF &fmtVorg
 QRectF Database::normblattFlaecheMm(int seiteId, const QVariantMap &nb)
 {
     if (nb.value("normblattPosition").toString() != QLatin1String("inhalt")) return {};
-    if (!nb.value("felder").toList().isEmpty()) return {};   // eigene Vorlage: nur Position fest (bis N-03)
     QRectF box;
     if (!elementeBoxMm(m_db, seiteId, box)) return {};
     return normblattFlaecheBerechnen(box,
         QSizeF(nb.value("normblattFormatBreiteMm").toDouble(), nb.value("normblattFormatHoeheMm").toDouble()),
         nb.value("normblattFormat").toString(), nb.value("normblattAusrichtung").toString(),
-        normblattSchriftfeldHoeheMm(nb.value("titelblattVorlage").toString()),
+        nb.value("felder").toList().isEmpty()
+            ? normblattSchriftfeldHoeheMm(nb.value("titelblattVorlage").toString())
+            : qMax(0.0, nb.value("schriftfeldHoeheMm").toDouble() - nb.value("randUntenMm").toDouble()),
         nb.value("randLinksMm").toDouble(), nb.value("randRechtsMm").toDouble(),
         nb.value("randObenMm").toDouble(),  nb.value("randUntenMm").toDouble());
 }
 
 bool Database::normblattInhaltZuGross(int seiteId, const QString &format, const QString &vorlage)
 {
-    const QSizeF fmt = infostreifenFormatMm(format, 0, 0);
+    const QSizeF fmt = blattFormatMm(format, 0, 0);
     if (fmt.width() <= 0) return false;   // auto/canvas passen sich an
     const QVariantMap nb = normblattDatenLaden(seiteId);
     QRectF box;
     if (!elementeBoxMm(m_db, seiteId, box)) return false;
-    const double sf = normblattSchriftfeldHoeheMm(vorlage);
+    const double sf = !nb.value("felder").toList().isEmpty()
+        ? qMax(0.0, nb.value("schriftfeldHoeheMm").toDouble() - nb.value("randUntenMm").toDouble())
+        : normblattSchriftfeldHoeheMm(vorlage);
     const double needW = box.width()  + 20.0 + nb.value("randLinksMm").toDouble() + nb.value("randRechtsMm").toDouble();
     const double needH = box.height() + 20.0 + sf + nb.value("randObenMm").toDouble() + nb.value("randUntenMm").toDouble();
     return needW > fmt.width() + 0.01 || needH > fmt.height() + 0.01;
@@ -593,50 +542,6 @@ QVariantMap Database::deckblattDatenLaden(int projektId, int vorlageId, const QS
     return m;
 }
 
-QVariantMap Database::infostreifenLaden(int seiteId)
-{
-    QSqlQuery q(m_db);
-    q.prepare(R"(
-        SELECT nv.id, nv.breite_mm, nv.hoehe_mm, nv.logo_data, nv.logo_mime
-        FROM seite s
-        JOIN ort o ON s.ort_id = o.id
-        JOIN anlage a ON o.anlage_id = a.id
-        JOIN projekt p ON a.projekt_id = p.id
-        JOIN normblatt_vorlage nv ON nv.art = 'infostreifen'
-        WHERE s.id = :sid
-        ORDER BY (nv.id = p.infostreifen_vorlage_id) DESC, nv.ist_standard DESC, nv.id
-        LIMIT 1)");
-    q.bindValue(":sid", seiteId);
-    if (!q.exec() || !q.next()) return {};
-    QVariantMap m;
-    m[QStringLiteral("breiteMm")] = q.value(1);
-    m[QStringLiteral("hoeheMm")]  = q.value(2);
-    m[QStringLiteral("felder")]   = normblattFelderLaden(q.value(0).toInt());
-    logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
-              q.value(3).toByteArray(), q.value(4).toString());
-    return m;
-}
-
-int Database::projektInfostreifenVorlageId()
-{
-    QSqlQuery q(m_db);
-    if (q.exec("SELECT COALESCE(infostreifen_vorlage_id, 0) FROM projekt ORDER BY id DESC LIMIT 1") && q.next())
-        return q.value(0).toInt();
-    return 0;
-}
-
-bool Database::projektInfostreifenVorlageSetzen(int vorlageId)
-{
-    QSqlQuery q(m_db);
-    q.prepare("UPDATE projekt SET infostreifen_vorlage_id = :v WHERE id = (SELECT id FROM projekt ORDER BY id DESC LIMIT 1)");
-    q.bindValue(":v", vorlageId > 0 ? QVariant(vorlageId) : QVariant());
-    if (!q.exec()) {
-        qCWarning(lcDb) << "projektInfostreifenVorlageSetzen:" << q.lastError().text();
-        return false;
-    }
-    return true;
-}
-
 QVariantList Database::normblattFelderLaden(int vorlageId)
 {
     QSqlQuery q(m_db);
@@ -799,7 +704,9 @@ int Database::seiteDuplizieren(int seiteId)
     qs.prepare("SELECT ort_id, blattnummer, bezeichnung, seitentyp, "
                "       normblatt_anzeigen, normblatt_id, "
                "       rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, "
-               "       breite_mm, hoehe_mm, ausrichtung, in_doku_pdf "
+               "       breite_mm, hoehe_mm, ausrichtung, in_doku_pdf, "
+               "       normblatt_position, normblatt_format, normblatt_ausrichtung, normblatt_rahmen, "
+               "       titelblatt_vorlage, hintergrund_farbe, aussen_overlay "
                "FROM seite WHERE id = :sid");
     qs.bindValue(":sid", seiteId);
     if (!qs.exec() || !qs.next()) {
@@ -818,8 +725,10 @@ int Database::seiteDuplizieren(int seiteId)
         INSERT INTO seite (ort_id, blattnummer, bezeichnung, seitentyp,
                            normblatt_anzeigen, normblatt_id,
                            rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm,
-                           breite_mm, hoehe_mm, ausrichtung, in_doku_pdf)
-        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus,:idp)
+                           breite_mm, hoehe_mm, ausrichtung, in_doku_pdf,
+                           normblatt_position, normblatt_format, normblatt_ausrichtung, normblatt_rahmen,
+                           titelblatt_vorlage, hintergrund_farbe, aussen_overlay)
+        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus,:idp,:np,:nf,:nau,:nr,:tv,:hf,:ao)
     )");
     qi.bindValue(":oid",  qs.value(0));
     qi.bindValue(":bn",   neueBlattnummer);
@@ -835,6 +744,13 @@ int Database::seiteDuplizieren(int seiteId)
     qi.bindValue(":bh",   qs.value(11));
     qi.bindValue(":aus",  qs.value(12));
     qi.bindValue(":idp",  qs.value(13));
+    qi.bindValue(":np",   qs.value(14));
+    qi.bindValue(":nf",   qs.value(15));
+    qi.bindValue(":nau",  qs.value(16));
+    qi.bindValue(":nr",   qs.value(17));
+    qi.bindValue(":tv",   qs.value(18));
+    qi.bindValue(":hf",   qs.value(19));
+    qi.bindValue(":ao",   qs.value(20));
     if (!qi.exec()) {
         qCWarning(lcDb) << "seiteDuplizieren: neue Seite anlegen:" << qi.lastError().text();
         m_db.rollback();

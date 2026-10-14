@@ -7,13 +7,12 @@ ColumnLayout {
     id: root
 
     required property var theme
-    // Blattkopf der Seite: "schriftfeld" | "infostreifen" | "keiner" (vom Dialog gesetzt)
+    // Blattkopf der Seite: "schriftfeld" | "keiner" (vom Dialog gesetzt)
     property string blattkopf: "schriftfeld"
     // Lage des Normblatts (vom Dialog): "fest" | "inhalt"; seiteId für den Größen-Hinweis
     property string position: "fest"
     property int    seiteId: -1
     readonly property bool positionInhalt: normblattAn && position === "inhalt"
-    readonly property bool vorlageBenutzerdefiniert: cmbVorlage.currentText === "benutzerdefiniert"
     property string geladenePosition: "fest"
     readonly property var _nbFormate: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas"]
     property bool _nbZuGross: false
@@ -22,30 +21,15 @@ ColumnLayout {
                          _nbFormate[Math.max(0, cmbNbFormat.currentIndex)], cmbVorlage.currentText)
     }
     readonly property bool normblattAn: blattkopf === "schriftfeld"
-    readonly property bool streifenAn:  blattkopf === "infostreifen"
     property var _normblattVorlagen: []
-    // Infostreifen-Format: Automatisch = kleinstes passendes DIN-Format; "aus" wird über den Blattkopf "keiner" gesetzt
-    readonly property var _streifenModi: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas"]
-    readonly property var _streifenAusrichtungen: ["links", "rechts"]
-    property int _seiteId: -1
-    property bool _streifenZuGross: false
-    function _streifenPruefen() {
-        _streifenZuGross = _seiteId > 0 && db.infostreifenElementeZuGross(_seiteId,
-                               _streifenModi[Math.max(0, cmbInfostreifen.currentIndex)])
-    }
-
-    Layout.fillWidth: true
-    spacing: 10
-
-    // Lädt die Seiteneinstellungen; gibt den ermittelten Blattkopf zurück ("schriftfeld" | "infostreifen" | "keiner")
+    // Lädt die Seiteneinstellungen; gibt den ermittelten Blattkopf zurück ("schriftfeld" | "keiner")
     function laden(seiteId) {
         var kopf = "schriftfeld"
         root._normblattVorlagen = db.normblattVorlagenListe().filter(function(v) { return v.art === "schriftfeld" })
-        root._seiteId = seiteId
         var nd = db.normblattDatenLaden(seiteId)
         if (nd) {
             var normblatt = nd.normblattAnzeigen === 1 || nd.normblattAnzeigen === true
-            kopf = normblatt ? "schriftfeld" : (nd.infostreifenModus === "aus" ? "keiner" : "infostreifen")
+            kopf = normblatt ? "schriftfeld" : "keiner"
             chkInDokuPdf.checked       = nd.inDokuPdf === undefined || nd.inDokuPdf === 1 || nd.inDokuPdf === true
             tfHintergrundFarbe.text    = nd.hintergrundFarbe  || ""
             chkAussenOverlay.checked   = nd.aussenOverlay === 1 || nd.aussenOverlay === true
@@ -63,15 +47,11 @@ ColumnLayout {
             var ri = cmbRevisionStatus.model.indexOf(nd.revisionStatus || "")
             cmbRevisionStatus.currentIndex = ri >= 0 ? ri : 0
             tfRevisionKennung.text = nd.revisionKennung || ""
-            var si = root._streifenModi.indexOf(nd.infostreifenModus || "auto")
-            cmbInfostreifen.currentIndex = si >= 0 ? si : 0   // "aus" → Automatisch (Blattkopf "keiner" bleibt erhalten)
-            cmbAusrichtung.currentIndex = nd.infostreifenAusrichtung === "rechts" ? 1 : 0
             root.geladenePosition = nd.normblattPosition === "inhalt" ? "inhalt" : "fest"
             var nfi = root._nbFormate.indexOf(nd.normblattFormat || "auto")
             cmbNbFormat.currentIndex = nfi >= 0 ? nfi : 0
             cmbNbAusrichtung.currentIndex = nd.normblattAusrichtung === "rechts" ? 1 : 0
             chkRahmen.checked = nd.normblattRahmen !== false
-            root._streifenPruefen()
         }
         return kopf
     }
@@ -93,51 +73,10 @@ ColumnLayout {
                                     root._nbFormate[Math.max(0, cmbNbFormat.currentIndex)],
                                     cmbNbAusrichtung.currentIndex === 1 ? "rechts" : "links",
                                     chkRahmen.checked)
-        db.seiteInfostreifenSetzen(seiteId,
-                                   root.blattkopf === "keiner" ? "aus"
-                                       : root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)],
-                                   root._streifenAusrichtungen[Math.max(0, cmbAusrichtung.currentIndex)])
         db.seiteRevisionSetzen(
             seiteId,
             cmbRevisionStatus.currentText,
             tfRevisionKennung.text.trim())
-    }
-
-    // Infostreifen: Format der Fläche um die Elemente (Automatisch = kleinstes passendes DIN-Format) und Ausrichtung
-    Text {
-        text: qsTr("Format der Fläche")
-        color: root.theme.textMuted; font.pixelSize: 12
-        visible: root.streifenAn
-    }
-    ComboBox {
-        id: cmbInfostreifen
-        Layout.fillWidth: true
-        visible: root.streifenAn
-        model: [qsTr("Automatisch (kleinstes passendes DIN-Format)"), "A4", "A3", "A2", "A1", "A0", qsTr("Gesamtes Canvas")]
-        onActivated: root._streifenPruefen()
-        ToolTip.visible: hovered; ToolTip.delay: 600
-        ToolTip.text: qsTr("Fläche im gewählten Format um die Elemente, Infostreifen am unteren Rand. Vorlage: Projektseite → Infostreifen, Gestaltung unter „Blattvorlagen“.")
-        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-        contentItem: Text { leftPadding: 8; text: cmbInfostreifen.displayText; color: root.theme.textPrimary
-            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-    }
-    ComboBox {
-        id: cmbAusrichtung
-        Layout.fillWidth: true
-        visible: root.streifenAn
-        model: [qsTr("Linksbündig zu den Elementen"), qsTr("Rechtsbündig zu den Elementen")]
-        ToolTip.visible: hovered; ToolTip.delay: 600
-        ToolTip.text: qsTr("Legt fest, ob die Fläche links der Elemente beginnt oder rechts der Elemente endet.")
-        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
-        contentItem: Text { leftPadding: 8; text: cmbAusrichtung.displayText; color: root.theme.textPrimary
-            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-    }
-    Text {
-        Layout.fillWidth: true
-        visible: root.streifenAn && root._streifenZuGross
-        text: qsTr("Die Elemente sind größer als die gewählte Fläche – anderes Format oder „Automatisch“ wählen.")
-        color: root.theme.warning !== undefined ? root.theme.warning : "#d08a20"
-        font.pixelSize: 12; wrapMode: Text.WordWrap
     }
 
     // Normblatt "folgt Inhalt": Format der Blatt-Fläche, Ausrichtung zu den Elementen (N-02)

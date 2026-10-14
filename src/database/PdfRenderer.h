@@ -8,7 +8,7 @@
 //   PdfRenderer_Leitungen   Leitungssegmente sammeln/zeichnen, Treffpunkt-Arme, Aderbeschriftung
 //   PdfRenderer_Symbol      Symbol-Element (Beschriftung, Pin-Bezeichnungen, Querverweise)
 //   PdfRenderer_Elemente    übrige Element-Typen + Dispatcher pdfElementRendern()
-//   PdfRenderer_Normblatt   Normblatt, Infostreifen, Revisions-Wasserzeichen, Bounding-Box
+//   PdfRenderer_Normblatt   Normblatt, Revisions-Wasserzeichen, Bounding-Box
 //   PdfRenderer_Tabelle     generische Tabelle mit Seitenumbruch (Listen-PDF, Dokumentations-PDF)
 //   PdfRenderer_Deckblatt   Deckblatt + Inhaltsverzeichnis (A4 hoch), Fußzeile "Seite x von y"
 //   Database_PDF.cpp        öffentliche Database-Methoden (dokuPdfExportieren, dokuPdfSeitenListe)
@@ -106,7 +106,7 @@ struct PdfKabelAderLabel {
 // relevanten Typen.
 struct PdfPinDef { QString name; double px, py; };
 
-// ── Bounding-Box einer Seite berechnen (für vollCanvas-Modus) ───────────────
+// ── Bounding-Box einer Seite berechnen (für Seiten ohne Normblatt und Position "inhalt") ───────────────
 struct PdfBBox { double txCu, tyCu, bMm, hMm; };
 
 // ── Funktionen (Definitionen in den PdfRenderer_*.cpp) ──────────────────────
@@ -153,8 +153,6 @@ void pdfKabelAderBeschriftungRendern(QPainter &p, double C, double pxPerMm,
 void pdfLeitungenRendern(QPainter &p, double C, double pxPerMm,
                          const QVector<PdfLeitungsSegment> &segs);
 void pdfNormblattRendern(QPainter &p, const QVariantMap &nb, double pxPerMm);
-void pdfInfostreifenRendern(QPainter &p, const QVariantMap &nb,
-                             double bMm, double hMm, double pxPerMm);
 void pdfRevisionswasserzeichenRendern(QPainter &p, const QVariantMap &nb,
                                        double bMm, double hMm, double pxPerMm);
 PdfBBox pdfBoundingBox(int seiteId, double normBMm, double normHMm,

@@ -3046,6 +3046,13 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE seite ADD COLUMN normblatt_ausrichtung TEXT NOT NULL DEFAULT 'links')",
             R"(ALTER TABLE seite ADD COLUMN normblatt_rahmen INTEGER NOT NULL DEFAULT 1)",
         }},
+        { 172, "NORMBLATT-DYNAMISCH-01 N-03: Infostreifen geht im Normblatt auf - Vorlagen-Art 'infostreifen' wird 'schriftfeld'; Seiten ohne Normblatt mit Infostreifen-Modus != 'aus' werden Normblatt-Seiten (Position inhalt, Rahmen aus, Vorlage = Projektauswahl oder Standard-Infostreifen); danach seite.infostreifen, seite.infostreifen_ausrichtung und projekt.infostreifen_vorlage_id entfernt.", {
+            R"(UPDATE normblatt_vorlage SET art = 'schriftfeld' WHERE art = 'infostreifen')",
+            R"(UPDATE seite SET normblatt_id = COALESCE((SELECT p.infostreifen_vorlage_id FROM ort o JOIN anlage a ON a.id = o.anlage_id JOIN projekt p ON p.id = a.projekt_id WHERE o.id = seite.ort_id), (SELECT id FROM normblatt_vorlage WHERE name = 'Standard-Infostreifen' ORDER BY id LIMIT 1)), normblatt_anzeigen = 1, normblatt_position = 'inhalt', normblatt_rahmen = 0, normblatt_format = infostreifen, normblatt_ausrichtung = infostreifen_ausrichtung WHERE normblatt_anzeigen = 0 AND infostreifen <> 'aus' AND COALESCE((SELECT p.infostreifen_vorlage_id FROM ort o JOIN anlage a ON a.id = o.anlage_id JOIN projekt p ON p.id = a.projekt_id WHERE o.id = seite.ort_id), (SELECT id FROM normblatt_vorlage WHERE name = 'Standard-Infostreifen' ORDER BY id LIMIT 1)) IS NOT NULL)",
+            R"(ALTER TABLE seite DROP COLUMN infostreifen)",
+            R"(ALTER TABLE seite DROP COLUMN infostreifen_ausrichtung)",
+            R"(ALTER TABLE projekt DROP COLUMN infostreifen_vorlage_id)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

@@ -12,18 +12,23 @@ Item {
     required property real   canvasHeight
     required property var    normblattDaten
     required property real   mmToPx
+    property var seiteRect: null   // {l,t,w,h} in mm; null = Seite am Ursprung
 
     signal panRequest(real newWorldX, real newWorldY)
 
-    readonly property real pagePxW: normblattDaten ? (normblattDaten.breiteMm || 297) * mmToPx : 297 * mmToPx
-    readonly property real pagePxH: normblattDaten ? (normblattDaten.hoeheMm  || 210) * mmToPx : 210 * mmToPx
+    readonly property real pagePxW: seiteRect ? seiteRect.w * mmToPx
+                                    : (normblattDaten ? (normblattDaten.breiteMm || 297) * mmToPx : 297 * mmToPx)
+    readonly property real pagePxH: seiteRect ? seiteRect.h * mmToPx
+                                    : (normblattDaten ? (normblattDaten.hoeheMm  || 210) * mmToPx : 210 * mmToPx)
+    readonly property real pageOffX: seiteRect ? seiteRect.l * mmToPx : 0
+    readonly property real pageOffY: seiteRect ? seiteRect.t * mmToPx : 0
     readonly property real mapW:    180
     readonly property real mapScale:   mapW / pagePxW
     readonly property real mapH:    pagePxH * mapScale
 
     // Viewport-Rechteck in Minimap-Koordinaten (geclipt auf Seitengrenzen)
-    readonly property real vpRaw:  (-worldX / zoom) * mapScale
-    readonly property real vpTop:  (-worldY / zoom) * mapScale
+    readonly property real vpRaw:  (-worldX / zoom - pageOffX) * mapScale
+    readonly property real vpTop:  (-worldY / zoom - pageOffY) * mapScale
     readonly property real vpWRaw: (canvasWidth  / zoom) * mapScale
     readonly property real vpHRaw: (canvasHeight / zoom) * mapScale
 
@@ -70,8 +75,8 @@ Item {
             onClicked: function(mouse) {
                 var cx = mouse.x - 1
                 var cy = mouse.y - 1
-                var cpx = cx / root.mapScale
-                var cpy = cy / root.mapScale
+                var cpx = cx / root.mapScale + root.pageOffX
+                var cpy = cy / root.mapScale + root.pageOffY
                 root.panRequest(
                     -(cpx * root.zoom) + root.canvasWidth  / 2,
                     -(cpy * root.zoom) + root.canvasHeight / 2

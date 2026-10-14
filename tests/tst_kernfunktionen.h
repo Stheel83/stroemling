@@ -1563,6 +1563,71 @@ private slots:
         QCOMPARE(m_db->projektInfostreifenVorlageId(), 0);
     }
 
+    // NORMBLATT-DYNAMISCH-01 N-02: Normblatt "folgt Inhalt" (Position inhalt), Format auto/fest, PDF-Blatt = Flaeche
+    void normblatt_dynamisch_02_inhalt()
+    {
+        neueSeite("ND1");
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        const int sid = einWert("SELECT id FROM seite ORDER BY id DESC LIMIT 1").toInt();
+        const QString dir = QDir::tempPath();
+        auto pdfGroesse = [&](const QString &pdf) {
+            QProcess pr; pr.start("pdfinfo", {pdf});
+            if (!pr.waitForFinished(20000)) return QString();
+            const QString o = QString::fromUtf8(pr.readAllStandardOutput());
+            const int k = o.indexOf("Page size:");
+            return k < 0 ? QString() : o.mid(k, o.indexOf('\n', k) - k);
+        };
+        auto pdfText = [&](const QString &pdf) {
+            QProcess pr; pr.start("pdftotext", {"-layout", pdf, "-"});
+            if (!pr.waitForFinished(20000)) return QString();
+            return QString::fromUtf8(pr.readAllStandardOutput());
+        };
+        const QString opt = R"({"mitNormblatt":true,"abschnitte":[{"typ":"schaltplan"}]})";
+
+        // Standard: fest, Rahmen an
+        QVariantMap nd = m_db->normblattDatenLaden(sid);
+        QCOMPARE(nd.value("normblattPosition").toString(), QStringLiteral("fest"));
+        QCOMPARE(nd.value("normblattFormat").toString(), QStringLiteral("auto"));
+        QVERIFY(nd.value("normblattRahmen").toBool());
+        QVERIFY(!m_db->seiteNormblattLageSetzen(sid, "mitte", "auto", "links", true));
+        QVERIFY(!m_db->seiteNormblattLageSetzen(sid, "inhalt", "a9", "links", true));
+
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 500, 300)}));    // 25..125 x 25..75 mm
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "inhalt", "auto", "links", true));
+
+        // Automatisch: 100+20+30 breit, 50+20+39+20 hoch -> A4 quer
+        const QString f1 = dir + "/stroemling_nd2_a.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f1, opt));
+        const QString g1 = pdfGroesse(f1);
+        if (!g1.isEmpty()) QVERIFY2(g1.contains("842") && g1.contains("595"), qPrintable(g1));
+        QVERIFY2(pdfText(f1).contains("AUFTRAGGEBER"), qPrintable(pdfText(f1)));       // Schriftfeld DIN 6771 steht auf dem Blatt
+
+        // Elemente 400 mm breit: 400+20+30 = 450 > 420 -> A2 quer (594 x 420 = 1684 x 1191 pt)
+        QVERIFY(m_db->grafikSpeichern(sid, {elem("rechteck", 100, 100, 1700, 300)}));
+        const QString f2 = dir + "/stroemling_nd2_b.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f2, opt));
+        const QString g2 = pdfGroesse(f2);
+        if (!g2.isEmpty()) QVERIFY2(g2.contains("1683") || g2.contains("1684"), qPrintable(g2));
+
+        // festes Format A3: Blatt = 420 x 297; passt der Inhalt nicht -> Hinweis
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "inhalt", "a3", "rechts", true));
+        QVERIFY(m_db->normblattInhaltZuGross(sid, "a3", "din6771"));                  // 450 > 420
+        QVERIFY(!m_db->normblattInhaltZuGross(sid, "a2", "din6771"));
+        QVERIFY(!m_db->normblattInhaltZuGross(sid, "auto", "din6771"));
+        const QString f3 = dir + "/stroemling_nd2_c.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f3, opt));
+        const QString g3 = pdfGroesse(f3);
+        if (!g3.isEmpty()) QVERIFY2(g3.contains("1190") || g3.contains("1191"), qPrintable(g3));
+
+        // Position fest: Blatt = Seitenformat (A4 quer 297 x 210), unabhaengig vom Inhalt
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true));
+        const QString f4 = dir + "/stroemling_nd2_d.pdf";
+        QVERIFY(m_db->dokuPdfExportieren(pid, f4, opt));
+        const QString g4 = pdfGroesse(f4);
+        if (!g4.isEmpty()) QVERIFY2(g4.contains("842") && g4.contains("595"), qPrintable(g4));
+    }
+
     // BLATTVORLAGEN-02: Kunden-Logo je Projekt, Feldtypen logo_kunde/linie/textblock, Deckblatt-Art per API.
     void blattvorlagen_02_kundenlogoFeldtypen()
     {

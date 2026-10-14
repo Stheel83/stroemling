@@ -414,6 +414,11 @@ public:
     Q_INVOKABLE bool seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf);
     // Infostreifen je Seite: modus auto|a4|a3|a2|a1|a0|canvas|aus, ausrichtung links|rechts (INFOSTREIFEN-03)
     Q_INVOKABLE bool seiteInfostreifenSetzen(int seiteId, const QString &modus, const QString &ausrichtung);
+    // Normblatt je Seite (N-02): position fest|inhalt, format auto|a4..a0|canvas, ausrichtung links|rechts, rahmen
+    Q_INVOKABLE bool seiteNormblattLageSetzen(int seiteId, const QString &position, const QString &format,
+                                              const QString &ausrichtung, bool rahmen);
+    // true, wenn die Elemente (+ Abstand, Ränder, Schriftfeld) nicht in das feste Format passen (Position "inhalt")
+    Q_INVOKABLE bool normblattInhaltZuGross(int seiteId, const QString &format, const QString &vorlage);
     // true, wenn die Elemente der Seite groesser sind als die Format-Flaeche des Modus (nicht bei canvas/aus)
     Q_INVOKABLE bool infostreifenElementeZuGross(int seiteId, const QString &modus);
 
@@ -1056,6 +1061,8 @@ private:
     QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas, bool mitNormblatt, bool mitInfostreifen);
     // Format-Flaeche des Infostreifens (mm, Seitenkoordinaten) aus Modus/Ausrichtung/Elementen; ungueltig = keine
     QRectF infostreifenFlaecheMm(int seiteId, const QVariantMap &nb);
+    // Blatt-Flaeche (mm) des Normblatts bei Position "inhalt"; ungueltig = Position fest / keine Elemente / eigene Vorlage
+    QRectF normblattFlaecheMm(int seiteId, const QVariantMap &nb);
     QList<int> dokuPdfSeitenIds(int projektId);
 
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen

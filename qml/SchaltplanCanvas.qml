@@ -73,6 +73,8 @@ Item {
     property bool rastend: true
 
     property var    normblattDaten:   null
+    // Rechteck des Blatts in mm {l,t,w,h} (bei Normblatt-Position "inhalt" folgt es den Elementen); wird beim Zeichnen aktualisiert
+    property var    normblattSeiteRect: null
     property string normblattLogoUrl: ""
     property string normblattKundenLogoUrl: ""   // Feldtyp logo_kunde (Kunden-Logo des Projekts)
     property string infostreifenLogoUrl: ""      // Logo der Infostreifen-Vorlage (Feldtyp logo)
@@ -588,6 +590,8 @@ Item {
             ctx.clearRect(0,0,width,height)
             var elemente = elementeModel.snapshot()
             renderHandler.drawNormblatt(ctx, elemente)
+            var _sr = renderHandler.normblattSeitenRechteck(normblattDaten, elemente)
+            if (JSON.stringify(_sr) !== JSON.stringify(root.normblattSeiteRect)) root.normblattSeiteRect = _sr
             // Gerätekasten-Liste einmalig filtern — GA-Rendering nutzt drawCanvas._gkListe
             var _gkBuf = []
             for (var _gi = 0; _gi < elemente.length; _gi++)
@@ -646,7 +650,7 @@ Item {
             renderHandler.maleRubberband(ctx)
             renderHandler.maleGruppenindikator(ctx)
             renderHandler.maleStapelIndikator(ctx, elemente)
-            renderHandler.drawNormblattAussenoverlay(ctx)
+            renderHandler.drawNormblattAussenoverlay(ctx, elemente)
             renderHandler.maleRevisionsWasserzeichen(ctx)
         }
     }
@@ -851,6 +855,7 @@ Item {
         canvasWidth:      root.width
         canvasHeight:     root.height
         normblattDaten:   root.normblattDaten
+        seiteRect:        root.normblattSeiteRect
         mmToPx:           root.mmToPx
         theme:            root.theme
         hintergrundFarbe: root.hintergrundFarbe

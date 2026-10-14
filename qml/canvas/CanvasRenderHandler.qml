@@ -69,6 +69,50 @@ QtObject {
         ctx.closePath()
     }
 
+    // Blatt-Fläche (mm) des Normblatts bei Position "inhalt" (NORMBLATT-DYNAMISCH-01 N-02, Konzept 54 §3.1):
+    // {l, t, w, h} oder null (Position fest, eigene Vorlage, keine Elemente). Spiegel von Database::normblattFlaecheMm().
+    // Ränder = Papierrand → Rahmen, P = 10 mm Abstand Inhalt → Rahmen, Schriftfeld unten im Rahmen.
+    function normblattFlaecheMm(nd, elemente) {
+        if (!nd || !nd.normblattAnzeigen || nd.normblattPosition !== "inhalt") return null
+        if (nd.felder && nd.felder.length > 0) return null
+        if (!elemente || elemente.length === 0) return null
+        var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+        for (var i = 0; i < elemente.length; i++) {
+            var e = elemente[i]
+            x0 = Math.min(x0, e.x1, e.x2); y0 = Math.min(y0, e.y1, e.y2)
+            x1 = Math.max(x1, e.x1, e.x2); y1 = Math.max(y1, e.y1, e.y2)
+        }
+        if (!isFinite(x0)) return null
+        var m = cv.mmToPx
+        var bL = x0 / m, bR = x1 / m, bT = y0 / m, bB = y1 / m
+        var P = 10
+        var vl = nd.titelblattVorlage || "din6771"
+        var sf = vl === "kompakt" ? 16 : (vl === "rahmen" ? 0 : 39)
+        var rl = nd.randLinksMm || 0, rr = nd.randRechtsMm || 0, ro = nd.randObenMm || 0, ru = nd.randUntenMm || 0
+        var needW = (bR - bL) + 2 * P + rl + rr
+        var needH = (bB - bT) + 2 * P + sf + ro + ru
+        var fW = nd.normblattFormatBreiteMm || 0, fH = nd.normblattFormatHoeheMm || 0
+        if (fW <= 0 || fH <= 0) {
+            fW = Math.max(297, needW); fH = needH
+            if (nd.normblattFormat === "auto") {
+                var din = [[297, 210], [420, 297], [594, 420], [841, 594], [1189, 841]]
+                for (var di = 0; di < din.length; di++)
+                    if (din[di][0] >= needW && din[di][1] >= needH) { fW = din[di][0]; fH = din[di][1]; break }
+            }
+        }
+        var rahmenUnten = bB + P + sf
+        var rahmenLinks = nd.normblattAusrichtung === "rechts" ? bR + P - (fW - rl - rr) : bL - P
+        return { l: rahmenLinks - rl, t: rahmenUnten + ru - fH, w: fW, h: fH }
+    }
+
+    // Rechteck der Seite/des Blatts in mm für Zoom, Minimap und Außen-Overlay: Blatt-Fläche bei "inhalt", sonst (0,0,Breite,Höhe)
+    function normblattSeitenRechteck(nd, elemente) {
+        if (!nd) return null
+        var f = normblattFlaecheMm(nd, elemente)
+        if (f) return f
+        return { l: 0, t: 0, w: nd.breiteMm || 297, h: nd.hoeheMm || 210 }
+    }
+
     // ── Normblattrahmen (DIN 6771, vereinfacht) ──────────────────────
     // elemente: Snapshot des ElementeModels (für die Lage des Infostreifens; optional)
     function drawNormblatt(ctx, elemente) {
@@ -137,11 +181,22 @@ QtObject {
         var z    = cv.zoom
         var mpx  = cv.mmToPx   // world-px per mm
 
+        // Normblatt "folgt Inhalt" (N-02): Blatt liegt an der berechneten Fläche statt am Ursprung
+        var fl = streifen ? null : normblattFlaecheMm(nd, elemente)
+        var ox = 0, oy = 0
+        if (fl) {
+            ox = fl.l * mpx; oy = fl.t * mpx
+            var nd3 = {}
+            for (var key3 in nd) nd3[key3] = nd[key3]
+            nd3.breiteMm = fl.w; nd3.hoeheMm = fl.h
+            nd = nd3
+        }
+
         // mm → screen pixels
         function s(mm) { return mm * mpx * z }
-        // world-px → screen
-        function sx(wx) { return wx * z + cv.worldX }
-        function sy(wy) { return wy * z + cv.worldY }
+        // world-px → screen (inkl. Versatz der Blatt-Fläche)
+        function sx(wx) { return (wx + ox) * z + cv.worldX }
+        function sy(wy) { return (wy + oy) * z + cv.worldY }
 
         var bMm = nd.breiteMm || 297
         var hMm = nd.hoeheMm  || 210
@@ -181,17 +236,19 @@ QtObject {
                 ctx.fillRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
             }
 
-            // ── Seitenbegrenzung (dünn, gestrichelt) ──
-            ctx.strokeStyle = "#2a4a7a"
-            ctx.lineWidth   = Math.max(0.5, s(0.25))
-            ctx.setLineDash([s(3), s(2)])
-            ctx.strokeRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
-            ctx.setLineDash([])
+            if (nd.normblattRahmen !== false) {
+                // ── Seitenbegrenzung (dünn, gestrichelt) ──
+                ctx.strokeStyle = "#2a4a7a"
+                ctx.lineWidth   = Math.max(0.5, s(0.25))
+                ctx.setLineDash([s(3), s(2)])
+                ctx.strokeRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
+                ctx.setLineDash([])
 
-            // ── Zeichnungsrahmen (dick) ──
-            ctx.strokeStyle = "#4a7ab0"
-            ctx.lineWidth   = Math.max(1, s(0.7))
-            ctx.strokeRect(iX0, iY0, iW, iH)
+                // ── Zeichnungsrahmen (dick) ──
+                ctx.strokeStyle = "#4a7ab0"
+                ctx.lineWidth   = Math.max(1, s(0.7))
+                ctx.strokeRect(iX0, iY0, iW, iH)
+            }
         }
 
         // ── Benutzerdefinierte Felder (Phase 2) ──────────────────────
@@ -436,7 +493,7 @@ QtObject {
     }
 
     // ── Außenbereich-Overlay: Bereich außerhalb der Seite abdunkeln ──
-    function drawNormblattAussenoverlay(ctx) {
+    function drawNormblattAussenoverlay(ctx, elemente) {
         if (!cv.normblattDaten) return
         if (!cv.normblattDaten.normblattAnzeigen) return
         if (!cv.normblattDaten.aussenOverlay) return
@@ -445,9 +502,10 @@ QtObject {
         var mpx = cv.mmToPx
         function sx(wx) { return wx * z + cv.worldX }
         function sy(wy) { return wy * z + cv.worldY }
-        var bMm = nd.breiteMm || 297, hMm = nd.hoeheMm || 210
-        var pX0 = sx(0),         pY0 = sy(0)
-        var pX1 = sx(bMm * mpx), pY1 = sy(hMm * mpx)
+        var sr  = normblattSeitenRechteck(nd, elemente)
+        var bMm = sr.w, hMm = sr.h
+        var pX0 = sx(sr.l * mpx),         pY0 = sy(sr.t * mpx)
+        var pX1 = sx((sr.l + bMm) * mpx), pY1 = sy((sr.t + hMm) * mpx)
         ctx.save()
         ctx.fillStyle = "rgba(0,0,0,0.28)"
         if (pY0 > 0)            ctx.fillRect(0,    0,    cv._drawCanvas.width, pY0)

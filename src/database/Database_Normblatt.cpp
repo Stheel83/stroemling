@@ -74,6 +74,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
                s.revision_status, s.revision_kennung, s.in_doku_pdf, s.infostreifen, s.infostreifen_ausrichtung,
+               s.normblatt_position, s.normblatt_format, s.normblatt_ausrichtung, s.normblatt_rahmen,
                p.name         AS projekt_name,
                p.projektnummer,
                p.auftraggeber,
@@ -156,6 +157,18 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
             logoInMap(m, QStringLiteral("logoDataUrl"), QStringLiteral("logoAspekt"),
                       qv.value(0).toByteArray(), qv.value(1).toString());
         }
+    }
+    // Normblatt-Lage (N-02)
+    {
+        const QString fm = q.value("normblatt_format").toString();
+        const QSizeF fmt = infostreifenFormatMm(fm, 0, 0);
+        m[QStringLiteral("normblattPosition")]    = q.value("normblatt_position");
+        m[QStringLiteral("normblattFormat")]      = fm;
+        m[QStringLiteral("normblattAusrichtung")] = q.value("normblatt_ausrichtung");
+        m[QStringLiteral("normblattRahmen")]      = q.value("normblatt_rahmen").toInt() != 0;
+        m[QStringLiteral("normblattFormatBreiteMm")] = fmt.width();
+        m[QStringLiteral("normblattFormatHoeheMm")]  = fmt.height();
+        m[QStringLiteral("ohneRahmen")]           = q.value("normblatt_rahmen").toInt() == 0;
     }
     // Infostreifen (INFOSTREIFEN-02/03): Modus/Format immer, die Vorlage nur auf Seiten ohne Schriftfeld
     {
@@ -250,6 +263,27 @@ bool Database::seiteInfostreifenSetzen(int seiteId, const QString &modus, const 
     return true;
 }
 
+bool Database::seiteNormblattLageSetzen(int seiteId, const QString &position, const QString &format,
+                                        const QString &ausrichtung, bool rahmen)
+{
+    static const QStringList formate = {"auto", "a4", "a3", "a2", "a1", "a0", "canvas"};
+    if ((position != QLatin1String("fest") && position != QLatin1String("inhalt")) || !formate.contains(format)
+        || (ausrichtung != QLatin1String("links") && ausrichtung != QLatin1String("rechts"))) {
+        qCWarning(lcDb) << "seiteNormblattLageSetzen: ungueltige Werte" << position << format << ausrichtung;
+        return false;
+    }
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE seite SET normblatt_position = :p, normblatt_format = :f, normblatt_ausrichtung = :a, "
+              "normblatt_rahmen = :r WHERE id = :sid");
+    q.bindValue(":p", position); q.bindValue(":f", format); q.bindValue(":a", ausrichtung);
+    q.bindValue(":r", rahmen ? 1 : 0); q.bindValue(":sid", seiteId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "seiteNormblattLageSetzen:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
 namespace {
 // Bounding-Box der Elemente einer Seite in mm (x1,y1,x2,y2 / 4) – gleiche Definition wie drawNormblatt() im Canvas
 bool elementeBoxMm(const QSqlDatabase &db, int seiteId, QRectF &box)
@@ -301,6 +335,63 @@ QRectF Database::infostreifenFlaecheMm(int seiteId, const QVariantMap &nb)
     const bool rechts = nb.value("infostreifenAusrichtung").toString() == QLatin1String("rechts");
     const double links = rechts ? box.right() + rand - fmt.width() : box.left() - rand;
     return QRectF(links, unten - fmt.height(), fmt.width(), fmt.height());
+}
+
+// Hoehe des Schriftfelds der eingebauten Vorlagen (mm); entspricht pdfNormblattRendern()/drawNormblatt()
+static double normblattSchriftfeldHoeheMm(const QString &vorlage)
+{
+    if (vorlage == QLatin1String("kompakt")) return 2 * 8.0;
+    if (vorlage == QLatin1String("rahmen"))  return 0.0;
+    return 3 * 13.0;   // din6771
+}
+
+// Flaeche des Blatts bei Position "inhalt" (N-02, Konzept 54 §3.1). Ränder = Papierrand → Rahmen, P = Abstand Inhalt → Rahmen.
+static QRectF normblattFlaecheBerechnen(const QRectF &box, const QSizeF &fmtVorgabe, const QString &format,
+                                        const QString &ausrichtung, double sf, double rl, double rr, double ro, double ru)
+{
+    const double P = 10.0;
+    const double needW = box.width() + 2 * P + rl + rr;
+    const double needH = box.height() + 2 * P + sf + ro + ru;
+    QSizeF fmt = fmtVorgabe;
+    if (fmt.width() <= 0 || fmt.height() <= 0) {
+        static const QSizeF din[] = {{297, 210}, {420, 297}, {594, 420}, {841, 594}, {1189, 841}};
+        fmt = QSizeF(qMax(297.0, needW), needH);
+        if (format == QLatin1String("auto")) {
+            for (const QSizeF &f : din)
+                if (f.width() >= needW && f.height() >= needH) { fmt = f; break; }
+        }
+    }
+    const double rahmenUnten = box.bottom() + P + sf;
+    const double rahmenLinks = ausrichtung == QLatin1String("rechts") ? box.right() + P - (fmt.width() - rl - rr)
+                                                                       : box.left() - P;
+    return QRectF(rahmenLinks - rl, rahmenUnten + ru - fmt.height(), fmt.width(), fmt.height());
+}
+
+QRectF Database::normblattFlaecheMm(int seiteId, const QVariantMap &nb)
+{
+    if (nb.value("normblattPosition").toString() != QLatin1String("inhalt")) return {};
+    if (!nb.value("felder").toList().isEmpty()) return {};   // eigene Vorlage: nur Position fest (bis N-03)
+    QRectF box;
+    if (!elementeBoxMm(m_db, seiteId, box)) return {};
+    return normblattFlaecheBerechnen(box,
+        QSizeF(nb.value("normblattFormatBreiteMm").toDouble(), nb.value("normblattFormatHoeheMm").toDouble()),
+        nb.value("normblattFormat").toString(), nb.value("normblattAusrichtung").toString(),
+        normblattSchriftfeldHoeheMm(nb.value("titelblattVorlage").toString()),
+        nb.value("randLinksMm").toDouble(), nb.value("randRechtsMm").toDouble(),
+        nb.value("randObenMm").toDouble(),  nb.value("randUntenMm").toDouble());
+}
+
+bool Database::normblattInhaltZuGross(int seiteId, const QString &format, const QString &vorlage)
+{
+    const QSizeF fmt = infostreifenFormatMm(format, 0, 0);
+    if (fmt.width() <= 0) return false;   // auto/canvas passen sich an
+    const QVariantMap nb = normblattDatenLaden(seiteId);
+    QRectF box;
+    if (!elementeBoxMm(m_db, seiteId, box)) return false;
+    const double sf = normblattSchriftfeldHoeheMm(vorlage);
+    const double needW = box.width()  + 20.0 + nb.value("randLinksMm").toDouble() + nb.value("randRechtsMm").toDouble();
+    const double needH = box.height() + 20.0 + sf + nb.value("randObenMm").toDouble() + nb.value("randUntenMm").toDouble();
+    return needW > fmt.width() + 0.01 || needH > fmt.height() + 0.01;
 }
 
 bool Database::seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf)

@@ -64,9 +64,21 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         double txCu = 0.0, tyCu = 0.0;
         bool verschieben = false;
 
+        // Normblatt "folgt Inhalt" (N-02): Blatt = Flaeche, Inhalt um die Flaechenecke verschoben (wie Ganzes Canvas)
+        if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool()) {
+            const QRectF nf = normblattFlaecheMm(seiteId, nb);
+            if (nf.isValid()) {
+                bMm = nf.width();  hMm = nf.height();
+                txCu = nf.left() * 4.0;  tyCu = nf.top() * 4.0;
+                verschieben = true;
+                nb[QStringLiteral("breiteMm")] = bMm;
+                nb[QStringLiteral("hoeheMm")]  = hMm;
+            }
+        }
+
         // Infostreifen-Format-Flaeche (INFOSTREIFEN-03): Blatt = Flaechenformat, Inhalt um die Flaechenecke
         // verschoben; nur wenn ein Streifen gezeichnet wird und nicht "Ganzes Canvas"
-        const bool streifenFlaeche = mitInfostreifen && !vollCanvas
+        const bool streifenFlaeche = mitInfostreifen && !vollCanvas && !verschieben
                                      && !(mitNormblatt && nb.value("normblattAnzeigen").toBool());
         QRectF flaeche;
         if (streifenFlaeche) {
@@ -77,7 +89,7 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
                 verschieben = true;
                 nb[QStringLiteral("infostreifenBreiteMm")] = flaeche.width();
             }
-        } else if (vollCanvas) {
+        } else if (vollCanvas && !verschieben) {
             PdfBBox bb = pdfBoundingBox(seiteId, bMm, hMm, m_db);
             txCu = bb.txCu; tyCu = bb.tyCu;
             bMm  = bb.bMm;  hMm  = bb.hMm;
@@ -130,6 +142,10 @@ QSizeF Database::pdfSchaltplanSeitenGroesseMm(int seiteId, bool vollCanvas, bool
     QVariantMap nb = normblattDatenLaden(seiteId);
     double b = nb.value("breiteMm", 297.0).toDouble();
     double h = nb.value("hoeheMm",  210.0).toDouble();
+    if (mitNormblatt && !vollCanvas && nb.value("normblattAnzeigen").toBool()) {
+        const QRectF nf = normblattFlaecheMm(seiteId, nb);
+        if (nf.isValid()) return nf.size();
+    }
     if (mitInfostreifen && !vollCanvas && !(mitNormblatt && nb.value("normblattAnzeigen").toBool())) {
         const QRectF f = infostreifenFlaecheMm(seiteId, nb);
         if (f.isValid()) return f.size();

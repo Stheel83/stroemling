@@ -3040,6 +3040,12 @@ static QList<SchemaMigration> alleMigrationen()
         { 170, "INFOSTREIFEN-03b: seite.infostreifen_ausrichtung ('links'|'rechts', Default 'links') - Ausrichtung der Format-Flaeche des Infostreifens relativ zu den Elementen.", {
             R"(ALTER TABLE seite ADD COLUMN infostreifen_ausrichtung TEXT NOT NULL DEFAULT 'links')",
         }},
+        { 171, "NORMBLATT-DYNAMISCH-01 N-02: Normblatt je Seite: normblatt_position ('fest'|'inhalt'), normblatt_format ('auto'|'a4'..'a0'|'canvas'), normblatt_ausrichtung ('links'|'rechts'), normblatt_rahmen (0/1) - 'inhalt' legt Rahmen und Schriftfeld um die Elemente.", {
+            R"(ALTER TABLE seite ADD COLUMN normblatt_position TEXT NOT NULL DEFAULT 'fest')",
+            R"(ALTER TABLE seite ADD COLUMN normblatt_format TEXT NOT NULL DEFAULT 'auto')",
+            R"(ALTER TABLE seite ADD COLUMN normblatt_ausrichtung TEXT NOT NULL DEFAULT 'links')",
+            R"(ALTER TABLE seite ADD COLUMN normblatt_rahmen INTEGER NOT NULL DEFAULT 1)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

@@ -30,6 +30,9 @@ Dialog {
     // Blattkopf der Seite: "schriftfeld" (Normblatt) | "infostreifen" | "keiner" (NORMBLATT-DYNAMISCH-01 N-01)
     readonly property var _blattkoepfe: ["schriftfeld", "infostreifen", "keiner"]
     readonly property string blattkopf: _blattkoepfe[Math.max(0, editBlattkopf.currentIndex)]
+    // Normblatt-Position: "fest" (Blatt bei 0,0 im gewählten Format) | "inhalt" (Rahmen/Schriftfeld folgen den Elementen, N-02);
+    // eigene Vorlagen sind bis N-03 formatgebunden und bleiben "fest"
+    readonly property string position: (normblattPanel.vorlageBenutzerdefiniert || editPosition.currentIndex === 0) ? "fest" : "inhalt"
 
     height: Math.min(implicitHeight, 680)
     background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
@@ -45,6 +48,7 @@ Dialog {
         editRandUnten.value  = root.altRandUnten
         var bk = normblattPanel.laden(root.itemId)
         editBlattkopf.currentIndex = Math.max(0, root._blattkoepfe.indexOf(bk))
+        editPosition.currentIndex = normblattPanel.geladenePosition === "inhalt" ? 1 : 0
     }
 
     contentItem: ColumnLayout {
@@ -82,10 +86,25 @@ Dialog {
             contentItem: Text { leftPadding: 8; text: editBlattkopf.displayText; color: root.theme.textPrimary;
                                 font.pixelSize: 13; verticalAlignment: Text.AlignVCenter }
         }
-        Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12; visible: root.blattkopf === "schriftfeld" }
+        Text { text: qsTr("Lage des Blatts"); color: root.theme.textMuted; font.pixelSize: 12; visible: root.blattkopf === "schriftfeld" }
+        ComboBox {
+            id: editPosition; Layout.fillWidth: true
+            visible: root.blattkopf === "schriftfeld"
+            enabled: !normblattPanel.vorlageBenutzerdefiniert
+            model: [qsTr("Fest (Blatt bei 0,0 im gewählten Format)"), qsTr("Folgt dem Inhalt (Rahmen legt sich um die Elemente)")]
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: normblattPanel.vorlageBenutzerdefiniert
+                ? qsTr("Eigene Schriftfeld-Vorlagen sind an ein Blattformat gebunden und bleiben fest.")
+                : qsTr("Fest: du zeichnest in den vorgegebenen Rahmen.\nFolgt dem Inhalt: Rahmen und Schriftfeld passen sich den Elementen an.")
+            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+            contentItem: Text { leftPadding: 8; text: editPosition.displayText; color: root.theme.textPrimary;
+                                font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        }
+        Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12
+               visible: root.blattkopf === "schriftfeld" && root.position === "fest" }
         ComboBox {
             id: editCmbFormat; Layout.fillWidth: true
-            visible: root.blattkopf === "schriftfeld"
+            visible: root.blattkopf === "schriftfeld" && root.position === "fest"
             model: ListModel {
                 ListElement { text: "A4 Querformat  (297 × 210 mm)"; breite: 297; hoehe: 210 }
                 ListElement { text: "A4 Hochformat  (210 × 297 mm)"; breite: 210; hoehe: 297 }
@@ -130,6 +149,8 @@ Dialog {
             id: normblattPanel
             theme: root.theme
             blattkopf: root.blattkopf
+            position: root.position
+            seiteId: root.itemId
         }
         } // ColumnLayout (ScrollView content)
         } // ScrollView

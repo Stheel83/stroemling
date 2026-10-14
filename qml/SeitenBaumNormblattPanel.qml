@@ -9,6 +9,18 @@ ColumnLayout {
     required property var theme
     // Blattkopf der Seite: "schriftfeld" | "infostreifen" | "keiner" (vom Dialog gesetzt)
     property string blattkopf: "schriftfeld"
+    // Lage des Normblatts (vom Dialog): "fest" | "inhalt"; seiteId für den Größen-Hinweis
+    property string position: "fest"
+    property int    seiteId: -1
+    readonly property bool positionInhalt: normblattAn && position === "inhalt"
+    readonly property bool vorlageBenutzerdefiniert: cmbVorlage.currentText === "benutzerdefiniert"
+    property string geladenePosition: "fest"
+    readonly property var _nbFormate: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas"]
+    property bool _nbZuGross: false
+    function _nbPruefen() {
+        _nbZuGross = positionInhalt && seiteId > 0 && db.normblattInhaltZuGross(seiteId,
+                         _nbFormate[Math.max(0, cmbNbFormat.currentIndex)], cmbVorlage.currentText)
+    }
     readonly property bool normblattAn: blattkopf === "schriftfeld"
     readonly property bool streifenAn:  blattkopf === "infostreifen"
     property var _normblattVorlagen: []
@@ -54,6 +66,11 @@ ColumnLayout {
             var si = root._streifenModi.indexOf(nd.infostreifenModus || "auto")
             cmbInfostreifen.currentIndex = si >= 0 ? si : 0   // "aus" → Automatisch (Blattkopf "keiner" bleibt erhalten)
             cmbAusrichtung.currentIndex = nd.infostreifenAusrichtung === "rechts" ? 1 : 0
+            root.geladenePosition = nd.normblattPosition === "inhalt" ? "inhalt" : "fest"
+            var nfi = root._nbFormate.indexOf(nd.normblattFormat || "auto")
+            cmbNbFormat.currentIndex = nfi >= 0 ? nfi : 0
+            cmbNbAusrichtung.currentIndex = nd.normblattAusrichtung === "rechts" ? 1 : 0
+            chkRahmen.checked = nd.normblattRahmen !== false
             root._streifenPruefen()
         }
         return kopf
@@ -71,6 +88,11 @@ ColumnLayout {
              && root._normblattVorlagen.length > 0)
                 ? root._normblattVorlagen[cmbVorlageAuswahl.currentIndex].id : -1)
         db.seiteInDokuPdfSetzen(seiteId, chkInDokuPdf.checked)
+        db.seiteNormblattLageSetzen(seiteId,
+                                    root.normblattAn ? root.position : "fest",
+                                    root._nbFormate[Math.max(0, cmbNbFormat.currentIndex)],
+                                    cmbNbAusrichtung.currentIndex === 1 ? "rechts" : "links",
+                                    chkRahmen.checked)
         db.seiteInfostreifenSetzen(seiteId,
                                    root.blattkopf === "keiner" ? "aus"
                                        : root._streifenModi[Math.max(0, cmbInfostreifen.currentIndex)],
@@ -114,6 +136,42 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: root.streifenAn && root._streifenZuGross
         text: qsTr("Die Elemente sind größer als die gewählte Fläche – anderes Format oder „Automatisch“ wählen.")
+        color: root.theme.warning !== undefined ? root.theme.warning : "#d08a20"
+        font.pixelSize: 12; wrapMode: Text.WordWrap
+    }
+
+    // Normblatt "folgt Inhalt": Format der Blatt-Fläche, Ausrichtung zu den Elementen (N-02)
+    Text {
+        text: qsTr("Format des Blatts")
+        color: root.theme.textMuted; font.pixelSize: 12
+        visible: root.positionInhalt
+    }
+    ComboBox {
+        id: cmbNbFormat
+        Layout.fillWidth: true
+        visible: root.positionInhalt
+        model: [qsTr("Automatisch (kleinstes passendes DIN-Format)"), "A4", "A3", "A2", "A1", "A0", qsTr("Gesamtes Canvas")]
+        onActivated: root._nbPruefen()
+        onVisibleChanged: if (visible) root._nbPruefen()
+        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+        contentItem: Text { leftPadding: 8; text: cmbNbFormat.displayText; color: root.theme.textPrimary
+            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+    }
+    ComboBox {
+        id: cmbNbAusrichtung
+        Layout.fillWidth: true
+        visible: root.positionInhalt
+        model: [qsTr("Linksbündig zu den Elementen"), qsTr("Rechtsbündig zu den Elementen")]
+        ToolTip.visible: hovered; ToolTip.delay: 600
+        ToolTip.text: qsTr("Legt fest, ob der Rahmen links der Elemente beginnt oder rechts der Elemente endet.")
+        background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+        contentItem: Text { leftPadding: 8; text: cmbNbAusrichtung.displayText; color: root.theme.textPrimary
+            font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+    }
+    Text {
+        Layout.fillWidth: true
+        visible: root.positionInhalt && root._nbZuGross
+        text: qsTr("Die Elemente passen nicht in das gewählte Format (inkl. Abstand, Ränder und Schriftfeld) – größeres Format oder „Automatisch“ wählen.")
         color: root.theme.warning !== undefined ? root.theme.warning : "#d08a20"
         font.pixelSize: 12; wrapMode: Text.WordWrap
     }
@@ -200,6 +258,28 @@ ColumnLayout {
                  && root._normblattVorlagen.length === 0
         color: root.theme.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap
         Layout.fillWidth: true
+    }
+
+    // Rahmen anzeigen (nur Schriftfeld): aus = Seitenrand und Zeichnungsrahmen entfallen, Schriftfeld bleibt
+    RowLayout {
+        Layout.fillWidth: true
+        visible: root.normblattAn
+        CheckBox {
+            id: chkRahmen
+            checked: true
+            indicator: Rectangle {
+                width: 16; height: 16; radius: 3
+                border.color: chkRahmen.checked ? root.theme.accent : root.theme.border
+                color: chkRahmen.checked ? root.theme.accent : root.theme.inputBg
+                Text { anchors.centerIn: parent; text: "✓"; color: root.theme.textPrimary; font.pixelSize: 11; visible: chkRahmen.checked }
+            }
+            contentItem: Text {
+                text: qsTr("Zeichnungsrahmen anzeigen")
+                color: root.theme.textPrimary; font.pixelSize: 13
+                leftPadding: chkRahmen.indicator.width + chkRahmen.spacing
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
     }
 
     // Aussen-Overlay Checkbox (nur wenn Normblatt aktiv)

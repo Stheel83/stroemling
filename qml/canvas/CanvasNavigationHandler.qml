@@ -415,8 +415,12 @@ Item {
     function zoomNormblattEinpassen() {
         var nd = canvas.normblattDaten
         if (!nd || !nd.breiteMm || !nd.hoeheMm) { ansichtZuruecksetzen(); return }
-        var bW  = nd.breiteMm * canvas.mmToPx
-        var bH  = nd.hoeheMm  * canvas.mmToPx
+        // Blatt-Fläche (bei Normblatt-Position "inhalt" an den Elementen, sonst am Ursprung)
+        var sr  = canvas.normblattSeiteRect || { l: 0, t: 0, w: nd.breiteMm, h: nd.hoeheMm }
+        var bW  = sr.w * canvas.mmToPx
+        var bH  = sr.h * canvas.mmToPx
+        var bX  = sr.l * canvas.mmToPx
+        var bY  = sr.t * canvas.mmToPx
         var vp  = canvas._viewportRand()
         var vpW = canvas.width  - vp.tlW
         var vpH = canvas.height - vp.topH - vp.botH
@@ -424,8 +428,8 @@ Item {
         var newZoom = Math.min((vpW - 2*pad) / bW, (vpH - 2*pad) / bH, 4.0)
         newZoom = Math.max(newZoom, 0.05)
         canvas.zoom   = newZoom
-        canvas.worldX = vp.tlW  + vpW/2 - (bW/2) * newZoom
-        canvas.worldY = vp.topH + vpH/2 - (bH/2) * newZoom
+        canvas.worldX = vp.tlW  + vpW/2 - (bX + bW/2) * newZoom
+        canvas.worldY = vp.topH + vpH/2 - (bY + bH/2) * newZoom
         canvas.repaintAll()
     }
 

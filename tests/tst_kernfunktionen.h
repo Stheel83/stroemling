@@ -1457,6 +1457,17 @@ private slots:
         QVERIFY(m_db->normblattFelderLaden(vid).size() >= 5);
         QCOMPARE(m_db->projektInfostreifenVorlageId(), 0);
 
+        // Canvas-Daten (INFOSTREIFEN-02): ohne Schriftfeld liefert normblattDatenLaden die Streifenvorlage mit
+        const int sid = einWert("SELECT id FROM seite LIMIT 1").toInt();
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+        QVariantMap nd = m_db->normblattDatenLaden(sid);
+        QVERIFY(nd.contains("infostreifen"));
+        QVERIFY(nd.value("infostreifen").toMap().value("felder").toList().size() >= 5);
+        QCOMPARE(nd.value("infostreifen").toMap().value("hoeheMm").toInt(), 8);
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+        QVERIFY(!m_db->normblattDatenLaden(sid).contains("infostreifen"));
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, false, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+
         // PDF mit Streifen: Projektname aus dem Standard-Streifen steht auf der Seite
         const QString f1 = dir + "/stroemling_is1_a.pdf";
         const QString opt = R"({"mitNormblatt":false,"mitInfostreifen":true,"abschnitte":[{"typ":"schaltplan"}]})";

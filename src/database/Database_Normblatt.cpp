@@ -157,6 +157,9 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                       qv.value(0).toByteArray(), qv.value(1).toString());
         }
     }
+    // Infostreifen (INFOSTREIFEN-02): nur auf Seiten ohne Schriftfeld, dort zeichnet ihn der Canvas unten
+    if (!q.value("normblatt_anzeigen").toBool())
+        m[QStringLiteral("infostreifen")] = infostreifenLaden(seiteId);
     m[QStringLiteral("erstelltAm")]       = q.value("erstellt_am");
     m[QStringLiteral("randLinksMm")]      = q.value("rand_links_mm");
     m[QStringLiteral("randRechtsMm")]     = q.value("rand_rechts_mm");

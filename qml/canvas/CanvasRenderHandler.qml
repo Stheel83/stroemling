@@ -72,12 +72,35 @@ QtObject {
     // ── Normblattrahmen (DIN 6771, vereinfacht) ──────────────────────
     function drawNormblatt(ctx) {
         if (!cv.normblattDaten) return
-        if (!cv.normblattDaten.normblattAnzeigen) return
 
         var nd   = cv.normblattDaten
-        var z    = cv.zoom
-        var mpx  = cv.mmToPx   // world-px per mm
-
+        // Infostreifen (INFOSTREIFEN-02): auf Seiten ohne Schriftfeld dieselbe Zeichenlogik mit skalierten Feldern am
+        // unteren Seitenrand, ohne Rahmen/Hintergrund. Spiegelt pdfInfostreifenRendern() (PdfRenderer_Normblatt.cpp).
+        var streifen = false
+        var logoStd  = cv.normblattLogoUrl
+        var logoAsp  = nd.logoAspekt
+        if (!nd.normblattAnzeigen) {
+            var st = nd.infostreifen
+            if (!st || !st.felder || st.felder.length === 0) return
+            var sB = nd.breiteMm || 297, sH = nd.hoeheMm || 210
+            var fak = sB / Math.max(1, st.breiteMm || 297), sY0 = sH - (st.hoeheMm || 8)
+            var sf = []
+            for (var si = 0; si < st.felder.length; si++) {
+                var o = {}
+                for (var k in st.felder[si]) o[k] = st.felder[si][k]
+                o.xMm = st.felder[si].xMm * fak
+                o.breiteMm = st.felder[si].breiteMm * fak
+                o.yMm = sY0 + st.felder[si].yMm
+                sf.push(o)
+            }
+            var nd2 = {}
+            for (var key in nd) nd2[key] = nd[key]
+            nd2.felder = sf
+            nd = nd2
+            streifen = true
+            logoStd = cv.infostreifenLogoUrl
+            logoAsp = st.logoAspekt
+        }
         // mm → screen pixels
         function s(mm) { return mm * mpx * z }
         // world-px → screen
@@ -105,24 +128,31 @@ QtObject {
         ctx.lineCap   = "square"
         ctx.lineJoin  = "miter"
 
-        // ── Seitenhintergrund (konfigurierbar; leer = transparent) ──
-        var bgFarbe = (nd.hintergrundFarbe || "").toString().trim()
-        if (bgFarbe) {
-            ctx.fillStyle = bgFarbe
-            ctx.fillRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
+        if (streifen) {
+            // Hintergrund wie das Standard-Schriftfeld, damit die Schrift auf der Zeichnung lesbar bleibt
+            var stHmm = (cv.normblattDaten.infostreifen.hoeheMm || 8)
+            ctx.fillStyle = "rgba(5,15,35,0.8)"
+            ctx.fillRect(pX0, sy((hMm - stHmm) * mpx), pX1 - pX0, s(stHmm))
+        } else {
+            // ── Seitenhintergrund (konfigurierbar; leer = transparent) ──
+            var bgFarbe = (nd.hintergrundFarbe || "").toString().trim()
+            if (bgFarbe) {
+                ctx.fillStyle = bgFarbe
+                ctx.fillRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
+            }
+
+            // ── Seitenbegrenzung (dünn, gestrichelt) ──
+            ctx.strokeStyle = "#2a4a7a"
+            ctx.lineWidth   = Math.max(0.5, s(0.25))
+            ctx.setLineDash([s(3), s(2)])
+            ctx.strokeRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
+            ctx.setLineDash([])
+
+            // ── Zeichnungsrahmen (dick) ──
+            ctx.strokeStyle = "#4a7ab0"
+            ctx.lineWidth   = Math.max(1, s(0.7))
+            ctx.strokeRect(iX0, iY0, iW, iH)
         }
-
-        // ── Seitenbegrenzung (dünn, gestrichelt) ──
-        ctx.strokeStyle = "#2a4a7a"
-        ctx.lineWidth   = Math.max(0.5, s(0.25))
-        ctx.setLineDash([s(3), s(2)])
-        ctx.strokeRect(pX0, pY0, pX1 - pX0, pY1 - pY0)
-        ctx.setLineDash([])
-
-        // ── Zeichnungsrahmen (dick) ──
-        ctx.strokeStyle = "#4a7ab0"
-        ctx.lineWidth   = Math.max(1, s(0.7))
-        ctx.strokeRect(iX0, iY0, iW, iH)
 
         // ── Benutzerdefinierte Felder (Phase 2) ──────────────────────
         var _felder = nd.felder
@@ -233,7 +263,7 @@ QtObject {
         // Logo in die Zelle: 2 mm Innenabstand, Seitenverhältnis erhalten, zentriert
         // url/aspekt: Standard = Vorlagen-/Projekt-Logo; logo_kunde übergibt das Kunden-Logo
         function logoZeichnen(x, y, w, h, url, aspekt) {
-            if (url === undefined) { url = cv.normblattLogoUrl; aspekt = nd.logoAspekt }
+            if (url === undefined) { url = logoStd; aspekt = logoAsp }
             if (!url || !cv._drawCanvas.isImageLoaded(url)) return false
             var pad = s(2)
             var bw = w - 2 * pad, bh = h - 2 * pad

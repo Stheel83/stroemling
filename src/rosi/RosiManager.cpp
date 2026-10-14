@@ -78,7 +78,7 @@ QStringList RosiManager::_poolD_UrlaubRueckkehr()
 {
     return {
         "War weg, ne Kollegin im Klärwerk besuchen.",
-        "Bin wieder da! Drei Wochen Usedom, jetzt bin ich voll erholt!",
+        "Bin wieder da! Ick war weg, und jetzt bin ick voll erholt!",
         "Sorry, war off — Röhrenaale brauchen auch mal Urlaub.",
         "Bin wieder da, war jut, aber meine Röhre hier hat mir doch jefehlt.",
     };
@@ -98,7 +98,7 @@ QStringList RosiManager::_poolE_Besuch()
 {
     return {
         "Grad is meine Cousine Aalfriede zu Besuch, sie grüßt!",
-        "Mein Kumpel Stichling schaut grade vorbei, der wollt nur mal ei's winken.",
+        "Mein Kumpel Stichling schaut grade vorbei, der wollt nur mal eben winken.",
     };
 }
 

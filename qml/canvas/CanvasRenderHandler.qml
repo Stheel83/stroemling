@@ -101,6 +101,9 @@ QtObject {
             logoStd = cv.infostreifenLogoUrl
             logoAsp = st.logoAspekt
         }
+        var z    = cv.zoom
+        var mpx  = cv.mmToPx   // world-px per mm
+
         // mm → screen pixels
         function s(mm) { return mm * mpx * z }
         // world-px → screen

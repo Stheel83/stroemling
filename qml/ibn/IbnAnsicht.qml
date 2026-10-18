@@ -251,7 +251,7 @@ Item {
 
                     Button {
                         flat: true; implicitWidth: 28; implicitHeight: 24
-                        contentItem: Text { text: "⧉"; font.pixelSize: 13;
+                        contentItem: Text { text: "📋"; font.pixelSize: 13;
                             color: db.offeneKopien > 0 ? "#e0a040" : theme.textSecondary;
                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }

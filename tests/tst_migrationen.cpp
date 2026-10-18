@@ -8,6 +8,7 @@
 #include <QSet>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include "database/Database.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/SeitenModel.h"
@@ -1013,6 +1014,63 @@ private slots:
         QVERIFY(db.schaltplanGesperrt());
         QVERIFY2(!db.grafikSpeichern(s1, {}), "grafikSpeichern muss bei gesperrtem Schaltplan verweigern");
         QDir(QDir::tempPath() + "/stroemling_test_sperre_kopien").removeRecursively();
+    }
+
+    void test_25_ibnOverlayExport()
+    {
+        // VERT-03: Overlay aus einer IBN-Kopie mit fachlichen Schluesseln, nur im Bereich der Kopie.
+        TmpProjekt t("ibnoverlay");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+        auto ins = [&](const QString &sql) { QVERIFY2(q.exec(sql), qPrintable(sql)); };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int a1 = q.lastInsertId().toInt();
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'WP','B')");
+        const int a2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1));
+        const int o1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'KE','O')").arg(a2));
+        const int o2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1));
+        const int s1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S2')").arg(o2));
+        const int s2 = q.lastInsertId().toInt();
+        q.finish();
+
+        QVERIFY(!db.ibnOverlayExportieren().value("ok").toBool());      // Hauptkopie: kein Export
+
+        const QString ordner = QDir::tempPath() + "/stroemling_test_overlay_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVariantMap r = db.ibnKopieErstellen(1, "Elektro", {QVariantMap{{"anlage","AQ"}}}, ordner);
+        QVERIFY(r.value("ok").toBool());
+        const QString kopie = r.value("pfad").toString();
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(kopie));
+
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q1", "abgeschlossen", "ok", "B1", "Max", "2026-10-01"));
+        QVERIFY(db.ibnEintragSpeichern(1, s2, "-Q2", "abgeschlossen", "", "", "Eva", "2026-10-02"));  // ausserhalb
+        QVERIFY(db.ibnStatusSetzen(s1, "-Q3", "offen"));                                              // leer
+        const int id1 = db.ibnEintragFuerBmk(s1, "-Q1").value("ibnId").toInt();
+        QVERIFY(db.ibnFeldwerteAktualisieren(id1, {QVariantMap{{"feldname","istwert"},{"wert","4.2"}}}));
+
+        QVariantMap o = db.ibnOverlayExportieren();
+        QVERIFY2(o.value("ok").toBool(), qPrintable(o.value("fehler").toString()));
+        QVERIFY(o.value("pfad").toString().endsWith(".strl-overlay"));
+        QCOMPARE(o.value("anzahlBm").toInt(), 1);
+        QFile f(o.value("pfad").toString());
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QJsonObject doc = QJsonDocument::fromJson(f.readAll()).object();
+        f.close();
+        QCOMPARE(doc.value("format").toString(), QStringLiteral("stroemling-ibn-overlay"));
+        QCOMPARE(doc.value("kopieUuid").toString(), r.value("kopieUuid").toString());
+        const QJsonObject e = doc.value("betriebsmittel").toArray().at(0).toObject();
+        QCOMPARE(e.value("anlage").toString(), QStringLiteral("AQ"));
+        QCOMPARE(e.value("bmk").toString(), QStringLiteral("-Q1"));
+        QCOMPARE(e.value("geprueftVon").toString(), QStringLiteral("Max"));
+        QCOMPARE(e.value("felder").toArray().size(), 1);
+        QVERIFY(!e.value("geaendertAm").toString().isEmpty());
+
+        QDir(ordner).removeRecursively();
     }
 };
 

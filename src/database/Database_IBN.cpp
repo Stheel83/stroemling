@@ -362,8 +362,8 @@ bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
 
 // Bereich = Liste von {anlage, ort, seite}; fehlende/leere Felder = "alle".
 // Leere Liste = ganzes Projekt.
-static bool ibnBereichPasst(const QVariantList &bereich, const QString &anlage,
-                            const QString &ort, const QString &seite)
+bool Database::ibnBereichPasst(const QVariantList &bereich, const QString &anlage,
+                               const QString &ort, const QString &seite)
 {
     if (bereich.isEmpty())
         return true;

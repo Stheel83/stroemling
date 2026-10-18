@@ -627,6 +627,15 @@ public:
     // veraltet). Gibt die neue Revision zurueck, -1 wenn nicht moeglich/noetig.
     Q_INVOKABLE int ibnSchaltplanOverride();
 
+    // ── Overlay (VERT-03, konzept/features/55 §4.2) ──
+    // Nur in einer IBN-Kopie: schreibt die IBN-Staende im Bereich der Kopie als JSON
+    // (<kopie>.strl-overlay neben der Kopie, oder zielPfad). Gibt {ok, pfad, anzahlBm, anzahlKabel}
+    // oder {ok:false, fehler} zurueck.
+    Q_INVOKABLE QVariantMap ibnOverlayExportieren(const QString &zielPfad = QString());
+    // Bereichsfilter (Liste von {anlage, ort, seite}; leer = ganzes Projekt)
+    static bool ibnBereichPasst(const QVariantList &bereich, const QString &anlage,
+                                const QString &ort, const QString &seite);
+
     // Projekt-Metadaten (Schriftfeld-Felder) speichern.
     Q_INVOKABLE bool projektMetaSpeichern(int projektId,
                                           const QString &name,

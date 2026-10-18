@@ -146,6 +146,44 @@ Dialog {
                   .arg(db.ibnKopieName)
         }
 
+        // ── Overlay-Export (nur in einer IBN-Kopie) ─────────
+        ColumnLayout {
+            visible: db.istIbnKopie
+            Layout.fillWidth: true
+            spacing: 6
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.pixelSize: 11; color: root.theme.textSecondary
+                text: qsTr("Am Ende der Prüfung das Overlay exportieren und der Hauptkopie übergeben: "
+                           + "es enthält nur die Inbetriebnahme-Daten dieser Kopie, nicht den Schaltplan.")
+            }
+            Button {
+                text: qsTr("Overlay exportieren"); implicitHeight: 32
+                contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg
+                    radius: 4; border.color: root.theme.accent }
+                onClicked: {
+                    root._fehler = ""; root._ergebnis = ""
+                    var r = db.ibnOverlayExportieren("")
+                    if (!r.ok) { root._fehler = r.fehler; return }
+                    root._ergebnis = qsTr("Overlay gespeichert (%1 Betriebsmittel, %2 Kabel): %3")
+                                     .arg(r.anzahlBm).arg(r.anzahlKabel).arg(r.pfad)
+                }
+            }
+            Text {
+                visible: db.istIbnKopie && root._fehler !== ""
+                Layout.fillWidth: true; wrapMode: Text.WordWrap
+                font.pixelSize: 11; color: "#e04040"; text: root._fehler
+            }
+            Text {
+                visible: db.istIbnKopie && root._ergebnis !== ""
+                Layout.fillWidth: true; wrapMode: Text.WrapAnywhere
+                font.pixelSize: 11; color: "#44aa66"; text: root._ergebnis
+            }
+        }
+
         // ── Register ────────────────────────────────────────
         Text {
             visible: !db.istIbnKopie

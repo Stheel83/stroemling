@@ -84,6 +84,11 @@ Dialog {
         function onIbnKopieChanged() { if (root.visible) root._neuLaden() }
     }
 
+    IbnOverlayImportDialog {
+        id: importDialog
+        theme: root.theme
+    }
+
     // Rueckfrage fuer den Override
     Dialog {
         id: overrideDialog
@@ -368,6 +373,17 @@ Dialog {
                 background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
                     radius: 4; border.color: root.theme.border }
                 onClicked: root.close()
+            }
+
+            Button {
+                visible: !db.istIbnKopie
+                text: qsTr("Overlay importieren …")
+                flat: true; implicitHeight: 32
+                contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { color: parent.hovered ? root.theme.hover : root.theme.inputBg
+                    radius: 4; border.color: root.theme.border }
+                onClicked: importDialog.open()
             }
 
             Button {

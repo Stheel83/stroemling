@@ -1072,6 +1072,80 @@ private slots:
 
         QDir(ordner).removeRecursively();
     }
+
+    void test_26_ibnOverlayImport()
+    {
+        // VERT-04: Overlay-Import in der Hauptkopie - Analyse, Konflikt, nicht zuordenbar, Einsammeln.
+        TmpProjekt t("ibnimport");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+        auto ins = [&](const QString &sql) { QVERIFY2(q.exec(sql), qPrintable(sql)); };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int a1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1));
+        const int o1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1));
+        const int s1 = q.lastInsertId().toInt();
+        for (const char *bmk : { "-Q1", "-Q2" })
+            ins(QString("INSERT INTO grafik_element (seite_id, typ, extra_daten) VALUES (%1,'symbol','{\"bmk\":\"%2\"}')")
+                    .arg(s1).arg(bmk));
+        q.finish();
+
+        const QString ordner = QDir::tempPath() + "/stroemling_test_import_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVariantMap r = db.ibnKopieErstellen(1, "Elektro", {}, ordner);
+        QVERIFY(r.value("ok").toBool());
+        const QString hauptPfad = db.projektPfad();
+
+        // In der Kopie pruefen und Overlay exportieren
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(r.value("pfad").toString()));
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q1", "abgeschlossen", "ok", "B1", "Max", "2026-10-01"));
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q2", "in_arbeit", "kopie", "", "Max", "2026-10-02"));
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q7", "abgeschlossen", "", "", "Max", "2026-10-03"));   // BMK existiert nicht
+        const QVariantMap o = db.ibnOverlayExportieren();
+        QVERIFY(o.value("ok").toBool());
+        const QString overlay = o.value("pfad").toString();
+        QVERIFY(!db.ibnOverlayPruefen(overlay).value("ok").toBool());    // nicht in einer Kopie
+
+        // Hauptkopie: -Q2 wurde dort anders bearbeitet -> Konflikt
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(hauptPfad));
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q2", "abgeschlossen", "haupt", "", "Eva", "2026-10-05"));
+
+        QVariantMap p = db.ibnOverlayPruefen(overlay);
+        QVERIFY2(p.value("ok").toBool(), qPrintable(p.value("fehler").toString()));
+        QCOMPARE(p.value("uebernehmen").toInt(), 1);                    // -Q1
+        QCOMPARE(p.value("konflikte").toList().size(), 1);              // -Q2
+        QCOMPARE(p.value("nichtZuordenbar").toList().size(), 1);        // -Q7
+        QCOMPARE(p.value("konflikte").toList()[0].toMap().value("key").toString(),
+                 QStringLiteral("bm|AQ|TR|1|-Q2"));
+        QCOMPARE(db.ibnEintragFuerBmk(s1, "-Q1").value("status").toString(), QString());   // Analyse schreibt nichts
+        QCOMPARE(db.offeneKopien(), 1);
+
+        // Import: Konflikt zugunsten der Kopie
+        QVariantMap imp = db.ibnOverlayImportieren(overlay, QVariantMap{{"bm|AQ|TR|1|-Q2", "kopie"}});
+        QVERIFY2(imp.value("ok").toBool(), qPrintable(imp.value("fehler").toString()));
+        QCOMPARE(imp.value("uebernommen").toInt(), 2);
+        QCOMPARE(db.ibnEintragFuerBmk(s1, "-Q1").value("status").toString(), QStringLiteral("abgeschlossen"));
+        QCOMPARE(db.ibnEintragFuerBmk(s1, "-Q1").value("geprueftVon").toString(), QStringLiteral("Max"));
+        QCOMPARE(db.ibnEintragFuerBmk(s1, "-Q2").value("notiz").toString(), QStringLiteral("kopie"));
+        QCOMPARE(db.offeneKopien(), 0);                                  // eingesammelt
+        QCOMPARE(db.ibnKopieRegisterLaden(1)[0].toMap().value("status").toString(), QStringLiteral("eingesammelt"));
+        QVERIFY(!db.schaltplanGesperrt());
+
+        // Nochmal: nichts mehr zu tun, Warnung "bereits eingesammelt"
+        p = db.ibnOverlayPruefen(overlay);
+        QCOMPARE(p.value("uebernehmen").toInt(), 0);
+        QCOMPARE(p.value("konflikte").toList().size(), 0);
+        QVERIFY(!p.value("warnungen").toStringList().isEmpty());
+
+        // Neuer Durchgang: Overlay aus dem alten Durchgang wird abgelehnt
+        QVERIFY(db.ibnDurchgangAnlegen(1, "Wdh", "wiederholung", "", "", {}, false) > 0);
+        QVERIFY(!db.ibnOverlayPruefen(overlay).value("ok").toBool());
+
+        QDir(ordner).removeRecursively();
+    }
 };
 
 // Drei Testklassen in einem Executable: Migrationen, Kernfunktionen (grafikSpeichern/klemmlistenauszug), Kabelrechner.

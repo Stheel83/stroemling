@@ -632,6 +632,18 @@ public:
     // (<kopie>.strl-overlay neben der Kopie, oder zielPfad). Gibt {ok, pfad, anzahlBm, anzahlKabel}
     // oder {ok:false, fehler} zurueck.
     Q_INVOKABLE QVariantMap ibnOverlayExportieren(const QString &zielPfad = QString());
+    // ── Overlay-Import (VERT-04, konzept/features/55 §4.3), nur in der Hauptkopie ──
+    // Analyse ohne Schreiben: {ok, fehler, kopie{id,name,status,veraltet}, warnungen[],
+    //   anzahlBm, anzahlKabel, uebernehmen, unveraendert, konflikte[{key,typ,label,haupt{..},kopie{..}}],
+    //   nichtZuordenbar[{label,grund}], ausserhalbBereich[{label}]}
+    Q_INVOKABLE QVariantMap ibnOverlayPruefen(const QString &pfad);
+    // Import: entscheidungen = {key: "kopie"|"haupt"} fuer Konflikte (fehlend = "haupt");
+    // ausserhalbZulassen uebernimmt auch Eintraege ausserhalb des Kopie-Bereichs.
+    // Markiert die Kopie als eingesammelt. Gibt {ok, fehler, uebernommen, uebersprungen, nichtZuordenbar[]}.
+    Q_INVOKABLE QVariantMap ibnOverlayImportieren(const QString &pfad, const QVariantMap &entscheidungen,
+                                                  bool ausserhalbZulassen = false);
+    // *.strl-overlay im Standardordner <Projektordner>/ibn_kopien: [{pfad, name, geaendert}]
+    Q_INVOKABLE QVariantList ibnOverlayDateienFinden();
     // Bereichsfilter (Liste von {anlage, ort, seite}; leer = ganzes Projekt)
     static bool ibnBereichPasst(const QVariantList &bereich, const QString &anlage,
                                 const QString &ort, const QString &seite);
@@ -1143,6 +1155,7 @@ private:
     bool sperreSchreiben();
     void sperreHerzschlag();
     void sperreFreigeben();
+    QVariantMap ibnOverlayAnalysieren(const QString &pfad);   // VERT-04, enthaelt die Nutzdaten
     void ibnKopieStatusAktualisieren();   // VERT-02: m_istIbnKopie / m_offeneKopien neu lesen
     bool m_istIbnKopie = false;
     int  m_offeneKopien = 0;

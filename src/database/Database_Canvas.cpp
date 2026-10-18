@@ -557,7 +557,8 @@ bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
     {
         // N-04: Datum der letzten Speicherung ({seite.geaendert} in Schriftfeld/Infostreifen)
         QSqlQuery qDat;
-        qDat.prepare("UPDATE seite SET geaendert_am = date('now', 'localtime') WHERE id = :sid");
+        qDat.prepare("UPDATE seite SET geaendert_am = date('now', 'localtime'), "
+                     "geaendert_zeit = datetime('now') WHERE id = :sid");
         qDat.bindValue(":sid", seiteId);
         if (!qDat.exec())
             qCWarning(lcDb) << "grafikSpeichern geaendert_am:" << qDat.lastError().text();

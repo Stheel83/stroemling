@@ -169,7 +169,8 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
             notiz        = :no,
             bauteil_id   = :bid,
             geprueft_von = :gv,
-            geprueft_am  = :ga
+            geprueft_am  = :ga,
+            geaendert_am = datetime('now')
         WHERE seite_id = :sid AND bmk = :bmk
     )");
     q.bindValue(":st",  status);
@@ -197,7 +198,7 @@ bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &s
                datetime('now')
         FROM seite s JOIN ort o ON s.ort_id=o.id JOIN anlage a ON o.anlage_id=a.id
         WHERE s.id = :sid
-        ON CONFLICT(seite_id, bmk) DO UPDATE SET status = :st
+        ON CONFLICT(seite_id, bmk) DO UPDATE SET status = :st, geaendert_am = datetime('now')
     )");
     q.bindValue(":sid", seiteId);
     q.bindValue(":bmk", bmk);
@@ -322,7 +323,8 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
         SET status       = :st,
             notiz        = :no,
             geprueft_von = :gv,
-            geprueft_am  = :ga
+            geprueft_am  = :ga,
+            geaendert_am = datetime('now')
         WHERE kabel_id = :kid
     )");
     q.bindValue(":st",  status);
@@ -345,7 +347,7 @@ bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
         VALUES ((SELECT projekt_id FROM kabel WHERE id = :kid), :kid, :st,
                 (SELECT COALESCE(MAX(nr), 1) FROM ibn_durchgang
                  WHERE projekt_id = (SELECT projekt_id FROM kabel WHERE id = :kid)))
-        ON CONFLICT(kabel_id) DO UPDATE SET status = :st
+        ON CONFLICT(kabel_id) DO UPDATE SET status = :st, geaendert_am = datetime('now')
     )");
     q.bindValue(":kid", kabelId);
     q.bindValue(":st",  status);
@@ -444,6 +446,10 @@ int Database::ibnDurchgangAnlegen(int projektId, const QString &bezeichnung,
                                    const QString &faelligAm, const QVariantList &bereich,
                                    bool werteVorbelegen)
 {
+    // Sperren (konzept/features/55 §8.3): nur in der Hauptkopie, nur ohne ausgegebene Kopien
+    if (m_istIbnKopie)    return -3;
+    if (m_offeneKopien > 0) return -2;
+
     const int nr = ibnAktuellerDurchgang(projektId) + 1;
 
     if (!m_db.transaction()) {
@@ -579,8 +585,8 @@ int Database::ibnDurchgangAnlegen(int projektId, const QString &bezeichnung,
 
         QSqlQuery qr(m_db);
         qr.prepare(z.typ == "bm"
-            ? "UPDATE inbetriebnahme SET status='offen', geprueft_von='', geprueft_am='', notiz='', durchgang_nr=:nr WHERE id=:id"
-            : "UPDATE ibn_kabel SET status='offen', geprueft_von='', geprueft_am='', notiz='', durchgang_nr=:nr WHERE id=:id");
+            ? "UPDATE inbetriebnahme SET status='offen', geprueft_von='', geprueft_am='', notiz='', durchgang_nr=:nr, geaendert_am=datetime('now') WHERE id=:id"
+            : "UPDATE ibn_kabel SET status='offen', geprueft_von='', geprueft_am='', notiz='', durchgang_nr=:nr, geaendert_am=datetime('now') WHERE id=:id");
         qr.bindValue(":nr", nr);
         qr.bindValue(":id", z.id);
         if (!qr.exec()) return abbruch("UPDATE reset:", qr);
@@ -1077,6 +1083,9 @@ QVariantList Database::ibnFeldwerteLaden(int inbetriebnahmeId)
 bool Database::ibnFeldwerteAktualisieren(int inbetriebnahmeId, const QVariantList &felder)
 {
     QSqlQuery q(m_db);
+    q.prepare("UPDATE inbetriebnahme SET geaendert_am = datetime('now') WHERE id = :id");
+    q.bindValue(":id", inbetriebnahmeId);
+    q.exec();
     q.prepare(R"(
         INSERT INTO ibn_feldwert (inbetriebnahme_id, feldname, wert)
         VALUES (:id, :fn, :wert)

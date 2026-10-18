@@ -214,7 +214,11 @@ Dialog {
                                                     tfDatum.text.trim(), tfFaellig.text.trim(),
                                                     bereich, cbVorbelegen.checked)
                     if (nr < 0) {
-                        root.fehlerText = qsTr("Durchgang konnte nicht angelegt werden (siehe Log).")
+                        root.fehlerText = nr === -2
+                            ? qsTr("Es sind noch IBN-Kopien ausgegeben – bitte zuerst alle einsammeln oder verwerfen.")
+                            : nr === -3
+                              ? qsTr("In einer IBN-Kopie kann kein neuer Prüfdurchgang angelegt werden.")
+                              : qsTr("Durchgang konnte nicht angelegt werden (siehe Log).")
                         return
                     }
                     root.close()

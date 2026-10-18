@@ -233,6 +233,8 @@ bool Database::openProjekt(const QString &path)
     if (projektName.isEmpty())
         projektName = QFileInfo(localPath).baseName();
 
+    m_schaltplanOverride = false;
+    ibnKopieStatusAktualisieren();
     zuletzGeoeffnetEintragen(localPath, projektName);
     bekannteProjecteEintragen(localPath, projektName, projektNummer);
     qCInfo(lcDb) << "Projekt geöffnet:" << localPath;
@@ -388,6 +390,8 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
 
     sperreErwerben(localPath);   // VERT-01
     m_projektOffen = true;
+    m_schaltplanOverride = false;
+    ibnKopieStatusAktualisieren();
     QString name = projektName.isEmpty() ? QFileInfo(localPath).baseName() : projektName;
     zuletzGeoeffnetEintragen(localPath, name);
     bekannteProjecteEintragen(localPath, name, "");
@@ -409,6 +413,8 @@ void Database::closeProjekt()
     m_projektOffen = false;
     sperreFreigeben();
     m_schreibgeschuetzt = false; m_sperreInfo.clear();
+    m_schaltplanOverride = false;
+    ibnKopieStatusAktualisieren();
     qCInfo(lcDb) << "Projekt geschlossen.";
     emit schreibschutzChanged();
     emit projektOffenChanged();

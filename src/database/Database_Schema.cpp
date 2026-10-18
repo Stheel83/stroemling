@@ -3095,6 +3095,29 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE ibn_kabel ADD COLUMN durchgang_nr INTEGER NOT NULL DEFAULT 1)",
             R"(INSERT INTO ibn_durchgang (projekt_id, nr, bezeichnung, art) SELECT p.id, 1, 'Erstinbetriebnahme', 'erstinbetriebnahme' FROM projekt p WHERE NOT EXISTS (SELECT 1 FROM ibn_durchgang d WHERE d.projekt_id = p.id AND d.nr = 1))",
         }},
+        { 175, "VERT-02: Kopien-Register und Aenderungszeitpunkte - ibn_kopie (Hauptkopie fuehrt Buch ueber ausgegebene IBN-Kopien), projekt.haupt_revision / kopie_uuid / kopie_name / kopie_bereich / kopie_durchgang_nr (kopie_uuid gesetzt = diese Datei IST eine IBN-Kopie), seite.geaendert_zeit (voller Zeitstempel fuer den Aenderungsvergleich), inbetriebnahme.geaendert_am / ibn_kabel.geaendert_am.", {
+            R"(CREATE TABLE IF NOT EXISTS ibn_kopie (
+                id               INTEGER PRIMARY KEY,
+                projekt_id       INTEGER NOT NULL REFERENCES projekt(id) ON DELETE CASCADE,
+                kopie_uuid       TEXT    NOT NULL UNIQUE,
+                name             TEXT    NOT NULL DEFAULT '',
+                erstellt_am      TEXT    NOT NULL DEFAULT (datetime('now')),
+                haupt_revision   INTEGER NOT NULL DEFAULT 0,
+                durchgang_nr     INTEGER NOT NULL DEFAULT 1,
+                bereich          TEXT    NOT NULL DEFAULT '',
+                status           TEXT    NOT NULL DEFAULT 'ausgegeben',
+                eingesammelt_am  TEXT    NOT NULL DEFAULT '',
+                dateiname        TEXT    NOT NULL DEFAULT ''
+            ))",
+            R"(ALTER TABLE projekt ADD COLUMN haupt_revision INTEGER NOT NULL DEFAULT 0)",
+            R"(ALTER TABLE projekt ADD COLUMN kopie_uuid TEXT NOT NULL DEFAULT '')",
+            R"(ALTER TABLE projekt ADD COLUMN kopie_name TEXT NOT NULL DEFAULT '')",
+            R"(ALTER TABLE projekt ADD COLUMN kopie_bereich TEXT NOT NULL DEFAULT '')",
+            R"(ALTER TABLE projekt ADD COLUMN kopie_durchgang_nr INTEGER NOT NULL DEFAULT 1)",
+            R"(ALTER TABLE seite ADD COLUMN geaendert_zeit TEXT)",
+            R"(ALTER TABLE inbetriebnahme ADD COLUMN geaendert_am TEXT)",
+            R"(ALTER TABLE ibn_kabel ADD COLUMN geaendert_am TEXT)",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });
@@ -3542,6 +3565,7 @@ bool Database::dropAllTables()
         "sps_kanal",
         "sps_baugruppe",
         "sps_rack",
+        "ibn_kopie",
         "ibn_historie",
         "ibn_durchgang",
         "ibn_feldwert",

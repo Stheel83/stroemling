@@ -32,6 +32,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Zwischenablage.cpp
     src/database/Database_IBN.cpp
     src/database/Database_Sperre.cpp
+    src/database/Database_IbnKopie.cpp
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
     src/database/Database_SpsExport.cpp
@@ -553,6 +554,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Zwischenablage.cpp
     src/database/Database_IBN.cpp
     src/database/Database_Sperre.cpp
+    src/database/Database_IbnKopie.cpp
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
     src/database/Database_SpsExport.cpp

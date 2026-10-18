@@ -889,6 +889,88 @@ private slots:
 
         QFile::remove(pfad); QFile::remove(pfad + "-wal"); QFile::remove(pfad + "-shm"); QFile::remove(lock);
     }
+
+    void test_23_ibnKopien()
+    {
+        // VERT-02 (konzept/features/55 §4.1a): Kopien-Register, Kopie erstellen/markieren,
+        // Sperre der Hauptkopie samt Override, Durchgang nur ohne ausgegebene Kopien.
+        TmpProjekt t("ibnkopien");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')"));
+        const int a1 = q.lastInsertId().toInt();
+        QVERIFY(q.exec(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1)));
+        const int o1 = q.lastInsertId().toInt();
+        QVERIFY(q.exec(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1)));
+        const int s1 = q.lastInsertId().toInt();
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q1", "abgeschlossen", "ok", "", "Max", "2026-10-01"));
+        QVERIFY(q.exec(QString("SELECT geaendert_am FROM inbetriebnahme WHERE seite_id=%1").arg(s1)));
+        QVERIFY(q.next());
+        QVERIFY2(!q.value(0).toString().isEmpty(), "geaendert_am muss beim Speichern gesetzt werden");
+        q.finish();   // offene Abfrage wuerde VACUUM INTO blockieren
+
+        QVERIFY(!db.schaltplanGesperrt());
+        QVERIFY(!db.istIbnKopie());
+        QCOMPARE(db.ibnKopieRegisterLaden(1).size(), 0);
+
+        const QString ordner = QDir::tempPath() + "/stroemling_test_ibnkopien_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        const QVariantList bereichAq = {QVariantMap{{"anlage","AQ"}}};
+        QVERIFY(db.ibnKopiePruefen(1, bereichAq).isEmpty());
+
+        QVariantMap r = db.ibnKopieErstellen(1, "Elektro", bereichAq, ordner);
+        QVERIFY2(r.value("ok").toBool(), qPrintable(r.value("fehler").toString()));
+        const QString kopiePfad = r.value("pfad").toString();
+        QVERIFY(QFile::exists(kopiePfad));
+        QVERIFY(kopiePfad.contains("_IBN_Elektro_R0_"));
+        QVERIFY(db.schaltplanGesperrt());
+        QCOMPARE(db.offeneKopien(), 1);
+
+        QVariantList reg = db.ibnKopieRegisterLaden(1);
+        QCOMPARE(reg.size(), 1);
+        QCOMPARE(reg[0].toMap().value("status").toString(), QStringLiteral("ausgegeben"));
+        QCOMPARE(reg[0].toMap().value("veraltet").toBool(), false);
+        QCOMPARE(reg[0].toMap().value("kopieUuid").toString(), r.value("kopieUuid").toString());
+
+        // Warnung bei ueberlappendem Bereich; Durchgang gesperrt
+        QVERIFY(!db.ibnKopiePruefen(1, bereichAq).isEmpty());
+        QCOMPARE(db.ibnDurchgangAnlegen(1, "x", "wiederholung", "", "", {}, false), -2);
+
+        // Override: Revision steigt, Kopie gilt als veraltet, Schaltplan frei
+        QCOMPARE(db.ibnSchaltplanOverride(), 1);
+        QVERIFY(!db.schaltplanGesperrt());
+        QCOMPARE(db.ibnKopieRegisterLaden(1)[0].toMap().value("veraltet").toBool(), true);
+
+        // Verwerfen gibt die Hauptkopie frei
+        QVERIFY(db.ibnKopieStatusSetzen(reg[0].toMap().value("id").toInt(), "verworfen"));
+        QCOMPARE(db.offeneKopien(), 0);
+        QVERIFY(db.ibnDurchgangAnlegen(1, "x", "wiederholung", "", "", {}, false) > 0);
+
+        // Die Kopie ist als IBN-Kopie markiert, hat kein Register und kann keine Kopien erzeugen
+        const QString hauptPfad = db.projektPfad();
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(kopiePfad));
+        QVERIFY(db.istIbnKopie());
+        QVERIFY(db.schaltplanGesperrt());
+        QCOMPARE(db.ibnKopieRegisterLaden(1).size(), 0);
+        QVERIFY(!db.ibnKopieErstellen(1, "weiter", {}, ordner).value("ok").toBool());
+        QCOMPARE(db.ibnDurchgangAnlegen(1, "x", "wiederholung", "", "", {}, false), -3);
+        QSqlQuery qk(QSqlDatabase::database());   // q hing an der alten Verbindung
+        QVERIFY(qk.exec("SELECT kopie_uuid, kopie_name FROM projekt"));
+        QVERIFY(qk.next());
+        QCOMPARE(qk.value(1).toString(), QStringLiteral("Elektro"));
+        qk.finish();
+        db.closeProjekt();
+
+        // Eingesammelt wird nur ueber den Import-Weg, nicht ueber ibnKopieStatusSetzen
+        QVERIFY(db.openProjekt(hauptPfad));
+        QVERIFY(db.ibnKopieStatusSetzen(reg[0].toMap().value("id").toInt(), "ausgegeben"));
+        QVERIFY(db.ibnKopieEingesammeltMarkieren(r.value("kopieUuid").toString()));
+        QVERIFY(!db.ibnKopieStatusSetzen(reg[0].toMap().value("id").toInt(), "verworfen"));
+        QCOMPARE(db.ibnKopieRegisterLaden(1)[0].toMap().value("status").toString(), QStringLiteral("eingesammelt"));
+
+        QDir(ordner).removeRecursively();
+    }
 };
 
 // Drei Testklassen in einem Executable: Migrationen, Kernfunktionen (grafikSpeichern/klemmlistenauszug), Kabelrechner.

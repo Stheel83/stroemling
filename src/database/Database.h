@@ -35,6 +35,10 @@ class Database : public QObject
     // VERT-01: Projekt von einer anderen Sitzung gesperrt -> nur lesen
     Q_PROPERTY(bool         schreibgeschuetzt READ schreibgeschuetzt NOTIFY schreibschutzChanged)
     Q_PROPERTY(QVariantMap  sperreInfo      READ sperreInfo         NOTIFY schreibschutzChanged)
+    // VERT-02: Datei ist eine IBN-Kopie / Schaltplan ist gesperrt (Kopie oder ausgegebene Kopien)
+    Q_PROPERTY(bool         istIbnKopie     READ istIbnKopie        NOTIFY ibnKopieChanged)
+    Q_PROPERTY(bool         schaltplanGesperrt READ schaltplanGesperrt NOTIFY ibnKopieChanged)
+    Q_PROPERTY(int          offeneKopien    READ offeneKopien       NOTIFY ibnKopieChanged)
 
 public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
@@ -59,6 +63,9 @@ public:
     static const int SPERRE_VERALTET_STUNDEN = 24;
     bool        schreibgeschuetzt() const { return m_schreibgeschuetzt; }
     QVariantMap sperreInfo()        const { return m_sperreInfo; }   // {rechner, benutzer, zeit}
+    bool istIbnKopie()        const { return m_istIbnKopie; }
+    bool schaltplanGesperrt() const;
+    int  offeneKopien()       const { return m_offeneKopien; }
     static QString     sperrDateiPfad(const QString &projektPfad);
     static QVariantMap sperreLesen(const QString &lockPfad);
     static bool        sperreVeraltet(const QVariantMap &info,
@@ -158,6 +165,7 @@ public:
 Q_SIGNALS:
     void projektOffenChanged();
     void schreibschutzChanged();
+    void ibnKopieChanged();
     void registryGeaendert();
     void dbFehler(const QString &meldung);
     // Wie dbFehler, aber der Dialog bietet zusätzlich "Backup-Ordner öffnen" an (BACKUP-OEFFNEN-01)
@@ -585,7 +593,8 @@ public:
     Q_INVOKABLE QVariantList ibnDurchgaengeLaden(int projektId);
     // Neuer Durchgang: archiviert die Staende im Bereich ([{anlage, ort, seite}], leer = ganzes Projekt)
     // in ibn_historie und setzt sie auf "offen" zurueck. Feldwerte bleiben nur bei werteVorbelegen.
-    // Gibt die neue Nummer zurueck, -1 bei Fehler (Transaktion zurueckgerollt).
+    // Gibt die neue Nummer zurueck, -1 bei Fehler (Transaktion zurueckgerollt), -2 solange Kopien
+    // ausgegeben sind, -3 in einer IBN-Kopie.
     Q_INVOKABLE int ibnDurchgangAnlegen(int projektId, const QString &bezeichnung,
                                         const QString &art, const QString &datum,
                                         const QString &faelligAm, const QVariantList &bereich,
@@ -594,6 +603,25 @@ public:
     // [{durchgangNr, durchgangBez, status, geprueftVon, geprueftAm, notiz, bauteilId, felder, archiviertAm}]
     Q_INVOKABLE QVariantList ibnHistorieFuerBmk(int seiteId, const QString &bmk);
     Q_INVOKABLE QVariantList ibnHistorieFuerKabel(int kabelId);
+
+    // ── IBN-Kopien (VERT-02, konzept/features/55 §4.1a) ──
+    // Register der Hauptkopie: [{id, kopieUuid, name, erstelltAm, hauptRevision, durchgangNr,
+    //                            bereich, status, eingesammeltAm, dateiname, veraltet}], neueste zuerst
+    Q_INVOKABLE QVariantList ibnKopieRegisterLaden(int projektId);
+    // Warnungen vor dem Erstellen (doppelte Seitenschluessel, Bereichsueberlappung, selbst Kopie)
+    Q_INVOKABLE QStringList  ibnKopiePruefen(int projektId, const QVariantList &bereich);
+    // Kopie erstellen (VACUUM INTO + Markierung); zielOrdner leer = <Projektordner>/ibn_kopien.
+    // Gibt {ok, pfad, kopieUuid, kopieId} oder {ok:false, fehler} zurueck.
+    Q_INVOKABLE QVariantMap  ibnKopieErstellen(int projektId, const QString &name,
+                                               const QVariantList &bereich,
+                                               const QString &zielOrdner = QString());
+    // 'verworfen' / 'ausgegeben' (Rueckgaengig); eingesammelte Kopien bleiben unveraendert
+    Q_INVOKABLE bool ibnKopieStatusSetzen(int kopieId, const QString &status);
+    // Vom Overlay-Import benutzt (VERT-04)
+    bool ibnKopieEingesammeltMarkieren(const QString &kopieUuid);
+    // Schaltplan trotz ausgegebener Kopien freigeben: erhoeht haupt_revision (Kopien gelten als
+    // veraltet). Gibt die neue Revision zurueck, -1 wenn nicht moeglich/noetig.
+    Q_INVOKABLE int ibnSchaltplanOverride();
 
     // Projekt-Metadaten (Schriftfeld-Felder) speichern.
     Q_INVOKABLE bool projektMetaSpeichern(int projektId,
@@ -1102,6 +1130,10 @@ private:
     bool sperreSchreiben();
     void sperreHerzschlag();
     void sperreFreigeben();
+    void ibnKopieStatusAktualisieren();   // VERT-02: m_istIbnKopie / m_offeneKopien neu lesen
+    bool m_istIbnKopie = false;
+    int  m_offeneKopien = 0;
+    bool m_schaltplanOverride = false;    // nur diese Sitzung
     bool        m_schreibgeschuetzt = false;
     QVariantMap m_sperreInfo;
     QString     m_sperrePfad;       // leer = wir halten keine Sperre

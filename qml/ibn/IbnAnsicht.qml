@@ -20,6 +20,7 @@ Item {
     property int    ausgewaehlterIndex:       -1
     property int    kabelAusgewaehlterIndex: -1
     property var    _kabelAdern:              []
+    property int    _durchgang:               1   // VERT-00: aktueller Pruefdurchgang
 
     // Dynamische Messfelder für das ausgewählte BM
     property var _dynFelder: []   // [{feldname, label, feldtyp, optionen, einheit, pflichtfeld}]
@@ -89,6 +90,7 @@ Item {
         root._liste = db.ibnListeLaden(root.projektId, sid)
         root.ausgewaehlterIndex = -1
         root._statusMapAktualisieren()
+        root._durchgang = root.projektId >= 0 ? db.ibnAktuellerDurchgang(root.projektId) : 1
         kabelLaden()
     }
 
@@ -148,7 +150,9 @@ Item {
                     Item { width: 12 }
 
                     Text {
-                        text: qsTr("⚡ Inbetriebnahme")
+                        text: root._durchgang > 1
+                              ? qsTr("⚡ Inbetriebnahme · Durchgang %1").arg(root._durchgang)
+                              : qsTr("⚡ Inbetriebnahme")
                         font.pixelSize: 13; font.weight: Font.Medium
                         color: theme.textPrimary
                         Layout.fillWidth: true
@@ -242,6 +246,16 @@ Item {
                         onClicked: root._kategorie = (root._kategorie === "felder" ? "bm" : "felder")
                         ToolTip.visible: hovered; ToolTip.delay: 600
                         ToolTip.text: qsTr("Messfeld-Vorlagen verwalten")
+                    }
+
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 24
+                        contentItem: Text { text: "⟲"; font.pixelSize: 13; color: theme.textSecondary;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                        onClicked: durchgangDialog.open()
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Neuen Prüfdurchgang anlegen (Wiederholungsprüfung)")
                     }
 
                     Button {
@@ -401,6 +415,18 @@ Item {
         theme:     root.theme
         projektId: root.projektId
         seiteId:   root.ansichtModus === "seite" ? root.seiteId : -1
+    }
+
+    IbnDurchgangDialog {
+        id:                 durchgangDialog
+        theme:              root.theme
+        projektId:          root.projektId
+        liste:              root._liste
+        aktuellerDurchgang: root._durchgang
+        onDurchgangAngelegt: function(nr) {
+            root.laden()
+            meldungManager.zeigen(qsTr("Prüfdurchgang %1 angelegt.").arg(nr), true)
+        }
     }
 
     DebugLabel { panelName: qsTr("IBN-Ansicht"); visible: root.debug }

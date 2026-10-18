@@ -560,6 +560,23 @@ public:
     // Status eines Kabels schnell aktualisieren.
     Q_INVOKABLE bool ibnKabelStatusSetzen(int kabelId, const QString &status);
 
+    // ── IBN-Pruefdurchgaenge (VERT-00, konzept/features/55 §8) ──
+    // Hoechste Durchgangsnummer des Projekts (legt Durchgang 1 an, falls noetig).
+    Q_INVOKABLE int ibnAktuellerDurchgang(int projektId);
+    // Alle Durchgaenge, neuester zuerst: [{nr, bezeichnung, art, datum, faelligAm, bereich, erstelltAm, archiviert}]
+    Q_INVOKABLE QVariantList ibnDurchgaengeLaden(int projektId);
+    // Neuer Durchgang: archiviert die Staende im Bereich ([{anlage, ort, seite}], leer = ganzes Projekt)
+    // in ibn_historie und setzt sie auf "offen" zurueck. Feldwerte bleiben nur bei werteVorbelegen.
+    // Gibt die neue Nummer zurueck, -1 bei Fehler (Transaktion zurueckgerollt).
+    Q_INVOKABLE int ibnDurchgangAnlegen(int projektId, const QString &bezeichnung,
+                                        const QString &art, const QString &datum,
+                                        const QString &faelligAm, const QVariantList &bereich,
+                                        bool werteVorbelegen);
+    // Archivierte Staende eines BM / Kabels, neuester Durchgang zuerst:
+    // [{durchgangNr, durchgangBez, status, geprueftVon, geprueftAm, notiz, bauteilId, felder, archiviertAm}]
+    Q_INVOKABLE QVariantList ibnHistorieFuerBmk(int seiteId, const QString &bmk);
+    Q_INVOKABLE QVariantList ibnHistorieFuerKabel(int kabelId);
+
     // Projekt-Metadaten (Schriftfeld-Felder) speichern.
     Q_INVOKABLE bool projektMetaSpeichern(int projektId,
                                           const QString &name,

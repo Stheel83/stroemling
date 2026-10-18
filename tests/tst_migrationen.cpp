@@ -752,6 +752,81 @@ private slots:
         QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM ort WHERE id=%1").arg(ort2)), 0);
         QCOMPARE(zaehle(QString("SELECT COUNT(*) FROM seite WHERE id=%1").arg(s3)), 0);
     }
+
+    void test_21_ibnPruefdurchgaenge()
+    {
+        // VERT-00 (konzept/features/55 §8): neuer Durchgang archiviert die Staende im Bereich
+        // in ibn_historie und setzt sie zurueck; Historie ueberlebt das Loeschen der Seite.
+        TmpProjekt t("ibndurchgang");
+        QSqlQuery q(QSqlDatabase::database());
+        auto ins = [&](const QString &sql) {
+            QVERIFY2(q.exec(sql), qPrintable(sql + " -> " + q.lastError().text()));
+        };
+        auto zaehle = [&](const QString &sql) {
+            q.exec(sql); q.next(); return q.value(0).toInt();
+        };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int a1 = q.lastInsertId().toInt();
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'WP','B')");
+        const int a2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1));
+        const int o1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'KE','O')").arg(a2));
+        const int o2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1));
+        const int s1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S2')").arg(o2));
+        const int s2 = q.lastInsertId().toInt();
+
+        Database &db = t.db;
+        QCOMPARE(db.ibnAktuellerDurchgang(1), 1);
+
+        QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q1", "abgeschlossen", "ok", "B1", "Max", "2026-10-01"));
+        QVERIFY(db.ibnEintragSpeichern(1, s2, "-Q2", "abgeschlossen", "", "", "Eva", "2026-10-02"));
+        QVERIFY(db.ibnStatusSetzen(s1, "-Q3", "offen"));    // jungfraeulich -> nicht archiviert
+        const int id1 = db.ibnEintragFuerBmk(s1, "-Q1").value("ibnId").toInt();
+        const int id2 = db.ibnEintragFuerBmk(s2, "-Q2").value("ibnId").toInt();
+        QVERIFY(db.ibnFeldwerteAktualisieren(id1, {QVariantMap{{"feldname","istwert"},{"wert","4.2"}}}));
+        QVERIFY(db.ibnFeldwerteAktualisieren(id2, {QVariantMap{{"feldname","istwert"},{"wert","7"}}}));
+
+        // Durchgang 2 nur fuer Anlage AQ, ohne Vorbelegung
+        QCOMPARE(db.ibnDurchgangAnlegen(1, "Wiederholung", "wiederholung", "2026-11-01", "2027-11-01",
+                                        {QVariantMap{{"anlage","AQ"}}}, false), 2);
+        QCOMPARE(db.ibnAktuellerDurchgang(1), 2);
+        QVariantMap q1 = db.ibnEintragFuerBmk(s1, "-Q1");
+        QCOMPARE(q1.value("status").toString(), QStringLiteral("offen"));
+        QCOMPARE(q1.value("geprueftVon").toString(), QString());
+        QCOMPARE(q1.value("bauteilId").toString(), QStringLiteral("B1"));   // Seriennummer bleibt
+        QCOMPARE(db.ibnFeldwerteLaden(id1).size(), 0);
+        QCOMPARE(db.ibnEintragFuerBmk(s2, "-Q2").value("status").toString(), QStringLiteral("abgeschlossen"));
+
+        QVariantList h = db.ibnHistorieFuerBmk(s1, "-Q1");
+        QCOMPARE(h.size(), 1);
+        QCOMPARE(h[0].toMap().value("durchgangNr").toInt(), 1);
+        QCOMPARE(h[0].toMap().value("status").toString(), QStringLiteral("abgeschlossen"));
+        QCOMPARE(h[0].toMap().value("geprueftVon").toString(), QStringLiteral("Max"));
+        QCOMPARE(h[0].toMap().value("felder").toList().size(), 1);
+        QCOMPARE(db.ibnHistorieFuerBmk(s1, "-Q3").size(), 0);
+        QCOMPARE(db.ibnHistorieFuerBmk(s2, "-Q2").size(), 0);
+
+        // Neue Eintraege gehoeren zum aktuellen Durchgang
+        QVERIFY(db.ibnStatusSetzen(s1, "-Q9", "in_arbeit"));
+        QCOMPARE(zaehle(QString("SELECT durchgang_nr FROM inbetriebnahme WHERE seite_id=%1 AND bmk='-Q9'").arg(s1)), 2);
+
+        // Durchgang 3 ganzes Projekt, mit Vorbelegung
+        QCOMPARE(db.ibnDurchgangAnlegen(1, "Jahrespruefung", "wiederholung", "2027-11-01", "", {}, true), 3);
+        QCOMPARE(db.ibnEintragFuerBmk(s2, "-Q2").value("status").toString(), QStringLiteral("offen"));
+        QCOMPARE(db.ibnFeldwerteLaden(id2).size(), 1);                      // vorbelegt
+        QCOMPARE(db.ibnHistorieFuerBmk(s2, "-Q2").size(), 1);
+        QCOMPARE(db.ibnHistorieFuerBmk(s1, "-Q9").size(), 1);
+        QCOMPARE(db.ibnDurchgaengeLaden(1).size(), 3);
+        QCOMPARE(db.ibnDurchgaengeLaden(1)[0].toMap().value("nr").toInt(), 3);
+
+        // Historie ueberlebt das Loeschen der Seite (keine FK)
+        QVERIFY(q.exec("PRAGMA foreign_keys=ON"));
+        QVERIFY(q.exec(QString("DELETE FROM seite WHERE id=%1").arg(s1)));
+        QCOMPARE(zaehle("SELECT COUNT(*) FROM ibn_historie WHERE bmk='-Q1'"), 1);
+    }
 };
 
 // Drei Testklassen in einem Executable: Migrationen, Kernfunktionen (grafikSpeichern/klemmlistenauszug), Kabelrechner.

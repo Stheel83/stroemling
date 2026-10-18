@@ -149,8 +149,10 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
     QSqlQuery q(m_db);
     // Sicherstellen dass ein Datensatz existiert
     q.prepare(R"(
-        INSERT INTO inbetriebnahme (projekt_id, seite_id, bmk, erstellt_am)
-        VALUES (:pid, :sid, :bmk, datetime('now'))
+        INSERT INTO inbetriebnahme (projekt_id, seite_id, bmk, durchgang_nr, erstellt_am)
+        VALUES (:pid, :sid, :bmk,
+                (SELECT COALESCE(MAX(nr), 1) FROM ibn_durchgang WHERE projekt_id = :pid),
+                datetime('now'))
         ON CONFLICT(seite_id, bmk) DO NOTHING
     )");
     q.bindValue(":pid", projektId);
@@ -189,8 +191,10 @@ bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &s
     QSqlQuery q(m_db);
     // Eintrag anlegen falls noch nicht vorhanden (projekt_id wird aus seite abgeleitet)
     q.prepare(R"(
-        INSERT INTO inbetriebnahme (projekt_id, seite_id, bmk, status, erstellt_am)
-        SELECT a.projekt_id, :sid, :bmk, :st, datetime('now')
+        INSERT INTO inbetriebnahme (projekt_id, seite_id, bmk, status, durchgang_nr, erstellt_am)
+        SELECT a.projekt_id, :sid, :bmk, :st,
+               (SELECT COALESCE(MAX(nr), 1) FROM ibn_durchgang WHERE projekt_id = a.projekt_id),
+               datetime('now')
         FROM seite s JOIN ort o ON s.ort_id=o.id JOIN anlage a ON o.anlage_id=a.id
         WHERE s.id = :sid
         ON CONFLICT(seite_id, bmk) DO UPDATE SET status = :st
@@ -298,8 +302,9 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        INSERT INTO ibn_kabel (projekt_id, kabel_id, status, notiz, geprueft_von, geprueft_am)
-        VALUES (:pid, :kid, :st, :no, :gv, :ga)
+        INSERT INTO ibn_kabel (projekt_id, kabel_id, status, notiz, geprueft_von, geprueft_am, durchgang_nr)
+        VALUES (:pid, :kid, :st, :no, :gv, :ga,
+                (SELECT COALESCE(MAX(nr), 1) FROM ibn_durchgang WHERE projekt_id = :pid))
         ON CONFLICT(kabel_id) DO NOTHING
     )");
     q.bindValue(":pid", projektId);
@@ -336,8 +341,10 @@ bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
 {
     QSqlQuery q(m_db);
     q.prepare(R"(
-        INSERT INTO ibn_kabel (projekt_id, kabel_id, status)
-        VALUES ((SELECT projekt_id FROM kabel WHERE id = :kid), :kid, :st)
+        INSERT INTO ibn_kabel (projekt_id, kabel_id, status, durchgang_nr)
+        VALUES ((SELECT projekt_id FROM kabel WHERE id = :kid), :kid, :st,
+                (SELECT COALESCE(MAX(nr), 1) FROM ibn_durchgang
+                 WHERE projekt_id = (SELECT projekt_id FROM kabel WHERE id = :kid)))
         ON CONFLICT(kabel_id) DO UPDATE SET status = :st
     )");
     q.bindValue(":kid", kabelId);
@@ -347,6 +354,329 @@ bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
         return false;
     }
     return true;
+}
+
+// ── IBN Pruefdurchgaenge (VERT-00, konzept/features/55 §8) ───────────────
+
+// Bereich = Liste von {anlage, ort, seite}; fehlende/leere Felder = "alle".
+// Leere Liste = ganzes Projekt.
+static bool ibnBereichPasst(const QVariantList &bereich, const QString &anlage,
+                            const QString &ort, const QString &seite)
+{
+    if (bereich.isEmpty())
+        return true;
+    for (const QVariant &v : bereich) {
+        const QVariantMap m = v.toMap();
+        const QString a = m.value("anlage").toString();
+        const QString o = m.value("ort").toString();
+        const QString s = m.value("seite").toString();
+        if ((a.isEmpty() || a == anlage) && (o.isEmpty() || o == ort)
+            && (s.isEmpty() || s == seite))
+            return true;
+    }
+    return false;
+}
+
+static QString ibnFelderAlsJson(const QVariantList &felder)
+{
+    QJsonArray arr;
+    for (const QVariant &f : felder) {
+        const QVariantMap m = f.toMap();
+        arr.append(QJsonObject{ { "feldname", m.value("feldname").toString() },
+                                { "wert",     m.value("wert").toString()     } });
+    }
+    return QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact));
+}
+
+int Database::ibnAktuellerDurchgang(int projektId)
+{
+    QSqlQuery q(m_db);
+    q.prepare("INSERT INTO ibn_durchgang (projekt_id, nr, bezeichnung, art) "
+              "SELECT :pid, 1, 'Erstinbetriebnahme', 'erstinbetriebnahme' "
+              "WHERE NOT EXISTS (SELECT 1 FROM ibn_durchgang WHERE projekt_id = :pid AND nr = 1)");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "ibnAktuellerDurchgang INSERT:" << q.lastError().text();
+        return 1;
+    }
+    q.prepare("SELECT COALESCE(MAX(nr), 1) FROM ibn_durchgang WHERE projekt_id = :pid");
+    q.bindValue(":pid", projektId);
+    if (q.exec() && q.next())
+        return q.value(0).toInt();
+    return 1;
+}
+
+QVariantList Database::ibnDurchgaengeLaden(int projektId)
+{
+    ibnAktuellerDurchgang(projektId);
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT d.nr, d.bezeichnung, d.art, d.datum, d.faellig_am, d.bereich, d.erstellt_am,
+               (SELECT COUNT(*) FROM ibn_historie h
+                 WHERE h.projekt_id = d.projekt_id AND h.durchgang_nr = d.nr) AS archiviert
+        FROM ibn_durchgang d
+        WHERE d.projekt_id = :pid
+        ORDER BY d.nr DESC
+    )");
+    q.bindValue(":pid", projektId);
+    QVariantList result;
+    if (!q.exec()) {
+        qCWarning(lcDb) << "ibnDurchgaengeLaden:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        result.append(QVariantMap{
+            { "nr",          q.value("nr")          },
+            { "bezeichnung", q.value("bezeichnung") },
+            { "art",         q.value("art")         },
+            { "datum",       q.value("datum")       },
+            { "faelligAm",   q.value("faellig_am")  },
+            { "bereich",     q.value("bereich")     },
+            { "erstelltAm",  q.value("erstellt_am") },
+            { "archiviert",  q.value("archiviert")  },
+        });
+    }
+    return result;
+}
+
+int Database::ibnDurchgangAnlegen(int projektId, const QString &bezeichnung,
+                                   const QString &art, const QString &datum,
+                                   const QString &faelligAm, const QVariantList &bereich,
+                                   bool werteVorbelegen)
+{
+    const int nr = ibnAktuellerDurchgang(projektId) + 1;
+
+    if (!m_db.transaction()) {
+        qCWarning(lcDb) << "ibnDurchgangAnlegen: Transaktion:" << m_db.lastError().text();
+        return -1;
+    }
+    auto abbruch = [&](const char *wo, const QSqlQuery &q) {
+        qCWarning(lcDb) << "ibnDurchgangAnlegen" << wo << q.lastError().text();
+        m_db.rollback();
+        return -1;
+    };
+
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        INSERT INTO ibn_durchgang (projekt_id, nr, bezeichnung, art, datum, faellig_am, bereich)
+        VALUES (:pid, :nr, :bez, :art, :dat, :fae, :ber)
+    )");
+    q.bindValue(":pid", projektId);
+    q.bindValue(":nr",  nr);
+    q.bindValue(":bez", bezeichnung);
+    q.bindValue(":art", art);
+    q.bindValue(":dat", datum);
+    q.bindValue(":fae", faelligAm);
+    q.bindValue(":ber", bereich.isEmpty() ? QStringLiteral("")
+                        : QString::fromUtf8(QJsonDocument::fromVariant(bereich)
+                                                .toJson(QJsonDocument::Compact)));
+    if (!q.exec()) return abbruch("INSERT durchgang:", q);
+
+    // Beteiligte Staende einsammeln: typ, id, Schluessel, Werte
+    struct Zeile {
+        QString typ, anlage, ort, seite, bmk, status, von, am, notiz, bauteilId;
+        int id = 0;
+        int alteNr = 1;
+    };
+    QList<Zeile> zeilen;
+
+    QSqlQuery qb(m_db);
+    qb.prepare(R"(
+        SELECT ibn.id, ibn.bmk, ibn.status, ibn.geprueft_von, ibn.geprueft_am, ibn.notiz,
+               ibn.bauteil_id, ibn.durchgang_nr, a.kuerzel AS a_kz, o.kuerzel AS o_kz,
+               s.blattnummer AS blatt
+        FROM inbetriebnahme ibn
+        JOIN seite  s ON ibn.seite_id = s.id
+        JOIN ort    o ON s.ort_id     = o.id
+        JOIN anlage a ON o.anlage_id  = a.id
+        WHERE ibn.projekt_id = :pid
+    )");
+    qb.bindValue(":pid", projektId);
+    if (!qb.exec()) return abbruch("SELECT bm:", qb);
+    while (qb.next()) {
+        Zeile z;
+        z.typ = "bm"; z.id = qb.value("id").toInt();
+        z.bmk = qb.value("bmk").toString();
+        z.status = qb.value("status").toString();
+        z.von = qb.value("geprueft_von").toString();
+        z.am = qb.value("geprueft_am").toString();
+        z.notiz = qb.value("notiz").toString();
+        z.bauteilId = qb.value("bauteil_id").toString();
+        z.alteNr = qb.value("durchgang_nr").toInt();
+        z.anlage = qb.value("a_kz").toString();
+        z.ort = qb.value("o_kz").toString();
+        z.seite = qb.value("blatt").toString();
+        zeilen.append(z);
+    }
+
+    // Kabel: Bereichszuordnung ueber die Seite des Canvas-Elements; Kabel ohne
+    // Element haben keinen Seitenbezug und gehoeren nur zum Bereich "ganzes Projekt".
+    QSqlQuery qk(m_db);
+    qk.prepare(R"(
+        SELECT ib.id, k.bezeichnung, ib.status, ib.geprueft_von, ib.geprueft_am, ib.notiz,
+               ib.durchgang_nr, COALESCE(a.kuerzel, '') AS a_kz, COALESCE(o.kuerzel, '') AS o_kz,
+               COALESCE(s.blattnummer, '') AS blatt
+        FROM ibn_kabel ib
+        JOIN kabel k ON k.id = ib.kabel_id
+        LEFT JOIN grafik_element ge ON ge.id = k.grafik_element_id
+        LEFT JOIN seite  s ON s.id = ge.seite_id
+        LEFT JOIN ort    o ON o.id = s.ort_id
+        LEFT JOIN anlage a ON a.id = o.anlage_id
+        WHERE ib.projekt_id = :pid
+    )");
+    qk.bindValue(":pid", projektId);
+    if (!qk.exec()) return abbruch("SELECT kabel:", qk);
+    while (qk.next()) {
+        Zeile z;
+        z.typ = "kabel"; z.id = qk.value("id").toInt();
+        z.bmk = qk.value("bezeichnung").toString();
+        z.status = qk.value("status").toString();
+        z.von = qk.value("geprueft_von").toString();
+        z.am = qk.value("geprueft_am").toString();
+        z.notiz = qk.value("notiz").toString();
+        z.alteNr = qk.value("durchgang_nr").toInt();
+        z.anlage = qk.value("a_kz").toString();
+        z.ort = qk.value("o_kz").toString();
+        z.seite = qk.value("blatt").toString();
+        zeilen.append(z);
+    }
+
+    QSqlQuery qh(m_db);
+    qh.prepare(R"(
+        INSERT INTO ibn_historie (projekt_id, durchgang_nr, typ, anlage_kz, ort_kz, seite, bmk,
+                                  status, geprueft_von, geprueft_am, notiz, bauteil_id, felder)
+        VALUES (:pid, :dn, :typ, :a, :o, :s, :bmk, :st, :von, :am, :no, :bid, :fel)
+    )");
+    for (const Zeile &z : zeilen) {
+        const bool kabelOhneSeite = z.typ == "kabel" && z.seite.isEmpty();
+        if (kabelOhneSeite ? !bereich.isEmpty()
+                           : !ibnBereichPasst(bereich, z.anlage, z.ort, z.seite))
+            continue;
+
+        const QVariantList felder = (z.typ == "bm") ? ibnFeldwerteLaden(z.id) : QVariantList();
+        bool hatWerte = false;
+        for (const QVariant &f : felder)
+            if (!f.toMap().value("wert").toString().isEmpty()) { hatWerte = true; break; }
+        const bool jungfraeulich = z.status == "offen" && z.von.isEmpty() && z.am.isEmpty()
+                                   && z.notiz.isEmpty() && !hatWerte;
+
+        if (!jungfraeulich) {
+            qh.bindValue(":pid", projektId);
+            qh.bindValue(":dn",  z.alteNr);
+            qh.bindValue(":typ", z.typ);
+            qh.bindValue(":a",   z.anlage);
+            qh.bindValue(":o",   z.ort);
+            qh.bindValue(":s",   z.seite);
+            qh.bindValue(":bmk", z.bmk);
+            qh.bindValue(":st",  z.status);
+            qh.bindValue(":von", z.von);
+            qh.bindValue(":am",  z.am);
+            qh.bindValue(":no",  z.notiz);
+            qh.bindValue(":bid", z.bauteilId);
+            qh.bindValue(":fel", ibnFelderAlsJson(felder));
+            if (!qh.exec()) return abbruch("INSERT historie:", qh);
+        }
+
+        QSqlQuery qr(m_db);
+        qr.prepare(z.typ == "bm"
+            ? "UPDATE inbetriebnahme SET status='offen', geprueft_von='', geprueft_am='', notiz='', durchgang_nr=:nr WHERE id=:id"
+            : "UPDATE ibn_kabel SET status='offen', geprueft_von='', geprueft_am='', notiz='', durchgang_nr=:nr WHERE id=:id");
+        qr.bindValue(":nr", nr);
+        qr.bindValue(":id", z.id);
+        if (!qr.exec()) return abbruch("UPDATE reset:", qr);
+
+        if (z.typ == "bm" && !werteVorbelegen && !felder.isEmpty()) {
+            QSqlQuery qd(m_db);
+            qd.prepare("DELETE FROM ibn_feldwert WHERE inbetriebnahme_id = :id");
+            qd.bindValue(":id", z.id);
+            if (!qd.exec()) return abbruch("DELETE feldwerte:", qd);
+        }
+    }
+
+    if (!m_db.commit()) {
+        qCWarning(lcDb) << "ibnDurchgangAnlegen: commit:" << m_db.lastError().text();
+        m_db.rollback();
+        return -1;
+    }
+    return nr;
+}
+
+static QVariantList ibnHistorieAbfragen(QSqlDatabase &db, int projektId, const QString &typ,
+                                        const QString &anlage, const QString &ort,
+                                        const QString &seite, const QString &bmk)
+{
+    QSqlQuery q(db);
+    q.prepare(R"(
+        SELECT h.durchgang_nr, h.status, h.geprueft_von, h.geprueft_am, h.notiz, h.bauteil_id,
+               h.felder, h.archiviert_am, COALESCE(d.bezeichnung, '') AS durchgang_bez
+        FROM ibn_historie h
+        LEFT JOIN ibn_durchgang d ON d.projekt_id = h.projekt_id AND d.nr = h.durchgang_nr
+        WHERE h.projekt_id = :pid AND h.typ = :typ AND h.anlage_kz = :a AND h.ort_kz = :o
+          AND h.seite = :s AND h.bmk = :bmk
+        ORDER BY h.durchgang_nr DESC, h.id DESC
+    )");
+    q.bindValue(":pid", projektId);
+    q.bindValue(":typ", typ);
+    q.bindValue(":a",   anlage);
+    q.bindValue(":o",   ort);
+    q.bindValue(":s",   seite);
+    q.bindValue(":bmk", bmk);
+    QVariantList result;
+    if (!q.exec()) {
+        qCWarning(lcDb) << "ibnHistorie:" << q.lastError().text();
+        return result;
+    }
+    while (q.next()) {
+        result.append(QVariantMap{
+            { "durchgangNr",    q.value("durchgang_nr")  },
+            { "durchgangBez",   q.value("durchgang_bez") },
+            { "status",         q.value("status")        },
+            { "geprueftVon",    q.value("geprueft_von")  },
+            { "geprueftAm",     q.value("geprueft_am")   },
+            { "notiz",          q.value("notiz")         },
+            { "bauteilId",      q.value("bauteil_id")    },
+            { "felder",         QJsonDocument::fromJson(q.value("felder").toString().toUtf8())
+                                    .array().toVariantList() },
+            { "archiviertAm",   q.value("archiviert_am") },
+        });
+    }
+    return result;
+}
+
+QVariantList Database::ibnHistorieFuerBmk(int seiteId, const QString &bmk)
+{
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT a.projekt_id, a.kuerzel, o.kuerzel, s.blattnummer
+        FROM seite s JOIN ort o ON s.ort_id = o.id JOIN anlage a ON o.anlage_id = a.id
+        WHERE s.id = :sid
+    )");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec() || !q.next())
+        return {};
+    return ibnHistorieAbfragen(m_db, q.value(0).toInt(), "bm", q.value(1).toString(),
+                               q.value(2).toString(), q.value(3).toString(), bmk);
+}
+
+QVariantList Database::ibnHistorieFuerKabel(int kabelId)
+{
+    QSqlQuery q(m_db);
+    q.prepare(R"(
+        SELECT k.projekt_id, k.bezeichnung, COALESCE(a.kuerzel, ''), COALESCE(o.kuerzel, ''),
+               COALESCE(s.blattnummer, '')
+        FROM kabel k
+        LEFT JOIN grafik_element ge ON ge.id = k.grafik_element_id
+        LEFT JOIN seite  s ON s.id = ge.seite_id
+        LEFT JOIN ort    o ON o.id = s.ort_id
+        LEFT JOIN anlage a ON a.id = o.anlage_id
+        WHERE k.id = :kid
+    )");
+    q.bindValue(":kid", kabelId);
+    if (!q.exec() || !q.next())
+        return {};
+    return ibnHistorieAbfragen(m_db, q.value(0).toInt(), "kabel", q.value(2).toString(),
+                               q.value(3).toString(), q.value(4).toString(),
+                               q.value(1).toString());
 }
 
 // ── IBN Feldvorlagen / Feldwerte ─────────────────────────────────────────────

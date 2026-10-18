@@ -102,9 +102,9 @@ Item {
 
     FileDialog {
         id: projektOeffnenDialog
-        title:       qsTr("Projekt öffnen – im Projektordner die Datei \"projekt.strl\" wählen")
+        title:       qsTr("Projekt öffnen – Datei \"projekt.strl\" im Projektordner (oder eine IBN-Kopie *.strl) wählen")
         fileMode:    FileDialog.OpenFile
-        nameFilters: [qsTr("Strömling-Projekte (projekt.strl)")]
+        nameFilters: [qsTr("Strömling-Projekte (*.strl)")]
         onAccepted: {
             var p = selectedFile.toString()
             if (p.startsWith("file://")) p = p.substring(7)
@@ -171,7 +171,7 @@ Item {
                                 id: oeffBtnHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: projektOeffnenDialog.open()
                                 ToolTip.visible: containsMouse; ToolTip.delay: 600
-                                ToolTip.text: qsTr("Projekt öffnen – im Projektordner die Datei \"projekt.strl\" auswählen")
+                                ToolTip.text: qsTr("Projekt öffnen – im Projektordner die Datei \"projekt.strl\" auswählen; IBN-Kopien (*.strl) liegen im Unterordner ibn_kopien")
                             }
                         }
                         // Neu-Button

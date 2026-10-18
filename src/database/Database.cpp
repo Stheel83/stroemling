@@ -564,6 +564,7 @@ bool Database::projektMetaDatenSpeichern(const QString &name,
                                           const QString &abteilung,
                                           const QString &norm)
 {
+    if (projektdatenGesperrt(true, "Projekteinstellungen")) return false;
     if (!m_projektOffen) return false;
     QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET name=:n, projektnummer=:nr, "

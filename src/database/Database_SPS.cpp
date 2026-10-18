@@ -44,6 +44,7 @@ QVariantList Database::spsRackListe(int projektId)
 int Database::spsRackAnlegen(int projektId, int rackNr, const QString &systemTyp,
                               const QString &bezeichnung, const QString &hersteller)
 {
+    if (projektdatenGesperrt(true, "SPS-Rack anlegen")) return -1;
     {
         // SPS-INTEGRITAET-01: Rack-Nr. je Projekt eindeutig (kein UNIQUE-Index in
         // der Baseline, daher hier erzwungen).
@@ -72,6 +73,7 @@ bool Database::spsRackAktualisieren(int id, int rackNr, const QString &systemTyp
                                      const QString &bezeichnung, const QString &beschreibung,
                                      const QString &hersteller)
 {
+    if (projektdatenGesperrt(true, "SPS-Rack ändern")) return false;
     {
         // Nur prüfen, wenn sich die Rack-Nr. wirklich ändert - ein bereits
         // vorhandenes Duplikat (Altbestand) darf weiter bearbeitet werden.
@@ -101,6 +103,7 @@ bool Database::spsRackAktualisieren(int id, int rackNr, const QString &systemTyp
 
 bool Database::spsRackLoeschen(int id)
 {
+    if (projektdatenGesperrt(true, "SPS-Rack löschen")) return false;
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_rack WHERE id=:id");
     q.bindValue(":id", id);
@@ -143,6 +146,7 @@ QVariantList Database::spsBaugruppeListe(int rackId)
 int Database::spsBaugruppeAnlegen(int rackId, int slot, const QString &typ,
                                    const QString &bezeichnung, int kanaele, int adressByteStart)
 {
+    if (projektdatenGesperrt(true, "Baugruppe anlegen")) return -1;
     {
         // SPS-INTEGRITAET-01: ein Slot je Rack nur einmal belegbar.
         QSqlQuery d(m_db);
@@ -172,6 +176,7 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
                                           int kanaele, const QString &datentypStandard,
                                           int adressByteStart, const QString &kommentar)
 {
+    if (projektdatenGesperrt(true, "Baugruppe ändern")) return false;
     {
         QSqlQuery d(m_db);
         d.prepare("SELECT 1 FROM sps_baugruppe b WHERE b.slot=:slot AND b.id<>:id "
@@ -203,6 +208,7 @@ bool Database::spsBaugruppeAktualisieren(int id, int slot, const QString &typ,
 
 bool Database::spsBaugruppeBetriebsmittelSetzen(int baugruppeId, int betriebsmittelId)
 {
+    if (projektdatenGesperrt(true, "Baugruppe zuordnen")) return false;
     QSqlQuery q(m_db);
     q.prepare("UPDATE sps_baugruppe SET betriebsmittel_id=:bid WHERE id=:id");
     q.bindValue(":bid", betriebsmittelId > 0 ? QVariant(betriebsmittelId) : QVariant(QMetaType::fromType<int>()));
@@ -213,6 +219,7 @@ bool Database::spsBaugruppeBetriebsmittelSetzen(int baugruppeId, int betriebsmit
 
 bool Database::spsBaugruppeLoeschen(int id)
 {
+    if (projektdatenGesperrt(true, "Baugruppe löschen")) return false;
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_baugruppe WHERE id=:id");
     q.bindValue(":id", id);
@@ -342,6 +349,7 @@ int Database::spsKanalAnlegen(int projektId, int baugruppeId, int kanalNr,
                                const QString &datentyp, const QString &variablenname,
                                const QString &kommentar)
 {
+    if (projektdatenGesperrt(true, "Kanal anlegen")) return -1;
     // SPS-INTEGRITAET-01: kollidierende Adresse (je Rack) wird nicht angelegt.
     if (!spsKanalKonflikt(projektId, baugruppeId, kanalNr, adressTyp, byteNr, bitNr,
                           datentyp, 0).isEmpty()) {
@@ -369,6 +377,7 @@ int Database::spsKanalAnlegen(int projektId, int baugruppeId, int kanalNr,
 
 bool Database::spsKanalAktualisieren(int id, const QVariantMap &felder)
 {
+    if (projektdatenGesperrt(true, "Kanal ändern")) return false;
     if (felder.isEmpty()) return true;
 
     QStringList setClauses;
@@ -453,6 +462,7 @@ void Database::_spsKanalFelderInsElementUebernehmen(int kanalId)
 
 bool Database::spsKanalLoeschen(int id)
 {
+    if (projektdatenGesperrt(true, "Kanal löschen")) return false;
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM sps_kanal WHERE id=:id");
     q.bindValue(":id", id);
@@ -471,6 +481,7 @@ QString Database::spsKanalAdresse(int kanalId)
 
 bool Database::spsKanalElementZuweisen(int kanalId, int elementId)
 {
+    if (verdrahtungGesperrt(true, "Kanal-Zuweisung")) return false;
     QSqlQuery q(m_db);
     q.prepare("UPDATE sps_kanal SET grafik_element_id=:eid WHERE id=:id");
     q.bindValue(":eid", elementId);
@@ -482,6 +493,7 @@ bool Database::spsKanalElementZuweisen(int kanalId, int elementId)
 
 bool Database::spsKanalElementEntfernen(int kanalId)
 {
+    if (verdrahtungGesperrt(true, "Kanal-Zuweisung")) return false;
     QSqlQuery q(m_db);
     q.prepare("UPDATE sps_kanal SET grafik_element_id=NULL WHERE id=:id");
     q.bindValue(":id", kanalId);

@@ -540,6 +540,8 @@ qt_add_executable(stroemling_test
     tests/tst_kernfunktionen.h
     tests/tst_kabelrechner.h
     src/canvas/ElementeModel.cpp
+    src/models/KlemmenreihenModel.cpp
+    src/models/KlemmenreihenModel.h
     src/canvas/ElementeModel.h
     src/models/KabelRechnerModel.cpp
     src/models/KabelRechnerModel.h

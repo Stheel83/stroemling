@@ -171,6 +171,7 @@ Q_SIGNALS:
     void projektOffenChanged();
     void schreibschutzChanged();
     void ibnKopieChanged();
+    void sperreVerweigert(const QString &text);   // VERT-02c: Toast-Text fuer verweigerte Aktionen
     void registryGeaendert();
     void dbFehler(const QString &meldung);
     // Wie dbFehler, aber der Dialog bietet zusätzlich "Backup-Ordner öffnen" an (BACKUP-OEFFNEN-01)
@@ -1163,6 +1164,8 @@ private:
     bool sperreSchreiben();
     void sperreHerzschlag();
     void sperreFreigeben();
+    bool verdrahtungGesperrt(bool melden, const QString &was);   // VERT-02c
+    bool projektdatenGesperrt(bool melden, const QString &was);
     QVariantMap ibnOverlayAnalysieren(const QString &pfad);
     bool ibnOverlaySammeln(QJsonArray &bm, QJsonArray &kabel, int &ausserhalb, QString &fehlerText);
     QVariantList m_kopieBereich;   // Bereich der IBN-Kopie (leer = ganzes Projekt)   // VERT-04, enthaelt die Nutzdaten

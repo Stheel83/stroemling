@@ -347,6 +347,20 @@ ApplicationWindow {
     Binding { target: elementeModel1; property: "gesperrt"; value: root.schaltplanZu }
     Binding { target: elementeModel2; property: "gesperrt"; value: root.schaltplanZu }
     Binding { target: seitenModel;    property: "gesperrt"; value: root.schaltplanZu }
+    Binding { target: klemmenleistenModel; property: "gesperrt"; value: root.schaltplanZu }
+    Binding { target: klemmenreiheModel;   property: "gesperrt"; value: root.schaltplanZu }
+
+    // VERT-02c: verweigerte Aktionen (Kabel, SPS, Projekteinstellungen …) kurz melden, nicht pro Aufruf
+    property double _sperreToastZeit: 0
+    Connections {
+        target: db
+        function onSperreVerweigert(text) {
+            var jetzt = Date.now()
+            if (jetzt - root._sperreToastZeit < 1500) return
+            root._sperreToastZeit = jetzt
+            meldungManager.zeigen(text, false)
+        }
+    }
 
     Rectangle {
         id: schreibschutzBanner

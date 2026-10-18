@@ -806,5 +806,6 @@ QVariantMap Database::spsImportPruefen(int projektId, const QString &pfad, const
 
 QVariantMap Database::spsImportAusfuehren(int projektId, const QString &pfad, const QString &konfigJson)
 {
+    if (projektdatenGesperrt(true, "SPS-Import")) return QVariantMap{ { "fehler", tr("Das Projekt ist gesperrt.") } };
     return spsImportPlanen(projektId, pfad, konfigJson, true);
 }

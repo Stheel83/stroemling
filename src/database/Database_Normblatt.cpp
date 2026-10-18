@@ -657,6 +657,7 @@ bool Database::projektMetaSpeichern(int projektId,
                                      const QString &auftragnehmer,
                                      const QString &bearbeiter)
 {
+    if (projektdatenGesperrt(true, "Projekteinstellungen")) return false;
     QSqlQuery q(m_db);
     q.prepare("UPDATE projekt SET name = :name, projektnummer = :nr, "
               "auftraggeber = :ag, auftragnehmer = :an, bearbeiter = :be "

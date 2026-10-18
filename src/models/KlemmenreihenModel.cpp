@@ -65,6 +65,7 @@ void KlemmenleistenModel::laden(int projektId)
 
 int KlemmenleistenModel::anlegen(int projektId, const QString &bezeichnung)
 {
+    if (m_gesperrt) return -1;
     QSqlQuery q;
     q.prepare("INSERT INTO klemmenleiste (projekt_id, bezeichnung) VALUES (:pid, :bez)");
     q.bindValue(":pid", projektId);
@@ -80,6 +81,7 @@ int KlemmenleistenModel::anlegen(int projektId, const QString &bezeichnung)
 
 void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
 {
+    if (m_gesperrt) return;
     auto bauteilIdFuer = [](const QString &bez) -> int {
         QSqlQuery q;
         q.prepare("SELECT id FROM bibliothek.bauteil WHERE bezeichnung = :bez LIMIT 1");
@@ -128,6 +130,7 @@ void KlemmenleistenModel::beispielLeistenAnlegen(int projektId)
 
 int KlemmenleistenModel::duplizieren(int id)
 {
+    if (m_gesperrt) return -1;
     QSqlQuery q;
     q.prepare(
         "SELECT projekt_id, bezeichnung, ausrichtung, bemerkung, ort_id, "
@@ -218,6 +221,7 @@ int KlemmenleistenModel::duplizieren(int id)
 
 bool KlemmenleistenModel::loeschen(int id)
 {
+    if (m_gesperrt) return false;
     // Klemmen-Instanzen zuerst löschen
     QSqlQuery q;
     q.prepare("DELETE FROM klemme WHERE klemmenleiste_id = :id");
@@ -235,6 +239,7 @@ bool KlemmenleistenModel::loeschen(int id)
 
 bool KlemmenleistenModel::umbenennen(int id, const QString &bezeichnung)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE klemmenleiste SET bezeichnung = :bez WHERE id = :id");
     q.bindValue(":bez", bezeichnung.trimmed());
@@ -463,6 +468,7 @@ void KlemmenreiheModel::ladeKlemmen()
 
 bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
 {
+    if (m_gesperrt) return false;
     if (m_leisteId < 0) return false;
 
     QSqlQuery q;
@@ -507,6 +513,7 @@ bool KlemmenreiheModel::leisteAktualisieren(const QVariantMap &daten)
 
 int KlemmenreiheModel::klemmeAnlegen(int bauteilId)
 {
+    if (m_gesperrt) return -1;
     if (m_leisteId < 0) return -1;
 
     // Nächste Sortierung bestimmen
@@ -540,6 +547,7 @@ int KlemmenreiheModel::klemmeAnlegen(int bauteilId)
 
 bool KlemmenreiheModel::klemmeLoeschen(int klemmeId)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("DELETE FROM klemme WHERE id = :id");
     q.bindValue(":id", klemmeId);
@@ -554,6 +562,7 @@ bool KlemmenreiheModel::klemmeLoeschen(int klemmeId)
 
 int KlemmenreiheModel::klemmeKopieren(int klemmeId)
 {
+    if (m_gesperrt) return -1;
     if (m_leisteId < 0) return -1;
 
     QSqlQuery q;
@@ -600,6 +609,7 @@ int KlemmenreiheModel::klemmeKopieren(int klemmeId)
 
 bool KlemmenreiheModel::klemmeSchieben(int klemmeId, int richtung)
 {
+    if (m_gesperrt) return false;
     // Alle Klemmen laden und den Index der zu verschiebenden Klemme finden
     int idx = -1;
     for (int i = 0; i < m_klemmen.size(); ++i) {
@@ -656,6 +666,7 @@ void KlemmenreiheModel::aktualisiereKanvasBmk(int klemmeId)
 
 bool KlemmenreiheModel::klemmeNummerSetzen(int klemmeId, const QString &nummer)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE klemme SET nummer = :nr WHERE id = :id");
     q.bindValue(":nr", nummer);
@@ -673,6 +684,7 @@ bool KlemmenreiheModel::klemmeNummerSetzen(int klemmeId, const QString &nummer)
 
 bool KlemmenreiheModel::klemmeBauteilSetzen(int klemmeId, int bauteilId)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE klemme SET bauteil_id = :bid WHERE id = :id");
     q.bindValue(":bid", bauteilId > 0 ? QVariant(bauteilId) : QVariant());
@@ -688,6 +700,7 @@ bool KlemmenreiheModel::klemmeBauteilSetzen(int klemmeId, int bauteilId)
 
 bool KlemmenreiheModel::klemmeMehrfachBauteilSetzen(const QVariantList &ids, int bauteilId)
 {
+    if (m_gesperrt) return false;
     if (ids.isEmpty() || m_leisteId < 0) return false;
     QVariant bid = bauteilId > 0 ? QVariant(bauteilId) : QVariant();
     bool ok = true;
@@ -705,6 +718,7 @@ bool KlemmenreiheModel::klemmeMehrfachBauteilSetzen(const QVariantList &ids, int
 
 bool KlemmenreiheModel::klemmeMehrfachNummerieren(const QVariantList &ids, int start)
 {
+    if (m_gesperrt) return false;
     if (ids.isEmpty() || m_leisteId < 0) return false;
     bool ok = true;
     int  num = start;
@@ -761,6 +775,7 @@ QVariantList KlemmenreiheModel::klemmeBauteileHolen(const QString &suchtext) con
 
 int KlemmenreiheModel::leisteKanvasAktualisieren()
 {
+    if (m_gesperrt) return -1;
     if (m_leisteId < 0) return 0;
 
     QSqlQuery q;
@@ -787,6 +802,7 @@ int KlemmenreiheModel::leisteKanvasAktualisieren()
 
 int KlemmenreiheModel::stegbrueckeAnlegen(int ebene, int vonKlemmeId, int bisKlemmeId)
 {
+    if (m_gesperrt) return -1;
     if (m_leisteId < 0) return -1;
 
     // Von/Bis normieren (kleinere Sortierung = von)
@@ -827,6 +843,7 @@ int KlemmenreiheModel::stegbrueckeAnlegen(int ebene, int vonKlemmeId, int bisKle
 
 bool KlemmenreiheModel::stegbrueckeLoeschen(int id)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("DELETE FROM klemme_stegbruecke WHERE id = :id");
     q.bindValue(":id", id);
@@ -841,6 +858,7 @@ bool KlemmenreiheModel::stegbrueckeLoeschen(int id)
 
 bool KlemmenreiheModel::stegbrueckePotenzialSetzen(int id, const QString &potenzialText)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE klemme_stegbruecke SET potenzial_text = :pt WHERE id = :id");
     q.bindValue(":pt", potenzialText.trimmed().isEmpty() ? QVariant() : potenzialText.trimmed());

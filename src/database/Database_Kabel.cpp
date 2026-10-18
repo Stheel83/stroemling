@@ -31,6 +31,7 @@ int Database::kabelAnlegen(int projektId, const QString &bezeichnung,
                            double querschnittMm2, int grafikElementId,
                            const QString &vonOrt, const QString &nachOrt)
 {
+    if (verdrahtungGesperrt(true, "Kabel anlegen")) return -1;
     QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO kabel (projekt_id, bezeichnung, kabeltyp, aderzahl,
@@ -65,6 +66,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
                                  int kabellinieGrafikElementId,
                                  const QString &aderKey)
 {
+    if (verdrahtungGesperrt(true, "Aderzuordnung")) return false;
     QSqlQuery q(m_db);
     q.prepare("SELECT id FROM kabel_ader WHERE kabel_id=:kid AND ader_nr=:nr");
     q.bindValue(":kid", kabelId);
@@ -125,6 +127,7 @@ bool Database::kabelAderZuordnen(int kabelId, int aderNr,
 bool Database::kabelAderLinieSynchronisieren(int kabelId, int kabellinieGrafikElementId,
                                              const QVariantList &aktive)
 {
+    if (verdrahtungGesperrt(false, "")) return false;
     if (kabelId <= 0 || kabellinieGrafikElementId <= 0) return false;
 
     QSet<int> aktiveNrn;
@@ -456,6 +459,7 @@ QVector<KaKreuzung> kaKreuzungenBerechnen(double kx1, double ky1, double kx2, do
 
 bool Database::kabelAderProjektweitSynchronisieren(int kabelId)
 {
+    if (verdrahtungGesperrt(false, "")) return false;
     if (kabelId <= 0) return false;
 
     // Alle Kabellinien dieses Kabels über alle Seiten, in stabiler
@@ -1022,6 +1026,7 @@ bool Database::kabelMetaAktualisieren(int kabelId, const QString &bezeichnung,
                                        double querschnittMm2,
                                        const QString &vonOrt, const QString &nachOrt)
 {
+    if (verdrahtungGesperrt(true, "Kabeldaten ändern")) return false;
     QSqlQuery q(m_db);
     q.prepare(R"(
         UPDATE kabel SET bezeichnung=:bez, kabeltyp=:typ, aderzahl=:anz,
@@ -1135,6 +1140,7 @@ QVariantList Database::kabelSeitenIds(int projektId)
 // ============================================================
 bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
 {
+    if (verdrahtungGesperrt(false, "")) return false;
     // ── 1. Adern mit verbindung_id und Seite der Kabellinie ────────
     struct AderInfo { int kabelId, aderNr, verbId, seiteId; };
     QVector<AderInfo> adern;
@@ -1384,6 +1390,7 @@ bool Database::kabelAderEndpunkteBerechnenUndSpeichern(int projektId)
 // ============================================================
 bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &adern)
 {
+    if (verdrahtungGesperrt(false, "")) return false;
     if (adern.isEmpty()) return true;
     if (!m_db.transaction()) {
         qCWarning(lcDb) << "kabelAderEndpunkteBulkSetzen: Transaktion:" << m_db.lastError().text();
@@ -1436,6 +1443,7 @@ bool Database::kabelAderEndpunkteBulkSetzen(int projektId, const QVariantList &a
 // ============================================================
 bool Database::kabelLoeschen(int kabelId)
 {
+    if (verdrahtungGesperrt(true, "Kabel löschen")) return false;
     QSqlQuery q(m_db);
     q.prepare("DELETE FROM kabel_ader WHERE kabel_id = :id");
     q.bindValue(":id", kabelId);
@@ -1572,6 +1580,7 @@ QVariantList Database::bauteilKabelListe()
 // ============================================================
 QVariantMap Database::kabelBauteilKabelSetzen(int kabelId, int bauteilKabelId)
 {
+    if (verdrahtungGesperrt(true, "Kabeltyp zuweisen")) return QVariantMap();
     QVariantMap result;
     QString neuerTyp;
     int     neueAderzahl = 0;

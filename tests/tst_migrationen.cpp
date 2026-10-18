@@ -12,6 +12,7 @@
 #include "database/Database.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/SeitenModel.h"
+#include "models/KlemmenreihenModel.h"
 #include "canvas/ElementeModel.h"
 #include "tst_kernfunktionen.h"
 #include "tst_kabelrechner.h"
@@ -1153,6 +1154,52 @@ private slots:
         // Neuer Durchgang: Overlay aus dem alten Durchgang wird abgelehnt
         QVERIFY(db.ibnDurchgangAnlegen(1, "Wdh", "wiederholung", "", "", {}, false) > 0);
         QVERIFY(!db.ibnOverlayPruefen(overlay).value("ok").toBool());
+
+        QDir(ordner).removeRecursively();
+    }
+
+    void test_27_verwaltungsSperren()
+    {
+        // VERT-02c: Verdrahtung (Kabel, SPS-Zuweisung) in der Hauptkopie mit ausgegebenen Kopien gesperrt,
+        // SPS-Aufbau/Projekteinstellungen dort frei; in einer IBN-Kopie ist alles ausser IBN gesperrt.
+        TmpProjekt t("verwaltungssperren");
+        Database &db = t.db;
+        QString meldung;
+        QObject::connect(&db, &Database::sperreVerweigert, [&](const QString &m) { meldung = m; });
+
+        QVERIFY(db.kabelAnlegen(1, "W1", "", 3, 1.5, 0, "", "") > 0);
+        const QString ordner = QDir::tempPath() + "/stroemling_test_vsperren_"
+                             + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVariantMap r = db.ibnKopieErstellen(1, "K", {}, ordner);
+        QVERIFY(r.value("ok").toBool());
+        QVERIFY(db.schaltplanGesperrt());
+
+        // Hauptkopie, Kopie ausgegeben: Verdrahtung gesperrt ...
+        QCOMPARE(db.kabelAnlegen(1, "W2", "", 3, 1.5, 0, "", ""), -1);
+        QVERIFY(!meldung.isEmpty());
+        QVERIFY(meldung.contains("Kabel anlegen"));
+        // ... Projektdaten frei
+        QVERIFY(db.spsRackAnlegen(1, 1, "SPS", "R1", "") > 0);
+        QVERIFY(db.projektMetaDatenSpeichern("Neu", "", "", "", "", "", "", ""));
+
+        KlemmenleistenModel km;
+        km.setGesperrt(true);
+        QCOMPARE(km.anlegen(1, "X1"), -1);
+        km.setGesperrt(false);
+
+        // Override gibt die Verdrahtung frei
+        QCOMPARE(db.ibnSchaltplanOverride(), 1);
+        QVERIFY(db.kabelAnlegen(1, "W2", "", 3, 1.5, 0, "", "") > 0);
+
+        // In der Kopie: auch Projektdaten gesperrt
+        const QString kopie = r.value("pfad").toString();
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(kopie));
+        meldung.clear();
+        QCOMPARE(db.spsRackAnlegen(1, 2, "SPS", "R2", ""), -1);
+        QVERIFY(meldung.contains("IBN-Kopie"));
+        QVERIFY(!db.projektMetaDatenSpeichern("X", "", "", "", "", "", "", ""));
+        QCOMPARE(db.kabelAnlegen(1, "W3", "", 3, 1.5, 0, "", ""), -1);
 
         QDir(ordner).removeRecursively();
     }

@@ -12,9 +12,13 @@
 class KlemmenleistenModel : public QAbstractListModel
 {
     Q_OBJECT
+    // VERT-02c: Schaltplan gesperrt -> aendernde Aufrufe tun nichts
+    Q_PROPERTY(bool gesperrt READ gesperrt WRITE setGesperrt NOTIFY gesperrtChanged)
     Q_PROPERTY(int projektId READ projektId NOTIFY geladen)
 
 public:
+    bool gesperrt() const { return m_gesperrt; }
+    void setGesperrt(bool g) { if (g != m_gesperrt) { m_gesperrt = g; emit gesperrtChanged(); } }
     enum Roles {
         IdRole = Qt::UserRole + 1,
         BezeichnungRole,
@@ -40,9 +44,11 @@ public:
     Q_INVOKABLE int  duplizieren(int id);
 
 signals:
+    void gesperrtChanged();
     void geladen();
 
 private:
+    bool m_gesperrt = false;
     struct Eintrag {
         int     id;
         QString bezeichnung;
@@ -63,6 +69,8 @@ private:
 class KlemmenreiheModel : public QObject
 {
     Q_OBJECT
+    // VERT-02c: Schaltplan gesperrt -> aendernde Aufrufe tun nichts
+    Q_PROPERTY(bool gesperrt READ gesperrt WRITE setGesperrt NOTIFY gesperrtChanged)
 
     Q_PROPERTY(bool        hatLeiste    READ hatLeiste    NOTIFY leisteGeladen)
     Q_PROPERTY(QVariantMap leiste       READ leiste       NOTIFY leisteGeladen)
@@ -70,6 +78,8 @@ class KlemmenreiheModel : public QObject
     Q_PROPERTY(QVariantList stegbruecken READ stegbruecken NOTIFY leisteGeladen)
 
 public:
+    bool gesperrt() const { return m_gesperrt; }
+    void setGesperrt(bool g) { if (g != m_gesperrt) { m_gesperrt = g; emit gesperrtChanged(); } }
     explicit KlemmenreiheModel(QObject *parent = nullptr);
 
     bool         hatLeiste()     const { return m_leisteId >= 0; }
@@ -115,10 +125,12 @@ public:
     Q_INVOKABLE bool stegbrueckePotenzialSetzen(int id, const QString &potenzialText);
 
 signals:
+    void gesperrtChanged();
     void leisteGeladen();
     void kanvasGeaendert();
 
 private:
+    bool m_gesperrt = false;
     void ladeKlemmen();
     void ladeStegbruecken();
     void aktualisiereKanvasBmk(int klemmeId);

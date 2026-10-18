@@ -134,3 +134,34 @@ void Database::sperreFreigeben()
         QFile::remove(m_sperrePfad);
     m_sperrePfad.clear();
 }
+
+// VERT-02c: Sperren fuer Schreibzugriffe ausserhalb der Zeichenflaeche.
+//  - Verdrahtung (Kabel, Klemmenreihen, SPS-Zuweisung zu Elementen): bei fremder Sperre, in einer
+//    IBN-Kopie und in der Hauptkopie, solange Kopien ausgegeben sind (ohne Override).
+//  - Projektdaten (Projekteinstellungen, SPS-Aufbau): bei fremder Sperre und in einer IBN-Kopie;
+//    in der Hauptkopie mit ausgegebenen Kopien bleiben sie frei.
+// melden = true: der Nutzer hat die Aktion ausgeloest -> Toast ueber sperreVerweigert().
+bool Database::verdrahtungGesperrt(bool melden, const QString &was)
+{
+    if (!m_schreibgeschuetzt && !schaltplanGesperrt())
+        return false;
+    qCInfo(lcDb) << "Gesperrt (Verdrahtung):" << was;
+    if (melden)
+        emit sperreVerweigert(m_schreibgeschuetzt
+            ? tr("Schreibgeschützt – „%1“ ist nicht möglich.").arg(was)
+            : (m_istIbnKopie ? tr("IBN-Kopie – „%1“ ist nicht möglich; der Schaltplan ist gesperrt.").arg(was)
+                             : tr("Kopien ausgegeben – „%1“ ist gesperrt (Schaltplan freigeben im Dialog „IBN-Kopien“).").arg(was)));
+    return true;
+}
+
+bool Database::projektdatenGesperrt(bool melden, const QString &was)
+{
+    if (!m_schreibgeschuetzt && !m_istIbnKopie)
+        return false;
+    qCInfo(lcDb) << "Gesperrt (Projektdaten):" << was;
+    if (melden)
+        emit sperreVerweigert(m_schreibgeschuetzt
+            ? tr("Schreibgeschützt – „%1“ ist nicht möglich.").arg(was)
+            : tr("IBN-Kopie – „%1“ ist nicht möglich; nur Inbetriebnahme und Fehlersuche sind bearbeitbar.").arg(was));
+    return true;
+}

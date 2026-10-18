@@ -6,6 +6,8 @@
 #include <QFile>
 #include <QDateTime>
 #include <QSet>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include "database/Database.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/SeitenModel.h"
@@ -826,6 +828,66 @@ private slots:
         QVERIFY(q.exec("PRAGMA foreign_keys=ON"));
         QVERIFY(q.exec(QString("DELETE FROM seite WHERE id=%1").arg(s1)));
         QCOMPARE(zaehle("SELECT COUNT(*) FROM ibn_historie WHERE bmk='-Q1'"), 1);
+    }
+
+    void test_22_projektSperre()
+    {
+        // VERT-01 (konzept/features/55 §3): Sperrdatei, Schreibschutz bei fremder Sperre,
+        // Uebernahme veralteter Sperren (24 h bzw. toter Prozess auf demselben Rechner).
+        const QString pfad = QDir::tempPath() + "/stroemling_test_sperre_"
+                           + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".strl";
+        const QString lock = Database::sperrDateiPfad(pfad);
+        auto fremdeSperre = [&](const QDateTime &zeit, const QString &rechner, qint64 pid) {
+            QFile::remove(lock);
+            QFile f(lock);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(QJsonDocument(QJsonObject{
+                { "rechner", rechner }, { "benutzer", "kollege" }, { "pid", pid },
+                { "sitzung", "fremd" }, { "zeit", zeit.toUTC().toString(Qt::ISODate) } })
+                .toJson());
+        };
+
+        {
+            Database db;
+            QVERIFY(db.createProjekt(pfad, "Sperrtest"));
+            QVERIFY2(QFile::exists(lock), "createProjekt muss die Sperre anlegen");
+            QVERIFY(!db.schreibgeschuetzt());
+            QCOMPARE(Database::sperreLesen(lock).value("pid").toLongLong(),
+                     qint64(QCoreApplication::applicationPid()));
+            db.closeProjekt();
+            QVERIFY2(!QFile::exists(lock), "closeProjekt muss die eigene Sperre entfernen");
+
+            // Frische fremde Sperre -> schreibgeschuetzt, Sperre bleibt unangetastet
+            fremdeSperre(QDateTime::currentDateTimeUtc().addSecs(-3600), "anderer-rechner", 4242);
+            QVERIFY(db.openProjekt(pfad));
+            QVERIFY(db.schreibgeschuetzt());
+            QCOMPARE(db.sperreInfo().value("benutzer").toString(), QStringLiteral("kollege"));
+            QSqlQuery q(QSqlDatabase::database());
+            QVERIFY2(!q.exec("UPDATE projekt SET name='geaendert'"), "Schreiben muss im Schreibschutz scheitern");
+            QVERIFY(q.exec("SELECT COUNT(*) FROM projekt"));       // Lesen geht
+            db.closeProjekt();
+            QCOMPARE(Database::sperreLesen(lock).value("sitzung").toString(), QStringLiteral("fremd"));
+
+            // Sperre aelter als 24 h -> uebernehmen
+            fremdeSperre(QDateTime::currentDateTimeUtc().addSecs(-25 * 3600), "anderer-rechner", 4242);
+            QVERIFY(db.openProjekt(pfad));
+            QVERIFY(!db.schreibgeschuetzt());
+            QCOMPARE(Database::sperreLesen(lock).value("benutzer").toString() == "kollege", false);
+            db.closeProjekt();
+        }
+        QVERIFY2(!QFile::exists(lock), "Destruktor/close muss die Sperre entfernen");
+
+        // Zeitgrenze der Veraltung
+        const QDateTime jetzt = QDateTime::currentDateTimeUtc();
+        auto info = [&](int stundenAlt) {
+            return QVariantMap{ { "rechner", "x" }, { "pid", 1 },
+                                { "zeit", jetzt.addSecs(-stundenAlt * 3600).toString(Qt::ISODate) } };
+        };
+        QVERIFY(!Database::sperreVeraltet(info(23), jetzt));
+        QVERIFY(Database::sperreVeraltet(info(25), jetzt));
+        QVERIFY(Database::sperreVeraltet(QVariantMap{ { "defekt", true } }, jetzt));
+
+        QFile::remove(pfad); QFile::remove(pfad + "-wal"); QFile::remove(pfad + "-shm"); QFile::remove(lock);
     }
 };
 

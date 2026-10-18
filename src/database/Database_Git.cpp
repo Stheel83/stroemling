@@ -101,7 +101,7 @@ void Database::gitProjektInit(const QString &ordner)
     // .gitignore für SQLite-Hilfsdateien
     QFile gi(ordner + "/.gitignore");
     if (gi.open(QIODevice::WriteOnly | QIODevice::Text))
-        gi.write("*.db-wal\n*.db-shm\n*.db-journal\n");
+        gi.write("*.db-wal\n*.db-shm\n*.db-journal\n*.lock\n");
 
     snapshotErstellen(ordner);
 

@@ -341,9 +341,28 @@ ApplicationWindow {
     }
 
 
+    // VERT-01: Projekt ist von einer anderen Sitzung gesperrt -> nur lesen
+    Rectangle {
+        id: schreibschutzBanner
+        anchors { top: appTitelleiste.bottom; left: parent.left; right: parent.right }
+        height:  visible ? 26 : 0
+        visible: db.projektOffen && db.schreibgeschuetzt
+        color:   "#7a5a10"
+        Text {
+            anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+            font.pixelSize: 12
+            color: "white"
+            text: qsTr("🔒 Schreibgeschützt – das Projekt ist von %1 (%2) seit %3 geöffnet. Änderungen werden nicht gespeichert.")
+                  .arg(db.sperreInfo.benutzer || "?").arg(db.sperreInfo.rechner || "?")
+                  .arg(db.sperreInfo.zeit || "?")
+        }
+    }
+
     // ── Layout ───────────────────────────────────────────────────
     RowLayout {
-        anchors { top: appTitelleiste.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
+        anchors { top: schreibschutzBanner.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
         spacing:      0
 
         // --------------------------------------------------------

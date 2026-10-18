@@ -6,6 +6,8 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QString>
+#include <QVariantMap>
+#include <QDateTime>
 #include <QJsonObject>
 #include "logging.h"
 
@@ -18,6 +20,8 @@
 class QPainter;
 class QPdfWriter;
 
+class QTimer;
+
 class Database : public QObject
 {
     Q_OBJECT
@@ -28,6 +32,9 @@ class Database : public QObject
     Q_PROPERTY(QVariantList bekannteProjecte READ bekannteProjecteLaden NOTIFY registryGeaendert)
     Q_PROPERTY(QString      makroPfad       READ makroPfad          CONSTANT)
     Q_PROPERTY(QString      wikiPfad        READ wikiPfad           CONSTANT)
+    // VERT-01: Projekt von einer anderen Sitzung gesperrt -> nur lesen
+    Q_PROPERTY(bool         schreibgeschuetzt READ schreibgeschuetzt NOTIFY schreibschutzChanged)
+    Q_PROPERTY(QVariantMap  sperreInfo      READ sperreInfo         NOTIFY schreibschutzChanged)
 
 public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
@@ -46,6 +53,16 @@ public:
     static const int BASELINE_TABLE_COUNT   = 33;
 
     explicit Database(QObject *parent = nullptr);
+    ~Database() override;
+
+    // VERT-01: Sperrdatei (konzept/features/55 §3)
+    static const int SPERRE_VERALTET_STUNDEN = 24;
+    bool        schreibgeschuetzt() const { return m_schreibgeschuetzt; }
+    QVariantMap sperreInfo()        const { return m_sperreInfo; }   // {rechner, benutzer, zeit}
+    static QString     sperrDateiPfad(const QString &projektPfad);
+    static QVariantMap sperreLesen(const QString &lockPfad);
+    static bool        sperreVeraltet(const QVariantMap &info,
+                                      const QDateTime &jetzt = QDateTime::currentDateTimeUtc());
 
     // Launcher-DB öffnen (stroemling.db – nur zuletzt-geöffnet-Liste + Wiki-DB-Pfad)
     bool openLauncher(const QString &path);
@@ -140,6 +157,7 @@ public:
 
 Q_SIGNALS:
     void projektOffenChanged();
+    void schreibschutzChanged();
     void registryGeaendert();
     void dbFehler(const QString &meldung);
     // Wie dbFehler, aber der Dialog bietet zusätzlich "Backup-Ordner öffnen" an (BACKUP-OEFFNEN-01)
@@ -1079,6 +1097,17 @@ private:
     // DB sichern via VACUUM INTO (funktioniert auch bei offener WAL-Verbindung).
     // verbindungsName: "" = Haupt-DB, "stroemling_wiki" = Wiki-DB.
     bool erstelleBackup(const QString &verbindungsName, const QString &prefix, int version);
+    // VERT-01
+    void sperreErwerben(const QString &projektPfad);
+    bool sperreSchreiben();
+    void sperreHerzschlag();
+    void sperreFreigeben();
+    bool        m_schreibgeschuetzt = false;
+    QVariantMap m_sperreInfo;
+    QString     m_sperrePfad;       // leer = wir halten keine Sperre
+    QString     m_sperreSitzung;    // eindeutige ID dieser Programminstanz
+    QTimer     *m_sperreTimer = nullptr;
+
     QString m_letzterOeffnenPfad;  // Pfad des letzten openProjekt()-Versuchs (auch bei Fehlschlag)
 
     // Alle Views und Tabellen in FK-sicherer Reihenfolge löschen (nur Baseline-Migration)

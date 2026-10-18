@@ -30,11 +30,18 @@
 #include <QPageSize>
 #include <QPageLayout>
 #include <algorithm>
+#include <QUuid>
 
 
 Database::Database(QObject *parent)
     : QObject(parent)
+    , m_sperreSitzung(QUuid::createUuid().toString(QUuid::WithoutBraces))
 {
+}
+
+Database::~Database()
+{
+    sperreFreigeben();
 }
 
 bool Database::open(const QString &path)
@@ -162,10 +169,16 @@ bool Database::openProjekt(const QString &path)
         emit projektOffenChanged();  // QML bekommt false → räumt Canvas/Tabs/SeiteId auf
     }
 
+    // VERT-01: Sperre pruefen/erwerben; bei fremder Sperre nur lesend oeffnen
+    sperreErwerben(localPath);
+
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName(localPath);
     if (!m_db.open()) {
         qCWarning(lcDb) << "Projekt konnte nicht geöffnet werden:" << m_db.lastError().text();
+        sperreFreigeben();
+        m_schreibgeschuetzt = false; m_sperreInfo.clear();
+        emit schreibschutzChanged();
         emit projektOffenChanged();
         return false;
     }
@@ -173,16 +186,29 @@ bool Database::openProjekt(const QString &path)
         QSqlQuery pragma;
         pragma.exec("PRAGMA foreign_keys = ON");
         pragma.exec("PRAGMA busy_timeout = 5000");
-        pragma.exec("PRAGMA journal_mode = WAL");
+        if (m_schreibgeschuetzt)
+            pragma.exec("PRAGMA query_only = ON");
+        else
+            pragma.exec("PRAGMA journal_mode = WAL");
     }
 
     m_grafikBilderDir = QFileInfo(localPath).absolutePath() + "/bilder";
-    QDir().mkpath(m_grafikBilderDir);
+    if (!m_schreibgeschuetzt)
+        QDir().mkpath(m_grafikBilderDir);
 
     if (!checkAndApplySchema()) {
+        if (m_schreibgeschuetzt)
+            emit dbFehler(tr("Das Projekt ist von %1 (%2) seit %3 geöffnet und braucht ein Schema-Update. "
+                             "Schreibgeschützt kann es nicht aktualisiert werden – bitte warten, bis die Sperre aufgehoben ist.")
+                          .arg(m_sperreInfo.value("benutzer").toString(),
+                               m_sperreInfo.value("rechner").toString(),
+                               m_sperreInfo.value("zeit").toString()));
         m_db.close();
         m_db = QSqlDatabase();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+        sperreFreigeben();
+        m_schreibgeschuetzt = false; m_sperreInfo.clear();
+        emit schreibschutzChanged();
         emit projektOffenChanged();
         return false;
     }
@@ -360,6 +386,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
                      .arg(m_bibliothekPfad));
     }
 
+    sperreErwerben(localPath);   // VERT-01
     m_projektOffen = true;
     QString name = projektName.isEmpty() ? QFileInfo(localPath).baseName() : projektName;
     zuletzGeoeffnetEintragen(localPath, name);
@@ -380,7 +407,10 @@ void Database::closeProjekt()
     m_db = QSqlDatabase();
     QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
     m_projektOffen = false;
+    sperreFreigeben();
+    m_schreibgeschuetzt = false; m_sperreInfo.clear();
     qCInfo(lcDb) << "Projekt geschlossen.";
+    emit schreibschutzChanged();
     emit projektOffenChanged();
 }
 

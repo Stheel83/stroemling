@@ -43,11 +43,13 @@ void Database::ibnKopieStatusAktualisieren()
     bool istKopie = false;
     int  offene   = 0;
     QString kopieName;
+    QVariantList kopieBereich;
     if (m_projektOffen) {
         QSqlQuery q(m_db);
-        if (q.exec("SELECT kopie_uuid, kopie_name FROM projekt ORDER BY id DESC LIMIT 1") && q.next()) {
+        if (q.exec("SELECT kopie_uuid, kopie_name, kopie_bereich FROM projekt ORDER BY id DESC LIMIT 1") && q.next()) {
             istKopie  = !q.value(0).toString().isEmpty();
             kopieName = q.value(1).toString();
+            kopieBereich = QJsonDocument::fromJson(q.value(2).toString().toUtf8()).array().toVariantList();
         }
         if (q.exec("SELECT COUNT(*) FROM ibn_kopie WHERE status = 'ausgegeben'") && q.next())
             offene = q.value(0).toInt();
@@ -56,8 +58,31 @@ void Database::ibnKopieStatusAktualisieren()
         m_schaltplanOverride = false;   // Override gilt nur, solange Kopien draussen sind
     m_istIbnKopie   = istKopie;
     m_ibnKopieName  = kopieName;
+    m_kopieBereich  = kopieBereich;
     m_offeneKopien  = offene;
     emit ibnKopieChanged();
+}
+
+bool Database::ibnImBereich(int seiteId)
+{
+    if (!m_istIbnKopie) return true;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT a.kuerzel, o.kuerzel, s.blattnummer FROM seite s JOIN ort o ON s.ort_id = o.id "
+              "JOIN anlage a ON o.anlage_id = a.id WHERE s.id = :sid");
+    q.bindValue(":sid", seiteId);
+    if (!q.exec() || !q.next()) return false;
+    return ibnBereichPasst(m_kopieBereich, q.value(0).toString(), q.value(1).toString(), q.value(2).toString());
+}
+
+bool Database::ibnKabelImBereich(int kabelId)
+{
+    if (!m_istIbnKopie) return true;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT ge.seite_id FROM kabel k LEFT JOIN grafik_element ge ON ge.id = k.grafik_element_id WHERE k.id = :kid");
+    q.bindValue(":kid", kabelId);
+    if (!q.exec() || !q.next()) return false;
+    if (q.value(0).isNull()) return m_kopieBereich.isEmpty();   // Kabel ohne Seitenbezug: nur Bereich "ganzes Projekt"
+    return ibnImBereich(q.value(0).toInt());
 }
 
 bool Database::schaltplanGesperrt() const
@@ -70,7 +95,7 @@ QVariantList Database::ibnKopieRegisterLaden(int projektId)
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT k.id, k.kopie_uuid, k.name, k.erstellt_am, k.haupt_revision, k.durchgang_nr,
-               k.bereich, k.status, k.eingesammelt_am, k.dateiname,
+               k.bereich, k.status, k.eingesammelt_am, k.dateiname, k.pfad,
                (k.haupt_revision < p.haupt_revision) AS veraltet
         FROM ibn_kopie k JOIN projekt p ON p.id = k.projekt_id
         WHERE k.projekt_id = :pid
@@ -95,6 +120,8 @@ QVariantList Database::ibnKopieRegisterLaden(int projektId)
             { "status",        q.value("status")          },
             { "eingesammeltAm",q.value("eingesammelt_am") },
             { "dateiname",     q.value("dateiname")       },
+            { "pfad",          q.value("pfad")            },
+            { "vorhanden",     !q.value("pfad").toString().isEmpty() && QFile::exists(q.value("pfad").toString()) },
             { "veraltet",      q.value("veraltet").toInt() != 0 },
         });
     }
@@ -173,8 +200,8 @@ QVariantMap Database::ibnKopieErstellen(int projektId, const QString &name,
 
     QSqlQuery qi(m_db);
     qi.prepare(R"(
-        INSERT INTO ibn_kopie (projekt_id, kopie_uuid, name, haupt_revision, durchgang_nr, bereich, dateiname)
-        VALUES (:pid, :uuid, :name, :rev, :dg, :ber, :datei)
+        INSERT INTO ibn_kopie (projekt_id, kopie_uuid, name, haupt_revision, durchgang_nr, bereich, dateiname, pfad)
+        VALUES (:pid, :uuid, :name, :rev, :dg, :ber, :datei, :pfad)
     )");
     qi.bindValue(":pid",  projektId);
     qi.bindValue(":uuid", uuid);
@@ -183,6 +210,7 @@ QVariantMap Database::ibnKopieErstellen(int projektId, const QString &name,
     qi.bindValue(":dg",   durchgang);
     qi.bindValue(":ber",  bereichAlsJson(bereich));
     qi.bindValue(":datei", QFileInfo(pfad).fileName());
+    qi.bindValue(":pfad",  QFileInfo(pfad).absoluteFilePath());
     if (!qi.exec())
         return fehler(tr("Register-Eintrag fehlgeschlagen: %1").arg(qi.lastError().text()));
     const int kopieId = qi.lastInsertId().toInt();

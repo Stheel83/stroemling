@@ -43,6 +43,7 @@ Item {
                         string blattnummer, string seitenbezeichnung)
     signal geschlossen()
     signal kopienAngefordert()
+    signal overlayExportAngefordert()
 
     // ── BM-Liste ──────────────────────────────────────────────
     property var    _liste:  []
@@ -157,6 +158,18 @@ Item {
                         font.pixelSize: 13; font.weight: Font.Medium
                         color: theme.textPrimary
                         Layout.fillWidth: true
+                    }
+
+                    Button {
+                        visible: db.istIbnKopie
+                        implicitHeight: 26
+                        contentItem: Text { text: qsTr("⇪ Overlay exportieren"); color: "white"; font.pixelSize: 11
+                            font.weight: Font.Medium; leftPadding: 8; rightPadding: 8
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? Qt.lighter(theme.accent, 1.15) : theme.accent; radius: 4 }
+                        onClicked: root.overlayExportAngefordert()
+                        ToolTip.visible: hovered; ToolTip.delay: 500
+                        ToolTip.text: qsTr("Prüfdaten dieser Kopie als Overlay-Datei für die Hauptkopie speichern")
                     }
 
                     Button {

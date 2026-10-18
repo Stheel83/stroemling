@@ -378,6 +378,13 @@ ApplicationWindow {
                                 .arg(db.offeneKopien)
             }
             Text {
+                visible: db.istIbnKopie && !db.schreibgeschuetzt
+                text: qsTr("Overlay exportieren")
+                font.pixelSize: 12; font.underline: true; font.bold: true; color: "white"
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: ibnKopienDialog.overlayExportieren() }
+            }
+            Text {
                 visible: !db.schreibgeschuetzt && (db.offeneKopien > 0 || db.istIbnKopie)
                 text: qsTr("Kopien …")
                 font.pixelSize: 12; font.underline: true; color: "white"
@@ -1187,6 +1194,7 @@ ApplicationWindow {
 
                         onGeschlossen: root.aktiveAnsicht = "seiten"
                         onKopienAngefordert: ibnKopienDialog.open()
+                        onOverlayExportAngefordert: ibnKopienDialog.overlayExportieren()
 
                         onBmkGewaehlt: function(sid, elementId, wx, wy, blattnr, seiteBez) {
                             if (sid !== root.aktivSeiteId) {

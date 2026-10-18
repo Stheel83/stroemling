@@ -3118,6 +3118,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE inbetriebnahme ADD COLUMN geaendert_am TEXT)",
             R"(ALTER TABLE ibn_kabel ADD COLUMN geaendert_am TEXT)",
         }},
+        { 176, "VERT-02d: ibn_kopie.pfad (voller Pfad der erzeugten Kopie, fuer 'Kopie oeffnen' im Kopien-Dialog), projekt.overlay_exportiert_am (letzter Overlay-Export der IBN-Kopie, fuer den Hinweis 'Aenderungen seit dem Export').", {
+            R"(ALTER TABLE ibn_kopie ADD COLUMN pfad TEXT NOT NULL DEFAULT '')",
+            R"(ALTER TABLE projekt ADD COLUMN overlay_exportiert_am TEXT NOT NULL DEFAULT '')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

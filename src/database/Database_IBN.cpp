@@ -146,6 +146,7 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
                                     const QString &geprueftVon,
                                     const QString &geprueftAm)
 {
+    if (m_istIbnKopie && !(ibnImBereich(seiteId))) { qCInfo(lcDb) << "IBN-Kopie: Eintrag ausserhalb des Bereichs - nicht gespeichert"; return false; }
     QSqlQuery q(m_db);
     // Sicherstellen dass ein Datensatz existiert
     q.prepare(R"(
@@ -189,6 +190,7 @@ bool Database::ibnEintragSpeichern(int projektId, int seiteId,
 
 bool Database::ibnStatusSetzen(int seiteId, const QString &bmk, const QString &status)
 {
+    if (m_istIbnKopie && !(ibnImBereich(seiteId))) { qCInfo(lcDb) << "IBN-Kopie: Eintrag ausserhalb des Bereichs - nicht gespeichert"; return false; }
     QSqlQuery q(m_db);
     // Eintrag anlegen falls noch nicht vorhanden (projekt_id wird aus seite abgeleitet)
     q.prepare(R"(
@@ -301,6 +303,7 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
                                   const QString &geprueftVon,
                                   const QString &geprueftAm)
 {
+    if (m_istIbnKopie && !(ibnKabelImBereich(kabelId))) { qCInfo(lcDb) << "IBN-Kopie: Eintrag ausserhalb des Bereichs - nicht gespeichert"; return false; }
     QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO ibn_kabel (projekt_id, kabel_id, status, notiz, geprueft_von, geprueft_am, durchgang_nr)
@@ -341,6 +344,7 @@ bool Database::ibnKabelSpeichern(int projektId, int kabelId,
 
 bool Database::ibnKabelStatusSetzen(int kabelId, const QString &status)
 {
+    if (m_istIbnKopie && !(ibnKabelImBereich(kabelId))) { qCInfo(lcDb) << "IBN-Kopie: Eintrag ausserhalb des Bereichs - nicht gespeichert"; return false; }
     QSqlQuery q(m_db);
     q.prepare(R"(
         INSERT INTO ibn_kabel (projekt_id, kabel_id, status, durchgang_nr)
@@ -1082,6 +1086,12 @@ QVariantList Database::ibnFeldwerteLaden(int inbetriebnahmeId)
 
 bool Database::ibnFeldwerteAktualisieren(int inbetriebnahmeId, const QVariantList &felder)
 {
+    if (m_istIbnKopie) {
+        QSqlQuery qs(m_db);
+        qs.prepare("SELECT seite_id FROM inbetriebnahme WHERE id = :id");
+        qs.bindValue(":id", inbetriebnahmeId);
+        if (!qs.exec() || !qs.next() || !ibnImBereich(qs.value(0).toInt())) return false;
+    }
     QSqlQuery q(m_db);
     q.prepare("UPDATE inbetriebnahme SET geaendert_am = datetime('now') WHERE id = :id");
     q.bindValue(":id", inbetriebnahmeId);

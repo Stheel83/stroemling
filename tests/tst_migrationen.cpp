@@ -930,6 +930,8 @@ private slots:
 
         QVariantList reg = db.ibnKopieRegisterLaden(1);
         QCOMPARE(reg.size(), 1);
+        QVERIFY(reg[0].toMap().value("vorhanden").toBool());               // Pfad gespeichert, Datei da
+        QCOMPARE(reg[0].toMap().value("pfad").toString(), kopiePfad);
         QCOMPARE(reg[0].toMap().value("status").toString(), QStringLiteral("ausgegeben"));
         QCOMPARE(reg[0].toMap().value("veraltet").toBool(), false);
         QCOMPARE(reg[0].toMap().value("kopieUuid").toString(), r.value("kopieUuid").toString());
@@ -1038,6 +1040,7 @@ private slots:
         q.finish();
 
         QVERIFY(!db.ibnOverlayExportieren().value("ok").toBool());      // Hauptkopie: kein Export
+        QVERIFY(db.ibnEintragSpeichern(1, s2, "-Q2", "abgeschlossen", "", "", "Eva", "2026-10-02"));  // spaeter ausserhalb des Bereichs
 
         const QString ordner = QDir::tempPath() + "/stroemling_test_overlay_"
                              + QString::number(QDateTime::currentMSecsSinceEpoch());
@@ -1048,7 +1051,10 @@ private slots:
         QVERIFY(db.openProjekt(kopie));
 
         QVERIFY(db.ibnEintragSpeichern(1, s1, "-Q1", "abgeschlossen", "ok", "B1", "Max", "2026-10-01"));
-        QVERIFY(db.ibnEintragSpeichern(1, s2, "-Q2", "abgeschlossen", "", "", "Eva", "2026-10-02"));  // ausserhalb
+        QVERIFY2(!db.ibnEintragSpeichern(1, s2, "-Q2", "in_arbeit", "", "", "Max", ""),
+                 "in einer IBN-Kopie darf ausserhalb des Bereichs nichts gespeichert werden");
+        QVERIFY(!db.ibnImBereich(s2));
+        QVERIFY(db.ibnImBereich(s1));
         QVERIFY(db.ibnStatusSetzen(s1, "-Q3", "offen"));                                              // leer
         const int id1 = db.ibnEintragFuerBmk(s1, "-Q1").value("ibnId").toInt();
         QVERIFY(db.ibnFeldwerteAktualisieren(id1, {QVariantMap{{"feldname","istwert"},{"wert","4.2"}}}));
@@ -1057,6 +1063,10 @@ private slots:
         QVERIFY2(o.value("ok").toBool(), qPrintable(o.value("fehler").toString()));
         QVERIFY(o.value("pfad").toString().endsWith(".strl-overlay"));
         QCOMPARE(o.value("anzahlBm").toInt(), 1);
+        QCOMPARE(o.value("ausserhalb").toInt(), 1);                      // -Q2 auf WP: nicht exportiert, aber gemeldet
+        const QVariantMap st = db.ibnOverlayStatus();
+        QCOMPARE(st.value("aenderungenSeither").toInt(), 0);              // gerade exportiert
+        QVERIFY(!st.value("exportiertAm").toString().isEmpty());
         QFile f(o.value("pfad").toString());
         QVERIFY(f.open(QIODevice::ReadOnly));
         const QJsonObject doc = QJsonDocument::fromJson(f.readAll()).object();

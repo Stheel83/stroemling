@@ -352,11 +352,14 @@ SplitView {
                         if (!fl || panel.ausgewaehlterIndex >= fl.length) return
                         var e = fl[panel.ausgewaehlterIndex]
                         var stKey = cmbStatus.model[cmbStatus.currentIndex].key
-                        db.ibnEintragSpeichern(panel.projektId, e.seiteId, e.bmk,
+                        if (!db.ibnEintragSpeichern(panel.projektId, e.seiteId, e.bmk,
                             stKey, taNotiz.text.trim(),
                             tfBauteilId.text.trim(),
                             tfGeprueftVon.text.trim(),
-                            tfGeprueftAm.text.trim())
+                            tfGeprueftAm.text.trim())) {
+                            meldungManager.zeigen(qsTr("Nicht gespeichert: dieser Eintrag liegt außerhalb des Bereichs dieser IBN-Kopie."), false)
+                            return
+                        }
                         if (panel._dynFelder.length > 0) {
                             var tmpListe = db.ibnListeLaden(panel.projektId,
                                 panel.ansichtModus === "seite" ? panel.seiteId : -1)
@@ -403,7 +406,10 @@ SplitView {
                                 var fl = bmListe._gelistet
                                 if (!fl || panel.ausgewaehlterIndex >= fl.length) return
                                 var e = fl[panel.ausgewaehlterIndex]
-                                db.ibnStatusSetzen(e.seiteId, e.bmk, modelData.key)
+                                if (!db.ibnStatusSetzen(e.seiteId, e.bmk, modelData.key)) {
+                                    meldungManager.zeigen(qsTr("Nicht gespeichert: dieser Eintrag liegt außerhalb des Bereichs dieser IBN-Kopie."), false)
+                                    return
+                                }
                                 if (modelData.key === "abgeschlossen")
                                     achievementManager.ereignis("ibn_element_gruen",
                                         { "elementeAufSeite": fl.length,

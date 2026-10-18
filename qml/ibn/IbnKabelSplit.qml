@@ -303,10 +303,13 @@ SplitView {
                         if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return
                         var k = fl[panel.kabelAusgewaehlterIndex]
                         var stKey = cmbKabelStatus.model[cmbKabelStatus.currentIndex].key
-                        db.ibnKabelSpeichern(panel.projektId, k.kabelId,
+                        if (!db.ibnKabelSpeichern(panel.projektId, k.kabelId,
                             stKey, taKabelNotiz.text.trim(),
                             tfKabelGeprueftVon.text.trim(),
-                            tfKabelGeprueftAm.text.trim())
+                            tfKabelGeprueftAm.text.trim())) {
+                            meldungManager.zeigen(qsTr("Nicht gespeichert: dieses Kabel liegt außerhalb des Bereichs dieser IBN-Kopie."), false)
+                            return
+                        }
                         panel.kabelLaden()
                         var fl2 = panel._gefilterteKabelListe()
                         for (var i = 0; i < fl2.length; i++) {
@@ -339,7 +342,10 @@ SplitView {
                                 var fl = kabelListe._gelistet
                                 if (!fl || panel.kabelAusgewaehlterIndex < 0 || panel.kabelAusgewaehlterIndex >= fl.length) return
                                 var k = fl[panel.kabelAusgewaehlterIndex]
-                                db.ibnKabelStatusSetzen(k.kabelId, modelData.key)
+                                if (!db.ibnKabelStatusSetzen(k.kabelId, modelData.key)) {
+                                    meldungManager.zeigen(qsTr("Nicht gespeichert: dieses Kabel liegt außerhalb des Bereichs dieser IBN-Kopie."), false)
+                                    return
+                                }
                                 panel.kabelLaden()
                                 var fl2 = panel._gefilterteKabelListe()
                                 for (var i = 0; i < fl2.length; i++) {

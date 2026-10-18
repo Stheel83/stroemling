@@ -14,28 +14,10 @@
 // IBN-Daten im Bereich der Kopie; die Schluessel sind fachlich (Anlage, Ort, Seite, BMK bzw.
 // Kabelbezeichnung), nie lokale IDs.
 
-QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
+bool Database::ibnOverlaySammeln(QJsonArray &bmArr, QJsonArray &kabelArr, int &ausserhalb, QString &fehlerText)
 {
-    auto fehler = [](const QString &t) { return QVariantMap{ { "ok", false }, { "fehler", t } }; };
-    if (!m_projektOffen)  return fehler(tr("Kein Projekt geöffnet."));
-    if (!m_istIbnKopie)   return fehler(tr("Ein Overlay kann nur aus einer IBN-Kopie exportiert werden."));
-
-    QString kopieUuid, kopieName;
-    QVariantList bereich;
-    int durchgang = 1, revision = 0;
-    {
-        QSqlQuery q(m_db);
-        if (!q.exec("SELECT kopie_uuid, kopie_name, kopie_bereich, kopie_durchgang_nr, haupt_revision "
-                    "FROM projekt ORDER BY id DESC LIMIT 1") || !q.next())
-            return fehler(tr("Projektdaten nicht lesbar."));
-        kopieUuid = q.value(0).toString();
-        kopieName = q.value(1).toString();
-        bereich   = QJsonDocument::fromJson(q.value(2).toString().toUtf8()).array().toVariantList();
-        durchgang = q.value(3).toInt();
-        revision  = q.value(4).toInt();
-    }
-
-    QJsonArray bmArr, kabelArr;
+    ausserhalb = 0;
+    const QVariantList bereich = m_kopieBereich;
 
     QSqlQuery qb(m_db);
     if (!qb.exec(R"(
@@ -47,12 +29,13 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
         JOIN ort    o ON s.ort_id     = o.id
         JOIN anlage a ON o.anlage_id  = a.id
         ORDER BY a.kuerzel, o.kuerzel, s.blattnummer, ibn.bmk
-    )"))
-        return fehler(tr("IBN-Daten nicht lesbar: %1").arg(qb.lastError().text()));
+    )")) {
+        fehlerText = tr("IBN-Daten nicht lesbar: %1").arg(qb.lastError().text());
+        return false;
+    }
     while (qb.next()) {
         const QString a = qb.value("a_kz").toString(), o = qb.value("o_kz").toString(),
                       s = qb.value("blatt").toString();
-        if (!ibnBereichPasst(bereich, a, o, s)) continue;
         const QVariantList felder = ibnFeldwerteLaden(qb.value("id").toInt());
         bool hatWerte = false;
         for (const QVariant &f : felder)
@@ -61,6 +44,7 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
             && qb.value("geprueft_von").toString().isEmpty() && qb.value("geprueft_am").toString().isEmpty()
             && qb.value("notiz").toString().isEmpty() && !hatWerte;
         if (leer) continue;
+        if (!ibnBereichPasst(bereich, a, o, s)) { ++ausserhalb; continue; }
         QJsonArray fa;
         for (const QVariant &f : felder)
             fa.append(QJsonObject{ { "feldname", f.toMap().value("feldname").toString() },
@@ -89,16 +73,18 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
         LEFT JOIN ort    o ON o.id = s.ort_id
         LEFT JOIN anlage a ON a.id = o.anlage_id
         ORDER BY k.bezeichnung
-    )"))
-        return fehler(tr("Kabel-IBN-Daten nicht lesbar: %1").arg(qk.lastError().text()));
+    )")) {
+        fehlerText = tr("Kabel-IBN-Daten nicht lesbar: %1").arg(qk.lastError().text());
+        return false;
+    }
     while (qk.next()) {
         const QString a = qk.value("a_kz").toString(), o = qk.value("o_kz").toString(),
                       s = qk.value("blatt").toString();
-        const bool ohneSeite = s.isEmpty();
-        if (ohneSeite ? !bereich.isEmpty() : !ibnBereichPasst(bereich, a, o, s)) continue;
         if (qk.value("status").toString() == "offen" && qk.value("geprueft_von").toString().isEmpty()
             && qk.value("geprueft_am").toString().isEmpty() && qk.value("notiz").toString().isEmpty())
             continue;
+        const bool ohneSeite = s.isEmpty();
+        if (ohneSeite ? !bereich.isEmpty() : !ibnBereichPasst(bereich, a, o, s)) { ++ausserhalb; continue; }
         kabelArr.append(QJsonObject{
             { "bezeichnung", qk.value("bezeichnung").toString() },
             { "anlage", a }, { "ort", o }, { "seite", s },
@@ -108,6 +94,59 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
             { "notiz", qk.value("notiz").toString() },
             { "geaendertAm", qk.value("geaendert_am").toString() } });
     }
+    return true;
+}
+
+QVariantMap Database::ibnOverlayStatus()
+{
+    QVariantMap r{ { "istKopie", m_istIbnKopie }, { "exportiertAm", QString() },
+                   { "aenderungenSeither", 0 }, { "ausserhalb", 0 }, { "gesamt", 0 } };
+    if (!m_projektOffen || !m_istIbnKopie) return r;
+    QString exportiert;
+    {
+        QSqlQuery q(m_db);
+        if (q.exec("SELECT overlay_exportiert_am FROM projekt ORDER BY id DESC LIMIT 1") && q.next())
+            exportiert = q.value(0).toString();
+    }
+    QJsonArray bm, kabel; int ausserhalb = 0; QString fehlerText;
+    if (!ibnOverlaySammeln(bm, kabel, ausserhalb, fehlerText)) return r;
+    int seither = 0;
+    auto zaehle = [&](const QJsonArray &arr) {
+        for (const QJsonValue &v : arr)
+            if (exportiert.isEmpty() || v.toObject().value("geaendertAm").toString() > exportiert) ++seither;
+    };
+    zaehle(bm); zaehle(kabel);
+    r["exportiertAm"] = exportiert;
+    r["aenderungenSeither"] = seither;
+    r["ausserhalb"] = ausserhalb;
+    r["gesamt"] = bm.size() + kabel.size();
+    return r;
+}
+
+QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
+{
+    auto fehler = [](const QString &t) { return QVariantMap{ { "ok", false }, { "fehler", t } }; };
+    if (!m_projektOffen)  return fehler(tr("Kein Projekt geöffnet."));
+    if (!m_istIbnKopie)   return fehler(tr("Ein Overlay kann nur aus einer IBN-Kopie exportiert werden."));
+
+    QString kopieUuid, kopieName;
+    int durchgang = 1, revision = 0;
+    {
+        QSqlQuery q(m_db);
+        if (!q.exec("SELECT kopie_uuid, kopie_name, kopie_durchgang_nr, haupt_revision "
+                    "FROM projekt ORDER BY id DESC LIMIT 1") || !q.next())
+            return fehler(tr("Projektdaten nicht lesbar."));
+        kopieUuid = q.value(0).toString();
+        kopieName = q.value(1).toString();
+        durchgang = q.value(2).toInt();
+        revision  = q.value(3).toInt();
+    }
+
+    QJsonArray bmArr, kabelArr;
+    int ausserhalb = 0;
+    QString fehlerText;
+    if (!ibnOverlaySammeln(bmArr, kabelArr, ausserhalb, fehlerText))
+        return fehler(fehlerText);
 
     const QJsonObject doc{
         { "format",        QStringLiteral("stroemling-ibn-overlay") },
@@ -116,7 +155,7 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
         { "kopieName",     kopieName },
         { "hauptRevision", revision },
         { "durchgangNr",   durchgang },
-        { "bereich",       QJsonArray::fromVariantList(bereich) },
+        { "bereich",       QJsonArray::fromVariantList(m_kopieBereich) },
         { "exportiertAm",  QDateTime::currentDateTimeUtc().toString(Qt::ISODate) },
         { "betriebsmittel", bmArr },
         { "kabel",          kabelArr },
@@ -135,11 +174,16 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
     if (!f.commit())
         return fehler(tr("Datei konnte nicht geschrieben werden: %1").arg(pfad));
 
-    qCInfo(lcDb) << "Overlay exportiert:" << pfad << bmArr.size() << "BM," << kabelArr.size() << "Kabel";
-    return { { "ok", true }, { "pfad", pfad },
-             { "anzahlBm", bmArr.size() }, { "anzahlKabel", kabelArr.size() } };
-}
+    QSqlQuery qe(m_db);
+    qe.exec("UPDATE projekt SET overlay_exportiert_am = datetime('now')");
+    emit ibnKopieChanged();
 
+    qCInfo(lcDb) << "Overlay exportiert:" << pfad << bmArr.size() << "BM," << kabelArr.size()
+                 << "Kabel," << ausserhalb << "ausserhalb des Bereichs";
+    return { { "ok", true }, { "pfad", pfad },
+             { "anzahlBm", bmArr.size() }, { "anzahlKabel", kabelArr.size() },
+             { "ausserhalb", ausserhalb } };
+}
 
 // ── Import (VERT-04) ─────────────────────────────────────────────────────────
 
@@ -229,6 +273,9 @@ QVariantMap Database::ibnOverlayAnalysieren(const QString &pfad)
         warnungen << tr("Diese Kopie wurde bereits eingesammelt – ein erneuter Import überschreibt nur abweichende Stände nach Rückfrage.");
     if (kopie.value("status").toString() == "verworfen")
         warnungen << tr("Diese Kopie war als verworfen markiert und gilt nach dem Import als eingesammelt.");
+
+    if (doc.value("betriebsmittel").toArray().isEmpty() && doc.value("kabel").toArray().isEmpty())
+        warnungen << tr("Das Overlay enthält keine Einträge – wurde es exportiert, bevor in der Kopie Prüfdaten gespeichert wurden?");
 
     QVariantList uebernehmen, konflikte, nichtZuordenbar, ausserhalb;
     int unveraendert = 0;

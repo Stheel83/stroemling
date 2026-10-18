@@ -61,6 +61,36 @@ Dialog {
         return [qsTr("Alle Orte")].concat(Object.keys(m).sort())
     }
 
+    property var _overlayStatus: ({})
+
+    function overlayStatusLaden() {
+        root._overlayStatus = db.istIbnKopie ? db.ibnOverlayStatus() : ({})
+    }
+
+    // Overlay exportieren und das Ergebnis deutlich melden; bei Auffaelligkeiten bleibt der Dialog offen
+    function overlayExportieren() {
+        root._fehler = ""; root._ergebnis = ""
+        var r = db.ibnOverlayExportieren("")
+        if (!r.ok) {
+            root._fehler = r.fehler
+            meldungManager.zeigen(r.fehler, false)
+            if (!root.visible) root.open()
+            return
+        }
+        var summe = r.anzahlBm + r.anzahlKabel
+        var t = qsTr("Overlay gespeichert (%1 Betriebsmittel, %2 Kabel): %3").arg(r.anzahlBm).arg(r.anzahlKabel).arg(r.pfad)
+        var warn = ""
+        if (summe === 0)
+            warn = qsTr("Das Overlay enthält keine Prüfdaten – sind in dieser Kopie Einträge gespeichert?")
+        if (r.ausserhalb > 0)
+            warn += (warn ? "\n" : "") + qsTr("%1 Eintrag/Einträge liegen außerhalb des Bereichs dieser Kopie und wurden NICHT exportiert.").arg(r.ausserhalb)
+        root._ergebnis = t
+        root._fehler = warn
+        root.overlayStatusLaden()
+        meldungManager.zeigen(warn ? qsTr("Overlay exportiert – bitte Hinweis beachten.") : qsTr("Overlay exportiert (%1 Einträge).").arg(summe), warn === "")
+        if (warn !== "" && !root.visible) root.open()
+    }
+
     function _warnungenAktualisieren() {
         root._warnungen = db.ibnKopiePruefen(root.projektId, root._bereich())
     }
@@ -77,11 +107,12 @@ Dialog {
         cmbAnlage.model = _anlagen()
         cmbAnlage.currentIndex = 0
         _neuLaden()
+        overlayStatusLaden()
     }
 
     Connections {
         target: db
-        function onIbnKopieChanged() { if (root.visible) root._neuLaden() }
+        function onIbnKopieChanged() { if (root.visible) { root._neuLaden(); root.overlayStatusLaden() } }
     }
 
     IbnOverlayImportDialog {
@@ -163,19 +194,32 @@ Dialog {
                 text: qsTr("Am Ende der Prüfung das Overlay exportieren und der Hauptkopie übergeben: "
                            + "es enthält nur die Inbetriebnahme-Daten dieser Kopie, nicht den Schaltplan.")
             }
-            Button {
-                text: qsTr("Overlay exportieren"); implicitHeight: 32
-                contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { color: parent.hovered ? root.theme.accent : root.theme.inputBg
-                    radius: 4; border.color: root.theme.accent }
-                onClicked: {
-                    root._fehler = ""; root._ergebnis = ""
-                    var r = db.ibnOverlayExportieren("")
-                    if (!r.ok) { root._fehler = r.fehler; return }
-                    root._ergebnis = qsTr("Overlay gespeichert (%1 Betriebsmittel, %2 Kabel): %3")
-                                     .arg(r.anzahlBm).arg(r.anzahlKabel).arg(r.pfad)
+            Text {
+                Layout.fillWidth: true; wrapMode: Text.WordWrap
+                font.pixelSize: 11
+                color: (root._overlayStatus.aenderungenSeither || 0) > 0 || (root._overlayStatus.ausserhalb || 0) > 0
+                       ? "#e0a040" : root.theme.textSecondary
+                text: {
+                    var s = root._overlayStatus
+                    var t = s.exportiertAm ? qsTr("Letzter Export: %1 (UTC).").arg(s.exportiertAm)
+                                           : qsTr("Noch nicht exportiert.")
+                    t += " " + qsTr("%1 Eintrag/Einträge im Bereich der Kopie.").arg(s.gesamt || 0)
+                    if ((s.aenderungenSeither || 0) > 0)
+                        t += " ⚠ " + (s.exportiertAm ? qsTr("%1 Änderung(en) seit dem letzten Export – bitte erneut exportieren.").arg(s.aenderungenSeither)
+                                                      : qsTr("Noch nichts exportiert."))
+                    if ((s.ausserhalb || 0) > 0)
+                        t += " ⚠ " + qsTr("%1 Eintrag/Einträge außerhalb des Bereichs werden nicht exportiert.").arg(s.ausserhalb)
+                    return t
                 }
+            }
+            Button {
+                text: qsTr("⇪  Overlay exportieren"); implicitHeight: 38
+                Layout.fillWidth: true
+                contentItem: Text { text: parent.text; color: "white"; font.pixelSize: 13; font.weight: Font.Medium
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { color: parent.hovered ? Qt.lighter(root.theme.accent, 1.15) : root.theme.accent
+                    radius: 4 }
+                onClicked: root.overlayExportieren()
             }
             Text {
                 visible: db.istIbnKopie && root._fehler !== ""
@@ -209,7 +253,7 @@ Dialog {
             model: root._register
             delegate: Rectangle {
                 width: ListView.view.width
-                height: 44
+                height: 48
                 radius: 4
                 color: root.theme.inputBg
                 border.color: root.theme.border
@@ -245,6 +289,28 @@ Dialog {
                         color: modelData.status === "eingesammelt" ? "#44aa66"
                                : modelData.status === "ausgegeben" ? root.theme.accent
                                                                    : root.theme.textMuted
+                    }
+                    Button {
+                        visible: modelData.vorhanden
+                        flat: true; implicitHeight: 24; implicitWidth: 56
+                        contentItem: Text { text: qsTr("Öffnen"); color: root.theme.accent; font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"
+                            radius: 4; border.color: root.theme.accent }
+                        ToolTip.visible: hovered; ToolTip.delay: 500
+                        ToolTip.text: qsTr("Diese Kopie öffnen (das aktuelle Projekt wird geschlossen)")
+                        onClicked: { var p = modelData.pfad; root.close(); db.openProjekt(p) }
+                    }
+                    Button {
+                        visible: modelData.vorhanden
+                        flat: true; implicitHeight: 24; implicitWidth: 56
+                        contentItem: Text { text: qsTr("Ordner"); color: root.theme.textSecondary; font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? root.theme.hover : "transparent"
+                            radius: 4; border.color: root.theme.border }
+                        ToolTip.visible: hovered; ToolTip.delay: 500
+                        ToolTip.text: qsTr("Ordner der Kopie im Dateimanager zeigen")
+                        onClicked: Qt.openUrlExternally("file://" + modelData.pfad.substring(0, modelData.pfad.lastIndexOf("/")))
                     }
                     Button {
                         visible: modelData.status !== "eingesammelt"

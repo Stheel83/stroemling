@@ -9,6 +9,7 @@
 #include <QVariantMap>
 #include <QDateTime>
 #include <QJsonObject>
+#include <QJsonArray>
 #include "logging.h"
 
 // Database kümmert sich um:
@@ -632,6 +633,13 @@ public:
     // (<kopie>.strl-overlay neben der Kopie, oder zielPfad). Gibt {ok, pfad, anzahlBm, anzahlKabel}
     // oder {ok:false, fehler} zurueck.
     Q_INVOKABLE QVariantMap ibnOverlayExportieren(const QString &zielPfad = QString());
+    // Stand des Overlay-Exports in einer IBN-Kopie: {istKopie, exportiertAm, aenderungenSeither,
+    // ausserhalb (Eintraege ausserhalb des Kopie-Bereichs, nicht exportierbar), gesamt}
+    Q_INVOKABLE QVariantMap ibnOverlayStatus();
+    // In einer IBN-Kopie duerfen nur Eintraege im Bereich der Kopie bearbeitet werden
+    // (in der Hauptkopie immer true).
+    Q_INVOKABLE bool ibnImBereich(int seiteId);
+    Q_INVOKABLE bool ibnKabelImBereich(int kabelId);
     // ── Overlay-Import (VERT-04, konzept/features/55 §4.3), nur in der Hauptkopie ──
     // Analyse ohne Schreiben: {ok, fehler, kopie{id,name,status,veraltet}, warnungen[],
     //   anzahlBm, anzahlKabel, uebernehmen, unveraendert, konflikte[{key,typ,label,haupt{..},kopie{..}}],
@@ -1155,7 +1163,9 @@ private:
     bool sperreSchreiben();
     void sperreHerzschlag();
     void sperreFreigeben();
-    QVariantMap ibnOverlayAnalysieren(const QString &pfad);   // VERT-04, enthaelt die Nutzdaten
+    QVariantMap ibnOverlayAnalysieren(const QString &pfad);
+    bool ibnOverlaySammeln(QJsonArray &bm, QJsonArray &kabel, int &ausserhalb, QString &fehlerText);
+    QVariantList m_kopieBereich;   // Bereich der IBN-Kopie (leer = ganzes Projekt)   // VERT-04, enthaelt die Nutzdaten
     void ibnKopieStatusAktualisieren();   // VERT-02: m_istIbnKopie / m_offeneKopien neu lesen
     bool m_istIbnKopie = false;
     int  m_offeneKopien = 0;

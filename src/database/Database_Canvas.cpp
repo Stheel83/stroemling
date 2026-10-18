@@ -224,6 +224,11 @@ int Database::letzteGrafikElementId(int seiteId) const
 // ============================================================
 bool Database::grafikSpeichern(int seiteId, const QVariantList &elemente)
 {
+    // VERT-02b: Rueckhalt, falls eine Aenderung die Sperre in der Oberflaeche umgeht
+    if (m_schreibgeschuetzt || schaltplanGesperrt()) {
+        qCInfo(lcDb) << "grafikSpeichern uebersprungen: Schaltplan gesperrt";
+        return false;
+    }
     if (!m_db.transaction()) {
         auto msg = m_db.lastError().text();
         qCWarning(lcDb) << "grafikSpeichern: Transaktion:" << msg;

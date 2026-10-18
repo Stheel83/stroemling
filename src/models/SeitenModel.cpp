@@ -363,6 +363,7 @@ void SeitenModel::laden(int projektId)
 int SeitenModel::anlageAnlegen(int projektId, const QString &kuerzel, const QString &bezeichnung,
                                 const QString &anlageUebergeordnet)
 {
+    if (m_gesperrt) return -1;
     QSqlQuery q;
     q.prepare("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung, anlage_uebergeordnet) "
               "VALUES (:pid, :kz, :bez, :auo)");
@@ -382,6 +383,7 @@ int SeitenModel::anlageAnlegen(int projektId, const QString &kuerzel, const QStr
 int SeitenModel::ortAnlegen(int anlageId, const QString &kuerzel, const QString &bezeichnung,
                              const QString &standortUebergeordnet)
 {
+    if (m_gesperrt) return -1;
     QSqlQuery q;
     q.prepare("INSERT INTO ort (anlage_id, kuerzel, bezeichnung, standort_uebergeordnet) "
               "VALUES (:aid, :kz, :bez, :suo)");
@@ -404,6 +406,7 @@ int SeitenModel::seiteAnlegen(int ortId, const QString &blattnummer,
                                double randLinksMm, double randRechtsMm,
                                double randObenMm,  double randUntenMm)
 {
+    if (m_gesperrt) return -1;
     QSqlQuery qMax;
     qMax.prepare("SELECT COALESCE(MAX(sortierung), 0) + 1 FROM seite WHERE ort_id = :oid");
     qMax.bindValue(":oid", ortId);
@@ -495,6 +498,7 @@ static bool anlageEntfernen(int anlageId)
 
 bool SeitenModel::loeschen(int knotenTyp, int id)
 {
+    if (m_gesperrt) return false;
     QSqlDatabase db = QSqlDatabase::database();
     if (!db.transaction()) {
         qCWarning(lcModel) << "loeschen: Transaktion:" << db.lastError().text();
@@ -523,6 +527,7 @@ bool SeitenModel::loeschen(int knotenTyp, int id)
 bool SeitenModel::anlageBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung,
                                     const QString &anlageUebergeordnet)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE anlage SET kuerzel = :kz, bezeichnung = :bez, "
               "anlage_uebergeordnet = :auo WHERE id = :id");
@@ -541,6 +546,7 @@ bool SeitenModel::anlageBearbeiten(int id, const QString &kuerzel, const QString
 bool SeitenModel::ortBearbeiten(int id, const QString &kuerzel, const QString &bezeichnung,
                                  const QString &standortUebergeordnet)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE ort SET kuerzel = :kz, bezeichnung = :bez, "
               "standort_uebergeordnet = :suo WHERE id = :id");
@@ -562,6 +568,7 @@ bool SeitenModel::seiteBearbeiten(int id, const QString &blattnummer,
                                    double randLinksMm, double randRechtsMm,
                                    double randObenMm,  double randUntenMm)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE seite SET blattnummer = :blatt, bezeichnung = :bez, seitentyp = :typ, "
               "breite_mm = :b, hoehe_mm = :h, "
@@ -587,6 +594,7 @@ bool SeitenModel::seiteBearbeiten(int id, const QString &blattnummer,
 
 bool SeitenModel::seiteVerschieben(int seiteId, int neuerOrtId)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE seite SET ort_id = :oid WHERE id = :id");
     q.bindValue(":oid", neuerOrtId);
@@ -601,6 +609,7 @@ bool SeitenModel::seiteVerschieben(int seiteId, int neuerOrtId)
 
 bool SeitenModel::ortVerschieben(int ortId, int neueAnlageId)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE ort SET anlage_id = :aid WHERE id = :id");
     q.bindValue(":aid", neueAnlageId);
@@ -615,6 +624,7 @@ bool SeitenModel::ortVerschieben(int ortId, int neueAnlageId)
 
 bool SeitenModel::seiteHoch(int seiteId)
 {
+    if (m_gesperrt) return false;
     // Nutzt die bereits korrekt sortierte In-Memory-Liste statt SQL-Sortierung,
     // damit auch Seiten mit identischem sortierung-Wert (z.B. alle 0) verschoben
     // werden können. Normalisiert alle sortierung-Werte des Orts gleichzeitig.
@@ -640,6 +650,7 @@ bool SeitenModel::seiteHoch(int seiteId)
 
 bool SeitenModel::seiteRunter(int seiteId)
 {
+    if (m_gesperrt) return false;
     for (const auto &a : m_anlagen) {
         for (const auto &o : a.orte) {
             for (int i = 0; i < o.seiten.size() - 1; ++i) {
@@ -662,6 +673,7 @@ bool SeitenModel::seiteRunter(int seiteId)
 
 bool SeitenModel::seiteUmordnen(int seiteId, int neuerIndex)
 {
+    if (m_gesperrt) return false;
     for (const auto &a : m_anlagen) {
         for (const auto &o : a.orte) {
             for (int i = 0; i < o.seiten.size(); ++i) {
@@ -709,6 +721,7 @@ bool SeitenModel::seiteRastend(int seiteId) const
 
 bool SeitenModel::seiteRasterSpeichern(int seiteId, double rasterMm, bool rastend)
 {
+    if (m_gesperrt) return false;
     QSqlQuery q;
     q.prepare("UPDATE seite SET raster_mm = :mm, rastend = :rs WHERE id = :id");
     q.bindValue(":mm",  rasterMm);

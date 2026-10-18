@@ -44,8 +44,13 @@ struct GrafikElement {
 class ElementeModel : public QObject {
     Q_OBJECT
     Q_PROPERTY(int anzahl READ anzahl NOTIFY geaendert)
+    // VERT-02b: Schaltplan gesperrt -> alle aendernden Aufrufe (Zeichnen, Verschieben, Loeschen,
+    // Eigenschaften, Undo/Redo, Gruppen) tun nichts; laden() bleibt moeglich.
+    Q_PROPERTY(bool gesperrt READ gesperrt WRITE setGesperrt NOTIFY gesperrtChanged)
 public:
     explicit ElementeModel(QObject *parent = nullptr);
+    bool gesperrt() const { return m_gesperrt; }
+    void setGesperrt(bool g) { if (g != m_gesperrt) { m_gesperrt = g; emit gesperrtChanged(); } }
 
     Q_INVOKABLE void         laden(int seiteId);
     Q_INVOKABLE void         fromVariantList(const QVariantList &liste);
@@ -85,6 +90,7 @@ public:
 
 signals:
     void geaendert();
+    void gesperrtChanged();
 
 private:
     static std::vector<GrafikElement> parseVariantList(const QVariantList &liste);
@@ -95,6 +101,7 @@ private:
     // letzten snapshot()); sonst Fallback auf volle Invalidierung.
     void patchSnapshotEntry(int idx);
 
+    bool m_gesperrt = false;
     std::vector<GrafikElement>              m_elemente;
     std::vector<std::vector<GrafikElement>> m_undoStack;
     std::vector<std::vector<GrafikElement>> m_redoStack;

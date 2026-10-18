@@ -42,16 +42,20 @@ void Database::ibnKopieStatusAktualisieren()
 {
     bool istKopie = false;
     int  offene   = 0;
+    QString kopieName;
     if (m_projektOffen) {
         QSqlQuery q(m_db);
-        if (q.exec("SELECT kopie_uuid FROM projekt ORDER BY id DESC LIMIT 1") && q.next())
-            istKopie = !q.value(0).toString().isEmpty();
+        if (q.exec("SELECT kopie_uuid, kopie_name FROM projekt ORDER BY id DESC LIMIT 1") && q.next()) {
+            istKopie  = !q.value(0).toString().isEmpty();
+            kopieName = q.value(1).toString();
+        }
         if (q.exec("SELECT COUNT(*) FROM ibn_kopie WHERE status = 'ausgegeben'") && q.next())
             offene = q.value(0).toInt();
     }
     if (offene == 0)
         m_schaltplanOverride = false;   // Override gilt nur, solange Kopien draussen sind
     m_istIbnKopie   = istKopie;
+    m_ibnKopieName  = kopieName;
     m_offeneKopien  = offene;
     emit ibnKopieChanged();
 }

@@ -701,6 +701,9 @@ Item {
         id: werkzeugLeiste
         canvas: root
         visible: root.seiteId >= 0
+        // VERT-02b: Schaltplan gesperrt -> keine Zeichenwerkzeuge
+        enabled: !(root.elementeModel && root.elementeModel.gesperrt)
+        opacity: enabled ? 1.0 : 0.4
         anchors { top: headerBar.bottom; bottom: footerBar.top; left: parent.left }
         onBildWerkzeugAngefordert: bildWerkzeug.dialogOeffnen()
     }

@@ -11,6 +11,7 @@
 #include "database/Database.h"
 #include "models/SymbolDefinitionModel.h"
 #include "models/SeitenModel.h"
+#include "canvas/ElementeModel.h"
 #include "tst_kernfunktionen.h"
 #include "tst_kabelrechner.h"
 
@@ -970,6 +971,48 @@ private slots:
         QCOMPARE(db.ibnKopieRegisterLaden(1)[0].toMap().value("status").toString(), QStringLiteral("eingesammelt"));
 
         QDir(ordner).removeRecursively();
+    }
+
+    void test_24_schaltplanSperre()
+    {
+        // VERT-02b: gesperrte Modelle aendern nichts; grafikSpeichern verweigert bei gesperrtem Schaltplan.
+        TmpProjekt t("schaltplansperre");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+
+        ElementeModel em;
+        em.fromVariantList({QVariantMap{{"typ","linie"},{"x1",0},{"y1",0},{"x2",10},{"y2",0}}});
+        QCOMPARE(em.anzahl(), 1);
+        em.setGesperrt(true);
+        em.fromVariantList({});
+        QCOMPARE(em.anzahl(), 1);                       // gesperrt: kein Ueberschreiben
+        em.eigenschaftSetzen(0, "x2", 99);
+        QCOMPARE(em.element(0).value("x2").toDouble(), 10.0);
+        em.setGesperrt(false);
+        em.fromVariantList({});
+        QCOMPARE(em.anzahl(), 0);
+
+        SeitenModel sm;
+        sm.laden(1);
+        sm.setGesperrt(true);
+        QCOMPARE(sm.anlageAnlegen(1, "XX", "gesperrt"), -1);
+        sm.setGesperrt(false);
+        QVERIFY(sm.anlageAnlegen(1, "XX", "frei") > 0);
+
+        QVERIFY(q.exec("SELECT COUNT(*) FROM anlage WHERE kuerzel='XX'")); QVERIFY(q.next());
+        QCOMPARE(q.value(0).toInt(), 1);
+        q.finish();
+        QVERIFY(q.exec("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) SELECT id, 'O', 'O' FROM anlage WHERE kuerzel='XX'"));
+        const int o1 = q.lastInsertId().toInt();
+        QVERIFY(q.exec(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S')").arg(o1)));
+        const int s1 = q.lastInsertId().toInt();
+        q.finish();
+
+        QVERIFY(db.grafikSpeichern(s1, {}));
+        QVERIFY(db.ibnKopieErstellen(1, "K", {}, QDir::tempPath() + "/stroemling_test_sperre_kopien").value("ok").toBool());
+        QVERIFY(db.schaltplanGesperrt());
+        QVERIFY2(!db.grafikSpeichern(s1, {}), "grafikSpeichern muss bei gesperrtem Schaltplan verweigern");
+        QDir(QDir::tempPath() + "/stroemling_test_sperre_kopien").removeRecursively();
     }
 };
 

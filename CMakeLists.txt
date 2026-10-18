@@ -167,6 +167,7 @@ qt_add_qml_module(stroemling_app
         qml/ibn/IbnFeldPanel.qml
         qml/ibn/IbnPdfExportDialog.qml
         qml/ibn/IbnDurchgangDialog.qml
+        qml/ibn/IbnKopienDialog.qml
 
         qml/ba/BaFormContent.qml
         qml/ba/BaKategorieSidebar.qml
@@ -536,6 +537,8 @@ qt_add_executable(stroemling_test
     tests/tst_migrationen.cpp
     tests/tst_kernfunktionen.h
     tests/tst_kabelrechner.h
+    src/canvas/ElementeModel.cpp
+    src/canvas/ElementeModel.h
     src/models/KabelRechnerModel.cpp
     src/models/KabelRechnerModel.h
     src/utils/KabelTabellen.h

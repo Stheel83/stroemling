@@ -42,6 +42,7 @@ Item {
     signal bmkGewaehlt(int seiteId, int elementId, real x1, real y1,
                         string blattnummer, string seitenbezeichnung)
     signal geschlossen()
+    signal kopienAngefordert()
 
     // ── BM-Liste ──────────────────────────────────────────────
     property var    _liste:  []
@@ -246,6 +247,18 @@ Item {
                         onClicked: root._kategorie = (root._kategorie === "felder" ? "bm" : "felder")
                         ToolTip.visible: hovered; ToolTip.delay: 600
                         ToolTip.text: qsTr("Messfeld-Vorlagen verwalten")
+                    }
+
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 24
+                        contentItem: Text { text: "⧉"; font.pixelSize: 13;
+                            color: db.offeneKopien > 0 ? "#e0a040" : theme.textSecondary;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                        onClicked: root.kopienAngefordert()
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: db.istIbnKopie ? qsTr("Diese Datei ist eine IBN-Kopie")
+                                                     : qsTr("IBN-Kopien verwalten / neue Kopie erstellen")
                     }
 
                     Button {

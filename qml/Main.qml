@@ -341,23 +341,56 @@ ApplicationWindow {
     }
 
 
-    // VERT-01: Projekt ist von einer anderen Sitzung gesperrt -> nur lesen
+    // VERT-01/02b: Sperr-Hinweisleiste (fremde Sperre, IBN-Kopie, ausgegebene Kopien, Override)
+    readonly property bool schaltplanZu: db.projektOffen && (db.schreibgeschuetzt || db.schaltplanGesperrt)
+
+    Binding { target: elementeModel1; property: "gesperrt"; value: root.schaltplanZu }
+    Binding { target: elementeModel2; property: "gesperrt"; value: root.schaltplanZu }
+    Binding { target: seitenModel;    property: "gesperrt"; value: root.schaltplanZu }
+
     Rectangle {
         id: schreibschutzBanner
         anchors { top: appTitelleiste.bottom; left: parent.left; right: parent.right }
+        readonly property bool override: db.projektOffen && db.schaltplanOverrideAktiv
         height:  visible ? 26 : 0
-        visible: db.projektOffen && db.schreibgeschuetzt
-        color:   "#7a5a10"
-        Text {
+        visible: db.projektOffen && (db.schreibgeschuetzt || db.schaltplanGesperrt || override)
+        color:   override ? "#8a3a10" : "#7a5a10"
+        RowLayout {
             anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-            font.pixelSize: 12
-            color: "white"
-            text: qsTr("🔒 Schreibgeschützt – das Projekt ist von %1 (%2) seit %3 geöffnet. Änderungen werden nicht gespeichert.")
-                  .arg(db.sperreInfo.benutzer || "?").arg(db.sperreInfo.rechner || "?")
-                  .arg(db.sperreInfo.zeit || "?")
+            spacing: 10
+            Text {
+                Layout.fillWidth: true
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+                font.pixelSize: 12
+                color: "white"
+                text: db.schreibgeschuetzt
+                      ? qsTr("🔒 Schreibgeschützt – das Projekt ist von %1 (%2) seit %3 geöffnet. Änderungen werden nicht gespeichert.")
+                            .arg(db.sperreInfo.benutzer || "?").arg(db.sperreInfo.rechner || "?")
+                            .arg(db.sperreInfo.zeit || "?")
+                      : db.istIbnKopie
+                        ? qsTr("🔒 IBN-Kopie „%1“ – der Schaltplan ist gesperrt; Inbetriebnahme und Fehlersuche sind bearbeitbar.")
+                              .arg(db.ibnKopieName)
+                        : schreibschutzBanner.override
+                          ? qsTr("⚠ Schaltplan trotz %1 ausgegebener Kopie(n) freigegeben – die Kopien sind veraltet.")
+                                .arg(db.offeneKopien)
+                          : qsTr("🔒 %1 IBN-Kopie(n) ausgegeben – der Schaltplan ist gesperrt, bis alle eingesammelt sind.")
+                                .arg(db.offeneKopien)
+            }
+            Text {
+                visible: !db.schreibgeschuetzt && (db.offeneKopien > 0 || db.istIbnKopie)
+                text: qsTr("Kopien …")
+                font.pixelSize: 12; font.underline: true; color: "white"
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    onClicked: ibnKopienDialog.open() }
+            }
         }
+    }
+
+    IbnKopienDialog {
+        id:        ibnKopienDialog
+        theme:     appTheme
+        projektId: root.aktivProjektId
     }
 
     // ── Layout ───────────────────────────────────────────────────
@@ -598,6 +631,8 @@ ApplicationWindow {
 
                     SymbolPalette {
                         id:                    symbolPalette
+                        enabled:               !root.schaltplanZu
+                        opacity:               enabled ? 1.0 : 0.5
                         Layout.preferredWidth: panelBreiten.symbolPaletteBreite
                         Layout.fillHeight:     true
                         theme:                 appTheme
@@ -1151,6 +1186,7 @@ ApplicationWindow {
                         seiteId:                  root.aktivSeiteId
 
                         onGeschlossen: root.aktiveAnsicht = "seiten"
+                        onKopienAngefordert: ibnKopienDialog.open()
 
                         onBmkGewaehlt: function(sid, elementId, wx, wy, blattnr, seiteBez) {
                             if (sid !== root.aktivSeiteId) {

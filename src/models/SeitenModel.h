@@ -132,6 +132,12 @@ public:
     // --------------------------------------------------------
 
     // Seitenbaum für ein Projekt laden
+    // VERT-01/02b: Schaltplan gesperrt (IBN-Kopie, ausgegebene Kopien, Schreibschutz) ->
+    // Strukturaenderungen (Anlage/Ort/Seite anlegen, bearbeiten, loeschen, verschieben) tun nichts.
+    Q_PROPERTY(bool gesperrt READ gesperrt WRITE setGesperrt NOTIFY gesperrtChanged)
+    bool gesperrt() const { return m_gesperrt; }
+    void setGesperrt(bool g) { if (g != m_gesperrt) { m_gesperrt = g; emit gesperrtChanged(); } }
+
     Q_INVOKABLE void laden(int projektId);
 
     // Anlage anlegen  → gibt neue ID zurück (-1 = Fehler)
@@ -192,7 +198,11 @@ public:
     Q_INVOKABLE QVariantMap  ortInfo(int ortId) const;
     Q_INVOKABLE QVariantList strukturListe() const;
 
+signals:
+    void gesperrtChanged();
+
 private:
+    bool m_gesperrt = false;
     void baumAufbauen();
     void baumLeeren();
 

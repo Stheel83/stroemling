@@ -39,6 +39,8 @@ class Database : public QObject
     Q_PROPERTY(bool         istIbnKopie     READ istIbnKopie        NOTIFY ibnKopieChanged)
     Q_PROPERTY(bool         schaltplanGesperrt READ schaltplanGesperrt NOTIFY ibnKopieChanged)
     Q_PROPERTY(int          offeneKopien    READ offeneKopien       NOTIFY ibnKopieChanged)
+    Q_PROPERTY(bool         schaltplanOverrideAktiv READ schaltplanOverrideAktiv NOTIFY ibnKopieChanged)
+    Q_PROPERTY(QString      ibnKopieName    READ ibnKopieName       NOTIFY ibnKopieChanged)
 
 public:
     // Baseline-Version des Migrations-Systems. Neue Schemaänderungen kommen
@@ -66,6 +68,8 @@ public:
     bool istIbnKopie()        const { return m_istIbnKopie; }
     bool schaltplanGesperrt() const;
     int  offeneKopien()       const { return m_offeneKopien; }
+    bool schaltplanOverrideAktiv() const { return m_schaltplanOverride && m_offeneKopien > 0; }
+    QString ibnKopieName()    const { return m_ibnKopieName; }
     static QString     sperrDateiPfad(const QString &projektPfad);
     static QVariantMap sperreLesen(const QString &lockPfad);
     static bool        sperreVeraltet(const QVariantMap &info,
@@ -1134,6 +1138,7 @@ private:
     bool m_istIbnKopie = false;
     int  m_offeneKopien = 0;
     bool m_schaltplanOverride = false;    // nur diese Sitzung
+    QString m_ibnKopieName;
     bool        m_schreibgeschuetzt = false;
     QVariantMap m_sperreInfo;
     QString     m_sperrePfad;       // leer = wir halten keine Sperre

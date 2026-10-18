@@ -264,6 +264,7 @@ std::vector<GrafikElement> ElementeModel::parseVariantList(const QVariantList &l
 
 void ElementeModel::fromVariantList(const QVariantList &liste)
 {
+    if (m_gesperrt) return;
     m_elemente = parseVariantList(liste);
     invalidateSnapshotCache();
     emit geaendert();
@@ -353,6 +354,7 @@ static void applyField(GrafikElement &el, const QString &key, const QVariant &va
 
 void ElementeModel::eigenschaftSetzen(int idx, const QString &key, const QVariant &value)
 {
+    if (m_gesperrt) return;
     if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) return;
     applyField(m_elemente[idx], key, value);
     patchSnapshotEntry(idx);
@@ -361,6 +363,7 @@ void ElementeModel::eigenschaftSetzen(int idx, const QString &key, const QVarian
 
 void ElementeModel::elementAktualisieren(int idx, const QVariantMap &felder)
 {
+    if (m_gesperrt) return;
     if (idx < 0 || idx >= static_cast<int>(m_elemente.size())) return;
     GrafikElement &el = m_elemente[idx];
     for (auto it = felder.constBegin(); it != felder.constEnd(); ++it)
@@ -371,6 +374,7 @@ void ElementeModel::elementAktualisieren(int idx, const QVariantMap &felder)
 
 void ElementeModel::elementeAktualisieren(const QVariantList &updates)
 {
+    if (m_gesperrt) return;
     for (const QVariant &v : updates) {
         const QVariantMap felder = v.toMap();
         const int idx = felder.value(QStringLiteral("idx"), -1).toInt();
@@ -401,6 +405,7 @@ void ElementeModel::undoCheckpointFromSnapshot(const QVariantList &snapshot)
 
 void ElementeModel::undo()
 {
+    if (m_gesperrt) return;
     if (m_undoStack.empty()) return;
     m_redoStack.push_back(std::move(m_elemente));
     m_elemente = std::move(m_undoStack.back());
@@ -411,6 +416,7 @@ void ElementeModel::undo()
 
 void ElementeModel::redo()
 {
+    if (m_gesperrt) return;
     if (m_redoStack.empty()) return;
     m_undoStack.push_back(std::move(m_elemente));
     m_elemente = std::move(m_redoStack.back());
@@ -428,6 +434,7 @@ int  ElementeModel::redoAnzahl()  const { return static_cast<int>(m_redoStack.si
 
 int ElementeModel::gruppeErstellen(const QVariantList &indizes)
 {
+    if (m_gesperrt) return -1;
     if (indizes.isEmpty()) return -1;
     int maxId = 0;
     for (const auto &el : m_elemente)
@@ -445,6 +452,7 @@ int ElementeModel::gruppeErstellen(const QVariantList &indizes)
 
 void ElementeModel::gruppeAufloesen(int gruppeId)
 {
+    if (m_gesperrt) return;
     if (gruppeId < 0) return;
     for (auto &el : m_elemente)
         if (el.gruppeId == gruppeId) el.gruppeId = -1;

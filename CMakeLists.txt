@@ -56,6 +56,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Betriebsmittel.cpp
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
+    src/database/Database_BauteilAustausch.cpp
     src/database/Database.h
     src/models/ProjektModel.cpp
     src/models/ProjektModel.h
@@ -179,6 +180,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaBauteilBearbeitenDialog.qml
         qml/ba/BaSymbolPickerDialog.qml
         qml/ba/BaCsvImportDialog.qml
+        qml/ba/BaAustauschDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml
         qml/ba/BaMakroBibliothek.qml
@@ -539,6 +541,7 @@ qt_add_executable(stroemling_test
     tests/tst_migrationen.cpp
     tests/tst_kernfunktionen.h
     tests/tst_kabelrechner.h
+    tests/tst_bauteilaustausch.h
     src/canvas/ElementeModel.cpp
     src/models/KlemmenreihenModel.cpp
     src/models/KlemmenreihenModel.h
@@ -579,6 +582,7 @@ qt_add_executable(stroemling_test
     src/database/PdfRenderer_Deckblatt.cpp
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
+    src/database/Database_BauteilAustausch.cpp
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp

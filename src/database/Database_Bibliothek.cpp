@@ -24,6 +24,40 @@ QString Database::bauteilSystemUid(const QString &bezeichnung)
     return QUuid::createUuidV5(ns, bezeichnung.toUtf8()).toString(QUuid::WithoutBraces);
 }
 
+QString Database::bibliothekSichern(const QString &anlass)
+{
+    const QString ordner = QFileInfo(m_bibliothekPfad).absolutePath() + QStringLiteral("/backups");
+    QDir().mkpath(ordner);
+    const QString ziel = ordner + QStringLiteral("/bibliothek_%1_%2.db").arg(anlass,
+                             QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz")));
+    QString maskiert = ziel;
+    maskiert.replace(QLatin1Char('\''), QStringLiteral("''"));
+    QSqlQuery q(m_bibliothekDb);
+    if (QFileInfo::exists(ziel) || !q.exec(QStringLiteral("VACUUM INTO '%1'").arg(maskiert))) {
+        qCWarning(lcDb) << "Bibliothek-Sicherung nicht angelegt:" << q.lastError().text() << ziel;
+        return {};
+    }
+    qCInfo(lcDb) << "Bibliothek-Sicherung:" << ziel;
+    return ziel;
+}
+
+int Database::bauteilIdFuerUid(const QString &uid) const
+{
+    if (uid.isEmpty() || !m_bibliothekDb.isOpen())
+        return -1;
+    QSqlQuery q(m_bibliothekDb);
+    q.prepare("SELECT id FROM bauteil WHERE uid = :u");
+    q.bindValue(":u", uid);
+    if (q.exec() && q.next())
+        return q.value(0).toInt();
+    QSqlQuery a(m_bibliothekDb);
+    a.prepare("SELECT bauteil_id FROM bauteil_alias WHERE alias_uid = :u");
+    a.bindValue(":u", uid);
+    if (a.exec() && a.next())
+        return a.value(0).toInt();
+    return -1;
+}
+
 bool Database::bauteilUidsAbgleichen()
 {
     QSqlQuery q(m_bibliothekDb);
@@ -102,18 +136,9 @@ bool Database::checkAndApplyBibliothekSchema()
         // Vor dem Migrieren einer bestehenden Bibliothek eine Sicherung ablegen (die Datei ist projektübergreifend und
         // nicht Teil des Komplettarchivs). Die Migration ist additiv und läuft in einer Transaktion; ein Fehlschlag der
         // Sicherung blockiert sie daher nicht, wird aber gemeldet.
-        if (version > 0) {
-            const QString ordner = QFileInfo(m_bibliothekPfad).absolutePath() + QStringLiteral("/backups");
-            QDir().mkpath(ordner);
-            QString ziel = ordner + QStringLiteral("/bibliothek_v%1_vor_v%2_%3.db").arg(version).arg(BIBLIOTHEK_SCHEMA_VERSION)
-                               .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")));
-            QString maskiert = ziel;
-            maskiert.replace(QLatin1Char('\''), QStringLiteral("''"));
-            if (QFileInfo::exists(ziel) || !q.exec(QStringLiteral("VACUUM INTO '%1'").arg(maskiert)))
-                qCWarning(lcDb) << "Bibliothek-Sicherung vor Migration nicht angelegt:" << q.lastError().text() << ziel;
-            else
-                qCInfo(lcDb) << "Bibliothek-Sicherung vor Migration:" << ziel;
-        }
+        q.finish();   // sonst „cannot VACUUM – SQL statements in progress“ (die Versionsabfrage ist noch offen)
+        if (version > 0)
+            bibliothekSichern(QStringLiteral("v%1_vor_v%2").arg(version).arg(BIBLIOTHEK_SCHEMA_VERSION));
     }
 
     if (!m_bibliothekDb.transaction()) {
@@ -427,6 +452,16 @@ bool Database::checkAndApplyBibliothekSchema()
                 return false;
             }
         }
+    }
+
+    // Schema v11 (BIB-IMPORT-01): bauteil_alias – eine FREMDE UID, die lokal als dasselbe Bauteil wie bauteil_id gilt
+    // (entsteht beim Import durch „mit lokalem Bauteil verknüpfen“; UIDs selbst werden nie umgeschrieben).
+    if (!q.exec("CREATE TABLE IF NOT EXISTS bauteil_alias ("
+                "alias_uid TEXT PRIMARY KEY, "
+                "bauteil_id INTEGER NOT NULL REFERENCES bauteil(id) ON DELETE CASCADE)")) {
+        qCWarning(lcDb) << "Bibliothek-Schema v11 (Alias):" << q.lastError().text();
+        m_bibliothekDb.rollback();
+        return false;
     }
 
     // Einmaliges Backfill: bereits vor v8 vorhandene Seed-Bauteile nachträglich

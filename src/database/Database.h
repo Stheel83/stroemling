@@ -52,7 +52,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 129;
     static const int WIKI_SCHEMA_VERSION     = 16;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 10;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 11;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     // schema_migration selbst zählt mit (wird vor createSchema() angelegt, überlebt
@@ -85,6 +85,21 @@ public:
     // BIB-UID-01: stabile UID eines mitgelieferten (ist_system) Bauteils. Deterministisch (UUIDv5 aus der Bezeichnung),
     // damit dasselbe Standardteil auf jedem Rechner dieselbe UID hat. Der Namespace darf sich nie ändern.
     static QString bauteilSystemUid(const QString &bezeichnung);
+
+    // ── Bauteil-Austausch (BIB-IMPORT-01, s. konzept/features/56_bauteil_austausch.md) ──────────────────────────
+    // Exportiert die Bauteil-Bibliothek als JSON-Bündel "stroemling-bauteile". Rückgabe: {ok, anzahl, fehler}.
+    Q_INVOKABLE QVariantMap bauteileExportieren(const QString &pfad, bool mitSystem);
+    // Liest ein Bündel und vergleicht es mit der lokalen Bibliothek, ohne etwas zu ändern.
+    // Rückgabe: {ok, fehler, eintraege:[{uid, bezeichnung, hersteller, artikelnummer, typ, kategorie, status,
+    //            lokalId, lokaleBezeichnung, vorschlag, aktionen}], anzahlNeu, anzahlGleich, ...}
+    Q_INVOKABLE QVariantMap bauteileImportAnalysieren(const QString &pfad);
+    // Führt die Entscheidungen aus (uid → aktion: anlegen|ueberschreiben|kopie|verknuepfen|ueberspringen; fehlend = Vorschlag).
+    // Alles in einer Transaktion; vorher Sicherung der bibliothek.db. Rückgabe: {ok, fehler, angelegt, ueberschrieben, ...}.
+    Q_INVOKABLE QVariantMap bauteileImportAusfuehren(const QString &pfad, const QVariantMap &entscheidungen);
+    // Lokale Bauteil-ID zu einer UID (eigene UID oder Alias aus einem Import); -1 wenn unbekannt.
+    int bauteilIdFuerUid(const QString &uid) const;
+    // Sicherung der bibliothek.db (VACUUM INTO nach backups/); leer bei Fehler, sonst der Pfad.
+    QString bibliothekSichern(const QString &anlass);
 
     // Projektdatei öffnen (existierende .stroemling-Datei)
     Q_INVOKABLE bool openProjekt(const QString &path);

@@ -19,6 +19,7 @@ Rectangle {
     BaKategorieBearbeitenDialog { id: dlgKategorieBearbeiten; theme: root.theme }
     BaBauteilNeuDialog          { id: dlgBauteilNeu;          theme: root.theme }
     BaCsvImportDialog           { id: dlgCsvImport;           theme: root.theme }
+    BaAustauschDialog           { id: dlgAustausch;           theme: root.theme }
 
     // ── Kategoriebaum ────────────────────────────────────────
     ColumnLayout {
@@ -51,6 +52,14 @@ Rectangle {
                     background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
                     ToolTip.visible: hovered; ToolTip.delay: 700; ToolTip.text: qsTr("CSV importieren")
                     onClicked: dlgCsvImport.open()
+                }
+                Button {
+                    visible: baulibH.hovered; width: 22; height: 22; flat: true
+                    contentItem: Text { text: "⇄"; color: theme.textMuted; font.pixelSize: 13;
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 3 }
+                    ToolTip.visible: hovered; ToolTip.delay: 700; ToolTip.text: qsTr("Bauteile austauschen (Export/Import)")
+                    onClicked: dlgAustausch.open()
                 }
                 Button {
                     visible: baulibH.hovered; width: 22; height: 22; flat: true

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtCore
+import "../components"
 
 // BIB-IMPORT-01: Austausch der Bauteil-Bibliothek zwischen Rechnern (Konzept 56).
 // Export als JSON-Bündel; Import erst als Analyse (neu / gleich / abweichend / gleicher Inhalt / ähnlich), dann nur die vom

@@ -78,6 +78,8 @@ qt_add_executable(stroemling_app
     src/utils/KabelTabellen.h
     src/utils/AktivitaetsMonitor.h
     src/utils/AktivitaetsMonitor.cpp
+    src/utils/DateiBrowser.h
+    src/utils/DateiBrowser.cpp
     src/canvas/ElementeModel.cpp
     src/canvas/ElementeModel.h
     src/achievements/AchievementManager.cpp
@@ -182,6 +184,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaSymbolPickerDialog.qml
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaAustauschDialog.qml
+        qml/components/DateiWaehlerDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml
         qml/ba/BaMakroBibliothek.qml
@@ -544,6 +547,9 @@ qt_add_executable(stroemling_test
     tests/tst_kabelrechner.h
     tests/tst_bauteilaustausch.h
     tests/tst_bauteilbezug.h
+    tests/tst_dateibrowser.h
+    src/utils/DateiBrowser.h
+    src/utils/DateiBrowser.cpp
     src/canvas/ElementeModel.cpp
     src/models/KlemmenreihenModel.cpp
     src/models/KlemmenreihenModel.h

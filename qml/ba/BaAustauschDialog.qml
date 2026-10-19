@@ -12,6 +12,23 @@ Item {
 
     function open() { dlg.open() }
 
+    // Eigener Dateiwähler; `ziel` merkt, für welches Feld er geöffnet wurde
+    DateiWaehlerDialog {
+        id: waehler
+        theme: root.theme
+        property string ziel: ""
+        endungen: [".json"]
+        dateiEndung: ".json"
+        onGewaehlt: function (pfad) {
+            if (ziel === "export") {
+                exportPfad.text = pfad
+            } else {
+                importPfad.text = pfad
+                analysieren.clicked()      // direkt analysieren: nach der Dateiwahl gibt es nichts mehr zu tippen
+            }
+        }
+    }
+
     readonly property var statusText: ({
         "neu": qsTr("neu"), "gleich": qsTr("gleich"), "abweichend": qsTr("abweichend"),
         "gleicherInhalt": qsTr("gleicher Inhalt, andere UID"), "aehnlich": qsTr("ähnlich (gleiche Bezeichnung)")
@@ -97,11 +114,24 @@ Item {
                             leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     }
                     Text { text: qsTr("Zieldatei"); color: root.theme.textMuted; font.pixelSize: 11 }
-                    TextField {
-                        id: exportPfad
-                        Layout.fillWidth: true; selectByMouse: true
-                        color: root.theme.textPrimary; font.pixelSize: 12
-                        background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        TextField {
+                            id: exportPfad
+                            Layout.fillWidth: true; selectByMouse: true
+                            color: root.theme.textPrimary; font.pixelSize: 12
+                            background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
+                        }
+                        Button {
+                            text: qsTr("Durchsuchen …")
+                            onClicked: {
+                                waehler.ziel = "export"
+                                waehler.modus = "speichern"
+                                waehler.titelText = qsTr("Bauteile exportieren nach …")
+                                waehler.vorschlagName = dateiBrowser.dateiname(exportPfad.text)
+                                waehler.oeffnenMit(exportPfad.text)
+                            }
+                        }
                     }
                     Button {
                         text: qsTr("Exportieren")
@@ -130,6 +160,16 @@ Item {
                             color: root.theme.textPrimary; font.pixelSize: 12
                             background: Rectangle { color: root.theme.inputBg; radius: 4; border.color: root.theme.border }
                             onAccepted: analysieren.clicked()
+                        }
+                        Button {
+                            text: qsTr("Durchsuchen …")
+                            onClicked: {
+                                waehler.ziel = "import"
+                                waehler.modus = "oeffnen"
+                                waehler.titelText = qsTr("Bauteil-Bündel auswählen")
+                                waehler.vorschlagName = ""
+                                waehler.oeffnenMit(importPfad.text.length > 0 ? importPfad.text : exportPfad.text)
+                            }
                         }
                         Button {
                             id: analysieren

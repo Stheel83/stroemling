@@ -21,6 +21,7 @@
 #include <cstdio>
 
 #include "database/Database.h"
+#include "utils/DateiBrowser.h"
 #include "models/ProjektModel.h"
 #include "models/SeitenModel.h"
 #include "models/BauteilModel.h"
@@ -316,6 +317,7 @@ int main(int argc, char *argv[])
     SymbolDefinitionModel       symbolDefinitionModel;
     KabelRechnerModel           kabelRechnerModel;
     AppHelper                   appHelper;
+    DateiBrowser                dateiBrowser;
     AchievementManager          achievementManager;
     MeldungManager               meldungManager;
     RosiManager                  rosiManager;
@@ -340,6 +342,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("klemmenreiheModel",     &klemmenreiheModel);
     engine.rootContext()->setContextProperty("kabelModel",            &kabelModel);
     engine.rootContext()->setContextProperty("db",                    &db);
+    engine.rootContext()->setContextProperty("dateiBrowser",          &dateiBrowser);   // eigener Dateiwähler (kein nativer FileDialog im AppImage)
     engine.rootContext()->setContextProperty("symbolDefinitionModel", &symbolDefinitionModel);
     engine.rootContext()->setContextProperty("kabelRechnerModel",    &kabelRechnerModel);
     engine.rootContext()->setContextProperty("appHelper",            &appHelper);

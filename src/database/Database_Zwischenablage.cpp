@@ -58,7 +58,9 @@ QVariantList Database::elementeFuerImportSanitisieren(const QVariantList &elemen
     int projektId = -1;
     {
         QSqlQuery qs(m_db);
-        qs.prepare("SELECT projekt_id FROM seite WHERE id = :sid");
+        // seite hat keine eigene projekt_id: Seite → Ort → Anlage → Projekt (BIB-REF-01-Fund: die frühere Abfrage
+        // "SELECT projekt_id FROM seite" scheiterte still, projektId blieb -1 und Bauteil-Snapshots legten kein Betriebsmittel an)
+        qs.prepare("SELECT a.projekt_id FROM seite s JOIN ort o ON o.id = s.ort_id JOIN anlage a ON a.id = o.anlage_id WHERE s.id = :sid");
         qs.bindValue(":sid", seiteId);
         if (qs.exec() && qs.next()) projektId = qs.value(0).toInt();
     }

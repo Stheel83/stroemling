@@ -235,6 +235,14 @@ bool Database::openProjekt(const QString &path)
 
     m_schaltplanOverride = false;
     ibnKopieStatusAktualisieren();
+    {
+        // BIB-REF-01: Bauteil-Bezüge gegen die lokale Bibliothek abgleichen (in schreibgeschützten Projekten und IBN-Kopien nur melden)
+        const QVariantMap bezug = bauteilBezuegePruefen(!m_schreibgeschuetzt && !m_istIbnKopie);
+        bauteilBezuegeAktualisieren();
+        if (bezug.value("angepasst").toInt() > 0 || !bezug.value("fehlend").toList().isEmpty()
+            || !bezug.value("unsicher").toList().isEmpty() || bezug.value("nichtAngepasst").toInt() > 0)
+            emit bauteilBezuegeGeprueft(bezug);
+    }
     zuletzGeoeffnetEintragen(localPath, projektName);
     bekannteProjecteEintragen(localPath, projektName, projektNummer);
     qCInfo(lcDb) << "Projekt geöffnet:" << localPath;
@@ -407,6 +415,7 @@ bool Database::createProjekt(const QString &path, const QString &projektName)
 void Database::closeProjekt()
 {
     if (!m_projektOffen) return;
+    bauteilBezuegeAktualisieren();   // BIB-REF-01: Stand der Verweise festhalten, bevor die Datei den Rechner verlassen kann
     m_db.close();
     m_db = QSqlDatabase();
     QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
@@ -445,6 +454,8 @@ bool Database::projektExportieren(const QString &destPfad)
         qCWarning(lcDb) << "projektExportieren: kein Projekt geöffnet";
         return false;
     }
+
+    bauteilBezuegeAktualisieren();   // BIB-REF-01: Kopien/Sicherungen/IBN-Kopien tragen den aktuellen Stand der Bauteil-Bezüge
 
     // VACUUM INTO schlägt fehl wenn die Zieldatei bereits existiert
     if (QFile::exists(localPfad) && !QFile::remove(localPfad)) {

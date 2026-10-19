@@ -101,6 +101,14 @@ public:
     // Sicherung der bibliothek.db (VACUUM INTO nach backups/); leer bei Fehler, sonst der Pfad.
     QString bibliothekSichern(const QString &anlass);
 
+    // ── Stabile Bauteil-Bezüge (BIB-REF-01, konzept/features/56_bauteil_austausch.md §4) ──────────────────────────
+    // Gleicht die ID-Verweise des Projekts mit der lokalen Bibliothek über die UID ab: stimmt die UID zu einer ID nicht mehr,
+    // wird der Verweis (bei schreiben=true) auf die lokale ID desselben Bauteils umgeschrieben; nicht Auflösbares wird nur gemeldet.
+    // Rückgabe: {angepasst, fehlend:[{name, uid}], unsicher:[{name, uid, lokalerName}], nichtAngepasst}.
+    Q_INVOKABLE QVariantMap bauteilBezuegePruefen(bool schreiben);
+    // Hält die UID der aktuell benutzten Verweise im Projekt fest (nur wenn sich etwas ändert; nie in schreibgeschützten Projekten/IBN-Kopien).
+    Q_INVOKABLE bool bauteilBezuegeAktualisieren();
+
     // Projektdatei öffnen (existierende .stroemling-Datei)
     Q_INVOKABLE bool openProjekt(const QString &path);
 
@@ -191,6 +199,7 @@ Q_SIGNALS:
     void schreibschutzChanged();
     void ibnKopieChanged();
     void sperreVerweigert(const QString &text);   // VERT-02c: Toast-Text fuer verweigerte Aktionen
+    void bauteilBezuegeGeprueft(const QVariantMap &ergebnis);   // BIB-REF-01: Ergebnis des Bezugsabgleichs beim Öffnen (nur wenn etwas angepasst wurde oder fehlt)
     void registryGeaendert();
     void dbFehler(const QString &meldung);
     // Wie dbFehler, aber der Dialog bietet zusätzlich "Backup-Ordner öffnen" an (BACKUP-OEFFNEN-01)

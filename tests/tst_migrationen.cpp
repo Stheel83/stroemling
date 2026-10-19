@@ -21,6 +21,7 @@
 #include "tst_kernfunktionen.h"
 #include "tst_kabelrechner.h"
 #include "tst_bauteilaustausch.h"
+#include "tst_bauteilbezug.h"
 
 // Testet das Migrations-System auf einer temporären SQLite-Datei.
 // Ablauf: createProjekt (v40-Baseline) → closeProjekt → openProjekt
@@ -1436,10 +1437,12 @@ int main(int argc, char *argv[])
     TstKernfunktionen kern;
     TstKabelrechner   kabel;
     TstBauteilAustausch austausch;
+    TstBauteilBezug     bezug;
     int rc = QTest::qExec(&migrationen, argc, argv);
     rc |= QTest::qExec(&kern, argc, argv);
     rc |= QTest::qExec(&kabel, argc, argv);
     rc |= QTest::qExec(&austausch, argc, argv);
+    rc |= QTest::qExec(&bezug, argc, argv);
     return rc;
 }
 #include "tst_migrationen.moc"

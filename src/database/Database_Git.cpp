@@ -142,6 +142,8 @@ void Database::gitAutoCommit(const QString &ordner, const QString &nachricht)
     if (ordner.isEmpty()) return;
     if (!QDir(ordner + "/.git").exists()) return;
 
+    bauteilBezuegeAktualisieren();   // BIB-REF-01: der Commit soll den aktuellen Stand der Bauteil-Bezüge enthalten
+
     // WAL in Hauptdatei schreiben damit projekt.strl vollständig ist
     {
         QSqlQuery q(m_db);

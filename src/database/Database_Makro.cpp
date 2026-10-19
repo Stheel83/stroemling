@@ -106,7 +106,7 @@ QJsonObject Database::_bauteilSnapshotErzeugen(int betriebsmittelId)
 
     QSqlQuery q(m_db);
     q.prepare(R"(
-        SELECT b.bezeichnung, b.hersteller, b.artikelnummer
+        SELECT b.bezeichnung, b.hersteller, b.artikelnummer, b.uid
         FROM betriebsmittel bm
         LEFT JOIN bibliothek.bauteil b ON b.id = bm.bauteil_id
         WHERE bm.id = :bmid
@@ -118,6 +118,7 @@ QJsonObject Database::_bauteilSnapshotErzeugen(int betriebsmittelId)
             snap[QStringLiteral("bezeichnung")]   = bezeichnung;
             snap[QStringLiteral("hersteller")]    = q.value(1).toString();
             snap[QStringLiteral("artikelnummer")] = q.value(2).toString();
+            snap[QStringLiteral("uid")]           = q.value(3).toString();   // BIB-REF-01: Identität statt rechnerlokaler ID
         }
     }
     return snap;
@@ -142,8 +143,8 @@ QVariant Database::_betriebsmittelAusSnapshotAnlegenOderFinden(const QJsonObject
     const QString hersteller    = snap.value(QStringLiteral("hersteller")).toString();
     const QString artikelnummer = snap.value(QStringLiteral("artikelnummer")).toString();
 
-    int bauteilId = -1;
-    if (!artikelnummer.isEmpty()) {
+    int bauteilId = bauteilIdFuerUid(snap.value(QStringLiteral("uid")).toString());   // BIB-REF-01: erst über die UID (eigene UID oder Alias)
+    if (bauteilId < 0 && !artikelnummer.isEmpty()) {
         QSqlQuery qb(m_db);
         qb.prepare("SELECT id FROM bibliothek.bauteil WHERE artikelnummer = :an LIMIT 1");
         qb.bindValue(":an", artikelnummer);
@@ -151,8 +152,10 @@ QVariant Database::_betriebsmittelAusSnapshotAnlegenOderFinden(const QJsonObject
     }
     if (bauteilId < 0 && !bezeichnung.isEmpty()) {
         QSqlQuery qins(m_db);
-        qins.prepare("INSERT INTO bibliothek.bauteil (bezeichnung, hersteller, artikelnummer) "
-                     "VALUES (:bez, :her, :art)");
+        // Mit der UID des Snapshots anlegen, damit die Identität erhalten bleibt (leer = der Trigger vergibt eine neue)
+        qins.prepare("INSERT INTO bibliothek.bauteil (bezeichnung, hersteller, artikelnummer, uid) "
+                     "VALUES (:bez, :her, :art, :uid)");
+        qins.bindValue(":uid", snap.value(QStringLiteral("uid")).toString());
         qins.bindValue(":bez", bezeichnung);
         qins.bindValue(":her", hersteller.isEmpty() ? QVariant() : QVariant(hersteller));
         qins.bindValue(":art", artikelnummer.isEmpty() ? QVariant() : QVariant(artikelnummer));
@@ -468,7 +471,9 @@ QVariantList Database::makroElementeEinfuegen(int makroId, int seiteId,
     int projektId = -1;
     {
         QSqlQuery qs(m_db);
-        qs.prepare("SELECT projekt_id FROM seite WHERE id = :sid");
+        // seite hat keine eigene projekt_id: Seite → Ort → Anlage → Projekt (BIB-REF-01-Fund: die frühere Abfrage
+        // "SELECT projekt_id FROM seite" scheiterte still, projektId blieb -1 und Bauteil-Snapshots legten kein Betriebsmittel an)
+        qs.prepare("SELECT a.projekt_id FROM seite s JOIN ort o ON o.id = s.ort_id JOIN anlage a ON a.id = o.anlage_id WHERE s.id = :sid");
         qs.bindValue(":sid", seiteId);
         if (qs.exec() && qs.next()) projektId = qs.value(0).toInt();
     }

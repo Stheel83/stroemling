@@ -57,6 +57,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
     src/database/Database_BauteilAustausch.cpp
+    src/database/Database_BauteilBezug.cpp
     src/database/Database.h
     src/models/ProjektModel.cpp
     src/models/ProjektModel.h
@@ -542,6 +543,7 @@ qt_add_executable(stroemling_test
     tests/tst_kernfunktionen.h
     tests/tst_kabelrechner.h
     tests/tst_bauteilaustausch.h
+    tests/tst_bauteilbezug.h
     src/canvas/ElementeModel.cpp
     src/models/KlemmenreihenModel.cpp
     src/models/KlemmenreihenModel.h
@@ -583,6 +585,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Archiv.cpp
     src/database/Database_Bibliothek.cpp
     src/database/Database_BauteilAustausch.cpp
+    src/database/Database_BauteilBezug.cpp
     src/database/Database_DRC.cpp
     src/database/Database_Git.cpp
     src/database/Database_Geraetekasten.cpp

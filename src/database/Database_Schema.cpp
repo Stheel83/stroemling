@@ -3126,6 +3126,15 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE projekt ADD COLUMN projekt_uuid TEXT NOT NULL DEFAULT '')",
             R"(UPDATE projekt SET projekt_uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))) WHERE projekt_uuid = '')",
         }},
+        { 178, "BIB-REF-01: bauteil_bezug - welche Bauteil-UID ein im Projekt benutzter ID-Verweis auf die lokale bibliothek.db zuletzt hatte (art 'bauteil' = bauteil.id aus betriebsmittel/klemme/grafik_element.extra_daten, art 'kabel' = bauteil_kabel.id aus kabel, uid = UID des Eigentuemer-Bauteils). Beim Oeffnen mit einer anderen Bibliothek loest Database::bauteilBezuegePruefen() die Verweise ueber die UID wieder auf. Bewusst eine zentrale Tabelle statt UID-Spalten an jeder Schreibstelle.", {
+            R"(CREATE TABLE IF NOT EXISTS bauteil_bezug (
+                art         TEXT    NOT NULL,
+                ref_id      INTEGER NOT NULL,
+                uid         TEXT    NOT NULL,
+                bezeichnung TEXT    NOT NULL DEFAULT '',
+                PRIMARY KEY (art, ref_id)
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

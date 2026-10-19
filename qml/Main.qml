@@ -360,6 +360,19 @@ ApplicationWindow {
             root._sperreToastZeit = jetzt
             meldungManager.zeigen(text, false)
         }
+        // BIB-REF-01: Bauteil-Bezüge beim Öffnen gegen die lokale Bibliothek abgeglichen (z. B. Projekt von einem anderen Rechner)
+        function onBauteilBezuegeGeprueft(e) {
+            var offen = (e.fehlend || []).concat(e.unsicher || [])
+            var namen = offen.slice(0, 3).map(function (o) { return o.name }).join(", ") + (offen.length > 3 ? " …" : "")
+            if (e.angepasst > 0)
+                meldungManager.zeigen(qsTr("%1 Bauteil-Bezüge an deine Bibliothek angepasst.").arg(e.angepasst), true)
+            if (offen.length > 0)
+                meldungManager.zeigen(qsTr("%1 Bauteile dieses Projekts fehlen in deiner Bibliothek (oder sind dort ein anderes Bauteil): %2. "
+                                           + "Bitte die Bauteil-Bibliothek des Absenders importieren (Bibliothek → ⇄).").arg(offen.length).arg(namen), false)
+            if (e.nichtAngepasst > 0)
+                meldungManager.zeigen(qsTr("%1 Bauteil-Bezüge passen nicht zu deiner Bibliothek, wurden aber nicht angepasst "
+                                           + "(schreibgeschütztes Projekt oder IBN-Kopie).").arg(e.nichtAngepasst), false)
+        }
     }
 
     Rectangle {

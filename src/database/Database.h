@@ -52,7 +52,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 129;
     static const int WIKI_SCHEMA_VERSION     = 16;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 9;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 10;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     // schema_migration selbst zählt mit (wird vor createSchema() angelegt, überlebt
@@ -81,6 +81,10 @@ public:
 
     // Bibliothek-DB öffnen (bibliothek.db – projektübergreifende Bauteil-Bibliothek)
     bool openBibliothek(const QString &path);
+
+    // BIB-UID-01: stabile UID eines mitgelieferten (ist_system) Bauteils. Deterministisch (UUIDv5 aus der Bezeichnung),
+    // damit dasselbe Standardteil auf jedem Rechner dieselbe UID hat. Der Namespace darf sich nie ändern.
+    static QString bauteilSystemUid(const QString &bezeichnung);
 
     // Projektdatei öffnen (existierende .stroemling-Datei)
     Q_INVOKABLE bool openProjekt(const QString &path);
@@ -1199,6 +1203,8 @@ private:
 
     // 6 repräsentative Klemmen-Bauteile (Durchgang/PE/N/Doppelstock/Trenn)
     bool seedStandardKlemmen();
+    // BIB-UID-01: UID der Seed-Bauteile (ist_system=1) auf den deterministischen Wert bringen (idempotent)
+    bool bauteilUidsAbgleichen();
 
     // Nutzer-eigene Bauteile aus src/database/bauteile_nutzer.sql (Klemmen, Kabel …)
     bool seedNutzerBauteile();

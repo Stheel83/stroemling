@@ -6,7 +6,10 @@
 #include <QFile>
 #include <QDateTime>
 #include <QSet>
+#include <QUuid>
 #include <QRegularExpression>
+#include <QSqlRecord>
+#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -1259,6 +1262,168 @@ private slots:
             k.closeProjekt();
         }
         QFile::remove(kopie); QFile::remove(kopie + "-wal"); QFile::remove(kopie + "-shm");
+    }
+    // --- BIB-UID-01: stabile Bauteil-UID (Bibliotheksschema v10) --------------------------------------------------
+    // Rohzugriff auf eine bibliothek.db an Database vorbei
+    static QList<QVariantList> bibAbfrage(const QString &pfad, const QString &sql, bool *ok = nullptr)
+    {
+        QList<QVariantList> zeilen;
+        const QString v = QStringLiteral("bibraw_") + QUuid::createUuid().toString(QUuid::Id128);
+        bool gut = false;
+        {
+            QSqlDatabase d = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), v);
+            d.setDatabaseName(pfad);
+            if (d.open()) {
+                QSqlQuery q(d);
+                gut = q.exec(sql);
+                while (gut && q.next()) {
+                    QVariantList z;
+                    for (int i = 0; i < q.record().count(); ++i)
+                        z << q.value(i);
+                    zeilen << z;
+                }
+                d.close();
+            }
+        }
+        QSqlDatabase::removeDatabase(v);
+        if (ok) *ok = gut;
+        return zeilen;
+    }
+
+    void test_29_bauteilUid()
+    {
+        const QRegularExpression uuidMuster(
+            QStringLiteral("^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"));
+        const QString wurzel = QDir::tempPath() + "/stroemling_test_biguid_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVERIFY(QDir().mkpath(wurzel));
+        const QString lib = wurzel + "/bibliothek.db";
+
+        // 1) Frische Bibliothek: jedes Bauteil hat eine eindeutige UID, Seed-Teile die deterministische
+        {
+            Database d;
+            QVERIFY2(d.openBibliothek(lib), "openBibliothek (frisch) schlug fehl");
+        }
+        bool ok = false;
+        QList<QVariantList> alle = bibAbfrage(lib, "SELECT id, bezeichnung, uid, ist_system FROM bauteil", &ok);
+        QVERIFY(ok);
+        QVERIFY(alle.size() > 20);                                           // Seed vorhanden
+        QSet<QString> uids;
+        int system = 0;
+        QHash<QString, QString> systemUids;
+        for (const QVariantList &z : alle) {
+            const QString uid = z.at(2).toString();
+            QVERIFY2(uuidMuster.match(uid).hasMatch(), qPrintable("UID ungültig: '" + uid + "' bei " + z.at(1).toString()));
+            uids.insert(uid);
+            if (z.at(3).toInt() != 0) {
+                ++system;
+                QCOMPARE(uid, Database::bauteilSystemUid(z.at(1).toString()));
+                systemUids.insert(z.at(1).toString(), uid);
+            }
+        }
+        QCOMPARE(uids.size(), alle.size());                                  // eindeutig
+        QVERIFY(system > 20);
+        QVERIFY(bibAbfrage(lib, "SELECT 1 FROM sqlite_master WHERE name = 'idx_bauteil_uid'").size() == 1);
+        QVERIFY(bibAbfrage(lib, "SELECT 1 FROM sqlite_master WHERE name = 'bauteil_uid_setzen'").size() == 1);
+        QCOMPARE(bibAbfrage(lib, "SELECT version FROM bibliothek_schema_version").first().first().toInt(), 10);
+
+        // 2) Zweite, unabhängige Installation: dieselben Seed-Teile haben dieselben UIDs
+        {
+            const QString lib2 = wurzel + "/zweite_bibliothek.db";
+            Database d;
+            QVERIFY(d.openBibliothek(lib2));
+            for (const QVariantList &z : bibAbfrage(lib2, "SELECT bezeichnung, uid FROM bauteil WHERE ist_system = 1"))
+                QCOMPARE(z.at(1).toString(), systemUids.value(z.at(0).toString()));
+        }
+
+        // 3) Neue Bauteile (Editor, Kopie, CSV-Import, Makro-Import: alle ohne UID-Spalte) bekommen per Trigger eine UUIDv4
+        QVERIFY(bibAbfrage(lib, "INSERT INTO bauteil (bezeichnung) VALUES ('Eigenes Teil A')", &ok).isEmpty() && ok);
+        QVERIFY(bibAbfrage(lib, "INSERT INTO bauteil (bezeichnung) VALUES ('Eigenes Teil B')", &ok).isEmpty() && ok);
+        const auto eigene = bibAbfrage(lib, "SELECT uid FROM bauteil WHERE bezeichnung LIKE 'Eigenes Teil %' ORDER BY id");
+        QCOMPARE(eigene.size(), 2);
+        const QString uidA = eigene.at(0).at(0).toString(), uidB = eigene.at(1).at(0).toString();
+        QVERIFY(uuidMuster.match(uidA).hasMatch() && uuidMuster.match(uidB).hasMatch());
+        QVERIFY(uidA != uidB);
+        QCOMPARE(uidA.at(14), QLatin1Char('4'));                              // zufällig (v4), nicht deterministisch
+
+        // 4) Mehrfaches Öffnen ändert keine UID (idempotent)
+        { Database d; QVERIFY(d.openBibliothek(lib)); }
+        QCOMPARE(bibAbfrage(lib, "SELECT uid FROM bauteil WHERE bezeichnung = 'Eigenes Teil A'").first().first().toString(), uidA);
+        QCOMPARE(bibAbfrage(lib, "SELECT COUNT(DISTINCT uid), COUNT(*) FROM bauteil").first().first().toInt(), alle.size() + 2);
+
+        // 5) Migration einer Bibliothek im Stand v9 (ohne Spalte uid): Backup entsteht, alle bekommen eine UID
+        QVERIFY(bibAbfrage(lib, "DROP TRIGGER bauteil_uid_setzen", &ok).isEmpty() && ok);
+        QVERIFY(bibAbfrage(lib, "DROP INDEX idx_bauteil_uid", &ok).isEmpty() && ok);
+        QVERIFY(bibAbfrage(lib, "ALTER TABLE bauteil DROP COLUMN uid", &ok).isEmpty() && ok);
+        QVERIFY(bibAbfrage(lib, "UPDATE bibliothek_schema_version SET version = 9", &ok).isEmpty() && ok);
+        QVERIFY(bibAbfrage(lib, "INSERT INTO bauteil (bezeichnung) VALUES ('Altes eigenes Teil')", &ok).isEmpty() && ok);
+        QVERIFY(QDir(wurzel + "/backups").entryList({ "bibliothek_v9_vor_v10_*.db" }, QDir::Files).isEmpty());
+        { Database d; QVERIFY2(d.openBibliothek(lib), "Migration v9 -> v10 schlug fehl"); }
+        const QStringList backups = QDir(wurzel + "/backups").entryList({ "bibliothek_v9_vor_v10_*.db" }, QDir::Files);
+        QCOMPARE(backups.size(), 1);                                          // Sicherung vor der Migration
+        QVERIFY(bibAbfrage(wurzel + "/backups/" + backups.first(), "SELECT 1 FROM sqlite_master WHERE name='bauteil'").size() == 1);
+        const auto nachMig = bibAbfrage(lib, "SELECT bezeichnung, uid, ist_system FROM bauteil");
+        QSet<QString> nachUids;
+        for (const QVariantList &z : nachMig) {
+            QVERIFY2(uuidMuster.match(z.at(1).toString()).hasMatch(), qPrintable("nach Migration ohne UID: " + z.at(0).toString()));
+            nachUids.insert(z.at(1).toString());
+            if (z.at(2).toInt() != 0)
+                QCOMPARE(z.at(1).toString(), systemUids.value(z.at(0).toString()));   // Seed-UIDs wieder identisch
+        }
+        QCOMPARE(nachUids.size(), nachMig.size());
+        QCOMPARE(bibAbfrage(lib, "SELECT version FROM bibliothek_schema_version").first().first().toInt(), 10);
+
+        // 6) Gleichnamige Seed-Zeilen (Altlast eines Namens-Backfills) dürfen das Öffnen nie blockieren
+        const QString erstesSystem = systemUids.keys().first();
+        QString esc = erstesSystem; esc.replace('\'', "''");
+        QVERIFY(bibAbfrage(lib, QStringLiteral("INSERT INTO bauteil (bezeichnung, ist_system) VALUES ('%1', 1)").arg(esc), &ok).isEmpty() && ok);
+        { Database d; QVERIFY2(d.openBibliothek(lib), "Öffnen mit gleichnamiger System-Zeile schlug fehl"); }
+        const auto dups = bibAbfrage(lib, "SELECT COUNT(DISTINCT uid), COUNT(*) FROM bauteil");
+        QCOMPARE(dups.first().at(0).toInt(), dups.first().at(1).toInt());      // weiterhin eindeutig
+        QCOMPARE(bibAbfrage(lib, QStringLiteral("SELECT COUNT(*) FROM bauteil WHERE uid = '%1'").arg(systemUids.value(erstesSystem))).first().first().toInt(), 1);
+
+        QDir(wurzel).removeRecursively();
+    }
+    // BIB-UID-01 gegen eine ECHTE Bibliothek: nur wenn STROEMLING_TEST_BIB_KOPIE auf eine Kopie zeigt (nie das Original!).
+    // Keine Fixture im Repo – der Pfad kommt aus der Umgebung, die Kopie wird vom Test selbst nochmals kopiert.
+    void test_30_echteBibliothekMigriertOhneDatenverlust()
+    {
+        const QString quelle = qEnvironmentVariable("STROEMLING_TEST_BIB_KOPIE");
+        if (quelle.isEmpty() || !QFileInfo::exists(quelle))
+            QSKIP("STROEMLING_TEST_BIB_KOPIE nicht gesetzt");
+        const QString wurzel = QDir::tempPath() + "/stroemling_test_echtbib_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVERIFY(QDir().mkpath(wurzel));
+        const QString lib = wurzel + "/bibliothek.db";
+        QVERIFY(QFile::copy(quelle, lib));
+
+        const QString vorSql = "SELECT id, bezeichnung, kategorie_id, hersteller, artikelnummer, ist_system FROM bauteil ORDER BY id";
+        bool ok = false;
+        const auto vorher = bibAbfrage(lib, vorSql, &ok);
+        QVERIFY(ok && !vorher.isEmpty());
+        const int versionVorher = bibAbfrage(lib, "SELECT MAX(version) FROM bibliothek_schema_version").first().first().toInt();
+        const auto kabelVorher = bibAbfrage(lib, "SELECT id, bauteil_id FROM bauteil_kabel ORDER BY id");
+
+        { Database d; QVERIFY2(d.openBibliothek(lib), "Migration der echten Bibliothek schlug fehl"); }
+
+        // Bestehende Daten und IDs unverändert (Projekte verweisen per ID darauf!)
+        const auto nachher = bibAbfrage(lib, vorSql, &ok);
+        QVERIFY(ok);
+        QVERIFY2(nachher.size() >= vorher.size(), "Bauteile gingen verloren");
+        for (int i = 0; i < vorher.size(); ++i)
+            QCOMPARE(nachher.at(i), vorher.at(i));
+        QCOMPARE(bibAbfrage(lib, "SELECT id, bauteil_id FROM bauteil_kabel ORDER BY id"), kabelVorher);
+
+        // Jeder Eintrag hat eine eindeutige UID, Seed-Teile die deterministische
+        const auto uids = bibAbfrage(lib, "SELECT bezeichnung, uid, ist_system FROM bauteil");
+        QSet<QString> eindeutig;
+        for (const QVariantList &z : uids) {
+            QVERIFY2(!z.at(1).toString().isEmpty(), qPrintable("ohne UID: " + z.at(0).toString()));
+            eindeutig.insert(z.at(1).toString());
+        }
+        QCOMPARE(eindeutig.size(), uids.size());
+        if (versionVorher < 10)
+            QVERIFY(!QDir(wurzel + "/backups").entryList({ "bibliothek_v*_vor_v10_*.db" }, QDir::Files).isEmpty());
+        qInfo() << "Echte Bibliothek: Stand vorher v" << versionVorher << "|" << vorher.size() << "Bauteile ->" << uids.size() << "mit UID";
+        QDir(wurzel).removeRecursively();
     }
 };
 

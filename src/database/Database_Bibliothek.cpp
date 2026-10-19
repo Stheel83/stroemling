@@ -2,6 +2,62 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
+#include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
+#include <QSet>
+#include <QUuid>
+
+namespace {
+
+// UUIDv4 rein in SQL (zufällig): Backfill vorhandener Bauteile und Trigger für alle künftigen INSERTs.
+const char *const kUuidV4Sql =
+    "lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || "
+    "substr('89ab', 1 + (abs(random()) % 4), 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))";
+
+} // namespace
+
+QString Database::bauteilSystemUid(const QString &bezeichnung)
+{
+    // Namespace für Seed-Bauteil-UIDs – einmalig erzeugt und FÜR IMMER FEST (eine Änderung würde alle Standard-UIDs ändern).
+    static const QUuid ns(QStringLiteral("{646fa01d-e27f-44af-9f0c-777c924fc973}"));
+    return QUuid::createUuidV5(ns, bezeichnung.toUtf8()).toString(QUuid::WithoutBraces);
+}
+
+bool Database::bauteilUidsAbgleichen()
+{
+    QSqlQuery q(m_bibliothekDb);
+    QSet<QString> belegt;
+    struct Zeile { int id; QString bezeichnung; QString uid; };
+    QList<Zeile> system;
+    if (!q.exec("SELECT id, bezeichnung, uid, ist_system FROM bauteil ORDER BY id")) {
+        qCWarning(lcDb) << "Bauteil-UIDs lesen:" << q.lastError().text();
+        return false;
+    }
+    while (q.next()) {
+        belegt.insert(q.value(2).toString());
+        if (q.value(3).toInt() != 0)
+            system.append({ q.value(0).toInt(), q.value(1).toString(), q.value(2).toString() });
+    }
+    QSqlQuery upd(m_bibliothekDb);
+    upd.prepare("UPDATE bauteil SET uid = :uid WHERE id = :id");
+    for (const Zeile &z : system) {
+        const QString soll = bauteilSystemUid(z.bezeichnung);
+        // Gleichnamige Seed-Zeilen (aus einem früheren Namens-Backfill): die erste bekommt die Standard-UID, die übrigen
+        // behalten ihre – UIDs müssen eindeutig bleiben, ein Öffnen der Bibliothek darf daran nie scheitern.
+        if (z.uid == soll || belegt.contains(soll))
+            continue;
+        upd.bindValue(":uid", soll);
+        upd.bindValue(":id", z.id);
+        if (!upd.exec()) {
+            qCWarning(lcDb) << "Bauteil-UID setzen:" << z.bezeichnung << upd.lastError().text();
+            continue;
+        }
+        belegt.remove(z.uid);
+        belegt.insert(soll);
+    }
+    return true;
+}
 
 bool Database::openBibliothek(const QString &path)
 {
@@ -41,7 +97,22 @@ bool Database::checkAndApplyBibliothekSchema()
             // Seeds trotzdem erneut anwenden (idempotent, WHERE NOT EXISTS-Guard) –
             // sonst kommen später zu bauteile_nutzer.sql hinzugefügte Bauteile bei
             // bereits initialisierten Installationen nie an (GERAETE-SEED-01-Fund).
-            return seedStandardKlemmen() && seedNutzerBauteile();
+            return seedStandardKlemmen() && seedNutzerBauteile() && bauteilUidsAbgleichen();
+        }
+        // Vor dem Migrieren einer bestehenden Bibliothek eine Sicherung ablegen (die Datei ist projektübergreifend und
+        // nicht Teil des Komplettarchivs). Die Migration ist additiv und läuft in einer Transaktion; ein Fehlschlag der
+        // Sicherung blockiert sie daher nicht, wird aber gemeldet.
+        if (version > 0) {
+            const QString ordner = QFileInfo(m_bibliothekPfad).absolutePath() + QStringLiteral("/backups");
+            QDir().mkpath(ordner);
+            QString ziel = ordner + QStringLiteral("/bibliothek_v%1_vor_v%2_%3.db").arg(version).arg(BIBLIOTHEK_SCHEMA_VERSION)
+                               .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")));
+            QString maskiert = ziel;
+            maskiert.replace(QLatin1Char('\''), QStringLiteral("''"));
+            if (QFileInfo::exists(ziel) || !q.exec(QStringLiteral("VACUUM INTO '%1'").arg(maskiert)))
+                qCWarning(lcDb) << "Bibliothek-Sicherung vor Migration nicht angelegt:" << q.lastError().text() << ziel;
+            else
+                qCInfo(lcDb) << "Bibliothek-Sicherung vor Migration:" << ziel;
         }
     }
 
@@ -334,6 +405,30 @@ bool Database::checkAndApplyBibliothekSchema()
         }
     }
 
+    // Schema v10 (BIB-UID-01): bauteil.uid – stabile Bauteil-Identität statt rechnerlokaler Integer-ID (s. Manager-Konzept
+    // M-03 §3/§7). Alle INSERT-Stellen nennen ihre Spalten ausdrücklich und kennen keine UID; ein Trigger vergibt daher
+    // bei JEDEM künftigen Bauteil eine UUIDv4. Seed-Bauteile (ist_system=1) bekommen danach per bauteilUidsAbgleichen()
+    // eine deterministische UID (UUIDv5 aus der Bezeichnung), damit sie auf allen Rechnern gleich ist.
+    {
+        const QStringList uidStmts = {
+            QStringLiteral("ALTER TABLE bauteil ADD COLUMN uid TEXT NOT NULL DEFAULT ''"),
+            QStringLiteral("UPDATE bauteil SET uid = %1 WHERE uid = ''").arg(QLatin1String(kUuidV4Sql)),
+            // Teil-Index: ein leerer Wert ist zwischen INSERT und Trigger kurz erlaubt
+            QStringLiteral("CREATE UNIQUE INDEX IF NOT EXISTS idx_bauteil_uid ON bauteil(uid) WHERE uid <> ''"),
+            QStringLiteral("CREATE TRIGGER IF NOT EXISTS bauteil_uid_setzen AFTER INSERT ON bauteil WHEN NEW.uid = '' "
+                           "BEGIN UPDATE bauteil SET uid = %1 WHERE id = NEW.id; END").arg(QLatin1String(kUuidV4Sql)),
+        };
+        for (const QString &sql : uidStmts) {
+            if (!q.exec(sql)) {
+                if (sql.startsWith(QLatin1String("ALTER")) && q.lastError().databaseText().toLower().contains("duplicate column"))
+                    continue;
+                qCWarning(lcDb) << "Bibliothek-Schema v10 (UID):" << q.lastError().text() << sql.left(60);
+                m_bibliothekDb.rollback();
+                return false;
+            }
+        }
+    }
+
     // Einmaliges Backfill: bereits vor v8 vorhandene Seed-Bauteile nachträglich
     // als ist_system=1 markieren (der INSERT-Guard in seedStandardKlemmen()/
     // seedNutzerBauteile() prüft nur "bezeichnung existiert bereits" und
@@ -415,7 +510,7 @@ bool Database::checkAndApplyBibliothekSchema()
         }
     }
 
-    if (!seedStandardKlemmen() || !seedNutzerBauteile()) {
+    if (!seedStandardKlemmen() || !seedNutzerBauteile() || !bauteilUidsAbgleichen()) {
         qCWarning(lcDb) << "Bibliothek-Seed fehlgeschlagen";
         m_bibliothekDb.rollback();
         return false;

@@ -3122,6 +3122,10 @@ static QList<SchemaMigration> alleMigrationen()
             R"(ALTER TABLE ibn_kopie ADD COLUMN pfad TEXT NOT NULL DEFAULT '')",
             R"(ALTER TABLE projekt ADD COLUMN overlay_exportiert_am TEXT NOT NULL DEFAULT '')",
         }},
+        { 177, "PROJEKT-UUID-01: projekt.projekt_uuid (stabile, rein interne Projekt-Identitaet; VACUUM-INTO-Kopien wie Sicherungen und IBN-Kopien erben sie bewusst - gleiche UUID = gleiches Projekt). Wird hier in SQL (UUIDv4 aus randomblob) fuer jede Projektzeile ohne UUID gesetzt; das deckt Alt-Projekte beim ersten Oeffnen UND neu angelegte Projekte ab, weil createProjekt() die Migrationen > CURRENT_SCHEMA_VERSION nach dem Einfuegen der Projektzeile anwendet.", {
+            R"(ALTER TABLE projekt ADD COLUMN projekt_uuid TEXT NOT NULL DEFAULT '')",
+            R"(UPDATE projekt SET projekt_uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6))) WHERE projekt_uuid = '')",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

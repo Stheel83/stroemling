@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QDateTime>
 #include <QSet>
+#include <QRegularExpression>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -1202,6 +1203,62 @@ private slots:
         QCOMPARE(db.kabelAnlegen(1, "W3", "", 3, 1.5, 0, "", ""), -1);
 
         QDir(ordner).removeRecursively();
+    }
+
+    void test_28_projektUuid()
+    {
+        // PROJEKT-UUID-01 (Migration 177): jedes Projekt hat eine UUIDv4, sie bleibt beim erneuten
+        // Oeffnen stabil, Alt-Projekte (leere UUID) bekommen sie beim Oeffnen nachgetragen,
+        // verschiedene Projekte haben verschiedene UUIDs.
+        const QRegularExpression uuidMuster(
+            QStringLiteral("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"));
+        const auto liesUuid = [](Database &d) {
+            Q_UNUSED(d);
+            QSqlQuery q(QSqlDatabase::database());
+            return (q.exec("SELECT projekt_uuid FROM projekt ORDER BY id LIMIT 1") && q.next())
+                       ? q.value(0).toString() : QString();
+        };
+
+        TmpProjekt a("uuid_a");
+        const QString uuidA = liesUuid(a.db);
+        QVERIFY2(uuidMuster.match(uuidA).hasMatch(), qPrintable("UUID ungueltig: " + uuidA));
+
+        // Stabil nach Schliessen/Oeffnen
+        a.db.closeProjekt();
+        QVERIFY(a.db.openProjekt(a.pfad));
+        QCOMPARE(liesUuid(a.db), uuidA);
+
+        // Zweites Projekt: andere UUID
+        {
+            TmpProjekt b("uuid_b");
+            const QString uuidB = liesUuid(b.db);
+            QVERIFY(uuidMuster.match(uuidB).hasMatch());
+            QVERIFY(uuidB != uuidA);
+        }
+
+        // Alt-Projekt: UUID leer, Migration 177 nicht verbucht -> beim Oeffnen wird sie nachgetragen
+        TmpProjekt c("uuid_c");
+        {
+            QSqlQuery q(QSqlDatabase::database());
+            QVERIFY(q.exec("UPDATE projekt SET projekt_uuid = ''"));
+            QVERIFY(q.exec("DELETE FROM schema_migration WHERE version >= 177"));
+        }
+        c.db.closeProjekt();
+        QVERIFY(c.db.openProjekt(c.pfad));
+        QVERIFY2(uuidMuster.match(liesUuid(c.db)).hasMatch(), "Alt-Projekt: UUID nicht nachgetragen");
+
+        // Kopie per VACUUM INTO (wie Sicherung/IBN-Kopie) behaelt die UUID
+        const QString kopie = c.pfad + ".kopie";
+        QVERIFY(c.db.projektExportieren(kopie));
+        const QString uuidC = liesUuid(c.db);
+        c.db.closeProjekt();
+        {
+            Database k;
+            QVERIFY(k.openProjekt(kopie));
+            QCOMPARE(liesUuid(k), uuidC);
+            k.closeProjekt();
+        }
+        QFile::remove(kopie); QFile::remove(kopie + "-wal"); QFile::remove(kopie + "-shm");
     }
 };
 

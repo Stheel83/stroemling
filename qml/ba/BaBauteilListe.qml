@@ -32,6 +32,28 @@ Item {
         theme: root.theme
     }
 
+    // ── Schutz von Standardteilen: Löschen nur nach Bestätigung ──
+    property int    _loeschId: -1
+    property string _loeschName: ""
+    Dialog {
+        id: standardLoeschDialog
+        title: qsTr("Standardteil löschen?")
+        modal: true; parent: Overlay.overlay; anchors.centerIn: parent
+        width: 440; padding: 16
+        background: Rectangle { color: theme.sidebar; radius: 6; border.color: theme.border }
+        contentItem: Text {
+            wrapMode: Text.WordWrap; color: theme.textPrimary; font.pixelSize: 12
+            text: qsTr("„%1“ ist ein Standardteil (mitgeliefert oder aus dem Firmenstandard). Projekte, die es verwenden, verlieren ihren Bezug; "
+                       + "ein Firmenstandard-Teil kommt beim nächsten Import wieder. Wirklich löschen?").arg(root._loeschName)
+        }
+        footer: DialogButtonBox {
+            background: Rectangle { color: "transparent" }
+            Button { text: qsTr("Löschen"); DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
+            Button { text: qsTr("Abbrechen"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
+        }
+        onAccepted: bauteilModel.loeschen(root._loeschId)
+    }
+
     // ── Dialog – Bauteil bearbeiten (QML-REFACTOR-06: ausgelagert) ──
     BaBauteilBearbeitenDialog {
         id: dlgBauteilBearbeiten
@@ -280,13 +302,13 @@ Item {
                         }
 
                         Text {
-                            text: "🔒"; visible: model.istSystem; font.pixelSize: 10
+                            text: "🔒"; visible: model.istStandard; font.pixelSize: 10
                             ToolTip.visible: lockMa.containsMouse; ToolTip.delay: 400
-                            ToolTip.text: qsTr("Mitgeliefertes Bauteil")
+                            ToolTip.text: model.istSystem ? qsTr("Mitgeliefertes Bauteil (Standardteil)") : qsTr("Firmenstandard-Bauteil (Standardteil)")
                             Layout.preferredWidth: 14
                             MouseArea { id: lockMa; anchors.fill: parent; hoverEnabled: true }
                         }
-                        Item { visible: !model.istSystem; Layout.preferredWidth: 14 }
+                        Item { visible: !model.istStandard; Layout.preferredWidth: 14 }
                         Text { text: model.bezeichnung;   font.pixelSize: 13; color: theme.textSecondary; Layout.preferredWidth: 180; elide: Text.ElideRight }
                         Text { text: model.hersteller;    font.pixelSize: 13; color: theme.textMuted;      Layout.preferredWidth: 130; elide: Text.ElideRight }
                         Text { text: model.artikelnummer; font.pixelSize: 13; color: theme.textMuted;      Layout.preferredWidth: 110; elide: Text.ElideRight }
@@ -516,6 +538,7 @@ Item {
                                     dlgBauteilBearbeiten.altUrlDatenblatt = model.urlDatenblatt
                                     dlgBauteilBearbeiten.altSymbolId      = model.hauptfunktionSymbolId || ""
                                     dlgBauteilBearbeiten.altIstSystem     = model.istSystem
+                                    dlgBauteilBearbeiten.altIstFirmenstandard = model.standardHerkunft === "firmenstandard"
                                     dlgBauteilBearbeiten.open()
                                 }
                             }
@@ -551,7 +574,15 @@ Item {
                                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                                 background: Rectangle { color: parent.hovered ? theme.activeItemAlt : "transparent"; radius: 4 }
                                 ToolTip.visible: hovered; ToolTip.delay: 700; ToolTip.text: qsTr("Löschen")
-                                onClicked: bauteilModel.loeschen(model.bauteilId)
+                                onClicked: {
+                                    if (model.istStandard) {
+                                        root._loeschId = model.bauteilId
+                                        root._loeschName = model.bezeichnung
+                                        standardLoeschDialog.open()
+                                    } else {
+                                        bauteilModel.loeschen(model.bauteilId)
+                                    }
+                                }
                             }
                         }
                     }

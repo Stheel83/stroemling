@@ -188,6 +188,15 @@ Item {
                         }
                     }
 
+                    CheckBox {
+                        id: alsStandard
+                        text: qsTr("Importierte Bauteile als Firmenstandard schützen")
+                        Layout.fillWidth: true
+                        contentItem: Text { text: parent.text; color: root.theme.textPrimary; font.pixelSize: 12
+                            leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Kennzeichnet neu angelegte und überschriebene Bauteile mit 🔒. Löschen verlangt dann eine Bestätigung, Bearbeiten zeigt einen Warnhinweis.")
+                    }
                     Text {
                         visible: dlg.analyse && dlg.analyse.ok
                         Layout.fillWidth: true; wrapMode: Text.WordWrap
@@ -255,7 +264,9 @@ Item {
                         text: qsTr("Importieren")
                         enabled: dlg.analyse && dlg.analyse.ok && dlg.analyse.eintraege.length > 0
                         onClicked: {
-                            var r = db.bauteileImportAusfuehren(root._pfad(importPfad.text), dlg.entscheidungen)
+                            var ent = Object.assign({}, dlg.entscheidungen)
+                            if (alsStandard.checked) ent["__firmenstandard"] = true
+                            var r = db.bauteileImportAusfuehren(root._pfad(importPfad.text), ent)
                             dlg.ergebnisOk = r.ok
                             if (r.ok) {
                                 dlg.ergebnis = qsTr("%1 angelegt · %2 überschrieben · %3 verknüpft · %4 Kopien · %5 übersprungen")

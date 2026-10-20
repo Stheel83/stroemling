@@ -28,6 +28,7 @@ Dialog {
     property string altUrlDatenblatt: ""
     property string altSymbolId: ""
     property bool   altIstSystem:     false
+    property bool   altIstFirmenstandard: false
     property var    _kontaktListe:    []
 
     background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
@@ -65,14 +66,16 @@ Dialog {
         // frei möglich, Änderungen wirken sich aber auf alle Projekte aus, die
         // dieses mitgelieferte Bauteil bereits verwenden (lebende Referenz).
         Rectangle {
-            visible: root.altIstSystem
+            visible: root.altIstSystem || root.altIstFirmenstandard
             Layout.fillWidth: true; Layout.bottomMargin: 8
             implicitHeight: sysWarnText.implicitHeight + 12
             radius: 4; color: "#3a2f10"; border.color: "#8a6a2d"
             Text {
                 id: sysWarnText
                 anchors { fill: parent; margins: 6 }
-                text: qsTr("🔒 Mitgeliefertes Bauteil — Änderungen wirken sich auf alle Projekte aus, die es bereits verwenden.")
+                text: root.altIstSystem
+                      ? qsTr("🔒 Mitgeliefertes Bauteil — Änderungen wirken sich auf alle Projekte aus, die es bereits verwenden.")
+                      : qsTr("🔒 Firmenstandard-Bauteil — Änderungen wirken sich auf alle Projekte aus, die es verwenden, und weichen vom Firmenstandard ab (der Manager zeigt das im Abgleich als „abweichend“).")
                 font.pixelSize: 11; color: "#ddaa5d"; wrapMode: Text.WordWrap
             }
         }

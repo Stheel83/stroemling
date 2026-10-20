@@ -1359,7 +1359,7 @@ private slots:
         QVERIFY(system > 20);
         QVERIFY(bibAbfrage(lib, "SELECT 1 FROM sqlite_master WHERE name = 'idx_bauteil_uid'").size() == 1);
         QVERIFY(bibAbfrage(lib, "SELECT 1 FROM sqlite_master WHERE name = 'bauteil_uid_setzen'").size() == 1);
-        QCOMPARE(bibAbfrage(lib, "SELECT version FROM bibliothek_schema_version").first().first().toInt(), 11);
+        QCOMPARE(bibAbfrage(lib, "SELECT version FROM bibliothek_schema_version").first().first().toInt(), 12);
 
         // 2) Zweite, unabhängige Installation: dieselben Seed-Teile haben dieselben UIDs
         {
@@ -1391,9 +1391,9 @@ private slots:
         QVERIFY(bibAbfrage(lib, "ALTER TABLE bauteil DROP COLUMN uid", &ok).isEmpty() && ok);
         QVERIFY(bibAbfrage(lib, "UPDATE bibliothek_schema_version SET version = 9", &ok).isEmpty() && ok);
         QVERIFY(bibAbfrage(lib, "INSERT INTO bauteil (bezeichnung) VALUES ('Altes eigenes Teil')", &ok).isEmpty() && ok);
-        QVERIFY(QDir(wurzel + "/backups").entryList({ "bibliothek_v9_vor_v11_*.db" }, QDir::Files).isEmpty());
+        QVERIFY(QDir(wurzel + "/backups").entryList({ "bibliothek_v9_vor_v12_*.db" }, QDir::Files).isEmpty());
         { Database d; QVERIFY2(d.openBibliothek(lib), "Migration v9 -> v10 schlug fehl"); }
-        const QStringList backups = QDir(wurzel + "/backups").entryList({ "bibliothek_v9_vor_v11_*.db" }, QDir::Files);
+        const QStringList backups = QDir(wurzel + "/backups").entryList({ "bibliothek_v9_vor_v12_*.db" }, QDir::Files);
         QCOMPARE(backups.size(), 1);                                          // Sicherung vor der Migration
         QVERIFY(bibAbfrage(wurzel + "/backups/" + backups.first(), "SELECT 1 FROM sqlite_master WHERE name='bauteil'").size() == 1);
         const auto nachMig = bibAbfrage(lib, "SELECT bezeichnung, uid, ist_system FROM bauteil");
@@ -1405,7 +1405,7 @@ private slots:
                 QCOMPARE(z.at(1).toString(), systemUids.value(z.at(0).toString()));   // Seed-UIDs wieder identisch
         }
         QCOMPARE(nachUids.size(), nachMig.size());
-        QCOMPARE(bibAbfrage(lib, "SELECT version FROM bibliothek_schema_version").first().first().toInt(), 11);
+        QCOMPARE(bibAbfrage(lib, "SELECT version FROM bibliothek_schema_version").first().first().toInt(), 12);
 
         // 6) Gleichnamige Seed-Zeilen (Altlast eines Namens-Backfills) dürfen das Öffnen nie blockieren
         const QString erstesSystem = systemUids.keys().first();
@@ -1456,7 +1456,7 @@ private slots:
         }
         QCOMPARE(eindeutig.size(), uids.size());
         if (versionVorher < 11)
-            QVERIFY(!QDir(wurzel + "/backups").entryList({ "bibliothek_v*_vor_v11_*.db" }, QDir::Files).isEmpty());
+            QVERIFY(!QDir(wurzel + "/backups").entryList({ "bibliothek_v*_vor_v12_*.db" }, QDir::Files).isEmpty());
         qInfo() << "Echte Bibliothek: Stand vorher v" << versionVorher << "|" << vorher.size() << "Bauteile ->" << uids.size() << "mit UID";
         QDir(wurzel).removeRecursively();
     }

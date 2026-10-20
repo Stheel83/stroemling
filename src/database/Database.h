@@ -52,7 +52,7 @@ public:
     static const int BASELINE_VERSION        = 56;
     static const int CURRENT_SCHEMA_VERSION  = 129;
     static const int WIKI_SCHEMA_VERSION     = 16;
-    static const int BIBLIOTHEK_SCHEMA_VERSION = 11;
+    static const int BIBLIOTHEK_SCHEMA_VERSION = 12;
     // Tabellenzahl in schema.sql – muss synchron zu BASELINE_VERSION bleiben.
     // Wenn schema.sql neue Tabellen bekommt: diesen Wert + BASELINE_VERSION erhöhen.
     // schema_migration selbst zählt mit (wird vor createSchema() angelegt, überlebt

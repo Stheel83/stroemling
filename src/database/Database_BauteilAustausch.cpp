@@ -739,6 +739,16 @@ QVariantMap Database::bauteileImportAusfuehren(const QString &pfad, const QVaria
         }
     }
 
+    // Schutz von Standardteilen: Sonderschlüssel "__firmenstandard" (bool) kennzeichnet angelegte/überschriebene Bauteile als Firmenstandard
+    const bool alsFirmenstandard = entscheidungen.value(QStringLiteral("__firmenstandard")).toBool();
+    const auto standardMarkieren = [&](int id) {
+        if (!alsFirmenstandard || id <= 0) return;
+        QSqlQuery m(m_bibliothekDb);
+        m.prepare("UPDATE bauteil SET standard_herkunft = 'firmenstandard' WHERE id = ?");
+        m.addBindValue(id);
+        m.exec();
+    };
+
     erg["sicherung"] = bibliothekSichern(QStringLiteral("vor_import"));
     if (!m_bibliothekDb.transaction()) {
         erg["fehler"] = QStringLiteral("Transaktion konnte nicht gestartet werden");
@@ -768,6 +778,7 @@ QVariantMap Database::bauteileImportAusfuehren(const QString &pfad, const QVaria
         } else if (p.aktion == QLatin1String("ueberschreiben") && p.lokalId > 0) {
             if (bauteilSchreiben(m_bibliothekDb, p.lokalId, p.teil, b.farben, warnungen)) {
                 fuerQuerverweise.append({ p.lokalId, p.teil });
+                standardMarkieren(p.lokalId);
                 ++ueberschrieben;
             } else {
                 fehlerAufgetreten = true;
@@ -790,6 +801,7 @@ QVariantMap Database::bauteileImportAusfuehren(const QString &pfad, const QVaria
                 break;
             }
             fuerQuerverweise.append({ neuId, p.teil });
+            if (!alsKopie) standardMarkieren(neuId);   // eine Kopie ist ausdrücklich ein eigenes Bauteil
             alsKopie ? ++kopien : ++angelegt;
         }
     }

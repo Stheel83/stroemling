@@ -40,6 +40,7 @@ struct BauteilEintrag {
     QString hauptfunktionSymbolId;
     bool    fuerSeedVormerken;
     bool    istSystem;
+    QString standardHerkunft;         // '' | 'firmenstandard' (Bibliothek v12)
     // BAUTEILLISTE-KONTEXTSPALTEN-01: je Kategorie zusätzliche Fachfelder,
     // nur befüllt wenn der jeweilige istXXX-Flag gesetzt ist.
     QString anschlussTyp;             // Klemme
@@ -127,6 +128,8 @@ public:
         HauptfunktionSymbolIdRole,
         FuerSeedVormerkenRole,
         IstSystemRole,
+        IstStandardRole,          // ist_system ODER standard_herkunft gesetzt
+        StandardHerkunftRole,
         AnschlussTypRole,
         EbenenAnzahlRole,
         GehaeuseFarbeHexRole,

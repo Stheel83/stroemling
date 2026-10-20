@@ -225,7 +225,9 @@ void BauteilListModel::ladenIntern()
         "COALESCE(kk.laenge_m,0), COALESCE(kkka.kabeltyp,''), "
         // NKZ-05: BMK-Kennbuchstaben-Vorschlag, bewusst ganz ans Ende angehaengt
         // (siehe Kommentar oben zu BAUTEILLISTE-KONTEXTSPALTEN-01).
-        "COALESCE(b.bmk_vorlage,'') "
+        "COALESCE(b.bmk_vorlage,''), "
+        // Schutz von Standardteilen: ganz ans Ende angehängt (siehe Kommentar oben)
+        "COALESCE(b.standard_herkunft,'') "
         "FROM bibliothek.bauteil b "
         "LEFT JOIN bibliothek.bauteil_klemme k              ON k.bauteil_id  = b.id "
         "LEFT JOIN bibliothek.farb_definition fd            ON fd.id = k.gehaeuse_farbe_id "
@@ -307,6 +309,7 @@ void BauteilListModel::ladenIntern()
         b.laengeM                  = q.value(33).toDouble();
         b.konfkabelKabeltyp        = q.value(34).toString();
         b.bmkVorlage                = q.value(35).toString();
+        b.standardHerkunft          = q.value(36).toString();
         m_bauteile.append(b);
     }
 
@@ -352,6 +355,8 @@ QVariant BauteilListModel::data(const QModelIndex &index, int role) const
     case HauptfunktionSymbolIdRole: return b.hauptfunktionSymbolId;
     case FuerSeedVormerkenRole:     return b.fuerSeedVormerken;
     case IstSystemRole:             return b.istSystem;
+    case IstStandardRole:           return b.istSystem || !b.standardHerkunft.isEmpty();
+    case StandardHerkunftRole:      return b.standardHerkunft;
     case AnschlussTypRole:             return b.anschlussTyp;
     case EbenenAnzahlRole:             return b.ebenenAnzahl;
     case GehaeuseFarbeHexRole:         return b.gehaeuseFarbeHex;
@@ -395,6 +400,8 @@ QHash<int, QByteArray> BauteilListModel::roleNames() const
         { HauptfunktionSymbolIdRole, "hauptfunktionSymbolId"  },
         { FuerSeedVormerkenRole,     "fuerSeedVormerken"      },
         { IstSystemRole,             "istSystem"              },
+        { IstStandardRole,           "istStandard"            },
+        { StandardHerkunftRole,      "standardHerkunft"       },
         { AnschlussTypRole,             "anschlussTyp"             },
         { EbenenAnzahlRole,             "ebenenAnzahl"             },
         { GehaeuseFarbeHexRole,         "gehaeuseFarbeHex"         },

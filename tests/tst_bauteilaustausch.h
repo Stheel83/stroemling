@@ -102,6 +102,45 @@ class TstBauteilAustausch : public QObject
 private slots:
     void initTestCase() { QVERIFY(m_dir.isValid()); }
 
+    void test_00_standardteileSchutz_firmenstandardKennzeichnung()
+    {
+        // Schutz von Standardteilen (Bibliotheksschema 12): der Import kann angelegte/überschriebene Bauteile als Firmenstandard
+        // kennzeichnen; Kopien und normale Bauteile bleiben unmarkiert.
+        const QString bund = datei("std.json");
+        {
+            Database a;
+            QVERIFY(a.openBibliothek(datei("std_a.db")));
+            baueFixture();
+            QVERIFY(a.bauteileExportieren(bund, false).value("ok").toBool());
+            QCOMPARE(wert("SELECT COUNT(*) FROM bauteil WHERE standard_herkunft <> ''").toInt(), 0);   // eigene Teile: nie Standard
+        }
+        Database b;
+        QVERIFY(b.openBibliothek(datei("std_b.db")));
+        QVariantMap an = b.bauteileImportAnalysieren(bund);
+        QVERIFY(an.value("ok").toBool());
+        // ohne Kennzeichnung: nichts markiert
+        QVERIFY(b.bauteileImportAusfuehren(bund, {}).value("ok").toBool());
+        QCOMPARE(wert("SELECT COUNT(*) FROM bauteil WHERE standard_herkunft <> ''").toInt(), 0);
+        // lokal ändern, dann überschreiben MIT Kennzeichnung: nur dieses Teil wird markiert
+        QVERIFY(ex("UPDATE bauteil SET hersteller = 'Lokal' WHERE bezeichnung = 'T Schütz 3-polig'") >= 0);
+        const QString uidSchuetz = uidVon("T Schütz 3-polig");
+        QVariantMap entsch { { uidSchuetz, "ueberschreiben" }, { "__firmenstandard", true } };
+        QVERIFY(b.bauteileImportAusfuehren(bund, entsch).value("ok").toBool());
+        QCOMPARE(wert("SELECT standard_herkunft FROM bauteil WHERE bezeichnung = 'T Schütz 3-polig'").toString(), QStringLiteral("firmenstandard"));
+        QCOMPARE(wert("SELECT COUNT(*) FROM bauteil WHERE standard_herkunft <> ''").toInt(), 1);
+        // Kopie wird nie markiert
+        QVERIFY(ex("UPDATE bauteil SET hersteller = 'Nochmal' WHERE bezeichnung = 'T Schütz 3-polig'") >= 0);
+        QVERIFY(b.bauteileImportAusfuehren(bund, { { uidSchuetz, "kopie" }, { "__firmenstandard", true } }).value("ok").toBool());
+        QCOMPARE(wert("SELECT standard_herkunft FROM bauteil WHERE bezeichnung = 'T Schütz 3-polig (Import)'").toString(), QString());
+        // frische Bibliothek: Anlegen mit Kennzeichnung markiert alle importierten Teile
+        Database c;
+        QVERIFY(c.openBibliothek(datei("std_c.db")));
+        const int vorher = wert("SELECT COUNT(*) FROM bauteil").toInt();
+        QVERIFY(c.bauteileImportAusfuehren(bund, { { "__firmenstandard", true } }).value("ok").toBool());
+        QCOMPARE(wert("SELECT COUNT(*) FROM bauteil WHERE standard_herkunft = 'firmenstandard'").toInt(), wert("SELECT COUNT(*) FROM bauteil").toInt() - vorher);
+        QVERIFY(wert("SELECT COUNT(*) FROM bauteil WHERE standard_herkunft = 'firmenstandard'").toInt() >= 7);
+    }
+
     void test_01_roundtripUeberZweiBibliothekenErhaeltIdentitaetUndInhalt()
     {
         const QString bund = datei("a.json");

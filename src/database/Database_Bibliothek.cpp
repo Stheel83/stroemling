@@ -464,6 +464,17 @@ bool Database::checkAndApplyBibliothekSchema()
         return false;
     }
 
+    // Schema v12 (Schutz von Standardteilen, Manager M-11): bauteil.standard_herkunft – '' = normales Bauteil,
+    // 'firmenstandard' = beim Import als Firmenstandard gekennzeichnet. Zusammen mit ist_system (mitgeliefert) ergibt das den Begriff
+    // „Standardteil“: Löschen verlangt eine Bestätigung, Bearbeiten zeigt einen Warnhinweis (kein Sperren).
+    if (!q.exec("ALTER TABLE bauteil ADD COLUMN standard_herkunft TEXT NOT NULL DEFAULT ''")) {
+        if (!q.lastError().databaseText().toLower().contains("duplicate column")) {
+            qCWarning(lcDb) << "Bibliothek-Schema v12 (standard_herkunft):" << q.lastError().text();
+            m_bibliothekDb.rollback();
+            return false;
+        }
+    }
+
     // Einmaliges Backfill: bereits vor v8 vorhandene Seed-Bauteile nachträglich
     // als ist_system=1 markieren (der INSERT-Guard in seedStandardKlemmen()/
     // seedNutzerBauteile() prüft nur "bezeichnung existiert bereits" und

@@ -1266,6 +1266,38 @@ private slots:
         }
         QFile::remove(kopie); QFile::remove(kopie + "-wal"); QFile::remove(kopie + "-shm");
     }
+    void test_29_drcLauf()
+    {
+        // S1 (Migration 179): nur der letzte DRC-Lauf je Projekt wird gespeichert, Gesamtzahl aus den Typen
+        TmpProjekt a("drclauf");
+        QSqlQuery q(QSqlDatabase::database());
+        QVERIFY(q.exec("SELECT id FROM projekt ORDER BY id LIMIT 1") && q.next());
+        const int pid = q.value(0).toInt();
+
+        QVERIFY(!a.db.drcLetzterLauf(pid).value("vorhanden").toBool());
+
+        QVERIFY(a.db.drcLaufSpeichern(pid, QVariantMap { { "doppelter_bmk", 2 }, { "seite_ohne_bezeichnung", 1 } }));
+        QVariantMap r = a.db.drcLetzterLauf(pid);
+        QVERIFY(r.value("vorhanden").toBool());
+        QCOMPARE(r.value("anzahlBefunde").toInt(), 3);
+        QCOMPARE(r.value("details").toMap().value("doppelter_bmk").toInt(), 2);
+        QVERIFY(QDateTime::fromString(r.value("zeitpunkt").toString(), "yyyy-MM-dd HH:mm:ss").isValid());
+
+        // zweiter Lauf ersetzt den ersten (keine Historie), sauberer Lauf = 0 Befunde
+        QVERIFY(a.db.drcLaufSpeichern(pid, QVariantMap()));
+        QCOMPARE(a.db.drcLetzterLauf(pid).value("anzahlBefunde").toInt(), 0);
+        QVERIFY(q.exec("SELECT COUNT(*) FROM drc_lauf") && q.next());
+        QCOMPARE(q.value(0).toInt(), 1);
+
+        // Alt-Projekt ohne Tabelle: Migration legt sie beim Oeffnen an
+        QVERIFY(q.exec("DROP TABLE drc_lauf"));
+        QVERIFY(q.exec("DELETE FROM schema_migration WHERE version >= 179"));
+        a.db.closeProjekt();
+        QVERIFY(a.db.openProjekt(a.pfad));
+        QVERIFY(!a.db.drcLetzterLauf(pid).value("vorhanden").toBool());
+        QVERIFY(a.db.drcLaufSpeichern(pid, QVariantMap { { "x", 1 } }));
+        QCOMPARE(a.db.drcLetzterLauf(pid).value("anzahlBefunde").toInt(), 1);
+    }
     // --- BIB-UID-01: stabile Bauteil-UID (Bibliotheksschema v10) --------------------------------------------------
     // Rohzugriff auf eine bibliothek.db an Database vorbei
     static QList<QVariantList> bibAbfrage(const QString &pfad, const QString &sql, bool *ok = nullptr)

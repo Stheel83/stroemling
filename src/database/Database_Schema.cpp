@@ -3135,6 +3135,14 @@ static QList<SchemaMigration> alleMigrationen()
                 PRIMARY KEY (art, ref_id)
             ))",
         }},
+        { 179, "S1 (Manager M-11c): drc_lauf - Ergebnis des letzten DRC-Laufs je Projekt (nur der letzte Lauf, reine Zusatzinformation fuer den Stroemling Manager): zeitpunkt (UTC, 'yyyy-MM-dd HH:mm:ss'), anzahl_befunde, details (JSON: Anzahl je Befund-Typ). Geschrieben beim Druck auf 'Pruefen' im DRC-Panel.", {
+            R"(CREATE TABLE IF NOT EXISTS drc_lauf (
+                projekt_id     INTEGER PRIMARY KEY REFERENCES projekt(id) ON DELETE CASCADE,
+                zeitpunkt      TEXT    NOT NULL,
+                anzahl_befunde INTEGER NOT NULL,
+                details        TEXT    NOT NULL DEFAULT '{}'
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

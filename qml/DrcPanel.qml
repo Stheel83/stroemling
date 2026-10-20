@@ -234,6 +234,14 @@ Item {
             })
         }
 
+        // S1: Ergebnis (Anzahl je Befund-Typ) für den Strömling Manager festhalten; nur der letzte Lauf bleibt
+        var proTyp = {}
+        for (var z = 0; z < ergebnisModel.count; z++) {
+            var typ = ergebnisModel.get(z).typ
+            proTyp[typ] = (proTyp[typ] || 0) + 1
+        }
+        db.drcLaufSpeichern(root.projektId, proTyp)
+
         root.hatGeprueft = true
         achievementManager.ereignis("drc_ausgefuehrt", { "fehlerAnzahl": ergebnisModel.count })
     }

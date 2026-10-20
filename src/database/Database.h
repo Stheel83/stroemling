@@ -1132,6 +1132,11 @@ public:
     // D-12 (KABEL-VERWAIST-01): Kabel-Datensatz ohne jedes Kabellinie-Grafikelement.
     // Rückgabe: [{kabelId, kabelName}]
     Q_INVOKABLE QVariantList drcKabelOhneKabellinie(int projektId);
+    // S1: Ergebnis des letzten DRC-Laufs je Projekt speichern (nur der letzte Lauf, Migration 179).
+    // proTyp = {befundTyp: anzahl}; die Gesamtzahl wird daraus gebildet.
+    Q_INVOKABLE bool drcLaufSpeichern(int projektId, const QVariantMap &proTyp);
+    // {vorhanden, zeitpunkt (UTC), anzahlBefunde, details: {typ: anzahl}}; vorhanden=false, wenn noch nie geprüft wurde
+    Q_INVOKABLE QVariantMap drcLetzterLauf(int projektId);
     // D-14 (SPS-INTEGRITAET-01): SPS/PLS-Prüfungen. Jeder Befund trägt ein Feld `art`:
     // rack_nr_doppelt, slot_doppelt, adresse_doppelt, adresse_ausserhalb,
     // kanal_ohne_baugruppe, element_mehrere_kanaele, kanal_typ_passt_nicht,

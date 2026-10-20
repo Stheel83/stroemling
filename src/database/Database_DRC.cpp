@@ -1106,3 +1106,48 @@ QVariantList Database::bauteilAlleKategorienFlach()
     }
     return result;
 }
+
+// ============================================================
+// S1: drcLaufSpeichern / drcLetzterLauf
+// Nur der letzte Lauf je Projekt (INSERT OR REPLACE auf projekt_id). Reine Zusatzinformation:
+// ein Fehler beim Speichern darf den Prüflauf nie stören, wird nur geloggt.
+// ============================================================
+bool Database::drcLaufSpeichern(int projektId, const QVariantMap &proTyp)
+{
+    int anzahl = 0;
+    QJsonObject details;
+    for (auto it = proTyp.constBegin(); it != proTyp.constEnd(); ++it) {
+        anzahl += it.value().toInt();
+        details.insert(it.key(), it.value().toInt());
+    }
+    QSqlQuery q(m_db);
+    if (!q.prepare("INSERT OR REPLACE INTO drc_lauf (projekt_id, zeitpunkt, anzahl_befunde, details) "
+                   "VALUES (:pid, :zeit, :anzahl, :details)")) {
+        qCWarning(lcDb) << "drcLaufSpeichern prepare:" << q.lastError().text();
+        return false;
+    }
+    q.bindValue(":pid", projektId);
+    q.bindValue(":zeit", QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd HH:mm:ss"));
+    q.bindValue(":anzahl", anzahl);
+    q.bindValue(":details", QString::fromUtf8(QJsonDocument(details).toJson(QJsonDocument::Compact)));
+    if (!q.exec()) {
+        qCWarning(lcDb) << "drcLaufSpeichern:" << q.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+QVariantMap Database::drcLetzterLauf(int projektId)
+{
+    QVariantMap r { { "vorhanden", false } };
+    QSqlQuery q(m_db);
+    q.prepare("SELECT zeitpunkt, anzahl_befunde, details FROM drc_lauf WHERE projekt_id = :pid");
+    q.bindValue(":pid", projektId);
+    if (q.exec() && q.next()) {
+        r["vorhanden"] = true;
+        r["zeitpunkt"] = q.value(0).toString();
+        r["anzahlBefunde"] = q.value(1).toInt();
+        r["details"] = QJsonDocument::fromJson(q.value(2).toString().toUtf8()).object().toVariantMap();
+    }
+    return r;
+}

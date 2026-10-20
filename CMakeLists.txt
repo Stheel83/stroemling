@@ -185,6 +185,7 @@ qt_add_qml_module(stroemling_app
         qml/ba/BaCsvImportDialog.qml
         qml/ba/BaAustauschDialog.qml
         qml/components/DateiWaehlerDialog.qml
+        qml/components/BuendelAustauschDialog.qml
         qml/ba/BaBauteilListe.qml
         qml/ba/BaGeraetekastenAnsicht.qml
         qml/ba/BaMakroBibliothek.qml

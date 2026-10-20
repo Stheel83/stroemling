@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 // Vorlagenbibliothek (BLATTVORLAGEN-03): app-weite Quelle für Blattvorlagen. Das Projekt hält immer eine eigene
 // Kopie; hier wird ausdrücklich abgeglichen (kein stilles Überschreiben).
@@ -198,8 +199,28 @@ Popup {
 
         RowLayout {
             Layout.fillWidth: true
+            Button {
+                text: qsTr("Austausch …")
+                ToolTip.visible: hovered; ToolTip.delay: 600
+                ToolTip.text: qsTr("Bibliotheksvorlagen als Datei exportieren oder aus einer Datei importieren (z. B. Firmenstandard)")
+                onClicked: austausch.open()
+            }
             Item { Layout.fillWidth: true }
             Button { text: qsTr("Schließen"); onClicked: root.close() }
+        }
+
+        BuendelAustauschDialog {
+            id: austausch
+            theme: root.theme
+            titel: qsTr("Vorlagen-Austausch")
+            inhaltName: qsTr("Vorlagen")
+            dateiPrefix: "blattvorlagen"
+            exportErklaerung: qsTr("Schreibt alle Vorlagen der Bibliothek samt Logo in eine JSON-Datei, die du auf einem anderen Rechner importieren "
+                                   + "oder über den Strömling Manager als Firmenstandard verteilen kannst. Jede Vorlage behält ihre Kennung.")
+            fnExport: function (pfad) { return db.vorlagenExportieren(pfad, []) }
+            fnAnalyse: function (pfad) { return db.vorlagenImportAnalysieren(pfad) }
+            fnAusfuehren: function (pfad, e) { return db.vorlagenImportAusfuehren(pfad, e) }
+            onImportiert: root._neuLesen()
         }
     }
 }

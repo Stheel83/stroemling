@@ -1826,6 +1826,96 @@ private slots:
         QCOMPARE(m_db->normblattFelderLaden(vid2).size(), 2);
     }
 
+    void blattvorlagen_05_austausch()
+    {
+        // S2: Bündel "stroemling-blattvorlagen" - Export, Analyse (neu/gleich/abweichend), Import mit Aktionen, Sicherung
+        neueSeite("L5");
+        const QString basis = QDir::tempPath() + "/stroemling_bv5_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QDir().mkpath(basis);
+        QVERIFY(m_db->openVorlagen(basis + "/vorlagen.db"));
+        auto feld = [](const QString &inhalt, double x) {
+            return QVariantMap{{"feldtyp", "fest"}, {"xMm", x}, {"yMm", 10.0}, {"breiteMm", 50.0}, {"hoeheMm", 10.0},
+                               {"label", ""}, {"inhalt", inhalt}, {"quelleSpalte", ""},
+                               {"schriftgroesse", 3.5}, {"fett", 0}, {"rahmen", 1}, {"reihenfolge", 0}};
+        };
+        QVariantMap v; v["name"] = "Export A"; v["breiteMm"] = 210.0; v["hoeheMm"] = 297.0; v["art"] = "deckblatt";
+        const int vid = m_db->normblattVorlageSpeichern(v);
+        QVERIFY(m_db->normblattFelderSpeichern(vid, {feld("A", 10), feld("B", 70)}));
+        const QString logo = basis + "/logo.png";
+        { QImage img(40, 20, QImage::Format_RGB32); img.fill(Qt::blue); QVERIFY(img.save(logo)); }
+        QVERIFY(m_db->normblattVorlageLogoSpeichern(vid, logo));
+        const QString uid = m_db->vorlageInBibliothekSpeichern(vid);
+        QVERIFY(!uid.isEmpty());
+
+        // Export (nie ueberschreiben, leere Bibliothek meldet sich)
+        const QString buendel = basis + "/buendel.json";
+        QVariantMap ex = m_db->vorlagenExportieren(buendel, {});
+        QVERIFY2(ex.value("ok").toBool(), qPrintable(ex.value("fehler").toString()));
+        QCOMPARE(ex.value("anzahl").toInt(), 1);
+        QVERIFY(!m_db->vorlagenExportieren(buendel, {}).value("ok").toBool());
+
+        // Gleicher Stand: alles "gleich", nichts wird veraendert
+        QVariantMap an = m_db->vorlagenImportAnalysieren(buendel);
+        QVERIFY(an.value("ok").toBool());
+        QCOMPARE(an.value("anzahlGleich").toInt(), 1);
+        QCOMPARE(an.value("eintraege").toList().first().toMap().value("vorschlag").toString(), QString("ueberspringen"));
+
+        // Lokal aendern (Version 2) -> Buendel ist nun aelter: "abweichend", Vorschlag ueberspringen; Namen ist keine Aenderung
+        QVERIFY(m_db->normblattFelderSpeichern(vid, {feld("A", 10), feld("B", 99)}));
+        QVERIFY(!m_db->vorlageInBibliothekSpeichern(vid).isEmpty());
+        an = m_db->vorlagenImportAnalysieren(buendel);
+        QCOMPARE(an.value("anzahlAbweichend").toInt(), 1);
+        QVariantMap e = an.value("eintraege").toList().first().toMap();
+        QCOMPARE(e.value("status").toString(), QString("abweichend"));
+        QCOMPARE(e.value("vorschlag").toString(), QString("ueberspringen"));
+        QCOMPARE(e.value("lokaleVersion").toInt(), 2);
+
+        // Kopie: neue uid, Name mit Zusatz; Original unveraendert
+        QVariantMap r = m_db->vorlagenImportAusfuehren(buendel, {{uid, "kopie"}});
+        QVERIFY2(r.value("ok").toBool(), qPrintable(r.value("fehler").toString()));
+        QCOMPARE(r.value("kopien").toInt(), 1);
+        QVERIFY(!r.value("sicherung").toString().isEmpty());
+        QVERIFY(QFileInfo::exists(r.value("sicherung").toString()));
+        QCOMPARE(m_db->vorlagenBibliothekListe().size(), 2);
+        bool kopieDa = false;
+        for (const QVariant &x : m_db->vorlagenBibliothekListe())
+            if (x.toMap().value("name").toString() == "Export A (Import)") kopieDa = true;
+        QVERIFY(kopieDa);
+
+        // Ersetzen: Inhalt aus dem Buendel, Version ueber beiden Staenden (>2), Felder und Logo da
+        r = m_db->vorlagenImportAusfuehren(buendel, {{uid, "ersetzen"}});
+        QCOMPARE(r.value("ersetzt").toInt(), 1);
+        QVariantMap bib;
+        for (const QVariant &x : m_db->vorlagenBibliothekListe())
+            if (x.toMap().value("uid").toString() == uid) bib = x.toMap();
+        QCOMPARE(bib.value("felder").toInt(), 2);
+        QVERIFY(bib.value("hatLogo").toBool());
+        QVERIFY(bib.value("version").toInt() >= 3);
+        const QString kontrolle = basis + "/kontrolle.json";
+        QVERIFY(m_db->vorlagenExportieren(kontrolle, {uid}).value("ok").toBool());
+        { QFile kf(kontrolle); QVERIFY(kf.open(QIODevice::ReadOnly));
+          const QJsonArray fa = QJsonDocument::fromJson(kf.readAll()).object().value("vorlagen").toArray().first().toObject().value("felder").toArray();
+          QCOMPARE(fa.size(), 2);
+          QCOMPARE(int(fa[1].toObject().value("x_mm").toDouble()), 70); }
+
+        // Frische Bibliothek: Import legt neu an, zweiter Import ist "gleich"
+        QVERIFY(m_db->openVorlagen(basis + "/leer.db"));
+        QVERIFY(m_db->vorlagenBibliothekListe().isEmpty());
+        an = m_db->vorlagenImportAnalysieren(buendel);
+        QCOMPARE(an.value("anzahlNeu").toInt(), 1);
+        r = m_db->vorlagenImportAusfuehren(buendel, {});
+        QCOMPARE(r.value("angelegt").toInt(), 1);
+        QCOMPARE(m_db->vorlagenBibliothekListe().size(), 1);
+        QCOMPARE(m_db->vorlagenBibliothekListe().first().toMap().value("uid").toString(), uid);
+        QCOMPARE(m_db->vorlagenImportAnalysieren(buendel).value("anzahlGleich").toInt(), 1);
+
+        // Fehlerfaelle: fremdes Format, kaputtes JSON, fehlende Datei
+        QFile f(basis + "/fremd.json"); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("{\"format\":\"x\"}"); f.close();
+        QVERIFY(m_db->vorlagenImportAnalysieren(basis + "/fremd.json").value("fehler").toString().contains("Kein Blattvorlagen"));
+        QVERIFY(!m_db->vorlagenImportAnalysieren(basis + "/gibtsnicht.json").value("ok").toBool());
+        QDir(basis).removeRecursively();
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

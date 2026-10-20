@@ -511,6 +511,17 @@ public:
     // {status: lokal|aktuell|bibliothekNeuer|lokalGeaendert|beides|bibliothekFehlt, bibliothekName, bibliothekVersion, projektVersion}
     Q_INVOKABLE QVariantMap  vorlageBibliothekStatus(int vorlageId);
     Q_INVOKABLE bool         vorlageAusBibliothekLoeschen(const QString &uid);
+    // ── Vorlagen-Austausch (S2, Strömling Manager M-11b): JSON-Bündel "stroemling-blattvorlagen" Version 1 ──────────
+    // Exportiert Bibliotheksvorlagen (uids leer = alle) samt Logo. Rückgabe: {ok, anzahl, fehler}.
+    Q_INVOKABLE QVariantMap vorlagenExportieren(const QString &pfad, const QStringList &uids);
+    // Liest ein Bündel und vergleicht es mit der Vorlagen-Bibliothek, ohne etwas zu ändern. Rückgabe: {ok, fehler,
+    // eintraege:[{uid, name, art, status: neu|gleich|abweichend, bundleVersion, lokaleVersion, lokalerName, vorschlag, aktionen}],
+    // anzahlNeu, anzahlGleich, anzahlAbweichend}. Der Vergleich geht über den Inhalts-Hash (nicht Name/Beschreibung).
+    Q_INVOKABLE QVariantMap vorlagenImportAnalysieren(const QString &pfad);
+    // Führt die Entscheidungen aus (uid → anlegen|ersetzen|kopie|ueberspringen; fehlend = Vorschlag). Eine Transaktion,
+    // vorher Sicherung der vorlagen.db. "ersetzen" setzt die Version über beide Stände, damit Projekte "Bibliothek neuer" sehen.
+    Q_INVOKABLE QVariantMap vorlagenImportAusfuehren(const QString &pfad, const QVariantMap &entscheidungen);
+    QString vorlagenSichern(const QString &anlass);
     // Daten fürs Deckblatt im Dokumentations-PDF; leere Map = keine Deckblattvorlage
     QVariantMap deckblattDatenLaden(int projektId, int vorlageId, const QString &titelzusatz, bool mitLogo);
     // Blattformat je Format-Modus in mm; (0,0) = auto/canvas (Groesse folgt den Elementen)

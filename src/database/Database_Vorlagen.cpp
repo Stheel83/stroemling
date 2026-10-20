@@ -386,3 +386,280 @@ bool Database::vorlageAusBibliothekLoeschen(const QString &uid)
     q.bindValue(":u", uid);
     return q.exec() && q.numRowsAffected() > 0;
 }
+
+// ============================================================
+// Vorlagen-Austausch (S2): JSON-Bündel "stroemling-blattvorlagen"
+// Leitlinien wie beim Bauteil-Austausch: uid ist die Identität, nie still überschreiben (erst analysieren, dann
+// Entscheidungen), vor dem Import eine Sicherung. Gleichheit über den Inhalts-Hash, nicht über Name/Version.
+// ============================================================
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+
+namespace {
+
+constexpr auto kVorlagenFormat = "stroemling-blattvorlagen";
+constexpr int  kVorlagenFormatVersion = 1;
+
+QJsonObject feldAlsJson(const QVariantMap &f)
+{
+    return QJsonObject {
+        { "feldtyp", f.value("feldtyp").toString() }, { "x_mm", f.value("xMm").toDouble() }, { "y_mm", f.value("yMm").toDouble() },
+        { "breite_mm", f.value("breiteMm").toDouble() }, { "hoehe_mm", f.value("hoeheMm").toDouble() },
+        { "label", f.value("label").toString() }, { "inhalt", f.value("inhalt").toString() },
+        { "quelle_spalte", f.value("quelleSpalte").toString() }, { "schriftgroesse", f.value("schriftgroesse").toDouble() },
+        { "fett", f.value("fett").toInt() }, { "rahmen", f.value("rahmen").toInt() }, { "reihenfolge", f.value("reihenfolge").toInt() } };
+}
+
+QVariantMap feldAusJson(const QJsonObject &o)
+{
+    return QVariantMap {
+        { "feldtyp", o.value("feldtyp").toString(QStringLiteral("fest")) }, { "xMm", o.value("x_mm").toDouble() },
+        { "yMm", o.value("y_mm").toDouble() }, { "breiteMm", o.value("breite_mm").toDouble(50) },
+        { "hoeheMm", o.value("hoehe_mm").toDouble(13) }, { "label", o.value("label").toString() },
+        { "inhalt", o.value("inhalt").toString() }, { "quelleSpalte", o.value("quelle_spalte").toString() },
+        { "schriftgroesse", o.value("schriftgroesse").toDouble(3.5) }, { "fett", o.value("fett").toInt() },
+        { "rahmen", o.value("rahmen").toInt(1) }, { "reihenfolge", o.value("reihenfolge").toInt() } };
+}
+
+VorlagenInhalt inhaltAusJson(const QJsonObject &o)
+{
+    VorlagenInhalt v;
+    v.name = o.value("name").toString();
+    v.beschreibung = o.value("beschreibung").toString();
+    v.art = o.value("art").toString(QStringLiteral("schriftfeld"));
+    if (v.art == QLatin1String("infostreifen")) v.art = QStringLiteral("schriftfeld");
+    v.breite = o.value("breite_mm").toDouble(297); v.hoehe = o.value("hoehe_mm").toDouble(210);
+    v.rl = o.value("rand_links_mm").toDouble(20);   v.rr = o.value("rand_rechts_mm").toDouble(10);
+    v.ro = o.value("rand_oben_mm").toDouble(10);    v.ru = o.value("rand_unten_mm").toDouble(10);
+    v.logoMime = o.value("logo_mime").toString();
+    v.logo = QByteArray::fromBase64(o.value("logo_base64").toString().toLatin1());
+    const QJsonArray fa = o.value("felder").toArray();
+    for (const QJsonValue &fv : fa) v.felder << feldAusJson(fv.toObject());
+    return v;
+}
+
+// Bündel lesen und prüfen. Rückgabe: Fehlertext (leer = ok), *root gefüllt.
+QString vorlagenBuendelLesen(const QString &pfad, QJsonObject *root)
+{
+    QFile f(pfad);
+    if (!f.open(QIODevice::ReadOnly)) return QStringLiteral("Datei nicht lesbar: %1").arg(f.errorString());
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject())
+        return QStringLiteral("Keine gültige JSON-Datei (%1).").arg(err.errorString());
+    *root = doc.object();
+    if (root->value("format").toString() != QLatin1String(kVorlagenFormat))
+        return QStringLiteral("Kein Blattvorlagen-Bündel (Format „%1“ erwartet).").arg(kVorlagenFormat);
+    if (root->value("format_version").toInt() != kVorlagenFormatVersion)
+        return QStringLiteral("Dieses Bündel hat ein Format (Version %1), das diese Version nicht kennt.").arg(root->value("format_version").toInt());
+    if (!root->value("vorlagen").isArray()) return QStringLiteral("Das Bündel enthält keine Vorlagenliste.");
+    return {};
+}
+
+} // namespace
+
+QString Database::vorlagenSichern(const QString &anlass)
+{
+    if (!m_vorlagenDb.isOpen()) return {};
+    const QString ordner = QFileInfo(m_vorlagenPfad).absolutePath() + QStringLiteral("/backups");
+    QDir().mkpath(ordner);
+    const QString ziel = ordner + QStringLiteral("/vorlagen_%1_%2.db").arg(anlass,
+                             QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz")));
+    QString maskiert = ziel;
+    maskiert.replace(QLatin1Char('\''), QStringLiteral("''"));
+    QSqlQuery q(m_vorlagenDb);
+    if (QFileInfo::exists(ziel) || !q.exec(QStringLiteral("VACUUM INTO '%1'").arg(maskiert))) {
+        qCWarning(lcDb) << "Vorlagen-Sicherung nicht angelegt:" << q.lastError().text() << ziel;
+        return {};
+    }
+    return ziel;
+}
+
+QVariantMap Database::vorlagenExportieren(const QString &pfad, const QStringList &uids)
+{
+    QVariantMap erg { { "ok", false }, { "anzahl", 0 } };
+    if (!m_vorlagenDb.isOpen()) { erg["fehler"] = QStringLiteral("Die Vorlagen-Bibliothek ist nicht verfügbar."); return erg; }
+    if (pfad.trimmed().isEmpty()) { erg["fehler"] = QStringLiteral("Kein Zielpfad angegeben."); return erg; }
+    if (QFileInfo::exists(pfad)) { erg["fehler"] = QStringLiteral("Die Datei existiert bereits – bitte einen anderen Namen wählen."); return erg; }
+
+    QStringList alle;
+    {
+        QSqlQuery q(m_vorlagenDb);
+        if (q.exec("SELECT uid FROM bvorlage ORDER BY art, name COLLATE NOCASE"))
+            while (q.next()) alle << q.value(0).toString();
+    }
+    const QStringList auswahl = uids.isEmpty() ? alle : uids;
+    QJsonArray arr;
+    for (const QString &uid : auswahl) {
+        QVariantMap k; QVariantList felder; QByteArray logo; QString mime;
+        if (!bibliothekVorlageLesen(uid, k, felder, logo, mime)) continue;
+        QJsonArray fa;
+        for (const QVariant &f : felder) fa.append(feldAlsJson(f.toMap()));
+        QJsonObject o {
+            { "uid", uid }, { "name", k.value("name").toString() }, { "beschreibung", k.value("beschreibung").toString() },
+            { "art", k.value("art").toString() }, { "breite_mm", k.value("breiteMm").toDouble() }, { "hoehe_mm", k.value("hoeheMm").toDouble() },
+            { "rand_links_mm", k.value("randLinksMm").toDouble() }, { "rand_rechts_mm", k.value("randRechtsMm").toDouble() },
+            { "rand_oben_mm", k.value("randObenMm").toDouble() }, { "rand_unten_mm", k.value("randUntenMm").toDouble() },
+            { "version", k.value("version").toInt() }, { "geaendert_am", k.value("geaendertAm").toString() },
+            { "logo_mime", mime }, { "logo_base64", QString::fromLatin1(logo.toBase64()) }, { "felder", fa } };
+        arr.append(o);
+    }
+    if (arr.isEmpty()) { erg["fehler"] = QStringLiteral("Es gibt keine Vorlagen zum Exportieren."); return erg; }
+    const QJsonObject root {
+        { "format", QString::fromLatin1(kVorlagenFormat) }, { "format_version", kVorlagenFormatVersion },
+        { "exportiert_am", QDateTime::currentDateTimeUtc().toString(Qt::ISODate) }, { "vorlagen", arr } };
+    QSaveFile f(pfad);
+    if (!f.open(QIODevice::WriteOnly)) { erg["fehler"] = QStringLiteral("Datei nicht schreibbar: %1").arg(f.errorString()); return erg; }
+    f.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    if (!f.commit()) { erg["fehler"] = QStringLiteral("Schreiben fehlgeschlagen: %1").arg(f.errorString()); return erg; }
+    erg["ok"] = true;
+    erg["anzahl"] = int(arr.size());
+    return erg;
+}
+
+QVariantMap Database::vorlagenImportAnalysieren(const QString &pfad)
+{
+    QVariantMap erg { { "ok", false } };
+    if (!m_vorlagenDb.isOpen()) { erg["fehler"] = QStringLiteral("Die Vorlagen-Bibliothek ist nicht verfügbar."); return erg; }
+    QJsonObject root;
+    if (const QString f = vorlagenBuendelLesen(pfad, &root); !f.isEmpty()) { erg["fehler"] = f; return erg; }
+
+    QVariantList eintraege;
+    int neu = 0, gleich = 0, abweichend = 0;
+    QSet<QString> gesehen;
+    for (const QJsonValue &v : root.value("vorlagen").toArray()) {
+        const QJsonObject o = v.toObject();
+        const QString uid = o.value("uid").toString().trimmed();
+        if (uid.isEmpty() || gesehen.contains(uid)) continue;
+        gesehen.insert(uid);
+        const VorlagenInhalt inh = inhaltAusJson(o);
+        QVariantMap e { { "uid", uid }, { "name", inh.name }, { "art", inh.art }, { "bundleVersion", o.value("version").toInt() },
+                        { "felder", int(inh.felder.size()) } };
+        QVariantMap k; QVariantList felder; QByteArray logo; QString mime;
+        if (!bibliothekVorlageLesen(uid, k, felder, logo, mime)) {
+            e["status"] = QStringLiteral("neu");
+            e["vorschlag"] = QStringLiteral("anlegen");
+            e["aktionen"] = QStringList { "anlegen", "ueberspringen" };
+            ++neu;
+        } else {
+            const VorlagenInhalt lokal = inhaltAusBibliothek(k, felder, logo, mime);
+            e["lokaleVersion"] = k.value("version").toInt();
+            e["lokalerName"] = k.value("name").toString();
+            if (inhaltsHash(lokal) == inhaltsHash(inh)) {
+                e["status"] = QStringLiteral("gleich");
+                e["vorschlag"] = QStringLiteral("ueberspringen");
+                e["aktionen"] = QStringList { "ueberspringen" };
+                ++gleich;
+            } else {
+                e["status"] = QStringLiteral("abweichend");
+                // Neuere Bündelversion: ersetzen ist naheliegend; sonst nicht still überschreiben
+                e["vorschlag"] = o.value("version").toInt() > k.value("version").toInt() ? QStringLiteral("ersetzen") : QStringLiteral("ueberspringen");
+                e["aktionen"] = QStringList { "ersetzen", "kopie", "ueberspringen" };
+                ++abweichend;
+            }
+        }
+        eintraege << e;
+    }
+    if (eintraege.isEmpty()) { erg["fehler"] = QStringLiteral("Das Bündel enthält keine Vorlagen."); return erg; }
+    erg["ok"] = true;
+    erg["eintraege"] = eintraege;
+    erg["anzahlNeu"] = neu; erg["anzahlGleich"] = gleich; erg["anzahlAbweichend"] = abweichend;
+    return erg;
+}
+
+QVariantMap Database::vorlagenImportAusfuehren(const QString &pfad, const QVariantMap &entscheidungen)
+{
+    QVariantMap erg { { "ok", false } };
+    const QVariantMap analyse = vorlagenImportAnalysieren(pfad);
+    if (!analyse.value("ok").toBool()) { erg["fehler"] = analyse.value("fehler"); return erg; }
+    QJsonObject root;
+    vorlagenBuendelLesen(pfad, &root);
+    QHash<QString, QJsonObject> nachUid;
+    for (const QJsonValue &v : root.value("vorlagen").toArray()) nachUid.insert(v.toObject().value("uid").toString().trimmed(), v.toObject());
+
+    erg["sicherung"] = vorlagenSichern(QStringLiteral("vor_import"));
+    if (!m_vorlagenDb.transaction()) { erg["fehler"] = QStringLiteral("Transaktion konnte nicht gestartet werden."); return erg; }
+    int angelegt = 0, ersetzt = 0, kopien = 0, uebersprungen = 0;
+    bool fehler = false;
+
+    // Schreibt eine Vorlage (neu mit uid, oder ersetzt die bestehende); Version wie angegeben
+    const auto schreiben = [&](const QString &uid, const VorlagenInhalt &v, int version, bool neuAnlegen) {
+        QSqlQuery q(m_vorlagenDb);
+        if (neuAnlegen) {
+            q.prepare("INSERT INTO bvorlage (uid, name, beschreibung, art, breite_mm, hoehe_mm, rand_links_mm, rand_rechts_mm, "
+                      "rand_oben_mm, rand_unten_mm, logo_data, logo_mime, version) VALUES (:uid,:n,:b,:a,:bm,:hm,:rl,:rr,:ro,:ru,:ld,:lm,:ver)");
+            q.bindValue(":uid", uid);
+        } else {
+            q.prepare("UPDATE bvorlage SET name=:n, beschreibung=:b, art=:a, breite_mm=:bm, hoehe_mm=:hm, rand_links_mm=:rl, "
+                      "rand_rechts_mm=:rr, rand_oben_mm=:ro, rand_unten_mm=:ru, logo_data=:ld, logo_mime=:lm, version=:ver, "
+                      "geaendert_am=datetime('now') WHERE uid=:uid");
+            q.bindValue(":uid", uid);
+        }
+        q.bindValue(":n", v.name); q.bindValue(":b", v.beschreibung); q.bindValue(":a", v.art);
+        q.bindValue(":bm", v.breite); q.bindValue(":hm", v.hoehe);
+        q.bindValue(":rl", v.rl); q.bindValue(":rr", v.rr); q.bindValue(":ro", v.ro); q.bindValue(":ru", v.ru);
+        q.bindValue(":ld", v.logo.isEmpty() ? QVariant(QMetaType(QMetaType::QByteArray)) : QVariant(v.logo));
+        q.bindValue(":lm", v.logoMime); q.bindValue(":ver", version);
+        if (!q.exec()) { qCWarning(lcDb) << "vorlagenImport:" << q.lastError().text(); return false; }
+        QSqlQuery sel(m_vorlagenDb);
+        sel.prepare("SELECT id FROM bvorlage WHERE uid = :u");
+        sel.bindValue(":u", uid);
+        if (!sel.exec() || !sel.next()) return false;
+        const int bid = sel.value(0).toInt();
+        QSqlQuery qd(m_vorlagenDb);
+        qd.prepare("DELETE FROM bvorlage_feld WHERE vorlage_id = :v");
+        qd.bindValue(":v", bid);
+        if (!qd.exec()) return false;
+        for (int i = 0; i < v.felder.size(); ++i) {
+            const QVariantMap f = v.felder[i].toMap();
+            QSqlQuery qi(m_vorlagenDb);
+            qi.prepare("INSERT INTO bvorlage_feld (vorlage_id, feldtyp, x_mm, y_mm, breite_mm, hoehe_mm, label, inhalt, "
+                       "quelle_spalte, schriftgroesse, fett, rahmen, reihenfolge) VALUES (:v,:t,:x,:y,:b,:h,:l,:i,:q,:sg,:f,:r,:o)");
+            qi.bindValue(":v", bid); qi.bindValue(":t", f.value("feldtyp")); qi.bindValue(":x", f.value("xMm"));
+            qi.bindValue(":y", f.value("yMm")); qi.bindValue(":b", f.value("breiteMm")); qi.bindValue(":h", f.value("hoeheMm"));
+            qi.bindValue(":l", f.value("label")); qi.bindValue(":i", f.value("inhalt"));
+            qi.bindValue(":q", f.value("quelleSpalte")); qi.bindValue(":sg", f.value("schriftgroesse"));
+            qi.bindValue(":f", f.value("fett")); qi.bindValue(":r", f.value("rahmen")); qi.bindValue(":o", i);
+            if (!qi.exec()) return false;
+        }
+        return true;
+    };
+
+    for (const QVariant &ev : analyse.value("eintraege").toList()) {
+        const QVariantMap e = ev.toMap();
+        const QString uid = e.value("uid").toString();
+        QString aktion = entscheidungen.value(uid, e.value("vorschlag")).toString();
+        if (!e.value("aktionen").toStringList().contains(aktion)) aktion = QStringLiteral("ueberspringen");
+        const VorlagenInhalt inh = inhaltAusJson(nachUid.value(uid));
+        bool ok = true;
+        if (aktion == QLatin1String("anlegen")) {
+            ok = schreiben(uid, inh, qMax(1, e.value("bundleVersion").toInt()), true);
+            ++angelegt;
+        } else if (aktion == QLatin1String("ersetzen")) {
+            ok = schreiben(uid, inh, qMax(e.value("lokaleVersion").toInt(), e.value("bundleVersion").toInt()) + 1, false);
+            ++ersetzt;
+        } else if (aktion == QLatin1String("kopie")) {
+            VorlagenInhalt k = inh;
+            k.name = inh.name + QStringLiteral(" (Import)");
+            ok = schreiben(QUuid::createUuid().toString(QUuid::WithoutBraces), k, 1, true);
+            ++kopien;
+        } else {
+            ++uebersprungen;
+        }
+        if (!ok) { fehler = true; break; }
+    }
+    if (fehler) {
+        m_vorlagenDb.rollback();
+        erg["fehler"] = QStringLiteral("Der Import ist fehlgeschlagen; es wurde nichts verändert.");
+        return erg;
+    }
+    if (!m_vorlagenDb.commit()) { erg["fehler"] = QStringLiteral("Der Import konnte nicht abgeschlossen werden."); return erg; }
+    erg["ok"] = true;
+    erg["angelegt"] = angelegt; erg["ersetzt"] = ersetzt; erg["kopien"] = kopien; erg["uebersprungen"] = uebersprungen;
+    return erg;
+}

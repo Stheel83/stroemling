@@ -1916,6 +1916,99 @@ private slots:
         QDir(basis).removeRecursively();
     }
 
+    void makro_01_austausch()
+    {
+        // S3: Makro-Identitaet (uid, Altbestand wird nachgetragen) und Buendel "stroemling-makros"
+        const QString basis = QDir::tempPath() + "/stroemling_mk1_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QDir().mkpath(basis);
+        // Altbestand: makros.db von vor S3 (ohne uid/version), zwei Makros mit Elementen
+        {
+            QSqlDatabase alt = QSqlDatabase::addDatabase("QSQLITE", "mk_alt");
+            alt.setDatabaseName(basis + "/alt.db");
+            QVERIFY(alt.open());
+            QSqlQuery q(alt);
+            QVERIFY(q.exec("CREATE TABLE makro (id INTEGER PRIMARY KEY, name TEXT NOT NULL, beschreibung TEXT DEFAULT '', kategorie TEXT DEFAULT '', "
+                           "kasten_breite REAL NOT NULL DEFAULT 100, kasten_hoehe REAL NOT NULL DEFAULT 100, erstellt_am TEXT DEFAULT (datetime('now')))"));
+            QVERIFY(q.exec("CREATE TABLE makro_element (id INTEGER PRIMARY KEY, makro_id INTEGER NOT NULL REFERENCES makro(id) ON DELETE CASCADE, "
+                           "typ TEXT NOT NULL, rel_x1 REAL NOT NULL, rel_y1 REAL NOT NULL, rel_x2 REAL NOT NULL DEFAULT 0, rel_y2 REAL NOT NULL DEFAULT 0, "
+                           "extra_daten TEXT DEFAULT '{}', symbol_key TEXT DEFAULT '', sortierung INTEGER DEFAULT 0)"));
+            QVERIFY(q.exec("INSERT INTO makro (name, kategorie) VALUES ('Motorstarter', 'Antriebe'), ('Netzteil 24V', 'Versorgung')"));
+            QVERIFY(q.exec("INSERT INTO makro_element (makro_id, typ, rel_x1, rel_y1, symbol_key, sortierung) VALUES "
+                           "(1, 'symbol', 10, 20, 'schuetz', 0), (1, 'symbol', 30, 20, 'motor', 1), (2, 'symbol', 5, 5, 'netzteil', 0)"));
+            alt.close();
+        }
+        QSqlDatabase::removeDatabase("mk_alt");
+        QVERIFY(m_db->openMakro(basis + "/alt.db"));
+        QSqlDatabase mk = QSqlDatabase::database("stroemling_makro");
+        QSet<QString> uids;
+        { QSqlQuery q(mk); QVERIFY(q.exec("SELECT uid, version FROM makro"));
+          while (q.next()) { QVERIFY(!q.value(0).toString().isEmpty()); QCOMPARE(q.value(1).toInt(), 1); uids.insert(q.value(0).toString()); } }
+        QCOMPARE(uids.size(), 2);
+        // erneutes Oeffnen aendert die uids nicht
+        QVERIFY(m_db->openMakro(basis + "/alt.db"));
+        { QSqlQuery q(QSqlDatabase::database("stroemling_makro")); QVERIFY(q.exec("SELECT uid FROM makro"));
+          while (q.next()) QVERIFY(uids.contains(q.value(0).toString())); }
+
+        // Meta-Update zaehlt die Version hoch
+        QVERIFY(m_db->makroMetaAktualisieren(1, "Motorstarter DOL", "", "Antriebe"));
+        { QSqlQuery q(QSqlDatabase::database("stroemling_makro")); QVERIFY(q.exec("SELECT version FROM makro WHERE id = 1") && q.next()); QCOMPARE(q.value(0).toInt(), 2); }
+
+        // Export
+        const QString buendel = basis + "/buendel.json";
+        QVariantMap ex = m_db->makrosExportieren(buendel, {});
+        QVERIFY2(ex.value("ok").toBool(), qPrintable(ex.value("fehler").toString()));
+        QCOMPARE(ex.value("anzahl").toInt(), 2);
+        QVERIFY(!m_db->makrosExportieren(buendel, {}).value("ok").toBool());
+
+        // gleicher Stand: alles gleich
+        QVariantMap an = m_db->makrosImportAnalysieren(buendel);
+        QVERIFY(an.value("ok").toBool());
+        QCOMPARE(an.value("anzahlGleich").toInt(), 2);
+
+        // lokal ein Element aendern (Version 3 per Meta) -> abweichend, Vorschlag ueberspringen (Buendel aelter)
+        { QSqlQuery q(QSqlDatabase::database("stroemling_makro")); QVERIFY(q.exec("UPDATE makro_element SET rel_x1 = 99 WHERE makro_id = 2"));
+          QVERIFY(q.exec("UPDATE makro SET version = 3 WHERE id = 2")); }
+        an = m_db->makrosImportAnalysieren(buendel);
+        QCOMPARE(an.value("anzahlAbweichend").toInt(), 1);
+        QCOMPARE(an.value("anzahlGleich").toInt(), 1);
+        QVariantMap abw;
+        for (const QVariant &e : an.value("eintraege").toList()) if (e.toMap().value("status").toString() == "abweichend") abw = e.toMap();
+        QCOMPARE(abw.value("vorschlag").toString(), QString("ueberspringen"));
+        QCOMPARE(abw.value("lokaleVersion").toInt(), 3);
+        const QString abwUid = abw.value("uid").toString();
+
+        // Kopie, dann Ersetzen
+        QVariantMap r = m_db->makrosImportAusfuehren(buendel, {{abwUid, "kopie"}});
+        QVERIFY2(r.value("ok").toBool(), qPrintable(r.value("fehler").toString()));
+        QCOMPARE(r.value("kopien").toInt(), 1);
+        QVERIFY(QFileInfo::exists(r.value("sicherung").toString()));
+        QCOMPARE(m_db->makroListe().size(), 3);
+        r = m_db->makrosImportAusfuehren(buendel, {{abwUid, "ersetzen"}});
+        QCOMPARE(r.value("ersetzt").toInt(), 1);
+        { QSqlQuery q(QSqlDatabase::database("stroemling_makro"));
+          QVERIFY(q.exec("SELECT e.rel_x1, m.version FROM makro m JOIN makro_element e ON e.makro_id = m.id WHERE m.uid = '" + abwUid + "'") && q.next());
+          QCOMPARE(q.value(0).toInt(), 5);          // Wert aus dem Buendel zurueck
+          QVERIFY(q.value(1).toInt() >= 4); }       // Version ueber beiden Staenden
+
+        // frische Bibliothek: Import legt neu an (Elemente vollstaendig), danach alles gleich
+        QVERIFY(m_db->openMakro(basis + "/leer.db"));
+        QVERIFY(m_db->makroListe().isEmpty());
+        QCOMPARE(m_db->makrosImportAnalysieren(buendel).value("anzahlNeu").toInt(), 2);
+        r = m_db->makrosImportAusfuehren(buendel, {});
+        QCOMPARE(r.value("angelegt").toInt(), 2);
+        QCOMPARE(m_db->makroListe().size(), 2);
+        QCOMPARE(m_db->makrosImportAnalysieren(buendel).value("anzahlGleich").toInt(), 2);
+        int summeElemente = 0;
+        for (const QVariant &m : m_db->makroListe()) summeElemente += m.toMap().value("elementAnzahl").toInt();
+        QCOMPARE(summeElemente, 3);
+
+        // Fehlerfaelle
+        QFile f(basis + "/fremd.json"); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("{\"format\":\"x\"}"); f.close();
+        QVERIFY(m_db->makrosImportAnalysieren(basis + "/fremd.json").value("fehler").toString().contains("Kein Makro-Bündel"));
+        QVERIFY(!m_db->makrosImportAnalysieren(basis + "/gibtsnicht.json").value("ok").toBool());
+        QDir(basis).removeRecursively();
+    }
+
     // Hilfsslot: schreibt das Ergebnis von klemmlistenauszug() einer Projekt-KOPIE als JSON (Vorher/Nachher-
     // Vergleich bei Umbauten). Env: STROEMLING_KL_PROJEKT (Kopie), STROEMLING_KL_BIB (optional), STROEMLING_KL_AUSGABE (Datei).
     void kl_dump()

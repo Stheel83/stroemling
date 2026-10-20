@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import "components"
 
 Item {
     id: root
@@ -250,5 +251,41 @@ Item {
         }
     }
 
+        // ── Austausch (S3): Export/Import der Makro-Bibliothek ──
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 30
+            color: "transparent"
+            Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: root.theme.divider }
+            Text {
+                anchors.centerIn: parent
+                text: "⇄ " + qsTr("Austausch")
+                font.pixelSize: 11
+                color: austauschMa.containsMouse ? root.theme.textPrimary : root.theme.textMuted
+            }
+            MouseArea {
+                id: austauschMa
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: makroAustausch.open()
+                ToolTip.visible: containsMouse; ToolTip.delay: 600
+                ToolTip.text: qsTr("Makros als Datei exportieren oder aus einer Datei importieren (z. B. Firmenstandard)")
+            }
+        }
     } // ColumnLayout
+
+    BuendelAustauschDialog {
+        id: makroAustausch
+        theme: root.theme
+        titel: qsTr("Makro-Austausch")
+        inhaltName: qsTr("Makros")
+        dateiPrefix: "makros"
+        exportErklaerung: qsTr("Schreibt alle Makros der Bibliothek in eine JSON-Datei, die du auf einem anderen Rechner importieren "
+                               + "oder über den Strömling Manager als Firmenstandard verteilen kannst. Jedes Makro behält seine Kennung.")
+        fnExport: function (pfad) { return db.makrosExportieren(pfad, []) }
+        fnAnalyse: function (pfad) { return db.makrosImportAnalysieren(pfad) }
+        fnAusfuehren: function (pfad, e) { return db.makrosImportAusfuehren(pfad, e) }
+        onImportiert: root.aktualisieren()
+    }
 }

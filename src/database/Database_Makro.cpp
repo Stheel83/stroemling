@@ -14,6 +14,7 @@
 #include <QSet>
 #include <QTextStream>
 #include <QUrl>
+#include <QUuid>
 
 bool Database::openMakro(const QString &path)
 {
@@ -74,6 +75,30 @@ bool Database::openMakro(const QString &path)
         if (!cols.contains("fuell_opazitaet"))m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN fuell_opazitaet REAL   DEFAULT 0.0");
         if (!cols.contains("opazitaet"))      m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN opazitaet      REAL    DEFAULT 1.0");
         if (!cols.contains("ecken_radius"))   m_makroDb.exec("ALTER TABLE makro_element ADD COLUMN ecken_radius   REAL    DEFAULT 0");
+    }
+
+    // S3 (Strömling Manager M-11b): stabile Makro-Identität und Version. uid wird für vorhandene Makros einmalig vergeben
+    // (idempotent: nur wo sie fehlt), version zählt Änderungen (Speichern/Umbenennen), geaendert_am für die Anzeige.
+    {
+        QSqlQuery qc(m_makroDb);
+        qc.exec("PRAGMA table_info(makro)");
+        QSet<QString> mc;
+        while (qc.next()) mc.insert(qc.value(1).toString());
+        if (!mc.contains("uid"))          m_makroDb.exec("ALTER TABLE makro ADD COLUMN uid TEXT");
+        if (!mc.contains("version"))      m_makroDb.exec("ALTER TABLE makro ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
+        if (!mc.contains("geaendert_am")) m_makroDb.exec("ALTER TABLE makro ADD COLUMN geaendert_am TEXT");
+        QSqlQuery qo(m_makroDb);
+        QList<int> ohneUid;
+        if (qo.exec("SELECT id FROM makro WHERE uid IS NULL OR uid = ''"))
+            while (qo.next()) ohneUid << qo.value(0).toInt();
+        for (int mid : ohneUid) {
+            QSqlQuery qu(m_makroDb);
+            qu.prepare("UPDATE makro SET uid = :u, geaendert_am = COALESCE(geaendert_am, erstellt_am) WHERE id = :id");
+            qu.bindValue(":u", QUuid::createUuid().toString(QUuid::WithoutBraces));
+            qu.bindValue(":id", mid);
+            qu.exec();
+        }
+        m_makroDb.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_makro_uid ON makro(uid)");
     }
 
     // SCHRIFT-STRICH-01: Schriftgröße (Text/Notiz) lag bislang in strich_breite,
@@ -251,7 +276,7 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
 
     if (makroId > 0) {
         qm.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k, "
-                   "kasten_breite=:w, kasten_hoehe=:h WHERE id=:id");
+                   "kasten_breite=:w, kasten_hoehe=:h, version = version + 1, geaendert_am = datetime('now') WHERE id=:id");
         qm.bindValue(":n",  name);
         qm.bindValue(":b",  beschr);
         qm.bindValue(":k",  kat);
@@ -270,8 +295,9 @@ int Database::makroSpeichern(int grafikElementId, int seiteId)
             m_makroDb.rollback(); return -1;
         }
     } else {
-        qm.prepare("INSERT INTO makro (name, beschreibung, kategorie, kasten_breite, kasten_hoehe) "
-                   "VALUES (:n, :b, :k, :w, :h)");
+        qm.prepare("INSERT INTO makro (name, beschreibung, kategorie, kasten_breite, kasten_hoehe, uid, geaendert_am) "
+                   "VALUES (:n, :b, :k, :w, :h, :u, datetime('now'))");
+        qm.bindValue(":u", QUuid::createUuid().toString(QUuid::WithoutBraces));
         qm.bindValue(":n",  name);
         qm.bindValue(":b",  beschr);
         qm.bindValue(":k",  kat);
@@ -583,7 +609,8 @@ bool Database::makroMetaAktualisieren(int makroId, const QString &name,
 {
     if (!m_makroDb.isOpen()) return false;
     QSqlQuery q(m_makroDb);
-    q.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k WHERE id=:id");
+    q.prepare("UPDATE makro SET name=:n, beschreibung=:b, kategorie=:k, version = version + 1, "
+              "geaendert_am = datetime('now') WHERE id=:id");
     q.bindValue(":n",  name);
     q.bindValue(":b",  beschreibung);
     q.bindValue(":k",  kategorie);

@@ -918,6 +918,13 @@ public:
 
     // Makro löschen (makro_element per CASCADE).
     Q_INVOKABLE bool makroLoeschen(int makroId);
+    // ── Makro-Austausch (S3, Strömling Manager M-11b): JSON-Bündel "stroemling-makros" Version 1 ──────────────────
+    // Gleiche Bedienung wie der Vorlagen-Austausch; Identität = makro.uid (seit S3), Gleichheit über Inhalts-Hash.
+    Q_INVOKABLE QVariantMap makrosExportieren(const QString &pfad, const QStringList &uids);
+    Q_INVOKABLE QVariantMap makrosImportAnalysieren(const QString &pfad);
+    // Aktionen je uid: anlegen|ersetzen|kopie|ueberspringen; eine Transaktion, vorher Sicherung der makros.db
+    Q_INVOKABLE QVariantMap makrosImportAusfuehren(const QString &pfad, const QVariantMap &entscheidungen);
+    QString makrosSichern(const QString &anlass);
 
     // Makro-Metadaten (Name, Beschreibung, Kategorie) aktualisieren.
     Q_INVOKABLE bool makroMetaAktualisieren(int makroId, const QString &name,

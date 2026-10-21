@@ -16,6 +16,7 @@ Item {
         _kennung = ""
         _titel   = ""
         _katIds  = []
+        _zahlen  = db.wikiEigeneArtikelProKategorie()
         exportPopup.open()
     }
 
@@ -25,6 +26,7 @@ Item {
     property string _titel:    ""
     property int    _version:  1
     property var    _katIds:   []
+    property var    _zahlen:   ({})   // {kategorie_id: Anzahl eigener Artikel} – ohne mitgelieferte, unveränderte
 
     // Artikel installierter Bundles gehören zu deren Bundle und werden nicht umetikettiert
     readonly property int _fremdArtikel: _bundle ? db.wikiBundleFremdArtikelAnzahl(_katIds) : 0
@@ -96,7 +98,8 @@ Item {
                 text: root._bundle
                       ? qsTr("Ein Bundle verteilt ausgewählte Kategorien an andere (z. B. über den Teamordner im Strömling Manager). "
                              + "Es hat eine Kennung und eine Version; beim Import werden eigene Anmerkungen an Artikeln nicht überschrieben.")
-                      : qsTr("Sichert alle deine Artikel samt Bildern in einer Datei. Herkunft und Stand installierter Bundles bleiben erhalten.")
+                      : qsTr("Sichert deine eigenen und geänderten Artikel samt Bildern in einer Datei. Unveränderte mitgelieferte Artikel kommen mit dem Programm "
+                             + "und sind nicht enthalten; Herkunft und Stand installierter Bundles bleiben erhalten.")
             }
 
             // ── nur Bundle ────────────────────────────────────
@@ -159,7 +162,12 @@ Item {
                     }
                 }
 
-                Text { text: qsTr("Kategorien:"); font.pixelSize: 11; color: root.theme.textMuted }
+                Text {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 11; color: root.theme.textMuted
+                    text: qsTr("Kategorien (Zahl = eigene oder geänderte Artikel; unveränderte mitgelieferte Artikel kommen mit dem Programm und sind nicht enthalten):")
+                }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: Math.min(katCol.implicitHeight + 8, 160)
@@ -176,6 +184,7 @@ Item {
                                 delegate: RowLayout {
                                     width: parent.width; spacing: 6; height: 24
                                     CheckBox {
+                                        enabled: (root._zahlen[modelData.id] || 0) > 0
                                         checked: root._katIds.indexOf(modelData.id) >= 0
                                         onCheckedChanged: {
                                             var ids = root._katIds.slice()
@@ -185,8 +194,9 @@ Item {
                                         }
                                     }
                                     Text {
-                                        text: modelData.name; font.pixelSize: 11
-                                        color: root.theme.textPrimary
+                                        text: modelData.name + "  (" + (root._zahlen[modelData.id] || 0) + ")"
+                                        font.pixelSize: 11
+                                        color: (root._zahlen[modelData.id] || 0) > 0 ? root.theme.textPrimary : root.theme.textMuted
                                         Layout.fillWidth: true
                                     }
                                 }

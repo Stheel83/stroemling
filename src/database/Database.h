@@ -994,7 +994,8 @@ public:
 
     // Export / Import (WIKI-EXP-01, Konzept 25 §12): ein Weg für Sicherung (ganzes Wiki) und Bundle (für andere).
     // optionen: bundle (bool), kennung, titel, version, kategorieIds (nur Bundle).
-    // Gibt {erfolg, artikel, ausgelassen, meldung} zurück; ausgelassen = Artikel installierter Bundles (nie im Bundle).
+    // Gibt {erfolg, artikel, ausgelassen, mitgeliefert, meldung} zurück; ausgelassen = Artikel installierter Bundles (nie im Bundle),
+    // mitgeliefert = unveränderte Artikel des Programms (kommen mit dem Programm zurück, nie im Export).
     Q_INVOKABLE QVariantMap wikiExportieren(const QString &pfad, const QVariantMap &optionen);
     // Erkennt selbst: Datei mit bundle_kennung = Bundle (Versionsvergleich, Anmerkungsschutz, mergeMode ohne Wirkung),
     // sonst Sicherung (Zusammenführen ohne Dubletten oder Ersetzen).
@@ -1002,6 +1003,8 @@ public:
     Q_INVOKABLE QVariantMap wikiImportieren(const QString &pfad, bool mergeMode);
     // Art einer Wiki-Datei vor dem Import: "bundle", "sicherung" oder "" (keine Wiki-Exportdatei).
     Q_INVOKABLE QString wikiDateiArt(const QString &pfad);
+    // Eigene Artikel je Kategorie {"<kategorie_id>": anzahl} – ohne unveränderte Mitgelieferte und Bundle-Artikel (Export-Dialog).
+    Q_INVOKABLE QVariantMap wikiEigeneArtikelProKategorie();
     // Anzahl Artikel installierter Bundles in den gewählten Kategorien (für den Hinweis im Export-Dialog).
     Q_INVOKABLE int wikiBundleFremdArtikelAnzahl(const QVariantList &kategorieIds);
 

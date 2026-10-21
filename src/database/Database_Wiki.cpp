@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QSet>
+#include <QHash>
 #include <QRegularExpression>
 #include <QTextStream>
 #include <QUrl>
@@ -696,6 +697,69 @@ QVariantList Database::wikiSuchen(const QString &suchbegriff)
 // Ein Weg für Sicherung (ganzes Wiki) und Bundle (für andere). Dasselbe Format
 // (wiki_export_version 1); ein Bundle trägt zusätzlich bundle_kennung/-version/-titel.
 // ============================================================
+// Mitgelieferte Artikel (manifest.json der Seeds) – sie kommen mit dem Programm zurück und gehören nicht in Export/Bundle,
+// solange sie unverändert sind. Schlüssel: Kategoriename + Titel.
+namespace {
+struct WikiSeedArtikel { QString inhalt; QString tags; bool hatBilder = false; };
+
+const QHash<QString, WikiSeedArtikel> &wikiSeedMitgeliefert()
+{
+    static const QHash<QString, WikiSeedArtikel> karte = [] {
+        QHash<QString, WikiSeedArtikel> k;
+        QFile mf(QStringLiteral(":/wiki_seed/manifest.json"));
+        if (!mf.open(QIODevice::ReadOnly)) return k;
+        const QJsonDocument doc = QJsonDocument::fromJson(mf.readAll());
+        for (const QJsonValue &kv : doc["kategorien"].toArray()) {
+            const QJsonObject kat = kv.toObject();
+            for (const QJsonValue &av : kat["artikel"].toArray()) {
+                const QJsonObject art = av.toObject();
+                WikiSeedArtikel a;
+                const QString datei = art["datei"].toString();
+                if (!datei.isEmpty()) {
+                    QFile f(QStringLiteral(":/wiki_seed/") + datei);
+                    if (f.open(QIODevice::ReadOnly)) a.inhalt = QString::fromUtf8(f.readAll());
+                }
+                a.tags = art["tags"].toString();
+                a.hatBilder = !art["bild_qrc"].toString().isEmpty() || !art["bilder_weitere"].toArray().isEmpty();
+                k.insert(kat["name"].toString() + QChar(0x1f) + art["titel"].toString(), a);
+            }
+        }
+        return k;
+    }();
+    return karte;
+}
+
+// true = Text und Tags wie ausgeliefert (und kein selbst hinzugefügtes Bild): kein eigener Inhalt
+bool wikiArtikelUnveraendertMitgeliefert(const QString &kategorie, const QString &titel,
+                                         const QString &inhalt, const QString &tags, int bildAnzahl)
+{
+    const auto it = wikiSeedMitgeliefert().constFind(kategorie + QChar(0x1f) + titel);
+    if (it == wikiSeedMitgeliefert().constEnd()) return false;
+    return it->inhalt == inhalt && it->tags == tags && (it->hatBilder || bildAnzahl == 0);
+}
+} // namespace
+
+// Eigene Artikel je Kategorie (ohne unveränderte Mitgelieferte und ohne Artikel installierter Bundles) – Zahlen für den Export-Dialog
+QVariantMap Database::wikiEigeneArtikelProKategorie()
+{
+    QVariantMap res;
+    QSqlQuery q(m_wikiDb);
+    if (!q.exec(R"(
+        SELECT wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags,
+               (SELECT COUNT(*) FROM wiki_bild wb WHERE wb.artikel_id = wa.id)
+        FROM wiki_artikel wa JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id
+        WHERE wa.ist_system = 0 AND wa.bundle_kennung IS NULL
+    )")) return res;
+    while (q.next()) {
+        if (wikiArtikelUnveraendertMitgeliefert(q.value(1).toString(), q.value(2).toString(),
+                                                q.value(3).toString(), q.value(4).toString(), q.value(5).toInt()))
+            continue;
+        const QString key = QString::number(q.value(0).toInt());
+        res[key] = res.value(key).toInt() + 1;
+    }
+    return res;
+}
+
 int Database::wikiBundleFremdArtikelAnzahl(const QVariantList &kategorieIds)
 {
     QSet<int> katIdSet;
@@ -716,6 +780,7 @@ QVariantMap Database::wikiExportieren(const QString &pfad, const QVariantMap &op
     res["erfolg"]     = false;
     res["artikel"]    = 0;
     res["ausgelassen"] = 0;
+    res["mitgeliefert"] = 0;
     res["meldung"]    = QString();
 
     const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
@@ -756,10 +821,11 @@ QVariantMap Database::wikiExportieren(const QString &pfad, const QVariantMap &op
     // installierter Bundles werden nicht umetikettiert (O5). Sicherung: Herkunft bleibt erhalten.
     QJsonArray artikelArr;
     QSet<int> exportArtIds;
-    int ausgelassen = 0;
+    int ausgelassen = 0, mitgeliefert = 0;
     QSqlQuery qArt(m_wikiDb);
     if (!qArt.exec(R"(
-        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags, wa.bundle_kennung, wa.von_nutzer_geaendert
+        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags, wa.bundle_kennung, wa.von_nutzer_geaendert,
+               (SELECT COUNT(*) FROM wiki_bild wb WHERE wb.artikel_id = wa.id)
         FROM wiki_artikel wa
         JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id
         WHERE wa.ist_system = 0
@@ -774,6 +840,13 @@ QVariantMap Database::wikiExportieren(const QString &pfad, const QVariantMap &op
         if (bundle) {
             if (!katIdSet.contains(qArt.value(1).toInt())) continue;
             if (!herkunft.isEmpty()) { ++ausgelassen; continue; }
+        }
+        // Mitgelieferte, unveränderte Artikel kommen mit dem Programm zurück
+        if (herkunft.isEmpty()
+            && wikiArtikelUnveraendertMitgeliefert(qArt.value(2).toString(), qArt.value(3).toString(),
+                                                   qArt.value(4).toString(), qArt.value(5).toString(), qArt.value(8).toInt())) {
+            ++mitgeliefert;
+            continue;
         }
         QJsonObject o;
         o["id"]             = qArt.value(0).toInt();
@@ -851,6 +924,7 @@ QVariantMap Database::wikiExportieren(const QString &pfad, const QVariantMap &op
     res["erfolg"]      = true;
     res["artikel"]     = int(artikelArr.size());
     res["ausgelassen"] = ausgelassen;
+    res["mitgeliefert"] = mitgeliefert;
     return res;
 }
 
@@ -1111,6 +1185,8 @@ QVariantMap Database::wikiImportieren(const QString &pfad, bool mergeMode)
         res["meldung"] = "Commit fehlgeschlagen: " + fehler;
         return res;
     }
+    // Ersetzen löscht auch die mitgelieferten Artikel – sofort wieder einsäen (sonst erst beim nächsten Start)
+    if (!mergeMode) seedWikiStarterInhalte();
     qCInfo(lcDb) << "Wiki importiert:" << neu << "neu," << uebersprungen << "übersprungen,"
                  << umbenannt << "umbenannt" << (mergeMode ? "(Merge)" : "(Replace)");
     res["erfolg"]        = true;

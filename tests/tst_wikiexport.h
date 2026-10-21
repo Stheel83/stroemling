@@ -247,4 +247,55 @@ private slots:
         QSqlDatabase::removeDatabase("stroemling_wiki");
         QDir(z).removeRecursively();
     }
+
+    // Mitgelieferte Artikel: unverändert nie im Export, geändert und eigene schon; Ersetzen sät sie sofort wieder ein
+    void test_06_mitgelieferteArtikel()
+    {
+        const QString z = neuerOrdner("z6");
+        {
+            Database d;
+            QVERIFY(d.openWiki(z + "/wiki.db"));
+            // Ein mitgelieferter Artikel einer Fach-Kategorie (ist_system = 0), unverändert
+            QSqlQuery q(wdb());
+            QVERIFY(q.exec("SELECT wa.id, wa.kategorie_id, wa.titel FROM wiki_artikel wa JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id "
+                           "WHERE wa.ist_system = 0 AND wk.name = 'Normen & Kennzeichnung' ORDER BY wa.titel LIMIT 1") && q.next());
+            const int seedId = q.value(0).toInt(), seedKat = q.value(1).toInt();
+            const QString seedTitel = q.value(2).toString();
+            QVERIFY(wert("SELECT COUNT(*) FROM wiki_artikel WHERE ist_system = 0").toInt() > 50);
+
+            const QVariantMap leer = d.wikiExportieren(z + "/leer.json", {});
+            QVERIFY(leer.value("erfolg").toBool());
+            QCOMPARE(leer.value("artikel").toInt(), 0);                 // nur Mitgelieferte vorhanden → nichts zu sichern
+            QVERIFY(leer.value("mitgeliefert").toInt() > 50);
+            QVERIFY(d.wikiEigeneArtikelProKategorie().isEmpty());
+
+            // geändert → eigener Inhalt; selbst geschrieben → ebenfalls
+            ex("UPDATE wiki_artikel SET inhalt = inhalt || ' (Firmenzusatz)' WHERE id = ?", { seedId });
+            const int eigeneKat = katAnlegen("Meine");
+            artikel(eigeneKat, "Selbst", "text");
+            const QVariantMap zwei = d.wikiExportieren(z + "/zwei.json", {});
+            QCOMPARE(zwei.value("artikel").toInt(), 2);
+            const QVariantMap zahlen = d.wikiEigeneArtikelProKategorie();
+            QCOMPARE(zahlen.value(QString::number(seedKat)).toInt(), 1);
+            QCOMPARE(zahlen.value(QString::number(eigeneKat)).toInt(), 1);
+            QCOMPARE(zahlen.size(), 2);
+
+            // Bundle aus der Seed-Kategorie enthält nur den geänderten Artikel
+            const QVariantMap b = d.wikiExportieren(z + "/b.json", { { "bundle", true }, { "kennung", "k" }, { "version", 1 },
+                                                                      { "kategorieIds", QVariantList { seedKat } } });
+            QCOMPARE(b.value("artikel").toInt(), 1);
+
+            // Ersetzen mit einer Sicherung ohne diesen Artikel: mitgelieferte Artikel sind sofort wieder da
+            QJsonObject alt;
+            alt["wiki_export_version"] = 1;
+            alt["kategorien"] = QJsonArray(); alt["artikel"] = QJsonArray(); alt["bilder"] = QJsonArray();
+            schreiben(z + "/leer_sicherung.json", alt);
+            QVERIFY(d.wikiImportieren(z + "/leer_sicherung.json", false).value("erfolg").toBool());
+            QCOMPARE(artikelAnzahl("Selbst"), 0);
+            QVERIFY(artikelAnzahl(seedTitel) >= 1);
+            QVERIFY(wert("SELECT COUNT(*) FROM wiki_artikel WHERE ist_system = 0").toInt() > 50);
+        }
+        QSqlDatabase::removeDatabase("stroemling_wiki");
+        QDir(z).removeRecursively();
+    }
 };

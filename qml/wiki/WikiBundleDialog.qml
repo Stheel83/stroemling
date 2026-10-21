@@ -18,7 +18,7 @@ Item {
 
     Popup {
         id:           bundlePopup
-        anchors.centerIn: parent
+        anchors.centerIn: Overlay.overlay
         width:        360
         height:       inhalt.implicitHeight + 40
         modal:        true

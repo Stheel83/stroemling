@@ -31,8 +31,10 @@ Item {
 
     Popup {
         id:           exportPopup
-        anchors.centerIn: parent
+        anchors.centerIn: Overlay.overlay
         width:        440
+        // nie höher als das Fenster; reicht der Platz nicht, scrollt der Inhalt
+        height:       Math.min(inhalt.implicitHeight + 40, (Overlay.overlay ? Overlay.overlay.height : 600) - 40)
         modal:        true
         padding:      0
         closePolicy:  Popup.CloseOnEscape
@@ -41,8 +43,18 @@ Item {
             color: root.theme.surface; radius: 6; border.color: root.theme.border
         }
 
+        Flickable {
+          anchors.fill: parent
+          clip: true
+          contentWidth: width
+          contentHeight: inhalt.implicitHeight + 40
+          boundsBehavior: Flickable.StopAtBounds
+          ScrollBar.vertical: ScrollBar { }
+
         ColumnLayout {
-            anchors { fill: parent; margins: 20 }
+            id: inhalt
+            x: 20; y: 20
+            width: parent.width - 40
             spacing: 12
 
             Text {
@@ -217,6 +229,7 @@ Item {
                     TapHandler { onTapped: exportPopup.close() }
                 }
             }
+        }
         }
     }
 

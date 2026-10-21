@@ -3143,6 +3143,14 @@ static QList<SchemaMigration> alleMigrationen()
                 details        TEXT    NOT NULL DEFAULT '{}'
             ))",
         }},
+        { 180, "IBN-UMF-01 (konzept/features/55 §9): ibn_umfang_aus - Pruefumfang der Inbetriebnahme je Projekt. Je Zeile ein Ausschluss: art 'kategorie' (symbol_definition.kategorie), 'symbol' (symbol_definition.id) oder 'kabel' (Kabel nicht pruefen, schluessel 'alle'). Keine Zeile = alles wird geprueft, bestehende Projekte aendern sich nicht. Bereits vorhandene IBN-Eintraege ausgeschlossener Betriebsmittel bleiben erhalten, zaehlen nur nicht. IBN-Kopien erben die Tabelle (VACUUM INTO). Der Stroemling Manager liest sie nur lesend.", {
+            R"(CREATE TABLE IF NOT EXISTS ibn_umfang_aus (
+                projekt_id INTEGER NOT NULL REFERENCES projekt(id) ON DELETE CASCADE,
+                art        TEXT    NOT NULL CHECK (art IN ('kategorie', 'symbol', 'kabel')),
+                schluessel TEXT    NOT NULL,
+                PRIMARY KEY (projekt_id, art, schluessel)
+            ))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

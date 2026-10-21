@@ -173,6 +173,7 @@ qt_add_qml_module(stroemling_app
         qml/ibn/IbnFeldPanel.qml
         qml/ibn/IbnPdfExportDialog.qml
         qml/ibn/IbnDurchgangDialog.qml
+        qml/ibn/IbnUmfangDialog.qml
         qml/ibn/IbnKopienDialog.qml
         qml/ibn/IbnOverlayImportDialog.qml
 

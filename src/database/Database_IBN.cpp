@@ -12,6 +12,8 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QSet>
+#include <QMap>
+#include <QPair>
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
@@ -57,6 +59,13 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
             WHERE ge.typ = 'symbol'
               AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
               AND json_extract(ge.extra_daten, '$.bmk') != ''
+              -- IBN-UMF-01: ausgeschlossene Kategorien/Symbole vor dem Gruppieren aussortieren; ein (Seite, BMK) bleibt,
+              -- solange mindestens ein Symbol davon nicht ausgeschlossen ist (z. B. Schuetz: Spule + Kontakte)
+              AND NOT EXISTS (
+                    SELECT 1 FROM ibn_umfang_aus u
+                    WHERE u.projekt_id = :pid
+                      AND ((u.art = 'symbol'    AND u.schluessel = ge.symbol_id)
+                        OR (u.art = 'kategorie' AND COALESCE(sd.kategorie, '') != '' AND u.schluessel = sd.kategorie)))
             GROUP BY ge.seite_id, json_extract(ge.extra_daten, '$.bmk')
         )
         SELECT
@@ -136,6 +145,161 @@ QVariantList Database::ibnListeLaden(int projektId, int seiteId)
         });
     }
     return result;
+}
+
+QVariantList Database::ibnUmfangLaden(int projektId)
+{
+    QVariantList result;
+    QSqlQuery q(m_db);
+    q.prepare("SELECT art, schluessel FROM ibn_umfang_aus WHERE projekt_id = :pid ORDER BY art, schluessel");
+    q.bindValue(":pid", projektId);
+    if (!q.exec()) {
+        qCWarning(lcDb) << "ibnUmfangLaden:" << q.lastError().text();
+        return result;
+    }
+    while (q.next())
+        result.append(QVariantMap{ { "art", q.value(0) }, { "schluessel", q.value(1) } });
+    return result;
+}
+
+bool Database::ibnUmfangSetzen(int projektId, const QVariantList &ausgeschlossen)
+{
+    // IBN-Kopien erben den Umfang der Hauptkopie; eine abweichende Zaehlung wuerde den Overlay-Abgleich verfaelschen.
+    // Solange Kopien ausgegeben sind, bleibt der Umfang ebenfalls fest (wie beim neuen Pruefdurchgang).
+    if (m_istIbnKopie || m_offeneKopien > 0) return false;
+
+    QSet<QPair<QString, QString>> eintraege;
+    for (const QVariant &v : ausgeschlossen) {
+        const QVariantMap m = v.toMap();
+        const QString art = m.value("art").toString();
+        QString schluessel = m.value("schluessel").toString();
+        if (art == QLatin1String("kabel"))
+            schluessel = QStringLiteral("alle");
+        else if (art != QLatin1String("kategorie") && art != QLatin1String("symbol"))
+            return false;
+        if (schluessel.isEmpty())
+            return false;
+        eintraege.insert({ art, schluessel });
+    }
+
+    if (!m_db.transaction()) {
+        qCWarning(lcDb) << "ibnUmfangSetzen: Transaktion:" << m_db.lastError().text();
+        return false;
+    }
+    QSqlQuery q(m_db);
+    q.prepare("DELETE FROM ibn_umfang_aus WHERE projekt_id = :pid");
+    q.bindValue(":pid", projektId);
+    bool ok = q.exec();
+    if (ok) {
+        q.prepare("INSERT INTO ibn_umfang_aus (projekt_id, art, schluessel) VALUES (:pid, :art, :sl)");
+        for (const auto &e : std::as_const(eintraege)) {
+            q.bindValue(":pid", projektId);
+            q.bindValue(":art", e.first);
+            q.bindValue(":sl",  e.second);
+            if (!q.exec()) { ok = false; break; }
+        }
+    }
+    if (!ok) {
+        qCWarning(lcDb) << "ibnUmfangSetzen:" << q.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+    return m_db.commit();
+}
+
+QVariantMap Database::ibnUmfangUebersicht(int projektId)
+{
+    QSet<QString> katAus, symAus;
+    bool kabelAus = false;
+    for (const QVariant &v : ibnUmfangLaden(projektId)) {
+        const QVariantMap m = v.toMap();
+        const QString art = m.value("art").toString();
+        if (art == QLatin1String("kategorie"))    katAus.insert(m.value("schluessel").toString());
+        else if (art == QLatin1String("symbol"))  symAus.insert(m.value("schluessel").toString());
+        else if (art == QLatin1String("kabel"))   kabelAus = true;
+    }
+
+    // Verschiedene (Seite, BMK) je Symbol und je Kategorie, unabhaengig vom Ausschluss
+    QMap<QString, int> katAnzahl;
+    QMap<QString, QList<QVariantMap>> symbole;
+    {
+        QSqlQuery q(m_db);
+        q.prepare(R"(
+            SELECT COALESCE(sd.kategorie, '')                                       AS kat,
+                   ge.symbol_id                                                      AS symbol_id,
+                   COALESCE(sd.name, ge.symbol_id)                                   AS name,
+                   COUNT(DISTINCT ge.seite_id || '|' || json_extract(ge.extra_daten, '$.bmk')) AS anzahl
+            FROM grafik_element ge
+            JOIN seite  s ON ge.seite_id = s.id
+            JOIN ort    o ON s.ort_id    = o.id
+            JOIN anlage a ON o.anlage_id = a.id
+            LEFT JOIN symbol_definition sd ON sd.id = ge.symbol_id
+            WHERE a.projekt_id = :pid AND ge.typ = 'symbol'
+              AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
+              AND json_extract(ge.extra_daten, '$.bmk') != ''
+            GROUP BY kat, ge.symbol_id
+            ORDER BY kat, name
+        )");
+        q.bindValue(":pid", projektId);
+        if (!q.exec())
+            qCWarning(lcDb) << "ibnUmfangUebersicht Symbole:" << q.lastError().text();
+        while (q.next()) {
+            const QString kat = q.value("kat").toString();
+            const QString sid = q.value("symbol_id").toString();
+            symbole[kat].append(QVariantMap{
+                { "symbolId",       sid },
+                { "name",           q.value("name") },
+                { "anzahl",         q.value("anzahl") },
+                { "ausgeschlossen", symAus.contains(sid) },
+            });
+        }
+        QSqlQuery k(m_db);
+        k.prepare(R"(
+            SELECT COALESCE(sd.kategorie, '') AS kat,
+                   COUNT(DISTINCT ge.seite_id || '|' || json_extract(ge.extra_daten, '$.bmk')) AS anzahl
+            FROM grafik_element ge
+            JOIN seite  s ON ge.seite_id = s.id
+            JOIN ort    o ON s.ort_id    = o.id
+            JOIN anlage a ON o.anlage_id = a.id
+            LEFT JOIN symbol_definition sd ON sd.id = ge.symbol_id
+            WHERE a.projekt_id = :pid AND ge.typ = 'symbol'
+              AND json_extract(ge.extra_daten, '$.bmk') IS NOT NULL
+              AND json_extract(ge.extra_daten, '$.bmk') != ''
+            GROUP BY kat
+        )");
+        k.bindValue(":pid", projektId);
+        if (k.exec())
+            while (k.next())
+                katAnzahl[k.value("kat").toString()] = k.value("anzahl").toInt();
+    }
+
+    QVariantList kategorien;
+    // Kategorien aus dem Projekt, danach bereits ausgeschlossene ohne Vorkommen (bleiben sichtbar und wieder einschaltbar)
+    QStringList namen = symbole.keys();
+    for (const QString &k : std::as_const(katAus))
+        if (!namen.contains(k)) namen.append(k);
+    std::sort(namen.begin(), namen.end(), [](const QString &a, const QString &b) {
+        if (a.isEmpty() != b.isEmpty()) return !a.isEmpty();   // "ohne Kategorie" zuletzt
+        return a.localeAwareCompare(b) < 0;
+    });
+    for (const QString &k : std::as_const(namen)) {
+        QVariantList syms;
+        for (const QVariantMap &m : symbole.value(k)) syms.append(m);
+        kategorien.append(QVariantMap{
+            { "kategorie",      k },
+            { "anzahl",         katAnzahl.value(k, 0) },
+            { "ausgeschlossen", !k.isEmpty() && katAus.contains(k) },
+            { "symbole",        syms },
+        });
+    }
+
+    int kabelAnzahl = 0;
+    QSqlQuery kq(m_db);
+    kq.prepare("SELECT COUNT(*) FROM kabel WHERE projekt_id = :pid");
+    kq.bindValue(":pid", projektId);
+    if (kq.exec() && kq.next()) kabelAnzahl = kq.value(0).toInt();
+
+    return QVariantMap{ { "kabelPruefen", !kabelAus }, { "kabelAnzahl", kabelAnzahl }, { "kategorien", kategorien } };
 }
 
 bool Database::ibnEintragSpeichern(int projektId, int seiteId,
@@ -243,6 +407,13 @@ QVariantMap Database::ibnEintragFuerBmk(int seiteId, const QString &bmk)
 
 QVariantList Database::ibnKabelListeLaden(int projektId)
 {
+    {   // IBN-UMF-01: "Kabel nicht pruefen" -> leere Liste (vorhandene ibn_kabel-Eintraege bleiben unberuehrt)
+        QSqlQuery u(m_db);
+        u.prepare("SELECT 1 FROM ibn_umfang_aus WHERE projekt_id = :pid AND art = 'kabel'");
+        u.bindValue(":pid", projektId);
+        if (u.exec() && u.next())
+            return {};
+    }
     QSqlQuery q(m_db);
     q.prepare(R"(
         SELECT k.id              AS kabel_id,

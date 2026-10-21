@@ -533,6 +533,15 @@ public:
     // Alle BM mit BMK für ein Projekt laden; seiteId=-1 = alle Seiten.
     Q_INVOKABLE QVariantList ibnListeLaden(int projektId, int seiteId = -1);
 
+    // IBN-Prüfumfang (konzept/features/55 §9, IBN-UMF-01): ausgeschlossene Kategorien/Symbole (und „Kabel nicht prüfen“) je Projekt.
+    // Einträge: {art: "kategorie"|"symbol"|"kabel", schluessel}. Keine Einträge = alles wird geprüft.
+    Q_INVOKABLE QVariantList ibnUmfangLaden(int projektId);
+    // Ersetzt den Umfang vollständig. Nur in der Hauptkopie und ohne ausgegebene Kopien (Kopien erben ihn und dürfen ihn nicht ändern); ungültige Einträge → false, nichts geändert.
+    Q_INVOKABLE bool         ibnUmfangSetzen(int projektId, const QVariantList &ausgeschlossen);
+    // Für den Dialog: {kabelPruefen, kabelAnzahl, kategorien: [{kategorie, anzahl, ausgeschlossen, symbole: [{symbolId, name, anzahl, ausgeschlossen}]}]}
+    // `anzahl` = verschiedene (Seite, BMK) unabhängig vom Ausschluss; Kategorie "" = Symbole ohne Kategorie (nur einzeln abwählbar).
+    Q_INVOKABLE QVariantMap  ibnUmfangUebersicht(int projektId);
+
     // IBN-Eintrag für ein einzelnes BM (EP-Abschnitt, read-only).
     // Gibt {ibnId, status, bauteilId, geprueftVon, geprueftAm, notiz, symbolKategorie, felder}
     // oder leere Map zurück wenn kein Datensatz vorhanden.

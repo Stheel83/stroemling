@@ -1325,6 +1325,111 @@ private slots:
         return zeilen;
     }
 
+    void test_31_ibnUmfang()
+    {
+        // IBN-UMF-01 (Migration 180): Pruefumfang je Kategorie/Symbol, Kabel-Schalter, Gruppenregel, Kopien.
+        TmpProjekt t("ibnumfang");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+        auto ins = [&](const QString &sql) { QVERIFY2(q.exec(sql), qPrintable(sql)); };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int a1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1));
+        const int o1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1));
+        const int s1 = q.lastInsertId().toInt();
+        // potenzial (Verbindungen), taster_no (Kontakte) x2, lss (Schutz), Schuetz -K1: spule (Signaluebertragung) + Kontakt taster_no
+        const struct { const char *sym; const char *bmk; } el[] = {
+            {"potenzial", "+24V"}, {"taster_no", "-S1"}, {"taster_no", "-S2"}, {"lss", "-F1"},
+            {"spule", "-K1"}, {"taster_no", "-K1"} };
+        for (const auto &e : el)
+            ins(QString("INSERT INTO grafik_element (seite_id, typ, symbol_id, extra_daten) VALUES (%1,'symbol','%2','{\"bmk\":\"%3\"}')")
+                    .arg(s1).arg(e.sym, e.bmk));
+        ins("INSERT INTO kabel (projekt_id, bezeichnung) VALUES (1,'-W1')");
+        q.finish();
+
+        const auto bmks = [&]() {
+            QStringList l;
+            for (const QVariant &v : db.ibnListeLaden(1, -1)) l << v.toMap().value("bmk").toString();
+            l.sort();
+            return l;
+        };
+        const auto setze = [&](std::initializer_list<QPair<QString, QString>> eintraege) {
+            QVariantList l;
+            for (const auto &e : eintraege) l << QVariantMap{ {"art", e.first}, {"schluessel", e.second} };
+            return db.ibnUmfangSetzen(1, l);
+        };
+
+        // Standard: alles wird geprueft, jedes (Seite, BMK) einmal
+        QCOMPARE(bmks(), (QStringList{"+24V", "-F1", "-K1", "-S1", "-S2"}));
+        QCOMPARE(db.ibnKabelListeLaden(1).size(), 1);
+
+        // Einzelnes Symbol (Potenzialpunkt) ausschliessen
+        QVERIFY(setze({{"symbol", "potenzial"}}));
+        QCOMPARE(bmks(), (QStringList{"-F1", "-K1", "-S1", "-S2"}));
+
+        // Kategorie "Kontakte" ausschliessen: -S1/-S2 weg, -K1 bleibt (Spule ist noch im Umfang)
+        QVERIFY(setze({{"symbol", "potenzial"}, {"kategorie", "Kontakte"}}));
+        QCOMPARE(bmks(), (QStringList{"-F1", "-K1"}));
+
+        // Auch die Spule ausschliessen: -K1 hat kein geprueftes Symbol mehr und faellt weg
+        QVERIFY(setze({{"kategorie", "Kontakte"}, {"symbol", "spule"}}));
+        QCOMPARE(bmks(), (QStringList{"+24V", "-F1"}));
+
+        // Kabel nicht pruefen: Liste leer, Eintraege in ibn_kabel bleiben unberuehrt
+        QVERIFY(setze({{"kabel", "egal"}}));
+        QCOMPARE(db.ibnKabelListeLaden(1).size(), 0);
+        QCOMPARE(db.ibnUmfangLaden(1).first().toMap().value("schluessel").toString(), QStringLiteral("alle"));
+        QVERIFY(!db.ibnUmfangUebersicht(1).value("kabelPruefen").toBool());
+
+        // Ungueltige Eintraege: false und nichts geaendert
+        QVERIFY(!setze({{"unfug", "x"}}));
+        QVERIFY(!setze({{"symbol", ""}}));
+        QCOMPARE(db.ibnUmfangLaden(1).size(), 1);
+
+        // Uebersicht fuers Dialog: Kategorien mit Symbolen und Anzahl
+        QVERIFY(setze({{"symbol", "potenzial"}, {"kategorie", "Kontakte"}}));
+        const QVariantMap u = db.ibnUmfangUebersicht(1);
+        QVERIFY(u.value("kabelPruefen").toBool());
+        QCOMPARE(u.value("kabelAnzahl").toInt(), 1);
+        QMap<QString, QVariantMap> kat;
+        for (const QVariant &v : u.value("kategorien").toList()) kat[v.toMap().value("kategorie").toString()] = v.toMap();
+        QVERIFY2(kat.contains("Kontakte") && kat.contains("Verbindungen") && kat.contains("Signalübertragung") && kat.contains("Schutz"),
+                 qPrintable("Kategorien: " + QStringList(kat.keys()).join("|")));
+        QCOMPARE(kat["Kontakte"].value("anzahl").toInt(), 3);            // -S1, -S2, -K1
+        QVERIFY(kat["Kontakte"].value("ausgeschlossen").toBool());
+        QVERIFY(!kat["Verbindungen"].value("ausgeschlossen").toBool());
+        QVariantMap pot = kat["Verbindungen"].value("symbole").toList().first().toMap();
+        QCOMPARE(pot.value("symbolId").toString(), QStringLiteral("potenzial"));
+        QVERIFY(pot.value("ausgeschlossen").toBool());
+
+        // Persistiert ueber Schliessen/Oeffnen
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(t.pfad));
+        QCOMPARE(db.ibnUmfangLaden(1).size(), 2);
+        QCOMPARE(bmks(), (QStringList{"-F1", "-K1"}));
+
+        // Zuruecksetzen: alles geprueft
+        QVERIFY(setze({}));
+        QCOMPARE(bmks().size(), 5);
+
+        // Kopien erben den Umfang und duerfen ihn nicht aendern; in der Hauptkopie ist er mit ausgegebenen Kopien fest
+        QVERIFY(setze({{"symbol", "potenzial"}}));
+        const QString ordner = QDir::tempPath() + "/stroemling_test_umfang_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVariantMap r = db.ibnKopieErstellen(1, "Elektro", {}, ordner);
+        QVERIFY(r.value("ok").toBool());
+        QVERIFY(!setze({}));                                             // Hauptkopie mit offener Kopie
+        const QString hauptPfad = db.projektPfad();
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(r.value("pfad").toString()));
+        QCOMPARE(db.ibnUmfangLaden(1).size(), 1);                        // geerbt
+        QCOMPARE(bmks(), (QStringList{"-F1", "-K1", "-S1", "-S2"}));
+        QVERIFY(!setze({}));                                             // IBN-Kopie
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(hauptPfad));
+        QDir(ordner).removeRecursively();
+    }
+
     void test_29_bauteilUid()
     {
         const QRegularExpression uuidMuster(

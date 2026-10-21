@@ -276,6 +276,16 @@ Item {
 
                     Button {
                         flat: true; implicitWidth: 28; implicitHeight: 24
+                        contentItem: Text { text: "☰"; font.pixelSize: 13; color: theme.textSecondary;
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
+                        onClicked: umfangDialog.open()
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Prüfumfang festlegen (Kategorien, Symbole, Kabel)")
+                    }
+
+                    Button {
+                        flat: true; implicitWidth: 28; implicitHeight: 24
                         contentItem: Text { text: "⟲"; font.pixelSize: 13; color: theme.textSecondary;
                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
@@ -441,6 +451,21 @@ Item {
         theme:     root.theme
         projektId: root.projektId
         seiteId:   root.ansichtModus === "seite" ? root.seiteId : -1
+    }
+
+    IbnUmfangDialog {
+        id:        umfangDialog
+        theme:     root.theme
+        projektId: root.projektId
+        gesperrtGrund: db.istIbnKopie
+                       ? qsTr("Diese Datei ist eine IBN-Kopie: Der Prüfumfang kommt aus der Hauptkopie und kann hier nicht geändert werden.")
+                       : db.offeneKopien > 0
+                         ? qsTr("Es sind noch IBN-Kopien ausgegeben – der Prüfumfang kann erst nach dem Einsammeln oder Verwerfen geändert werden.")
+                         : ""
+        onUmfangGeaendert: {
+            root.laden()
+            meldungManager.zeigen(qsTr("Prüfumfang gespeichert."), true)
+        }
     }
 
     IbnDurchgangDialog {

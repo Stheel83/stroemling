@@ -130,12 +130,9 @@ Dialog {
             enabled: root.gesperrtGrund === ""
             checked: !root._kabelAus
             onToggled: root._kabelAus = !checked
-            contentItem: Text {
-                leftPadding: cbKabel.indicator.width + 6
-                text: qsTr("Kabel mitprüfen (%1)").arg(root._daten.kabelAnzahl)
-                color: root.theme.textPrimary; font.pixelSize: 12
-                verticalAlignment: Text.AlignVCenter
-            }
+            text: qsTr("Kabel mitprüfen (%1)").arg(root._daten.kabelAnzahl)
+            font.pixelSize: 12
+            palette.windowText: root.theme.textPrimary   // Beschriftung im Theme, Layout des Standard-CheckBox bleibt erhalten
         }
 
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.border }

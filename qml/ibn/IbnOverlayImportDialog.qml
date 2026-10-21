@@ -32,6 +32,14 @@ Dialog {
 
     function _zustandText(z) {
         if (!z) return ""
+        if (z.istBefund) {   // FS-IBN-03: Befund statt IBN-Stand
+            var b = z.status === "behoben" ? qsTr("Behoben") : z.status === "kein_fehler" ? qsTr("Kein Fehler") : qsTr("Offen")
+            if (z.gefundenVon) b += " · " + z.gefundenVon
+            if (z.gefundenAm)  b += " · " + z.gefundenAm
+            if (z.text)        b += " · „" + z.text + "“"
+            if (z.geaendertAm) b += "\n" + qsTr("geändert %1").arg(z.geaendertAm)
+            return b
+        }
         var t = z.status === "abgeschlossen" ? qsTr("✓ Fertig") : z.status === "in_arbeit" ? qsTr("In Arbeit") : qsTr("Offen")
         if (z.geprueftVon) t += " · " + z.geprueftVon
         if (z.geprueftAm)  t += " · " + z.geprueftAm
@@ -167,6 +175,16 @@ Dialog {
                       .arg(root._analyse.uebernehmen || 0).arg(root._analyse.unveraendert || 0)
                       .arg((root._analyse.konflikte || []).length)
                       .arg((root._analyse.nichtZuordenbar || []).length)
+                      + ((root._analyse.anzahlBefunde || 0) > 0
+                         ? "\n" + qsTr("Das Overlay enthält %1 Befund(e) der Fehlersuche.").arg(root._analyse.anzahlBefunde) : "")
+            }
+            Text {
+                visible: (root._analyse.befundeOhneZuordnung || []).length > 0
+                Layout.fillWidth: true; wrapMode: Text.WordWrap
+                font.pixelSize: 11; color: "#e0a040"
+                text: qsTr("%1 Befund(e) lassen sich keiner Seite mehr zuordnen. Sie werden trotzdem übernommen und mit ihrem alten Schlüssel angezeigt:\n%2")
+                      .arg((root._analyse.befundeOhneZuordnung || []).length)
+                      .arg((root._analyse.befundeOhneZuordnung || []).map(function(e) { return "• " + e.label }).join("\n"))
             }
 
             // Konflikte
@@ -260,6 +278,13 @@ Dialog {
                 text: qsTr("Import abgeschlossen: %1 Einträge übernommen (%2 Konflikte zugunsten der Kopie, %3 zugunsten der Hauptkopie), %4 unverändert. Die Kopie gilt jetzt als eingesammelt.")
                       .arg(root._ergebnis.uebernommen || 0).arg(root._ergebnis.konfliktKopie || 0)
                       .arg(root._ergebnis.konfliktHaupt || 0).arg(root._ergebnis.unveraendert || 0)
+            }
+            Text {
+                visible: (root._ergebnis.befundeOhneZuordnung || []).length > 0
+                Layout.fillWidth: true; wrapMode: Text.WordWrap
+                font.pixelSize: 11; color: "#e0a040"
+                text: qsTr("%1 Befund(e) wurden ohne Seitenzuordnung übernommen (in der Befundliste der Fehlersuche zu finden).")
+                      .arg((root._ergebnis.befundeOhneZuordnung || []).length)
             }
             Text {
                 visible: (root._ergebnis.nichtZuordenbar || []).length > 0

@@ -20,6 +20,7 @@ Dialog {
     required property var theme
     required property int projektId
     property int          seiteId: -1   // -1 = ganzes Projekt
+    property bool         mitBefunden: true   // FS-IBN-03: offene Befunde als letzter Abschnitt
 
     title: qsTr("Prüfprotokoll exportieren")
 
@@ -198,6 +199,15 @@ Dialog {
             }
         }
 
+        CheckBox {
+            id: cbBefunde
+            checked: root.mitBefunden
+            onToggled: root.mitBefunden = checked
+            text: qsTr("Offene Befunde der Fehlersuche als letzten Abschnitt aufnehmen")
+            font.pixelSize: 12
+            palette.windowText: root.theme.textPrimary
+        }
+
         Text {
             id: statusText
             Layout.fillWidth: true
@@ -324,7 +334,7 @@ Dialog {
     }
 
     function _pdfSchreiben(pfad) {
-        var ok = db.ibnProtokollPdfSpeichern(root.projektId, root.seiteId, pfad)
+        var ok = db.ibnProtokollPdfSpeichern(root.projektId, root.seiteId, pfad, root.mitBefunden)
         if (ok) {
             achievementManager.ereignis("ibn_protokoll")
             meldungManager.zeigen(qsTr("PDF gespeichert."), true)

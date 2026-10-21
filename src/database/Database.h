@@ -625,8 +625,9 @@ public:
 
     // Prüfprotokoll als PDF exportieren.
     // seiteId=-1 = alle Seiten des Projekts.
+    // mitBefunden: offene Befunde der Fehlersuche (fs_befund) als eigener Abschnitt vor den Unterschriftsfeldern (FS-IBN-03).
     Q_INVOKABLE bool ibnProtokollPdfSpeichern(int projektId, int seiteId,
-                                               const QString &pfad);
+                                               const QString &pfad, bool mitBefunden = true);
 
     // Feldwerte eines IBN-Eintrags laden (alle gespeicherten Messwerte).
     // Gibt [{feldname, wert}] zurück.
@@ -1239,7 +1240,8 @@ private:
     bool verdrahtungGesperrt(bool melden, const QString &was);   // VERT-02c
     bool projektdatenGesperrt(bool melden, const QString &was);
     QVariantMap ibnOverlayAnalysieren(const QString &pfad);
-    bool ibnOverlaySammeln(QJsonArray &bm, QJsonArray &kabel, int &ausserhalb, QString &fehlerText);
+    bool ibnOverlaySammeln(QJsonArray &bm, QJsonArray &kabel, QJsonArray &befunde, int &ausserhalb, QString &fehlerText);
+    bool befundUebernehmen(int projektId, const QVariantMap &befund, bool neu);   // FS-IBN-03: Import eines Befunds (Neuanlage oder Update ueber befund_uuid)
     QVariantList m_kopieBereich;   // Bereich der IBN-Kopie (leer = ganzes Projekt)   // VERT-04, enthaelt die Nutzdaten
     void ibnKopieStatusAktualisieren();   // VERT-02: m_istIbnKopie / m_offeneKopien neu lesen
     bool m_istIbnKopie = false;

@@ -1562,6 +1562,127 @@ private slots:
         QDir(ordner).removeRecursively();
     }
 
+    void test_33_fsBefundOverlayUndProtokoll()
+    {
+        // FS-IBN-03: Befunde im Overlay (Export, Analyse, Konflikt, ohne Zuordnung, Import) und im Pruefprotokoll-PDF.
+        TmpProjekt t("fsoverlay");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+        auto ins = [&](const QString &sql) { QVERIFY2(q.exec(sql), qPrintable(sql)); };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int a1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1));
+        const int o1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1));
+        const int s1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'2','S2')").arg(o1));
+        const int s2 = q.lastInsertId().toInt();
+        q.finish();
+
+        const auto neu = [&](Database &d, int seite, const QString &text) {
+            QVariantMap m{ {"bezugArt", "stelle"}, {"seiteId", seite}, {"text", text}, {"kategorie", "bauteil"},
+                           {"gefundenVon", "Anna"}, {"x", 10}, {"y", 20} };
+            const QVariantMap r = d.befundAnlegen(1, m);
+            return r.value("ok").toBool() ? r.value("id").toInt() : -1;
+        };
+        const auto idZu = [&](Database &d, const QString &text) {
+            for (const QVariant &v : d.befundeLaden(1))
+                if (v.toMap().value("text").toString() == text) return v.toMap().value("id").toInt();
+            return -1;
+        };
+        const auto befundZu = [&](Database &d, const QString &text) {
+            for (const QVariant &v : d.befundeLaden(1))
+                if (v.toMap().value("text").toString() == text) return v.toMap();
+            return QVariantMap();
+        };
+        const auto aendern = [&](Database &d, int id, const QString &text, const QString &status) {
+            return d.befundAendern(id, QVariantMap{ {"text", text}, {"kategorie", "bauteil"}, {"status", status}, {"gefundenVon", "Anna"} });
+        };
+
+        // Hauptkopie: vier Befunde, alle "alt" (vor der Kopie), damit die Sekundenvergleiche eindeutig sind
+        QVERIFY(neu(db, s1, "B1 unveraendert") > 0);
+        QVERIFY(neu(db, s1, "B2 konflikt") > 0);
+        QVERIFY(neu(db, s1, "B3 nur Kopie") > 0);
+        QVERIFY(neu(db, s2, "B4 Seite spaeter umbenannt") > 0);
+        {
+            QSqlQuery qq(QSqlDatabase::database());
+            QVERIFY(qq.exec("UPDATE fs_befund SET geaendert_am = '2020-01-01 00:00:00'"));
+        }
+
+        const QString ordner = QDir::tempPath() + "/stroemling_test_fsov_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVariantMap kr = db.ibnKopieErstellen(1, "Elektro", {}, ordner);
+        QVERIFY(kr.value("ok").toBool());
+        const QString hauptPfad = db.projektPfad();
+
+        // In der Kopie: B2 geaendert, B3 behoben, zwei neue Befunde
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(kr.value("pfad").toString()));
+        QCOMPARE(db.befundeLaden(1).size(), 4);
+        QVERIFY(aendern(db, idZu(db, "B2 konflikt"), "B2 Kopie-Text", "offen"));
+        QVERIFY(aendern(db, idZu(db, "B3 nur Kopie"), "B3 nur Kopie", "behoben"));
+        QVERIFY(neu(db, s1, "N1 neu in Kopie") > 0);
+        QVERIFY(neu(db, s2, "N2 neu auf Seite 2") > 0);
+        const QVariantMap ex = db.ibnOverlayExportieren();
+        QVERIFY2(ex.value("ok").toBool(), qPrintable(ex.value("fehler").toString()));
+        QCOMPARE(ex.value("anzahlBefunde").toInt(), 6);
+        const QString overlay = ex.value("pfad").toString();
+        QVERIFY(db.ibnOverlayStatus().value("gesamt").toInt() >= 6);
+
+        // Hauptkopie: B2 anders geaendert (Konflikt), Seite 2 umbenannt (N2 laesst sich nicht mehr zuordnen)
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(hauptPfad));
+        QVERIFY(aendern(db, idZu(db, "B2 konflikt"), "B2 Haupt-Text", "offen"));
+        {
+            QSqlQuery qq(QSqlDatabase::database());
+            QVERIFY(qq.exec(QString("UPDATE seite SET blattnummer = '22' WHERE id = %1").arg(s2)));
+        }
+
+        QVariantMap p = db.ibnOverlayPruefen(overlay);
+        QVERIFY2(p.value("ok").toBool(), qPrintable(p.value("fehler").toString()));
+        QCOMPARE(p.value("anzahlBefunde").toInt(), 6);
+        QCOMPARE(p.value("konflikte").toList().size(), 1);
+        QVERIFY(p.value("konflikte").toList()[0].toMap().value("key").toString().startsWith("befund|"));
+        QCOMPARE(p.value("uebernehmen").toInt(), 3);                     // B3 (Update), N1 und N2 (neu)
+        QCOMPARE(p.value("unveraendert").toInt(), 2);                    // B1, B4
+        QCOMPARE(p.value("befundeOhneZuordnung").toList().size(), 1);    // N2
+        QCOMPARE(db.befundeLaden(1).size(), 4);                          // Analyse schreibt nichts
+
+        // Import: Konflikt zugunsten der Kopie
+        const QString konfliktKey = p.value("konflikte").toList()[0].toMap().value("key").toString();
+        QVariantMap imp = db.ibnOverlayImportieren(overlay, QVariantMap{ {konfliktKey, "kopie"} });
+        QVERIFY2(imp.value("ok").toBool(), qPrintable(imp.value("fehler").toString()));
+        QCOMPARE(imp.value("uebernommen").toInt(), 4);
+        QCOMPARE(db.befundeLaden(1).size(), 6);
+        QCOMPARE(befundZu(db, "B2 Kopie-Text").value("status").toString(), QStringLiteral("offen"));
+        QCOMPARE(befundZu(db, "B3 nur Kopie").value("status").toString(), QStringLiteral("behoben"));
+        QVERIFY(!befundZu(db, "B3 nur Kopie").value("behobenAm").toString().isEmpty());
+        const QVariantMap n1 = befundZu(db, "N1 neu in Kopie");
+        QCOMPARE(n1.value("seiteId").toInt(), s1);
+        QVERIFY(!n1.value("kopieUuid").toString().isEmpty());            // Herkunft bleibt erhalten
+        const QVariantMap n2 = befundZu(db, "N2 neu auf Seite 2");
+        QCOMPARE(n2.value("seiteId").toInt(), -1);                       // ohne Zuordnung, aber nicht verloren
+        QVERIFY(!n2.value("zugeordnet").toBool());
+        QCOMPARE(n2.value("blattnummer").toString(), QStringLiteral("2"));
+        QCOMPARE(db.offeneKopien(), 0);
+
+        // Erneuter Import: nichts Neues, kein Befund doppelt
+        p = db.ibnOverlayPruefen(overlay);
+        QCOMPARE(p.value("uebernehmen").toInt(), 0);
+        QCOMPARE(p.value("konflikte").toList().size(), 0);
+        QCOMPARE(db.befundeLaden(1).size(), 6);
+
+        // Pruefprotokoll: offene Befunde als eigener Abschnitt (mit/ohne), nur mit Befunden groesser
+        const QString pdfMit = QDir::tempPath() + "/stroemling_test_fsov_mit.pdf";
+        const QString pdfOhne = QDir::tempPath() + "/stroemling_test_fsov_ohne.pdf";
+        QFile::remove(pdfMit); QFile::remove(pdfOhne);
+        QVERIFY(db.ibnProtokollPdfSpeichern(1, -1, pdfMit, true));
+        QVERIFY(db.ibnProtokollPdfSpeichern(1, -1, pdfOhne, false));
+        QVERIFY(QFileInfo(pdfMit).size() > 0 && QFileInfo(pdfOhne).size() > 0);
+        QVERIFY(QFileInfo(pdfMit).size() != QFileInfo(pdfOhne).size());
+        QFile::remove(pdfMit); QFile::remove(pdfOhne);
+        QDir(ordner).removeRecursively();
+    }
+
     void test_29_bauteilUid()
     {
         const QRegularExpression uuidMuster(

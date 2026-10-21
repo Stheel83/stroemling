@@ -14,7 +14,7 @@
 // IBN-Daten im Bereich der Kopie; die Schluessel sind fachlich (Anlage, Ort, Seite, BMK bzw.
 // Kabelbezeichnung), nie lokale IDs.
 
-bool Database::ibnOverlaySammeln(QJsonArray &bmArr, QJsonArray &kabelArr, int &ausserhalb, QString &fehlerText)
+bool Database::ibnOverlaySammeln(QJsonArray &bmArr, QJsonArray &kabelArr, QJsonArray &befundArr, int &ausserhalb, QString &fehlerText)
 {
     ausserhalb = 0;
     const QVariantList bereich = m_kopieBereich;
@@ -94,6 +94,32 @@ bool Database::ibnOverlaySammeln(QJsonArray &bmArr, QJsonArray &kabelArr, int &a
             { "notiz", qk.value("notiz").toString() },
             { "geaendertAm", qk.value("geaendert_am").toString() } });
     }
+
+    // Befunde der Fehlersuche (FS-IBN-03): alle Befunde im Bereich der Kopie; der Import sortiert nach geaendertAm
+    QSqlQuery qf(m_db);
+    if (!qf.exec(R"(
+        SELECT befund_uuid, bezug_art, anlage, ort, blattnummer, bmk, kabel_bezeichnung, x, y, kategorie, text, status,
+               gefunden_von, gefunden_am, behoben_am, geaendert_am, kopie_uuid
+        FROM fs_befund ORDER BY id
+    )")) {
+        fehlerText = tr("Befunde nicht lesbar: %1").arg(qf.lastError().text());
+        return false;
+    }
+    while (qf.next()) {
+        const QString a = qf.value(2).toString(), o = qf.value(3).toString(), s = qf.value(4).toString();
+        const bool ohneSeite = s.isEmpty();
+        if (ohneSeite ? !bereich.isEmpty() : !ibnBereichPasst(bereich, a, o, s)) { ++ausserhalb; continue; }
+        QJsonObject b{
+            { "befundUuid", qf.value(0).toString() }, { "bezugArt", qf.value(1).toString() },
+            { "anlage", a }, { "ort", o }, { "seite", s },
+            { "bmk", qf.value(5).toString() }, { "kabel", qf.value(6).toString() },
+            { "kategorie", qf.value(9).toString() }, { "text", qf.value(10).toString() }, { "status", qf.value(11).toString() },
+            { "gefundenVon", qf.value(12).toString() }, { "gefundenAm", qf.value(13).toString() },
+            { "behobenAm", qf.value(14).toString() }, { "geaendertAm", qf.value(15).toString() },
+            { "kopieUuid", qf.value(16).toString() } };
+        if (!qf.value(7).isNull() && !qf.value(8).isNull()) { b["x"] = qf.value(7).toDouble(); b["y"] = qf.value(8).toDouble(); }
+        befundArr.append(b);
+    }
     return true;
 }
 
@@ -108,18 +134,18 @@ QVariantMap Database::ibnOverlayStatus()
         if (q.exec("SELECT overlay_exportiert_am FROM projekt ORDER BY id DESC LIMIT 1") && q.next())
             exportiert = q.value(0).toString();
     }
-    QJsonArray bm, kabel; int ausserhalb = 0; QString fehlerText;
-    if (!ibnOverlaySammeln(bm, kabel, ausserhalb, fehlerText)) return r;
+    QJsonArray bm, kabel, befunde; int ausserhalb = 0; QString fehlerText;
+    if (!ibnOverlaySammeln(bm, kabel, befunde, ausserhalb, fehlerText)) return r;
     int seither = 0;
     auto zaehle = [&](const QJsonArray &arr) {
         for (const QJsonValue &v : arr)
             if (exportiert.isEmpty() || v.toObject().value("geaendertAm").toString() > exportiert) ++seither;
     };
-    zaehle(bm); zaehle(kabel);
+    zaehle(bm); zaehle(kabel); zaehle(befunde);
     r["exportiertAm"] = exportiert;
     r["aenderungenSeither"] = seither;
     r["ausserhalb"] = ausserhalb;
-    r["gesamt"] = bm.size() + kabel.size();
+    r["gesamt"] = bm.size() + kabel.size() + befunde.size();
     return r;
 }
 
@@ -142,10 +168,10 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
         revision  = q.value(3).toInt();
     }
 
-    QJsonArray bmArr, kabelArr;
+    QJsonArray bmArr, kabelArr, befundArr;
     int ausserhalb = 0;
     QString fehlerText;
-    if (!ibnOverlaySammeln(bmArr, kabelArr, ausserhalb, fehlerText))
+    if (!ibnOverlaySammeln(bmArr, kabelArr, befundArr, ausserhalb, fehlerText))
         return fehler(fehlerText);
 
     const QJsonObject doc{
@@ -159,6 +185,7 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
         { "exportiertAm",  QDateTime::currentDateTimeUtc().toString(Qt::ISODate) },
         { "betriebsmittel", bmArr },
         { "kabel",          kabelArr },
+        { "befunde",        befundArr },   // FS-IBN-03, additiv (version bleibt 1; aeltere Programme ignorieren den Abschnitt)
     };
 
     QString pfad = zielPfad.trimmed();
@@ -179,9 +206,9 @@ QVariantMap Database::ibnOverlayExportieren(const QString &zielPfad)
     emit ibnKopieChanged();
 
     qCInfo(lcDb) << "Overlay exportiert:" << pfad << bmArr.size() << "BM," << kabelArr.size()
-                 << "Kabel," << ausserhalb << "ausserhalb des Bereichs";
+                 << "Kabel," << befundArr.size() << "Befunde," << ausserhalb << "ausserhalb des Bereichs";
     return { { "ok", true }, { "pfad", pfad },
-             { "anzahlBm", bmArr.size() }, { "anzahlKabel", kabelArr.size() },
+             { "anzahlBm", bmArr.size() }, { "anzahlKabel", kabelArr.size() }, { "anzahlBefunde", befundArr.size() },
              { "ausserhalb", ausserhalb } };
 }
 
@@ -274,7 +301,8 @@ QVariantMap Database::ibnOverlayAnalysieren(const QString &pfad)
     if (kopie.value("status").toString() == "verworfen")
         warnungen << tr("Diese Kopie war als verworfen markiert und gilt nach dem Import als eingesammelt.");
 
-    if (doc.value("betriebsmittel").toArray().isEmpty() && doc.value("kabel").toArray().isEmpty())
+    if (doc.value("betriebsmittel").toArray().isEmpty() && doc.value("kabel").toArray().isEmpty()
+        && doc.value("befunde").toArray().isEmpty())
         warnungen << tr("Das Overlay enthält keine Einträge – wurde es exportiert, bevor in der Kopie Prüfdaten gespeichert wurden?");
 
     QVariantList uebernehmen, konflikte, nichtZuordenbar, ausserhalb;
@@ -402,9 +430,79 @@ QVariantMap Database::ibnOverlayAnalysieren(const QString &pfad)
         einsortieren("kabel", key, label, haupt, existiert, nutz, kz);
     }
 
+    // Befunde (FS-IBN-03): Identitaet ueber befund_uuid. Unbekannte Befunde werden immer neu angelegt (auch wenn die Seite nicht mehr
+    // aufloesbar ist: dann "ohne Zuordnung", sie bleiben mit dem alten Schluessel sichtbar); nichts geht verloren.
+    const QJsonArray befArr = doc.value("befunde").toArray();   // fehlt bei aelteren Overlays
+    QVariantList befundeOhneZuordnung;
+    int anzahlBefunde = 0;
+    for (const QJsonValue &v : befArr) {
+        const QJsonObject e = v.toObject();
+        const QString uuidB = e.value("befundUuid").toString();
+        if (uuidB.isEmpty()) continue;
+        ++anzahlBefunde;
+        const QString art = e.value("bezugArt").toString();
+        const QString a = e.value("anlage").toString(), o = e.value("ort").toString(), s = e.value("seite").toString();
+        QString bezug = art == "kabel" ? tr("Kabel %1").arg(e.value("kabel").toString())
+                      : art == "bmk"   ? e.value("bmk").toString() : tr("Stelle");
+        if (!s.isEmpty()) bezug += tr(" · %1 / %2 / Blatt %3").arg(a, o, s);
+        QString txt = e.value("text").toString().simplified();
+        if (txt.size() > 60) txt = txt.left(57) + QStringLiteral("…");
+        const QString label = tr("Befund: %1 (%2)").arg(txt, bezug);
+        const QString key = QStringLiteral("befund|%1").arg(uuidB);
+
+        if (!kopieBereich.isEmpty() && (s.isEmpty() || !ibnBereichPasst(kopieBereich, a, o, s))) {
+            ausserhalb.append(QVariantMap{ { "label", label }, { "key", key } });
+            continue;
+        }
+
+        const QVariantMap kz{ { "istBefund", true }, { "befundUuid", uuidB }, { "bezugArt", art }, { "anlage", a }, { "ort", o },
+            { "blattnummer", s }, { "bmk", e.value("bmk").toString() }, { "kabelBezeichnung", e.value("kabel").toString() },
+            { "hatPosition", e.contains("x") && e.contains("y") }, { "x", e.value("x").toDouble() }, { "y", e.value("y").toDouble() },
+            { "kategorie", e.value("kategorie").toString() }, { "text", e.value("text").toString() },
+            { "status", e.value("status").toString() }, { "gefundenVon", e.value("gefundenVon").toString() },
+            { "gefundenAm", e.value("gefundenAm").toString() }, { "behobenAm", e.value("behobenAm").toString() },
+            { "geaendertAm", e.value("geaendertAm").toString() }, { "kopieUuid", e.value("kopieUuid").toString() } };
+
+        QSqlQuery qh(m_db);
+        qh.prepare("SELECT text, kategorie, status, gefunden_von, gefunden_am, behoben_am, geaendert_am FROM fs_befund "
+                   "WHERE befund_uuid = :u AND projekt_id = :pid");
+        qh.bindValue(":u", uuidB); qh.bindValue(":pid", projektId);
+        QVariantMap eintrag = kz;
+        eintrag.insert("key", key); eintrag.insert("typ", "befund"); eintrag.insert("label", label);
+        if (!(qh.exec() && qh.next())) {
+            // neu: Seite aufloesen (Kabel haengen am Kabel, nicht an der Seite)
+            int seiteId = -1;
+            if (!s.isEmpty()) { QString grund; seiteId = seiteAufloesen(a, o, s, grund); }
+            if (!s.isEmpty() && seiteId < 0)
+                befundeOhneZuordnung.append(QVariantMap{ { "label", label }, { "grund", tr("Seite nicht gefunden – wird ohne Zuordnung übernommen") } });
+            eintrag.insert("seiteId", seiteId);
+            eintrag.insert("neu", true);
+            uebernehmen.append(eintrag);
+            continue;
+        }
+        const QVariantMap haupt{ { "istBefund", true }, { "text", qh.value(0).toString() }, { "kategorie", qh.value(1).toString() },
+            { "status", qh.value(2).toString() }, { "gefundenVon", qh.value(3).toString() }, { "gefundenAm", qh.value(4).toString() },
+            { "behobenAm", qh.value(5).toString() }, { "geaendertAm", qh.value(6).toString() } };
+        const QString kopieGeaendert = e.value("geaendertAm").toString();
+        bool gleich = true;
+        for (const char *k : { "text", "kategorie", "status", "gefundenVon", "gefundenAm", "behobenAm" })
+            if (haupt.value(k).toString() != kz.value(k).toString()) { gleich = false; break; }
+        if (kopieGeaendert.isEmpty() || kopieGeaendert < kopieErstellt || gleich) { ++unveraendert; continue; }
+        const QString hauptGeaendert = haupt.value("geaendertAm").toString();
+        eintrag.insert("neu", false);
+        if (!hauptGeaendert.isEmpty() && hauptGeaendert >= kopieErstellt) {
+            eintrag.insert("haupt", haupt);
+            eintrag.insert("kopie", kz);
+            konflikte.append(eintrag);
+        } else {
+            uebernehmen.append(eintrag);
+        }
+    }
+
     return { { "ok", true }, { "durchgangNr", aktuellerDurchgang },
              { "kopie", kopie }, { "warnungen", warnungen },
              { "anzahlBm", bmArr.size() }, { "anzahlKabel", doc.value("kabel").toArray().size() },
+             { "anzahlBefunde", anzahlBefunde }, { "befundeOhneZuordnung", befundeOhneZuordnung },
              { "uebernehmen", uebernehmen }, { "unveraendert", unveraendert },
              { "konflikte", konflikte }, { "nichtZuordenbar", nichtZuordenbar },
              { "ausserhalbBereich", ausserhalb }, { "kopieUuid", uuid },
@@ -463,6 +561,8 @@ QVariantMap Database::ibnOverlayImportieren(const QString &pfad, const QVariantM
                 qd.bindValue(":d", durchgang); qd.bindValue(":id", id);
                 ok = ok && qd.exec();
             }
+        } else if (e.value("typ").toString() == "befund") {
+            ok = befundUebernehmen(projektId, e, e.value("neu").toBool());
         } else {
             const int kid = e.value("kabelId").toInt();
             ok = ibnKabelSpeichern(projektId, kid, e.value("status").toString(), e.value("notiz").toString(),
@@ -486,6 +586,7 @@ QVariantMap Database::ibnOverlayImportieren(const QString &pfad, const QVariantM
     return { { "ok", true }, { "uebernommen", uebernommen }, { "konfliktKopie", konfliktKopie },
              { "konfliktHaupt", konfliktHaupt }, { "unveraendert", a.value("unveraendert") },
              { "nichtZuordenbar", a.value("nichtZuordenbar") },
+             { "befundeOhneZuordnung", a.value("befundeOhneZuordnung") },
              { "ausserhalbBereich", a.value("ausserhalbBereich") } };
 }
 

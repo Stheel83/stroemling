@@ -1289,7 +1289,7 @@ bool Database::ibnFeldwerteAktualisieren(int inbetriebnahmeId, const QVariantLis
 // ibnProtokollPdfSpeichern
 // ============================================================
 bool Database::ibnProtokollPdfSpeichern(int projektId, int seiteId,
-                                         const QString &pfad)
+                                         const QString &pfad, bool mitBefunden)
 {
     QString localPath = QUrl(pfad).toLocalFile();
     if (localPath.isEmpty()) localPath = pfad;
@@ -1490,6 +1490,37 @@ bool Database::ibnProtokollPdfSpeichern(int projektId, int seiteId,
                   + QStringLiteral("</div>");
 
         html += QStringLiteral("</div>"); // .bm
+    }
+
+    // ── Offene Befunde der Fehlersuche (FS-IBN-03) ─────────
+    if (mitBefunden) {
+        const QVariantList befunde = befundeLaden(projektId, QStringLiteral("aktiv"), seiteId);
+        if (!befunde.isEmpty()) {
+            html += QStringLiteral("<hr/><h2 style='font-size:12pt;margin:6px 0'>Offene Befunde (%1)</h2>").arg(befunde.size());
+            html += QStringLiteral("<table width='100%' border='1' cellspacing='0' cellpadding='3' style='border-collapse:collapse;font-size:8.5pt'>"
+                                   "<tr bgcolor='#e6e6e6'><th align='left'>Bezug</th><th align='left'>Kategorie</th>"
+                                   "<th align='left'>Befund</th><th align='left'>Gefunden</th></tr>");
+            for (const QVariant &v : befunde) {
+                const QVariantMap b = v.toMap();
+                const QString art = b.value("bezugArt").toString();
+                QString bezug = art == QLatin1String("kabel") ? QStringLiteral("Kabel ") + b.value("kabelBezeichnung").toString()
+                              : art == QLatin1String("bmk")   ? b.value("bmk").toString() : QStringLiteral("Stelle");
+                const QString blatt = b.value("blattnummer").toString();
+                if (!blatt.isEmpty())
+                    bezug += QStringLiteral(" · %1 / %2 / Blatt %3").arg(b.value("anlage").toString(), b.value("ort").toString(), blatt);
+                const QString kat = b.value("kategorie").toString();
+                const QString katText = kat == QLatin1String("bauteil") ? QStringLiteral("Bauteil defekt")
+                                      : kat == QLatin1String("verdrahtung") ? QStringLiteral("Verdrahtung")
+                                      : kat == QLatin1String("schaltplan") ? QStringLiteral("Schaltplan weicht ab") : QStringLiteral("Sonstiges");
+                QString wer = b.value("gefundenVon").toString();
+                if (!b.value("gefundenAm").toString().isEmpty())
+                    wer += (wer.isEmpty() ? QString() : QStringLiteral(", ")) + b.value("gefundenAm").toString();
+                html += QStringLiteral("<tr><td>") + esc(bezug) + QStringLiteral("</td><td>") + esc(katText)
+                      + QStringLiteral("</td><td>") + esc(b.value("text").toString()).replace(QLatin1Char('\n'), QStringLiteral("<br/>"))
+                      + QStringLiteral("</td><td>") + esc(wer) + QStringLiteral("</td></tr>");
+            }
+            html += QStringLiteral("</table>");
+        }
     }
 
     // ── Unterschriftsfeld ─────────────────────────────────

@@ -224,3 +224,61 @@ QVariantMap Database::befundOffenProBmk(int projektId)
             m.insert(q.value(0).toString(), q.value(1).toInt());
     return m;
 }
+
+// FS-IBN-03: Import eines Befunds aus einem Overlay. Nur in der Hauptkopie (vom Import-Ablauf sichergestellt).
+// neu = true: Befund mit dieser befund_uuid anlegen (Bezug und Herkunft wie im Overlay); sonst nur Inhalt aktualisieren.
+// geaendert_am wird auf den Importzeitpunkt gesetzt, wie bei den IBN-Eintraegen.
+bool Database::befundUebernehmen(int projektId, const QVariantMap &e, bool neu)
+{
+    const QString uuid = e.value("befundUuid").toString();
+    const QString status = e.value("status").toString();
+    const QString kategorie = e.value("kategorie").toString();
+    const QString text = e.value("text").toString().trimmed();
+    if (uuid.isEmpty() || text.isEmpty() || !kKategorien.contains(kategorie) || !kStati.contains(status))
+        return false;
+
+    QSqlQuery q(m_db);
+    if (neu) {
+        const QString art = e.value("bezugArt").toString();
+        if (art != "bmk" && art != "kabel" && art != "stelle") return false;
+        const int seiteId = e.value("seiteId", -1).toInt();
+        const bool hatPos = e.value("hatPosition").toBool();
+        q.prepare(R"(
+            INSERT INTO fs_befund (projekt_id, befund_uuid, bezug_art, seite_id, anlage, ort, blattnummer, bmk, kabel_bezeichnung,
+                                   x, y, kategorie, text, status, gefunden_von, gefunden_am, behoben_am, geaendert_am, kopie_uuid)
+            VALUES (:pid, :uuid, :art, :sid, :an, :ort, :bl, :bmk, :kab, :x, :y, :kat, :txt, :st, :von, :am, :ba, datetime('now'), :kopie)
+        )");
+        q.bindValue(":pid", projektId);
+        q.bindValue(":uuid", uuid);
+        q.bindValue(":art", art);
+        q.bindValue(":sid", seiteId >= 0 ? QVariant(seiteId) : QVariant(QMetaType(QMetaType::Int)));
+        q.bindValue(":an", nn(e.value("anlage").toString()));
+        q.bindValue(":ort", nn(e.value("ort").toString()));
+        q.bindValue(":bl", nn(e.value("blattnummer").toString()));
+        q.bindValue(":bmk", nn(e.value("bmk").toString()));
+        q.bindValue(":kab", nn(e.value("kabelBezeichnung").toString()));
+        q.bindValue(":x", hatPos ? QVariant(e.value("x").toDouble()) : QVariant(QMetaType(QMetaType::Double)));
+        q.bindValue(":y", hatPos ? QVariant(e.value("y").toDouble()) : QVariant(QMetaType(QMetaType::Double)));
+        q.bindValue(":kopie", nn(e.value("kopieUuid").toString()));
+    } else {
+        q.prepare(R"(
+            UPDATE fs_befund
+            SET kategorie = :kat, text = :txt, status = :st, gefunden_von = :von, gefunden_am = :am,
+                behoben_am = :ba, geaendert_am = datetime('now')
+            WHERE befund_uuid = :uuid AND projekt_id = :pid
+        )");
+        q.bindValue(":pid", projektId);
+        q.bindValue(":uuid", uuid);
+    }
+    q.bindValue(":kat", kategorie);
+    q.bindValue(":txt", text);
+    q.bindValue(":st", status);
+    q.bindValue(":von", nn(e.value("gefundenVon").toString()));
+    q.bindValue(":am", nn(e.value("gefundenAm").toString()));
+    q.bindValue(":ba", nn(e.value("behobenAm").toString()));
+    if (!q.exec()) {
+        qCWarning(lcDb) << "befundUebernehmen:" << q.lastError().text();
+        return false;
+    }
+    return neu || q.numRowsAffected() > 0;
+}

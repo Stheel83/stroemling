@@ -236,10 +236,10 @@ Item {
                                 color: root.theme.textMuted
                             }
                             ToolTip.visible: exportBtnHover.hovered
-                            ToolTip.text:    qsTr("Wiki exportieren")
+                            ToolTip.text:    qsTr("Wiki exportieren – Sicherung oder Bundle für andere")
                             ToolTip.delay:   700
                             HoverHandler { id: exportBtnHover }
-                            TapHandler { onTapped: wikiExportDialog.open() }
+                            TapHandler { onTapped: wikiExport.open() }
                         }
                         Rectangle {
                             width: 22; height: 22; radius: 3
@@ -252,7 +252,7 @@ Item {
                                 color: root.theme.textMuted
                             }
                             ToolTip.visible: importBtnHover.hovered
-                            ToolTip.text:    qsTr("Wiki importieren")
+                            ToolTip.text:    qsTr("Wiki importieren – Sicherung oder Bundle (wird erkannt)")
                             ToolTip.delay:   700
                             HoverHandler { id: importBtnHover }
                             TapHandler { onTapped: wikiImportDialog.open() }
@@ -267,7 +267,7 @@ Item {
                                 font.pixelSize: 11
                             }
                             ToolTip.visible: bundleBtnHover.hovered
-                            ToolTip.text:    qsTr("Bundle-Menü – vorgefertigte Artikel-Sammlungen laden oder installieren")
+                            ToolTip.text:    qsTr("Installierte Bundles anzeigen")
                             ToolTip.delay:   700
                             HoverHandler { id: bundleBtnHover }
                             TapHandler { onTapped: wikiBundle.open() }
@@ -1053,16 +1053,11 @@ Item {
         toolbar: formatierungsToolbar
     }
 
-    // ── Wiki Export FileDialog ────────────────────────────────
-    FileDialog {
-        id:           wikiExportDialog
-        title:        qsTr("Wiki exportieren")
-        fileMode:     FileDialog.SaveFile
-        nameFilters:  [qsTr("JSON-Dateien (*.json)"), qsTr("Alle Dateien (*)")]
-        onAccepted: {
-            const ok = db.wikiExportJson(selectedFile.toString())
-            meldungManager.zeigen(ok ? qsTr("Wiki erfolgreich exportiert") : qsTr("Export fehlgeschlagen"), ok)
-        }
+    // ── Wiki exportieren (Sicherung | Bundle, WIKI-EXP-01) ────
+    WikiExportPopup {
+        id: wikiExport
+        theme: root.theme
+        kategorien: root._kategorien
     }
 
     // ── Wiki Import FileDialog ────────────────────────────────
@@ -1073,7 +1068,20 @@ Item {
         nameFilters:  [qsTr("JSON-Dateien (*.json)"), qsTr("Alle Dateien (*)")]
         onAccepted: {
             root._importPfad = selectedFile.toString()
-            importModePopup.open()
+            const art = db.wikiDateiArt(root._importPfad)
+            if (art === "bundle") {
+                // Bundle: Versionsvergleich und Anmerkungsschutz, keine Modus-Abfrage
+                const res = db.wikiImportieren(root._importPfad, true)
+                root._kategorienLaden()
+                meldungManager.zeigen(
+                    res.erfolg ? qsTr("Bundle eingespielt: %1").arg(res.meldung)
+                               : qsTr("Bundle-Fehler: %1").arg(res.meldung),
+                    res.erfolg)
+            } else if (art === "sicherung") {
+                importModePopup.open()
+            } else {
+                meldungManager.zeigen(qsTr("Das ist keine Wiki-Exportdatei."), false)
+            }
         }
     }
 
@@ -1103,16 +1111,9 @@ Item {
 
     DebugLabel { panelName: qsTr("Wiki-Ansicht"); visible: root.debug }
 
-    // ── Bundle-Menü, Import & Export ─────────────────────────
+    // ── Installierte Bundles ──────────────────────────────────
     WikiBundleDialog {
         id: wikiBundle
         theme: root.theme
-        kategorien: root._kategorien
-        onBundleImportiert: {
-            root._kategorienLaden()
-            root._artIdx = -1
-            root._aktArtikel = ({})
-            root._bilder = []
-        }
     }
 }

@@ -52,9 +52,10 @@ Popup {
                 TapHandler {
                     onTapped: {
                         root.close()
-                        const ok = db.wikiImportJson(panel._importPfad, true)
+                        const res = db.wikiImportieren(panel._importPfad, true)
                         panel._kategorienLaden()
-                        meldungManager.zeigen(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
+                        meldungManager.zeigen(res.erfolg ? qsTr("Import erfolgreich: %1").arg(res.meldung)
+                                                         : qsTr("Import fehlgeschlagen: %1").arg(res.meldung), res.erfolg)
                     }
                 }
             }
@@ -72,12 +73,13 @@ Popup {
                 TapHandler {
                     onTapped: {
                         root.close()
-                        const ok = db.wikiImportJson(panel._importPfad, false)
+                        const res = db.wikiImportieren(panel._importPfad, false)
                         panel._kategorienLaden()
                         panel._artIdx     = -1
                         panel._aktArtikel = ({})
                         panel._bilder     = []
-                        meldungManager.zeigen(ok ? qsTr("Import erfolgreich") : qsTr("Import fehlgeschlagen"), ok)
+                        meldungManager.zeigen(res.erfolg ? qsTr("Import erfolgreich: %1").arg(res.meldung)
+                                                         : qsTr("Import fehlgeschlagen: %1").arg(res.meldung), res.erfolg)
                     }
                 }
             }

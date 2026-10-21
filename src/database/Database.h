@@ -992,20 +992,22 @@ public:
     // Volltext-Suche (FTS5)
     Q_INVOKABLE QVariantList wikiSuchen(const QString &suchbegriff);
 
-    // Export / Import (klassisch)
-    Q_INVOKABLE bool wikiExportJson(const QString &pfad);
-    Q_INVOKABLE bool wikiImportJson(const QString &pfad, bool mergeMode);
+    // Export / Import (WIKI-EXP-01, Konzept 25 §12): ein Weg für Sicherung (ganzes Wiki) und Bundle (für andere).
+    // optionen: bundle (bool), kennung, titel, version, kategorieIds (nur Bundle).
+    // Gibt {erfolg, artikel, ausgelassen, meldung} zurück; ausgelassen = Artikel installierter Bundles (nie im Bundle).
+    Q_INVOKABLE QVariantMap wikiExportieren(const QString &pfad, const QVariantMap &optionen);
+    // Erkennt selbst: Datei mit bundle_kennung = Bundle (Versionsvergleich, Anmerkungsschutz, mergeMode ohne Wirkung),
+    // sonst Sicherung (Zusammenführen ohne Dubletten oder Ersetzen).
+    // Gibt {erfolg, art ("bundle"|"sicherung"), neu, aktualisiert, uebersprungen, umbenannt, meldung} zurück.
+    Q_INVOKABLE QVariantMap wikiImportieren(const QString &pfad, bool mergeMode);
+    // Art einer Wiki-Datei vor dem Import: "bundle", "sicherung" oder "" (keine Wiki-Exportdatei).
+    Q_INVOKABLE QString wikiDateiArt(const QString &pfad);
+    // Anzahl Artikel installierter Bundles in den gewählten Kategorien (für den Hinweis im Export-Dialog).
+    Q_INVOKABLE int wikiBundleFremdArtikelAnzahl(const QVariantList &kategorieIds);
 
-    // Bundle-System (TB-2)
-    // Spielt ein Bundle ein (Datei- oder Qt-Ressourcenpfad).
-    // Gibt {erfolg, neu, aktualisiert, uebersprungen, meldung} zurück.
-    Q_INVOKABLE QVariantMap wikiBundleAnwenden(const QString &pfad);
-    // Exportiert gewählte Kategorien als Bundle-JSON.
-    Q_INVOKABLE bool wikiBundleExportieren(const QString &pfad,
-                                            const QString &kennung,
-                                            const QString &titel,
-                                            int version,
-                                            const QVariantList &kategorieIds);
+    // Spielt ein Bundle ein (Datei- oder Qt-Ressourcenpfad); Teil von wikiImportieren und des Starts mit
+    // eingebetteten Bundles. Gibt {erfolg, neu, aktualisiert, uebersprungen, meldung} zurück.
+    QVariantMap wikiBundleAnwenden(const QString &pfad);
     // Setzt von_nutzer_geaendert = 0 für einen Bundle-Artikel (erzwingt Update beim nächsten Import).
     Q_INVOKABLE bool wikiBundleArtikelZuruecksetzen(int id);
     // Gibt alle aktiven Bundles zurück: [{kennung, version}]

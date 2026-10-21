@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QSet>
+#include <QRegularExpression>
 #include <QTextStream>
 #include <QUrl>
 #include <QDateTime>
@@ -691,20 +692,58 @@ QVariantList Database::wikiSuchen(const QString &suchbegriff)
 }
 
 // ============================================================
-// Wiki – Export / Import (JSON)
+// Wiki – Export / Import (WIKI-EXP-01, Konzept 25 §12)
+// Ein Weg für Sicherung (ganzes Wiki) und Bundle (für andere). Dasselbe Format
+// (wiki_export_version 1); ein Bundle trägt zusätzlich bundle_kennung/-version/-titel.
 // ============================================================
-bool Database::wikiExportJson(const QString &pfad)
+int Database::wikiBundleFremdArtikelAnzahl(const QVariantList &kategorieIds)
 {
-    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+    QSet<int> katIdSet;
+    for (const QVariant &v : kategorieIds)
+        katIdSet.insert(v.toInt());
+    QSqlQuery q(m_wikiDb);
+    if (!q.exec("SELECT kategorie_id FROM wiki_artikel WHERE ist_system = 0 AND bundle_kennung IS NOT NULL"))
+        return 0;
+    int n = 0;
+    while (q.next())
+        if (katIdSet.contains(q.value(0).toInt())) ++n;
+    return n;
+}
 
-    // Kategorien
+QVariantMap Database::wikiExportieren(const QString &pfad, const QVariantMap &optionen)
+{
+    QVariantMap res;
+    res["erfolg"]     = false;
+    res["artikel"]    = 0;
+    res["ausgelassen"] = 0;
+    res["meldung"]    = QString();
+
+    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+    const bool    bundle    = optionen.value("bundle").toBool();
+    const QString kennung   = optionen.value("kennung").toString().trimmed();
+    const QString titel     = optionen.value("titel").toString();
+    const int     version   = optionen.value("version").toInt();
+
+    QSet<int> katIdSet;
+    for (const QVariant &v : optionen.value("kategorieIds").toList())
+        katIdSet.insert(v.toInt());
+
+    if (bundle) {
+        if (kennung.isEmpty()) { res["meldung"] = "Ein Bundle braucht eine Kennung."; return res; }
+        if (version < 1)       { res["meldung"] = "Die Bundle-Version muss mindestens 1 sein."; return res; }
+        if (katIdSet.isEmpty()) { res["meldung"] = "Keine Kategorie gewählt."; return res; }
+    }
+
+    // Kategorien (Sicherung: alle, Bundle: die gewählten)
     QJsonArray kategorienArr;
     QSqlQuery qKat(m_wikiDb);
     if (!qKat.exec("SELECT id, name, beschreibung, sortierung FROM wiki_kategorie ORDER BY sortierung, name")) {
-        qCWarning(lcDb) << "wikiExportJson kategorien:" << qKat.lastError().text();
-        return false;
+        qCWarning(lcDb) << "wikiExportieren kategorien:" << qKat.lastError().text();
+        res["meldung"] = qKat.lastError().text();
+        return res;
     }
     while (qKat.next()) {
+        if (bundle && !katIdSet.contains(qKat.value(0).toInt())) continue;
         QJsonObject o;
         o["id"]           = qKat.value(0).toInt();
         o["name"]         = qKat.value(1).toString();
@@ -713,20 +752,29 @@ bool Database::wikiExportJson(const QString &pfad)
         kategorienArr.append(o);
     }
 
-    // Nur Nutzer-Artikel (ist_system = 0)
+    // Nur Nutzer-Artikel (ist_system = 0). Bundle: nur eigene (bundle_kennung IS NULL), Artikel
+    // installierter Bundles werden nicht umetikettiert (O5). Sicherung: Herkunft bleibt erhalten.
     QJsonArray artikelArr;
+    QSet<int> exportArtIds;
+    int ausgelassen = 0;
     QSqlQuery qArt(m_wikiDb);
     if (!qArt.exec(R"(
-        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags
+        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags, wa.bundle_kennung, wa.von_nutzer_geaendert
         FROM wiki_artikel wa
         JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id
         WHERE wa.ist_system = 0
         ORDER BY wk.sortierung, wk.name, wa.titel
     )")) {
-        qCWarning(lcDb) << "wikiExportJson artikel:" << qArt.lastError().text();
-        return false;
+        qCWarning(lcDb) << "wikiExportieren artikel:" << qArt.lastError().text();
+        res["meldung"] = qArt.lastError().text();
+        return res;
     }
     while (qArt.next()) {
+        const QString herkunft = qArt.value(6).toString();
+        if (bundle) {
+            if (!katIdSet.contains(qArt.value(1).toInt())) continue;
+            if (!herkunft.isEmpty()) { ++ausgelassen; continue; }
+        }
         QJsonObject o;
         o["id"]             = qArt.value(0).toInt();
         o["kategorie_id"]   = qArt.value(1).toInt();
@@ -734,7 +782,12 @@ bool Database::wikiExportJson(const QString &pfad)
         o["titel"]          = qArt.value(3).toString();
         o["inhalt"]         = qArt.value(4).toString();
         o["tags"]           = qArt.value(5).toString();
+        if (!bundle && !herkunft.isEmpty()) {
+            o["bundle_kennung"] = herkunft;
+            if (qArt.value(7).toInt() == 1) o["von_nutzer_geaendert"] = 1;
+        }
         artikelArr.append(o);
+        exportArtIds.insert(qArt.value(0).toInt());
     }
 
     // Bilder der exportierten Artikel
@@ -747,12 +800,13 @@ bool Database::wikiExportJson(const QString &pfad)
         WHERE wa.ist_system = 0
         ORDER BY wb.artikel_id, wb.sortierung, wb.id
     )")) {
-        qCWarning(lcDb) << "wikiExportJson bilder:" << qBild.lastError().text();
-        return false;
+        qCWarning(lcDb) << "wikiExportieren bilder:" << qBild.lastError().text();
+        res["meldung"] = qBild.lastError().text();
+        return res;
     }
     while (qBild.next()) {
-        const QString fn = qBild.value(4).toString();
-        QFile bf(m_wikiBlobDir + "/" + fn);
+        if (!exportArtIds.contains(qBild.value(1).toInt())) continue;
+        QFile bf(m_wikiBlobDir + "/" + qBild.value(4).toString());
         if (!bf.open(QIODevice::ReadOnly)) continue;
         QJsonObject o;
         o["id"]           = qBild.value(0).toInt();
@@ -767,94 +821,158 @@ bool Database::wikiExportJson(const QString &pfad)
 
     QJsonObject root;
     root["wiki_export_version"] = 1;
-    root["exportiert_am"]       = QDateTime::currentDateTime().toString(Qt::ISODate);
-    root["kategorien"]          = kategorienArr;
-    root["artikel"]             = artikelArr;
-    root["bilder"]              = bilderArr;
+    if (bundle) {
+        root["bundle_kennung"] = kennung;
+        root["bundle_version"] = version;
+        root["bundle_titel"]   = titel;
+    } else {
+        // Installierte Bundle-Stände, damit eine Wiederherstellung sie nicht erneut anwendet (O4)
+        QJsonObject staende;
+        for (const QVariant &b : wikiBundleAktiveListe()) {
+            const QVariantMap m = b.toMap();
+            staende[m["kennung"].toString()] = m["version"].toInt();
+        }
+        if (!staende.isEmpty()) root["bundle_staende"] = staende;
+    }
+    root["exportiert_am"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+    root["kategorien"]    = kategorienArr;
+    root["artikel"]       = artikelArr;
+    root["bilder"]        = bilderArr;
 
     QFile f(localPfad);
     if (!f.open(QIODevice::WriteOnly)) {
-        qCWarning(lcDb) << "wikiExportJson: Datei nicht schreibbar:" << localPfad;
-        return false;
+        qCWarning(lcDb) << "wikiExportieren: Datei nicht schreibbar:" << localPfad;
+        res["meldung"] = QString("Datei nicht schreibbar: %1").arg(localPfad);
+        return res;
     }
-    f.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
-    qCInfo(lcDb) << "Wiki exportiert:" << localPfad << "-" << artikelArr.size() << "Artikel";
-    return true;
+    f.write(QJsonDocument(root).toJson(bundle ? QJsonDocument::Compact : QJsonDocument::Indented));
+    qCInfo(lcDb) << "Wiki exportiert:" << localPfad << (bundle ? "(Bundle " + kennung + ")" : QString("(Sicherung)"))
+                 << "-" << artikelArr.size() << "Artikel";
+    res["erfolg"]      = true;
+    res["artikel"]     = int(artikelArr.size());
+    res["ausgelassen"] = ausgelassen;
+    return res;
 }
 
-bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
+// Normalisiert Inline-Bildverweise, damit gleicher Inhalt trotz anderer Bild-IDs als gleich erkannt wird
+static QString wikiInhaltOhneBildIds(const QString &inhalt)
+{
+    QString s = inhalt;
+    s.replace(QRegularExpression(QStringLiteral("wiki://bild/\\d+")), QStringLiteral("wiki://bild/#"));
+    return s;
+}
+
+QString Database::wikiDateiArt(const QString &pfad)
 {
     const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
+    QFile f(localPfad);
+    if (!f.open(QIODevice::ReadOnly)) return QString();
+    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+    if (!doc.isObject() || doc.object()["wiki_export_version"].toInt() != 1) return QString();
+    return doc.object()["bundle_kennung"].toString().trimmed().isEmpty() ? QStringLiteral("sicherung")
+                                                                         : QStringLiteral("bundle");
+}
 
+QVariantMap Database::wikiImportieren(const QString &pfad, bool mergeMode)
+{
+    QVariantMap res;
+    res["erfolg"]        = false;
+    res["art"]           = QString();
+    res["neu"]           = 0;
+    res["aktualisiert"]  = 0;
+    res["uebersprungen"] = 0;
+    res["umbenannt"]     = 0;
+    res["meldung"]       = QString();
+
+    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
     QFile f(localPfad);
     if (!f.open(QIODevice::ReadOnly)) {
-        qCWarning(lcDb) << "wikiImportJson: Datei nicht lesbar:" << localPfad;
-        return false;
+        qCWarning(lcDb) << "wikiImportieren: Datei nicht lesbar:" << localPfad;
+        res["meldung"] = QString("Datei nicht lesbar: %1").arg(localPfad);
+        return res;
     }
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
-    if (doc.isNull()) {
-        qCWarning(lcDb) << "wikiImportJson: JSON-Fehler:" << err.errorString();
-        return false;
+    f.close();
+    if (doc.isNull() || !doc.isObject()) {
+        qCWarning(lcDb) << "wikiImportieren: JSON-Fehler:" << err.errorString();
+        res["meldung"] = QString("Keine gültige JSON-Datei: %1").arg(err.errorString());
+        return res;
     }
     const QJsonObject root = doc.object();
     if (root["wiki_export_version"].toInt() != 1) {
-        qCWarning(lcDb) << "wikiImportJson: Unbekannte Export-Version:" << root["wiki_export_version"].toInt();
-        return false;
+        qCWarning(lcDb) << "wikiImportieren: Unbekannte Export-Version:" << root["wiki_export_version"].toInt();
+        res["meldung"] = QString("Unbekannte Export-Version: %1").arg(root["wiki_export_version"].toInt());
+        return res;
     }
 
+    // Mit Kennung = Bundle: Versionsvergleich, Anmerkungsschutz (kein Modus nötig)
+    if (!root["bundle_kennung"].toString().trimmed().isEmpty()) {
+        QVariantMap r = wikiBundleAnwenden(localPfad);
+        r["art"]       = QStringLiteral("bundle");
+        r["umbenannt"] = 0;
+        return r;
+    }
+
+    res["art"] = QStringLiteral("sicherung");
     if (!m_wikiDb.transaction()) {
-        qCWarning(lcDb) << "wikiImportJson: Transaktion fehlgeschlagen";
-        return false;
+        qCWarning(lcDb) << "wikiImportieren: Transaktion fehlgeschlagen";
+        res["meldung"] = "Transaktion fehlgeschlagen";
+        return res;
     }
+    auto abbruch = [&](const QString &was, const QString &fehler) {
+        qCWarning(lcDb) << "wikiImportieren" << was << fehler;
+        m_wikiDb.rollback();
+        res["meldung"] = was + ": " + fehler;
+        return res;
+    };
 
-    // Replace-Modus: alle Nutzer-Artikel löschen (Bilder cascaden automatisch)
+    // Replace-Modus: alle Nutzer-Artikel (auch Bundle-Artikel) löschen; Bundle-Stände kommen aus der Sicherung zurück
     if (!mergeMode) {
         wikiBlobDateienAlleNutzerArtikelLoeschen();
         QSqlQuery del(m_wikiDb);
-        if (!del.exec("DELETE FROM wiki_artikel WHERE ist_system = 0")) {
-            qCWarning(lcDb) << "wikiImportJson replace:" << del.lastError().text();
-            m_wikiDb.rollback();
-            return false;
-        }
+        if (!del.exec("DELETE FROM wiki_artikel WHERE ist_system = 0"))
+            return abbruch("Replace", del.lastError().text());
+        if (!del.exec("DELETE FROM wiki_meta WHERE schluessel LIKE 'bundle_version_%'"))
+            return abbruch("Replace (Bundle-Stände)", del.lastError().text());
     }
 
     // Kategorien: vorhandene nach Name finden oder neu anlegen; old-ID → new-ID Map
     QMap<int, int> katIdMap;
-    const QJsonArray katArr = root["kategorien"].toArray();
-    for (const QJsonValue &v : katArr) {
+    for (const QJsonValue &v : root["kategorien"].toArray()) {
         const QJsonObject o = v.toObject();
-        const int    oldId  = o["id"].toInt();
         const QString name  = o["name"].toString();
-
         QSqlQuery find(m_wikiDb);
         find.prepare("SELECT id FROM wiki_kategorie WHERE name = :n");
         find.bindValue(":n", name);
         if (find.exec() && find.next()) {
-            katIdMap[oldId] = find.value(0).toInt();
+            katIdMap[o["id"].toInt()] = find.value(0).toInt();
         } else {
             QSqlQuery ins(m_wikiDb);
             ins.prepare("INSERT INTO wiki_kategorie (name, beschreibung, sortierung) VALUES (:n, :b, :s)");
             ins.bindValue(":n", name);
-            ins.bindValue(":b", o["beschreibung"].toString());
+            ins.bindValue(":b", o["beschreibung"].toString(QString("")));
             ins.bindValue(":s", o["sortierung"].toInt());
-            if (!ins.exec()) {
-                qCWarning(lcDb) << "wikiImportJson Kategorie anlegen:" << ins.lastError().text();
-                m_wikiDb.rollback();
-                return false;
-            }
-            katIdMap[oldId] = ins.lastInsertId().toInt();
+            if (!ins.exec()) return abbruch("Kategorie anlegen", ins.lastError().text());
+            katIdMap[o["id"].toInt()] = ins.lastInsertId().toInt();
         }
     }
 
-    // Artikel einfügen; old-Art-ID → new-Art-ID Map für Bild-Zuordnung
-    QMap<int, int> artIdMap;
+    // Bilder nach Artikel-ID der Datei gruppieren
+    QMap<int, QList<QJsonObject>> bilderNachArtId;
+    for (const QJsonValue &v : root["bilder"].toArray())
+        bilderNachArtId[v.toObject()["artikel_id"].toInt()].append(v.toObject());
+
+    int neu = 0, uebersprungen = 0, umbenannt = 0;
     const QJsonArray artArr = root["artikel"].toArray();
     for (const QJsonValue &v : artArr) {
         const QJsonObject o   = v.toObject();
         const int oldArtId    = o["id"].toInt();
         const int oldKatId    = o["kategorie_id"].toInt();
         const QString katName = o["kategorie_name"].toString();
+        const QString titel   = o["titel"].toString();
+        const QString inhalt  = o["inhalt"].toString();
+        const QString herkunft = o["bundle_kennung"].toString().trimmed();
 
         int newKatId = katIdMap.value(oldKatId, -1);
         if (newKatId < 0) {
@@ -864,81 +982,144 @@ bool Database::wikiImportJson(const QString &pfad, bool mergeMode)
             find.bindValue(":n", katName);
             if (find.exec() && find.next()) {
                 newKatId = find.value(0).toInt();
-                katIdMap[oldKatId] = newKatId;
             } else {
                 QSqlQuery ins(m_wikiDb);
                 ins.prepare("INSERT INTO wiki_kategorie (name) VALUES (:n)");
                 ins.bindValue(":n", katName);
-                if (!ins.exec()) { m_wikiDb.rollback(); return false; }
+                if (!ins.exec()) return abbruch("Kategorie anlegen", ins.lastError().text());
                 newKatId = ins.lastInsertId().toInt();
-                katIdMap[oldKatId] = newKatId;
+            }
+            katIdMap[oldKatId] = newKatId;
+        }
+
+        // Duplikate vermeiden; nichts wird überschrieben
+        QString zielTitel = titel;
+        bool vorhanden = false;
+        if (!herkunft.isEmpty()) {
+            QSqlQuery find(m_wikiDb);
+            find.prepare("SELECT id FROM wiki_artikel WHERE bundle_kennung = :bk AND titel = :t");
+            find.bindValue(":bk", herkunft);
+            find.bindValue(":t",  titel);
+            vorhanden = find.exec() && find.next();
+        } else {
+            const QString norm = wikiInhaltOhneBildIds(inhalt);
+            for (int n = 1; n <= 99 && !vorhanden; ++n) {
+                zielTitel = n == 1 ? titel
+                          : n == 2 ? titel + QStringLiteral(" (Import)")
+                                   : titel + QStringLiteral(" (Import %1)").arg(n - 1);
+                QSqlQuery find(m_wikiDb);
+                find.prepare("SELECT inhalt FROM wiki_artikel WHERE kategorie_id = :k AND titel = :t AND ist_system = 0");
+                find.bindValue(":k", newKatId);
+                find.bindValue(":t", zielTitel);
+                if (!find.exec()) return abbruch("Artikel suchen", find.lastError().text());
+                if (!find.next()) break;                                   // Titel frei → anlegen
+                if (wikiInhaltOhneBildIds(find.value(0).toString()) == norm)
+                    vorhanden = true;                                      // gleicher Artikel → überspringen
             }
         }
+        if (vorhanden) { ++uebersprungen; continue; }
 
         QSqlQuery ins(m_wikiDb);
         ins.prepare(R"(
-            INSERT INTO wiki_artikel (kategorie_id, titel, inhalt, tags, ist_system)
-            VALUES (:kid, :t, :i, :tags, 0)
+            INSERT INTO wiki_artikel (kategorie_id, titel, inhalt, tags, bundle_kennung, von_nutzer_geaendert, ist_system)
+            VALUES (:kid, :t, :i, :tags, :bk, :vng, 0)
         )");
         ins.bindValue(":kid",  newKatId);
-        ins.bindValue(":t",    o["titel"].toString());
-        ins.bindValue(":i",    o["inhalt"].toString());
+        ins.bindValue(":t",    zielTitel);
+        ins.bindValue(":i",    inhalt);
         ins.bindValue(":tags", o["tags"].toString());
-        if (!ins.exec()) {
-            qCWarning(lcDb) << "wikiImportJson Artikel einfügen:" << ins.lastError().text();
-            m_wikiDb.rollback();
-            return false;
+        ins.bindValue(":bk",   herkunft.isEmpty() ? QVariant(QMetaType(QMetaType::QString)) : QVariant(herkunft));
+        ins.bindValue(":vng",  herkunft.isEmpty() ? 0 : o["von_nutzer_geaendert"].toInt());
+        if (!ins.exec()) return abbruch("Artikel einfügen", ins.lastError().text());
+        const int newArtId = ins.lastInsertId().toInt();
+        ++neu;
+        if (zielTitel != titel) ++umbenannt;
+
+        // Bilder des Artikels einfügen; Inline-Verweise wiki://bild/{alt} → {neu}
+        QMap<int, int> bildIdMap;
+        for (const QJsonObject &b : bilderNachArtId.value(oldArtId)) {
+            const QString mime = b["mime_typ"].toString();
+            const QString ext  = mime.contains("png") ? ".png" : ".jpg";
+            QSqlQuery bIns(m_wikiDb);
+            bIns.prepare(R"(
+                INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, beschreibung, sortierung)
+                VALUES (:aid, :fn, :mime, '', :beschr, :sort)
+            )");
+            bIns.bindValue(":aid",    newArtId);
+            bIns.bindValue(":fn",     b["dateiname"].toString());
+            bIns.bindValue(":mime",   mime);
+            bIns.bindValue(":beschr", b["beschreibung"].toString());
+            bIns.bindValue(":sort",   b["sortierung"].toInt());
+            if (!bIns.exec()) return abbruch("Bild einfügen", bIns.lastError().text());
+            const int newBildId = bIns.lastInsertId().toInt();
+            bildIdMap[b["id"].toInt()] = newBildId;
+            const QString fn = QString::number(newBildId) + ext;
+            QFile bf(m_wikiBlobDir + "/" + fn);
+            if (bf.open(QIODevice::WriteOnly)) {
+                bf.write(QByteArray::fromBase64(b["daten_base64"].toString().toLatin1()));
+                QSqlQuery upd(m_wikiDb);
+                upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
+                upd.bindValue(":p",  fn);
+                upd.bindValue(":id", newBildId);
+                upd.exec();
+            } else {
+                qCWarning(lcDb) << "wikiImportieren: Bilddatei nicht schreibbar:" << fn;
+            }
         }
-        artIdMap[oldArtId] = ins.lastInsertId().toInt();
+        if (!bildIdMap.isEmpty()) {
+            QString remap;
+            static const QRegularExpression re(QStringLiteral("wiki://bild/(\\d+)"));
+            int pos = 0;
+            auto it = re.globalMatch(inhalt);
+            while (it.hasNext()) {
+                const QRegularExpressionMatch m = it.next();
+                remap += inhalt.mid(pos, m.capturedStart() - pos);
+                const int alt = m.captured(1).toInt();
+                remap += QStringLiteral("wiki://bild/%1").arg(bildIdMap.value(alt, alt));
+                pos = m.capturedEnd();
+            }
+            remap += inhalt.mid(pos);
+            if (remap != inhalt) {
+                QSqlQuery updInhalt(m_wikiDb);
+                updInhalt.prepare("UPDATE wiki_artikel SET inhalt = :i WHERE id = :id");
+                updInhalt.bindValue(":i",  remap);
+                updInhalt.bindValue(":id", newArtId);
+                updInhalt.exec();
+            }
+        }
     }
 
-    // Bilder einfügen
-    const QJsonArray bildArr = root["bilder"].toArray();
-    for (const QJsonValue &v : bildArr) {
-        const QJsonObject o = v.toObject();
-        const int newArtId  = artIdMap.value(o["artikel_id"].toInt(), -1);
-        if (newArtId < 0) continue;
-
-        const QString mime  = o["mime_typ"].toString();
-        const QString ext   = mime.contains("png") ? ".png" : ".jpg";
-        QSqlQuery ins(m_wikiDb);
-        ins.prepare(R"(
-            INSERT INTO wiki_bild (artikel_id, dateiname, mime_typ, blob_pfad, beschreibung, sortierung)
-            VALUES (:aid, :fn, :mime, '', :beschr, :sort)
-        )");
-        ins.bindValue(":aid",   newArtId);
-        ins.bindValue(":fn",    o["dateiname"].toString());
-        ins.bindValue(":mime",  mime);
-        ins.bindValue(":beschr", o["beschreibung"].toString());
-        ins.bindValue(":sort",  o["sortierung"].toInt());
-        if (!ins.exec()) {
-            qCWarning(lcDb) << "wikiImportJson Bild einfügen:" << ins.lastError().text();
-            m_wikiDb.rollback();
-            return false;
-        }
-        const int newBildId = ins.lastInsertId().toInt();
-        const QString fn    = QString::number(newBildId) + ext;
-        QFile bf(m_wikiBlobDir + "/" + fn);
-        if (bf.open(QIODevice::WriteOnly)) {
-            bf.write(QByteArray::fromBase64(o["daten_base64"].toString().toLatin1()));
-            QSqlQuery upd(m_wikiDb);
-            upd.prepare("UPDATE wiki_bild SET blob_pfad = :p WHERE id = :id");
-            upd.bindValue(":p",  fn);
-            upd.bindValue(":id", newBildId);
-            upd.exec();
-        } else {
-            qCWarning(lcDb) << "wikiImportJson: Bilddatei nicht schreibbar:" << fn;
+    // Bundle-Stände aus der Sicherung übernehmen (nie zurückdrehen)
+    const QJsonObject staende = root["bundle_staende"].toObject();
+    for (auto it = staende.constBegin(); it != staende.constEnd(); ++it) {
+        QSqlQuery q(m_wikiDb);
+        q.prepare("SELECT wert FROM wiki_meta WHERE schluessel = :s");
+        q.bindValue(":s", "bundle_version_" + it.key());
+        const int lokal = (q.exec() && q.next()) ? q.value(0).toString().toInt() : 0;
+        if (it.value().toInt() > lokal) {
+            QSqlQuery up(m_wikiDb);
+            up.prepare("INSERT OR REPLACE INTO wiki_meta (schluessel, wert) VALUES (:s, :v)");
+            up.bindValue(":s", "bundle_version_" + it.key());
+            up.bindValue(":v", QString::number(it.value().toInt()));
+            up.exec();
         }
     }
 
     if (!m_wikiDb.commit()) {
+        const QString fehler = m_wikiDb.lastError().text();
         m_wikiDb.rollback();
-        qCWarning(lcDb) << "wikiImportJson commit:" << m_wikiDb.lastError().text();
-        return false;
+        res["meldung"] = "Commit fehlgeschlagen: " + fehler;
+        return res;
     }
-    qCInfo(lcDb) << "Wiki importiert:" << artArr.size() << "Artikel"
-            << (mergeMode ? "(Merge)" : "(Replace)");
-    return true;
+    qCInfo(lcDb) << "Wiki importiert:" << neu << "neu," << uebersprungen << "übersprungen,"
+                 << umbenannt << "umbenannt" << (mergeMode ? "(Merge)" : "(Replace)");
+    res["erfolg"]        = true;
+    res["neu"]           = neu;
+    res["uebersprungen"] = uebersprungen;
+    res["umbenannt"]     = umbenannt;
+    res["meldung"]       = QString("%1 neu, %2 übersprungen (schon vorhanden), %3 unter neuem Titel")
+                               .arg(neu).arg(uebersprungen).arg(umbenannt);
+    return res;
 }
 
 // ============================================================
@@ -983,7 +1164,7 @@ QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
     const QString kennung       = root["bundle_kennung"].toString();
     const int     bundleVersion = root["bundle_version"].toInt();
     if (kennung.isEmpty()) {
-        result["meldung"] = "Bundle hat keine Kennung (bundle_kennung fehlt) – nutze Wiki-Import statt Bundle-Import";
+        result["meldung"] = "Bundle hat keine Kennung (bundle_kennung fehlt)";
         return result;
     }
 
@@ -1208,103 +1389,6 @@ QVariantMap Database::wikiBundleAnwenden(const QString &pfad)
                                 .arg(neuCount).arg(aktCount).arg(skipCount);
     qCInfo(lcDb) << "wikiBundleAnwenden" << kennung << "v" << bundleVersion << "–" << result["meldung"].toString();
     return result;
-}
-
-// ============================================================
-// wikiBundleExportieren
-// ============================================================
-bool Database::wikiBundleExportieren(const QString &pfad, const QString &kennung,
-                                      const QString &titel, int version,
-                                      const QVariantList &kategorieIds)
-{
-    const QString localPfad = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
-
-    QSet<int> katIdSet;
-    for (const QVariant &v : kategorieIds)
-        katIdSet.insert(v.toInt());
-
-    // Kategorien
-    QJsonArray kategorienArr;
-    QSqlQuery qKat(m_wikiDb);
-    if (!qKat.exec("SELECT id, name, beschreibung, sortierung FROM wiki_kategorie ORDER BY sortierung, name"))
-        return false;
-    while (qKat.next()) {
-        if (!katIdSet.contains(qKat.value(0).toInt())) continue;
-        QJsonObject o;
-        o["id"]           = qKat.value(0).toInt();
-        o["name"]         = qKat.value(1).toString();
-        o["beschreibung"] = qKat.value(2).toString();
-        o["sortierung"]   = qKat.value(3).toInt();
-        kategorienArr.append(o);
-    }
-
-    // Artikel (keine ist_system=1)
-    QJsonArray artikelArr;
-    QSet<int> exportArtIds;
-    QSqlQuery qArt(m_wikiDb);
-    if (!qArt.exec(R"(
-        SELECT wa.id, wa.kategorie_id, wk.name, wa.titel, wa.inhalt, wa.tags
-        FROM wiki_artikel wa JOIN wiki_kategorie wk ON wk.id = wa.kategorie_id
-        WHERE wa.ist_system = 0
-        ORDER BY wk.sortierung, wk.name, wa.titel
-    )")) return false;
-    while (qArt.next()) {
-        if (!katIdSet.contains(qArt.value(1).toInt())) continue;
-        QJsonObject o;
-        o["id"]             = qArt.value(0).toInt();
-        o["kategorie_id"]   = qArt.value(1).toInt();
-        o["kategorie_name"] = qArt.value(2).toString();
-        o["titel"]          = qArt.value(3).toString();
-        o["inhalt"]         = qArt.value(4).toString();
-        o["tags"]           = qArt.value(5).toString();
-        artikelArr.append(o);
-        exportArtIds.insert(qArt.value(0).toInt());
-    }
-
-    // Bilder der exportierten Artikel
-    QJsonArray bilderArr;
-    QSqlQuery qBild(m_wikiDb);
-    if (!qBild.exec(R"(
-        SELECT wb.id, wb.artikel_id, wb.dateiname, wb.mime_typ, wb.blob_pfad, wb.beschreibung, wb.sortierung
-        FROM wiki_bild wb JOIN wiki_artikel wa ON wa.id = wb.artikel_id
-        WHERE wa.ist_system = 0
-        ORDER BY wb.artikel_id, wb.sortierung, wb.id
-    )")) return false;
-    while (qBild.next()) {
-        if (!exportArtIds.contains(qBild.value(1).toInt())) continue;
-        const QString fn = qBild.value(4).toString();
-        QFile bf(m_wikiBlobDir + "/" + fn);
-        if (!bf.open(QIODevice::ReadOnly)) continue;
-        QJsonObject o;
-        o["id"]           = qBild.value(0).toInt();
-        o["artikel_id"]   = qBild.value(1).toInt();
-        o["dateiname"]    = qBild.value(2).toString();
-        o["mime_typ"]     = qBild.value(3).toString();
-        o["daten_base64"] = QString::fromLatin1(bf.readAll().toBase64());
-        o["beschreibung"] = qBild.value(5).toString();
-        o["sortierung"]   = qBild.value(6).toInt();
-        bilderArr.append(o);
-    }
-
-    QJsonObject rootObj;
-    rootObj["wiki_export_version"] = 1;
-    rootObj["bundle_kennung"]      = kennung;
-    rootObj["bundle_version"]      = version;
-    rootObj["bundle_titel"]        = titel;
-    rootObj["exportiert_am"]       = QDateTime::currentDateTime().toString(Qt::ISODate);
-    rootObj["kategorien"]          = kategorienArr;
-    rootObj["artikel"]             = artikelArr;
-    rootObj["bilder"]              = bilderArr;
-
-    QFile f(localPfad);
-    if (!f.open(QIODevice::WriteOnly)) {
-        qCWarning(lcDb) << "wikiBundleExportieren: nicht schreibbar:" << localPfad;
-        return false;
-    }
-    f.write(QJsonDocument(rootObj).toJson());
-    qCInfo(lcDb) << "wikiBundleExportieren:" << kennung << "v" << version
-            << artikelArr.size() << "Artikel, Pfad:" << localPfad;
-    return true;
 }
 
 // ============================================================

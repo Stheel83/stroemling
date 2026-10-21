@@ -294,6 +294,7 @@ qt_add_qml_module(stroemling_app
         qml/wiki/WikiFormatierungsToolbar.qml
         qml/wiki/WikiBildGalerie.qml
         qml/wiki/WikiBundleDialog.qml
+        qml/wiki/WikiExportPopup.qml
         qml/wiki/WikiBildEinfuegenPopup.qml
         qml/wiki/WikiImportModePopup.qml
         qml/wiki/WikiVollbildPopup.qml
@@ -553,6 +554,7 @@ qt_add_executable(stroemling_test
     tests/tst_bauteilaustausch.h
     tests/tst_bauteilbezug.h
     tests/tst_dateibrowser.h
+    tests/tst_wikiexport.h
     src/utils/DateiBrowser.h
     src/utils/DateiBrowser.cpp
     src/canvas/ElementeModel.cpp

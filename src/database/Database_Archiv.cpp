@@ -45,7 +45,7 @@ QVariantMap Database::komplettarchivExportieren(const QString &zielOrdner)
 
     // 1a. Wiki als JSON exportieren (menschenlesbarer Fallback)
     QString wikiJsonPfad = ziel + QStringLiteral("/wiki_export.json");
-    bool wikiJsonOk = wikiExportJson(wikiJsonPfad);
+    bool wikiJsonOk = wikiExportieren(wikiJsonPfad, {}).value("erfolg").toBool();
 
     // 1b. makros.db per VACUUM INTO sichern
     bool makroDbOk = false;
@@ -194,7 +194,7 @@ QVariantMap Database::komplettarchivImportieren(const QString &quellOrdner)
     bool wikiJsonOk = false;
     QString wikiJsonPfad = quelle + QStringLiteral("/wiki_export.json");
     if (QFile::exists(wikiJsonPfad))
-        wikiJsonOk = wikiImportJson(wikiJsonPfad, true);
+        wikiJsonOk = wikiImportieren(wikiJsonPfad, true).value("erfolg").toBool();
 
     // 3. Projektdateien nach dataDir/importierte_projekte/ kopieren
     int projekteAnzahl = 0;

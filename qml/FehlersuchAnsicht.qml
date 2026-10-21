@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "ibn"
 
 Item {
     id: root
@@ -12,6 +13,95 @@ Item {
 
     // IBN-Stände der Betriebsmittel (bmk -> offen | in_arbeit | abgeschlossen), aus der IBN-Ansicht (FS-IBN-01)
     property var ibnStatus: ({})
+
+    // ── Befunde (FS-IBN-02, konzept/features/55 §4a.2) ────────────────
+    property var    befunde:       []          // alle Befunde des Projekts, neueste zuerst
+    property var    befundOffen:   ({})        // bmk -> Anzahl offener Befunde
+    property string befundFilter:  "aktiv"     // "aktiv" = nur offene, "" = alle
+    property string letzterName:   ""
+    readonly property var befundeSichtbar: befunde.filter(function(b) { return root.befundFilter === "" || b.status === "offen" })
+    readonly property int befundOffenAnzahl: befunde.filter(function(b) { return b.status === "offen" }).length
+    // Marker im Canvas: Befunde der aktuellen Seite mit Position (nicht „kein Fehler“)
+    readonly property var befundStellen: befunde.filter(function(b) {
+        return b.seiteId >= 0 && b.seiteId === root.seiteId && b.hatPosition && b.status !== "kein_fehler"
+    })
+
+    function befundeLaden() {
+        if (root.projektId < 0) { root.befunde = []; root.befundOffen = ({}); return }
+        root.befunde    = db.befundeLaden(root.projektId, "", -1)
+        root.befundOffen = db.befundOffenProBmk(root.projektId)
+        if (root.letzterName === "" && root.befunde.length > 0)
+            root.letzterName = root.befunde[0].gefundenVon || ""
+    }
+    onProjektIdChanged: befundeLaden()
+    Component.onCompleted: befundeLaden()
+
+    function _kategorieText(k) {
+        return k === "bauteil" ? qsTr("Bauteil defekt") : k === "verdrahtung" ? qsTr("Verdrahtung")
+             : k === "schaltplan" ? qsTr("Schaltplan weicht ab") : qsTr("Sonstiges")
+    }
+    function _statusText(st) {
+        return st === "behoben" ? qsTr("behoben") : st === "kein_fehler" ? qsTr("kein Fehler") : qsTr("offen")
+    }
+    function _bezugText(b) {
+        var t = b.bezugArt === "kabel" ? qsTr("Kabel %1").arg(b.kabelBezeichnung)
+              : b.bezugArt === "bmk"   ? b.bmk : qsTr("Stelle")
+        if (b.blattnummer !== "")
+            t += qsTr(" · Blatt %1").arg(b.blattnummer)
+        if (!b.zugeordnet)
+            t += qsTr(" (Seite nicht mehr vorhanden)")
+        return t
+    }
+    function _elementMitte(el) {
+        return { x: ((el.x1 || 0) + (el.x2 || 0)) / 2, y: ((el.y1 || 0) + (el.y2 || 0)) / 2 }
+    }
+    function _bmkElement(bmk) {
+        if (!root.canvas) return null
+        var alle = root.canvas.elementeModel.snapshot()
+        for (var i = 0; i < alle.length; i++)
+            if (alle[i].typ === "symbol" && ((alle[i].extraDaten || {}).bmk || "") === bmk) return alle[i]
+        return null
+    }
+
+    // Neuer Befund an einem Betriebsmittel im Pfad (aktuelle Seite)
+    function befundNeuFuerBmk(bmk) {
+        var el = root._bmkElement(bmk)
+        var bezug = { bezugArt: "bmk", seiteId: root.seiteId, bmk: bmk, text: qsTr("Betriebsmittel %1").arg(bmk) }
+        if (el) { var m = root._elementMitte(el); bezug.x = m.x; bezug.y = m.y }
+        befundDialog.vorgabeName = root.letzterName
+        befundDialog.neuOeffnen(bezug)
+    }
+
+    // Neuer Befund am zuletzt angeklickten Startelement (Leitung, Klemme, Symbol)
+    function befundNeuAmGewaehlten() {
+        var id = root.canvas ? root.canvas.fehlersuchStartId : -1
+        var el = null
+        if (id > 0) {
+            var alle = root.canvas.elementeModel.snapshot()
+            for (var i = 0; i < alle.length; i++) if (alle[i].id === id) { el = alle[i]; break }
+        }
+        if (!el) {
+            meldungManager.zeigen(qsTr("Erst ein Element im Schaltplan anklicken, dann den Befund anlegen."), false)
+            return
+        }
+        var bmk = (el.extraDaten || {}).bmk || ""
+        var m = root._elementMitte(el)
+        var bezug = bmk !== ""
+            ? { bezugArt: "bmk", seiteId: root.seiteId, bmk: bmk, x: m.x, y: m.y, text: qsTr("Betriebsmittel %1").arg(bmk) }
+            : { bezugArt: "stelle", seiteId: root.seiteId, x: m.x, y: m.y, text: qsTr("Stelle auf dieser Seite (%1)").arg(el.typ || "") }
+        befundDialog.vorgabeName = root.letzterName
+        befundDialog.neuOeffnen(bezug)
+    }
+
+    function befundBearbeiten(id) {
+        for (var i = 0; i < root.befunde.length; i++)
+            if (root.befunde[i].id === id) { befundDialog.bearbeitenOeffnen(root.befunde[i]); return }
+    }
+
+    function befundSpringen(b) {
+        if (b.seiteId >= 0 && b.hatPosition)
+            root.fehlersuchNavigieren(b.seiteId, b.x, b.y, -1)
+    }
 
     // Referenz auf den rechts platzierten SchaltplanCanvas
     property var canvas: null
@@ -738,23 +828,62 @@ Item {
                                     color: theme.textPrimary
                                 }
 
-                                // IBN-Stand des Betriebsmittels (FS-IBN-01); fehlt der Eintrag (z. B. nicht im Prüfumfang), steht nichts
+                                // IBN-Stand und Befunde des Betriebsmittels (FS-IBN-01/02); fehlt der IBN-Eintrag (z. B. nicht im Prüfumfang), steht dafür nichts
                                 Row {
                                     readonly property string st: root.ibnStatus[modelData] || ""
-                                    visible: st !== ""
+                                    readonly property int offen: root.befundOffen[modelData] || 0
                                     anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
-                                    spacing: 5
+                                    spacing: 6
+
                                     Rectangle {
+                                        visible: parent.st !== ""
                                         width: 8; height: 8; radius: 4
                                         anchors.verticalCenter: parent.verticalCenter
                                         color: parent.st === "abgeschlossen" ? "#3cb371"
                                              : parent.st === "in_arbeit"     ? "#f0a030" : "#cc4444"
                                     }
                                     Text {
+                                        visible: parent.st !== ""
+                                        anchors.verticalCenter: parent.verticalCenter
                                         font.pixelSize: 10
                                         color: theme.textMuted
                                         text: parent.st === "abgeschlossen" ? qsTr("geprüft")
                                             : parent.st === "in_arbeit"     ? qsTr("in Arbeit") : qsTr("offen")
+                                    }
+                                    // geprüft, aber offener Befund: der IBN-Stand bleibt unverändert, der Hinweis macht auf den Widerspruch aufmerksam
+                                    Text {
+                                        visible: parent.st === "abgeschlossen" && parent.offen > 0
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        font.pixelSize: 11
+                                        color: "#f0a030"
+                                        text: "⚠"
+                                        ToolTip.visible: warnMaus.containsMouse
+                                        ToolTip.text: qsTr("Geprüft, aber es gibt noch einen offenen Befund")
+                                        ToolTip.delay: 400
+                                        MouseArea { id: warnMaus; anchors.fill: parent; hoverEnabled: true }
+                                    }
+                                    Text {
+                                        visible: parent.offen > 0
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        font.pixelSize: 11
+                                        color: "#e03030"
+                                        text: "⚑ " + parent.offen
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        font.pixelSize: 12
+                                        color: befundNeuMaus.containsMouse ? theme.accent : theme.textMuted
+                                        text: "＋⚑"
+                                        ToolTip.visible: befundNeuMaus.containsMouse
+                                        ToolTip.text: qsTr("Befund zu %1 anlegen").arg(modelData)
+                                        ToolTip.delay: 400
+                                        MouseArea {
+                                            id: befundNeuMaus
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.befundNeuFuerBmk(modelData)
+                                        }
                                     }
                                 }
                             }
@@ -780,6 +909,126 @@ Item {
                     }
                 }
 
+                // ── Befunde (FS-IBN-02) ──────────────────────────────
+                Rectangle { Layout.fillWidth: true; Layout.topMargin: 8; implicitHeight: 1; color: theme.divider }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 14
+                    Layout.rightMargin: 10
+                    Layout.topMargin: 6
+                    spacing: 6
+
+                    Text {
+                        text: qsTr("⚑ Befunde (%1 offen)").arg(root.befundOffenAnzahl)
+                        font.pixelSize: 11; font.weight: Font.Medium
+                        color: theme.textMuted
+                        Layout.fillWidth: true
+                    }
+                    Button {
+                        flat: true; implicitHeight: 24
+                        contentItem: Text { text: root.befundFilter === "" ? qsTr("alle") : qsTr("nur offene"); font.pixelSize: 10;
+                            color: theme.textSecondary; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4; border.color: theme.border }
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Zwischen „nur offene Befunde“ und „alle Befunde“ umschalten")
+                        onClicked: root.befundFilter = root.befundFilter === "" ? "aktiv" : ""
+                    }
+                    Button {
+                        flat: true; implicitHeight: 24
+                        contentItem: Text { text: qsTr("＋ am gewählten Element"); font.pixelSize: 10;
+                            color: theme.accent; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4; border.color: theme.accent }
+                        ToolTip.visible: hovered; ToolTip.delay: 600
+                        ToolTip.text: qsTr("Befund an dem Element anlegen, das du zuletzt im Schaltplan angeklickt hast (auch Leitungen und Klemmen)")
+                        onClicked: root.befundNeuAmGewaehlten()
+                    }
+                }
+
+                Repeater {
+                    model: root.befundeSichtbar
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 14
+                        Layout.rightMargin: 10
+                        Layout.topMargin: 4
+                        implicitHeight: befundSpalte.implicitHeight + 10
+                        radius: 4
+                        color: befundZeileMaus.containsMouse ? theme.hover : "transparent"
+                        border.color: theme.border
+                        opacity: modelData.status === "offen" ? 1.0 : 0.6
+
+                        MouseArea {
+                            id: befundZeileMaus
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: modelData.hatPosition && modelData.seiteId >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: root.befundSpringen(modelData)
+                        }
+
+                        ColumnLayout {
+                            id: befundSpalte
+                            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 6 }
+                            spacing: 2
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Text {
+                                    text: "⚑"
+                                    font.pixelSize: 12
+                                    color: modelData.status === "offen" ? "#e03030" : theme.textMuted
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.text
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                    font.pixelSize: 11
+                                    color: theme.textPrimary
+                                }
+                                Text {
+                                    text: "✎"
+                                    font.pixelSize: 12
+                                    color: bearbeitenMaus.containsMouse ? theme.accent : theme.textMuted
+                                    ToolTip.visible: bearbeitenMaus.containsMouse
+                                    ToolTip.text: qsTr("Befund bearbeiten (Text, Status, Kategorie)")
+                                    ToolTip.delay: 400
+                                    MouseArea {
+                                        id: bearbeitenMaus
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.befundBearbeiten(modelData.id)
+                                    }
+                                }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: root._bezugText(modelData) + "  ·  " + root._kategorieText(modelData.kategorie)
+                                      + "  ·  " + root._statusText(modelData.status)
+                                      + (modelData.gefundenVon !== "" ? "  ·  " + modelData.gefundenVon : "")
+                                      + (modelData.gefundenAm !== "" ? "  ·  " + modelData.gefundenAm : "")
+                                wrapMode: Text.WordWrap
+                                font.pixelSize: 9
+                                color: theme.textMuted
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    visible: root.befundeSichtbar.length === 0
+                    Layout.leftMargin: 28
+                    Layout.topMargin: 4
+                    text: root.befundFilter === "" ? qsTr("Noch keine Befunde") : qsTr("Keine offenen Befunde")
+                    font.pixelSize: 10
+                    color: theme.borderLight
+                }
+
                 Item { Layout.fillWidth: true; implicitHeight: 8 }
             }
         }
@@ -796,6 +1045,17 @@ Item {
                 font.pixelSize: 10
                 color: theme.borderLight
             }
+        }
+    }
+
+    BefundDialog {
+        id:        befundDialog
+        theme:     root.theme
+        projektId: root.projektId
+        onGespeichert: {
+            root.letzterName = befundDialog.vorgabeName
+            root.befundeLaden()
+            meldungManager.zeigen(qsTr("Befund gespeichert."), true)
         }
     }
 }

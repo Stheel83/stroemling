@@ -542,6 +542,18 @@ public:
     // `anzahl` = verschiedene (Seite, BMK) unabhängig vom Ausschluss; Kategorie "" = Symbole ohne Kategorie (nur einzeln abwählbar).
     Q_INVOKABLE QVariantMap  ibnUmfangUebersicht(int projektId);
 
+    // ── Befunde der Fehlersuche (FS-IBN-02, konzept/features/55 §4a.2) ──
+    // daten: {bezugArt: "bmk"|"kabel"|"stelle", seiteId, bmk, kabelId, x, y, kategorie, text, gefundenVon, gefundenAm}
+    // Rückgabe {ok, id, befundUuid} oder {ok:false, fehler}. Ein Befund ändert nie IBN-Stand oder Schaltplan.
+    // In einer IBN-Kopie nur im Bereich der Kopie; im Schreibschutz scheitert das Speichern.
+    Q_INVOKABLE QVariantMap  befundAnlegen(int projektId, const QVariantMap &daten);
+    // Ändert kategorie, text, status, gefundenVon (Bezug und Herkunft bleiben). status "behoben" setzt behobenAm, andere Stati löschen es.
+    Q_INVOKABLE bool         befundAendern(int befundId, const QVariantMap &daten);
+    // status: "" = alle, "aktiv" = offen, sonst genau dieser Status; seiteId -1 = alle Seiten. Neueste zuerst.
+    Q_INVOKABLE QVariantList befundeLaden(int projektId, const QString &status = QString(), int seiteId = -1);
+    // Anzahl offener Befunde je BMK: {"-K1": 2, …} (nur bezugArt "bmk")
+    Q_INVOKABLE QVariantMap  befundOffenProBmk(int projektId);
+
     // IBN-Eintrag für ein einzelnes BM (EP-Abschnitt, read-only).
     // Gibt {ibnId, status, bauteilId, geprueftVon, geprueftAm, notiz, symbolKategorie, felder}
     // oder leere Map zurück wenn kein Datensatz vorhanden.

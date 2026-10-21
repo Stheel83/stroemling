@@ -3151,6 +3151,31 @@ static QList<SchemaMigration> alleMigrationen()
                 PRIMARY KEY (projekt_id, art, schluessel)
             ))",
         }},
+        { 181, "FS-IBN-02 (konzept/features/55 §4a.2): fs_befund - gespeicherte Befunde der Fehlersuche, bewusst getrennt von inbetriebnahme (ein Befund aendert nie den IBN-Stand und nie den Schaltplan). befund_uuid = stabile Identitaet ueber Kopien und Overlay (in C++ vergeben). bezug_art 'bmk' (Betriebsmittel), 'kabel' oder 'stelle' (freie Stelle auf einer Seite, z. B. Leitung/Klemme ohne BMK); seite_id ON DELETE SET NULL, die fachlichen Schluessel anlage/ort/blattnummer stehen zusaetzlich als Text, damit ein Befund Umbenennungen uebersteht und das Overlay ihn zuordnen kann. x/y = Position auf der Seite (Marker). kategorie bauteil|verdrahtung|schaltplan|sonstiges, status offen|behoben|kein_fehler (kein Loeschen: Fehleintraege bekommen kein_fehler). kopie_uuid = Herkunft (leer = Hauptkopie). Der Stroemling Manager liest die Tabelle nur lesend.", {
+            R"(CREATE TABLE IF NOT EXISTS fs_befund (
+                id                INTEGER PRIMARY KEY,
+                projekt_id        INTEGER NOT NULL REFERENCES projekt(id) ON DELETE CASCADE,
+                befund_uuid       TEXT    NOT NULL UNIQUE,
+                bezug_art         TEXT    NOT NULL CHECK (bezug_art IN ('bmk', 'kabel', 'stelle')),
+                seite_id          INTEGER REFERENCES seite(id) ON DELETE SET NULL,
+                anlage            TEXT    NOT NULL DEFAULT '',
+                ort               TEXT    NOT NULL DEFAULT '',
+                blattnummer       TEXT    NOT NULL DEFAULT '',
+                bmk               TEXT    NOT NULL DEFAULT '',
+                kabel_bezeichnung TEXT    NOT NULL DEFAULT '',
+                x                 REAL,
+                y                 REAL,
+                kategorie         TEXT    NOT NULL DEFAULT 'sonstiges' CHECK (kategorie IN ('bauteil', 'verdrahtung', 'schaltplan', 'sonstiges')),
+                text              TEXT    NOT NULL,
+                status            TEXT    NOT NULL DEFAULT 'offen' CHECK (status IN ('offen', 'behoben', 'kein_fehler')),
+                gefunden_von      TEXT    NOT NULL DEFAULT '',
+                gefunden_am       TEXT    NOT NULL DEFAULT '',
+                behoben_am        TEXT    NOT NULL DEFAULT '',
+                geaendert_am      TEXT    NOT NULL DEFAULT (datetime('now')),
+                kopie_uuid        TEXT    NOT NULL DEFAULT ''
+            ))",
+            R"(CREATE INDEX IF NOT EXISTS idx_fs_befund_seite ON fs_befund(projekt_id, seite_id))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

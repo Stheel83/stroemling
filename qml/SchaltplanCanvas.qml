@@ -1268,6 +1268,41 @@ Item {
         sprungMarkerAnim.restart()
     }
 
+    // ── Befund-Flaggen (FS-IBN-02) ───────────────────────────────────────────
+    // Befunde der aktuellen Seite [{id, x, y, status}], nur in der IBN-Ansicht; Klick meldet die Befund-Id.
+    property var befundStellen: []
+    signal befundGeklickt(int befundId)
+
+    Repeater {
+        model: root.ibnModus ? root.befundStellen : []
+
+        Item {
+            id: flagge
+            z: 30
+            width: 20; height: 22
+            x: root.worldX + modelData.x * root.zoom - width / 2
+            y: root.worldY + modelData.y * root.zoom - height
+            Text {
+                anchors.centerIn: parent
+                text: "⚑"
+                font.pixelSize: 18
+                color: modelData.status === "offen" ? "#e03030" : "#8a8a8a"
+                style: Text.Outline
+                styleColor: "white"
+            }
+            MouseArea {
+                id: flaggeMaus
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.befundGeklickt(modelData.id)
+                ToolTip.visible: containsMouse
+                ToolTip.text: modelData.text + (modelData.status === "behoben" ? qsTr(" (behoben)") : "")
+                ToolTip.delay: 300
+            }
+        }
+    }
+
     Rectangle {
         id: sprungMarker
         visible: false

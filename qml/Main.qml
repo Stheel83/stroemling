@@ -1405,6 +1405,8 @@ ApplicationWindow {
                         ibnModus:                true
                         fehlersuchModus:         root.ibnWerkzeug === "fehlersuche"
                         ibnStatusMap:            ibnAnsicht.statusMap
+                        befundStellen:           fehlersuchAnsicht.befundStellen
+                        onBefundGeklickt: function(id) { fehlersuchAnsicht.befundBearbeiten(id) }
 
                         onHintergrundGeaendert: function(farbe) {
                             root.aktivProjektHintergrund = farbe

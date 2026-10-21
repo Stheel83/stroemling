@@ -1430,6 +1430,138 @@ private slots:
         QDir(ordner).removeRecursively();
     }
 
+    void test_32_fsBefund()
+    {
+        // FS-IBN-02 (Migration 181): Befunde der Fehlersuche - anlegen, pruefen, aendern, laden, Kopie/Bereich, Seite geloescht.
+        TmpProjekt t("fsbefund");
+        Database &db = t.db;
+        QSqlQuery q(QSqlDatabase::database());
+        auto ins = [&](const QString &sql) { QVERIFY2(q.exec(sql), qPrintable(sql)); };
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'AQ','A')");
+        const int a1 = q.lastInsertId().toInt();
+        ins("INSERT INTO anlage (projekt_id, kuerzel, bezeichnung) VALUES (1,'XX','Fremd')");
+        const int a2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'TR','O')").arg(a1));
+        const int o1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO ort (anlage_id, kuerzel, bezeichnung) VALUES (%1,'ZZ','O')").arg(a2));
+        const int o2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'1','S1')").arg(o1));
+        const int s1 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'2','S2')").arg(o1));
+        const int s2 = q.lastInsertId().toInt();
+        ins(QString("INSERT INTO seite (ort_id, blattnummer, bezeichnung) VALUES (%1,'9','Fremd')").arg(o2));
+        const int sFremd = q.lastInsertId().toInt();
+        ins("INSERT INTO kabel (projekt_id, bezeichnung) VALUES (1,'-W1')");
+        const int kabelId = q.lastInsertId().toInt();
+        q.finish();
+
+        const auto daten = [](const QString &art, int seite, const QString &text) {
+            return QVariantMap{ {"bezugArt", art}, {"seiteId", seite}, {"text", text}, {"kategorie", "bauteil"}, {"gefundenVon", "Anna"} };
+        };
+
+        // Betriebsmittel-Befund
+        QVariantMap d = daten("bmk", s1, "  Spule offen, 0 Ohm  ");
+        d["bmk"] = "-K1"; d["x"] = 120.5; d["y"] = 80.0;
+        QVariantMap r = db.befundAnlegen(1, d);
+        QVERIFY2(r.value("ok").toBool(), qPrintable(r.value("fehler").toString()));
+        QVERIFY(!r.value("befundUuid").toString().isEmpty());
+        QVariantList l = db.befundeLaden(1);
+        QCOMPARE(l.size(), 1);
+        QVariantMap b = l.first().toMap();
+        QCOMPARE(b.value("text").toString(), QStringLiteral("Spule offen, 0 Ohm"));       // getrimmt
+        QCOMPARE(b.value("status").toString(), QStringLiteral("offen"));
+        QCOMPARE(b.value("anlage").toString(), QStringLiteral("AQ"));
+        QCOMPARE(b.value("ort").toString(), QStringLiteral("TR"));
+        QCOMPARE(b.value("blattnummer").toString(), QStringLiteral("1"));
+        QCOMPARE(b.value("bmk").toString(), QStringLiteral("-K1"));
+        QVERIFY(b.value("hatPosition").toBool());
+        QVERIFY(!b.value("gefundenAm").toString().isEmpty());
+        QVERIFY(b.value("kopieUuid").toString().isEmpty());                                // Hauptkopie
+        const int idK1 = b.value("id").toInt();
+
+        // Pruefungen
+        QVERIFY(!db.befundAnlegen(1, daten("bmk", s1, "   ")).value("ok").toBool());       // leerer Text
+        QVERIFY(!db.befundAnlegen(1, daten("unfug", s1, "x")).value("ok").toBool());
+        QVERIFY(!db.befundAnlegen(1, daten("bmk", s1, "ohne BMK")).value("ok").toBool());  // BMK fehlt
+        QVERIFY(!db.befundAnlegen(1, daten("stelle", -1, "ohne Seite")).value("ok").toBool());
+        QVariantMap schlecht = daten("stelle", s1, "x"); schlecht["kategorie"] = "quatsch";
+        QVERIFY(!db.befundAnlegen(1, schlecht).value("ok").toBool());
+        QCOMPARE(db.befundeLaden(1).size(), 1);
+
+        // Stelle ohne BMK (Leitung/Klemme) und Kabel
+        d = daten("stelle", s2, "Leitung durchgescheuert"); d["x"] = 10; d["y"] = 20; d["kategorie"] = "verdrahtung";
+        QVERIFY(db.befundAnlegen(1, d).value("ok").toBool());
+        QVariantMap kd = daten("kabel", -1, "Ader 3 unterbrochen"); kd["kabelId"] = kabelId;
+        QVERIFY(db.befundAnlegen(1, kd).value("ok").toBool());
+        QCOMPARE(db.befundeLaden(1).size(), 3);
+        QCOMPARE(db.befundeLaden(1, "", s2).size(), 1);
+        for (const QVariant &v : db.befundeLaden(1))
+            if (v.toMap().value("bezugArt").toString() == "kabel")
+                QCOMPARE(v.toMap().value("kabelBezeichnung").toString(), QStringLiteral("-W1"));
+
+        // Zweiter Befund am selben BMK, Zaehlung offen je BMK
+        d = daten("bmk", s1, "Kontakt klebt"); d["bmk"] = "-K1";
+        QVERIFY(db.befundAnlegen(1, d).value("ok").toBool());
+        QCOMPARE(db.befundOffenProBmk(1).value("-K1").toInt(), 2);
+
+        // Aendern: behoben setzt behobenAm, zurueck auf offen loescht es; kein_fehler zaehlt nicht mehr als offen
+        QVariantMap a = { {"text", "Spule offen, getauscht"}, {"kategorie", "bauteil"}, {"status", "behoben"}, {"gefundenVon", "Anna"} };
+        QVERIFY(db.befundAendern(idK1, a));
+        b = db.befundeLaden(1, "behoben").first().toMap();
+        QCOMPARE(b.value("text").toString(), QStringLiteral("Spule offen, getauscht"));
+        QVERIFY(!b.value("behobenAm").toString().isEmpty());
+        QCOMPARE(db.befundOffenProBmk(1).value("-K1").toInt(), 1);
+        a["status"] = "offen";
+        QVERIFY(db.befundAendern(idK1, a));
+        QVERIFY(db.befundeLaden(1, "offen").size() >= 1);
+        for (const QVariant &v : db.befundeLaden(1, "aktiv"))
+            if (v.toMap().value("id").toInt() == idK1) QVERIFY(v.toMap().value("behobenAm").toString().isEmpty());
+        a["status"] = "kein_fehler";
+        QVERIFY(db.befundAendern(idK1, a));
+        QCOMPARE(db.befundOffenProBmk(1).value("-K1").toInt(), 1);
+        QVERIFY(!db.befundAendern(idK1, { {"text", ""}, {"kategorie", "bauteil"}, {"status", "offen"} }));     // leerer Text
+        QVERIFY(!db.befundAendern(idK1, { {"text", "x"}, {"kategorie", "bauteil"}, {"status", "quatsch"} }));
+        QVERIFY(!db.befundAendern(99999, a));
+
+        // Seite geloescht: Befund bleibt mit Text-Schluessel, seite_id leer
+        {
+            QSqlQuery qq(QSqlDatabase::database());
+            QVERIFY(qq.exec(QString("DELETE FROM seite WHERE id = %1").arg(s2)));
+        }
+        const QVariantList nachLoeschen = db.befundeLaden(1);
+        QCOMPARE(nachLoeschen.size(), 4);
+        bool gefunden = false;
+        for (const QVariant &v : nachLoeschen) {
+            const QVariantMap m = v.toMap();
+            if (m.value("text").toString().startsWith("Leitung")) {
+                gefunden = true;
+                QCOMPARE(m.value("seiteId").toInt(), -1);
+                QVERIFY(!m.value("zugeordnet").toBool());
+                QCOMPARE(m.value("blattnummer").toString(), QStringLiteral("2"));
+            }
+        }
+        QVERIFY(gefunden);
+
+        // IBN-Kopie mit Bereich Anlage AQ: Befunde werden geerbt, ausserhalb des Bereichs nichts anlegen/aendern
+        const QString ordner = QDir::tempPath() + "/stroemling_test_befund_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        QVariantMap kr = db.ibnKopieErstellen(1, "Elektro", QVariantList{ QVariantMap{ {"anlage", "AQ"} } }, ordner);
+        QVERIFY(kr.value("ok").toBool());
+        const QString hauptPfad = db.projektPfad();
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(kr.value("pfad").toString()));
+        QCOMPARE(db.befundeLaden(1).size(), 4);                                       // geerbt
+        d = daten("stelle", s1, "In der Kopie gefunden"); d["x"] = 1; d["y"] = 2;
+        r = db.befundAnlegen(1, d);
+        QVERIFY2(r.value("ok").toBool(), qPrintable(r.value("fehler").toString()));
+        QCOMPARE(db.befundeLaden(1).first().toMap().value("kopieUuid").toString().isEmpty(), false);   // Herkunft gesetzt
+        d = daten("stelle", sFremd, "Fremde Anlage");
+        QVERIFY(!db.befundAnlegen(1, d).value("ok").toBool());                        // ausserhalb des Bereichs
+        QCOMPARE(db.befundeLaden(1).size(), 5);
+        db.closeProjekt();
+        QVERIFY(db.openProjekt(hauptPfad));
+        QDir(ordner).removeRecursively();
+    }
+
     void test_29_bauteilUid()
     {
         const QRegularExpression uuidMuster(

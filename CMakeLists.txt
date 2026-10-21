@@ -35,6 +35,7 @@ qt_add_executable(stroemling_app
     src/database/Database_Sperre.cpp
     src/database/Database_IbnKopie.cpp
     src/database/Database_IbnOverlay.cpp
+    src/database/Database_Befund.cpp
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
     src/database/Database_SpsExport.cpp
@@ -174,6 +175,7 @@ qt_add_qml_module(stroemling_app
         qml/ibn/IbnPdfExportDialog.qml
         qml/ibn/IbnDurchgangDialog.qml
         qml/ibn/IbnUmfangDialog.qml
+        qml/ibn/BefundDialog.qml
         qml/ibn/IbnKopienDialog.qml
         qml/ibn/IbnOverlayImportDialog.qml
 
@@ -578,6 +580,7 @@ qt_add_executable(stroemling_test
     src/database/Database_Sperre.cpp
     src/database/Database_IbnKopie.cpp
     src/database/Database_IbnOverlay.cpp
+    src/database/Database_Befund.cpp
     src/database/Database_Wiki.cpp
     src/database/Database_SPS.cpp
     src/database/Database_SpsExport.cpp

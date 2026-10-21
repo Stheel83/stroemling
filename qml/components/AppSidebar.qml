@@ -11,6 +11,7 @@ Rectangle {
 
     required property var theme
     property string aktiveAnsicht:   ""
+    property string ibnWerkzeug:     "pruefen"   // FS-IBN-01: Fehlersuche ist ein Werkzeug der IBN-Ansicht
     property int    aktivProjektId:  -1
     property string aktivProjektName: ""
     property bool   debug:           false
@@ -93,7 +94,7 @@ Rectangle {
             theme:           root.theme
             icon:            "✔"
             label:           qsTr("IBN")
-            active:          root.aktiveAnsicht === "ibn"
+            active:          root.aktiveAnsicht === "ibn" && root.ibnWerkzeug === "pruefen"
             enabled:         root.aktivProjektId >= 0
             opacity:         enabled ? 1.0 : 0.4
             tooltip:         qsTr("Inbetriebnahme: Betriebsmittel prüfen und Messwerte erfassen")
@@ -107,7 +108,7 @@ Rectangle {
             theme:           root.theme
             icon:            "🔍"
             label:           qsTr("Fehlersuche")
-            active:          root.aktiveAnsicht === "fehlersuche"
+            active:          root.aktiveAnsicht === "ibn" && root.ibnWerkzeug === "fehlersuche"
             enabled:         root.aktivProjektId >= 0
             opacity:         enabled ? 1.0 : 0.4
             tooltip:         qsTr("Fehlersuchmodus: Strompfad durch den Schaltplan nachverfolgen")

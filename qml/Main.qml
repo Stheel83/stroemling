@@ -30,6 +30,8 @@ ApplicationWindow {
     property int    aktivProjektId:   -1
     property string aktivProjektName: ""
     property string aktiveAnsicht:    "projekte"
+    // FS-IBN-01: Fehlersuche ist ein Werkzeug der IBN-Ansicht (ein Canvas): "pruefen" | "fehlersuche"
+    property string ibnWerkzeug:      "pruefen"
 
     // F1-Kontexthilfe: aktiveAnsicht -> Titel des passenden Wiki-Artikels.
     // Ansichten ohne Eintrag fallen auf die Shortcut-Übersicht zurück.
@@ -442,6 +444,7 @@ ApplicationWindow {
             theme:                 appTheme
             debug:                 root.debugModeAktiv
             aktiveAnsicht:         root.aktiveAnsicht
+            ibnWerkzeug:           root.ibnWerkzeug
             aktivProjektId:        root.aktivProjektId
             aktivProjektName:      root.aktivProjektName
             themes:                root.themes
@@ -449,7 +452,16 @@ ApplicationWindow {
 
             onWidthChanged: if (width >= 150) panelBreiten.sidebarBreite = width
 
-            onAnsichtGewaehlt: function(ansicht) { root.aktiveAnsicht = ansicht }
+            onAnsichtGewaehlt: function(ansicht) {
+                // FS-IBN-01: "Fehlersuche" öffnet die IBN-Ansicht mit dem Fehlersuch-Werkzeug
+                if (ansicht === "fehlersuche") {
+                    root.ibnWerkzeug  = "fehlersuche"
+                    root.aktiveAnsicht = "ibn"
+                } else {
+                    if (ansicht === "ibn") root.ibnWerkzeug = "pruefen"
+                    root.aktiveAnsicht = ansicht
+                }
+            }
             onThemeGewaehlt: function(name) { AppTheme.setTheme(name) }
             onSymbolEditorAngefordert: {
                 root.symbolEditorVorher    = root.aktiveAnsicht
@@ -1195,11 +1207,20 @@ ApplicationWindow {
                 }
             }
 
-            // ── Inbetriebnahme-Ansicht ─────────────────────────────────
+            // ── Inbetriebnahme-Ansicht (mit Fehlersuche als Werkzeug, FS-IBN-01) ──
             Item {
                 id:           ibnBereich
                 anchors.fill: parent
                 visible:      root.aktiveAnsicht === "ibn"
+
+                // Beim Wechsel des Werkzeugs den Pfad der Fehlersuche aufheben und die Anzeige (Aderfarbe) auf den Standard setzen
+                Connections {
+                    target: root
+                    function onIbnWerkzeugChanged() {
+                        ibnCanvas.fehlersuchPfadZuruecksetzen()
+                        ibnCanvas.fehlersuchZeigeAderfarbe = false
+                    }
+                }
 
                 SplitView {
                     anchors.fill: parent
@@ -1210,38 +1231,148 @@ ApplicationWindow {
                              : SplitHandle.hovered  ? appTheme.activeItem : appTheme.border
                     }
 
-                    IbnAnsicht {
-                        id:                       ibnAnsicht
+                    Item {
+                        id:                       ibnLinks
                         SplitView.preferredWidth: 400
                         SplitView.minimumWidth:   200
-                        theme:                    appTheme
-                        debug:                    root.debugModeAktiv
-                        projektId:                root.aktivProjektId
-                        seiteId:                  root.aktivSeiteId
 
-                        onGeschlossen: root.aktiveAnsicht = "seiten"
-                        onKopienAngefordert: ibnKopienDialog.open()
-                        onOverlayExportAngefordert: ibnKopienDialog.overlayExportieren()
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 0
 
-                        onBmkGewaehlt: function(sid, elementId, wx, wy, blattnr, seiteBez) {
-                            if (sid !== root.aktivSeiteId) {
-                                root._ibnZentriereX = wx
-                                root._ibnZentriereY = wy
-                                root.aktivSeiteId   = sid
-                                // IBN-SEITENNAME-STALE-01: aktivSeiteId speist zwar
-                                // ibnCanvas.seiteId (Canvas-Inhalt springt korrekt um),
-                                // aktivSeiteName wird aber sonst nur von panel1/panel2
-                                // (Schaltplan-Modus) gepflegt - im IBN-Modus blieb die
-                                // Titelzeile über dem Canvas dadurch auf der vorherigen
-                                // Seite stehen, obwohl der Sprung selbst funktionierte.
-                                // Formel identisch zu CanvasPanel.aktivSeiteName.
-                                if (blattnr !== "")
-                                    root.aktivSeiteName = seiteBez.length > 0
-                                                          ? seiteBez + "  –  " + blattnr : blattnr
-                                ibnZentriereTimer.restart()
-                            } else {
-                                ibnCanvas._zoomZuWeltPosition(wx, wy)
-                                ibnCanvas._zeigeMarker(wx, wy)
+                            // Werkzeugwahl: Prüfen (Inbetriebnahme) | Fehlersuche
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 32
+                                color: appTheme.surfaceDeep
+
+                                RowLayout {
+                                    anchors { fill: parent; leftMargin: 8; rightMargin: 8; topMargin: 4; bottomMargin: 4 }
+                                    spacing: 4
+
+                                    Repeater {
+                                        model: [
+                                            { key: "pruefen",      label: qsTr("⚡ Prüfen"),      tip: qsTr("Inbetriebnahme: Betriebsmittel prüfen und Messwerte erfassen") },
+                                            { key: "fehlersuche",  label: qsTr("🔍 Fehlersuche"), tip: qsTr("Fehlersuche: Strompfad nachverfolgen, die IBN-Stände der Betriebsmittel im Pfad stehen daneben") }
+                                        ]
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+                                            radius: 4
+                                            color: root.ibnWerkzeug === modelData.key ? appTheme.accent
+                                                 : (werkzeugMaus.containsMouse ? appTheme.hover : "transparent")
+                                            border.color: root.ibnWerkzeug === modelData.key ? appTheme.accent : appTheme.border
+                                            ToolTip.visible: werkzeugMaus.containsMouse
+                                            ToolTip.text: modelData.tip
+                                            ToolTip.delay: 600
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.label
+                                                font.pixelSize: 11
+                                                color: root.ibnWerkzeug === modelData.key ? "white" : appTheme.textSecondary
+                                            }
+                                            MouseArea {
+                                                id: werkzeugMaus
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.ibnWerkzeug = modelData.key
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item {
+                                Layout.fillWidth:  true
+                                Layout.fillHeight: true
+
+                                IbnAnsicht {
+                                    id:                       ibnAnsicht
+                                    anchors.fill:             parent
+                                    visible:                  root.ibnWerkzeug === "pruefen"
+                                    theme:                    appTheme
+                                    debug:                    root.debugModeAktiv
+                                    projektId:                root.aktivProjektId
+                                    seiteId:                  root.aktivSeiteId
+
+                                    onGeschlossen: root.aktiveAnsicht = "seiten"
+                                    onKopienAngefordert: ibnKopienDialog.open()
+                                    onOverlayExportAngefordert: ibnKopienDialog.overlayExportieren()
+
+                                    onBmkGewaehlt: function(sid, elementId, wx, wy, blattnr, seiteBez) {
+                                        if (sid !== root.aktivSeiteId) {
+                                            root._ibnZentriereX = wx
+                                            root._ibnZentriereY = wy
+                                            root.aktivSeiteId   = sid
+                                            // IBN-SEITENNAME-STALE-01: aktivSeiteId speist zwar
+                                            // ibnCanvas.seiteId (Canvas-Inhalt springt korrekt um),
+                                            // aktivSeiteName wird aber sonst nur von panel1/panel2
+                                            // (Schaltplan-Modus) gepflegt - im IBN-Modus blieb die
+                                            // Titelzeile über dem Canvas dadurch auf der vorherigen
+                                            // Seite stehen, obwohl der Sprung selbst funktionierte.
+                                            // Formel identisch zu CanvasPanel.aktivSeiteName.
+                                            if (blattnr !== "")
+                                                root.aktivSeiteName = seiteBez.length > 0
+                                                                      ? seiteBez + "  –  " + blattnr : blattnr
+                                            ibnZentriereTimer.restart()
+                                        } else {
+                                            ibnCanvas._zoomZuWeltPosition(wx, wy)
+                                            ibnCanvas._zeigeMarker(wx, wy)
+                                        }
+                                    }
+                                }
+
+                                FehlersuchAnsicht {
+                                    id:                       fehlersuchAnsicht
+                                    anchors.fill:             parent
+                                    visible:                  root.ibnWerkzeug === "fehlersuche"
+                                    theme:                    appTheme
+                                    projektId:                root.aktivProjektId
+                                    seiteId:                  root.aktivSeiteId
+                                    canvas:                   ibnCanvas
+                                    ibnStatus:                ibnAnsicht.statusMap
+
+                                    // zurück zum Prüfen (die Ansicht selbst bleibt offen)
+                                    onGeschlossen: root.ibnWerkzeug = "pruefen"
+
+                                    onQuerverweisNavigieren: function(sid, x, y, partnerId) {
+                                        if (sid !== root.aktivSeiteId) {
+                                            ibnCanvas._querverweisZielPos = { x: x, y: y }
+                                            if (partnerId > 0)
+                                                ibnCanvas._fehlersuchAutoStartId = partnerId
+                                            root.aktivSeiteId = sid
+                                        } else {
+                                            ibnCanvas._zoomZuWeltPosition(x, y)
+                                            if (partnerId > 0)
+                                                ibnCanvas.fehlersuchPfadBerechnen(partnerId)
+                                        }
+                                    }
+
+                                    onFehlersuchNavigieren: function(sid, cx, cy, elementId) {
+                                        if (sid !== root.aktivSeiteId) {
+                                            ibnCanvas._querverweisZielPos  = { x: cx, y: cy }
+                                            if (elementId > 0)
+                                                ibnCanvas._fehlersuchAutoStartId = elementId
+                                            root.aktivSeiteId = sid
+                                        } else {
+                                            ibnCanvas._zoomZuWeltPosition(cx, cy)
+                                            if (elementId > 0)
+                                                ibnCanvas.fehlersuchPfadBerechnen(elementId)
+                                        }
+                                    }
+
+                                    onHistoriNavigieren: function(sid, startId) {
+                                        if (sid !== root.aktivSeiteId) {
+                                            ibnCanvas._fehlersuchAutoStartId = startId
+                                            root.aktivSeiteId = sid
+                                        } else {
+                                            ibnCanvas.fehlersuchPfadBerechnen(startId)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1272,6 +1403,7 @@ ApplicationWindow {
                         hintergrundFarbe:        root.aktivProjektHintergrund
                         elementeModel:           elementeModel3
                         ibnModus:                true
+                        fehlersuchModus:         root.ibnWerkzeug === "fehlersuche"
                         ibnStatusMap:            ibnAnsicht.statusMap
 
                         onHintergrundGeaendert: function(farbe) {
@@ -1325,96 +1457,6 @@ ApplicationWindow {
                 projektId:    root.aktivProjektId
                 seiteId:      root.aktivSeiteId
                 debug:        root.debugModeAktiv
-            }
-
-            // ── Fehlersuchmodus ────────────────────────────────────────
-            Item {
-                id:           fehlersuchBereich
-                anchors.fill: parent
-                visible:      root.aktiveAnsicht === "fehlersuche"
-
-                // Anzeige-Toggle (Signaltyp/Aderfarbe) bei jedem erneuten
-                // Eintritt in den Fehlersuchmodus auf Kategorie-Default zurücksetzen
-                onVisibleChanged: if (visible) fehlersuchCanvas.fehlersuchZeigeAderfarbe = false
-
-                SplitView {
-                    anchors.fill: parent
-                    orientation:  Qt.Horizontal
-                    handle: Rectangle {
-                        implicitWidth: 5
-                        color: SplitHandle.pressed ? appTheme.accent
-                             : SplitHandle.hovered  ? appTheme.activeItem : appTheme.border
-                    }
-
-                    FehlersuchAnsicht {
-                        id:                       fehlersuchAnsicht
-                        SplitView.preferredWidth: 320
-                        SplitView.minimumWidth:   200
-                        theme:                    appTheme
-                        projektId:                root.aktivProjektId
-                        seiteId:                  root.aktivSeiteId
-                        canvas:                   fehlersuchCanvas
-
-                        onGeschlossen: root.aktiveAnsicht = "seiten"
-
-                        onQuerverweisNavigieren: function(sid, x, y, partnerId) {
-                            if (sid !== root.aktivSeiteId) {
-                                fehlersuchCanvas._querverweisZielPos = { x: x, y: y }
-                                if (partnerId > 0)
-                                    fehlersuchCanvas._fehlersuchAutoStartId = partnerId
-                                root.aktivSeiteId = sid
-                            } else {
-                                fehlersuchCanvas._zoomZuWeltPosition(x, y)
-                                if (partnerId > 0)
-                                    fehlersuchCanvas.fehlersuchPfadBerechnen(partnerId)
-                            }
-                        }
-
-                        onFehlersuchNavigieren: function(sid, cx, cy, elementId) {
-                            if (sid !== root.aktivSeiteId) {
-                                fehlersuchCanvas._querverweisZielPos  = { x: cx, y: cy }
-                                if (elementId > 0)
-                                    fehlersuchCanvas._fehlersuchAutoStartId = elementId
-                                root.aktivSeiteId = sid
-                            } else {
-                                fehlersuchCanvas._zoomZuWeltPosition(cx, cy)
-                                if (elementId > 0)
-                                    fehlersuchCanvas.fehlersuchPfadBerechnen(elementId)
-                            }
-                        }
-
-                        onHistoriNavigieren: function(sid, startId) {
-                            if (sid !== root.aktivSeiteId) {
-                                fehlersuchCanvas._fehlersuchAutoStartId = startId
-                                root.aktivSeiteId = sid
-                            } else {
-                                fehlersuchCanvas.fehlersuchPfadBerechnen(startId)
-                            }
-                        }
-                    }
-
-                    SchaltplanCanvas {
-                        id:                      fehlersuchCanvas
-                        SplitView.fillWidth:     true
-                        theme:                   appTheme
-                        debug:                   root.debugModeAktiv
-                        seiteId:                 root.aktivSeiteId
-                        projektId:               root.aktivProjektId
-                        seiteName:               root.aktivSeiteName
-                        hintergrundFarbe:        root.aktivProjektHintergrund
-                        elementeModel:           elementeModel4
-                        ibnModus:                true
-                        fehlersuchModus:         true
-
-                        onHintergrundGeaendert: function(farbe) {
-                            root.aktivProjektHintergrund = farbe
-                            db.projektHintergrundSpeichern(root.aktivProjektId, farbe)
-                        }
-                        onQuerverweisNavigieren: function(sid) {
-                            root.aktivSeiteId = sid
-                        }
-                    }
-                }
             }
 
             // ── Errungenschaften ───────────────────────────────────────
@@ -1697,7 +1739,7 @@ ApplicationWindow {
     Shortcut { sequence: "F"; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c&&!c.textEditAktiv) c.querverweisZurGegenseiteNavigieren() } }
     Shortcut { sequence: "Ctrl+M"; context: Qt.ApplicationShortcut; onActivated: { var c=root.aktiverCanvas; if(root.aktiveAnsicht==="seiten"&&c) c.minimapSichtbar=!c.minimapSichtbar } }
     Shortcut { sequence: "Ctrl+J"; context: Qt.ApplicationShortcut; enabled: root.aktivProjektId >= 0; onActivated: root.suchPanelOffen = !root.suchPanelOffen }
-    Shortcut { sequence: "Ctrl+F"; context: Qt.ApplicationShortcut; enabled: root.aktivProjektId >= 0 && root.aktiveAnsicht === "fehlersuche"; onActivated: fehlersuchAnsicht.suchfeldOeffnen() }
+    Shortcut { sequence: "Ctrl+F"; context: Qt.ApplicationShortcut; enabled: root.aktivProjektId >= 0 && root.aktiveAnsicht === "ibn" && root.ibnWerkzeug === "fehlersuche"; onActivated: fehlersuchAnsicht.suchfeldOeffnen() }
     // GIT-01: Explizites Speichern + Auto-Commit
     Shortcut {
         sequence: "Ctrl+S"
@@ -1714,9 +1756,9 @@ ApplicationWindow {
         var c = root.aktiverCanvas
         if (root.aktiveAnsicht === "seiten" && c) c.handleEscape()
         else if (root.aktiveAnsicht === "symbol_editor") { symbolEditorAnsicht.werkzeugPunkte = []; symbolEditorAnsicht.repaintAll() }
-        else if (root.aktiveAnsicht === "fehlersuche") {
+        else if (root.aktiveAnsicht === "ibn" && root.ibnWerkzeug === "fehlersuche") {
             if (fehlersuchAnsicht.suchfeldAktiv) fehlersuchAnsicht.suchfeldSchliessen()
-            else fehlersuchCanvas.fehlersuchPfadZuruecksetzen()
+            else ibnCanvas.fehlersuchPfadZuruecksetzen()
         }
     } }
 
@@ -1787,7 +1829,7 @@ ApplicationWindow {
     Shortcut {
         sequence: "F1"; context: Qt.ApplicationShortcut
         onActivated: {
-            var titel = root.f1KontextArtikel[root.aktiveAnsicht]
+            var titel = root.f1KontextArtikel[(root.aktiveAnsicht === "ibn" && root.ibnWerkzeug === "fehlersuche") ? "fehlersuche" : root.aktiveAnsicht]
             if (titel && wikiAnsicht.oeffneArtikelNachTitel(titel))
                 root.aktiveAnsicht = "wiki"
             else

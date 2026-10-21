@@ -10,6 +10,9 @@ Item {
     property int projektId: -1
     property int seiteId:   -1
 
+    // IBN-Stände der Betriebsmittel (bmk -> offen | in_arbeit | abgeschlossen), aus der IBN-Ansicht (FS-IBN-01)
+    property var ibnStatus: ({})
+
     // Referenz auf den rechts platzierten SchaltplanCanvas
     property var canvas: null
 
@@ -155,7 +158,7 @@ Item {
                         contentItem: Text { text: "✕"; color: theme.textMuted; font.pixelSize: 14;
                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         background: Rectangle { color: parent.hovered ? theme.hover : "transparent"; radius: 4 }
-                        ToolTip.visible: hovered; ToolTip.text: qsTr("Fehlersuchmodus schliessen (Esc)")
+                        ToolTip.visible: hovered; ToolTip.text: qsTr("Fehlersuche beenden, zurück zum Prüfen")
                         ToolTip.delay: 600
                         onClicked: root.geschlossen()
                     }
@@ -733,6 +736,26 @@ Item {
                                     text: modelData
                                     font.pixelSize: 11
                                     color: theme.textPrimary
+                                }
+
+                                // IBN-Stand des Betriebsmittels (FS-IBN-01); fehlt der Eintrag (z. B. nicht im Prüfumfang), steht nichts
+                                Row {
+                                    readonly property string st: root.ibnStatus[modelData] || ""
+                                    visible: st !== ""
+                                    anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
+                                    spacing: 5
+                                    Rectangle {
+                                        width: 8; height: 8; radius: 4
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: parent.st === "abgeschlossen" ? "#3cb371"
+                                             : parent.st === "in_arbeit"     ? "#f0a030" : "#cc4444"
+                                    }
+                                    Text {
+                                        font.pixelSize: 10
+                                        color: theme.textMuted
+                                        text: parent.st === "abgeschlossen" ? qsTr("geprüft")
+                                            : parent.st === "in_arbeit"     ? qsTr("in Arbeit") : qsTr("offen")
+                                    }
                                 }
                             }
                         }

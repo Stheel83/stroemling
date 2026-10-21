@@ -324,8 +324,7 @@ int main(int argc, char *argv[])
     AktivitaetsMonitor           aktivitaetsMonitor;
     ElementeModel               elementeModel1;
     ElementeModel               elementeModel2;
-    ElementeModel               elementeModel3;   // IBN-Canvas
-    ElementeModel               elementeModel4;   // Fehlersuch-Canvas
+    ElementeModel               elementeModel3;   // IBN-Canvas (auch Fehlersuche, FS-IBN-01)
     ElementeModel               elementeModel5;   // unsichtbarer Berechnungs-Canvas (Kabelliste Von/Nach, alle Seiten)
 
     // QML Engine starten
@@ -353,7 +352,6 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("elementeModel1",       &elementeModel1);
     engine.rootContext()->setContextProperty("elementeModel2",       &elementeModel2);
     engine.rootContext()->setContextProperty("elementeModel3",       &elementeModel3);
-    engine.rootContext()->setContextProperty("elementeModel4",       &elementeModel4);
     engine.rootContext()->setContextProperty("elementeModel5",       &elementeModel5);
     engine.rootContext()->setContextProperty("buildDatum",           QString(BUILD_DATE));
     engine.rootContext()->setContextProperty("appVersion",            QString(APP_VERSION));

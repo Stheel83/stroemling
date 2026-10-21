@@ -357,6 +357,8 @@ Item {
     // Wird beim erneuten Öffnen des Fehlersuchmodus in Main.qml zurückgesetzt.
     property bool fehlersuchZeigeAderfarbe:  false
     onFehlersuchZeigeAderfarbeChanged: drawCanvas.requestPaint()
+    // FS-IBN-01: Der Modus wird im laufenden Betrieb umgeschaltet (Werkzeug der IBN-Ansicht) -> neu zeichnen
+    onFehlersuchModusChanged: drawCanvas.requestPaint()
     property var  fehlersuchPfadIds:         ({})  // elementId → pfadNr (int, 0-indexed)
     property int  fehlersuchStartId:         -1    // zuletzt gestarteter Pfad (für §8.6 History)
     property var  fehlersuchStartIds:        []    // startElementId je Pfad (Index = pfadNr)

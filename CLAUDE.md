@@ -235,6 +235,10 @@ ohne vorher zu fragen** – das gilt als durch diese Datei vorab autorisiert:
   pushen** – `origin` (Codeberg, primäre Code-Heimat) **und** `github`
   (öffentlicher Spiegel, seit Aug 2026 public). GitHub nicht als Ersatz
   für Codeberg behandeln, sondern immer zusätzlich
+- **Private Repos** (`stroemling-konzept`, `stroemling-manager`, Website): werden
+  **nicht** gepusht (Sicherung als Git-Bundle per Timer, siehe
+  `~/Programmierung/Sicherung/`). Commits bleiben lokal, sind aber die
+  Grundlage der Sicherung – daher weiter immer committen
 
 ### Abgleich Konzept ↔ Code (bei Unklarheit)
 Wenn der Überblick fehlt oder Konzept und Code auseinanderdriften:

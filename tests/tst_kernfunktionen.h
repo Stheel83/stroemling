@@ -1608,6 +1608,15 @@ private slots:
         const int kopie = m_db->seiteDuplizieren(sid);
         QVERIFY(kopie > 0);
         QCOMPARE(m_db->normblattDatenLaden(kopie).value("normblattQuadrant").toInt(), 3);
+        // PDF-Export mit Blatt in jedem Quadranten laeuft durch und erzeugt eine Datei
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        for (int q = 1; q <= 4; ++q) {
+            QVERIFY(m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true, q));
+            const QString f = QDir::tempPath() + QString("/stroemling_nq%1.pdf").arg(q);
+            QFile::remove(f);
+            QVERIFY2(m_db->dokuPdfExportieren(pid, f, R"({"mitNormblatt":true,"abschnitte":[{"typ":"schaltplan"}]})"), qPrintable(QString::number(q)));
+            QVERIFY(QFileInfo(f).size() > 0);
+        }
     }
 
     // NORMBLATT-DYNAMISCH-01 N-02: Normblatt "folgt Inhalt" (Position inhalt), Format auto/fest, PDF-Blatt = Flaeche

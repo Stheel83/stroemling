@@ -97,6 +97,9 @@ Item {
     function _abschnittAktiv(typ) {
         var abhaengigkeit = abschnittVersion   // registriert die Abhängigkeit in aufrufenden Bindings
         if (abhaengigkeit < 0) return false
+        // SPS/PLS ohne Daten zählt nie als aktiv, auch wenn der gespeicherte Zustand („zuletzt benutzt“, Vorlage) es noch anhakt –
+        // das Häkchen ist dann gesperrt und der Export sonst dauerhaft blockiert
+        if (typ === "sps_io" && !_spsVorhanden) return false
         for (var i = 0; i < abschnittModel.count; i++)
             if (abschnittModel.get(i).typ === typ) return abschnittModel.get(i).aktiv
         return false
@@ -239,6 +242,7 @@ Item {
         for (var i = 0; i < abschnittModel.count; i++) {
             var a = abschnittModel.get(i)
             if (!a.aktiv) continue
+            if (a.typ === "sps_io" && !root._spsVorhanden) continue   // ohne SPS/PLS-Daten entfällt der Abschnitt
             if (a.typ === "deckblatt")
                 abs.push({ typ: "deckblatt", titelzusatz: root.titelzusatz, logo: root.logoAn,
                            vorlageId: _deckblattVorlageId() })
@@ -267,7 +271,7 @@ Item {
         var version = abschnittVersion
         var irgendeinAktiv = version < 0
         for (var i = 0; i < abschnittModel.count; i++)
-            if (abschnittModel.get(i).aktiv && !_listeLeer(abschnittModel.get(i).typ)) irgendeinAktiv = true
+            if (_abschnittAktiv(abschnittModel.get(i).typ) && !_listeLeer(abschnittModel.get(i).typ)) irgendeinAktiv = true
         if (!irgendeinAktiv) return false
         if (_abschnittAktiv("schaltplan") && gewaehlteSeiten === 0) return false
         if (_abschnittAktiv("sps_io") && !_spsVorhanden) return false
@@ -574,7 +578,7 @@ Item {
                             Kaestchen {
                                 Layout.fillWidth: true
                                 beschriftung: zeile.titel
-                                wert: zeile.aktiv
+                                wert: zeile.aktiv && (zeile.typ !== "sps_io" || root._spsVorhanden)
                                 enabled: (zeile.typ !== "sps_io" || root._spsVorhanden) && !root._listeLeer(zeile.typ)
                                 onUmgeschaltet: function(neu) {
                                     abschnittModel.setProperty(zeile.index, "aktiv", neu)

@@ -32,6 +32,9 @@ Dialog {
     readonly property string blattkopf: _blattkoepfe[Math.max(0, editBlattkopf.currentIndex)]
     // Normblatt-Position: "fest" (Blatt bei 0,0 im gewählten Format) | "inhalt" (Rahmen/Schriftfeld folgen den Elementen, N-02)
     readonly property string position: editPosition.currentIndex === 0 ? "fest" : "inhalt"
+    // Quadrant des festen Blatts, mathematisch nummeriert (NORMBLATT-QUADRANT-01): Combo-Reihenfolge IV, I, II, III (Standard zuerst)
+    readonly property var _quadranten: [4, 1, 2, 3]
+    readonly property int quadrant: _quadranten[Math.max(0, editQuadrant.currentIndex)]
 
     height: Math.min(implicitHeight, 680)
     background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
@@ -48,6 +51,7 @@ Dialog {
         var bk = normblattPanel.laden(root.itemId)
         editBlattkopf.currentIndex = Math.max(0, root._blattkoepfe.indexOf(bk))
         editPosition.currentIndex = normblattPanel.geladenePosition === "inhalt" ? 1 : 0
+        editQuadrant.currentIndex = Math.max(0, root._quadranten.indexOf(normblattPanel.geladenerQuadrant))
     }
 
     contentItem: ColumnLayout {
@@ -94,6 +98,19 @@ Dialog {
             ToolTip.text: qsTr("Fest: du zeichnest in den vorgegebenen Rahmen.\nFolgt dem Inhalt: Rahmen und Schriftfeld passen sich den Elementen an.")
             background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
             contentItem: Text { leftPadding: 8; text: editPosition.displayText; color: root.theme.textPrimary;
+                                font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        }
+        Text { text: qsTr("Quadrant"); color: root.theme.textMuted; font.pixelSize: 12
+               visible: root.blattkopf === "schriftfeld" && root.position === "fest" }
+        ComboBox {
+            id: editQuadrant; Layout.fillWidth: true
+            visible: root.blattkopf === "schriftfeld" && root.position === "fest"
+            model: [qsTr("IV  ↘  rechts unten (Standard)"), qsTr("I  ↗  rechts oben"),
+                    qsTr("II  ↖  links oben"), qsTr("III  ↙  links unten")]
+            ToolTip.visible: hovered; ToolTip.delay: 600
+            ToolTip.text: qsTr("In welchem Quadranten des Achsenkreuzes (Ursprung 0,0) das Blatt liegt – mathematisch nummeriert: I rechts oben, II links oben, III links unten, IV rechts unten. Das Blatt liegt mit einer Ecke im Ursprung an den Achsen an.")
+            background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
+            contentItem: Text { leftPadding: 8; text: editQuadrant.displayText; color: root.theme.textPrimary;
                                 font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         }
         Text { text: qsTr("Format"); color: root.theme.textMuted; font.pixelSize: 12
@@ -146,6 +163,7 @@ Dialog {
             theme: root.theme
             blattkopf: root.blattkopf
             position: root.position
+            quadrant: root.quadrant
             seiteId: root.itemId
         }
         } // ColumnLayout (ScrollView content)

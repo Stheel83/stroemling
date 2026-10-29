@@ -74,7 +74,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
                s.breite_mm, s.hoehe_mm, s.normblatt_anzeigen,
                s.hintergrund_farbe, s.aussen_overlay, s.titelblatt_vorlage,
                s.revision_status, s.revision_kennung, s.in_doku_pdf, s.geaendert_am,
-               s.normblatt_position, s.normblatt_format, s.normblatt_ausrichtung, s.normblatt_rahmen,
+               s.normblatt_position, s.normblatt_format, s.normblatt_ausrichtung, s.normblatt_rahmen, s.normblatt_quadrant,
                p.name         AS projekt_name,
                p.projektnummer,
                p.auftraggeber,
@@ -185,6 +185,7 @@ QVariantMap Database::normblattDatenLaden(int seiteId)
         const QString fm = q.value("normblatt_format").toString();
         const QSizeF fmt = blattFormatMm(fm, 0, 0);
         m[QStringLiteral("normblattPosition")]    = q.value("normblatt_position");
+        m[QStringLiteral("normblattQuadrant")]    = q.value("normblatt_quadrant").toInt();
         m[QStringLiteral("normblattFormat")]      = fm;
         m[QStringLiteral("normblattAusrichtung")] = q.value("normblatt_ausrichtung");
         m[QStringLiteral("normblattRahmen")]      = q.value("normblatt_rahmen").toInt() != 0;
@@ -270,19 +271,20 @@ QSizeF Database::blattFormatMm(const QString &modus, double seiteBreiteMm, doubl
 }
 
 bool Database::seiteNormblattLageSetzen(int seiteId, const QString &position, const QString &format,
-                                        const QString &ausrichtung, bool rahmen)
+                                        const QString &ausrichtung, bool rahmen, int quadrant)
 {
     static const QStringList formate = {"auto", "a4", "a3", "a2", "a1", "a0", "canvas"};
     if ((position != QLatin1String("fest") && position != QLatin1String("inhalt")) || !formate.contains(format)
-        || (ausrichtung != QLatin1String("links") && ausrichtung != QLatin1String("rechts"))) {
+        || (ausrichtung != QLatin1String("links") && ausrichtung != QLatin1String("rechts"))
+        || quadrant < 1 || quadrant > 4) {
         qCWarning(lcDb) << "seiteNormblattLageSetzen: ungueltige Werte" << position << format << ausrichtung;
         return false;
     }
     QSqlQuery q(m_db);
     q.prepare("UPDATE seite SET normblatt_position = :p, normblatt_format = :f, normblatt_ausrichtung = :a, "
-              "normblatt_rahmen = :r WHERE id = :sid");
+              "normblatt_rahmen = :r, normblatt_quadrant = :q WHERE id = :sid");
     q.bindValue(":p", position); q.bindValue(":f", format); q.bindValue(":a", ausrichtung);
-    q.bindValue(":r", rahmen ? 1 : 0); q.bindValue(":sid", seiteId);
+    q.bindValue(":r", rahmen ? 1 : 0); q.bindValue(":q", quadrant); q.bindValue(":sid", seiteId);
     if (!q.exec()) {
         qCWarning(lcDb) << "seiteNormblattLageSetzen:" << q.lastError().text();
         return false;
@@ -335,9 +337,21 @@ static QRectF normblattFlaecheBerechnen(const QRectF &box, const QSizeF &fmtVorg
     return QRectF(rahmenLinks - rl, rahmenUnten + ru - fmt.height(), fmt.width(), fmt.height());
 }
 
+// Blatt bei Position "fest" im gewaehlten Quadranten (NORMBLATT-QUADRANT-01): Ecke im Ursprung, Blatt liegt an den Achsen an.
+// Quadrant 4 (rechts-unten, Bildschirm-y nach unten) ist der Ursprungszustand -> leeres Rechteck wie bisher.
+static QRectF normblattQuadrantFlaeche(int quadrant, double b, double h)
+{
+    if (quadrant == 1) return QRectF(0, -h, b, h);
+    if (quadrant == 2) return QRectF(-b, -h, b, h);
+    if (quadrant == 3) return QRectF(-b, 0, b, h);
+    return {};
+}
+
 QRectF Database::normblattFlaecheMm(int seiteId, const QVariantMap &nb)
 {
-    if (nb.value("normblattPosition").toString() != QLatin1String("inhalt")) return {};
+    if (nb.value("normblattPosition").toString() != QLatin1String("inhalt"))
+        return normblattQuadrantFlaeche(nb.value("normblattQuadrant", 4).toInt(),
+                                        nb.value("breiteMm", 297.0).toDouble(), nb.value("hoeheMm", 210.0).toDouble());
     QRectF box;
     if (!elementeBoxMm(m_db, seiteId, box)) return {};
     return normblattFlaecheBerechnen(box,
@@ -728,7 +742,7 @@ int Database::seiteDuplizieren(int seiteId)
                "       normblatt_anzeigen, normblatt_id, "
                "       rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm, "
                "       breite_mm, hoehe_mm, ausrichtung, in_doku_pdf, "
-               "       normblatt_position, normblatt_format, normblatt_ausrichtung, normblatt_rahmen, "
+               "       normblatt_position, normblatt_format, normblatt_ausrichtung, normblatt_rahmen, normblatt_quadrant, "
                "       titelblatt_vorlage, hintergrund_farbe, aussen_overlay "
                "FROM seite WHERE id = :sid");
     qs.bindValue(":sid", seiteId);
@@ -749,9 +763,9 @@ int Database::seiteDuplizieren(int seiteId)
                            normblatt_anzeigen, normblatt_id,
                            rand_links_mm, rand_rechts_mm, rand_oben_mm, rand_unten_mm,
                            breite_mm, hoehe_mm, ausrichtung, in_doku_pdf,
-                           normblatt_position, normblatt_format, normblatt_ausrichtung, normblatt_rahmen,
+                           normblatt_position, normblatt_format, normblatt_ausrichtung, normblatt_rahmen, normblatt_quadrant,
                            titelblatt_vorlage, hintergrund_farbe, aussen_overlay)
-        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus,:idp,:np,:nf,:nau,:nr,:tv,:hf,:ao)
+        VALUES (:oid,:bn,:bez,:st,:na,:nv,:rl,:rr,:ro,:ru,:bw,:bh,:aus,:idp,:np,:nf,:nau,:nr,:nq,:tv,:hf,:ao)
     )");
     qi.bindValue(":oid",  qs.value(0));
     qi.bindValue(":bn",   neueBlattnummer);
@@ -771,9 +785,10 @@ int Database::seiteDuplizieren(int seiteId)
     qi.bindValue(":nf",   qs.value(15));
     qi.bindValue(":nau",  qs.value(16));
     qi.bindValue(":nr",   qs.value(17));
-    qi.bindValue(":tv",   qs.value(18));
-    qi.bindValue(":hf",   qs.value(19));
-    qi.bindValue(":ao",   qs.value(20));
+    qi.bindValue(":nq",   qs.value(18));
+    qi.bindValue(":tv",   qs.value(19));
+    qi.bindValue(":hf",   qs.value(20));
+    qi.bindValue(":ao",   qs.value(21));
     if (!qi.exec()) {
         qCWarning(lcDb) << "seiteDuplizieren: neue Seite anlegen:" << qi.lastError().text();
         m_db.rollback();

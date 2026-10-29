@@ -472,9 +472,12 @@ public:
     // DOKU-PDF-01: Seite im Dokumentations-PDF (Schaltplan-Abschnitt) enthalten?
     // Lesen über normblattDatenLaden()["inDokuPdf"].
     Q_INVOKABLE bool seiteInDokuPdfSetzen(int seiteId, bool inDokuPdf);
-    // Normblatt je Seite (N-02): position fest|inhalt, format auto|a4..a0|canvas, ausrichtung links|rechts, rahmen
+    // Normblatt je Seite (N-02): position fest|inhalt, format auto|a4..a0|canvas, ausrichtung links|rechts, rahmen,
+    // quadrant 1..4 (mathematisch, nur Position fest; NORMBLATT-QUADRANT-01)
     Q_INVOKABLE bool seiteNormblattLageSetzen(int seiteId, const QString &position, const QString &format,
-                                              const QString &ausrichtung, bool rahmen);
+                                              const QString &ausrichtung, bool rahmen, int quadrant = 4);
+    // Blatt-Fläche (mm) bei Position "inhalt" bzw. fest im Quadranten 1–3; leer = Blatt am Ursprung (öffentlich für Tests)
+    QRectF normblattFlaecheMm(int seiteId, const QVariantMap &nb);
     // true, wenn die Elemente (+ Abstand, Ränder, Schriftfeld) nicht in das feste Format passen (Position "inhalt")
     Q_INVOKABLE bool normblattInhaltZuGross(int seiteId, const QString &format, const QString &vorlage);
 
@@ -1225,7 +1228,6 @@ private:
                                       bool ersteSeiteNeu);
     QSizeF pdfSchaltplanSeitenGroesseMm(int seiteId, bool mitNormblatt);
     // Blatt-Flaeche (mm) des Normblatts bei Position "inhalt"; ungueltig = Position fest / keine Elemente
-    QRectF normblattFlaecheMm(int seiteId, const QVariantMap &nb);
     QList<int> dokuPdfSeitenIds(int projektId);
 
     // Version prüfen; bei Mismatch alle Objekte löschen + neu erstellen

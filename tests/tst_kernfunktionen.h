@@ -1584,6 +1584,32 @@ private slots:
         QVERIFY(m_db->normblattVorlageLoeschen(eigen));
     }
 
+    // NORMBLATT-QUADRANT-01: Blatt bei Position "fest" im gewaehlten Quadranten (an den Achsen anliegend)
+    void normblatt_quadrant_01_fest()
+    {
+        neueSeite("NQ1");
+        const int sid = einWert("SELECT id FROM seite ORDER BY id DESC LIMIT 1").toInt();
+        QCOMPARE(m_db->normblattDatenLaden(sid).value("normblattQuadrant").toInt(), 4);   // Standard = bisheriges Verhalten
+        QVERIFY(m_db->normblattEinstellungenSetzen(sid, true, QStringLiteral(""), false, QStringLiteral("din6771"), 0));
+        QVERIFY(m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true));
+        QVariantMap nb = m_db->normblattDatenLaden(sid);
+        const double b = nb.value("breiteMm").toDouble(), h = nb.value("hoeheMm").toDouble();
+        QVERIFY(!m_db->normblattFlaecheMm(sid, nb).isValid());                             // IV: Ursprung, wie bisher
+        const QRectF erw[] = { {0, -h, b, h}, {-b, -h, b, h}, {-b, 0, b, h} };
+        for (int q = 1; q <= 3; ++q) {
+            QVERIFY(m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true, q));
+            nb = m_db->normblattDatenLaden(sid);
+            QCOMPARE(nb.value("normblattQuadrant").toInt(), q);
+            QCOMPARE(m_db->normblattFlaecheMm(sid, nb), erw[q - 1]);
+        }
+        QVERIFY(!m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true, 5));
+        QVERIFY(!m_db->seiteNormblattLageSetzen(sid, "fest", "auto", "links", true, 0));
+        // Duplizieren uebernimmt den Quadranten
+        const int kopie = m_db->seiteDuplizieren(sid);
+        QVERIFY(kopie > 0);
+        QCOMPARE(m_db->normblattDatenLaden(kopie).value("normblattQuadrant").toInt(), 3);
+    }
+
     // NORMBLATT-DYNAMISCH-01 N-02: Normblatt "folgt Inhalt" (Position inhalt), Format auto/fest, PDF-Blatt = Flaeche
     void normblatt_dynamisch_02_inhalt()
     {

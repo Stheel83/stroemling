@@ -69,11 +69,24 @@ QtObject {
         ctx.closePath()
     }
 
+    // Blatt bei Position "fest" im gewählten Quadranten (NORMBLATT-QUADRANT-01, Konzept 54 §14): Ecke im Ursprung, Blatt liegt an den Achsen an.
+    // Mathematisch nummeriert (1 rechts-oben, 2 links-oben, 3 links-unten, 4 rechts-unten = Ursprungszustand → null).
+    function normblattQuadrantFlaeche(nd) {
+        var q = nd.normblattQuadrant || 4
+        var w = nd.breiteMm || 297, h = nd.hoeheMm || 210
+        if (q === 1) return { l: 0,  t: -h, w: w, h: h }
+        if (q === 2) return { l: -w, t: -h, w: w, h: h }
+        if (q === 3) return { l: -w, t: 0,  w: w, h: h }
+        return null
+    }
+
     // Blatt-Fläche (mm) des Normblatts bei Position "inhalt" (NORMBLATT-DYNAMISCH-01 N-02, Konzept 54 §3.1):
-    // {l, t, w, h} oder null (Position fest, eigene Vorlage, keine Elemente). Spiegel von Database::normblattFlaecheMm().
+    // {l, t, w, h} oder null (Position fest im Quadranten 4 = Ursprung, keine Elemente). Spiegel von Database::normblattFlaecheMm().
+    // Position fest: Quadranten-Fläche (NORMBLATT-QUADRANT-01).
     // Ränder = Papierrand → Rahmen, P = 10 mm Abstand Inhalt → Rahmen, Schriftfeld unten im Rahmen.
     function normblattFlaecheMm(nd, elemente) {
-        if (!nd || !nd.normblattAnzeigen || nd.normblattPosition !== "inhalt") return null
+        if (!nd || !nd.normblattAnzeigen) return null
+        if (nd.normblattPosition !== "inhalt") return normblattQuadrantFlaeche(nd)
         if (!elemente || elemente.length === 0) return null
         var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
         for (var i = 0; i < elemente.length; i++) {
@@ -109,7 +122,7 @@ QtObject {
     // Rechteck der Seite/des Blatts in mm für Zoom, Minimap und Außen-Overlay: Blatt-Fläche bei "inhalt", sonst (0,0,Breite,Höhe)
     function normblattSeitenRechteck(nd, elemente) {
         if (!nd) return null
-        var f = normblattFlaecheMm(nd, elemente)
+        var f = nd.normblattPosition === "inhalt" ? normblattFlaecheMm(nd, elemente) : normblattQuadrantFlaeche(nd)
         if (f) return f
         return { l: 0, t: 0, w: nd.breiteMm || 297, h: nd.hoeheMm || 210 }
     }

@@ -14,6 +14,9 @@ ColumnLayout {
     property int    seiteId: -1
     readonly property bool positionInhalt: normblattAn && position === "inhalt"
     property string geladenePosition: "fest"
+    // Quadrant des festen Blatts (mathematisch 1..4, Standard 4 = rechts unten; NORMBLATT-QUADRANT-01), vom Dialog gesetzt
+    property int    quadrant: 4
+    property int    geladenerQuadrant: 4
     readonly property var _nbFormate: ["auto", "a4", "a3", "a2", "a1", "a0", "canvas"]
     property bool _nbZuGross: false
     function _nbPruefen() {
@@ -48,6 +51,7 @@ ColumnLayout {
             cmbRevisionStatus.currentIndex = ri >= 0 ? ri : 0
             tfRevisionKennung.text = nd.revisionKennung || ""
             root.geladenePosition = nd.normblattPosition === "inhalt" ? "inhalt" : "fest"
+            root.geladenerQuadrant = nd.normblattQuadrant >= 1 && nd.normblattQuadrant <= 4 ? nd.normblattQuadrant : 4
             var nfi = root._nbFormate.indexOf(nd.normblattFormat || "auto")
             cmbNbFormat.currentIndex = nfi >= 0 ? nfi : 0
             cmbNbAusrichtung.currentIndex = nd.normblattAusrichtung === "rechts" ? 1 : 0
@@ -72,7 +76,8 @@ ColumnLayout {
                                     root.normblattAn ? root.position : "fest",
                                     root._nbFormate[Math.max(0, cmbNbFormat.currentIndex)],
                                     cmbNbAusrichtung.currentIndex === 1 ? "rechts" : "links",
-                                    chkRahmen.checked)
+                                    chkRahmen.checked,
+                                    root.quadrant)
         db.seiteRevisionSetzen(
             seiteId,
             cmbRevisionStatus.currentText,

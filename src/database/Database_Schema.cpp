@@ -3176,6 +3176,9 @@ static QList<SchemaMigration> alleMigrationen()
             ))",
             R"(CREATE INDEX IF NOT EXISTS idx_fs_befund_seite ON fs_befund(projekt_id, seite_id))",
         }},
+        { 182, "NORMBLATT-QUADRANT-01 (konzept/features/54 §14): seite.normblatt_quadrant (1..4, mathematisch: 1 rechts-oben, 2 links-oben, 3 links-unten, 4 rechts-unten, Default 4 = bisheriges Verhalten) - Canvas-Quadrant, in dem das Blatt bei Position 'fest' an den Achsen anliegt.", {
+            R"(ALTER TABLE seite ADD COLUMN normblatt_quadrant INTEGER NOT NULL DEFAULT 4 CHECK (normblatt_quadrant BETWEEN 1 AND 4))",
+        }},
     };
     std::sort(migrationen.begin(), migrationen.end(),
               [](const SchemaMigration &a, const SchemaMigration &b) { return a.version < b.version; });

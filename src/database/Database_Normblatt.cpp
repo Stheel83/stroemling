@@ -400,8 +400,9 @@ bool Database::seiteRevisionSetzen(int seiteId, const QString &status, const QSt
 {
     QSqlQuery q(m_db);
     q.prepare("UPDATE seite SET revision_status = :st, revision_kennung = :kn WHERE id = :sid");
-    q.bindValue(":st",  status);
-    q.bindValue(":kn",  kennung);
+    // Spalten sind NOT NULL DEFAULT '': eine NULL-QString (QML liefert sie fuer "Kein Status") waere SQL-NULL
+    q.bindValue(":st",  status.isNull()  ? QStringLiteral("") : status);
+    q.bindValue(":kn",  kennung.isNull() ? QStringLiteral("") : kennung);
     q.bindValue(":sid", seiteId);
     if (!q.exec()) {
         qCWarning(lcDb) << "seiteRevisionSetzen:" << q.lastError().text();

@@ -1096,6 +1096,17 @@ private slots:
         return n;
     }
 
+    // REVISION-STATUS-NULL-01: QML liefert fuer "Kein Status" eine NULL-QString -> NOT NULL constraint failed
+    void revision_status_nullString()
+    {
+        const int sid = neueSeite("1");
+        QVERIFY(m_db->seiteRevisionSetzen(sid, QString(), QString()));
+        QCOMPARE(einWert(QString("SELECT revision_status FROM seite WHERE id = %1").arg(sid)).toString(), QString(""));
+        QVERIFY(m_db->seiteRevisionSetzen(sid, "entwurf", "A"));
+        QVERIFY(m_db->seiteRevisionSetzen(sid, QString(), QString()));
+        QCOMPARE(einWert(QString("SELECT revision_kennung FROM seite WHERE id = %1").arg(sid)).toString(), QString(""));
+    }
+
     void doku_pdf_01_seitenFlag()
     {
         const int a = neueSeite("DP1");

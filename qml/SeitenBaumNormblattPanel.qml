@@ -169,7 +169,6 @@ ColumnLayout {
         text: qsTr("Vorlage auswählen")
         color: root.theme.textMuted; font.pixelSize: 12
         visible: root.normblattAn && cmbVorlage.currentText === "benutzerdefiniert"
-        height: visible ? implicitHeight : 0
     }
     ComboBox {
         id: cmbVorlageAuswahl
@@ -358,13 +357,11 @@ ColumnLayout {
         text: qsTr("Revisionskennzeichen (z. B. A, B, 1.0)")
         color: root.theme.textMuted; font.pixelSize: 12
         visible: cmbRevisionStatus.currentText !== ""
-        height: visible ? implicitHeight : 0
     }
     TextField {
         id: tfRevisionKennung
         Layout.fillWidth: true
         visible: cmbRevisionStatus.currentText !== ""
-        height: visible ? implicitHeight : 0
         placeholderText: qsTr("leer lassen wenn nicht relevant")
         background: Rectangle { color: root.theme.inputBg; border.color: root.theme.border; radius: 4 }
         color: root.theme.textPrimary; font.pixelSize: 13

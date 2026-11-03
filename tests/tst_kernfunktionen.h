@@ -999,6 +999,24 @@ private slots:
         }
     }
 
+    // Zeitmessung des Dokumentations-PDFs an einer Projektkopie (STROEMLING_PDF_PROJEKT/_BIB/_AUSGABE).
+    void pdf_zeitmessung()
+    {
+        const QString proj = qEnvironmentVariable("STROEMLING_PDF_PROJEKT");
+        const QString bib  = qEnvironmentVariable("STROEMLING_PDF_BIB");
+        const QString aus  = qEnvironmentVariable("STROEMLING_PDF_ZEIT");
+        if (proj.isEmpty() || aus.isEmpty())
+            QSKIP("STROEMLING_PDF_PROJEKT/STROEMLING_PDF_ZEIT nicht gesetzt");
+        QDir().mkpath(aus);
+        m_db->closeProjekt();
+        if (!bib.isEmpty()) QVERIFY(m_db->openBibliothek(bib));
+        QVERIFY(m_db->openProjekt(proj));
+        const int pid = einWert("SELECT id FROM projekt LIMIT 1").toInt();
+        QElapsedTimer t; t.start();
+        QVERIFY(schaltplanPdf(pid, aus + "/zeit.pdf", true));
+        qInfo() << "GESAMT ms:" << t.elapsed();
+    }
+
     // Synthetisches Projekt für den PDF-Vergleich vor/nach Umbauten: deckt Symbol-Sonderfälle ab, die
     // ein reales Projekt evtl. nicht enthält (klemme_anschluss in allen Rotationen/BMK-Sichtbarkeiten,
     // Gegenstellen-Zeile, querverweis, potenzial, aderdefinition). Nur mit STROEMLING_PDF_SYNTH=<Ausgabeordner>.

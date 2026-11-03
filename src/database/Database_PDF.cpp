@@ -5,6 +5,8 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QBuffer>
+#include <QElapsedTimer>
+#include <QCoreApplication>
 #include <QFile>
 #include <QImage>
 #include <QSet>
@@ -111,6 +113,12 @@ int Database::pdfSchaltplanSeitenRendern(QPainter &painter, QPdfWriter &writer,
         if (normblattGezeichnet)
             pdfNormblattRendern(painter, nb, pxPerMm);
         pdfRevisionswasserzeichenRendern(painter, nb, bMm, hMm, pxPerMm);
+
+        // Fortschritt melden; Ereignisschleife kurz bedienen, damit das Fenster nicht einfriert
+        if (m_pdfFortschrittGesamt > 0) {
+            emit dokuPdfFortschritt(++m_pdfFortschrittFertig, m_pdfFortschrittGesamt);
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        }
     }
     return seiteIds.size();
 }
@@ -394,8 +402,13 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
                 }
                 seiten += pdfInhaltsverzeichnisRendern(painter, writer, eintraege, neu, seiten + 1, gesamtSeiten);
             } else if (a.typ == QLatin1String("schaltplan")) {
-                seiten += pdfSchaltplanSeitenRendern(painter, writer, opt.seiteIds,
-                                                     opt.mitNormblatt, neu);
+                // Probelauf (gesamtSeiten == 0) braucht nur die Seitenzahl: eine Schaltplan-Seite = eine PDF-Seite.
+                // Rendern wuerde die Zeit verdoppeln (Messung Stresstest: Probelauf = echter Lauf).
+                if (gesamtSeiten == 0)
+                    seiten += opt.seiteIds.size();
+                else
+                    seiten += pdfSchaltplanSeitenRendern(painter, writer, opt.seiteIds,
+                                                         opt.mitNormblatt, neu);
             } else if (a.typ == QLatin1String("liste")) {
                 seiten += pdfTabelleRendern(painter, writer, a.tabelle.value("titel").toString(),
                                             opt.projektName, a.tabelle.value("spalten").toStringList(),
@@ -423,6 +436,8 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
     };
 
     // 1) Dry-Run in einen Puffer: Gesamtseitenzahl
+    QElapsedTimer zeitmesser;
+    zeitmesser.start();
     int gesamt = 0;
     {
         QBuffer puffer;
@@ -431,12 +446,21 @@ bool Database::dokuPdfExportieren(int projektId, const QString &pfad, const QStr
         gesamt = durchlauf(dry, 0);
         if (gesamt < 0) return false;
     }
+    const qint64 dryMs = zeitmesser.elapsed();
 
     // 2) Echter Lauf
+    int schaltplanSeiten = 0;
+    for (const DokuAbschnitt &a : opt.abschnitte)
+        if (a.typ == QLatin1String("schaltplan")) schaltplanSeiten += opt.seiteIds.size();
+    m_pdfFortschrittFertig  = 0;
+    m_pdfFortschrittGesamt  = schaltplanSeiten;
     const QString localPath = QUrl(pfad).isLocalFile() ? QUrl(pfad).toLocalFile() : pfad;
     QPdfWriter writer(localPath);
     const int seiten = durchlauf(writer, gesamt);
+    m_pdfFortschrittGesamt = 0;
     if (seiten < 0) return false;
+    qCInfo(lcDb) << "dokuPdfExportieren: Zeit Dry-Run" << dryMs << "ms, echter Lauf"
+                 << (zeitmesser.elapsed() - dryMs) << "ms";
     qCInfo(lcDb) << "dokuPdfExportieren: PDF gespeichert:" << localPath << "(" << seiten << "Seiten,"
                  << opt.abschnitte.size() << "Abschnitte)";
     return QFile::exists(localPath);

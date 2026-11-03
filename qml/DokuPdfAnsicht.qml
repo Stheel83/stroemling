@@ -414,11 +414,70 @@ Item {
         titelText: qsTr("Dokumentations-PDF speichern")
         erfolgText: qsTr("Dokumentations-PDF gespeichert.")
         onExportAngefordert: function(pfad) {
-            var ok = db.dokuPdfExportieren(root.projektId, pfad, root._optionenJson())
+            // Export läuft synchron im GUI-Thread: erst Fortschrittsdialog zeigen (und einmal zeichnen lassen)
+            root._exportPfad = pfad
+            fortschritt.fertig = 0
+            fortschritt.gesamt = 0
+            fortschritt.open()
+            exportStarter.restart()
+        }
+    }
+
+    property string _exportPfad: ""
+
+    Timer {
+        id: exportStarter
+        interval: 60
+        onTriggered: {
+            var ok = db.dokuPdfExportieren(root.projektId, root._exportPfad, root._optionenJson())
+            fortschritt.close()
             pfadDialog.erfolgReagieren(ok)
             if (ok) {
                 einst.zuletzt = JSON.stringify(root._zustand())
                 achievementManager.ereignis("pdf_exportiert", { "seitenAnzahl": root.gewaehlteSeiten })
+            }
+        }
+    }
+
+    Connections {
+        target: db
+        function onDokuPdfFortschritt(fertig, gesamt) {
+            fortschritt.fertig = fertig
+            fortschritt.gesamt = gesamt
+        }
+    }
+
+    // ── Fortschrittsanzeige während des Exports ──────────────────
+    Popup {
+        id: fortschritt
+        property int fertig: 0
+        property int gesamt: 0
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 360
+        padding: 16
+        background: Rectangle { color: root.theme.sidebar; border.color: root.theme.border; border.width: 1; radius: 6 }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Text {
+                text: qsTr("Dokumentations-PDF wird erstellt …")
+                color: root.theme.textPrimary; font.pixelSize: 13; font.bold: true
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0; to: Math.max(1, fortschritt.gesamt)
+                value: fortschritt.fertig
+                indeterminate: fortschritt.gesamt === 0
+            }
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                color: root.theme.textMuted; font.pixelSize: 11
+                text: fortschritt.gesamt > 0
+                      ? qsTr("Schaltplan-Seite %1 von %2").arg(fortschritt.fertig).arg(fortschritt.gesamt)
+                      : qsTr("Bitte warten, das kann bei großen Projekten etwas dauern.")
             }
         }
     }

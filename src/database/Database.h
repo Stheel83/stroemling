@@ -196,6 +196,8 @@ public:
 
 Q_SIGNALS:
     void projektOffenChanged();
+    // Dokumentations-PDF: Fortschritt beim Rendern der Schaltplan-Seiten (fertig von gesamt)
+    void dokuPdfFortschritt(int fertig, int gesamt);
     void schreibschutzChanged();
     void ibnKopieChanged();
     void sperreVerweigert(const QString &text);   // VERT-02c: Toast-Text fuer verweigerte Aktionen
@@ -1354,6 +1356,8 @@ private:
                           QList<SpsExportGruppe> &gruppen, QString &fehler);
 
     QSqlDatabase m_db;
+    int m_pdfFortschrittGesamt = 0;    // > 0: dokuPdfExportieren meldet Fortschritt (nur echter Lauf)
+    int m_pdfFortschrittFertig = 0;
     int          m_grafikAenderungszaehler = 0;
     QSqlDatabase m_wikiDb;
     QSqlDatabase m_makroDb;
